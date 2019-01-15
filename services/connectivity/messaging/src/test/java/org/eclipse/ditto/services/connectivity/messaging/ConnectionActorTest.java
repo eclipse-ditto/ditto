@@ -24,8 +24,8 @@ import org.awaitility.Awaitility;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.test.Retry;
@@ -108,7 +108,7 @@ public final class ConnectionActorTest extends WithMockServers {
         connectionId = TestConstants.createRandomConnectionId();
         final Connection connection = TestConstants.createConnection(connectionId, actorSystem);
         final Connection closedConnection =
-                TestConstants.createConnection(connectionId, actorSystem, ConnectionStatus.CLOSED,
+                TestConstants.createConnection(connectionId, actorSystem, ConnectivityStatus.CLOSED,
                         TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT);
         createConnection = CreateConnection.of(connection, DittoHeaders.empty());
         createClosedConnection = CreateConnection.of(closedConnection, DittoHeaders.empty());
@@ -128,13 +128,13 @@ public final class ConnectionActorTest extends WithMockServers {
         retrieveModifiedConnectionResponse =
                 RetrieveConnectionResponse.of(modifiedConnection, DittoHeaders.empty());
         retrieveConnectionStatusOpenResponse =
-                RetrieveConnectionStatusResponse.of(connectionId, ConnectionStatus.OPEN, ConnectionStatus.OPEN,
-                        asList(ConnectivityModelFactory.newClientStatus("client1", ConnectionStatus.OPEN, "connection is open", INSTANT)),
+                RetrieveConnectionStatusResponse.of(connectionId, ConnectivityStatus.OPEN, ConnectivityStatus.OPEN,
+                        asList(ConnectivityModelFactory.newClientStatus("client1", ConnectivityStatus.OPEN, "connection is open", INSTANT)),
                         asList(
-                            ConnectivityModelFactory.newSourceStatus("source1", ConnectionStatus.OPEN, "consumer started"),
-                            ConnectivityModelFactory.newSourceStatus("source2", ConnectionStatus.OPEN, "consumer started")
+                            ConnectivityModelFactory.newSourceStatus("source1", ConnectivityStatus.OPEN, "consumer started"),
+                            ConnectivityModelFactory.newSourceStatus("source2", ConnectivityStatus.OPEN, "consumer started")
                         ),
-                        asList(ConnectivityModelFactory.newTargetStatus("target1", ConnectionStatus.OPEN, "publisher started")),
+                        asList(ConnectivityModelFactory.newTargetStatus("target1", ConnectivityStatus.OPEN, "publisher started")),
                         DittoHeaders.empty());
         connectionNotAccessibleException = ConnectionNotAccessibleException.newBuilder(connectionId).build();
     }
@@ -384,11 +384,11 @@ public final class ConnectionActorTest extends WithMockServers {
             underTest.tell(retrieveConnectionStatus, getRef());
             final RetrieveConnectionStatusResponse response = expectMsgClass(RetrieveConnectionStatusResponse.class);
 
-            assertThat((Object) response.getConnectionStatus()).isEqualTo(ConnectionStatus.CLOSED);
+            assertThat((Object) response.getConnectionStatus()).isEqualTo(ConnectivityStatus.CLOSED);
             assertThat(response.getSourceStatus()).isEmpty();
             assertThat(response.getTargetStatus()).isEmpty();
             assertThat(response.getClientStatus()).hasSize(1);
-            assertThat(response.getClientStatus().get(0).getStatus()).isEqualTo(ConnectionStatus.CLOSED.getName());
+            assertThat((CharSequence) response.getClientStatus().get(0).getStatus()).isEqualTo(ConnectivityStatus.CLOSED);
             assertThat(response.getClientStatus().get(0).getStatusDetails())
                     .contains(String.format("[%s] connection is closed", BaseClientState.DISCONNECTED));
         }};

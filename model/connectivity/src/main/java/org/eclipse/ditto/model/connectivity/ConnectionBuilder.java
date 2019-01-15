@@ -84,7 +84,7 @@ public interface ConnectionBuilder {
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code connectionStatus} is {@code null}.
      */
-    ConnectionBuilder connectionStatus(ConnectionStatus connectionStatus);
+    ConnectionBuilder connectionStatus(ConnectivityStatus connectionStatus);
 
     /**
      * Enable/disable fail-over for the {@code Connection}.

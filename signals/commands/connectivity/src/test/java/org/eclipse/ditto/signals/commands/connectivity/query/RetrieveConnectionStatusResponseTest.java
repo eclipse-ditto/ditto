@@ -32,7 +32,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
@@ -49,42 +49,42 @@ public final class RetrieveConnectionStatusResponseTest {
     private static final Instant IN_CONNECTION_STATUS_SINCE = Instant.now();
     private static List<ResourceStatus> clientStatus =
             Arrays.asList(
-                    newClientStatus("client1", ConnectionStatus.OPEN, "Client is connected",
+                    newClientStatus("client1", ConnectivityStatus.OPEN, "Client is connected",
                             IN_CONNECTION_STATUS_SINCE),
-                    newClientStatus("client2", ConnectionStatus.FAILED, "Client failed to connect.",
+                    newClientStatus("client2", ConnectivityStatus.FAILED, "Client failed to connect.",
                             IN_CONNECTION_STATUS_SINCE)
             );
     private static List<ResourceStatus> sourceStatus =
             Arrays.asList(
-                    newSourceStatus("source1", ConnectionStatus.OPEN, "open since ..."),
-                    newSourceStatus("source1", ConnectionStatus.FAILED, "this consumer fails ..."),
-                    newSourceStatus("source2", ConnectionStatus.CLOSED, "closed since 123")
+                    newSourceStatus("source1", ConnectivityStatus.OPEN, "open since ..."),
+                    newSourceStatus("source1", ConnectivityStatus.FAILED, "this consumer fails ..."),
+                    newSourceStatus("source2", ConnectivityStatus.CLOSED, "closed since 123")
             );
     private static List<ResourceStatus> targetStatus =
             Arrays.asList(
-                    newTargetStatus("target1", ConnectionStatus.OPEN, "open since ..."),
-                    newTargetStatus("target2", ConnectionStatus.FAILED, "this publisher fails ..."),
-                    newTargetStatus("target3", ConnectionStatus.CLOSED, "closed since 123")
+                    newTargetStatus("target1", ConnectivityStatus.OPEN, "open since ..."),
+                    newTargetStatus("target2", ConnectivityStatus.FAILED, "this publisher fails ..."),
+                    newTargetStatus("target3", ConnectivityStatus.CLOSED, "closed since 123")
             );
 
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(CommandResponse.JsonFields.TYPE, RetrieveConnectionStatusResponse.TYPE)
             .set(CommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
             .set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, TestConstants.ID)
-            .set(RetrieveConnectionStatusResponse.JsonFields.CONNECTION_STATUS, ConnectionStatus.OPEN.getName())
-            .set(RetrieveConnectionStatusResponse.JsonFields.LIVE_STATUS, ConnectionStatus.CLOSED.getName())
+            .set(RetrieveConnectionStatusResponse.JsonFields.CONNECTION_STATUS, ConnectivityStatus.OPEN.getName())
+            .set(RetrieveConnectionStatusResponse.JsonFields.LIVE_STATUS, ConnectivityStatus.CLOSED.getName())
             .set(RetrieveConnectionStatusResponse.JsonFields.CLIENT_STATUS,
                     JsonFactory.newArrayBuilder()
                             .add(JsonFactory.newObjectBuilder()
                                             .set(ResourceStatus.JsonFields.ADDRESS, "client1")
-                                            .set(ResourceStatus.JsonFields.STATUS, ConnectionStatus.OPEN.getName())
+                                            .set(ResourceStatus.JsonFields.STATUS, ConnectivityStatus.OPEN.getName())
                                             .set(ResourceStatus.JsonFields.STATUS_DETAILS, "Client is connected")
                                             .set(ResourceStatus.JsonFields.IN_STATE_SINCE,
                                                     IN_CONNECTION_STATUS_SINCE.toString())
                                             .build(),
                                     JsonFactory.newObjectBuilder()
                                             .set(ResourceStatus.JsonFields.ADDRESS, "client2")
-                                            .set(ResourceStatus.JsonFields.STATUS, ConnectionStatus.FAILED.getName())
+                                            .set(ResourceStatus.JsonFields.STATUS, ConnectivityStatus.FAILED.getName())
                                             .set(ResourceStatus.JsonFields.STATUS_DETAILS, "Client failed to connect.")
                                             .set(ResourceStatus.JsonFields.IN_STATE_SINCE,
                                                     IN_CONNECTION_STATUS_SINCE.toString())
@@ -94,17 +94,17 @@ public final class RetrieveConnectionStatusResponseTest {
                     JsonFactory.newArrayBuilder()
                             .add(JsonFactory.newObjectBuilder()
                                             .set(ResourceStatus.JsonFields.ADDRESS, "source1")
-                                            .set(ResourceStatus.JsonFields.STATUS, ConnectionStatus.OPEN.toString())
+                                            .set(ResourceStatus.JsonFields.STATUS, ConnectivityStatus.OPEN.toString())
                                             .set(ResourceStatus.JsonFields.STATUS_DETAILS, "open since ...")
                                             .build(),
                                     JsonFactory.newObjectBuilder()
                                             .set(ResourceStatus.JsonFields.ADDRESS, "source1")
-                                            .set(ResourceStatus.JsonFields.STATUS, ConnectionStatus.FAILED.toString())
+                                            .set(ResourceStatus.JsonFields.STATUS, ConnectivityStatus.FAILED.toString())
                                             .set(ResourceStatus.JsonFields.STATUS_DETAILS, "this consumer fails ...")
                                             .build(),
                                     JsonFactory.newObjectBuilder()
                                             .set(ResourceStatus.JsonFields.ADDRESS, "source2")
-                                            .set(ResourceStatus.JsonFields.STATUS, ConnectionStatus.CLOSED.toString())
+                                            .set(ResourceStatus.JsonFields.STATUS, ConnectivityStatus.CLOSED.toString())
                                             .set(ResourceStatus.JsonFields.STATUS_DETAILS, "closed since 123")
                                             .build()
                             ).build())
@@ -112,17 +112,17 @@ public final class RetrieveConnectionStatusResponseTest {
                     JsonFactory.newArrayBuilder()
                             .add(JsonFactory.newObjectBuilder()
                                             .set(ResourceStatus.JsonFields.ADDRESS, "target1")
-                                            .set(ResourceStatus.JsonFields.STATUS, ConnectionStatus.OPEN.toString())
+                                            .set(ResourceStatus.JsonFields.STATUS, ConnectivityStatus.OPEN.toString())
                                             .set(ResourceStatus.JsonFields.STATUS_DETAILS, "open since ...")
                                             .build(),
                                     JsonFactory.newObjectBuilder()
                                             .set(ResourceStatus.JsonFields.ADDRESS, "target2")
-                                            .set(ResourceStatus.JsonFields.STATUS, ConnectionStatus.FAILED.toString())
+                                            .set(ResourceStatus.JsonFields.STATUS, ConnectivityStatus.FAILED.toString())
                                             .set(ResourceStatus.JsonFields.STATUS_DETAILS, "this publisher fails ...")
                                             .build(),
                                     JsonFactory.newObjectBuilder()
                                             .set(ResourceStatus.JsonFields.ADDRESS, "target3")
-                                            .set(ResourceStatus.JsonFields.STATUS, ConnectionStatus.CLOSED.toString())
+                                            .set(ResourceStatus.JsonFields.STATUS, ConnectivityStatus.CLOSED.toString())
                                             .set(ResourceStatus.JsonFields.STATUS_DETAILS, "closed since 123")
                                             .build()
                             ).build())
@@ -138,7 +138,7 @@ public final class RetrieveConnectionStatusResponseTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(RetrieveConnectionStatusResponse.class, areImmutable(),
-                provided(ConnectionStatus.class).isAlsoImmutable(),
+                provided(ConnectivityStatus.class).isAlsoImmutable(),
                 assumingFields("sourceStatus", "targetStatus", "clientStatus"
                 ).areSafelyCopiedUnmodifiableCollectionsWithImmutableElements()
         );
@@ -148,8 +148,8 @@ public final class RetrieveConnectionStatusResponseTest {
     public void retrieveInstanceWithNullConnectionId() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> RetrieveConnectionStatusResponse.of(null,
-                        ConnectionStatus.OPEN,
-                        ConnectionStatus.CLOSED,
+                        ConnectivityStatus.OPEN,
+                        ConnectivityStatus.CLOSED,
                         Collections.emptyList(),
                         Collections.emptyList(),
                         Collections.emptyList(),
@@ -161,7 +161,7 @@ public final class RetrieveConnectionStatusResponseTest {
     @Test
     public void retrieveInstanceWithNullConnectionStatus() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> RetrieveConnectionStatusResponse.of(TestConstants.ID, null, ConnectionStatus.CLOSED,
+                .isThrownBy(() -> RetrieveConnectionStatusResponse.of(TestConstants.ID, null, ConnectivityStatus.CLOSED,
                         Collections.emptyList(),
                         Collections.emptyList(),
                         Collections.emptyList(),
@@ -173,7 +173,7 @@ public final class RetrieveConnectionStatusResponseTest {
     @Test
     public void retrieveInstanceWithNullLiveStatus() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectionStatus.OPEN, null,
+                .isThrownBy(() -> RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectivityStatus.OPEN, null,
                         Collections.emptyList(),
                         Collections.emptyList(),
                         Collections.emptyList(),
@@ -185,7 +185,7 @@ public final class RetrieveConnectionStatusResponseTest {
     @Test
     public void fromJsonReturnsExpected() {
         final RetrieveConnectionStatusResponse expected =
-                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectionStatus.OPEN, ConnectionStatus.CLOSED,
+                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectivityStatus.OPEN, ConnectivityStatus.CLOSED,
                         clientStatus,
                         sourceStatus,
                         targetStatus,
@@ -200,7 +200,7 @@ public final class RetrieveConnectionStatusResponseTest {
     @Test
     public void toJsonReturnsExpected() {
         final JsonObject actual =
-                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectionStatus.OPEN, ConnectionStatus.CLOSED,
+                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectivityStatus.OPEN, ConnectivityStatus.CLOSED,
                         clientStatus,
                         sourceStatus,
                         targetStatus,
@@ -213,7 +213,7 @@ public final class RetrieveConnectionStatusResponseTest {
     @Test
     public void mergeMultipleStatuses() {
         final RetrieveConnectionStatusResponse expected =
-                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectionStatus.OPEN, ConnectionStatus.CLOSED,
+                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectivityStatus.OPEN, ConnectivityStatus.CLOSED,
                         clientStatus,
                         sourceStatus,
                         targetStatus,
@@ -221,7 +221,7 @@ public final class RetrieveConnectionStatusResponseTest {
 
 
         final RetrieveConnectionStatusResponse empty =
-                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectionStatus.OPEN, ConnectionStatus.CLOSED,
+                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectivityStatus.OPEN, ConnectivityStatus.CLOSED,
                         Collections.emptyList(),
                         Collections.emptyList(),
                         Collections.emptyList(),
@@ -234,7 +234,7 @@ public final class RetrieveConnectionStatusResponseTest {
         Collections.shuffle(statuses);
 
         RetrieveConnectionStatusResponse actual =
-                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectionStatus.OPEN, ConnectionStatus.CLOSED,
+                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectivityStatus.OPEN, ConnectivityStatus.CLOSED,
                         Collections.emptyList(),
                         Collections.emptyList(),
                         Collections.emptyList(),

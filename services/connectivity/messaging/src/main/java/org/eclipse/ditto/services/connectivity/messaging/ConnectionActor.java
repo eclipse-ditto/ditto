@@ -34,8 +34,8 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.FilteredTopic;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
@@ -264,14 +264,14 @@ public final class ConnectionActor extends AbstractPersistentActor {
                 .match(ConnectionCreated.class, event -> restoreConnection(event.getConnection()))
                 .match(ConnectionModified.class, event -> restoreConnection(event.getConnection()))
                 .match(ConnectionOpened.class, event -> restoreConnection(connection != null ? connection.toBuilder()
-                        .connectionStatus(ConnectionStatus.OPEN).build() : null))
+                        .connectionStatus(ConnectivityStatus.OPEN).build() : null))
                 .match(ConnectionClosed.class, event -> restoreConnection(connection != null ? connection.toBuilder()
-                        .connectionStatus(ConnectionStatus.CLOSED).build() : null))
+                        .connectionStatus(ConnectivityStatus.CLOSED).build() : null))
                 .match(ConnectionDeleted.class, event -> restoreConnection(null))
                 .match(RecoveryCompleted.class, rc -> {
                     log.info("Connection <{}> was recovered: {}", connectionId, connection);
                     if (connection != null) {
-                        if (ConnectionStatus.OPEN.equals(connection.getConnectionStatus())) {
+                        if (ConnectivityStatus.OPEN.equals(connection.getConnectionStatus())) {
                             log.debug("Opening connection <{}> after recovery.", connectionId);
 
                             final OpenConnection connect = OpenConnection.of(connectionId, DittoHeaders.empty());
@@ -452,7 +452,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
             restoreConnection(persistedEvent.getConnection());
             getContext().become(connectionCreatedBehaviour);
 
-            if (ConnectionStatus.OPEN.equals(connection.getConnectionStatus())) {
+            if (ConnectivityStatus.OPEN.equals(connection.getConnectionStatus())) {
                 log.debug("Connection <{}> has status <{}> and will therefore be opened.",
                         connection.getId(),
                         connection.getConnectionStatus().getName());
@@ -548,7 +548,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
         final ConnectivityCommandResponse commandResponse =
                 ModifyConnectionResponse.modified(connectionId, dittoHeaders);
 
-        if (ConnectionStatus.OPEN.equals(connection.getConnectionStatus())) {
+        if (ConnectivityStatus.OPEN.equals(connection.getConnectionStatus())) {
             final OpenConnection openConnectionAfterModification = OpenConnection.of(connectionId, dittoHeaders);
             log.debug("Desired connection state is {}, forwarding {} to client actor.",
                     connection.getConnectionStatus(), openConnectionAfterModification);
@@ -577,7 +577,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
         final ActorRef self = getSelf();
 
         persistEvent(connectionOpened, persistedEvent -> {
-            restoreConnection(connection.toBuilder().connectionStatus(ConnectionStatus.OPEN).build());
+            restoreConnection(connection.toBuilder().connectionStatus(ConnectivityStatus.OPEN).build());
             askClientActor(command, response -> {
                         final ConnectivityCommandResponse commandResponse =
                                 OpenConnectionResponse.of(connectionId, command.getDittoHeaders());
@@ -604,7 +604,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
         persistEvent(connectionClosed, persistedEvent -> {
             if (connection != null) {
-                restoreConnection(connection.toBuilder().connectionStatus(ConnectionStatus.CLOSED).build());
+                restoreConnection(connection.toBuilder().connectionStatus(ConnectivityStatus.CLOSED).build());
             }
             final CloseConnectionResponse closeConnectionResponse =
                     CloseConnectionResponse.of(connectionId, command.getDittoHeaders());
@@ -796,7 +796,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
                 RetrieveConnectionStatusResponse.closedResponse(connectionId,
                         ConfigUtil.instanceIdentifier(),
                         connectionClosedAt == null ? Instant.EPOCH : connectionClosedAt,
-                        ConnectionStatus.CLOSED,
+                        ConnectivityStatus.CLOSED,
                         "[" + BaseClientState.DISCONNECTED + "] connection is closed",
                         command.getDittoHeaders());
         origin.tell(statusResponse, getSelf());

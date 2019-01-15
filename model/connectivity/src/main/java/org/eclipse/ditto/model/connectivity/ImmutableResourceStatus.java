@@ -32,12 +32,12 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 final class ImmutableResourceStatus implements ResourceStatus {
 
     private final ResourceType type;
-    private final String status;
+    private final ConnectivityStatus status;
     private final String address;
     @Nullable private final String statusDetails;
     @Nullable private final Instant inStateSince;
 
-    private ImmutableResourceStatus(final ResourceType type, final String address, final String status,
+    private ImmutableResourceStatus(final ResourceType type, final String address, final ConnectivityStatus status,
             @Nullable final String statusDetails,
             @Nullable final Instant inStateSince) {
         this.type = type;
@@ -57,7 +57,8 @@ final class ImmutableResourceStatus implements ResourceStatus {
      * @param inStateSince the instant since the resource is in the given state
      * @return a new instance of ImmutableResourceStatus
      */
-    public static ImmutableResourceStatus of(final ResourceType type, final String address, final String status,
+    public static ImmutableResourceStatus of(final ResourceType type, final String address,
+            final ConnectivityStatus status,
             @Nullable final String statusDetails,
             @Nullable final Instant inStateSince) {
         return new ImmutableResourceStatus(type, address, status, statusDetails, inStateSince);
@@ -72,7 +73,8 @@ final class ImmutableResourceStatus implements ResourceStatus {
      * @param statusDetails the optional status details
      * @return a new instance of ImmutableResourceStatus
      */
-    public static ImmutableResourceStatus of(final ResourceType type, final String address, final String status,
+    public static ImmutableResourceStatus of(final ResourceType type, final String address,
+            final ConnectivityStatus status,
             @Nullable final String statusDetails) {
         return new ImmutableResourceStatus(type, address, status, statusDetails, null);
     }
@@ -89,7 +91,7 @@ final class ImmutableResourceStatus implements ResourceStatus {
     }
 
     @Override
-    public String getStatus() {
+    public ConnectivityStatus getStatus() {
         return status;
     }
 
@@ -109,7 +111,7 @@ final class ImmutableResourceStatus implements ResourceStatus {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
         jsonObjectBuilder.set(JsonFields.ADDRESS, address, predicate);
         jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
-        jsonObjectBuilder.set(JsonFields.STATUS, status, predicate);
+        jsonObjectBuilder.set(JsonFields.STATUS, status.getName(), predicate);
         if (statusDetails != null) {
             jsonObjectBuilder.set(JsonFields.STATUS_DETAILS, statusDetails, predicate);
         }
@@ -129,7 +131,8 @@ final class ImmutableResourceStatus implements ResourceStatus {
      * @throws JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
     public static ResourceStatus fromJson(final JsonObject jsonObject, final ResourceType type) {
-        final String readConnectionStatus = jsonObject.getValueOrThrow(JsonFields.STATUS);
+        final ConnectivityStatus readConnectionStatus = ConnectivityStatus.forName(
+                jsonObject.getValueOrThrow(JsonFields.STATUS)).orElse(ConnectivityStatus.UNKNOWN);
         final String readAddress = jsonObject.getValueOrThrow(JsonFields.ADDRESS);
         final String readConnectionStatusDetails = jsonObject.getValue(JsonFields.STATUS_DETAILS).orElse(null);
         final Instant readInStateSince =

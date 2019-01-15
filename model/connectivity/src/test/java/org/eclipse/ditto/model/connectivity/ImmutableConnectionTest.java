@@ -41,7 +41,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ImmutableConnectionTest {
 
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
-    private static final ConnectionStatus STATUS = ConnectionStatus.OPEN;
+    private static final ConnectivityStatus STATUS = ConnectivityStatus.OPEN;
 
     private static final String ID = "myConnectionId";
     private static final String NAME = "myConnection";
@@ -179,7 +179,7 @@ public final class ImmutableConnectionTest {
         final Connection connection = ImmutableConnection.getBuilder(ID, TYPE, STATUS, URI)
                 .sources(SOURCES)
                 .targets(TARGETS)
-                .connectionStatus(ConnectionStatus.OPEN)
+                .connectionStatus(ConnectivityStatus.OPEN)
                 .name("connection")
                 .clientCount(5)
                 .tag("AAA")

@@ -29,9 +29,9 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.things.Thing;
@@ -69,7 +69,7 @@ public class SignalFilterWithFilterTest {
                 newFilteredTopic(TWIN_EVENTS, namespacesC));
 
         final Connection connection = ConnectivityModelFactory
-                .newConnectionBuilder(CONNECTION, ConnectionType.AMQP_10, ConnectionStatus.OPEN, URI)
+                .newConnectionBuilder(CONNECTION, ConnectionType.AMQP_10, ConnectivityStatus.OPEN, URI)
                 .targets(new HashSet<>(Arrays.asList(targetA, targetB, targetC)))
                 .build();
 
@@ -109,7 +109,7 @@ public class SignalFilterWithFilterTest {
                 newFilteredTopic(LIVE_EVENTS, allNamespaces, filterC));
 
         final Connection connection = ConnectivityModelFactory
-                .newConnectionBuilder(CONNECTION, ConnectionType.AMQP_10, ConnectionStatus.OPEN, URI)
+                .newConnectionBuilder(CONNECTION, ConnectionType.AMQP_10, ConnectivityStatus.OPEN, URI)
                 .targets(new HashSet<>(Arrays.asList(targetA, targetB, targetC)))
                 .build();
 
@@ -157,7 +157,7 @@ public class SignalFilterWithFilterTest {
                 newFilteredTopic(TWIN_EVENTS, namespacesD, filterD));
 
         final Connection connection = ConnectivityModelFactory
-                .newConnectionBuilder(CONNECTION, ConnectionType.AMQP_10, ConnectionStatus.OPEN, URI)
+                .newConnectionBuilder(CONNECTION, ConnectionType.AMQP_10, ConnectivityStatus.OPEN, URI)
                 .targets(new HashSet<>(Arrays.asList(targetA, targetB, targetC, targetD)))
                 .build();
 

@@ -17,10 +17,10 @@ import java.time.Instant;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.connectivity.ResourceStatus;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
+import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectionMetricsCollector;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry;
 
@@ -49,7 +49,7 @@ public abstract class BaseConsumerActor extends AbstractActor {
         this.messageMappingProcessor = checkNotNull(messageMappingProcessor, "messageMappingProcessor");
         this.authorizationContext = checkNotNull(authorizationContext, "authorizationContext");
         this.headerMapping = headerMapping;
-        resourceStatus = ConnectivityModelFactory.newSourceStatus(sourceAddress, ConnectionStatus.OPEN,
+        resourceStatus = ConnectivityModelFactory.newSourceStatus(sourceAddress, ConnectivityStatus.OPEN,
                 "Started at " + Instant.now());
 
         inboundCounter = ConnectivityCounterRegistry.getInboundCounter(connectionId, sourceAddress);
@@ -58,7 +58,7 @@ public abstract class BaseConsumerActor extends AbstractActor {
     protected ResourceStatus getCurrentSourceStatus() {
 
         return ConnectivityModelFactory.newSourceStatus(sourceAddress,
-                resourceStatus != null ? resourceStatus.getStatus() : ConnectionStatus.UNKNOWN.getName(),
+                resourceStatus != null ? resourceStatus.getStatus() : ConnectivityStatus.UNKNOWN,
                 resourceStatus != null ? resourceStatus.getStatusDetails().orElse(null) : null);
     }
 

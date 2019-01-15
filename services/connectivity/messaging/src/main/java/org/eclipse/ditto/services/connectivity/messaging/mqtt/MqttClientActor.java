@@ -26,7 +26,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
@@ -75,14 +75,14 @@ public final class MqttClientActor extends BaseClientActor {
 
     @SuppressWarnings("unused") // used by `props` via reflection
     private MqttClientActor(final Connection connection,
-            final ConnectionStatus desiredConnectionStatus,
+            final ConnectivityStatus desiredConnectionStatus,
             final ActorRef conciergeForwarder) {
 
         this(connection, desiredConnectionStatus, conciergeForwarder, MqttConnectionFactory::of);
     }
 
     MqttClientActor(final Connection connection,
-            final ConnectionStatus desiredConnectionStatus,
+            final ConnectivityStatus desiredConnectionStatus,
             final ActorRef conciergeForwarder,
             final BiFunction<Connection, DittoHeaders, MqttConnectionFactory> connectionFactoryCreator) {
         super(connection, desiredConnectionStatus, conciergeForwarder);

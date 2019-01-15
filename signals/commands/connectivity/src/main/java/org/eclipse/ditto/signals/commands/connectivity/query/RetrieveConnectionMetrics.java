@@ -25,13 +25,13 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 
 /**
- * Command which retrieves the current/live {@link ConnectionStatus} and other connection specific metrics of an
+ * Command which retrieves the current/live {@link ConnectivityStatus} and other connection specific metrics of an
  * established {@link Connection}.
  */
 @Immutable

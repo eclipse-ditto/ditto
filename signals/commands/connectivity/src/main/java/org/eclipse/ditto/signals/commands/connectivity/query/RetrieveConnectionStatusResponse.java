@@ -36,13 +36,12 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
-import org.eclipse.ditto.signals.commands.base.WithEntity;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
 
 /**
@@ -58,14 +57,14 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
     public static final String TYPE = TYPE_PREFIX + RetrieveConnectionStatus.NAME;
 
     private final String connectionId;
-    private final ConnectionStatus connectionStatus;
-    private final ConnectionStatus liveStatus;
+    private final ConnectivityStatus connectionStatus;
+    private final ConnectivityStatus liveStatus;
     private final List<ResourceStatus> clientStatus;
     private final List<ResourceStatus> sourceStatus;
     private final List<ResourceStatus> targetStatus;
 
-    private RetrieveConnectionStatusResponse(final String connectionId, final ConnectionStatus connectionStatus,
-            final ConnectionStatus liveStatus,
+    private RetrieveConnectionStatusResponse(final String connectionId, final ConnectivityStatus connectionStatus,
+            final ConnectivityStatus liveStatus,
             final List<ResourceStatus> clientStatus,
             final List<ResourceStatus> sourceStatus,
             final List<ResourceStatus> targetStatus,
@@ -92,8 +91,8 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static RetrieveConnectionStatusResponse of(final String connectionId,
-            final ConnectionStatus connectionStatus,
-            final ConnectionStatus liveStatus,
+            final ConnectivityStatus connectionStatus,
+            final ConnectivityStatus liveStatus,
             final List<ResourceStatus> clientStatus,
             final List<ResourceStatus> sourceStatus,
             final List<ResourceStatus> targetStatus,
@@ -110,7 +109,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
      *
      * @param connectionId the identifier of the connection.
      * @param connectionClosedAt the instant when the connection was closed
-     * @param clientStatus the {@link ConnectionStatus} of the client
+     * @param clientStatus the {@link ConnectivityStatus} of the client
      * @param statusDetails the details string for the {@code clientStatus}
      * @param dittoHeaders the headers of the request.
      * @return a new RetrieveConnectionStatusResponse response.
@@ -119,7 +118,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
     public static RetrieveConnectionStatusResponse closedResponse(final String connectionId,
             final String address,
             final Instant connectionClosedAt,
-            final ConnectionStatus clientStatus,
+            final ConnectivityStatus clientStatus,
             final String statusDetails, final DittoHeaders dittoHeaders) {
         checkNotNull(connectionId, "Connection ID");
         checkNotNull(connectionClosedAt, "connectionClosedAt");
@@ -162,12 +161,12 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
                 statusCode -> {
                     final String readConnectionId =
                             jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
-                    final ConnectionStatus readConnectionStatus =
-                            ConnectionStatus.forName(jsonObject.getValueOrThrow(JsonFields.CONNECTION_STATUS))
-                                    .orElse(ConnectionStatus.UNKNOWN);
-                    final ConnectionStatus readLiveStatus =
-                            ConnectionStatus.forName(jsonObject.getValueOrThrow(JsonFields.LIVE_STATUS))
-                                    .orElse(ConnectionStatus.UNKNOWN);
+                    final ConnectivityStatus readConnectionStatus =
+                            ConnectivityStatus.forName(jsonObject.getValueOrThrow(JsonFields.CONNECTION_STATUS))
+                                    .orElse(ConnectivityStatus.UNKNOWN);
+                    final ConnectivityStatus readLiveStatus =
+                            ConnectivityStatus.forName(jsonObject.getValueOrThrow(JsonFields.LIVE_STATUS))
+                                    .orElse(ConnectivityStatus.UNKNOWN);
 
                     final List<ResourceStatus> readClientStatus =
                             readAddressStatus(ResourceStatus.ResourceType.CLIENT,
@@ -200,14 +199,14 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
     /**
      * @return the current ConnectionStatus of the related {@link Connection}.
      */
-    public ConnectionStatus getConnectionStatus() {
+    public ConnectivityStatus getConnectionStatus() {
         return connectionStatus;
     }
 
     /**
      * @return the current live ConnectionStatus of the related {@link Connection}.
      */
-    public ConnectionStatus getLiveStatus() {
+    public ConnectivityStatus getLiveStatus() {
         return liveStatus;
     }
 
@@ -239,7 +238,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
      * @param liveStatus the live ConnectionStatus.
      * @return the new RetrieveConnectionStatusResponse.
      */
-    public RetrieveConnectionStatusResponse withLiveStatus(final ConnectionStatus liveStatus) {
+    public RetrieveConnectionStatusResponse withLiveStatus(final ConnectivityStatus liveStatus) {
         return of(connectionId, connectionStatus, liveStatus, clientStatus, sourceStatus, targetStatus,
                 getDittoHeaders());
     }
@@ -313,17 +312,15 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
     }
 
     @Override
-    public WithEntity setEntity(final JsonValue entity) {
-        final ConnectionStatus connectionStatusToSet = ConnectionStatus.forName(entity.asString())
-                .orElse(ConnectionStatus.UNKNOWN);
-        // TODO TJ check if this is the correct entity
-        return of(connectionId, connectionStatusToSet, liveStatus, clientStatus, sourceStatus, targetStatus,
-                getDittoHeaders());
+    public RetrieveConnectionStatusResponse setEntity(final JsonValue entity) {
+        return fromJson(entity.asObject(), getDittoHeaders());
     }
 
     @Override
     public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
-        return JsonValue.of(connectionId);
+        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
+        appendPayload(jsonObjectBuilder, schemaVersion, field -> true);
+        return jsonObjectBuilder.build();
     }
 
     @Override
@@ -338,8 +335,12 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         if (!super.equals(o)) return false;
         final RetrieveConnectionStatusResponse that = (RetrieveConnectionStatusResponse) o;
         return connectionId.equals(that.connectionId) &&

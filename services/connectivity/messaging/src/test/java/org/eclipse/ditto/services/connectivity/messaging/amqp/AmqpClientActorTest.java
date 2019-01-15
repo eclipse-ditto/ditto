@@ -60,9 +60,9 @@ import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Topic;
@@ -118,7 +118,7 @@ public class AmqpClientActorTest extends WithMockServers {
     private static final ConnectionFailedException SESSION_EXCEPTION = ConnectionFailedException.newBuilder
             (connectionId).build();
     private static Connection connection;
-    private final ConnectionStatus connectionStatus = ConnectionStatus.OPEN;
+    private final ConnectivityStatus connectionStatus = ConnectivityStatus.OPEN;
 
     @Mock
     private final JmsConnection mockConnection = Mockito.mock(JmsConnection.class);
@@ -176,7 +176,7 @@ public class AmqpClientActorTest extends WithMockServers {
         specificOptions.put("failover.unknown.option", "100");
         specificOptions.put("failover.nested.amqp.vhost", "ditto");
         final Connection connection = ConnectivityModelFactory.newConnectionBuilder(createRandomConnectionId(),
-                ConnectionType.AMQP_10, ConnectionStatus.OPEN, TestConstants.getUriOfNewMockServer())
+                ConnectionType.AMQP_10, ConnectivityStatus.OPEN, TestConstants.getUriOfNewMockServer())
                 .specificConfig(specificOptions)
                 .sources(singletonList(
                         ConnectivityModelFactory.newSourceBuilder()
@@ -284,10 +284,10 @@ public class AmqpClientActorTest extends WithMockServers {
             final JmsConnectionListener connectionListener = checkNotNull(listenerArgumentCaptor.getValue());
 
             connectionListener.onConnectionInterrupted(DUMMY);
-            verifyConnectionStatus(amqpClientActor, aggregator, ConnectionStatus.FAILED);
+            verifyConnectionStatus(amqpClientActor, aggregator, ConnectivityStatus.FAILED);
 
             connectionListener.onConnectionRestored(DUMMY);
-            verifyConnectionStatus(amqpClientActor, aggregator, ConnectionStatus.OPEN);
+            verifyConnectionStatus(amqpClientActor, aggregator, ConnectivityStatus.OPEN);
 
             amqpClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
@@ -295,16 +295,16 @@ public class AmqpClientActorTest extends WithMockServers {
     }
 
     private void verifyConnectionStatus(final ActorRef amqpClientActor, final TestProbe aggregator,
-            final ConnectionStatus open) {
+            final ConnectivityStatus open) {
         amqpClientActor.tell(RetrieveConnectionStatus.of(connectionId, DittoHeaders.empty()), aggregator.ref());
         Awaitility.await().until(() -> awaitStatusInStatusResponse(aggregator, open));
     }
 
     private Boolean awaitStatusInStatusResponse(final TestProbe aggregator,
-            final ConnectionStatus expectedStatus) {
+            final ConnectivityStatus expectedStatus) {
         final ResourceStatus status = aggregator.expectMsgClass(ResourceStatus.class);
         System.out.println("waiting for " + expectedStatus + ", received: " + status);
-        return expectedStatus.getName().equals(status.getStatus());
+        return expectedStatus.equals(status.getStatus());
     }
 
     @Test
@@ -594,7 +594,7 @@ public class AmqpClientActorTest extends WithMockServers {
                 final ResourceStatus resourceStatus = (ResourceStatus) o;
                 return resourceStatus.getResourceType() == ResourceStatus.ResourceType.SOURCE
                         && Arrays.asList(expectedSources).contains(resourceStatus.getAddress())
-                        && ConnectionStatus.OPEN.getName().equals(resourceStatus.getStatus());
+                        && ConnectivityStatus.OPEN.equals(resourceStatus.getStatus());
             }
         };
     }

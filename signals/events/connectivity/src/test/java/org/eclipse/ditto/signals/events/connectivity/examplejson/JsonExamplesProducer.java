@@ -28,9 +28,9 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.Source;
@@ -48,7 +48,7 @@ public class JsonExamplesProducer {
     private static final String NAME = "myConnection";
 
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
-    private static final ConnectionStatus STATUS = ConnectionStatus.OPEN;
+    private static final ConnectivityStatus STATUS = ConnectivityStatus.OPEN;
 
     private static final String URI = "amqps://foo:bar@example.com:443";
 

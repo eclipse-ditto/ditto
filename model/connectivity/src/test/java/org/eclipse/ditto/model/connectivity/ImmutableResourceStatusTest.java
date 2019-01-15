@@ -11,7 +11,6 @@
 package org.eclipse.ditto.model.connectivity;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -29,14 +28,14 @@ public class ImmutableResourceStatusTest {
 
     private static final Instant INSTANT = Instant.now();
     private static final ResourceStatus RESOURCE_STATUS = ImmutableResourceStatus.of(
-            ResourceStatus.ResourceType.CLIENT, "client1", ConnectionStatus.OPEN.getName(), "client " +
+            ResourceStatus.ResourceType.CLIENT, "client1", ConnectivityStatus.OPEN, "client " +
                     "connected", INSTANT);
 
     private static final JsonObject RESOURCE_STATUS_JSON =
             JsonObject
                     .newBuilder()
                     .set(ResourceStatus.JsonFields.ADDRESS, "client1")
-                    .set(ResourceStatus.JsonFields.STATUS, ConnectionStatus.OPEN.getName())
+                    .set(ResourceStatus.JsonFields.STATUS, ConnectivityStatus.OPEN.getName())
                     .set(ResourceStatus.JsonFields.STATUS_DETAILS, "client connected")
                     .set(ResourceStatus.JsonFields.IN_STATE_SINCE, INSTANT.toString())
                     .build();

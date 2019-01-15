@@ -33,9 +33,9 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.Measurement;
@@ -54,7 +54,7 @@ public final class TestConstants {
     public static String ID = "myConnectionId";
 
     public static ConnectionType TYPE = ConnectionType.AMQP_10;
-    public static ConnectionStatus STATUS = ConnectionStatus.OPEN;
+    public static ConnectivityStatus STATUS = ConnectivityStatus.OPEN;
 
     private static final String URI = "amqps://username:password@my.endpoint:443";
 

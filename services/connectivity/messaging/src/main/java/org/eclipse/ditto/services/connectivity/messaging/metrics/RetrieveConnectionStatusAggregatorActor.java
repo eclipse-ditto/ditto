@@ -17,7 +17,7 @@ import java.util.Map;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
@@ -49,13 +49,13 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
         this.timeout = timeout;
         this.sender = sender;
         theResponse = RetrieveConnectionStatusResponse.of(connection.getId(), connection.getConnectionStatus(),
-                        ConnectionStatus.UNKNOWN,
+                        ConnectivityStatus.UNKNOWN,
                         Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), originalHeaders);
 
         this.expectedResponses = new HashMap<>();
         // one response per client actor
         expectedResponses.put(ResourceStatus.ResourceType.CLIENT, connection.getClientCount());
-        if (ConnectionStatus.OPEN.equals(connection.getConnectionStatus())) {
+        if (ConnectivityStatus.OPEN.equals(connection.getConnectionStatus())) {
             // one response per source/target
             expectedResponses.put(ResourceStatus.ResourceType.TARGET,
                     // currently there is always only one publisher per client
@@ -125,12 +125,28 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
     private void sendResponse() {
         final boolean anyClientOpen = theResponse.getClientStatus().stream()
                 .map(ResourceStatus::getStatus)
-                .anyMatch("open"::equalsIgnoreCase); // TODO TJ use enum instead?
+                .anyMatch(ConnectivityStatus.OPEN::equals);
         final boolean anyClientFailed = theResponse.getClientStatus().stream()
                 .map(ResourceStatus::getStatus)
-                .anyMatch("failed"::equalsIgnoreCase); // TODO TJ use enum instead?
-        theResponse = theResponse.withLiveStatus(anyClientOpen ? ConnectionStatus.OPEN :
-                (anyClientFailed ? ConnectionStatus.FAILED : ConnectionStatus.CLOSED));
+                .anyMatch(ConnectivityStatus.FAILED::equals);
+        final boolean allClientsClosed = theResponse.getClientStatus().stream()
+                .map(ResourceStatus::getStatus)
+                .allMatch(ConnectivityStatus.CLOSED::equals);
+
+        final ConnectivityStatus liveStatus;
+        if (anyClientOpen) {
+            liveStatus = ConnectivityStatus.OPEN;
+        } else {
+            if (anyClientFailed) {
+                liveStatus = ConnectivityStatus.FAILED;
+            } else if (allClientsClosed) {
+                liveStatus = ConnectivityStatus.CLOSED;
+            } else {
+                liveStatus = ConnectivityStatus.UNKNOWN;
+            }
+        }
+
+        theResponse = theResponse.withLiveStatus(liveStatus);
         sender.tell(theResponse, getSelf());
         stopSelf();
     }

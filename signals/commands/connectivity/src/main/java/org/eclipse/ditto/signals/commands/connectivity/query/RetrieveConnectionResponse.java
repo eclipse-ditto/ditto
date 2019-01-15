@@ -32,7 +32,6 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
-import org.eclipse.ditto.signals.commands.base.WithEntity;
 
 /**
  * Response to a {@link RetrieveConnection} command.
@@ -125,7 +124,7 @@ public final class RetrieveConnectionResponse extends AbstractCommandResponse<Re
     }
 
     @Override
-    public WithEntity setEntity(final JsonValue entity) {
+    public RetrieveConnectionResponse setEntity(final JsonValue entity) {
         return fromJson(entity.asObject(), getDittoHeaders());
     }
 
@@ -146,8 +145,12 @@ public final class RetrieveConnectionResponse extends AbstractCommandResponse<Re
 
     @Override
     public boolean equals(@Nullable final Object o) {
-        if (this == o) {return true;}
-        if (o == null || getClass() != o.getClass()) {return false;}
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         if (!super.equals(o)) {return false;}
         final RetrieveConnectionResponse that = (RetrieveConnectionResponse) o;
         return Objects.equals(connection, that.connection);

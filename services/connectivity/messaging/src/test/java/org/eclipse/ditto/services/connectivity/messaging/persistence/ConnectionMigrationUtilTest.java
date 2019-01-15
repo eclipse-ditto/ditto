@@ -29,8 +29,8 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -45,7 +45,7 @@ public class ConnectionMigrationUtilTest {
     private static final String ID = UUID.randomUUID().toString();
     private static final String NAME = "my-connection";
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
-    private static final ConnectionStatus STATUS = ConnectionStatus.OPEN;
+    private static final ConnectivityStatus STATUS = ConnectivityStatus.OPEN;
     private static final String URI = "amqps://foo:bar@example.com:443";
     private static final String LEGACY_FIELD_FILTERS = "filters";
 

@@ -21,8 +21,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
@@ -163,8 +163,8 @@ public class JsonExamplesProducer {
 
         final RetrieveConnectionStatusResponse retrieveConnectionStatusResponse =
                 RetrieveConnectionStatusResponse.of(TestConstants.ID,
-                        ConnectionStatus.OPEN,
-                        ConnectionStatus.CLOSED,
+                        ConnectivityStatus.OPEN,
+                        ConnectivityStatus.CLOSED,
                         Collections.emptyList(),
                         Collections.emptyList(),
                         Collections.emptyList(),

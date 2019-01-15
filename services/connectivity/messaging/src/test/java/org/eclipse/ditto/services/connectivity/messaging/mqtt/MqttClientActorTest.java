@@ -27,8 +27,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
@@ -38,18 +36,14 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.MqttSource;
 import org.eclipse.ditto.model.connectivity.Source;
-import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.model.connectivity.TargetMetrics;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
@@ -129,7 +123,7 @@ public class MqttClientActorTest {
         connectionId = TestConstants.createRandomConnectionId();
         serverHost = "tcp://localhost:" + freePort.getPort();
         connection =
-                ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT, ConnectionStatus.OPEN,
+                ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT, ConnectivityStatus.OPEN,
                         serverHost)
                         .sources(singletonList(MQTT_SOURCE))
                         .targets(singleton(TARGET))
@@ -164,7 +158,7 @@ public class MqttClientActorTest {
                 "eclipse/+/+");
         final Connection connectionWithEnforcement =
                 ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT,
-                        ConnectionStatus.OPEN,
+                        ConnectivityStatus.OPEN,
                         serverHost)
                         .sources(singletonList(mqttSource))
                         .build();
@@ -183,7 +177,7 @@ public class MqttClientActorTest {
 
         final Connection connectionWithEnforcement =
                 ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT,
-                        ConnectionStatus.OPEN,
+                        ConnectivityStatus.OPEN,
                         serverHost)
                         .sources(singletonList(mqttSource))
                         .build();
@@ -251,7 +245,7 @@ public class MqttClientActorTest {
 
             final Connection multipleSources =
                     ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT,
-                            ConnectionStatus.OPEN, serverHost)
+                            ConnectivityStatus.OPEN, serverHost)
                             .sources(Arrays.asList(
                                     newMqttSource(3, 1, "A1"),
                                     newMqttSource(2, 2, "B1", "B2"),

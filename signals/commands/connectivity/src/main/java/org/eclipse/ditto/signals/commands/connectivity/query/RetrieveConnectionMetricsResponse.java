@@ -43,7 +43,6 @@ import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
-import org.eclipse.ditto.signals.commands.base.WithEntity;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
 
 /**
@@ -280,11 +279,13 @@ public final class RetrieveConnectionMetricsResponse
 
     @Override
     public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
-        return connectionMetrics.toJson();
+        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
+        appendPayload(jsonObjectBuilder, schemaVersion, field -> true);
+        return jsonObjectBuilder.build();
     }
 
     @Override
-    public WithEntity setEntity(final JsonValue entity) {
+    public RetrieveConnectionMetricsResponse setEntity(final JsonValue entity) {
         return fromJson(entity.asObject(), getDittoHeaders());
     }
 

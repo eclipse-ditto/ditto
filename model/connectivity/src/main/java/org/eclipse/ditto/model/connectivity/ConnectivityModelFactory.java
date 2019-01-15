@@ -53,7 +53,7 @@ public final class ConnectivityModelFactory {
      */
     public static ConnectionBuilder newConnectionBuilder(final String id,
             final ConnectionType connectionType,
-            final ConnectionStatus connectionStatus,
+            final ConnectivityStatus connectionStatus,
             final String uri) {
         return ImmutableConnection.getBuilder(id, connectionType, connectionStatus, uri);
     }
@@ -196,9 +196,9 @@ public final class ConnectivityModelFactory {
      * @throws NullPointerException if any parameter is {@code null}.
      */
     public static ResourceStatus newClientStatus(
-            final String address, final ConnectionStatus status,
+            final String address, final ConnectivityStatus status,
             @Nullable final String statusDetails) {
-        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.CLIENT, address, status.getName(),
+        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.CLIENT, address, status,
                 statusDetails);
     }
 
@@ -213,9 +213,9 @@ public final class ConnectivityModelFactory {
      * @throws NullPointerException if any parameter is {@code null}.
      */
     public static ResourceStatus newClientStatus(
-            final String address, final ConnectionStatus status,
+            final String address, final ConnectivityStatus status,
             @Nullable final String statusDetails, final Instant inStateSince) {
-        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.CLIENT, address, status.getName(),
+        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.CLIENT, address, status,
                 statusDetails, inStateSince);
     }
 
@@ -228,22 +228,7 @@ public final class ConnectivityModelFactory {
      * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if any parameter is {@code null}.
      */
-    public static ResourceStatus newSourceStatus(final String address, final ConnectionStatus status,
-            @Nullable final String statusDetails) {
-        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.SOURCE, address, status.getName(),
-                statusDetails);
-    }
-
-    /**
-     * Returns a new source {@code ResourceStatus}.
-     *
-     * @param address the address identifier
-     * @param status the ConnectionStatus of the source metrics to create
-     * @param statusDetails the optional details about the connection status
-     * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
-     * @throws NullPointerException if any parameter is {@code null}.
-     */
-    public static ResourceStatus newSourceStatus(final String address, final String status,
+    public static ResourceStatus newSourceStatus(final String address, final ConnectivityStatus status,
             @Nullable final String statusDetails) {
         return ImmutableResourceStatus.of(ResourceStatus.ResourceType.SOURCE, address, status,
                 statusDetails);
@@ -258,9 +243,9 @@ public final class ConnectivityModelFactory {
      * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if any parameter is {@code null}.
      */
-    public static ResourceStatus newTargetStatus(final String address, final ConnectionStatus status,
+    public static ResourceStatus newTargetStatus(final String address, final ConnectivityStatus status,
             @Nullable final String statusDetails) {
-        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.TARGET, address, status.getName(),
+        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.TARGET, address, status,
                 statusDetails);
     }
 
@@ -273,9 +258,9 @@ public final class ConnectivityModelFactory {
      * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if any parameter is {@code null}.
      */
-    public static ResourceStatus newStatusUpdate(final String address, final ConnectionStatus status,
+    public static ResourceStatus newStatusUpdate(final String address, final ConnectivityStatus status,
             @Nullable final String statusDetails) {
-        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.UNKNOWN, address, status.getName(),
+        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.UNKNOWN, address, status,
                 statusDetails);
     }
 
@@ -289,10 +274,10 @@ public final class ConnectivityModelFactory {
      * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if any parameter is {@code null}.
      */
-    public static ResourceStatus newStatusUpdate(final String address, final ConnectionStatus status,
+    public static ResourceStatus newStatusUpdate(final String address, final ConnectivityStatus status,
             @Nullable final String statusDetails,
             final Instant inStatusSince) {
-        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.UNKNOWN, address, status.getName(),
+        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.UNKNOWN, address, status,
                 statusDetails, inStatusSince);
     }
 

@@ -36,8 +36,8 @@ import org.apache.qpid.jms.message.JmsInboundMessageDispatch;
 import org.apache.qpid.jms.provider.ProviderFactory;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
@@ -84,7 +84,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      * This constructor is called via reflection by the static method propsForTest.
      */
     @SuppressWarnings("unused")
-    private AmqpClientActor(final Connection connection, final ConnectionStatus connectionStatus,
+    private AmqpClientActor(final Connection connection, final ConnectivityStatus connectionStatus,
             final JmsConnectionFactory jmsConnectionFactory, final ActorRef conciergeForwarder) {
         super(connection, connectionStatus, conciergeForwarder);
         this.jmsConnectionFactory = jmsConnectionFactory;
@@ -97,7 +97,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      * This constructor is called via reflection by the static method props(Connection, ActorRef).
      */
     @SuppressWarnings("unused")
-    private AmqpClientActor(final Connection connection, final ConnectionStatus connectionStatus,
+    private AmqpClientActor(final Connection connection, final ConnectivityStatus connectionStatus,
             final ActorRef conciergeForwarder) {
         this(connection, connectionStatus, ConnectionBasedJmsConnectionFactory.getInstance(), conciergeForwarder);
     }
@@ -123,7 +123,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      * @param jmsConnectionFactory the JMS connection factory.
      * @return the Akka configuration Props object.
      */
-    static Props propsForTests(final Connection connection, final ConnectionStatus connectionStatus,
+    static Props propsForTests(final Connection connection, final ConnectivityStatus connectionStatus,
             final ActorRef conciergeForwarder, final JmsConnectionFactory jmsConnectionFactory) {
         return Props.create(AmqpClientActor.class, validateConnection(connection), connectionStatus,
                 jmsConnectionFactory, conciergeForwarder);
@@ -393,7 +393,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             final BaseClientData currentData) {
         BaseClientData data = currentData;
         if (statusReport.isConnectionRestored()) {
-            data = data.setConnectionStatus(ConnectionStatus.OPEN)
+            data = data.setConnectionStatus(ConnectivityStatus.OPEN)
                     .setConnectionStatusDetails("Connection restored");
         }
 
@@ -404,7 +404,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             final ConnectionFailure failure = possibleFailure.get();
             final String message = MessageFormat.format("Failure: {0}, Description: {1}",
                     failure.getFailure().cause(), failure.getFailureDescription());
-            data = data.setConnectionStatus(ConnectionStatus.FAILED)
+            data = data.setConnectionStatus(ConnectivityStatus.FAILED)
                     .setConnectionStatusDetails(message);
         }
         if (possibleClosedConsumer.isPresent()) {
@@ -417,7 +417,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                         final ActorRef consumerActor = consumerByNamePrefix.get(c.getActorNamePrefix());
                         if (consumerActor != null) {
                             final Object message = ConnectivityModelFactory.newStatusUpdate(c.getAddress(),
-                                    ConnectionStatus.FAILED,
+                                    ConnectivityStatus.FAILED,
                                     "Consumer closed", Instant.now());
                             consumerActor.tell(message, ActorRef.noSender());
                         }

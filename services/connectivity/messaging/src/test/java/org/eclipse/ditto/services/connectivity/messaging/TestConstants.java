@@ -38,9 +38,9 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -82,7 +82,7 @@ public class TestConstants {
 
     public static final Config CONFIG = ConfigFactory.load("test");
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
-    private static final ConnectionStatus STATUS = ConnectionStatus.OPEN;
+    private static final ConnectivityStatus STATUS = ConnectivityStatus.OPEN;
     private static final String URI_TEMPLATE = "amqps://username:password@%s:%s";
 
     public static final String CORRELATION_ID = "cid";
@@ -289,7 +289,7 @@ public class TestConstants {
     }
 
     public static Connection createConnection(final String connectionId, final ActorSystem actorSystem,
-            final ConnectionStatus status, final List<Source> sources) {
+            final ConnectivityStatus status, final List<Source> sources) {
         return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, status, getUriOfNewMockServer())
                 .sources(sources)
                 .targets(Targets.TARGETS)

@@ -21,9 +21,9 @@ import java.util.Set;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -37,7 +37,7 @@ public final class TestConstants {
     public static String ID = "myConnectionId";
 
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
-    public static ConnectionStatus STATUS = ConnectionStatus.OPEN;
+    public static ConnectivityStatus STATUS = ConnectivityStatus.OPEN;
 
     public static String URI = "amqps://username:password@my.endpoint:443";
 
@@ -67,11 +67,11 @@ public final class TestConstants {
                     .targets(TARGETS)
                     .build();
 
-    public static Map<String, ConnectionStatus> CONNECTION_STATUSES;
+    public static Map<String, ConnectivityStatus> CONNECTION_STATUSES;
 
     static {
         CONNECTION_STATUSES = new HashMap<>();
-        CONNECTION_STATUSES.put(ID, ConnectionStatus.OPEN);
+        CONNECTION_STATUSES.put(ID, ConnectivityStatus.OPEN);
     }
 
 }

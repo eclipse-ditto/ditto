@@ -55,7 +55,7 @@ final class ImmutableConnection implements Connection {
     private final String id;
     @Nullable private final String name;
     private final ConnectionType connectionType;
-    private final ConnectionStatus connectionStatus;
+    private final ConnectivityStatus connectionStatus;
     private final ConnectionUri uri;
     @Nullable private final Credentials credentials;
     @Nullable private final String trustedCertificates;
@@ -101,7 +101,7 @@ final class ImmutableConnection implements Connection {
      */
     public static ConnectionBuilder getBuilder(final String id,
             final ConnectionType connectionType,
-            final ConnectionStatus connectionStatus,
+            final ConnectivityStatus connectionStatus,
             final String uri) {
 
         return new Builder(connectionType)
@@ -179,9 +179,9 @@ final class ImmutableConnection implements Connection {
                         .build());
     }
 
-    private static ConnectionStatus getConnectionStatusOrThrow(final JsonObject jsonObject) {
+    private static ConnectivityStatus getConnectionStatusOrThrow(final JsonObject jsonObject) {
         final String readConnectionStatus = jsonObject.getValueOrThrow(JsonFields.CONNECTION_STATUS);
-        return ConnectionStatus.forName(readConnectionStatus)
+        return ConnectivityStatus.forName(readConnectionStatus)
                 .orElseThrow(() -> JsonParseException.newBuilder()
                         .message(MessageFormat.format("Connection status <{0}> is invalid!", readConnectionStatus))
                         .build());
@@ -249,7 +249,7 @@ final class ImmutableConnection implements Connection {
     }
 
     @Override
-    public ConnectionStatus getConnectionStatus() {
+    public ConnectivityStatus getConnectionStatus() {
         return connectionStatus;
     }
 
@@ -454,7 +454,7 @@ final class ImmutableConnection implements Connection {
 
         // required but changeable:
         @Nullable private String id;
-        @Nullable private ConnectionStatus connectionStatus;
+        @Nullable private ConnectivityStatus connectionStatus;
         @Nullable private String uri;
 
         // optional:
@@ -508,7 +508,7 @@ final class ImmutableConnection implements Connection {
         }
 
         @Override
-        public ConnectionBuilder connectionStatus(final ConnectionStatus connectionStatus) {
+        public ConnectionBuilder connectionStatus(final ConnectivityStatus connectionStatus) {
             this.connectionStatus = checkNotNull(connectionStatus, "ConnectionStatus");
             return this;
         }

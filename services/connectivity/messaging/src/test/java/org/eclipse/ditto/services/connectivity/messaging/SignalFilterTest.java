@@ -30,9 +30,9 @@ import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
@@ -133,7 +133,7 @@ public class SignalFilterTest {
         final Connection connection =
                 ConnectivityModelFactory.newConnectionBuilder(CONNECTION,
                         ConnectionType.AMQP_10,
-                        ConnectionStatus.OPEN,
+                        ConnectivityStatus.OPEN,
                         URI).targets(targets).build();
 
         final SignalFilter signalFilter = new SignalFilter(connection);

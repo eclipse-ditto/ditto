@@ -10,8 +10,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
@@ -91,18 +91,18 @@ public class MockClientActor extends AbstractActor {
                 .match(RetrieveConnectionStatus.class, rcs -> {
                     log.info("Retrieve connection status...");
                     sender().tell(ConnectivityModelFactory.newClientStatus("client1",
-                            ConnectionStatus.OPEN, "connection is open", TestConstants.INSTANT),
+                            ConnectivityStatus.OPEN, "connection is open", TestConstants.INSTANT),
                             getSelf());
 
                     // simulate consumer and pusblisher actor response
                     sender().tell(ConnectivityModelFactory.newSourceStatus("source1",
-                            ConnectionStatus.OPEN, "consumer started"),
+                            ConnectivityStatus.OPEN, "consumer started"),
                             getSelf());
                     sender().tell(ConnectivityModelFactory.newSourceStatus("source2",
-                            ConnectionStatus.OPEN, "consumer started"),
+                            ConnectivityStatus.OPEN, "consumer started"),
                             getSelf());
                     sender().tell(ConnectivityModelFactory.newTargetStatus("target1",
-                            ConnectionStatus.OPEN, "publisher started"),
+                            ConnectivityStatus.OPEN, "publisher started"),
                             getSelf());
                 })
                 .matchAny(unhandled -> {

@@ -21,8 +21,8 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
@@ -115,7 +115,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
                                                         target,
                                                         ConnectivityModelFactory.newTargetStatus(
                                                                 target.getAddress(),
-                                                                ConnectionStatus.FAILED,
+                                                                ConnectivityStatus.FAILED,
                                                                 "Exchange '" + exchange + "' was missing at " +
                                                                         Instant.now())));
                             }

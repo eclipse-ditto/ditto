@@ -42,7 +42,7 @@ public interface ResourceStatus extends Jsonifiable.WithFieldSelectorAndPredicat
     /**
      * @return the current status of the resource
      */
-    String getStatus();
+    ConnectivityStatus getStatus();
 
     /**
      * @return the optional status details

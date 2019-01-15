@@ -27,8 +27,8 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -86,7 +86,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
      */
     @SuppressWarnings("unused")
     private RabbitMQClientActor(final Connection connection,
-            final ConnectionStatus connectionStatus,
+            final ConnectivityStatus connectionStatus,
             final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory,
             final ActorRef conciergeForwarder) {
 
@@ -101,7 +101,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
      * This constructor is called via reflection by the static method props(Connection, ActorRef).
      */
     @SuppressWarnings("unused")
-    private RabbitMQClientActor(final Connection connection, final ConnectionStatus connectionStatus,
+    private RabbitMQClientActor(final Connection connection, final ConnectivityStatus connectionStatus,
             final ActorRef conciergeForwarder) {
 
         this(connection, connectionStatus, ConnectionBasedRabbitConnectionFactoryFactory.getInstance(),
@@ -130,7 +130,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
      * @return the Akka configuration Props object.
      */
     static Props propsForTests(final Connection connection,
-            final ConnectionStatus connectionStatus,
+            final ConnectivityStatus connectionStatus,
             final ActorRef conciergeForwarder,
             final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
 
@@ -477,7 +477,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
             super(channel);
             this.consumerActor = consumerActor;
             this.address = address;
-            updateSourceStatus(ConnectionStatus.OPEN, "Consumer initialized at " + Instant.now());
+            updateSourceStatus(ConnectivityStatus.OPEN, "Consumer initialized at " + Instant.now());
         }
 
         @Override
@@ -508,7 +508,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                 log.info("Consume OK for consumer queue <{}> on connection <{}>.", consumingQueueByTag, connectionId());
             }
 
-            updateSourceStatus(ConnectionStatus.OPEN, "Consumer started at " + Instant.now());
+            updateSourceStatus(ConnectivityStatus.OPEN, "Consumer started at " + Instant.now());
         }
 
         @Override
@@ -522,7 +522,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         "example when the queue was deleted.", consumingQueueByTag, connectionId());
             }
 
-            updateSourceStatus(ConnectionStatus.FAILED, "Consumer for queue cancelled at " + Instant.now());
+            updateSourceStatus(ConnectivityStatus.FAILED, "Consumer for queue cancelled at " + Instant.now());
         }
 
         @Override
@@ -536,7 +536,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         "been shut down on connection <{}>.", consumingQueueByTag, connectionId());
             }
 
-            updateSourceStatus(ConnectionStatus.FAILED,
+            updateSourceStatus(ConnectivityStatus.FAILED,
                     "Channel or the underlying connection has been shut down at " + Instant.now());
         }
 
@@ -550,7 +550,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
             getSelf().tell((ClientConnected) Optional::empty, getSelf());
         }
 
-        private void updateSourceStatus(final ConnectionStatus connectionStatus, final String statusDetails) {
+        private void updateSourceStatus(final ConnectivityStatus connectionStatus, final String statusDetails) {
             consumerActor.tell(ConnectivityModelFactory.newStatusUpdate(address, connectionStatus, statusDetails,
                     Instant.now()), ActorRef.noSender());
         }
