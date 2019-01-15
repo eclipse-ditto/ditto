@@ -310,7 +310,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
             final Instant lastSuccessfulQueryEnd = activeStream.getQueryEnd();
             streamMetadataPersistence.updateLastSuccessfulStreamEnd(lastSuccessfulQueryEnd)
                     .runWith(akka.stream.javadsl.Sink.last(), materializer)
-                    .thenRun(() -> log.info("Updated last sync timestamp to value: <{}>.", lastSuccessfulQueryEnd))
+                    .thenRun(() -> log.debug("Updated last sync timestamp to value: <{}>.", lastSuccessfulQueryEnd))
                     .exceptionally(error -> {
                         log.error(error, "Failed to update last sync timestamp to value: <{}>.",
                                 lastSuccessfulQueryEnd);
@@ -348,7 +348,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
                     // check if the queryStart is very long in the past to be able to log a warning
                     final Duration warnOffset = streamConsumerSettings.getOutdatedWarningOffset();
                     if (!offsetFromNow.isNegative() && offsetFromNow.compareTo(warnOffset) > 0) {
-                        log.warning("The next Query-Start <{}> is older than the configured warn-offset <{}>. " +
+                        log.debug("The next Query-Start <{}> is older than the configured warn-offset <{}>. " +
                                         "Please verify that this does not happen frequently, " +
                                         "otherwise won't get \"up-to-date\" anymore.",
                                 queryStart, warnOffset);
@@ -386,7 +386,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
     }
 
     private void scheduleStream(final Duration duration) {
-        log.info("Schedule Stream in: {}", duration);
+        log.debug("Schedule Stream in: {}", duration);
         if (scheduledStreamStart != null) {
             scheduledStreamStart.cancel();
         }
@@ -415,7 +415,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
 
             forwarder = createOrGetForwarder();
 
-            log.info("Requesting stream from <{}> on behalf of <{}> by <{}>", provider, forwarder,
+            log.debug("Requesting stream from <{}> on behalf of <{}> by <{}>", provider, forwarder,
                     startStreamCommand);
             provider.tell(startStreamCommand, forwarder);
             activeStream = nextStream;
