@@ -24,10 +24,7 @@ import java.util.function.Supplier;
 
 import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
-import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.StatusCodes;
@@ -41,31 +38,26 @@ public final class OverallStatusRoute {
     /**
      * Public endpoint of overall status.
      */
-    public static final String PATH_STATUS = "status";
+    public static final String PATH_OVERALL = "overall";
 
+    static final String PATH_STATUS = "status";
     static final String PATH_HEALTH = "health";
     static final String PATH_CLUSTER = "cluster";
-    static final String PATH_OWN = "own";
+
 
     private final Supplier<ClusterStatus> clusterStateSupplier;
     private final StatusAndHealthProvider statusHealthProvider;
 
-    private final StatusRoute ownStatusRoute;
-
     /**
      * Constructs the {@code /status} route builder.
      *
-     * @param actorSystem the Actor System.
      * @param clusterStateSupplier the supplier to get the cluster state.
-     * @param healthCheckingActor the actor for checking the gateways own health.
      * @param statusHealthProvider the provider for retrieving health status of the cluster.
      */
-    public OverallStatusRoute(final ActorSystem actorSystem, final Supplier<ClusterStatus> clusterStateSupplier,
-            final ActorRef healthCheckingActor, final StatusAndHealthProvider statusHealthProvider) {
+    public OverallStatusRoute(final Supplier<ClusterStatus> clusterStateSupplier,
+            final StatusAndHealthProvider statusHealthProvider) {
         this.clusterStateSupplier = clusterStateSupplier;
         this.statusHealthProvider = statusHealthProvider;
-
-        ownStatusRoute = new StatusRoute(clusterStateSupplier, healthCheckingActor, actorSystem);
     }
 
     /**
@@ -73,14 +65,13 @@ public final class OverallStatusRoute {
      *
      * @return the {@code /status} route.
      */
-    public Route buildStatusRoute() {
-        return rawPathPrefix(mergeDoubleSlashes().concat(PATH_STATUS), () -> // /status/*
+    public Route buildOverallStatusRoute() {
+        return rawPathPrefix(mergeDoubleSlashes().concat(PATH_OVERALL), () -> // /overall/*
                 get(() -> // GET
-                        route(
-                                // /status/own/status
-                                // /status/own/status/health
-                                // /status/own/status/cluster
-                                rawPathPrefix(mergeDoubleSlashes().concat(PATH_OWN), ownStatusRoute::buildStatusRoute),
+                        // /overall/status
+                        // /overall/status/health
+                        // /overall/status/cluster
+                        rawPathPrefix(mergeDoubleSlashes().concat(PATH_STATUS), () ->
                                 route(
                                         // /status
                                         pathEndOrSingleSlash(
@@ -93,10 +84,9 @@ public final class OverallStatusRoute {
                                                         .withEntity(ContentTypes.APPLICATION_JSON,
                                                                 clusterStateSupplier.get().toJson().toString()))
                                         )
-                                )
-                        )
-                )
-        );
+                                ))
+
+                ));
     }
 
     private CompletionStage<HttpResponse> createOverallStatusResponse() {

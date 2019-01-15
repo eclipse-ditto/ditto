@@ -15,7 +15,6 @@ import static akka.http.javadsl.server.Directives.extractRequestContext;
 import static akka.http.javadsl.server.Directives.handleExceptions;
 import static akka.http.javadsl.server.Directives.handleRejections;
 import static akka.http.javadsl.server.Directives.parameterOptional;
-import static akka.http.javadsl.server.Directives.pathPrefix;
 import static akka.http.javadsl.server.Directives.pathPrefixTest;
 import static akka.http.javadsl.server.Directives.rawPathPrefix;
 import static akka.http.javadsl.server.Directives.route;
@@ -113,7 +112,7 @@ public final class RootRoute {
      * Contains a Pattern which routes are included in devops Basic Auth secured resources.
      */
     public static final Pattern DEVOPS_AUTH_SECURED = Pattern.compile("(" +
-            OverallStatusRoute.PATH_STATUS + "|" +
+            OverallStatusRoute.PATH_OVERALL + "|" +
             DevOpsRoute.PATH_DEVOPS + ").*"
     );
 
@@ -186,8 +185,7 @@ public final class RootRoute {
 
         statsRoute = new StatsRoute(proxyActor, actorSystem);
         ownStatusRoute = new StatusRoute(clusterStateSupplier, healthCheckingActor, actorSystem);
-        overallStatusRoute = new OverallStatusRoute(actorSystem, clusterStateSupplier, healthCheckingActor,
-                statusHealthProvider);
+        overallStatusRoute = new OverallStatusRoute(clusterStateSupplier, statusHealthProvider);
         cachingHealthRoute = new CachingHealthRoute(statusHealthProvider,
                 config.getDuration(ConfigKeys.STATUS_HEALTH_EXTERNAL_CACHE_TIMEOUT));
         devopsRoute = new DevOpsRoute(proxyActor, actorSystem);
@@ -237,11 +235,11 @@ public final class RootRoute {
                                 cachingHealthRoute.buildHealthRoute(), // /health
                                 api(ctx, correlationId), // /api
                                 ws(ctx, correlationId), // /ws
-                                ownHealth(),
+                                ownStatusRoute.buildStatusRoute(), // /status
                                 pathPrefixTest(PathMatchers.segment(DEVOPS_AUTH_SECURED), segment ->
                                         authenticateDevopsBasic(REALM_DEVOPS,
                                                 route(
-                                                        overallStatusRoute.buildStatusRoute(), // /status
+                                                        overallStatusRoute.buildOverallStatusRoute(), // /overall
                                                         devopsRoute.buildDevopsRoute(ctx) // /devops
                                                 )
                                         )
@@ -295,10 +293,6 @@ public final class RootRoute {
 
     private Route wsAuthentication(final String correlationId, final Function<AuthorizationContext, Route> inner) {
         return wsAuthenticationDirective.authenticate(correlationId, inner);
-    }
-
-    private Route ownHealth() {
-        return pathPrefix("status", () -> pathPrefix("own", ownStatusRoute::buildStatusRoute));
     }
 
     /*
