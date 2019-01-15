@@ -13,8 +13,8 @@
 |com.github.jnr|jnr-constants|0.9.9| [16302](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16302) |
 |com.github.jnr|jnr-ffi|2.1.7| [16303](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16303) |
 |com.github.jnr|jnr-x86asm|1.0.2| [16304](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16304) |
-|com.github.scullxbones|akka-persistence-mongo-common_2.12|2.0.9| [16313](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16313) TODO CQ |
-|com.github.scullxbones|akka-persistence-mongo-scala_2.12|2.2.2| TODO CQ |
+|com.github.scullxbones|akka-persistence-mongo-common_2.12|2.2.2| [18708](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18708) |
+|com.github.scullxbones|akka-persistence-mongo-scala_2.12|2.2.2| [18709](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18709) |
 |com.lightbend.akka|akka-stream-alpakka-mqtt_2.12|0.20| [17357](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17357) |
 |com.lightbend.akka.discovery|akka-discovery_2.12|0.14.0| [16727](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16727) |
 |com.lightbend.akka.discovery|akka-discovery-dns_2.12|0.14.0| [16727](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16727) |
@@ -38,7 +38,7 @@
 |com.typesafe.akka|akka-remote_2.12|2.5.17| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
 |com.typesafe.akka|akka-slf4j_2.12|2.5.17| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
 |com.typesafe.akka|akka-stream_2.12|2.5.17| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
-|com.typesafe|config|1.3.2| [14400](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14400) |
+|com.typesafe|config|1.3.3| [14400](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14400) |
 |com.typesafe|ssl-config-core_2.12|0.2.4| [16314](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16314) |
 |io.aeron|aeron-client|1.9.3| [16553](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16553) |
 |io.aeron|aeron-driver|1.9.3| [16552](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16552) |
@@ -164,6 +164,7 @@ Manual step by sending mail to Eclipse IP team - this is a collection of depende
 | Group ID  | Artifact ID  | Version  | CQ |
 |---|---|---|---|
 |com.github.nscala-time|nscala-time_2.12|2.14.0| [16310](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16310) |
+|com.github.scullxbones|akka-persistence-mongo-common_2.12|2.0.9| [16313](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16313) |
 |com.github.scullxbones|akka-persistence-mongo-casbah_2.12|2.0.9| [16312](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16312) |
 |joda-time|joda-time|2.9.4| [14468](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14468) |
 |org.joda|joda-convert|1.2| [14472](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14472) |
