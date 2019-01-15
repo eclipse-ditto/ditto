@@ -398,12 +398,11 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
     }
 
     private Cancellable scheduleActivityCheck(final StreamConsumerSettings streamConsumerSettings) {
-        final FiniteDuration initialDelay = fromDuration(streamConsumerSettings.getOutdatedWarningOffset());
         final FiniteDuration interval = fromDuration(streamConsumerSettings.getStreamInterval());
         final CheckForActivity message = CheckForActivity.INSTANCE;
         return getContext().getSystem()
                 .scheduler()
-                .schedule(initialDelay, interval, getSelf(), message, getContext().dispatcher(), ActorRef.noSender());
+                .schedule(interval, interval, getSelf(), message, getContext().dispatcher(), ActorRef.noSender());
     }
 
     private void tryToStartStream() {
