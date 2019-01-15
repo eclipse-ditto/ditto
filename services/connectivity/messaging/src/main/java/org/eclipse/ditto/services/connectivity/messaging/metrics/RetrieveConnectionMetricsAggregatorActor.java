@@ -26,24 +26,26 @@ import akka.actor.ReceiveTimeout;
 import akka.event.DiagnosticLoggingAdapter;
 
 /**
- * TODO TJ doc
+ * An aggregation actor which receives {@link RetrieveConnectionMetricsResponse} messages and aggregates them into a
+ * single {@link RetrieveConnectionMetricsResponse} message it sends back to a passed in {@code sender}.
  */
 public final class RetrieveConnectionMetricsAggregatorActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-    private static final long DEFAULT_TIMEOUT = Duration.ofSeconds(10).toMillis();
+
     private final Connection connection;
-    private final DittoHeaders dittoHeaders;
+    private final DittoHeaders originalHeaders;
     private int expectedResponses;
     private final ActorRef sender;
     private final Duration timeout;
 
     private RetrieveConnectionMetricsResponse theResponse;
 
+    @SuppressWarnings("unused")
     private RetrieveConnectionMetricsAggregatorActor(final Connection connection, final ActorRef sender,
             final DittoHeaders originalHeaders, final Duration timeout) {
         this.connection = connection;
-        this.dittoHeaders = originalHeaders;
+        this.originalHeaders = originalHeaders;
 
         // one RetrieveConnectionMetricsResponse per client actor
         this.expectedResponses = connection.getClientCount();
@@ -51,9 +53,19 @@ public final class RetrieveConnectionMetricsAggregatorActor extends AbstractActo
         this.timeout = timeout;
     }
 
+    /**
+     * Creates Akka configuration object for this actor.
+     *
+     * @param connection the {@code Connection} for which to aggregate the metrics for.
+     * @param sender the ActorRef of the sender to which to answer the response to.
+     * @param originalHeaders the DittoHeaders to use for the response message.
+     * @param timeout the timeout to apply in order to receive the response.
+     * @return the Akka configuration Props object
+     */
     public static Props props(final Connection connection, final ActorRef sender,
             final DittoHeaders originalHeaders, final Duration timeout) {
-        return Props.create(RetrieveConnectionMetricsAggregatorActor.class, connection, sender, originalHeaders, timeout);
+        return Props.create(RetrieveConnectionMetricsAggregatorActor.class, connection, sender, originalHeaders,
+                timeout);
     }
 
     @Override
@@ -69,7 +81,9 @@ public final class RetrieveConnectionMetricsAggregatorActor extends AbstractActo
             sendResponse();
         } else {
             sender.tell(
-                    ConnectionTimeoutException.newBuilder(connection.getId(), RetrieveConnectionMetrics.TYPE).build(),
+                    ConnectionTimeoutException.newBuilder(connection.getId(), RetrieveConnectionMetrics.TYPE)
+                            .dittoHeaders(originalHeaders)
+                            .build(),
                     getSender());
         }
         stopSelf();
@@ -101,7 +115,7 @@ public final class RetrieveConnectionMetricsAggregatorActor extends AbstractActo
     }
 
     private void sendResponse() {
-        sender.tell(theResponse.setDittoHeaders(dittoHeaders), getSelf());
+        sender.tell(theResponse.setDittoHeaders(originalHeaders), getSelf());
     }
 
     private void stopSelf() {

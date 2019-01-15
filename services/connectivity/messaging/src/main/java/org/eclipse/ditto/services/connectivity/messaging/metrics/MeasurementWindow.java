@@ -56,7 +56,7 @@ public enum MeasurementWindow {
      * @return the ISO-8601 string representation of the interval
      */
     public String getLabel() {
-        return window.toString() + "("+resolution.toString() + ")";
+        return window.toString() + "(" + resolution.toString() + ")";
     }
 
     public Duration getWindow() {

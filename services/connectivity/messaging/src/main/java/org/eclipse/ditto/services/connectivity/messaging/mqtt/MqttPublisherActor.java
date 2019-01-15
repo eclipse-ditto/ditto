@@ -77,13 +77,14 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
     }
 
     /**
-     * TODO TJ doc
-     * @param connectionId
-     * @param targets
-     * @param factory
-     * @param mqttClientActor
-     * @param dryRun
-     * @return
+     * Creates Akka configuration object {@link Props} for this {@code RabbitMQPublisherActor}.
+     *
+     * @param connectionId the connectionId this publisher belongs to.
+     * @param targets the targets to publish to.
+     * @param factory the factory to create MqttConnections with.
+     * @param mqttClientActor the ActorRef to the Mqtt Client Actor
+     * @param dryRun whether this publisher is only created for a test or not.
+     * @return the Akka configuration Props object.
      */
     static Props props(final String connectionId, final Set<Target> targets,
             final MqttConnectionFactory factory, final ActorRef mqttClientActor,

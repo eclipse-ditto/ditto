@@ -163,7 +163,14 @@ public final class RetrieveConnectionMetricsResponse
                 });
     }
 
-    public RetrieveConnectionMetricsResponse mergeWith(RetrieveConnectionMetricsResponse other) {
+    /**
+     * Merges the passed {@code other} RetrieveConnectionMetricsResponse with {@code this} response returning a new
+     * RetrieveConnectionMetricsResponse containing the merged information.
+     *
+     * @param other the other RetrieveConnectionMetricsResponse to merge into {@code this} one.
+     * @return the new merged RetrieveConnectionMetricsResponse.
+     */
+    public RetrieveConnectionMetricsResponse mergeWith(final RetrieveConnectionMetricsResponse other) {
 
         final SourceMetrics mergedSourceMetrics =
                 ConnectivityModelFactory.newSourceMetrics(mergeAddressMetricMap(getSourceMetrics().getAddressMetrics(),

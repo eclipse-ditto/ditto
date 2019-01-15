@@ -468,9 +468,9 @@ public final class RabbitMQClientActor extends BaseClientActor {
         /**
          * Constructs a new instance and records its association to the passed-in channel.
          *
-         * @param consumerActor
+         * @param consumerActor the ActorRef to the consumer actor
          * @param channel the channel to which this consumer is attached
-         * @param address TODO TJ doc
+         * @param address the address of the consumer
          */
         private RabbitMQMessageConsumer(final ActorRef consumerActor,
                 final Channel channel, final String address) {

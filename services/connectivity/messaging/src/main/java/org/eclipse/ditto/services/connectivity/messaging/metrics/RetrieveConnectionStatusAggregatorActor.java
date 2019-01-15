@@ -29,23 +29,27 @@ import akka.actor.ReceiveTimeout;
 import akka.event.DiagnosticLoggingAdapter;
 
 /**
- * TODO TJ doc
+ * An aggregation actor which receives {@link ResourceStatus} messages from all {@code clients, targets and sources}
+ * and aggregates them into a single {@link RetrieveConnectionStatusResponse} message it sends back to a passed in
+ * {@code sender}.
  */
 public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+
     private final Duration timeout;
     private final Map<ResourceStatus.ResourceType, Integer> expectedResponses;
     private final ActorRef sender;
 
     private RetrieveConnectionStatusResponse theResponse;
 
+    @SuppressWarnings("unused")
     private RetrieveConnectionStatusAggregatorActor(final Connection connection,
-            final ActorRef sender, final DittoHeaders dittoHeaders, final Duration timeout) {
+            final ActorRef sender, final DittoHeaders originalHeaders, final Duration timeout) {
         this.timeout = timeout;
         this.sender = sender;
         theResponse = RetrieveConnectionStatusResponse.of(connection.getId(), connection.getConnectionStatus(),
-                        Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), dittoHeaders);
+                        Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), originalHeaders);
 
         this.expectedResponses = new HashMap<>();
         // one response per client actor
@@ -67,16 +71,17 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
     }
 
     /**
-     * TODO TJ doc
-     * @param connection
-     * @param sender
-     * @param dittoHeaders
-     * @param timeout
-     * @return
+     * Creates Akka configuration object for this actor.
+     *
+     * @param connection the {@code Connection} for which to aggregate the status for.
+     * @param sender the ActorRef of the sender to which to answer the response to.
+     * @param originalHeaders the DittoHeaders to use for the response message.
+     * @param timeout the timeout to apply in order to receive the response.
+     * @return the Akka configuration Props object
      */
-    public static Props props(final Connection connection, final ActorRef sender, final DittoHeaders dittoHeaders,
+    public static Props props(final Connection connection, final ActorRef sender, final DittoHeaders originalHeaders,
             final Duration timeout) {
-        return Props.create(RetrieveConnectionStatusAggregatorActor.class, connection, sender, dittoHeaders, timeout);
+        return Props.create(RetrieveConnectionStatusAggregatorActor.class, connection, sender, originalHeaders, timeout);
     }
 
     @Override
@@ -99,7 +104,7 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
     }
 
     private void handleResourceStatus(final ResourceStatus resourceStatus) {
-        expectedResponses.compute(resourceStatus.getResourceType(), (type, count)->count-1);
+        expectedResponses.compute(resourceStatus.getResourceType(), (type, count)-> count == null ? 0 : count-1);
         log.debug("Received resource status from {}: {}", getSender(), resourceStatus);
         // aggregate status...
         theResponse = theResponse.withAddressStatus(resourceStatus);
@@ -111,7 +116,9 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
     }
 
     private int getRemainingResponses() {
-        return expectedResponses.values().stream().mapToInt(i->i).sum();
+        return expectedResponses.values().stream()
+                .mapToInt(i->i)
+                .sum();
     }
 
     private void sendResponse() {

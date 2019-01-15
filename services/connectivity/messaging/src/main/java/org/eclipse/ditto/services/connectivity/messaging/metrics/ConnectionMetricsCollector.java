@@ -20,6 +20,7 @@ import java.util.function.Supplier;
 
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Measurement;
+import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -104,8 +105,6 @@ public final class ConnectionMetricsCollector {
         }
         return Optional.of(
                 ConnectivityModelFactory.newMeasurement(metric.getLabel(), success, measurements, timestamp));
-
-        // TODO TJ check with DG if this change I made here (always returning content, even if empty) is ok
     }
 
     private Instant getLastMessageTimestamp() {
@@ -129,7 +128,8 @@ public final class ConnectionMetricsCollector {
     }
 
     /**
-     * TODO TJ doc
+     * Executes the passed {@code supplier} and increments the success counter if no exception was thrown or the failed
+     * counter if a exception was caught.
      */
     public <T> T record(final Supplier<T> supplier) {
         try {
@@ -143,10 +143,10 @@ public final class ConnectionMetricsCollector {
     }
 
     /**
-     * TODO TJ doc
+     * Executes the passed {@code supplier} and increments the passed {@code success} counter if no exception was
+     * thrown or the passed {@code failed} counter if a exception was caught.
      */
-    public static <T> T record(org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter success,
-            org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter failure, final Supplier<T> supplier) {
+    public static <T> T record(final Counter success, final Counter failure, final Supplier<T> supplier) {
         try {
             final T result = supplier.get();
             success.increment();

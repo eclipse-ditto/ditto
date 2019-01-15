@@ -50,8 +50,7 @@ public final class SlidingWindowCounter {
     }
 
     /**
-     * TODO TJ doc
-     * @return
+     * @return the timestamp of the last measurement (initialized to {@code EPOCH} if no measurement was yet processed)
      */
     long getLastMeasurementAt() {
         return lastTimestamp.get();

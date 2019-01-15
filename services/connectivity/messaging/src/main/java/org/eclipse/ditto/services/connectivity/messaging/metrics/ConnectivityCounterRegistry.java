@@ -36,7 +36,7 @@ import org.eclipse.ditto.model.connectivity.TargetMetrics;
  * This registry holds counters for the connectivity service. The counters are identified by the connection id, a
  * {@link Metric}, a {@link Direction} and an address.
  */
-public class ConnectivityCounterRegistry {
+public final class ConnectivityCounterRegistry {
 
     private static final ConcurrentMap<String, ConnectionMetricsCollector> counters = new ConcurrentHashMap<>();
 

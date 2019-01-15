@@ -110,14 +110,17 @@ public final class RetrieveConnectionStatusResponseTest {
             .set(RetrieveConnectionStatusResponse.JsonFields.TARGET_STATUS,
                     JsonFactory.newArrayBuilder()
                             .add(JsonFactory.newObjectBuilder()
+                                            .set(ResourceStatus.JsonFields.ADDRESS, "target1")
                                             .set(ResourceStatus.JsonFields.STATUS, ConnectionStatus.OPEN.toString())
                                             .set(ResourceStatus.JsonFields.STATUS_DETAILS, "open since ...")
                                             .build(),
                                     JsonFactory.newObjectBuilder()
+                                            .set(ResourceStatus.JsonFields.ADDRESS, "target2")
                                             .set(ResourceStatus.JsonFields.STATUS, ConnectionStatus.FAILED.toString())
                                             .set(ResourceStatus.JsonFields.STATUS_DETAILS, "this publisher fails ...")
                                             .build(),
                                     JsonFactory.newObjectBuilder()
+                                            .set(ResourceStatus.JsonFields.ADDRESS, "target3")
                                             .set(ResourceStatus.JsonFields.STATUS, ConnectionStatus.CLOSED.toString())
                                             .set(ResourceStatus.JsonFields.STATUS_DETAILS, "closed since 123")
                                             .build()

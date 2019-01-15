@@ -103,9 +103,9 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
      * Returns a new instance of {@code RetrieveConnectionStatusResponse}.
      *
      * @param connectionId the identifier of the connection.
-     * @param connectionClosedAt TODO TJ doc
-     * @param clientStatus
-     * @param statusDetails
+     * @param connectionClosedAt the instant when the connection was closed
+     * @param clientStatus the {@link ConnectionStatus} of the client
+     * @param statusDetails the details string for the {@code clientStatus}
      * @param dittoHeaders the headers of the request.
      * @return a new RetrieveConnectionStatusResponse response.
      * @throws NullPointerException if any argument is {@code null}.
@@ -214,6 +214,13 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
         return targetStatus;
     }
 
+    /**
+     * Builds a new instance of RetrieveConnectionStatusResponse based on {@code this} instance with the passed
+     * {@code resourceStatus} as address status.
+     *
+     * @param resourceStatus the ResourceStatus.
+     * @return the new RetrieveConnectionStatusResponse.
+     */
     public RetrieveConnectionStatusResponse withAddressStatus(final ResourceStatus resourceStatus) {
         final List<ResourceStatus> newClientStatus;
         final List<ResourceStatus> newSourceStatus;
