@@ -72,6 +72,7 @@ public final class RetrieveConnectionStatusResponseTest {
             .set(CommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
             .set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, TestConstants.ID)
             .set(RetrieveConnectionStatusResponse.JsonFields.CONNECTION_STATUS, ConnectionStatus.OPEN.getName())
+            .set(RetrieveConnectionStatusResponse.JsonFields.LIVE_STATUS, ConnectionStatus.CLOSED.getName())
             .set(RetrieveConnectionStatusResponse.JsonFields.CLIENT_STATUS,
                     JsonFactory.newArrayBuilder()
                             .add(JsonFactory.newObjectBuilder()
@@ -148,6 +149,7 @@ public final class RetrieveConnectionStatusResponseTest {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> RetrieveConnectionStatusResponse.of(null,
                         ConnectionStatus.OPEN,
+                        ConnectionStatus.CLOSED,
                         Collections.emptyList(),
                         Collections.emptyList(),
                         Collections.emptyList(),
@@ -159,7 +161,7 @@ public final class RetrieveConnectionStatusResponseTest {
     @Test
     public void retrieveInstanceWithNullConnectionStatus() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> RetrieveConnectionStatusResponse.of(TestConstants.ID, null,
+                .isThrownBy(() -> RetrieveConnectionStatusResponse.of(TestConstants.ID, null, ConnectionStatus.CLOSED,
                         Collections.emptyList(),
                         Collections.emptyList(),
                         Collections.emptyList(),
@@ -169,9 +171,21 @@ public final class RetrieveConnectionStatusResponseTest {
     }
 
     @Test
+    public void retrieveInstanceWithNullLiveStatus() {
+        assertThatExceptionOfType(NullPointerException.class)
+                .isThrownBy(() -> RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectionStatus.OPEN, null,
+                        Collections.emptyList(),
+                        Collections.emptyList(),
+                        Collections.emptyList(),
+                        DittoHeaders.empty()))
+                .withMessage("The %s must not be null!", "Live Connection Status")
+                .withNoCause();
+    }
+
+    @Test
     public void fromJsonReturnsExpected() {
         final RetrieveConnectionStatusResponse expected =
-                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectionStatus.OPEN,
+                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectionStatus.OPEN, ConnectionStatus.CLOSED,
                         clientStatus,
                         sourceStatus,
                         targetStatus,
@@ -186,7 +200,7 @@ public final class RetrieveConnectionStatusResponseTest {
     @Test
     public void toJsonReturnsExpected() {
         final JsonObject actual =
-                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectionStatus.OPEN,
+                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectionStatus.OPEN, ConnectionStatus.CLOSED,
                         clientStatus,
                         sourceStatus,
                         targetStatus,
@@ -199,7 +213,7 @@ public final class RetrieveConnectionStatusResponseTest {
     @Test
     public void mergeMultipleStatuses() {
         final RetrieveConnectionStatusResponse expected =
-                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectionStatus.OPEN,
+                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectionStatus.OPEN, ConnectionStatus.CLOSED,
                         clientStatus,
                         sourceStatus,
                         targetStatus,
@@ -207,7 +221,7 @@ public final class RetrieveConnectionStatusResponseTest {
 
 
         final RetrieveConnectionStatusResponse empty =
-                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectionStatus.OPEN,
+                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectionStatus.OPEN, ConnectionStatus.CLOSED,
                         Collections.emptyList(),
                         Collections.emptyList(),
                         Collections.emptyList(),
@@ -220,7 +234,7 @@ public final class RetrieveConnectionStatusResponseTest {
         Collections.shuffle(statuses);
 
         RetrieveConnectionStatusResponse actual =
-                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectionStatus.OPEN,
+                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectionStatus.OPEN, ConnectionStatus.CLOSED,
                         Collections.emptyList(),
                         Collections.emptyList(),
                         Collections.emptyList(),

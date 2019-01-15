@@ -346,7 +346,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         timer.tag(TracingTags.MAPPING_SUCCESS, null == cause).stop();
     }
 
-    public Set<ConnectionMetricsCollector> getCountersForOutboundSignal(final OutboundSignal outbound,
+    private Set<ConnectionMetricsCollector> getCountersForOutboundSignal(final OutboundSignal outbound,
             final String connectionId, final ConnectivityCounterRegistry.Metric metric) {
 
         if (outbound.getSource() instanceof CommandResponse) {

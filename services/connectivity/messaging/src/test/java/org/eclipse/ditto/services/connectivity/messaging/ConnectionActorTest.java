@@ -128,7 +128,7 @@ public final class ConnectionActorTest extends WithMockServers {
         retrieveModifiedConnectionResponse =
                 RetrieveConnectionResponse.of(modifiedConnection, DittoHeaders.empty());
         retrieveConnectionStatusOpenResponse =
-                RetrieveConnectionStatusResponse.of(connectionId, ConnectionStatus.OPEN,
+                RetrieveConnectionStatusResponse.of(connectionId, ConnectionStatus.OPEN, ConnectionStatus.OPEN,
                         asList(ConnectivityModelFactory.newClientStatus("client1", ConnectionStatus.OPEN, "connection is open", INSTANT)),
                         asList(
                             ConnectivityModelFactory.newSourceStatus("source1", ConnectionStatus.OPEN, "consumer started"),

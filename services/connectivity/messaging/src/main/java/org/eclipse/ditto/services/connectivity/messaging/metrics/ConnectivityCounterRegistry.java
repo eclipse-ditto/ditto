@@ -16,6 +16,7 @@ import static org.eclipse.ditto.services.connectivity.messaging.metrics.Measurem
 import static org.eclipse.ditto.services.connectivity.messaging.metrics.MeasurementWindow.ONE_MINUTE;
 
 import java.time.Clock;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -27,9 +28,12 @@ import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 
 import org.eclipse.ditto.model.connectivity.AddressMetric;
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Measurement;
+import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
+import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
 
 /**
@@ -48,6 +52,36 @@ public final class ConnectivityCounterRegistry {
     private static final Clock CLOCK_UTC = Clock.systemUTC();
 
     /**
+     * Initializes the global {@code counters} Map with the address information of the passed {@code connection}.
+     *
+     * @param connection the connection to initialize the global counters map with.
+     */
+    public static void initCountersForConnection(final Connection connection) {
+
+        final String connectionId = connection.getId();
+        connection.getSources().stream()
+                .map(Source::getAddresses)
+                .forEach(addresses -> addresses
+                        .forEach(address ->
+                                initCounter(connectionId, Direction.INBOUND, address)));
+        connection.getTargets().stream()
+                .map(Target::getAddress)
+                .forEach(address ->
+                        initCounter(connectionId, Direction.OUTBOUND, address));
+    }
+
+    private static void initCounter(final String connectionId, final Direction direction, final String address) {
+        Arrays.stream(Metric.values())
+                .forEach(metric -> {
+                    final String key = new MapKey(connectionId, metric, direction, address).toString();
+                    counters.computeIfAbsent(key, m -> {
+                        final SlidingWindowCounter counter = new SlidingWindowCounter(CLOCK_UTC, DEFAULT_WINDOWS);
+                        return new ConnectionMetricsCollector(direction, address, metric, counter);
+                    });
+                });
+    }
+
+    /**
      * Gets the counter for the given parameter from the registry or creates it if it does not yet exist.
      *
      * @param connectionId connection id
@@ -61,7 +95,6 @@ public final class ConnectivityCounterRegistry {
             final Metric metric,
             final Direction direction,
             final String address) {
-
 
         return getCounter(CLOCK_UTC, connectionId, metric, direction, address);
     }
@@ -223,8 +256,8 @@ public final class ConnectivityCounterRegistry {
                 .forEach(swc -> addressMetrics.compute(swc.getAddress(),
                         (address, metric) -> {
                             final Set<Measurement> measurements = new HashSet<>();
-                            swc.toMeasurement(true).ifPresent(measurements::add);
-                            swc.toMeasurement(false).ifPresent(measurements::add);
+                            measurements.add(swc.toMeasurement(true));
+                            measurements.add(swc.toMeasurement(false));
                             return metric != null
                                     ? ConnectivityModelFactory.newAddressMetric(metric, measurements)
                                     : ConnectivityModelFactory.newAddressMetric(measurements);

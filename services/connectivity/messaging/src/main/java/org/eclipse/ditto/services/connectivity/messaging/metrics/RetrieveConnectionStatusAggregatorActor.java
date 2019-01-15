@@ -49,6 +49,7 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
         this.timeout = timeout;
         this.sender = sender;
         theResponse = RetrieveConnectionStatusResponse.of(connection.getId(), connection.getConnectionStatus(),
+                        ConnectionStatus.UNKNOWN,
                         Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), originalHeaders);
 
         this.expectedResponses = new HashMap<>();
@@ -122,6 +123,14 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
     }
 
     private void sendResponse() {
+        final boolean anyClientOpen = theResponse.getClientStatus().stream()
+                .map(ResourceStatus::getStatus)
+                .anyMatch("open"::equalsIgnoreCase); // TODO TJ use enum instead?
+        final boolean anyClientFailed = theResponse.getClientStatus().stream()
+                .map(ResourceStatus::getStatus)
+                .anyMatch("failed"::equalsIgnoreCase); // TODO TJ use enum instead?
+        theResponse = theResponse.withLiveStatus(anyClientOpen ? ConnectionStatus.OPEN :
+                (anyClientFailed ? ConnectionStatus.FAILED : ConnectionStatus.CLOSED));
         sender.tell(theResponse, getSelf());
         stopSelf();
     }

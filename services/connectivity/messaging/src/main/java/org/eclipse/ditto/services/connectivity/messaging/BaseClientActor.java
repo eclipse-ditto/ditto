@@ -145,6 +145,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         whenUnhandled(inAnyState().anyEvent(this::onUnknownEvent));
 
+        ConnectivityCounterRegistry.initCountersForConnection(connection);
+
         initialize();
     }
 

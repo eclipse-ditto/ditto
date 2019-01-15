@@ -14,7 +14,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Instant;
 import java.util.Collections;
 
 import org.eclipse.ditto.json.JsonField;
@@ -165,6 +164,7 @@ public class JsonExamplesProducer {
         final RetrieveConnectionStatusResponse retrieveConnectionStatusResponse =
                 RetrieveConnectionStatusResponse.of(TestConstants.ID,
                         ConnectionStatus.OPEN,
+                        ConnectionStatus.CLOSED,
                         Collections.emptyList(),
                         Collections.emptyList(),
                         Collections.emptyList(),
