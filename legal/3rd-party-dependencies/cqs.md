@@ -43,8 +43,6 @@
 |com.typesafe|ssl-config-core_2.12|0.2.4| [16314](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16314) |
 |io.aeron|aeron-client|1.9.3| [16553](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16553) |
 |io.aeron|aeron-driver|1.9.3| [16552](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16552) |
-|io.dropwizard.metrics|metrics-core|3.1.2| [14465](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14465) |
-|io.dropwizard.metrics|metrics-healthchecks|3.1.2| [16317](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16317) |
 |io.jsonwebtoken|jjwt-api|0.10.1| [17097](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17097) |
 |io.jsonwebtoken|jjwt-impl|0.10.1| [17097](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17097) |
 |io.kamon|kamon-core_2.12|1.1.2| [16740](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16740) |
@@ -60,9 +58,6 @@
 |io.netty|netty-transport-native-epoll|linux-x86_64| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
 |io.netty|netty-transport-native-kqueue|osx-x86_64| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
 |io.netty|netty-transport-native-unix-common|4.1.27.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
-|io.prometheus|simpleclient_common|0.4.0| [16949](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16949) |
-|io.prometheus|simpleclient_dropwizard|0.4.0| [16950](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16950) |
-|io.prometheus|simpleclient|0.4.0| [16948](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16948) |
 |io.spray|spray-json_2.12|1.3.3| [16555](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16555) |
 |nl.grons|metrics-scala_2.12|3.5.5_a2.4| [14491](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14491) |
 |org.agrona|agrona|0.9.18| [16554](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16554) |
@@ -167,6 +162,11 @@ Manual step by sending mail to Eclipse IP team - this is a collection of depende
 |com.github.nscala-time|nscala-time_2.12|2.14.0| [16310](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16310) |
 |com.github.scullxbones|akka-persistence-mongo-common_2.12|2.0.9| [16313](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16313) |
 |com.github.scullxbones|akka-persistence-mongo-casbah_2.12|2.0.9| [16312](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16312) |
+|io.dropwizard.metrics|metrics-core|3.1.2| [14465](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14465) |
+|io.dropwizard.metrics|metrics-healthchecks|3.1.2| [16317](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16317) |
+|io.prometheus|simpleclient_common|0.4.0| [16949](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16949) |
+|io.prometheus|simpleclient_dropwizard|0.4.0| [16950](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16950) |
+|io.prometheus|simpleclient|0.4.0| [16948](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16948) |
 |joda-time|joda-time|2.9.4| [14468](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14468) |
 |org.joda|joda-convert|1.2| [14472](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14472) |
 |org.mongodb|casbah_2.12|3.1.1| not required as only "pom" packaging |
