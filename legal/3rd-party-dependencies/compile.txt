@@ -1,5 +1,6 @@
    ch.qos.logback:logback-classic:jar:1.2.3:compile
    ch.qos.logback:logback-core:jar:1.2.3:compile
+   com.ajjpj.simple-akka-downing:simple-akka-downing_2.12:jar:0.9.2:compile
    com.chuusai:shapeless_2.12:jar:2.3.2:compile
    com.eclipsesource.minimal-json:minimal-json:jar:0.9.5:compile
    com.github.ben-manes.caffeine:caffeine:jar:2.6.2:compile

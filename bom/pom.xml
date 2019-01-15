@@ -38,6 +38,7 @@
         <akka-http.version>10.1.5</akka-http.version>
         <akka-persistence-mongo.version>2.2.2</akka-persistence-mongo.version>
         <akka-management.version>0.14.0</akka-management.version>
+        <simple-akka-downing.version>0.9.2</simple-akka-downing.version>
         <alpakka-mqtt.version>0.20</alpakka-mqtt.version>
 
         <mongo-scala-driver.version>2.4.2</mongo-scala-driver.version>
@@ -57,12 +58,9 @@
         <logback.version>1.2.3</logback.version>
 
         <!-- ### Metrics and Tracing -->
-        <metrics.version>3.1.2</metrics.version>
-
         <kamon-core.version>1.1.2</kamon-core.version>
         <kamon-system-metrics.version>1.0.0</kamon-system-metrics.version>
         <kamon-prometheus.version>1.1.1</kamon-prometheus.version>
-        <prometheus.java-client.version>0.4.0</prometheus.java-client.version>
 
         <jsr302.version>3.0.1</jsr302.version>
 
@@ -202,11 +200,23 @@
                 <groupId>com.github.scullxbones</groupId>
                 <artifactId>akka-persistence-mongo-common_${scala.version}</artifactId>
                 <version>${akka-persistence-mongo.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>io.dropwizard.metrics</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>com.github.scullxbones</groupId>
                 <artifactId>akka-persistence-mongo-scala_${scala.version}</artifactId>
                 <version>${akka-persistence-mongo.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>io.dropwizard.metrics</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
@@ -249,6 +259,12 @@
                 <groupId>com.lightbend.akka.discovery</groupId>
                 <artifactId>akka-discovery-kubernetes-api_${scala.version}</artifactId>
                 <version>${akka-management.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.ajjpj.simple-akka-downing</groupId>
+                <artifactId>simple-akka-downing_${scala.version}</artifactId>
+                <version>${simple-akka-downing.version}</version>
             </dependency>
 
             <dependency>
@@ -452,27 +468,6 @@
                         <artifactId>*</artifactId>
                     </exclusion>
                 </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>io.dropwizard.metrics</groupId>
-                <artifactId>metrics-core</artifactId>
-                <version>${metrics.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>io.prometheus</groupId>
-                <artifactId>simpleclient</artifactId>
-                <version>${prometheus.java-client.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.prometheus</groupId>
-                <artifactId>simpleclient_dropwizard</artifactId>
-                <version>${prometheus.java-client.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.prometheus</groupId>
-                <artifactId>simpleclient_common</artifactId>
-                <version>${prometheus.java-client.version}</version>
             </dependency>
 
             <!-- ### Compile - own artifacts ### -->
