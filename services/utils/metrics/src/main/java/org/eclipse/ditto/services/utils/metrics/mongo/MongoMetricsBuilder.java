@@ -19,6 +19,10 @@ import akka.contrib.persistence.mongodb.MetricsBuilder;
 import akka.contrib.persistence.mongodb.MongoHistogram;
 import akka.contrib.persistence.mongodb.MongoTimer;
 
+/**
+ * An akka-persistence-mongodb {@link MetricsBuilder} which uses {@link DittoMetrics} in order to provide timers and
+ * histrograms.
+ */
 @Immutable
 public final class MongoMetricsBuilder implements MetricsBuilder {
 
