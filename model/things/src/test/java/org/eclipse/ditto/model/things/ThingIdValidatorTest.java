@@ -35,6 +35,40 @@ public final class ThingIdValidatorTest {
     }
 
     @Test
+    public void validationOfValidThingIdFailsWithEmptyName() {
+        final String thingIdWithoutThingName = "org.eclipse.ditto.test:";
+
+        assertThatExceptionOfType(ThingIdInvalidException.class)
+                .isThrownBy(() -> ThingIdValidator.getInstance().accept(thingIdWithoutThingName, DittoHeaders.empty()))
+                .withNoCause();
+    }
+
+    @Test
+    public void validationOfValidThingIdSucceedsWithEmptyNamespace() {
+        final String thingIdWithoutThingName = ":test";
+
+        ThingIdValidator.getInstance().accept(thingIdWithoutThingName, DittoHeaders.empty());
+    }
+
+    @Test
+    public void validationOfValidThingIdFailsWithEmptyNamespaceAndName() {
+        final String thingIdWithoutThingName = ":";
+
+        assertThatExceptionOfType(ThingIdInvalidException.class)
+                .isThrownBy(() -> ThingIdValidator.getInstance().accept(thingIdWithoutThingName, DittoHeaders.empty()))
+                .withNoCause();
+    }
+
+    @Test
+    public void validationOfValidThingIdFailsWithOnlyNamespace() {
+        final String thingIdWithoutThingName = "org.eclipse.ditto.test";
+
+        assertThatExceptionOfType(ThingIdInvalidException.class)
+                .isThrownBy(() -> ThingIdValidator.getInstance().accept(thingIdWithoutThingName, DittoHeaders.empty()))
+                .withNoCause();
+    }
+
+    @Test
     public void validationOfInvalidThingIdThrowsException() {
         final String thingId = "myThing";
 
