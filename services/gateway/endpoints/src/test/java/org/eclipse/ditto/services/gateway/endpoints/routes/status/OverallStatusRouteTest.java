@@ -53,33 +53,40 @@ public class OverallStatusRouteTest extends EndpointTestBase {
 
     @Test
     public void getOverallStatusWithAuth() {
-        // we need credentials here, because nginx allows all requests to /overall/*
-        final TestRouteResult result =
-                statusTestRoute.run(withDevopsCredentials(HttpRequest.GET(OVERALL_STATUS_PATH)));
-        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
-    }
-
-    @Test
-    public void getStatusOwnStatusWithAuth() {
-        // we need credentials here, because nginx allows all requests to /overall/*
         final TestRouteResult result = statusTestRoute.run(withDevopsCredentials(HttpRequest.GET(OVERALL_STATUS_PATH)));
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
     }
 
     @Test
-    public void getStatusOwnStatusHealthWithAuth() {
-        // we need credentials here, because nginx allows all requests to /overall/*
+    public void getOverallStatusWithoutAuth() {
+        final TestRouteResult result = statusTestRoute.run(HttpRequest.GET(OVERALL_STATUS_PATH));
+        result.assertStatusCode(StatusCodes.UNAUTHORIZED);
+    }
+
+    @Test
+    public void getOverallStatusHealthWithAuth() {
         final TestRouteResult result = statusTestRoute.run(withDevopsCredentials(HttpRequest.GET(
                 OVERALL_STATUS_HEALTH_PATH)));
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
     }
 
     @Test
-    public void getStatusOwnStatusClusterWithAuth() {
-        // we need credentials here, because nginx allows all requests to /overall/*
+    public void getOverallStatusHealthWithoutAuth() {
+        final TestRouteResult result = statusTestRoute.run(HttpRequest.GET(OVERALL_STATUS_HEALTH_PATH));
+        result.assertStatusCode(StatusCodes.UNAUTHORIZED);
+    }
+
+    @Test
+    public void getOverallStatusClusterWithAuth() {
         final TestRouteResult result = statusTestRoute.run(withDevopsCredentials(HttpRequest.GET(
                 OVERALL_STATUS_CLUSTER_PATH)));
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+    }
+
+    @Test
+    public void getOverallStatusClusterWithoutAuth() {
+        final TestRouteResult result = statusTestRoute.run(HttpRequest.GET(OVERALL_STATUS_CLUSTER_PATH));
+        result.assertStatusCode(StatusCodes.UNAUTHORIZED);
     }
 
     @Test

@@ -15,14 +15,11 @@ import static akka.http.javadsl.server.Directives.extractRequestContext;
 import static akka.http.javadsl.server.Directives.handleExceptions;
 import static akka.http.javadsl.server.Directives.handleRejections;
 import static akka.http.javadsl.server.Directives.parameterOptional;
-import static akka.http.javadsl.server.Directives.pathPrefixTest;
 import static akka.http.javadsl.server.Directives.rawPathPrefix;
 import static akka.http.javadsl.server.Directives.route;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CorrelationIdEnsuringDirective.ensureCorrelationId;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.REALM_DEVOPS;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.authenticateDevopsBasic;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.RequestResultLoggingDirective.logRequestResult;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.auth.AuthorizationContextVersioningDirective.mapAuthorizationContext;
 import static org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils.enhanceLogWithCorrelationId;
@@ -107,14 +104,6 @@ public final class RootRoute {
     static final String WS_PATH_PREFIX = "ws";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RootRoute.class);
-
-    /**
-     * Contains a Pattern which routes are included in devops Basic Auth secured resources.
-     */
-    public static final Pattern DEVOPS_AUTH_SECURED = Pattern.compile("(" +
-            OverallStatusRoute.PATH_OVERALL + "|" +
-            DevOpsRoute.PATH_DEVOPS + ").*"
-    );
 
     private final StatusRoute ownStatusRoute;
     private final OverallStatusRoute overallStatusRoute;
@@ -236,14 +225,8 @@ public final class RootRoute {
                                 api(ctx, correlationId), // /api
                                 ws(ctx, correlationId), // /ws
                                 ownStatusRoute.buildStatusRoute(), // /status
-                                pathPrefixTest(PathMatchers.segment(DEVOPS_AUTH_SECURED), segment ->
-                                        authenticateDevopsBasic(REALM_DEVOPS,
-                                                route(
-                                                        overallStatusRoute.buildOverallStatusRoute(), // /overall
-                                                        devopsRoute.buildDevopsRoute(ctx) // /devops
-                                                )
-                                        )
-                                )
+                                overallStatusRoute.buildOverallStatusRoute(), // /overall
+                                devopsRoute.buildDevopsRoute(ctx) // /devops
                         )
                 )
         );
@@ -467,7 +450,7 @@ public final class RootRoute {
     private static ExceptionHandler createExceptionHandler() {
         return ExceptionHandler.newBuilder().match(DittoRuntimeException.class, cre -> {
             final Optional<String> correlationIdOpt = Optional.ofNullable(cre.getDittoHeaders())
-                            .flatMap(DittoHeaders::getCorrelationId);
+                    .flatMap(DittoHeaders::getCorrelationId);
             if (!correlationIdOpt.isPresent()) {
                 LOGGER.warn("DittoHeaders / correlation-id was missing in DittoRuntimeException <{}>: {}",
                         cre.getClass().getSimpleName(), cre.getMessage());
