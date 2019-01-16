@@ -12,7 +12,7 @@ package org.eclipse.ditto.services.connectivity.messaging.metrics;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.Map;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -52,14 +52,17 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
                         ConnectivityStatus.UNKNOWN,
                         Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), originalHeaders);
 
-        this.expectedResponses = new HashMap<>();
+        this.expectedResponses = new EnumMap<>(ResourceStatus.ResourceType.class);
         // one response per client actor
         expectedResponses.put(ResourceStatus.ResourceType.CLIENT, connection.getClientCount());
         if (ConnectivityStatus.OPEN.equals(connection.getConnectionStatus())) {
             // one response per source/target
             expectedResponses.put(ResourceStatus.ResourceType.TARGET,
-                    // currently there is always only one publisher per client
-                    connection.getClientCount());
+                    connection.getTargets()
+                            .stream()
+                            .mapToInt(target ->
+                                    connection.getClientCount())
+                            .sum());
             expectedResponses.put(ResourceStatus.ResourceType.SOURCE,
                     connection.getSources()
                             .stream()

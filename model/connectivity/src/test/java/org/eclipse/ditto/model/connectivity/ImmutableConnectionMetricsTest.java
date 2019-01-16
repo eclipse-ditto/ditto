@@ -11,7 +11,6 @@
 
 package org.eclipse.ditto.model.connectivity;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -35,8 +34,6 @@ public class ImmutableConnectionMetricsTest {
     public void assertImmutability() {
         assertInstancesOf(ImmutableConnectionMetrics.class,
                 areImmutable(),
-                assumingFields("sourcesMetrics", "targetsMetrics")
-                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
                 provided(AddressMetric.class).isAlsoImmutable());
     }
 }

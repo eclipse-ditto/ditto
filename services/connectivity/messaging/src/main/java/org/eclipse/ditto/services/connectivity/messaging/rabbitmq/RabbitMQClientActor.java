@@ -39,6 +39,7 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnecte
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 
 import com.newmotion.akka.rabbitmq.ChannelActor;
@@ -551,8 +552,8 @@ public final class RabbitMQClientActor extends BaseClientActor {
         }
 
         private void updateSourceStatus(final ConnectivityStatus connectionStatus, final String statusDetails) {
-            consumerActor.tell(ConnectivityModelFactory.newStatusUpdate(address, connectionStatus, statusDetails,
-                    Instant.now()), ActorRef.noSender());
+            consumerActor.tell(ConnectivityModelFactory.newStatusUpdate(ConfigUtil.instanceIdentifier(),
+                    connectionStatus, address, statusDetails, Instant.now()), ActorRef.noSender());
         }
 
     }

@@ -42,6 +42,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class RetrieveConnectionMetricsResponseTest {
 
     private static final ConnectionMetrics METRICS = ConnectivityModelFactory.newConnectionMetrics(
+            ConnectivityModelFactory.newAddressMetric(Collections.emptySet()),
             ConnectivityModelFactory.newAddressMetric(Collections.emptySet()));
 
     private static final SourceMetrics EMPTY_SOURCE_METRICS =
@@ -119,12 +120,15 @@ public final class RetrieveConnectionMetricsResponseTest {
         assertThat(merged.getConnectionId()).isEqualTo(ID);
 
         // check overall sum of connection metrics
-        assertThat(merged.getConnectionMetrics().getMetrics().getMeasurements())
+        assertThat(merged.getConnectionMetrics().getInboundMetrics().getMeasurements())
                 .contains(mergeMeasurements("inbound", true, Metrics.INBOUND, 4));
-        assertThat(merged.getConnectionMetrics().getMetrics().getMeasurements())
+        assertThat(merged.getConnectionMetrics().getInboundMetrics().getMeasurements())
+                .contains(mergeMeasurements("mapping", true, Metrics.MAPPING, 4));
+
+        assertThat(merged.getConnectionMetrics().getOutboundMetrics().getMeasurements())
                 .contains(mergeMeasurements("outbound", true, Metrics.OUTBOUND, 4));
-        assertThat(merged.getConnectionMetrics().getMetrics().getMeasurements())
-                .contains(mergeMeasurements("mapping", true, Metrics.MAPPING, 8));
+        assertThat(merged.getConnectionMetrics().getOutboundMetrics().getMeasurements())
+                .contains(mergeMeasurements("mapping", true, Metrics.MAPPING, 4));
 
         // check source metrics
         assertThat(merged.getSourceMetrics().getAddressMetrics()).containsKeys("source1", "source2", "source3");

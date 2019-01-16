@@ -169,16 +169,13 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
                                     .orElse(ConnectivityStatus.UNKNOWN);
 
                     final List<ResourceStatus> readClientStatus =
-                            readAddressStatus(ResourceStatus.ResourceType.CLIENT,
-                                    jsonObject.getValueOrThrow(JsonFields.CLIENT_STATUS));
+                            readAddressStatus(jsonObject.getValueOrThrow(JsonFields.CLIENT_STATUS));
 
                     final List<ResourceStatus> readSourceStatus =
-                            readAddressStatus(ResourceStatus.ResourceType.SOURCE,
-                                    jsonObject.getValueOrThrow(JsonFields.SOURCE_STATUS));
+                            readAddressStatus(jsonObject.getValueOrThrow(JsonFields.SOURCE_STATUS));
 
                     final List<ResourceStatus> readTargetStatus =
-                            readAddressStatus(ResourceStatus.ResourceType.TARGET,
-                                    jsonObject.getValueOrThrow(JsonFields.TARGET_STATUS));
+                            readAddressStatus(jsonObject.getValueOrThrow(JsonFields.TARGET_STATUS));
 
                     return of(readConnectionId, readConnectionStatus, readLiveStatus, readClientStatus,
                             readSourceStatus,
@@ -187,12 +184,11 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
     }
 
     private static List<ResourceStatus> readAddressStatus(
-            final ResourceStatus.ResourceType type,
             final JsonArray jsonArray) {
         return jsonArray.stream()
                 .filter(JsonValue::isObject)
                 .map(JsonValue::asObject)
-                .map(status -> ConnectivityModelFactory.resourceStatusFromJson(status, type))
+                .map(ConnectivityModelFactory::resourceStatusFromJson)
                 .collect(Collectors.toList());
     }
 

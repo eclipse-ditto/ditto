@@ -19,6 +19,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.services.models.things.ThingsMappingStrategy;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
@@ -69,6 +70,10 @@ public final class ConnectivityMappingStrategy implements MappingStrategy {
                         ConnectivityModelFactory.connectionFromJson(jsonObject)) // do not replace with lambda!
                 .add("ImmutableConnection", (jsonObject) ->
                         ConnectivityModelFactory.connectionFromJson(jsonObject)) // do not replace with lambda!
+                .add(ResourceStatus.class, (jsonObject) ->
+                        ConnectivityModelFactory.resourceStatusFromJson(jsonObject)) // do not replace with lambda!
+                .add("ImmutableResourceStatus", (jsonObject) ->
+                        ConnectivityModelFactory.resourceStatusFromJson(jsonObject)) // do not replace with lambda!
         ;
 
         addMessagesStrategies(strategiesBuilder);

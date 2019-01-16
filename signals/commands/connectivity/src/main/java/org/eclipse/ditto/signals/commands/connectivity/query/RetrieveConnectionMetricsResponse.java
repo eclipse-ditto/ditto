@@ -105,7 +105,8 @@ public final class RetrieveConnectionMetricsResponse
         checkNotNull(connectionId, "Connection ID");
         final AddressMetric fromSources = mergeAllMetrics(sourceMetrics.getAddressMetrics().values());
         final AddressMetric fromTargets = mergeAllMetrics(targetMetrics.getAddressMetrics().values());
-        final ConnectionMetrics connectionMetrics = ConnectivityModelFactory.newConnectionMetrics(mergeAddressMetric(fromSources, fromTargets));
+        final ConnectionMetrics connectionMetrics =
+                ConnectivityModelFactory.newConnectionMetrics(fromSources, fromTargets);
         return new RetrieveConnectionMetricsResponse(connectionId, connectionMetrics, sourceMetrics,
                 targetMetrics, dittoHeaders);
     }
@@ -179,9 +180,12 @@ public final class RetrieveConnectionMetricsResponse
                 ConnectivityModelFactory.newTargetMetrics(mergeAddressMetricMap(getTargetMetrics().getAddressMetrics(),
                         other.getTargetMetrics().getAddressMetrics()));
 
+        final AddressMetric inboundMetrics = mergeAddressMetric(getConnectionMetrics().getInboundMetrics(),
+                other.getConnectionMetrics().getInboundMetrics());
+        final AddressMetric outboundMetrics = mergeAddressMetric(getConnectionMetrics().getOutboundMetrics(),
+                other.getConnectionMetrics().getOutboundMetrics());
         final ConnectionMetrics mergedConnectionMetrics =
-                ConnectivityModelFactory.newConnectionMetrics(mergeAddressMetric(getConnectionMetrics().getMetrics(),
-                        other.getConnectionMetrics().getMetrics()));
+                ConnectivityModelFactory.newConnectionMetrics(inboundMetrics, outboundMetrics);
 
         return RetrieveConnectionMetricsResponse.of(connectionId, mergedConnectionMetrics, mergedSourceMetrics,
                 mergedTargetMetrics, getDittoHeaders());

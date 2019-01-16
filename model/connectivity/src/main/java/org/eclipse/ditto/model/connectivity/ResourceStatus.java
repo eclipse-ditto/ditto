@@ -10,7 +10,10 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
@@ -35,9 +38,14 @@ public interface ResourceStatus extends Jsonifiable.WithFieldSelectorAndPredicat
     ResourceStatus.ResourceType getResourceType();
 
     /**
+     * @return the resource client identifier
+     */
+    String getClient();
+
+    /**
      * @return the resource address
      */
-    String getAddress();
+    Optional<String> getAddress();
 
     /**
      * @return the current status of the resource
@@ -72,30 +80,78 @@ public interface ResourceStatus extends Jsonifiable.WithFieldSelectorAndPredicat
     /**
      * Identifies the type of resource included in a ResourceStatus.
      */
-    enum ResourceType {
+    enum ResourceType implements CharSequence {
         /**
          * A {@link Source}.
          */
-        SOURCE,
+        SOURCE("source"),
 
         /**
          * A {@link Target}.
          */
-        TARGET,
+        TARGET("target"),
 
         /**
          * A {@code Client}.
          */
-        CLIENT,
+        CLIENT("client"),
 
         /**
          * Unknown resource type.
          */
-        UNKNOWN
+        UNKNOWN("unknown");
+
+        private final String name;
+
+        ResourceType(final String name) {
+            this.name = checkNotNull(name);
+        }
+
+        /**
+         * Returns the {@code ResourceType} for the given {@code name} if it exists.
+         *
+         * @param name the name.
+         * @return the ResourceType or an empty optional.
+         */
+        public static Optional<ResourceType> forName(final CharSequence name) {
+            checkNotNull(name, "Name");
+            return Arrays.stream(values())
+                    .filter(c -> c.name.contentEquals(name))
+                    .findFirst();
+        }
+
+        /**
+         * Returns the name of this {@code ResourceType}.
+         *
+         * @return the name.
+         */
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public int length() {
+            return name.length();
+        }
+
+        @Override
+        public char charAt(final int index) {
+            return name.charAt(index);
+        }
+
+        @Override
+        public CharSequence subSequence(final int start, final int end) {
+            return name.subSequence(start, end);
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
     }
 
     /**
-     * An enumeration of the known {@code JsonField}s of an {@code AddressMetric}.
+     * An enumeration of the known {@code JsonField}s of an {@code ResourceStatus}.
      */
     @Immutable
     final class JsonFields {
@@ -108,20 +164,35 @@ public interface ResourceStatus extends Jsonifiable.WithFieldSelectorAndPredicat
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the {@code ConnectionStatus} value.
+         * JSON field containing the {@code ResourceType} value.
+         */
+        public static final JsonFieldDefinition<String> TYPE =
+                JsonFactory.newStringFieldDefinition("type", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code ConnectivityStatus} value.
          */
         public static final JsonFieldDefinition<String> STATUS =
                 JsonFactory.newStringFieldDefinition("status", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
+
         /**
-         * JSON field containing the {@code ConnectionStatus} value.
+         * JSON field containing the {@code client} value.
+         */
+        public static final JsonFieldDefinition<String> CLIENT =
+                JsonFactory.newStringFieldDefinition("client", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code address} value.
          */
         public static final JsonFieldDefinition<String> ADDRESS =
                 JsonFactory.newStringFieldDefinition("address", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the {@code ConnectionStatus} details.
+         * JSON field containing the {@code ConnectivityStatus} details.
          */
         public static final JsonFieldDefinition<String> STATUS_DETAILS =
                 JsonFactory.newStringFieldDefinition("statusDetails", FieldType.REGULAR, JsonSchemaVersion.V_1,

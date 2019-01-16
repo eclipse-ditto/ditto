@@ -56,15 +56,15 @@ public final class RetrieveConnectionStatusResponseTest {
             );
     private static List<ResourceStatus> sourceStatus =
             Arrays.asList(
-                    newSourceStatus("source1", ConnectivityStatus.OPEN, "open since ..."),
-                    newSourceStatus("source1", ConnectivityStatus.FAILED, "this consumer fails ..."),
-                    newSourceStatus("source2", ConnectivityStatus.CLOSED, "closed since 123")
+                    newSourceStatus("client1", ConnectivityStatus.OPEN, "source1","open since ..."),
+                    newSourceStatus("client1", ConnectivityStatus.FAILED, "source1","this consumer fails ..."),
+                    newSourceStatus("client1", ConnectivityStatus.CLOSED, "source2","closed since 123")
             );
     private static List<ResourceStatus> targetStatus =
             Arrays.asList(
-                    newTargetStatus("target1", ConnectivityStatus.OPEN, "open since ..."),
-                    newTargetStatus("target2", ConnectivityStatus.FAILED, "this publisher fails ..."),
-                    newTargetStatus("target3", ConnectivityStatus.CLOSED, "closed since 123")
+                    newTargetStatus("client1", ConnectivityStatus.OPEN, "target1","open since ..."),
+                    newTargetStatus("client1", ConnectivityStatus.FAILED, "target2","this publisher fails ..."),
+                    newTargetStatus("client1", ConnectivityStatus.CLOSED, "target3", "closed since 123")
             );
 
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
@@ -76,14 +76,16 @@ public final class RetrieveConnectionStatusResponseTest {
             .set(RetrieveConnectionStatusResponse.JsonFields.CLIENT_STATUS,
                     JsonFactory.newArrayBuilder()
                             .add(JsonFactory.newObjectBuilder()
-                                            .set(ResourceStatus.JsonFields.ADDRESS, "client1")
+                                            .set(ResourceStatus.JsonFields.TYPE, ResourceStatus.ResourceType.CLIENT.getName())
+                                            .set(ResourceStatus.JsonFields.CLIENT, "client1")
                                             .set(ResourceStatus.JsonFields.STATUS, ConnectivityStatus.OPEN.getName())
                                             .set(ResourceStatus.JsonFields.STATUS_DETAILS, "Client is connected")
                                             .set(ResourceStatus.JsonFields.IN_STATE_SINCE,
                                                     IN_CONNECTION_STATUS_SINCE.toString())
                                             .build(),
                                     JsonFactory.newObjectBuilder()
-                                            .set(ResourceStatus.JsonFields.ADDRESS, "client2")
+                                            .set(ResourceStatus.JsonFields.TYPE, ResourceStatus.ResourceType.CLIENT.getName())
+                                            .set(ResourceStatus.JsonFields.CLIENT, "client2")
                                             .set(ResourceStatus.JsonFields.STATUS, ConnectivityStatus.FAILED.getName())
                                             .set(ResourceStatus.JsonFields.STATUS_DETAILS, "Client failed to connect.")
                                             .set(ResourceStatus.JsonFields.IN_STATE_SINCE,
@@ -93,16 +95,22 @@ public final class RetrieveConnectionStatusResponseTest {
             .set(RetrieveConnectionStatusResponse.JsonFields.SOURCE_STATUS,
                     JsonFactory.newArrayBuilder()
                             .add(JsonFactory.newObjectBuilder()
+                                            .set(ResourceStatus.JsonFields.TYPE, ResourceStatus.ResourceType.SOURCE.getName())
+                                            .set(ResourceStatus.JsonFields.CLIENT, "client1")
                                             .set(ResourceStatus.JsonFields.ADDRESS, "source1")
                                             .set(ResourceStatus.JsonFields.STATUS, ConnectivityStatus.OPEN.toString())
                                             .set(ResourceStatus.JsonFields.STATUS_DETAILS, "open since ...")
                                             .build(),
                                     JsonFactory.newObjectBuilder()
+                                            .set(ResourceStatus.JsonFields.TYPE, ResourceStatus.ResourceType.SOURCE.getName())
+                                            .set(ResourceStatus.JsonFields.CLIENT, "client1")
                                             .set(ResourceStatus.JsonFields.ADDRESS, "source1")
                                             .set(ResourceStatus.JsonFields.STATUS, ConnectivityStatus.FAILED.toString())
                                             .set(ResourceStatus.JsonFields.STATUS_DETAILS, "this consumer fails ...")
                                             .build(),
                                     JsonFactory.newObjectBuilder()
+                                            .set(ResourceStatus.JsonFields.TYPE, ResourceStatus.ResourceType.SOURCE.getName())
+                                            .set(ResourceStatus.JsonFields.CLIENT, "client1")
                                             .set(ResourceStatus.JsonFields.ADDRESS, "source2")
                                             .set(ResourceStatus.JsonFields.STATUS, ConnectivityStatus.CLOSED.toString())
                                             .set(ResourceStatus.JsonFields.STATUS_DETAILS, "closed since 123")
@@ -111,16 +119,22 @@ public final class RetrieveConnectionStatusResponseTest {
             .set(RetrieveConnectionStatusResponse.JsonFields.TARGET_STATUS,
                     JsonFactory.newArrayBuilder()
                             .add(JsonFactory.newObjectBuilder()
+                                            .set(ResourceStatus.JsonFields.TYPE, ResourceStatus.ResourceType.TARGET.getName())
+                                            .set(ResourceStatus.JsonFields.CLIENT, "client1")
                                             .set(ResourceStatus.JsonFields.ADDRESS, "target1")
                                             .set(ResourceStatus.JsonFields.STATUS, ConnectivityStatus.OPEN.toString())
                                             .set(ResourceStatus.JsonFields.STATUS_DETAILS, "open since ...")
                                             .build(),
                                     JsonFactory.newObjectBuilder()
+                                            .set(ResourceStatus.JsonFields.TYPE, ResourceStatus.ResourceType.TARGET.getName())
+                                            .set(ResourceStatus.JsonFields.CLIENT, "client1")
                                             .set(ResourceStatus.JsonFields.ADDRESS, "target2")
                                             .set(ResourceStatus.JsonFields.STATUS, ConnectivityStatus.FAILED.toString())
                                             .set(ResourceStatus.JsonFields.STATUS_DETAILS, "this publisher fails ...")
                                             .build(),
                                     JsonFactory.newObjectBuilder()
+                                            .set(ResourceStatus.JsonFields.TYPE, ResourceStatus.ResourceType.TARGET.getName())
+                                            .set(ResourceStatus.JsonFields.CLIENT, "client1")
                                             .set(ResourceStatus.JsonFields.ADDRESS, "target3")
                                             .set(ResourceStatus.JsonFields.STATUS, ConnectivityStatus.CLOSED.toString())
                                             .set(ResourceStatus.JsonFields.STATUS_DETAILS, "closed since 123")

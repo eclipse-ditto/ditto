@@ -173,7 +173,10 @@ public class JsonExamplesProducer {
 
         final RetrieveConnectionMetricsResponse retrieveConnectionMetricsResponse =
                 RetrieveConnectionMetricsResponse.of(TestConstants.ID,
-                        ConnectivityModelFactory.newConnectionMetrics(ConnectivityModelFactory.newAddressMetric(Collections.emptySet())),
+                        ConnectivityModelFactory.newConnectionMetrics(
+                                ConnectivityModelFactory.newAddressMetric(Collections.emptySet()),
+                                ConnectivityModelFactory.newAddressMetric(Collections.emptySet())
+                        ),
                         ConnectivityModelFactory.newSourceMetrics(Collections.emptyMap()),
                         ConnectivityModelFactory.newTargetMetrics(Collections.emptyMap()),
                         DittoHeaders.empty());

@@ -44,6 +44,7 @@ import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFil
 import org.eclipse.ditto.services.models.connectivity.placeholder.ThingPlaceholder;
 import org.eclipse.ditto.services.models.connectivity.placeholder.TopicPathPlaceholder;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.signals.base.Signal;
 
 import akka.actor.AbstractActor;
@@ -75,8 +76,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         resourceStatusMap = new HashMap<>();
         final Instant now = Instant.now();
         targets.forEach(target ->
-                resourceStatusMap.put(target, ConnectivityModelFactory.newTargetStatus(target.getAddress(),
-                ConnectivityStatus.OPEN, "Started at " + now)));
+                resourceStatusMap.put(target, ConnectivityModelFactory.newTargetStatus(ConfigUtil.instanceIdentifier(),
+                        ConnectivityStatus.OPEN, target.getAddress(), "Started at " + now)));
         responseDroppedCounter = ConnectivityCounterRegistry.getResponseDroppedCounter(this.connectionId);
         responsePublishedCounter = ConnectivityCounterRegistry.getResponsePublishedCounter(connectionId);
     }
@@ -146,7 +147,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     private Collection<ResourceStatus> getCurrentTargetStatus() {
         if (resourceStatusMap.isEmpty()) {
             return Collections.singletonList(
-                    ConnectivityModelFactory.newTargetStatus("no-targets", ConnectivityStatus.UNKNOWN, null));
+                    ConnectivityModelFactory.newTargetStatus(ConfigUtil.instanceIdentifier(), ConnectivityStatus.UNKNOWN,
+                            null, null));
         } else {
             return resourceStatusMap.values();
         }

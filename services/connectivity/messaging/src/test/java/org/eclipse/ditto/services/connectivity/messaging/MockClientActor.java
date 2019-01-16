@@ -95,14 +95,14 @@ public class MockClientActor extends AbstractActor {
                             getSelf());
 
                     // simulate consumer and pusblisher actor response
-                    sender().tell(ConnectivityModelFactory.newSourceStatus("source1",
-                            ConnectivityStatus.OPEN, "consumer started"),
+                    sender().tell(ConnectivityModelFactory.newSourceStatus("client1",
+                            ConnectivityStatus.OPEN, "source1","consumer started"),
                             getSelf());
-                    sender().tell(ConnectivityModelFactory.newSourceStatus("source2",
-                            ConnectivityStatus.OPEN, "consumer started"),
+                    sender().tell(ConnectivityModelFactory.newSourceStatus("client1",
+                            ConnectivityStatus.OPEN, "source2","consumer started"),
                             getSelf());
-                    sender().tell(ConnectivityModelFactory.newTargetStatus("target1",
-                            ConnectivityStatus.OPEN, "publisher started"),
+                    sender().tell(ConnectivityModelFactory.newTargetStatus("client1",
+                            ConnectivityStatus.OPEN, "target1","publisher started"),
                             getSelf());
                 })
                 .matchAny(unhandled -> {

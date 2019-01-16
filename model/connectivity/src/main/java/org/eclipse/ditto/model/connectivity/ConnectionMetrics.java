@@ -28,9 +28,14 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 public interface ConnectionMetrics extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
-     * @return the {@link AddressMetric}s for the connection
+     * @return the inbound {@link AddressMetric}s for the connection
      */
-    AddressMetric getMetrics();
+    AddressMetric getInboundMetrics();
+
+    /**
+     * @return the outbound {@link AddressMetric}s for the connection
+     */
+    AddressMetric getOutboundMetrics();
 
     /**
      * Returns all non hidden marked fields of this {@code Connection}.
@@ -54,10 +59,17 @@ public interface ConnectionMetrics extends Jsonifiable.WithFieldSelectorAndPredi
     final class JsonFields {
 
         /**
-         * JSON field containing the sources metrics.
+         * JSON field containing the inbound metrics.
          */
-        public static final JsonFieldDefinition<JsonObject> OVERALL_METRICS =
-                JsonFactory.newJsonObjectFieldDefinition("overall", FieldType.REGULAR, JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<JsonObject> INBOUND_METRICS =
+                JsonFactory.newJsonObjectFieldDefinition("inbound", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the inbound metrics.
+         */
+        public static final JsonFieldDefinition<JsonObject> OUTBOUND_METRICS =
+                JsonFactory.newJsonObjectFieldDefinition("outbound", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

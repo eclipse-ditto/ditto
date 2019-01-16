@@ -19,6 +19,7 @@ import java.time.Clock;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -72,6 +73,7 @@ public final class ConnectivityCounterRegistry {
 
     private static void initCounter(final String connectionId, final Direction direction, final String address) {
         Arrays.stream(Metric.values())
+                .filter(metric -> metric.getPossibleDirections().contains(direction))
                 .forEach(metric -> {
                     final String key = new MapKey(connectionId, metric, direction, address).toString();
                     counters.computeIfAbsent(key, m -> {
@@ -293,39 +295,48 @@ public final class ConnectivityCounterRegistry {
         /**
          * Counts mappings for messages.
          */
-        MAPPED("mapped"),
+        MAPPED("mapped", Direction.INBOUND, Direction.OUTBOUND),
 
         /**
          * Counts messages that were consumed.
          */
-        CONSUMED("consumed"),
+        CONSUMED("consumed", Direction.INBOUND, Direction.OUTBOUND),
 
         /**
          * Counts messages to external systems that passed the configured filter.
          */
-        FILTERED("filtered"),
+        FILTERED("filtered", Direction.OUTBOUND),
 
         /**
          * Counts messages published to external systems.
          */
-        PUBLISHED("published"),
+        PUBLISHED("published", Direction.OUTBOUND),
 
         /**
          * Counts messages that were dropped (not published by intention e.g. because no reply-to address was given).
          */
-        DROPPED("dropped");
+        DROPPED("dropped", Direction.INBOUND, Direction.OUTBOUND);
 
         private final String label;
+        private final List<Direction> possibleDirections;
 
-        Metric(final String label) {
+        Metric(final String label, final Direction... possibleDirection) {
             this.label = label;
+            possibleDirections = Arrays.asList(possibleDirection);
         }
 
         /**
-         * @return the label which can be used in a JSON representation
+         * @return the label which can be used in a JSON representation.
          */
         public String getLabel() {
             return label;
+        }
+
+        /**
+         * @return the possible {@link Direction}s this Metric supports.
+         */
+        public List<Direction> getPossibleDirections() {
+            return possibleDirections;
         }
     }
 

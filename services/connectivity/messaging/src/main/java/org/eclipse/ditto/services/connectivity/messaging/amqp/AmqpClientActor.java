@@ -49,6 +49,7 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFail
 import org.eclipse.ditto.services.connectivity.messaging.internal.DisconnectClient;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 
 import akka.actor.ActorRef;
@@ -416,8 +417,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                     .ifPresent(c -> {
                         final ActorRef consumerActor = consumerByNamePrefix.get(c.getActorNamePrefix());
                         if (consumerActor != null) {
-                            final Object message = ConnectivityModelFactory.newStatusUpdate(c.getAddress(),
+                            final Object message = ConnectivityModelFactory.newStatusUpdate(
+                                    ConfigUtil.instanceIdentifier(),
                                     ConnectivityStatus.FAILED,
+                                    c.getAddress(),
                                     "Consumer closed", Instant.now());
                             consumerActor.tell(message, ActorRef.noSender());
                         }

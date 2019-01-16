@@ -177,19 +177,27 @@ public final class TestConstants {
         public static final Measurement OUTBOUND_OVERALL = mergeMeasurements("outbound", true, Metrics.OUTBOUND, 4);
         public static final Measurement MAPPING_OVERALL = mergeMeasurements("mapping", true, Metrics.MAPPING, 8);
 
-        public static final Set<Measurement> overallMeasurements = new HashSet<>(asSet(INBOUND_OVERALL, OUTBOUND_OVERALL, MAPPING_OVERALL));
+        public static final Set<Measurement> inboundMeasurements = new HashSet<>(asSet(INBOUND_OVERALL, MAPPING_OVERALL));
+        public static final Set<Measurement> outboundMeasurements = new HashSet<>(asSet(OUTBOUND_OVERALL, MAPPING_OVERALL));
 
         public static final ConnectionMetrics CONNECTION_METRICS = ConnectivityModelFactory.newConnectionMetrics(
-                ConnectivityModelFactory.newAddressMetric(overallMeasurements));
+                ConnectivityModelFactory.newAddressMetric(inboundMeasurements),
+                ConnectivityModelFactory.newAddressMetric(outboundMeasurements)
+        );
 
         public static class Json {
             public static final JsonObject CONNECTION_METRICS_JSON = JsonFactory
-                    .newObjectBuilder().set(ConnectionMetrics.JsonFields.OVERALL_METRICS,
+                    .newObjectBuilder()
+                    .set(ConnectionMetrics.JsonFields.INBOUND_METRICS,
                             JsonFactory.newObjectBuilder()
                                     .setAll(INBOUND_OVERALL.toJson())
+                                    .setAll(MAPPING_OVERALL.toJson())
+                                    .build()
+                    )
+                    .set(ConnectionMetrics.JsonFields.OUTBOUND_METRICS,
+                            JsonFactory.newObjectBuilder()
                                     .setAll(OUTBOUND_OVERALL.toJson())
                                     .setAll(MAPPING_OVERALL.toJson())
-                                    //.set(AddressMetric.JsonFields.LAST_MESSAGE_AT, Instant.EPOCH.toString())
                                     .build()
                     ).build();
         }

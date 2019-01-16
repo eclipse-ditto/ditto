@@ -131,10 +131,10 @@ public final class ConnectionActorTest extends WithMockServers {
                 RetrieveConnectionStatusResponse.of(connectionId, ConnectivityStatus.OPEN, ConnectivityStatus.OPEN,
                         asList(ConnectivityModelFactory.newClientStatus("client1", ConnectivityStatus.OPEN, "connection is open", INSTANT)),
                         asList(
-                            ConnectivityModelFactory.newSourceStatus("source1", ConnectivityStatus.OPEN, "consumer started"),
-                            ConnectivityModelFactory.newSourceStatus("source2", ConnectivityStatus.OPEN, "consumer started")
+                            ConnectivityModelFactory.newSourceStatus("client1",  ConnectivityStatus.OPEN, "source1", "consumer started"),
+                            ConnectivityModelFactory.newSourceStatus("client1", ConnectivityStatus.OPEN, "source2", "consumer started")
                         ),
-                        asList(ConnectivityModelFactory.newTargetStatus("target1", ConnectivityStatus.OPEN, "publisher started")),
+                        asList(ConnectivityModelFactory.newTargetStatus("client1",  ConnectivityStatus.OPEN, "target1","publisher started")),
                         DittoHeaders.empty());
         connectionNotAccessibleException = ConnectionNotAccessibleException.newBuilder(connectionId).build();
     }

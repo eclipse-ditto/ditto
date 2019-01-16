@@ -29,21 +29,27 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 @Immutable
 final class ImmutableConnectionMetrics implements ConnectionMetrics {
 
-    private final AddressMetric metrics;
+    private final AddressMetric inboundMetrics;
+    private final AddressMetric outboundMetrics;
 
-    private ImmutableConnectionMetrics(final AddressMetric metrics) {
-        this.metrics = metrics;
+    private ImmutableConnectionMetrics(final AddressMetric inboundMetrics,
+            final AddressMetric outboundMetrics) {
+        this.inboundMetrics = inboundMetrics;
+        this.outboundMetrics = outboundMetrics;
     }
 
     /**
      * Creates a new {@code ImmutableConnectionMetrics} instance.
      *
-     * @param metrics the ConnectionStatus of the metrics to create
+     * @param inboundMetrics the ConnectionStatus of the inboundMetrics to create
+     * @param outboundMetrics the ConnectionStatus of the outboundMetrics to create
      * @return a new instance of ConnectionMetrics.
      */
-    public static ImmutableConnectionMetrics of(final AddressMetric metrics) {
-        checkNotNull(metrics, "metrics");
-        return new ImmutableConnectionMetrics(metrics);
+    public static ImmutableConnectionMetrics of(final AddressMetric inboundMetrics,
+            final AddressMetric outboundMetrics) {
+        checkNotNull(inboundMetrics, "inboundMetrics");
+        checkNotNull(outboundMetrics, "outboundMetrics");
+        return new ImmutableConnectionMetrics(inboundMetrics, outboundMetrics);
     }
 
     /**
@@ -55,38 +61,53 @@ final class ImmutableConnectionMetrics implements ConnectionMetrics {
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
     public static ConnectionMetrics fromJson(final JsonObject jsonObject) {
-        return of(ConnectivityModelFactory.addressMetricFromJson(jsonObject.getValueOrThrow(JsonFields.OVERALL_METRICS)));
+        return of(
+                ConnectivityModelFactory.addressMetricFromJson(jsonObject.getValueOrThrow(JsonFields.INBOUND_METRICS)),
+                ConnectivityModelFactory.addressMetricFromJson(jsonObject.getValueOrThrow(JsonFields.OUTBOUND_METRICS))
+        );
     }
 
     @Override
-    public AddressMetric getMetrics() {
-        return metrics;
+    public AddressMetric getInboundMetrics() {
+        return inboundMetrics;
+    }
+
+    @Override
+    public AddressMetric getOutboundMetrics() {
+        return outboundMetrics;
     }
 
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
-        jsonObjectBuilder.set(JsonFields.OVERALL_METRICS, metrics.toJson(schemaVersion, thePredicate));
+        jsonObjectBuilder.set(JsonFields.INBOUND_METRICS, inboundMetrics.toJson(schemaVersion, thePredicate));
+        jsonObjectBuilder.set(JsonFields.OUTBOUND_METRICS, outboundMetrics.toJson(schemaVersion, thePredicate));
         return jsonObjectBuilder.build();
     }
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) {return true;}
-        if (!(o instanceof ImmutableConnectionMetrics)) {return false;}
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof ImmutableConnectionMetrics)) {
+            return false;
+        }
         final ImmutableConnectionMetrics that = (ImmutableConnectionMetrics) o;
-        return Objects.equals(metrics, that.metrics);
+        return Objects.equals(inboundMetrics, that.inboundMetrics) &&
+                Objects.equals(outboundMetrics, that.outboundMetrics);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(metrics);
+        return Objects.hash(inboundMetrics, outboundMetrics);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                ", metrics=" + metrics +
+                "inboundMetrics=" + inboundMetrics +
+                ", outboundMetrics=" + outboundMetrics +
                 "]";
     }
 }

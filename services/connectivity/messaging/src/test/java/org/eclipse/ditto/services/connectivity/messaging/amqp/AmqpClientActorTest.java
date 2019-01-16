@@ -587,13 +587,13 @@ public class AmqpClientActorTest extends WithMockServers {
                 });
             }
 
-            private boolean isExpectedMessage(final Object o, String... expectedSources) {
+            private boolean isExpectedMessage(final Object o, final String... expectedSources) {
                 if (!(o instanceof ResourceStatus)) {
                     return false;
                 }
                 final ResourceStatus resourceStatus = (ResourceStatus) o;
                 return resourceStatus.getResourceType() == ResourceStatus.ResourceType.SOURCE
-                        && Arrays.asList(expectedSources).contains(resourceStatus.getAddress())
+                        && Arrays.asList(expectedSources).contains(resourceStatus.getAddress().get())
                         && ConnectivityStatus.OPEN.equals(resourceStatus.getStatus());
             }
         };
