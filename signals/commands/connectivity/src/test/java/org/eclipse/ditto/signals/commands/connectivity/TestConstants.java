@@ -39,6 +39,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.Measurement;
+import org.eclipse.ditto.model.connectivity.MetricType;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -138,23 +139,23 @@ public final class TestConstants {
                         entry(ONE_HOUR, ONE_HOUR.getSeconds()),
                         entry(ONE_DAY, ONE_DAY.getSeconds()));
         public static final Measurement INBOUND =
-                ConnectivityModelFactory.newMeasurement("inbound", true, SOURCE_COUNTERS, LAST_MESSAGE_AT);
+                ConnectivityModelFactory.newMeasurement(MetricType.CONSUMED, true, SOURCE_COUNTERS, LAST_MESSAGE_AT);
         public static final Measurement FAILED_INBOUND =
-                ConnectivityModelFactory.newMeasurement("inbound", true, SOURCE_COUNTERS, LAST_MESSAGE_AT);
+                ConnectivityModelFactory.newMeasurement(MetricType.CONSUMED, true, SOURCE_COUNTERS, LAST_MESSAGE_AT);
         public static final Map<Duration, Long> TARGET_COUNTERS = asMap(
                         entry(ONE_MINUTE, ONE_MINUTE.toMillis()),
                         entry(ONE_HOUR, ONE_HOUR.toMillis()),
                         entry(ONE_DAY, ONE_DAY.toMillis()));
         public static final Measurement OUTBOUND =
-                ConnectivityModelFactory.newMeasurement("outbound", true, TARGET_COUNTERS, LAST_MESSAGE_AT);
+                ConnectivityModelFactory.newMeasurement(MetricType.PUBLISHED, true, TARGET_COUNTERS, LAST_MESSAGE_AT);
         public static final Map<Duration, Long> MAPPING_COUNTERS = asMap(
                         entry(ONE_MINUTE, ONE_MINUTE.toMinutes()),
                         entry(ONE_HOUR, ONE_HOUR.toMinutes()),
                         entry(ONE_DAY, ONE_DAY.toMinutes()));
         public static final Measurement MAPPING =
-                ConnectivityModelFactory.newMeasurement("mapping", true, MAPPING_COUNTERS, LAST_MESSAGE_AT);
+                ConnectivityModelFactory.newMeasurement(MetricType.MAPPED, true, MAPPING_COUNTERS, LAST_MESSAGE_AT);
         public static final Measurement FAILED_MAPPING =
-                ConnectivityModelFactory.newMeasurement("mapping", false, MAPPING_COUNTERS, LAST_MESSAGE_AT);
+                ConnectivityModelFactory.newMeasurement(MetricType.MAPPED, false, MAPPING_COUNTERS, LAST_MESSAGE_AT);
 
         public static final AddressMetric INBOUND_METRIC = ConnectivityModelFactory.newAddressMetric(asSet(INBOUND, MAPPING));
         public static final AddressMetric OUTBOUND_METRIC = ConnectivityModelFactory.newAddressMetric(asSet(MAPPING, OUTBOUND));
@@ -173,9 +174,9 @@ public final class TestConstants {
 
         public static final RetrieveConnectionMetricsResponse METRICS_RESPONSE2 = RetrieveConnectionMetricsResponse.of(ID, SOURCE_METRICS2, TARGET_METRICS2, DittoHeaders.empty());
 
-        public static final Measurement INBOUND_OVERALL = mergeMeasurements("inbound", true, Metrics.INBOUND, 4);
-        public static final Measurement OUTBOUND_OVERALL = mergeMeasurements("outbound", true, Metrics.OUTBOUND, 4);
-        public static final Measurement MAPPING_OVERALL = mergeMeasurements("mapping", true, Metrics.MAPPING, 8);
+        public static final Measurement INBOUND_OVERALL = mergeMeasurements(MetricType.CONSUMED, true, Metrics.INBOUND, 4);
+        public static final Measurement OUTBOUND_OVERALL = mergeMeasurements(MetricType.PUBLISHED, true, Metrics.OUTBOUND, 4);
+        public static final Measurement MAPPING_OVERALL = mergeMeasurements(MetricType.MAPPED, true, Metrics.MAPPING, 8);
 
         public static final Set<Measurement> inboundMeasurements = new HashSet<>(asSet(INBOUND_OVERALL, MAPPING_OVERALL));
         public static final Set<Measurement> outboundMeasurements = new HashSet<>(asSet(OUTBOUND_OVERALL, MAPPING_OVERALL));
@@ -202,13 +203,13 @@ public final class TestConstants {
                     ).build();
         }
 
-        public static Measurement mergeMeasurements(final String type, final boolean success,
+        public static Measurement mergeMeasurements(final MetricType type, final boolean success,
                 final Measurement measurements, int times) {
             final Map<Duration, Long> result = new HashMap<>();
             for (Duration interval : DEFAULT_INTERVALS) {
                 result.put(interval,
                         Optional.of(measurements)
-                                .filter(m -> Objects.equals(type, m.getType()))
+                                .filter(m -> Objects.equals(type, m.getMetricType()))
                                 .filter(m -> Objects.equals(success, m.isSuccess()))
                                 .map(Measurement::getCounts)
                                 .map(m -> m.getOrDefault(interval, 0L))

@@ -34,14 +34,14 @@ public class TestConstants {
             .set(Measurement.JsonFields.LAST_MESSAGE_AT, INSTANT.toString())
             .build();
 
-    public static final JsonObject INBOUND_SUCCESS_JSON = getMeasurementJson("inbound", true);
-    public static final JsonObject INBOUND_FAILURE_JSON = getMeasurementJson("inbound", false);
-    public static final JsonObject MAPPED_SUCCESS_JSON = getMeasurementJson("mapped", true);
-    public static final JsonObject MAPPED_FAILURE_JSON = getMeasurementJson("mapped", false);
+    public static final JsonObject INBOUND_SUCCESS_JSON = getMeasurementJson(MetricType.CONSUMED, true);
+    public static final JsonObject INBOUND_FAILURE_JSON = getMeasurementJson(MetricType.CONSUMED, false);
+    public static final JsonObject MAPPED_SUCCESS_JSON = getMeasurementJson(MetricType.MAPPED, true);
+    public static final JsonObject MAPPED_FAILURE_JSON = getMeasurementJson(MetricType.MAPPED, false);
 
-    static JsonObject getMeasurementJson(final String type, final boolean success) {
+    static JsonObject getMeasurementJson(final MetricType type, final boolean success) {
         return JsonObject
-                .newBuilder().set(type,
+                .newBuilder().set(type.getName(),
                         JsonFactory.newObjectBuilder().set(success ? "success" : "failure",
                                 MEASUREMENTS
                         ).build()).build();
@@ -55,15 +55,15 @@ public class TestConstants {
         COUNTERS.put(ONE_DAY, ONE_DAY.toMillis());
     }
 
-    private static Measurement getMeasurement(final String type, final boolean success) {
+    private static Measurement getMeasurement(final MetricType type, final boolean success) {
         return new ImmutableMeasurement(type, success, COUNTERS, INSTANT);
 
     }
 
-    private static final Measurement INBOUND_SUCCESS = getMeasurement("inbound", true);
-    private static final Measurement INBOUND_FAILURE = getMeasurement("inbound", false);
-    private static final Measurement MAPPED_SUCCESS = getMeasurement("mapped", true);
-    private static final Measurement MAPPED_FAILURE = getMeasurement("mapped", false);
+    private static final Measurement INBOUND_SUCCESS = getMeasurement(MetricType.CONSUMED, true);
+    private static final Measurement INBOUND_FAILURE = getMeasurement(MetricType.CONSUMED, false);
+    private static final Measurement MAPPED_SUCCESS = getMeasurement(MetricType.MAPPED, true);
+    private static final Measurement MAPPED_FAILURE = getMeasurement(MetricType.MAPPED, false);
 
     static final Set<Measurement> INBOUND_MEASUREMENTS = new HashSet<>(Arrays.asList(INBOUND_SUCCESS,
             INBOUND_FAILURE,

@@ -206,7 +206,7 @@ public final class RetrieveConnectionMetricsResponse
                 (measurementA, measurementB) -> {
                     final Map<Duration, Long> merged =
                             mergeMeasurements(measurementA.getCounts(), measurementB.getCounts());
-                    return ConnectivityModelFactory.newMeasurement(measurementA.getType(), measurementA.isSuccess(),
+                    return ConnectivityModelFactory.newMeasurement(measurementA.getMetricType(), measurementA.isSuccess(),
                             merged, latest(
                                     measurementA.getLastMessageAt().orElse(null),
                                     measurementB.getLastMessageAt().orElse(null)
@@ -229,7 +229,7 @@ public final class RetrieveConnectionMetricsResponse
     }
 
     private static Map<String, Measurement> asMap(final AddressMetric a) {
-        return a.getMeasurements().stream().collect(Collectors.toMap(m -> m.getType() + ":" + m.isSuccess(), m -> m));
+        return a.getMeasurements().stream().collect(Collectors.toMap(m -> m.getMetricType() + ":" + m.isSuccess(), m -> m));
     }
 
     private static Map<Duration, Long> mergeMeasurements(final Map<Duration, Long> measurementA,

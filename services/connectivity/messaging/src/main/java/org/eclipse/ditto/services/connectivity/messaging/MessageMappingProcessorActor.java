@@ -10,8 +10,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
-import static org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry.Metric.DROPPED;
-import static org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry.Metric.MAPPED;
+import static org.eclipse.ditto.model.connectivity.MetricType.DROPPED;
+import static org.eclipse.ditto.model.connectivity.MetricType.MAPPED;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -43,6 +43,8 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
+import org.eclipse.ditto.model.connectivity.MetricDirection;
+import org.eclipse.ditto.model.connectivity.MetricType;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectionMetricsCollector;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry;
@@ -347,7 +349,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     }
 
     private Set<ConnectionMetricsCollector> getCountersForOutboundSignal(final OutboundSignal outbound,
-            final String connectionId, final ConnectivityCounterRegistry.Metric metric) {
+            final String connectionId, final MetricType metricType) {
 
         if (outbound.getSource() instanceof CommandResponse) {
             return Collections.singleton(responseMappedCounter);
@@ -355,8 +357,8 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             return outbound.getTargets()
                     .stream()
                     .map(Target::getOriginalAddress)
-                    .map(address -> ConnectivityCounterRegistry.getCounter(connectionId, metric,
-                            ConnectivityCounterRegistry.Direction.OUTBOUND, address))
+                    .map(address -> ConnectivityCounterRegistry.getCounter(connectionId, metricType,
+                            MetricDirection.OUTBOUND, address))
                     .collect(Collectors.toSet());
         }
     }

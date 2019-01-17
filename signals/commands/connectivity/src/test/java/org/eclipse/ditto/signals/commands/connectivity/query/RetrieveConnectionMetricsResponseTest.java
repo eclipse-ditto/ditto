@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.MetricType;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -121,22 +122,22 @@ public final class RetrieveConnectionMetricsResponseTest {
 
         // check overall sum of connection metrics
         assertThat(merged.getConnectionMetrics().getInboundMetrics().getMeasurements())
-                .contains(mergeMeasurements("inbound", true, Metrics.INBOUND, 4));
+                .contains(mergeMeasurements(MetricType.CONSUMED, true, Metrics.INBOUND, 4));
         assertThat(merged.getConnectionMetrics().getInboundMetrics().getMeasurements())
-                .contains(mergeMeasurements("mapping", true, Metrics.MAPPING, 4));
+                .contains(mergeMeasurements(MetricType.MAPPED, true, Metrics.MAPPING, 4));
 
         assertThat(merged.getConnectionMetrics().getOutboundMetrics().getMeasurements())
-                .contains(mergeMeasurements("outbound", true, Metrics.OUTBOUND, 4));
+                .contains(mergeMeasurements(MetricType.PUBLISHED, true, Metrics.OUTBOUND, 4));
         assertThat(merged.getConnectionMetrics().getOutboundMetrics().getMeasurements())
-                .contains(mergeMeasurements("mapping", true, Metrics.MAPPING, 4));
+                .contains(mergeMeasurements(MetricType.MAPPED, true, Metrics.MAPPING, 4));
 
         // check source metrics
         assertThat(merged.getSourceMetrics().getAddressMetrics()).containsKeys("source1", "source2", "source3");
         assertThat(merged.getSourceMetrics().getAddressMetrics().get("source1").getMeasurements())
                 .contains(Metrics.INBOUND, Metrics.MAPPING);
         assertThat(merged.getSourceMetrics().getAddressMetrics().get("source2").getMeasurements())
-                .contains(mergeMeasurements("inbound", true, Metrics.INBOUND,2),
-                        mergeMeasurements("mapping", true, Metrics.MAPPING, 2));
+                .contains(mergeMeasurements(MetricType.CONSUMED, true, Metrics.INBOUND,2),
+                        mergeMeasurements(MetricType.MAPPED, true, Metrics.MAPPING, 2));
         assertThat(merged.getSourceMetrics().getAddressMetrics().get("source3").getMeasurements())
                 .contains(Metrics.INBOUND, Metrics.MAPPING);
 
@@ -145,8 +146,8 @@ public final class RetrieveConnectionMetricsResponseTest {
         assertThat(merged.getTargetMetrics().getAddressMetrics().get("target1").getMeasurements())
                 .contains(Metrics.MAPPING, Metrics.OUTBOUND);
         assertThat(merged.getTargetMetrics().getAddressMetrics().get("target2").getMeasurements())
-                .contains(mergeMeasurements("mapping", true, Metrics.MAPPING, 2),
-                        mergeMeasurements("outbound", true, Metrics.OUTBOUND, 2));
+                .contains(mergeMeasurements(MetricType.MAPPED, true, Metrics.MAPPING, 2),
+                        mergeMeasurements(MetricType.PUBLISHED, true, Metrics.OUTBOUND, 2));
         assertThat(merged.getTargetMetrics().getAddressMetrics().get("target3").getMeasurements())
                 .contains(Metrics.MAPPING, Metrics.OUTBOUND);
     }

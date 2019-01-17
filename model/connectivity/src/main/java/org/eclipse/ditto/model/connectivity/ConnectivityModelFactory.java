@@ -85,15 +85,15 @@ public final class ConnectivityModelFactory {
     /**
      * Creates a new {@code Measurement} with the provided parameters.
      *
-     * @param counterType the type of the counter (e.g. a metric label).
+     * @param metricType the type of the metric.
      * @param success whether the measurement is a success or failure measurement.
      * @param values the values of the measurement.
      * @param lastMessageAt when the last message of this measurement was received.
      * @return the created {@code Measurement}
      */
-    public static Measurement newMeasurement(final String counterType, final boolean success,
+    public static Measurement newMeasurement(final MetricType metricType, final boolean success,
             final Map<Duration, Long> values, @Nullable final Instant lastMessageAt) {
-        return new ImmutableMeasurement(counterType, success, values, lastMessageAt);
+        return new ImmutableMeasurement(metricType, success, values, lastMessageAt);
     }
 
     /**

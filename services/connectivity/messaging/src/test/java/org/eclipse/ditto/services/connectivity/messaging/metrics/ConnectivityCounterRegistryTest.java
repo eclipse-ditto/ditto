@@ -12,12 +12,12 @@ package org.eclipse.ditto.services.connectivity.messaging.metrics;
 
 import static java.util.stream.Collectors.toMap;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry.Direction.INBOUND;
-import static org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry.Direction.OUTBOUND;
-import static org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry.Metric.CONSUMED;
-import static org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry.Metric.FILTERED;
-import static org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry.Metric.MAPPED;
-import static org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry.Metric.PUBLISHED;
+import static org.eclipse.ditto.model.connectivity.MetricDirection.INBOUND;
+import static org.eclipse.ditto.model.connectivity.MetricDirection.OUTBOUND;
+import static org.eclipse.ditto.model.connectivity.MetricType.CONSUMED;
+import static org.eclipse.ditto.model.connectivity.MetricType.FILTERED;
+import static org.eclipse.ditto.model.connectivity.MetricType.MAPPED;
+import static org.eclipse.ditto.model.connectivity.MetricType.PUBLISHED;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -29,6 +29,7 @@ import java.util.stream.Stream;
 
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Measurement;
+import org.eclipse.ditto.model.connectivity.MetricType;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
 import org.junit.BeforeClass;
@@ -62,7 +63,7 @@ public class ConnectivityCounterRegistryTest {
                 ConnectivityCounterRegistry.getCounter(FIXED_CLOCK, CONNECTION_ID, PUBLISHED, OUTBOUND, TARGET)
         ).forEach(counter ->
                 // just to have some different values...
-                IntStream.rangeClosed(0, counter.getMetric().ordinal()).forEach(i -> {
+                IntStream.rangeClosed(0, counter.getMetricType().ordinal()).forEach(i -> {
                     counter.recordSuccess();
                     counter.recordFailure();
                 }));
@@ -104,8 +105,8 @@ public class ConnectivityCounterRegistryTest {
 
     }
 
-    private Measurement getMeasurement(final ConnectivityCounterRegistry.Metric metric, final boolean b) {
-        return ConnectivityModelFactory.newMeasurement(metric.getLabel(), b, getCounters(metric.ordinal() + 1),
+    private Measurement getMeasurement(final MetricType metricType, final boolean b) {
+        return ConnectivityModelFactory.newMeasurement(metricType, b, getCounters(metricType.ordinal() + 1),
                 FIXED_INSTANT);
     }
 

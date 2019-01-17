@@ -31,7 +31,8 @@ public final class SlidingWindowCounter {
     private final MeasurementWindow[] windows;
     private final ConcurrentMap<Long, Long> measurements = new ConcurrentHashMap<>();
 
-    private final AtomicLong lastTimestamp = new AtomicLong(Instant.EPOCH.toEpochMilli());
+    private final AtomicLong lastSuccessTimestamp = new AtomicLong(Instant.EPOCH.toEpochMilli());
+    private final AtomicLong lastFailureTimestamp = new AtomicLong(Instant.EPOCH.toEpochMilli());
     private final Duration minResolution;
 
     /**
@@ -50,10 +51,19 @@ public final class SlidingWindowCounter {
     }
 
     /**
-     * @return the timestamp of the last measurement (initialized to {@code EPOCH} if no measurement was yet processed)
+     * @return the timestamp of the last {@code success} measurement
+     * (initialized to {@code EPOCH} if no measurement was yet processed)
      */
-    long getLastMeasurementAt() {
-        return lastTimestamp.get();
+    long getLastSuccessMeasurementAt() {
+        return lastSuccessTimestamp.get();
+    }
+
+    /**
+     * @return the timestamp of the last {@code success} measurement
+     * (initialized to {@code EPOCH} if no measurement was yet processed)
+     */
+    long getLastFailureMeasurementAt() {
+        return lastFailureTimestamp.get();
     }
 
     /**
@@ -63,7 +73,13 @@ public final class SlidingWindowCounter {
      * @param ts the timestamp when the operation happened (mostly useful for testing)
      */
     void increment(final boolean success, final long ts) {
-        final long theTimestamp = this.lastTimestamp.getAndUpdate(previous -> Math.max(previous, ts));
+        final long theTimestamp;
+        if (success) {
+            theTimestamp = this.lastSuccessTimestamp.getAndUpdate(previous -> Math.max(previous, ts));
+        } else {
+            theTimestamp = this.lastFailureTimestamp.getAndUpdate(previous -> Math.max(previous, ts));
+        }
+
 
         for (final MeasurementWindow window : windows) {
             final long slot = getSlot(ts, window.getResolution().toMillis());
@@ -162,7 +178,8 @@ public final class SlidingWindowCounter {
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "measurements=" + measurements +
-                ", lastTimestamp=" + lastTimestamp +
+                ", lastSuccessTimestamp=" + lastSuccessTimestamp +
+                ", lastFailureTimestamp=" + lastFailureTimestamp +
                 "]";
     }
 }

@@ -19,7 +19,6 @@ import java.time.Clock;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -32,6 +31,8 @@ import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Measurement;
+import org.eclipse.ditto.model.connectivity.MetricDirection;
+import org.eclipse.ditto.model.connectivity.MetricType;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -39,7 +40,7 @@ import org.eclipse.ditto.model.connectivity.TargetMetrics;
 
 /**
  * This registry holds counters for the connectivity service. The counters are identified by the connection id, a
- * {@link Metric}, a {@link Direction} and an address.
+ * {@link MetricType}, a {@link MetricDirection} and an address.
  */
 public final class ConnectivityCounterRegistry {
 
@@ -64,21 +65,21 @@ public final class ConnectivityCounterRegistry {
                 .map(Source::getAddresses)
                 .forEach(addresses -> addresses
                         .forEach(address ->
-                                initCounter(connectionId, Direction.INBOUND, address)));
+                                initCounter(connectionId, MetricDirection.INBOUND, address)));
         connection.getTargets().stream()
                 .map(Target::getAddress)
                 .forEach(address ->
-                        initCounter(connectionId, Direction.OUTBOUND, address));
+                        initCounter(connectionId, MetricDirection.OUTBOUND, address));
     }
 
-    private static void initCounter(final String connectionId, final Direction direction, final String address) {
-        Arrays.stream(Metric.values())
-                .filter(metric -> metric.getPossibleDirections().contains(direction))
-                .forEach(metric -> {
-                    final String key = new MapKey(connectionId, metric, direction, address).toString();
+    private static void initCounter(final String connectionId, final MetricDirection metricDirection, final String address) {
+        Arrays.stream(MetricType.values())
+                .filter(metricType -> metricType.getPossibleMetricDirections().contains(metricDirection))
+                .forEach(metricType -> {
+                    final String key = new MapKey(connectionId, metricType, metricDirection, address).toString();
                     counters.computeIfAbsent(key, m -> {
                         final SlidingWindowCounter counter = new SlidingWindowCounter(CLOCK_UTC, DEFAULT_WINDOWS);
-                        return new ConnectionMetricsCollector(direction, address, metric, counter);
+                        return new ConnectionMetricsCollector(metricDirection, address, metricType, counter);
                     });
                 });
     }
@@ -87,18 +88,18 @@ public final class ConnectivityCounterRegistry {
      * Gets the counter for the given parameter from the registry or creates it if it does not yet exist.
      *
      * @param connectionId connection id
-     * @param metric the metric
-     * @param direction the direction
+     * @param metricType the metricType
+     * @param metricDirection the metricDirection
      * @param address the address
      * @return the counter
      */
     public static ConnectionMetricsCollector getCounter(
             final String connectionId,
-            final Metric metric,
-            final Direction direction,
+            final MetricType metricType,
+            final MetricDirection metricDirection,
             final String address) {
 
-        return getCounter(CLOCK_UTC, connectionId, metric, direction, address);
+        return getCounter(CLOCK_UTC, connectionId, metricType, metricDirection, address);
     }
 
     /**
@@ -106,155 +107,155 @@ public final class ConnectivityCounterRegistry {
      *
      * @param clock custom clock (only used for testing)
      * @param connectionId connection id
-     * @param metric counter metric
-     * @param direction counter direction
+     * @param metricType counter metricType
+     * @param metricDirection counter metricDirection
      * @param address address e.g. source or target address
      * @return the counter
      */
     static ConnectionMetricsCollector getCounter(
             final Clock clock,
             final String connectionId,
-            final Metric metric,
-            final Direction direction,
+            final MetricType metricType,
+            final MetricDirection metricDirection,
             final String address) {
 
-        final String key = new MapKey(connectionId, metric, direction, address).toString();
+        final String key = new MapKey(connectionId, metricType, metricDirection, address).toString();
         return counters.computeIfAbsent(key, m -> {
             final SlidingWindowCounter counter = new SlidingWindowCounter(clock, DEFAULT_WINDOWS);
-            return new ConnectionMetricsCollector(direction, address, metric, counter);
+            return new ConnectionMetricsCollector(metricDirection, address, metricType, counter);
         });
     }
 
     /**
-     * Gets counter for {@link Direction#OUTBOUND}/{@link Metric#CONSUMED} messages.
+     * Gets counter for {@link MetricDirection#OUTBOUND}/{@link MetricType#CONSUMED} messages.
      *
      * @param connectionId connection id
      * @param target the target address
      * @return the counter
      */
     public static ConnectionMetricsCollector getOutboundCounter(String connectionId, String target) {
-        return getCounter(connectionId, Metric.CONSUMED, Direction.OUTBOUND, target);
+        return getCounter(connectionId, MetricType.CONSUMED, MetricDirection.OUTBOUND, target);
     }
 
     /**
-     * Gets counter for {@link Direction#OUTBOUND}/{@link Metric#FILTERED} messages.
+     * Gets counter for {@link MetricDirection#OUTBOUND}/{@link MetricType#FILTERED} messages.
      *
      * @param connectionId connection id
      * @param target the target
      * @return the outbound filtered counter
      */
     public static ConnectionMetricsCollector getOutboundFilteredCounter(String connectionId, String target) {
-        return getCounter(connectionId, Metric.FILTERED, Direction.OUTBOUND, target);
+        return getCounter(connectionId, MetricType.FILTERED, MetricDirection.OUTBOUND, target);
     }
 
     /**
-     * Gets counter for {@link Direction#OUTBOUND}/{@link Metric#MAPPED} messages.
+     * Gets counter for {@link MetricDirection#OUTBOUND}/{@link MetricType#MAPPED} messages.
      *
      * @param connectionId connection id
      * @param target the target
      * @return the outbound mapped counter
      */
     public static ConnectionMetricsCollector getOutboundMappedCounter(String connectionId, final String target) {
-        return getCounter(connectionId, Metric.MAPPED, Direction.OUTBOUND, target);
+        return getCounter(connectionId, MetricType.MAPPED, MetricDirection.OUTBOUND, target);
     }
 
     /**
-     * Gets counter for {@link Direction#OUTBOUND}/{@link Metric#PUBLISHED} messages.
+     * Gets counter for {@link MetricDirection#OUTBOUND}/{@link MetricType#PUBLISHED} messages.
      *
      * @param connectionId connection id
      * @param target the target
      * @return the outbound published counter
      */
     public static ConnectionMetricsCollector getOutboundPublishedCounter(String connectionId, String target) {
-        return getCounter(connectionId, Metric.PUBLISHED, Direction.OUTBOUND, target);
+        return getCounter(connectionId, MetricType.PUBLISHED, MetricDirection.OUTBOUND, target);
     }
 
     /**
-     * Gets counter for {@link Direction#INBOUND}/{@link Metric#CONSUMED} messages.
+     * Gets counter for {@link MetricDirection#INBOUND}/{@link MetricType#CONSUMED} messages.
      *
      * @param connectionId connection id
      * @param source the source
      * @return the inbound counter
      */
     public static ConnectionMetricsCollector getInboundCounter(String connectionId, String source) {
-        return getCounter(connectionId, Metric.CONSUMED, Direction.INBOUND, source);
+        return getCounter(connectionId, MetricType.CONSUMED, MetricDirection.INBOUND, source);
     }
 
     /**
-     * Gets counter for {@link Direction#INBOUND}/{@link Metric#MAPPED} messages.
+     * Gets counter for {@link MetricDirection#INBOUND}/{@link MetricType#MAPPED} messages.
      *
      * @param connectionId connection id
      * @param source the source
      * @return the inbound mapped counter
      */
     public static ConnectionMetricsCollector getInboundMappedCounter(String connectionId, String source) {
-        return getCounter(connectionId, Metric.MAPPED, Direction.INBOUND, source);
+        return getCounter(connectionId, MetricType.MAPPED, MetricDirection.INBOUND, source);
     }
 
     /**
-     * Gets counter for {@link Direction#INBOUND}/{@link Metric#DROPPED} messages.
+     * Gets counter for {@link MetricDirection#INBOUND}/{@link MetricType#DROPPED} messages.
      *
      * @param connectionId connection id
      * @param source the source
      * @return the inbound dropped counter
      */
     public static ConnectionMetricsCollector getInboundDroppedCounter(String connectionId, String source) {
-        return getCounter(connectionId, Metric.DROPPED, Direction.INBOUND, source);
+        return getCounter(connectionId, MetricType.DROPPED, MetricDirection.INBOUND, source);
     }
 
     /**
-     * Gets counter for {@link Direction#OUTBOUND}/{@link Metric#CONSUMED} messages for responses.
+     * Gets counter for {@link MetricDirection#OUTBOUND}/{@link MetricType#CONSUMED} messages for responses.
      *
      * @param connectionId connection id
      * @return the response consumed counter
      */
     public static ConnectionMetricsCollector getResponseConsumedCounter(String connectionId) {
-        return getCounter(connectionId, Metric.CONSUMED, Direction.OUTBOUND, RESPONSES_ADDRESS);
+        return getCounter(connectionId, MetricType.CONSUMED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
     }
 
     /**
-     * Gets counter for {@link Direction#OUTBOUND}/{@link Metric#DROPPED} messages for responses.
+     * Gets counter for {@link MetricDirection#OUTBOUND}/{@link MetricType#DROPPED} messages for responses.
      *
      * @param connectionId connection id
      * @return the response dropped counter
      */
     public static ConnectionMetricsCollector getResponseDroppedCounter(String connectionId) {
-        return getCounter(connectionId, Metric.DROPPED, Direction.OUTBOUND, RESPONSES_ADDRESS);
+        return getCounter(connectionId, MetricType.DROPPED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
     }
 
     /**
-     * Gets counter for {@link Direction#OUTBOUND}/{@link Metric#MAPPED} messages for responses.
+     * Gets counter for {@link MetricDirection#OUTBOUND}/{@link MetricType#MAPPED} messages for responses.
      *
      * @param connectionId connection id
      * @return the response mapped counter
      */
     public static ConnectionMetricsCollector getResponseMappedCounter(String connectionId) {
-        return getCounter(connectionId, Metric.MAPPED, Direction.OUTBOUND, RESPONSES_ADDRESS);
+        return getCounter(connectionId, MetricType.MAPPED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
     }
 
     /**
-     * Gets counter for {@link Direction#OUTBOUND}/{@link Metric#PUBLISHED} messages for responses.
+     * Gets counter for {@link MetricDirection#OUTBOUND}/{@link MetricType#PUBLISHED} messages for responses.
      *
      * @param connectionId connection id
      * @return the response published counter
      */
     public static ConnectionMetricsCollector getResponsePublishedCounter(String connectionId) {
-        return getCounter(connectionId, Metric.PUBLISHED, Direction.OUTBOUND, RESPONSES_ADDRESS);
+        return getCounter(connectionId, MetricType.PUBLISHED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
     }
 
     private static Stream<ConnectionMetricsCollector> streamFor(final String connectionId,
-            final ConnectivityCounterRegistry.Direction direction) {
+            final MetricDirection metricDirection) {
 
         return counters.entrySet()
                 .stream()
                 .filter(e -> e.getKey().startsWith(connectionId))
-                .filter(e -> direction == e.getValue().getDirection())
+                .filter(e -> metricDirection == e.getValue().getMetricDirection())
                 .map(Map.Entry::getValue);
     }
 
-    private static Map<String, AddressMetric> aggregateMetrics(final String connectionId, final Direction direction) {
+    private static Map<String, AddressMetric> aggregateMetrics(final String connectionId, final MetricDirection metricDirection) {
         final Map<String, AddressMetric> addressMetrics = new HashMap<>();
-        streamFor(connectionId, direction)
+        streamFor(connectionId, metricDirection)
                 .forEach(swc -> addressMetrics.compute(swc.getAddress(),
                         (address, metric) -> {
                             final Set<Measurement> measurements = new HashSet<>();
@@ -274,7 +275,7 @@ public final class ConnectivityCounterRegistry {
      * @return the {@link SourceMetrics}
      */
     public static SourceMetrics aggregateSourceMetrics(final String connectionId) {
-        return ConnectivityModelFactory.newSourceMetrics(aggregateMetrics(connectionId, Direction.INBOUND));
+        return ConnectivityModelFactory.newSourceMetrics(aggregateMetrics(connectionId, MetricDirection.INBOUND));
     }
 
     /**
@@ -284,86 +285,7 @@ public final class ConnectivityCounterRegistry {
      * @return the {@link TargetMetrics}
      */
     public static TargetMetrics aggregateTargetMetrics(final String connectionId) {
-        return ConnectivityModelFactory.newTargetMetrics(aggregateMetrics(connectionId, Direction.OUTBOUND));
-    }
-
-    /**
-     * Defines known counter metrics.
-     */
-    public enum Metric {
-
-        /**
-         * Counts mappings for messages.
-         */
-        MAPPED("mapped", Direction.INBOUND, Direction.OUTBOUND),
-
-        /**
-         * Counts messages that were consumed.
-         */
-        CONSUMED("consumed", Direction.INBOUND, Direction.OUTBOUND),
-
-        /**
-         * Counts messages to external systems that passed the configured filter.
-         */
-        FILTERED("filtered", Direction.OUTBOUND),
-
-        /**
-         * Counts messages published to external systems.
-         */
-        PUBLISHED("published", Direction.OUTBOUND),
-
-        /**
-         * Counts messages that were dropped (not published by intention e.g. because no reply-to address was given).
-         */
-        DROPPED("dropped", Direction.INBOUND, Direction.OUTBOUND);
-
-        private final String label;
-        private final List<Direction> possibleDirections;
-
-        Metric(final String label, final Direction... possibleDirection) {
-            this.label = label;
-            possibleDirections = Arrays.asList(possibleDirection);
-        }
-
-        /**
-         * @return the label which can be used in a JSON representation.
-         */
-        public String getLabel() {
-            return label;
-        }
-
-        /**
-         * @return the possible {@link Direction}s this Metric supports.
-         */
-        public List<Direction> getPossibleDirections() {
-            return possibleDirections;
-        }
-    }
-
-    /**
-     * Defines the direction of a counter e.g. if inbound or outbound messages are counted.
-     */
-    public enum Direction {
-
-        /**
-         * Inbound direction from external systems to Ditto.
-         */
-        INBOUND("inbound"),
-
-        /**
-         * Outbound direction from Ditto to external systems.
-         */
-        OUTBOUND("outbound");
-
-        private final String label;
-
-        Direction(final String label) {
-            this.label = label;
-        }
-
-        private String getLabel() {
-            return label;
-        }
+        return ConnectivityModelFactory.newTargetMetrics(aggregateMetrics(connectionId, MetricDirection.OUTBOUND));
     }
 
     /**
@@ -380,17 +302,17 @@ public final class ConnectivityCounterRegistry {
          * New map key.
          *
          * @param connectionId connection id
-         * @param metric the metric
-         * @param direction the direction
+         * @param metricType the metricType
+         * @param metricDirection the metricDirection
          * @param address the address
          */
         MapKey(final String connectionId,
-                final Metric metric,
-                final Direction direction,
+                final MetricType metricType,
+                final MetricDirection metricDirection,
                 final String address) {
             this.connectionId = checkNotNull(connectionId, "connectionId");
-            this.metric = metric.getLabel();
-            this.direction = direction.getLabel();
+            this.metric = metricType.getName();
+            this.direction = metricDirection.getName();
             this.address = checkNotNull(address, "address");
         }
 

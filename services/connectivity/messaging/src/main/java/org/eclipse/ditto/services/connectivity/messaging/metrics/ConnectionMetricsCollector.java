@@ -19,6 +19,8 @@ import java.util.function.Supplier;
 
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Measurement;
+import org.eclipse.ditto.model.connectivity.MetricDirection;
+import org.eclipse.ditto.model.connectivity.MetricType;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,19 +32,19 @@ public final class ConnectionMetricsCollector {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ConnectionMetricsCollector.class);
 
-    private final ConnectivityCounterRegistry.Direction direction;
+    private final MetricDirection metricDirection;
     private final String address;
-    private final ConnectivityCounterRegistry.Metric metric;
+    private final MetricType metricType;
     private final SlidingWindowCounter counter;
 
-    public ConnectionMetricsCollector(
-            final ConnectivityCounterRegistry.Direction direction,
+    ConnectionMetricsCollector(
+            final MetricDirection metricDirection,
             final String address,
-            final ConnectivityCounterRegistry.Metric metric,
+            final MetricType metricType,
             SlidingWindowCounter counter) {
-        this.direction = direction;
+        this.metricDirection = metricDirection;
         this.address = address;
-        this.metric = metric;
+        this.metricType = metricType;
         this.counter = counter;
     }
 
@@ -50,7 +52,7 @@ public final class ConnectionMetricsCollector {
      * Record a successful operation.
      */
     public void recordSuccess() {
-        LOGGER.trace("Increment success counter ({},{},{})", direction, address, metric);
+        LOGGER.trace("Increment success counter ({},{},{})", metricDirection, address, metricType);
         counter.increment();
     }
 
@@ -58,7 +60,7 @@ public final class ConnectionMetricsCollector {
      * Record a failed operation.
      */
     public void recordFailure() {
-        LOGGER.trace("Increment failure counter ({},{},{})", direction, address, metric);
+        LOGGER.trace("Increment failure counter ({},{},{})", metricDirection, address, metricType);
         counter.increment(false);
     }
 
@@ -70,10 +72,10 @@ public final class ConnectionMetricsCollector {
     }
 
     /**
-     * @return the direction this collector measures.
+     * @return the metricDirection this collector measures.
      */
-    ConnectivityCounterRegistry.Direction getDirection() {
-        return direction;
+    MetricDirection getMetricDirection() {
+        return metricDirection;
     }
 
     public String getAddress() {
@@ -81,10 +83,10 @@ public final class ConnectionMetricsCollector {
     }
 
     /**
-     * @return the metric of this collector
+     * @return the metricType of this collector
      */
-    ConnectivityCounterRegistry.Metric getMetric() {
-        return metric;
+    MetricType getMetricType() {
+        return metricType;
     }
 
     /**
@@ -95,18 +97,19 @@ public final class ConnectionMetricsCollector {
      */
     Measurement toMeasurement(final boolean success) {
         final Map<Duration, Long> measurements = counter.getCounts(success);
-        final Instant lastMessageTimestamp = getLastMessageTimestamp();
+        final Instant lastMessageTimestamp = getLastMessageTimestamp(success);
         final Instant timestamp;
         if (lastMessageTimestamp.equals(Instant.EPOCH)) {
             timestamp = null;
         } else {
             timestamp = lastMessageTimestamp;
         }
-        return ConnectivityModelFactory.newMeasurement(metric.getLabel(), success, measurements, timestamp);
+        return ConnectivityModelFactory.newMeasurement(metricType, success, measurements, timestamp);
     }
 
-    private Instant getLastMessageTimestamp() {
-        return Instant.ofEpochMilli(counter.getLastMeasurementAt());
+    private Instant getLastMessageTimestamp(final boolean success) {
+        return Instant.ofEpochMilli(success ? counter.getLastSuccessMeasurementAt() :
+                counter.getLastFailureMeasurementAt());
     }
 
     /**
@@ -183,23 +186,23 @@ public final class ConnectionMetricsCollector {
             return false;
         }
         final ConnectionMetricsCollector that = (ConnectionMetricsCollector) o;
-        return direction == that.direction &&
+        return metricDirection == that.metricDirection &&
                 Objects.equals(address, that.address) &&
-                metric == that.metric &&
+                metricType == that.metricType &&
                 Objects.equals(counter, that.counter);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(direction, address, metric, counter);
+        return Objects.hash(metricDirection, address, metricType, counter);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "direction=" + direction +
+                "direction=" + metricDirection +
                 ", address=" + address +
-                ", metric=" + metric +
+                ", metric=" + metricType +
                 ", counter=" + counter +
                 "]";
     }

@@ -14,6 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.connectivity.TestConstants.COUNTERS;
 import static org.eclipse.ditto.model.connectivity.TestConstants.INSTANT;
 import static org.eclipse.ditto.model.connectivity.TestConstants.getMeasurementJson;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -24,7 +25,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 
 public class ImmutableMeasurementTest {
 
-    private static final String TYPE = "inbound";
+    private static final MetricType TYPE = MetricType.CONSUMED;
     private static final boolean SUCCESS = true;
     private static final Measurement MEASUREMENT = new ImmutableMeasurement(TYPE, SUCCESS, COUNTERS, INSTANT);
     private static final JsonObject MEASUREMENT_JSON = getMeasurementJson(TYPE, SUCCESS);
@@ -38,7 +39,7 @@ public class ImmutableMeasurementTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ImmutableMeasurement.class, areImmutable());
+        assertInstancesOf(ImmutableMeasurement.class, areImmutable(), provided(MetricType.class).areAlsoImmutable());
     }
 
     @Test

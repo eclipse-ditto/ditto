@@ -28,7 +28,7 @@ public class SlidingWindowCounterTest {
         final SlidingWindowCounter counter = new SlidingWindowCounter(Clock.systemUTC(), MeasurementWindow.ONE_HOUR);
         final long ts = System.currentTimeMillis();
         counter.increment(true, ts);
-        assertThat(counter.getLastMeasurementAt()).isEqualTo(ts);
+        assertThat(counter.getLastSuccessMeasurementAt()).isEqualTo(ts);
     }
 
     @Test

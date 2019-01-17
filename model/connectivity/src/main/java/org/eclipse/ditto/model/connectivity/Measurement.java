@@ -32,9 +32,9 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 public interface Measurement extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
-     * @return the type of the measurement e.g. "inbound" or "outbound"
+     * @return the type of the measurement e.g. "consumed" or "mapped"
      */
-    String getType();
+    MetricType getMetricType();
 
     /**
      * @return if the measurement represents a successful operation or a failure

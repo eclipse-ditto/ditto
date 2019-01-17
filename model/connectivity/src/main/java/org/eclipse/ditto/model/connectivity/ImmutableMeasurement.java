@@ -39,22 +39,22 @@ final class ImmutableMeasurement implements Measurement {
     private static final String SUCCESS_FIELD_NAME = "success";
     private static final String FAILURE_FIELD_NAME = "failure";
 
-    private final String counterType;
+    private final MetricType metricType;
     private final boolean success;
     private final Map<Duration, Long> values;
     @Nullable private final Instant lastMessageAt;
 
-    ImmutableMeasurement(final String counterType, final boolean success,
+    ImmutableMeasurement(final MetricType metricType, final boolean success,
             final Map<Duration, Long> values, @Nullable final Instant lastMessageAt) {
-        this.counterType = counterType;
+        this.metricType = metricType;
         this.values = Collections.unmodifiableMap(new HashMap<>(values));
         this.success = success;
         this.lastMessageAt = lastMessageAt;
     }
 
     @Override
-    public String getType() {
-        return counterType;
+    public MetricType getMetricType() {
+        return metricType;
     }
 
     @Override
@@ -82,7 +82,7 @@ final class ImmutableMeasurement implements Measurement {
         );
 
         return JsonFactory.newObjectBuilder()
-                .set(counterType,
+                .set(metricType.getName(),
                         JsonFactory.newObjectBuilder()
                                 .set(getSuccessFieldName(success),
                                         JsonFactory.newObjectBuilder(counts)
@@ -133,11 +133,16 @@ final class ImmutableMeasurement implements Measurement {
                 .map(Instant::parse)
                 .orElse(null);
 
-        return new ImmutableMeasurement(type.getKeyName(), fromSuccessFieldName(success.getKeyName()), readCounterMap,
+        return new ImmutableMeasurement(MetricType.forName(type.getKeyName())
+                .orElseThrow(() -> JsonParseException.newBuilder()
+                        .message("Unknown metricType: '" + type.getKeyName() + "'")
+                        .build()
+                ),
+                fromSuccessFieldName(success.getKeyName()), readCounterMap,
                 readLastMessageAt);
     }
 
-    private static JsonField unwrap(JsonValue jsonValue) {
+    private static JsonField unwrap(final JsonValue jsonValue) {
         if (jsonValue.isObject() && jsonValue.asObject().getSize() > 0) {
             final JsonObject jsonObject = jsonValue.asObject();
             final String inner = jsonObject.getKeys().get(0).toString();
@@ -158,12 +163,12 @@ final class ImmutableMeasurement implements Measurement {
         return success == that.success &&
                 Objects.equals(values, that.values) &&
                 Objects.equals(lastMessageAt, that.lastMessageAt) &&
-                Objects.equals(counterType, that.counterType);
+                Objects.equals(metricType, that.metricType);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(values, counterType, lastMessageAt, success);
+        return Objects.hash(values, metricType, lastMessageAt, success);
     }
 
     @Override
@@ -171,7 +176,7 @@ final class ImmutableMeasurement implements Measurement {
         return getClass().getSimpleName() + " [" +
                 "values=" + values +
                 ", lastMessageAt=" + lastMessageAt +
-                ", counterType=" + counterType +
+                ", counterType=" + metricType +
                 ", success=" + success +
                 "]";
     }

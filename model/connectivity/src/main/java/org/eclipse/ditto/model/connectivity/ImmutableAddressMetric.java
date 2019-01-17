@@ -10,8 +10,12 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -35,8 +39,9 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 @Immutable
 final class ImmutableAddressMetric implements AddressMetric {
 
-    public static final JsonKey SUCCESS_KEY = JsonFactory.newKey("success");
-    public static final JsonKey FAILURE_KEY = JsonFactory.newKey("failure");
+    private static final JsonKey SUCCESS_KEY = JsonFactory.newKey("success");
+    private static final JsonKey FAILURE_KEY = JsonFactory.newKey("failure");
+
     private final Set<Measurement> measurements;
 
     private ImmutableAddressMetric(final Set<Measurement> measurements) {
@@ -64,13 +69,51 @@ final class ImmutableAddressMetric implements AddressMetric {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
         jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
 
-        for (final Measurement measurement : measurements) {
+        final List<Measurement> sortedMeasurements = new ArrayList<>(measurements);
+        sortedMeasurements.sort(getMeasurementComparator());
+        for (final Measurement measurement : sortedMeasurements) {
             final JsonPointer pointer = JsonFactory.newPointer(
-                    JsonFactory.newKey(measurement.getType()),
+                    JsonFactory.newKey(measurement.getMetricType().getName()),
                     measurement.isSuccess() ? SUCCESS_KEY : FAILURE_KEY);
             jsonObjectBuilder.set(pointer, measurement.toJson().getValue(pointer).orElse(JsonFactory.newObject()));
         }
         return jsonObjectBuilder.build();
+    }
+
+    private static Comparator<Measurement> getMeasurementComparator() {
+        final List<MetricType> sortedTypes = Arrays.asList(MetricType.values());
+        Collections.sort(sortedTypes);
+
+        return (m1, m2) -> {
+            if (m1.equals(m2)) {
+                return 0;
+            } else {
+                return calculateComparatorScore(sortedTypes, m1, m2);
+            }
+        };
+    }
+
+    private static int calculateComparatorScore(final List<MetricType> sortedTypes, final Measurement m1,
+            final Measurement m2) {
+        final int idx1 = sortedTypes.indexOf(m1.getMetricType());
+        final int idx2 = sortedTypes.indexOf(m2.getMetricType());
+
+        final int score;
+        if (m1.isSuccess() && m2.isSuccess()) {
+            score = 1;
+        } else if (m1.isSuccess()) {
+            score = 2;
+        } else {
+            score = 3;
+        }
+
+        if (idx1 < idx2) {
+            return -score;
+        } else if (idx1 == idx2)  {
+            return m1.isSuccess() ? -1 : 1;
+        } else {
+            return score;
+        }
     }
 
     /**
