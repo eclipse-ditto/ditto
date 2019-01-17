@@ -67,14 +67,4 @@ public final class ThingIdValidatorTest {
                 .isThrownBy(() -> ThingIdValidator.getInstance().accept(thingIdWithoutThingName, DittoHeaders.empty()))
                 .withNoCause();
     }
-
-    @Test
-    public void validationOfInvalidThingIdThrowsException() {
-        final String thingId = "myThing";
-
-        assertThatExceptionOfType(ThingIdInvalidException.class)
-                .isThrownBy(() -> ThingIdValidator.getInstance().accept(thingId, DittoHeaders.empty()))
-                .withNoCause();
-    }
-
 }
