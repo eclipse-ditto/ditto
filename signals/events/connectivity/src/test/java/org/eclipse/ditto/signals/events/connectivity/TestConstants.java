@@ -60,7 +60,7 @@ public final class TestConstants {
     private static final HeaderMapping HEADER_MAPPING = null;
     public static final Set<Target> TARGETS = new HashSet<>(
             Collections.singletonList(
-                    ConnectivityModelFactory.newTarget("eventQueue", AUTHORIZATION_CONTEXT, HEADER_MAPPING, Topic.TWIN_EVENTS)));
+                    ConnectivityModelFactory.newTarget("eventQueue", AUTHORIZATION_CONTEXT, HEADER_MAPPING, null, Topic.TWIN_EVENTS)));
     public static Connection CONNECTION =
             ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
                     .sources(SOURCES)

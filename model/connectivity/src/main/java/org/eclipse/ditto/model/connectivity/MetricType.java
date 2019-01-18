@@ -27,14 +27,14 @@ public enum MetricType {
     CONSUMED("consumed", MetricDirection.INBOUND, MetricDirection.OUTBOUND),
 
     /**
-     * Counts mappings for messages.
-     */
-    MAPPED("mapped", MetricDirection.INBOUND, MetricDirection.OUTBOUND),
-
-    /**
      * Counts messages to external systems that passed the configured filter.
      */
     FILTERED("filtered", MetricDirection.OUTBOUND),
+
+    /**
+     * Counts mappings for messages.
+     */
+    MAPPED("mapped", MetricDirection.INBOUND, MetricDirection.OUTBOUND),
 
     /**
      * Counts messages published to external systems.

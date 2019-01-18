@@ -492,7 +492,7 @@ public final class ConnectionActorTest extends WithMockServers {
 
         final Target expectedTarget = ConnectivityModelFactory.newTarget(TestConstants.Targets.TARGET_WITH_PLACEHOLDER,
                 "target:" + TestConstants.Things.NAMESPACE + "/" +
-                        TestConstants.Things.ID);
+                        TestConstants.Things.ID, null);
 
         final CreateConnection createConnection = CreateConnection.of(connection, DittoHeaders.empty());
         final Set<String> valid = Collections.singleton(TestConstants.Authorization.SUBJECT_ID);

@@ -13,6 +13,7 @@ package org.eclipse.ditto.model.connectivity;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
@@ -74,12 +76,11 @@ final class ImmutableMeasurement implements Measurement {
 
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
-        final JsonObject counts = JsonFactory.newObject(values.entrySet()
+        final JsonObject counts = values.entrySet()
                 .stream()
-                .collect(Collectors.toMap(
-                        e -> JsonFactory.newKey(e.getKey().toString()),
-                        e -> JsonFactory.newValue(e.getValue())))
-        );
+                .sorted(Comparator.comparing(Map.Entry::getKey))
+                .map(e -> JsonFactory.newField(JsonFactory.newKey(e.getKey().toString()), JsonValue.of(e.getValue())))
+                .collect(JsonCollectors.fieldsToObject());
 
         return JsonFactory.newObjectBuilder()
                 .set(metricType.getName(),

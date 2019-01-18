@@ -28,8 +28,6 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.Enforcement;
-import org.eclipse.ditto.model.connectivity.MqttSource;
-import org.eclipse.ditto.model.connectivity.MqttTarget;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
@@ -84,9 +82,9 @@ public final class MqttValidator extends AbstractProtocolValidator {
     @Override
     protected void validateSource(final Source source, final DittoHeaders dittoHeaders,
             final Supplier<String> sourceDescription) {
-        if (!(source instanceof MqttSource)) {
+        if (!(source.getQos().isPresent())) {
             final String message =
-                    MessageFormat.format("Source {0} must be of type MqttSource.", sourceDescription.get());
+                    MessageFormat.format("MQTT Source {0} must contain QoS value.", sourceDescription.get());
             throw ConnectionConfigurationInvalidException.newBuilder(message)
                     .dittoHeaders(dittoHeaders)
                     .build();
@@ -97,17 +95,16 @@ public final class MqttValidator extends AbstractProtocolValidator {
                     "sources.").dittoHeaders(dittoHeaders).build();
         }
 
-        final MqttSource mqttSource = (MqttSource) source;
-        validateSourceQoS(mqttSource.getQos(), dittoHeaders, sourceDescription);
-        validateSourceEnforcement(mqttSource.getEnforcement().orElse(null), dittoHeaders, sourceDescription);
+        validateSourceQoS(source.getQos().get(), dittoHeaders, sourceDescription);
+        validateSourceEnforcement(source.getEnforcement().orElse(null), dittoHeaders, sourceDescription);
     }
 
     @Override
     protected void validateTarget(final Target target, final DittoHeaders dittoHeaders,
             final Supplier<String> targetDescription) {
-        if (!(target instanceof MqttTarget)) {
+        if (!(target.getQos().isPresent())) {
             final String message =
-                    MessageFormat.format("Target {0} must be of type MqttTarget.", targetDescription.get());
+                    MessageFormat.format("MQTT Target {0} must contain QoS value.", targetDescription.get());
             throw ConnectionConfigurationInvalidException.newBuilder(message)
                     .dittoHeaders(dittoHeaders)
                     .build();
@@ -118,8 +115,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
                     "targets.").dittoHeaders(dittoHeaders).build();
         }
 
-        final MqttTarget mqttTarget = (MqttTarget) target;
-        validateTargetQoS(mqttTarget.getQos(), dittoHeaders, targetDescription);
+        validateTargetQoS(target.getQos().get(), dittoHeaders, targetDescription);
     }
 
     /**

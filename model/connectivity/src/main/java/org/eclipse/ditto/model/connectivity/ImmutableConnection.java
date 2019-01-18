@@ -152,8 +152,8 @@ final class ImmutableConnection implements Connection {
                 .id(jsonObject.getValueOrThrow(JsonFields.ID))
                 .connectionStatus(getConnectionStatusOrThrow(jsonObject))
                 .uri(jsonObject.getValueOrThrow(JsonFields.URI))
-                .sources(getSources(jsonObject, type))
-                .targets(getTargets(jsonObject, type))
+                .sources(getSources(jsonObject))
+                .targets(getTargets(jsonObject))
                 .name(jsonObject.getValue(JsonFields.NAME).orElse(null))
                 .mappingContext(jsonObject.getValue(JsonFields.MAPPING_CONTEXT)
                         .map(ConnectivityModelFactory::mappingContextFromJson)
@@ -187,7 +187,7 @@ final class ImmutableConnection implements Connection {
                         .build());
     }
 
-    private static List<Source> getSources(final JsonObject jsonObject, final ConnectionType type) {
+    private static List<Source> getSources(final JsonObject jsonObject) {
         final Optional<JsonArray> sourcesArray = jsonObject.getValue(JsonFields.SOURCES);
         if (sourcesArray.isPresent()) {
             final JsonArray values = sourcesArray.get();
@@ -195,7 +195,7 @@ final class ImmutableConnection implements Connection {
                     .mapToObj(index -> values.get(index)
                             .filter(JsonValue::isObject)
                             .map(JsonValue::asObject)
-                            .map(valueAsObject -> ConnectivityModelFactory.sourceFromJson(valueAsObject, index, type)))
+                            .map(valueAsObject -> ConnectivityModelFactory.sourceFromJson(valueAsObject, index)))
                     .filter(Optional::isPresent)
                     .map(Optional::get)
                     .collect(Collectors.toList());
@@ -204,12 +204,12 @@ final class ImmutableConnection implements Connection {
         }
     }
 
-    private static Set<Target> getTargets(final JsonObject jsonObject, final ConnectionType type) {
+    private static Set<Target> getTargets(final JsonObject jsonObject) {
         return jsonObject.getValue(JsonFields.TARGETS)
                 .map(array -> array.stream()
                         .filter(JsonValue::isObject)
                         .map(JsonValue::asObject)
-                        .map(valueAsObject -> ConnectivityModelFactory.targetFromJson(valueAsObject, type))
+                        .map(ConnectivityModelFactory::targetFromJson)
                         .collect(Collectors.toSet()))
                 .orElse(Collections.emptySet());
     }

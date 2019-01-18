@@ -70,6 +70,8 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnectionResponse;
+import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionMetrics;
+import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnection;
@@ -341,6 +343,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
                 .match(OpenConnection.class, this::openConnection)
                 .match(CloseConnection.class, this::closeConnection)
                 .match(DeleteConnection.class, this::deleteConnection)
+                .match(ResetConnectionMetrics.class, this::resetConnectionMetrics)
                 .match(RetrieveConnection.class, this::retrieveConnection)
                 .match(RetrieveConnectionStatus.class, this::retrieveConnectionStatus)
                 .match(RetrieveConnectionMetrics.class, this::retrieveConnectionMetrics)
@@ -636,6 +639,14 @@ public final class ConnectionActor extends AbstractPersistentActor {
             origin.tell(DeleteConnectionResponse.of(connectionId, command.getDittoHeaders()), self);
             stopSelf();
         });
+    }
+
+    private void resetConnectionMetrics(final ResetConnectionMetrics command) {
+        if (clientActorRouter != null) {
+            // forward command to all client actors with no sender
+            clientActorRouter.tell(new Broadcast(command), ActorRef.noSender());
+        }
+        getSender().tell(ResetConnectionMetricsResponse.of(connectionId, command.getDittoHeaders()), getSelf());
     }
 
     /*

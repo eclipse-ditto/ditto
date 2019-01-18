@@ -14,7 +14,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newMqttTarget;
+import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 import static org.mockito.Mockito.when;
@@ -41,7 +41,6 @@ import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedE
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
-import org.eclipse.ditto.model.connectivity.MqttSource;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
@@ -87,11 +86,11 @@ public class MqttClientActorTest {
 
     private static final Status.Success CONNECTED_SUCCESS = new Status.Success(BaseClientState.CONNECTED);
     private static final Status.Success DISCONNECTED_SUCCESS = new Status.Success(BaseClientState.DISCONNECTED);
-    private static final Target TARGET = newMqttTarget("target", AUTHORIZATION_CONTEXT, 1, Topic.TWIN_EVENTS);
+    private static final Target TARGET = newTarget("target", AUTHORIZATION_CONTEXT, null, 1, Topic.TWIN_EVENTS);
     private static final Source SOURCE = newMqttSource(1, 1, "foo");
     private static final String SOURCE_ADDRESS = "source";
-    private static final MqttSource MQTT_SOURCE = ConnectivityModelFactory
-            .newMqttSourceBuilder()
+    private static final Source MQTT_SOURCE = ConnectivityModelFactory
+            .newSourceBuilder()
             .authorizationContext(AUTHORIZATION_CONTEXT)
             .index(1)
             .consumerCount(1)
@@ -153,7 +152,7 @@ public class MqttClientActorTest {
 
     @Test
     public void testConsumeFromTopicWithIdEnforcement() {
-        final MqttSource mqttSource = newFilteredMqttSource(
+        final Source mqttSource = newFilteredMqttSource(
                 "eclipse/{{ thing:namespace }}/{{ thing:name }}",
                 "eclipse/+/+");
         final Connection connectionWithEnforcement =
@@ -170,7 +169,7 @@ public class MqttClientActorTest {
     public void testConsumeFromTopicWithIdEnforcementExpectErrorResponse() {
         disableLogging(actorSystem);
 
-        final MqttSource mqttSource = newFilteredMqttSource(
+        final Source mqttSource = newFilteredMqttSource(
                 "eclipse/{{ thing:namespace }}/{{ thing:name }}", // enforcement filter
                 "eclipse/+/+" // subscribed topic
         );
@@ -276,17 +275,19 @@ public class MqttClientActorTest {
         }};
     }
 
-    private static MqttSource newMqttSource(final int consumerCount, final int index, final String... sources) {
+    private static Source newMqttSource(final int consumerCount, final int index, final String... sources) {
         return ConnectivityModelFactory
-                .newMqttSourceBuilder()
+                .newSourceBuilder()
                 .authorizationContext(AUTHORIZATION_CONTEXT)
                 .index(index)
                 .consumerCount(consumerCount)
-                .addresses(TestConstants.asSet(sources)).qos(1).build();
+                .addresses(TestConstants.asSet(sources))
+                .qos(1)
+                .build();
     }
 
-    private static MqttSource newFilteredMqttSource(final String filter, final String... sources) {
-        return ConnectivityModelFactory.newMqttSourceBuilder()
+    private static Source newFilteredMqttSource(final String filter, final String... sources) {
+        return ConnectivityModelFactory.newSourceBuilder()
                 .authorizationContext(AUTHORIZATION_CONTEXT)
                 .index(1)
                 .consumerCount(1)
@@ -358,7 +359,7 @@ public class MqttClientActorTest {
     public void testRetrieveConnectionMetrics() {
         new TestKit(actorSystem) {
             {
-                final MqttSource mqttSource = ConnectivityModelFactory.newMqttSourceBuilder()
+                final Source mqttSource = ConnectivityModelFactory.newSourceBuilder()
                         .authorizationContext(AUTHORIZATION_CONTEXT)
                         .index(2)
                         .consumerCount(1)

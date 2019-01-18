@@ -27,7 +27,6 @@ import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidExcept
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
-import org.eclipse.ditto.model.connectivity.MqttSource;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
@@ -98,15 +97,15 @@ public final class MqttValidatorTest {
 
     @Test
     public void testInvalidSourceTopicFilters() {
-        final MqttSource mqttSourceWithValidFilter =
-                ConnectivityModelFactory.newMqttSourceBuilder()
+        final Source mqttSourceWithValidFilter =
+                ConnectivityModelFactory.newSourceBuilder()
                         .authorizationContext(AUTHORIZATION_CONTEXT)
                         .enforcement(newSourceAddressEnforcement("things/+/{{ thing:id }}/#"))
                         .address("#")
                         .qos(1)
                         .build();
-        final MqttSource mqttSourceWithInvalidFilter =
-                ConnectivityModelFactory.newMqttSourceBuilder()
+        final Source mqttSourceWithInvalidFilter =
+                ConnectivityModelFactory.newSourceBuilder()
                         .authorizationContext(AUTHORIZATION_CONTEXT)
                         .enforcement(newSourceAddressEnforcement("things/#/{{ thing:id }}/+"))
                         .address("#")
@@ -119,8 +118,8 @@ public final class MqttValidatorTest {
     @Test
     public void testInvalidEnforcementOrigin() {
 
-        final MqttSource mqttSourceWithInvalidFilter =
-                ConnectivityModelFactory.newMqttSourceBuilder()
+        final Source mqttSourceWithInvalidFilter =
+                ConnectivityModelFactory.newSourceBuilder()
                         .authorizationContext(AUTHORIZATION_CONTEXT)
                         .enforcement(newEnforcement("{{ header:device_id }}", "things/{{ thing:id }}/+"))
                         .address("#")
@@ -139,8 +138,8 @@ public final class MqttValidatorTest {
     }
 
     private Connection connectionWithSource(final String source) {
-        final MqttSource mqttSource =
-                ConnectivityModelFactory.newMqttSourceBuilder()
+        final Source mqttSource =
+                ConnectivityModelFactory.newSourceBuilder()
                         .authorizationContext(AUTHORIZATION_CONTEXT)
                         .enforcement(ConnectivityModelFactory.newSourceAddressEnforcement(
                                 TestConstants.asSet("things/{{ thing:id }}")))
@@ -158,7 +157,7 @@ public final class MqttValidatorTest {
         return ConnectivityModelFactory.newConnectionBuilder("mqtt", ConnectionType.MQTT,
                 ConnectivityStatus.OPEN, "tcp://localhost:1883")
                 .targets(singleton(
-                        ConnectivityModelFactory.newMqttTarget(target, AUTHORIZATION_CONTEXT, 1, Topic.LIVE_EVENTS)))
+                        ConnectivityModelFactory.newTarget(target, AUTHORIZATION_CONTEXT, null, 1, Topic.LIVE_EVENTS)))
                 .build();
     }
 

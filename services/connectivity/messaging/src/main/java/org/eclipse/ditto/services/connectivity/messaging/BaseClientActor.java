@@ -67,6 +67,7 @@ import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSign
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
+import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionMetrics;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
@@ -227,6 +228,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inAnyState() {
         return matchEvent(RetrieveConnectionMetrics.class, BaseClientData.class, this::retrieveConnectionMetrics)
                 .event(RetrieveConnectionStatus.class, BaseClientData.class, this::retrieveConnectionStatus)
+                .event(ResetConnectionMetrics.class, BaseClientData.class, this::resetConnectionMetrics)
                 .event(OutboundSignal.WithExternalMessage.class, BaseClientData.class, (outboundSignal, data) -> {
                     handleExternalMessage(outboundSignal);
                     return stay();
@@ -325,10 +327,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * @param actor the ActorRef
      */
     protected final void stopChildActor(final ActorRef actor) {
-        if (actor != null) {
-            log.debug("Stopping child actor <{}>.", actor.path());
-            getContext().stop(actor);
-        }
+        log.debug("Stopping child actor <{}>.", actor.path());
+        getContext().stop(actor);
     }
 
     /**
@@ -689,7 +689,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         LogUtil.enhanceLogWithCorrelationId(log, command);
         log.debug("Received RetrieveConnectionMetrics message, gathering metrics.");
         final DittoHeaders dittoHeaders = command.getDittoHeaders().toBuilder()
-                .source(org.eclipse.ditto.services.utils.config.ConfigUtil.instanceIdentifier())
+                .source(ConfigUtil.instanceIdentifier())
                 .build();
 
         final SourceMetrics sourceMetrics = ConnectivityCounterRegistry.aggregateSourceMetrics(connectionId());
@@ -698,6 +698,17 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         this.getSender().tell(
                 RetrieveConnectionMetricsResponse.of(connectionId(), sourceMetrics, targetMetrics, dittoHeaders),
                 this.getSelf());
+        return stay();
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> resetConnectionMetrics(
+            final ResetConnectionMetrics command,
+            final BaseClientData data) {
+
+        LogUtil.enhanceLogWithCorrelationId(log, command);
+        log.debug("Received ResetConnectionMetrics message, resetting metrics.");
+        ConnectivityCounterRegistry.resetCountersForConnection(data.getConnection());
+
         return stay();
     }
 
@@ -772,16 +783,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         getPublisherActor().ifPresent(publisher -> publisher.forward(mappedOutboundSignal, getContext()));
     }
 
-    private ConnectivityStatus getCurrentConnectionStatus() {
-        return stateData().getConnectionStatus();
-    }
-
     private Instant getInConnectionStatusSince() {
         return stateData().getInConnectionStatusSince();
-    }
-
-    private Optional<String> getCurrentConnectionStatusDetails() {
-        return stateData().getConnectionStatusDetails();
     }
 
     private CompletionStage<Status.Status> testMessageMappingProcessor(@Nullable final MappingContext mappingContext) {

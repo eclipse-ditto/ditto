@@ -66,15 +66,15 @@ public class SignalFilterTest {
         final Set<String> readSubjects = asSet("authorized", "ditto");
 
         final Target twin_authd =
-                newTarget("twin/authorized", newAuthContext(AUTHORIZED, DUMMY), HEADER_MAPPING, TWIN_EVENTS, LIVE_MESSAGES);
+                newTarget("twin/authorized", newAuthContext(AUTHORIZED, DUMMY), HEADER_MAPPING, null, TWIN_EVENTS, LIVE_MESSAGES);
         final Target twin_unauthd =
-                newTarget("twin/unauthorized", newAuthContext(DUMMY, UNAUTHORIZED), HEADER_MAPPING, TWIN_EVENTS, LIVE_MESSAGES);
+                newTarget("twin/unauthorized", newAuthContext(DUMMY, UNAUTHORIZED), HEADER_MAPPING, null, TWIN_EVENTS, LIVE_MESSAGES);
         final Target live_authd =
-                newTarget("live/authorized", newAuthContext(DUMMY, AUTHORIZED), HEADER_MAPPING, LIVE_EVENTS, LIVE_MESSAGES);
+                newTarget("live/authorized", newAuthContext(DUMMY, AUTHORIZED), HEADER_MAPPING, null, LIVE_EVENTS, LIVE_MESSAGES);
         final Target live_unauthd =
-                newTarget("live/unauthorized", newAuthContext(UNAUTHORIZED, DUMMY), HEADER_MAPPING, LIVE_EVENTS, LIVE_MESSAGES);
+                newTarget("live/unauthorized", newAuthContext(UNAUTHORIZED, DUMMY), HEADER_MAPPING, null, LIVE_EVENTS, LIVE_MESSAGES);
         final Target emptyContext =
-                newTarget("live/unauthorized", newAuthContext(UNAUTHORIZED), HEADER_MAPPING, LIVE_EVENTS, LIVE_MESSAGES, TWIN_EVENTS,
+                newTarget("live/unauthorized", newAuthContext(UNAUTHORIZED), HEADER_MAPPING, null, LIVE_EVENTS, LIVE_MESSAGES, TWIN_EVENTS,
                         LIVE_COMMANDS);
 
         final Collection<Object[]> params = new ArrayList<>();

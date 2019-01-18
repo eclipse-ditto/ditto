@@ -72,7 +72,7 @@ public class JsonExamplesProducer {
     private static final HeaderMapping HEADER_MAPPING = null;
     private static final Set<Target> TARGETS = new HashSet<>(
             Collections.singletonList(
-                    ConnectivityModelFactory.newTarget("eventQueue", AUTHORIZATION_CONTEXT, HEADER_MAPPING, Topic.TWIN_EVENTS)));
+                    ConnectivityModelFactory.newTarget("eventQueue", AUTHORIZATION_CONTEXT, HEADER_MAPPING, null, Topic.TWIN_EVENTS)));
 
     private static final MappingContext MAPPING_CONTEXT = ConnectivityModelFactory.newMappingContext(
             "JavaScript",

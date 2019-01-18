@@ -34,8 +34,8 @@ import org.eclipse.ditto.signals.commands.messages.MessageErrorRegistry;
 import org.eclipse.ditto.signals.events.connectivity.ConnectivityEventRegistry;
 
 /**
- * {@link org.eclipse.ditto.services.utils.cluster.MappingStrategy} for the Connectivity service containing all {@link
- * org.eclipse.ditto.model.base.json.Jsonifiable} types known to this service.
+ * {@link MappingStrategy} for the Connectivity service containing all
+ * {@link org.eclipse.ditto.model.base.json.Jsonifiable} types known to this service.
  */
 public final class ConnectivityMappingStrategy implements MappingStrategy {
 
@@ -66,13 +66,17 @@ public final class ConnectivityMappingStrategy implements MappingStrategy {
                 .add(ConnectivityCommandResponseRegistry.newInstance())
                 .add(ConnectivityEventRegistry.newInstance())
                 .add(ConnectivityErrorRegistry.newInstance())
-                .add(Connection.class, (jsonObject) ->
+                .add(Connection.class, jsonObject ->
                         ConnectivityModelFactory.connectionFromJson(jsonObject)) // do not replace with lambda!
-                .add("ImmutableConnection", (jsonObject) ->
+                .add("ImmutableConnection", jsonObject ->
                         ConnectivityModelFactory.connectionFromJson(jsonObject)) // do not replace with lambda!
-                .add(ResourceStatus.class, (jsonObject) ->
+                .add(OutboundSignal.class, jsonObject ->
+                        OutboundSignalFactory.outboundSignalFromJson(jsonObject, this)) // do not replace with lambda!
+                .add("UnmappedOutboundSignal", jsonObject ->
+                        OutboundSignalFactory.outboundSignalFromJson(jsonObject, this)) // do not replace with lambda!
+                .add(ResourceStatus.class, jsonObject ->
                         ConnectivityModelFactory.resourceStatusFromJson(jsonObject)) // do not replace with lambda!
-                .add("ImmutableResourceStatus", (jsonObject) ->
+                .add("ImmutableResourceStatus", jsonObject ->
                         ConnectivityModelFactory.resourceStatusFromJson(jsonObject)) // do not replace with lambda!
         ;
 

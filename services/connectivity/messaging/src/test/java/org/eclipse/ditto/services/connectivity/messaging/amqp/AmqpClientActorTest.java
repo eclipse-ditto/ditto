@@ -225,16 +225,12 @@ public class AmqpClientActorTest extends WithMockServers {
 
             amqpClientActor.tell(RetrieveConnectionStatus.of(connectionId, DittoHeaders.empty()), aggregator.ref());
             final ResourceStatus resourceStatus1 = aggregator.expectMsgClass(ResourceStatus.class);
-            System.out.println(resourceStatus1); // TODO remove
-
-
 
             amqpClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
 
             amqpClientActor.tell(RetrieveConnectionStatus.of(connectionId, DittoHeaders.empty()), aggregator.ref());
             final ResourceStatus resourceStatus2 = aggregator.expectMsgClass(ResourceStatus.class);
-            System.out.println(resourceStatus2); // TODO remove
         }};
     }
 
@@ -544,7 +540,7 @@ public class AmqpClientActorTest extends WithMockServers {
             final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(singletonList(""));
             final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(thingModifiedEvent,
                     singleton(ConnectivityModelFactory.newTarget("target", Authorization.AUTHORIZATION_CONTEXT, null,
-                            Topic.TWIN_EVENTS)));
+                            null, Topic.TWIN_EVENTS)));
 
             amqpClientActor.tell(outboundSignal, getRef());
 

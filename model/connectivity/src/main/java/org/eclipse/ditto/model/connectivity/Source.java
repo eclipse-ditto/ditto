@@ -55,6 +55,11 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
     int getIndex();
 
     /**
+     * @return the optional qos value of this source - only applicable for certain {@link ConnectionType}s.
+     */
+    Optional<Integer> getQos();
+
+    /**
      * @return the enforcement options that should be applied to this source
      */
     Optional<Enforcement> getEnforcement();
@@ -108,6 +113,13 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
          */
         public static final JsonFieldDefinition<Integer> CONSUMER_COUNT =
                 JsonFactory.newIntFieldDefinition("consumerCount", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code Source} qos.
+         */
+        public static final JsonFieldDefinition<Integer> QOS =
+                JsonFactory.newIntFieldDefinition("qos", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**

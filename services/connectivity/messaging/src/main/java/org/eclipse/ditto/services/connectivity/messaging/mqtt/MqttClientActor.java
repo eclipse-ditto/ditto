@@ -217,13 +217,10 @@ public final class MqttClientActor extends BaseClientActor {
             return;
         }
 
-        if (!(source instanceof org.eclipse.ditto.model.connectivity.MqttSource)) {
-            log.warning("Source is not an MqttSource: {}", source);
+        if (!(source.getQos().isPresent())) {
+            log.warning("Source does not include required QoS for MQTT: {}", source);
             return;
         }
-
-        final org.eclipse.ditto.model.connectivity.MqttSource mqttSource =
-                (org.eclipse.ditto.model.connectivity.MqttSource) source;
 
         for (int i = 0; i < source.getConsumerCount(); i++) {
 
@@ -245,7 +242,7 @@ public final class MqttClientActor extends BaseClientActor {
 
         // failover implemented by factory
         final akka.stream.javadsl.Source<MqttMessage, CompletionStage<Done>> mqttStreamSource =
-                factory.newSource(mqttSource, sourceBufferSize);
+                factory.newSource(source, sourceBufferSize);
 
         final Graph<SinkShape<MqttMessage>, NotUsed> consumerLoadBalancer =
                 createConsumerLoadBalancer(consumerByActorNameWithIndex.values());

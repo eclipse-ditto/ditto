@@ -100,7 +100,7 @@ public class RabbitMQClientActorTest {
         final Connection connection = ConnectivityModelFactory.newConnectionBuilder("ditto", ConnectionType.AMQP_091,
                 ConnectivityStatus.OPEN, TestConstants.getUriOfNewMockServer())
                 .targets(Collections.singleton(ConnectivityModelFactory.newTarget("exchangeOnly",
-                        TestConstants.Authorization.AUTHORIZATION_CONTEXT, null, Topic.TWIN_EVENTS)))
+                        TestConstants.Authorization.AUTHORIZATION_CONTEXT, null, null, Topic.TWIN_EVENTS)))
                 .build();
 
         final ThrowableAssert.ThrowingCallable props1 =

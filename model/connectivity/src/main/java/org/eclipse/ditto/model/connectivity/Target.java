@@ -57,6 +57,11 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
     Set<FilteredTopic> getTopics();
 
     /**
+     * @return the optional qos value of this target - only applicable for certain {@link ConnectionType}s.
+     */
+    Optional<Integer> getQos();
+
+    /**
      * Returns the Authorization Context of this {@code Target}. If an authorization context is set on a {@link Target}
      * it overrides the authorization context set on the enclosing {@link Connection}.
      *
@@ -113,6 +118,13 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
          */
         public static final JsonFieldDefinition<JsonArray> TOPICS =
                 JsonFactory.newJsonArrayFieldDefinition("topics", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code Target} qos.
+         */
+        public static final JsonFieldDefinition<Integer> QOS =
+                JsonFactory.newIntFieldDefinition("qos", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**

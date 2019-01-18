@@ -57,14 +57,14 @@ public final class ImmutableConnectionTest {
     private static final List<Source> SOURCES = Arrays.asList(SOURCE1, SOURCE2);
     private static final HeaderMapping HEADER_MAPPING = null;
     private static final Target TARGET1 =
-            ConnectivityModelFactory.newTarget("amqp/target1", AUTHORIZATION_CONTEXT, HEADER_MAPPING, Topic.TWIN_EVENTS,
+            ConnectivityModelFactory.newTarget("amqp/target1", AUTHORIZATION_CONTEXT, HEADER_MAPPING, null, Topic.TWIN_EVENTS,
                     Topic.LIVE_EVENTS);
     private static final Target TARGET2 =
-            ConnectivityModelFactory.newTarget("amqp/target2", AUTHORIZATION_CONTEXT, HEADER_MAPPING, Topic.LIVE_MESSAGES,
+            ConnectivityModelFactory.newTarget("amqp/target2", AUTHORIZATION_CONTEXT, HEADER_MAPPING, null, Topic.LIVE_MESSAGES,
                     Topic.LIVE_MESSAGES,
                     Topic.LIVE_EVENTS);
     private static final Target TARGET3 =
-            ConnectivityModelFactory.newTarget("amqp/target3", AUTHORIZATION_CONTEXT, HEADER_MAPPING, Topic.LIVE_MESSAGES,
+            ConnectivityModelFactory.newTarget("amqp/target3", AUTHORIZATION_CONTEXT, HEADER_MAPPING, null, Topic.LIVE_MESSAGES,
                     Topic.LIVE_MESSAGES, Topic.LIVE_COMMANDS);
     private static final Set<Target> TARGETS = new HashSet<>(Arrays.asList(TARGET1, TARGET2, TARGET3));
 

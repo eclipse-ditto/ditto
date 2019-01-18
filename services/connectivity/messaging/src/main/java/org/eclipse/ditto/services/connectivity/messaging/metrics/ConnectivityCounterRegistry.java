@@ -39,8 +39,8 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
 
 /**
- * This registry holds counters for the connectivity service. The counters are identified by the connection id, a
- * {@link MetricType}, a {@link MetricDirection} and an address.
+ * This registry holds counters for the connectivity service. The counters are identified by the connection id, a {@link
+ * MetricType}, a {@link MetricDirection} and an address.
  */
 public final class ConnectivityCounterRegistry {
 
@@ -52,6 +52,10 @@ public final class ConnectivityCounterRegistry {
     private static final String RESPONSES_ADDRESS = "_responses";
 
     private static final Clock CLOCK_UTC = Clock.systemUTC();
+
+    private ConnectivityCounterRegistry() {
+        throw new AssertionError();
+    }
 
     /**
      * Initializes the global {@code counters} Map with the address information of the passed {@code connection}.
@@ -65,18 +69,41 @@ public final class ConnectivityCounterRegistry {
                 .map(Source::getAddresses)
                 .forEach(addresses -> addresses
                         .forEach(address ->
-                                initCounter(connectionId, MetricDirection.INBOUND, address)));
+                                initCounter(connectionId, MetricDirection.INBOUND, address, false)));
         connection.getTargets().stream()
                 .map(Target::getAddress)
                 .forEach(address ->
-                        initCounter(connectionId, MetricDirection.OUTBOUND, address));
+                        initCounter(connectionId, MetricDirection.OUTBOUND, address, false));
     }
 
-    private static void initCounter(final String connectionId, final MetricDirection metricDirection, final String address) {
+    /**
+     * Resets the metric of the passed {@code connection} in the global {@code counters} Map + initializes it again.
+     *
+     * @param connection the connection to initialize the global counters map with.
+     */
+    public static void resetCountersForConnection(final Connection connection) {
+
+        final String connectionId = connection.getId();
+        connection.getSources().stream()
+                .map(Source::getAddresses)
+                .forEach(addresses -> addresses
+                        .forEach(address ->
+                                initCounter(connectionId, MetricDirection.INBOUND, address, true)));
+        connection.getTargets().stream()
+                .map(Target::getAddress)
+                .forEach(address ->
+                        initCounter(connectionId, MetricDirection.OUTBOUND, address, true));
+    }
+
+    private static void initCounter(final String connectionId, final MetricDirection metricDirection,
+            final String address, final boolean reset) {
         Arrays.stream(MetricType.values())
                 .filter(metricType -> metricType.getPossibleMetricDirections().contains(metricDirection))
                 .forEach(metricType -> {
                     final String key = new MapKey(connectionId, metricType, metricDirection, address).toString();
+                    if (reset) {
+                        counters.remove(key);
+                    }
                     counters.computeIfAbsent(key, m -> {
                         final SlidingWindowCounter counter = new SlidingWindowCounter(CLOCK_UTC, DEFAULT_WINDOWS);
                         return new ConnectionMetricsCollector(metricDirection, address, metricType, counter);
@@ -253,7 +280,8 @@ public final class ConnectivityCounterRegistry {
                 .map(Map.Entry::getValue);
     }
 
-    private static Map<String, AddressMetric> aggregateMetrics(final String connectionId, final MetricDirection metricDirection) {
+    private static Map<String, AddressMetric> aggregateMetrics(final String connectionId,
+            final MetricDirection metricDirection) {
         final Map<String, AddressMetric> addressMetrics = new HashMap<>();
         streamFor(connectionId, metricDirection)
                 .forEach(swc -> addressMetrics.compute(swc.getAddress(),

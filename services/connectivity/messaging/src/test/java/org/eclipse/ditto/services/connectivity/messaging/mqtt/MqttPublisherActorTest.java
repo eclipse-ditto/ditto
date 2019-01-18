@@ -32,6 +32,7 @@ import akka.testkit.TestProbe;
 
 public class MqttPublisherActorTest extends AbstractPublisherActorTest<JmsMessage> {
 
+    public static final String OUTBOUND_ADDRESS = "mqtt/eclipse/ditto";
     private TestProbe probe;
     private MqttConnectionFactory mqttConnectionFactory;
     private List<MqttMessage> received = new LinkedList<>();
@@ -55,7 +56,7 @@ public class MqttPublisherActorTest extends AbstractPublisherActorTest<JmsMessag
 
     @Override
     protected Target decorateTarget(final Target target) {
-        return ConnectivityModelFactory.newMqttTarget(target, 0);
+        return ConnectivityModelFactory.newTarget(target, OUTBOUND_ADDRESS, 0);
     }
 
     @Override
@@ -69,7 +70,7 @@ public class MqttPublisherActorTest extends AbstractPublisherActorTest<JmsMessag
     }
 
     protected String getOutboundAddress() {
-        return "mqtt/eclipse/ditto";
+        return OUTBOUND_ADDRESS;
     }
 
 }

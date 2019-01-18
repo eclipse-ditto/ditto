@@ -68,6 +68,33 @@ public final class ImmutableSourceTest {
             .set(Source.JsonFields.AUTHORIZATION_CONTEXT, JsonFactory.newArrayBuilder().add("eclipse", "ditto").build())
             .build();
 
+    private static final String MQTT_SOURCE1 = "mqtt/source1";
+    private static final String MQTT_FILTER = "topic/{{ thing.id }}";
+
+    private static final Enforcement enforcement = ConnectivityModelFactory.newEnforcement("{{ topic }}", MQTT_FILTER);
+
+    private static final Source MQTT_SOURCE = ConnectivityModelFactory
+            .newSourceBuilder()
+            .authorizationContext(ctx)
+            .address(MQTT_SOURCE1)
+            .enforcement(enforcement)
+            .consumerCount(2)
+            .index(0)
+            .qos(1)
+            .build();
+
+    private static final JsonObject MQTT_SOURCE_JSON = JsonObject
+            .newBuilder()
+            .set(Source.JsonFields.ADDRESSES, JsonFactory.newArrayBuilder().add(MQTT_SOURCE1).build())
+            .set(Source.JsonFields.CONSUMER_COUNT, 2)
+            .set(Source.JsonFields.QOS, 1)
+            .set(Source.JsonFields.AUTHORIZATION_CONTEXT, JsonFactory.newArrayBuilder().add("eclipse", "ditto").build())
+            .set(Source.JsonFields.ENFORCEMENT, JsonFactory.newObjectBuilder()
+                    .set(Enforcement.JsonFields.INPUT, "{{ topic }}")
+                    .set(Enforcement.JsonFields.FILTERS, JsonFactory.newArrayBuilder().add(MQTT_FILTER).build())
+                    .build())
+            .build();
+
 
     @Test
     public void testHashCodeAndEquals() {
@@ -92,6 +119,18 @@ public final class ImmutableSourceTest {
     public void fromJsonReturnsExpected() {
         final Source actual = ImmutableSource.fromJson(SOURCE_JSON_WITH_AUTH_CONTEXT, 0);
         assertThat(actual).isEqualTo(SOURCE_WITH_AUTH_CONTEXT);
+    }
+
+    @Test
+    public void mqttToJsonReturnsExpected() {
+        final JsonObject actual = MQTT_SOURCE.toJson();
+        assertThat(actual).isEqualTo(MQTT_SOURCE_JSON);
+    }
+
+    @Test
+    public void mqttFromJsonReturnsExpected() {
+        final Source actual = ImmutableSource.fromJson(MQTT_SOURCE_JSON, 0);
+        assertThat(actual).isEqualTo(MQTT_SOURCE);
     }
 
 }

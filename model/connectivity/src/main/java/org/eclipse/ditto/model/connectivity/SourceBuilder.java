@@ -56,6 +56,14 @@ public interface SourceBuilder<T extends SourceBuilder> {
     T index(int index);
 
     /**
+     * Sets the qos of the source inside a connection.
+     *
+     * @param qos the qos
+     * @return this builder
+     */
+    T qos(@Nullable Integer qos);
+
+    /**
      * Sets the {@link AuthorizationContext}.
      *
      * @param authorizationContext the authorization context

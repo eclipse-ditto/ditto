@@ -49,6 +49,9 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
 
     static final String ACTOR_NAME = "mqttPublisher";
 
+    // for target the default is qos=0 because we have qos=0 all over the akka cluster
+    private static final int DEFAULT_TARGET_QOS = 0;
+
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final ActorRef sourceActor;
@@ -130,7 +133,7 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
         if (target == null) {
             targetQoS = MqttQoS.atMostOnce();
         } else {
-            final int qos = ((org.eclipse.ditto.model.connectivity.MqttTarget) target).getQos();
+            final int qos = target.getQos().orElse(DEFAULT_TARGET_QOS);
             targetQoS = MqttValidator.getQoS(qos);
         }
         publishMessage(publishTarget, targetQoS, message, publishedCounter);

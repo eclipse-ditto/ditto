@@ -105,7 +105,7 @@ public class ConnectionValidatorTest {
                         .targets(Collections.singleton(
                                 ConnectivityModelFactory.newTarget("",
                                         Authorization.AUTHORIZATION_CONTEXT,
-                                        null,
+                                        null, null,
                                         Topic.LIVE_MESSAGES)))
                         .build();
 

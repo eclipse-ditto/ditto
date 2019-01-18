@@ -384,15 +384,6 @@ public final class ConnectivityModelFactory {
     }
 
     /**
-     * Creates a new {@link MqttSourceBuilder} for building {@link MqttSource}s.
-     *
-     * @return new {@link MqttSource} builder
-     */
-    public static MqttSourceBuilder newMqttSourceBuilder() {
-        return new ImmutableMqttSource.Builder();
-    }
-
-    /**
      * Creates a new {@link Source}.
      *
      * @param authorizationContext the authorization context
@@ -430,12 +421,14 @@ public final class ConnectivityModelFactory {
      *
      * @param target the target
      * @param address the address where the signals will be published
+     * @param qos the qos of the new Target (e.g. for MQTT targets)
      * @return the created {@link Target}
      */
-    public static Target newTarget(final Target target, final String address) {
+    public static Target newTarget(final Target target, final String address, @Nullable final Integer qos) {
         return newTarget(address, target.getOriginalAddress(),
                 target.getAuthorizationContext(),
                 target.getHeaderMapping().orElse(null),
+                qos,
                 target.getTopics());
     }
 
@@ -446,13 +439,15 @@ public final class ConnectivityModelFactory {
      * @param authorizationContext the authorization context of the new {@link Target}
      * @param headerMapping the {@link HeaderMapping} of the new Target
      * @param topics the FilteredTopics for which this target will receive signals
+     * @param qos the qos of the new Target (e.g. for MQTT targets)
      * @return the created {@link Target}
      */
     public static Target newTarget(final String address, final AuthorizationContext authorizationContext,
-            @Nullable final HeaderMapping headerMapping, final Set<FilteredTopic> topics) {
+            @Nullable final HeaderMapping headerMapping, @Nullable final Integer qos, final Set<FilteredTopic> topics) {
         return new ImmutableTarget.Builder()
                 .address(address)
                 .originalAddress(address) // addresses are the same before placeholders are resolved
+                .qos(qos)
                 .authorizationContext(authorizationContext)
                 .topics(topics)
                 .headerMapping(headerMapping)
@@ -466,15 +461,17 @@ public final class ConnectivityModelFactory {
      * @param originalAddress address the address before placeholders were resolved
      * @param authorizationContext the authorization context of the new {@link Target}
      * @param headerMapping the {@link HeaderMapping} of the new Target
+     * @param qos the qos of the new Target (e.g. for MQTT targets)
      * @param topics the FilteredTopics for which this target will receive signals
      * @return the created {@link Target}
      */
     public static Target newTarget(final String address, final String originalAddress,
             final AuthorizationContext authorizationContext,
-            @Nullable final HeaderMapping headerMapping, final Set<FilteredTopic> topics) {
+            @Nullable final HeaderMapping headerMapping, @Nullable final Integer qos, final Set<FilteredTopic> topics) {
         return new ImmutableTarget.Builder()
                 .address(address)
                 .originalAddress(originalAddress) // addresses are the same before placeholders are resolved
+                .qos(qos)
                 .authorizationContext(authorizationContext)
                 .topics(topics)
                 .headerMapping(headerMapping)
@@ -487,16 +484,17 @@ public final class ConnectivityModelFactory {
      * @param address the address where the signals will be published
      * @param authorizationContext the authorization context of the new {@link Target}
      * @param headerMapping the {@link HeaderMapping} of the new Target
+     * @param qos the qos of the new Target (e.g. for MQTT targets)
      * @param requiredTopic the required FilteredTopic that should be published via this target
      * @param additionalTopics additional set of FilteredTopics that should be published via this target
      * @return the created {@link Target}
      */
     public static Target newTarget(final String address, final AuthorizationContext authorizationContext,
-            @Nullable final HeaderMapping headerMapping, final FilteredTopic requiredTopic,
+            @Nullable final HeaderMapping headerMapping, @Nullable final Integer qos, final FilteredTopic requiredTopic,
             final FilteredTopic... additionalTopics) {
         final HashSet<FilteredTopic> topics = new HashSet<>(Collections.singletonList(requiredTopic));
         topics.addAll(Arrays.asList(additionalTopics));
-        return newTarget(address, authorizationContext, headerMapping, topics);
+        return newTarget(address, authorizationContext, headerMapping, qos, topics);
     }
 
     /**
@@ -505,52 +503,20 @@ public final class ConnectivityModelFactory {
      * @param address the address where the signals will be published
      * @param authorizationContext the authorization context of the new {@link Target}
      * @param headerMapping the {@link HeaderMapping} of the new Target
+     * @param qos the qos of the new Target (e.g. for MQTT targets)
      * @param requiredTopic the required topic that should be published via this target
      * @param additionalTopics additional set of topics that should be published via this target
      * @return the created {@link Target}
      */
     public static Target newTarget(final String address, final AuthorizationContext authorizationContext,
-            @Nullable final HeaderMapping headerMapping, final Topic requiredTopic, final Topic... additionalTopics) {
+            @Nullable final HeaderMapping headerMapping, @Nullable final Integer qos,
+            final Topic requiredTopic, final Topic... additionalTopics) {
         final HashSet<Topic> topics = new HashSet<>(Collections.singletonList(requiredTopic));
         topics.addAll(Arrays.asList(additionalTopics));
-        return newTarget(address, authorizationContext, headerMapping, topics.stream()
+        return newTarget(address, authorizationContext, headerMapping, qos, topics.stream()
                 .map(ConnectivityModelFactory::newFilteredTopic)
                 .collect(Collectors.toSet())
         );
-    }
-
-    /**
-     * Creates a new {@link MqttTarget} with MQTT specific configuration.
-     *
-     * @param address the address where the signals will be published
-     * @param authorizationContext the authorization context of the new {@link Target}
-     * @param qos the target qos value
-     * @param requiredTopic the required topic that should be published via this target
-     * @param additionalTopics additional set of topics that should be published via this target
-     * @return the created {@link Target}
-     */
-    public static MqttTarget newMqttTarget(final String address,
-            final AuthorizationContext authorizationContext,
-            final int qos,
-            final Topic requiredTopic,
-            final Topic... additionalTopics) {
-        final HashSet<Topic> topics = new HashSet<>(Collections.singletonList(requiredTopic));
-        topics.addAll(Arrays.asList(additionalTopics));
-        final Target target = newTarget(address, authorizationContext, null, topics.stream()
-                .map(ConnectivityModelFactory::newFilteredTopic)
-                .collect(Collectors.toSet()));
-        return new ImmutableMqttTarget(target, qos);
-    }
-
-    /**
-     * Creates a new {@link MqttTarget} with MQTT specific configuration.
-     *
-     * @param target the delegate target
-     * @param qos the target qos value
-     * @return the created {@link Target}
-     */
-    public static MqttTarget newMqttTarget(final Target target, final int qos) {
-        return new ImmutableMqttTarget(target, qos);
     }
 
     /**
@@ -559,23 +525,12 @@ public final class ConnectivityModelFactory {
      *
      * @param jsonObject a JSON object which provides the data for the Source to be created.
      * @param index the index to distinguish between sources that would otherwise be different
-     * @param type the connection type required to decide which iplementation of {@link Source} to choose
      * @return a new Source which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
-    public static Source sourceFromJson(final JsonObject jsonObject, final int index, final ConnectionType type) {
-        switch (type) {
-            case AMQP_091:
-            case AMQP_10:
-                return ImmutableSource.fromJson(jsonObject, index);
-            case MQTT:
-                return ImmutableMqttSource.fromJson(jsonObject, index);
-            default:
-                throw ConnectionConfigurationInvalidException
-                        .newBuilder("Unexpected connection type <" + type + ">")
-                        .build();
-        }
+    public static Source sourceFromJson(final JsonObject jsonObject, final int index) {
+        return ImmutableSource.fromJson(jsonObject, index);
     }
 
     /**
@@ -583,23 +538,12 @@ public final class ConnectivityModelFactory {
      * implementation to choose depending on the given {@link ConnectionType}.
      *
      * @param jsonObject a JSON object which provides the data for the Target to be created.
-     * @param type the connection type required to decide which iplementation of {@link Source} to choose
-     * @return a new Source Target is initialised with the extracted data from {@code jsonObject}.
+     * @return a new Target is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
-    public static Target targetFromJson(final JsonObject jsonObject, final ConnectionType type) {
-        switch (type) {
-            case AMQP_091:
-            case AMQP_10:
-                return ImmutableTarget.fromJson(jsonObject);
-            case MQTT:
-                return ImmutableMqttTarget.fromJson(jsonObject);
-            default:
-                throw ConnectionConfigurationInvalidException
-                        .newBuilder("Unexpected connection type <" + type + ">")
-                        .build();
-        }
+    public static Target targetFromJson(final JsonObject jsonObject) {
+        return ImmutableTarget.fromJson(jsonObject);
     }
 
     /**

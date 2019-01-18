@@ -47,6 +47,7 @@ final class ImmutableSource implements Source {
 
     private final Set<String> addresses;
     private final int consumerCount;
+    @Nullable private final Integer qos;
     private final int index;
     private final AuthorizationContext authorizationContext;
     @Nullable private final Enforcement enforcement;
@@ -56,6 +57,7 @@ final class ImmutableSource implements Source {
         this.addresses = Collections.unmodifiableSet(
                 new HashSet<>(ConditionChecker.checkNotNull(builder.addresses, "addresses")));
         this.consumerCount = builder.consumerCount;
+        this.qos = builder.qos;
         this.authorizationContext = ConditionChecker.checkNotNull(builder.authorizationContext, "authorizationContext");
         this.index = builder.index;
         this.enforcement = builder.enforcement;
@@ -83,6 +85,11 @@ final class ImmutableSource implements Source {
     }
 
     @Override
+    public Optional<Integer> getQos() {
+        return Optional.ofNullable(qos);
+    }
+
+    @Override
     public Optional<Enforcement> getEnforcement() {
         return Optional.ofNullable(enforcement);
     }
@@ -102,6 +109,9 @@ final class ImmutableSource implements Source {
                 .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
         jsonObjectBuilder.set(JsonFields.CONSUMER_COUNT, consumerCount, predicate);
+        if (qos != null) {
+            jsonObjectBuilder.set(JsonFields.QOS, qos);
+        }
 
         if (!authorizationContext.isEmpty()) {
             jsonObjectBuilder.set(JsonFields.AUTHORIZATION_CONTEXT, authorizationContext.stream()
@@ -137,6 +147,7 @@ final class ImmutableSource implements Source {
                         .collect(Collectors.toSet())).orElse(Collections.emptySet());
         final int readConsumerCount =
                 jsonObject.getValue(JsonFields.CONSUMER_COUNT).orElse(DEFAULT_CONSUMER_COUNT);
+        final Integer readQos = jsonObject.getValue(JsonFields.QOS).orElse(null);
         final JsonArray authContext = jsonObject.getValue(JsonFields.AUTHORIZATION_CONTEXT)
                 .orElseGet(() -> JsonArray.newBuilder().build());
         final List<AuthorizationSubject> authorizationSubjects = authContext.stream()
@@ -155,6 +166,7 @@ final class ImmutableSource implements Source {
 
         return new Builder()
                 .addresses(readSources)
+                .qos(readQos)
                 .authorizationContext(readAuthorizationContext)
                 .consumerCount(readConsumerCount)
                 .index(index)
@@ -171,6 +183,7 @@ final class ImmutableSource implements Source {
         return consumerCount == that.consumerCount &&
                 Objects.equals(addresses, that.addresses) &&
                 Objects.equals(index, that.index) &&
+                Objects.equals(qos, that.qos) &&
                 Objects.equals(enforcement, that.enforcement) &&
                 Objects.equals(headerMapping, that.headerMapping) &&
                 Objects.equals(authorizationContext, that.authorizationContext);
@@ -178,7 +191,7 @@ final class ImmutableSource implements Source {
 
     @Override
     public int hashCode() {
-        return Objects.hash(index, addresses, consumerCount, authorizationContext, enforcement, headerMapping);
+        return Objects.hash(index, addresses, qos, consumerCount, authorizationContext, enforcement, headerMapping);
     }
 
     @Override
@@ -187,6 +200,7 @@ final class ImmutableSource implements Source {
                 "index=" + index +
                 ", addresses=" + addresses +
                 ", consumerCount=" + consumerCount +
+                ", qos=" + qos +
                 ", authorizationContext=" + authorizationContext +
                 ", enforcement=" + enforcement +
                 ", headerMapping=" + headerMapping +
@@ -206,6 +220,7 @@ final class ImmutableSource implements Source {
         // optional:
         @Nullable private Enforcement enforcement;
         @Nullable private HeaderMapping headerMapping;
+        @Nullable private Integer qos = null;
 
         // optional with default:
         private int index = DEFAULT_INDEX;
@@ -235,6 +250,12 @@ final class ImmutableSource implements Source {
         @Override
         public SourceBuilder index(final int index) {
             this.index = index;
+            return this;
+        }
+
+        @Override
+        public SourceBuilder qos(@Nullable final Integer qos) {
+            this.qos = qos;
             return this;
         }
 
