@@ -44,6 +44,7 @@
             <artifactId>akka-http_${scala.version}</artifactId>
             <scope>provided</scope>
         </dependency>
+
         <dependency>
             <!-- This dependency is required to build the MongoMetricsBuilder. It should be provided, because
              parent is using mongodb -->
