@@ -79,7 +79,6 @@ abstract class AbstractBasicDBMapper<T, J extends JsonValue> implements Function
             final Instant instant = Instant.ofEpochSecond(bsonValue.asTimestamp().getTime());
             result = JsonFactory.newValue(instant.toString());
         } else {
-            // TODO TJ what about timestamp, etc.?
             result = JsonFactory.nullLiteral();
         }
         return result;
