@@ -28,8 +28,10 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyIdValidator;
 
 /**
  * Representation of one Thing within Ditto.
@@ -59,14 +61,21 @@ final class ImmutableThing implements Thing {
             @Nullable final Instant modified) {
 
         if (null != thingId) {
+            ThingIdValidator.getInstance().accept(thingId, DittoHeaders.empty());
             final Matcher nsMatcher = ID_PATTERN.matcher(thingId);
             nsMatcher.matches();
             namespace = nsMatcher.group("ns");
         } else {
             namespace = null;
         }
+
         this.thingId = thingId;
         this.acl = acl;
+
+        if (policyId != null) {
+            PolicyIdValidator.getInstance().accept(policyId, DittoHeaders.empty());
+        }
+
         this.policyId = policyId;
         this.attributes = attributes;
         this.features = features;

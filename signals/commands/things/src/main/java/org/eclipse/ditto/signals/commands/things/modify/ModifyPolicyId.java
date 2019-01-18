@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyIdValidator;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingIdValidator;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
@@ -60,6 +61,7 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
     private ModifyPolicyId(final String thingId, final String policyId, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         ThingIdValidator.getInstance().accept(thingId, dittoHeaders);
+        PolicyIdValidator.getInstance().accept(policyId, dittoHeaders);
         this.thingId = thingId;
         this.policyId = requireNonNull(policyId, "The policy ID must not be null!");
     }

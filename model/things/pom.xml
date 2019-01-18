@@ -37,6 +37,10 @@
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-model-policies</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
