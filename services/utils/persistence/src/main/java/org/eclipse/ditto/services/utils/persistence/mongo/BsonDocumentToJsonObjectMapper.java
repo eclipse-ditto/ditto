@@ -16,36 +16,34 @@ import java.util.function.Function;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonArray;
-
-import com.mongodb.BasicDBList;
+import org.bson.BsonDocument;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
- * This function maps a specified {@link BasicDBList} to a {@link JsonArray}.
+ * This function maps a specified {@link BsonDocument} to a {@link JsonObject}.
  * While mapping, the keys of all JSON objects can be revised by utilising a configurable function.
  */
 @Immutable
-final class BasicDBListToJsonObjectMapper extends AbstractBasicDBMapper<BasicDBList, JsonArray> {
+final class BsonDocumentToJsonObjectMapper extends AbstractBasicDBMapper<BsonDocument, JsonObject> {
 
-    private BasicDBListToJsonObjectMapper(final Function<String, String> theJsonKeyNameReviser) {
+    private BsonDocumentToJsonObjectMapper(final Function<String, String> theJsonKeyNameReviser) {
         super(theJsonKeyNameReviser);
     }
 
     /**
-     * Returns an instance of {@code BasicDBObjectToJsonObjectMapper}.
+     * Returns an instance of {@code BsonDocumentToJsonObjectMapper}.
      *
      * @param jsonKeyNameReviser is used to revise the json key names of JSON objects.
      * @return the instance.
      * @throws NullPointerException if {@code jsonKeyNameReviser} is {@code null}.
      */
-    public static BasicDBListToJsonObjectMapper getInstance(final Function<String, String> jsonKeyNameReviser) {
-        return new BasicDBListToJsonObjectMapper(jsonKeyNameReviser);
+    public static BsonDocumentToJsonObjectMapper getInstance(final Function<String, String> jsonKeyNameReviser) {
+        return new BsonDocumentToJsonObjectMapper(jsonKeyNameReviser);
     }
 
     @Override
-    public JsonArray apply(final BasicDBList basicDBList) {
-        return AbstractBasicDBMapper.mapBasicDBListToJsonArray(
-                checkNotNull(basicDBList, "BasicDBList to be mapped"), jsonKeyNameReviser);
+    public JsonObject apply(final BsonDocument bsonDocument) {
+        return mapBsonDocumentToJsonObject(checkNotNull(bsonDocument, "BsonDocument to be mapped"),
+                jsonKeyNameReviser);
     }
-
 }

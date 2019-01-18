@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.bson.BsonValue;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
@@ -29,8 +30,6 @@ import org.eclipse.ditto.signals.commands.batch.ExecuteBatch;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.batch.BatchExecutionFinished;
 import org.eclipse.ditto.signals.events.batch.BatchExecutionStarted;
-
-import com.mongodb.DBObject;
 
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
@@ -235,17 +234,19 @@ public final class BatchSupervisorActor extends AbstractPersistentActor {
         public Set<String> fromSnapshotStore(final SnapshotOffer snapshotOffer) {
             final Object snapshotEntityFromDb = snapshotOffer.snapshot();
 
-            if (snapshotEntityFromDb instanceof DBObject) {
-                final DBObject dbObject = (DBObject) snapshotEntityFromDb;
-                final JsonArray jsonValues =
-                        JsonFactory.newArray(DittoBsonJson.getInstance().serialize(dbObject).toString());
-                return jsonValues.stream()
-                        .map(JsonValue::asString)
-                        .collect(Collectors.toSet());
+            final JsonArray jsonValues;
+            if (snapshotEntityFromDb instanceof BsonValue) {
+                jsonValues =
+                        JsonFactory.newArray(DittoBsonJson.getInstance().serialize((BsonValue) snapshotEntityFromDb)
+                                .toString());
             } else {
-                throw new IllegalArgumentException("Unable to fromSnapshotStore a non-'DBObject' object! Was: " +
-                        snapshotEntityFromDb.getClass());
+                throw new IllegalArgumentException(
+                        "Unable to fromSnapshotStore a non-'BsonValue' object! Was: " +
+                                snapshotEntityFromDb.getClass());
             }
+            return jsonValues.stream()
+                    .map(JsonValue::asString)
+                    .collect(Collectors.toSet());
         }
 
         @Nullable

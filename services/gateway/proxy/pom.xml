@@ -146,17 +146,6 @@
             <artifactId>akka-slf4j_${scala.version}</artifactId>
         </dependency>
 
-        <!-- ### Persistence ### -->
-        <dependency>
-            <groupId>com.github.scullxbones</groupId>
-            <artifactId>akka-persistence-mongo-casbah_${scala.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.mongodb</groupId>
-            <artifactId>casbah_${scala.version}</artifactId>
-            <type>pom</type>
-        </dependency>
-
         <!-- ### Other ### -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>

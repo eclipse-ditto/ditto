@@ -88,16 +88,6 @@
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-stream_${scala.version}</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.github.scullxbones</groupId>
-            <artifactId>akka-persistence-mongo-common_${scala.version}</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.mongodb</groupId>
-            <artifactId>casbah_${scala.version}</artifactId>
-            <type>pom</type>
-        </dependency>
 
         <dependency>
             <groupId>de.flapdoodle.embed</groupId>

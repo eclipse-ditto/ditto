@@ -35,12 +35,36 @@ public final class PolicyIdValidatorTest {
     }
 
     @Test
-    public void validationOfInvalidPolicyIdThrowsException() {
-        final String policyId = "myPolicy";
+    public void validationOfValidPolicyIdFailsWithEmptyName() {
+        final String policyIdWithoutPolicyName = "org.eclipse.ditto.test:";
 
         assertThatExceptionOfType(PolicyIdInvalidException.class)
-                .isThrownBy(() -> PolicyIdValidator.getInstance().accept(policyId, DittoHeaders.empty()))
+                .isThrownBy(() -> PolicyIdValidator.getInstance().accept(policyIdWithoutPolicyName, DittoHeaders.empty()))
                 .withNoCause();
     }
 
+    @Test
+    public void validationOfValidPolicyIdSucceedsWithEmptyNamespace() {
+        final String policyIdWithoutPolicyName = ":test";
+
+        PolicyIdValidator.getInstance().accept(policyIdWithoutPolicyName, DittoHeaders.empty());
+    }
+
+    @Test
+    public void validationOfValidPolicyIdFailsWithEmptyNamespaceAndName() {
+        final String policyIdWithoutPolicyName = ":";
+
+        assertThatExceptionOfType(PolicyIdInvalidException.class)
+                .isThrownBy(() -> PolicyIdValidator.getInstance().accept(policyIdWithoutPolicyName, DittoHeaders.empty()))
+                .withNoCause();
+    }
+
+    @Test
+    public void validationOfValidPolicyIdFailsWithOnlyNamespace() {
+        final String policyIdWithoutPolicyName = "org.eclipse.ditto.test";
+
+        assertThatExceptionOfType(PolicyIdInvalidException.class)
+                .isThrownBy(() -> PolicyIdValidator.getInstance().accept(policyIdWithoutPolicyName, DittoHeaders.empty()))
+                .withNoCause();
+    }
 }
