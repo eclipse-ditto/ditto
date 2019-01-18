@@ -16,19 +16,25 @@ import static org.eclipse.ditto.services.connectivity.messaging.metrics.Measurem
 import static org.eclipse.ditto.services.connectivity.messaging.metrics.MeasurementWindow.ONE_MINUTE;
 
 import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Measurement;
 import org.eclipse.ditto.model.connectivity.MetricDirection;
@@ -37,6 +43,7 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 
 /**
  * This registry holds counters for the connectivity service. The counters are identified by the connection id, a {@link
@@ -314,6 +321,137 @@ public final class ConnectivityCounterRegistry {
      */
     public static TargetMetrics aggregateTargetMetrics(final String connectionId) {
         return ConnectivityModelFactory.newTargetMetrics(aggregateMetrics(connectionId, MetricDirection.OUTBOUND));
+    }
+
+    /**
+     * Merges the passed in {@link RetrieveConnectionMetricsResponse}s into each other returning a new
+     * {@link RetrieveConnectionMetricsResponse} containing the merged information.
+     *
+     * @param first the first RetrieveConnectionMetricsResponse to merge.
+     * @param second the second RetrieveConnectionMetricsResponse to merge.
+     * @return the new merged RetrieveConnectionMetricsResponse.
+     */
+    public static RetrieveConnectionMetricsResponse mergeRetrieveConnectionMetricsResponse(
+            final RetrieveConnectionMetricsResponse first,
+            final RetrieveConnectionMetricsResponse second) {
+
+        final SourceMetrics mergedSourceMetrics = ConnectivityModelFactory.newSourceMetrics(
+                mergeAddressMetricMap(
+                        first.getSourceMetrics().getAddressMetrics(),
+                        second.getSourceMetrics().getAddressMetrics())
+        );
+
+        final TargetMetrics mergedTargetMetrics = ConnectivityModelFactory.newTargetMetrics(mergeAddressMetricMap(
+                first.getTargetMetrics().getAddressMetrics(),
+                second.getTargetMetrics().getAddressMetrics())
+        );
+
+        final AddressMetric inboundMetrics = mergeAddressMetric(
+                first.getConnectionMetrics().getInboundMetrics(),
+                second.getConnectionMetrics().getInboundMetrics()
+        );
+        final AddressMetric outboundMetrics = mergeAddressMetric(
+                first.getConnectionMetrics().getOutboundMetrics(),
+                second.getConnectionMetrics().getOutboundMetrics()
+        );
+
+        final ConnectionMetrics mergedConnectionMetrics =
+                ConnectivityModelFactory.newConnectionMetrics(inboundMetrics, outboundMetrics);
+
+        return RetrieveConnectionMetricsResponse.of(first.getConnectionId(),
+                mergedConnectionMetrics,
+                mergedSourceMetrics,
+                mergedTargetMetrics,
+                first.getDittoHeaders());
+    }
+
+    /**
+     * Aggregates the passed in {@link SourceMetrics} and {@link TargetMetrics} into a new {@link ConnectionMetrics}
+     * instance by merging them.
+     *
+     * @param sourceMetrics the SourceMetrics to include in the ConnectionMetrics.
+     * @param targetMetrics the TargetMetrics to include in the ConnectionMetrics.
+     * @return the combined new ConnectionMetrics.
+     */
+    public static ConnectionMetrics aggregateConnectionMetrics(
+            final SourceMetrics sourceMetrics, final TargetMetrics targetMetrics) {
+        final AddressMetric fromSources = mergeAllMetrics(sourceMetrics.getAddressMetrics().values());
+        final AddressMetric fromTargets = mergeAllMetrics(targetMetrics.getAddressMetrics().values());
+        return ConnectivityModelFactory.newConnectionMetrics(fromSources, fromTargets);
+    }
+
+    private static AddressMetric mergeAllMetrics(final Collection<AddressMetric> metrics) {
+        AddressMetric result = ConnectivityModelFactory.emptyAddressMetric();
+        for (AddressMetric metric : metrics) {
+            result = mergeAddressMetric(result, metric);
+        }
+        return result;
+    }
+
+    /**
+     * Merges the passed {@link AddressMetric}s and combines them into a new {@link AddressMetric} instance.
+     *
+     * @param first the first AddressMetric to merge
+     * @param second the first AddressMetric to merge
+     * @return the combined new AddressMetric.
+     */
+    public static AddressMetric mergeAddressMetric(final AddressMetric first, final AddressMetric second) {
+        final Map<String, Measurement> mapA = asMap(first);
+        final Map<String, Measurement> mapB = asMap(second);
+        final Map<String, Measurement> result = new HashMap<>(mapA);
+        mapB.forEach((keyFromA, measurementFromA) -> result.merge(keyFromA, measurementFromA,
+                (measurementA, measurementB) -> {
+                    final Map<Duration, Long> merged =
+                            mergeMeasurements(measurementA.getCounts(), measurementB.getCounts());
+                    return ConnectivityModelFactory.newMeasurement(measurementA.getMetricType(),
+                            measurementA.isSuccess(),
+                            merged, latest(
+                                    measurementA.getLastMessageAt().orElse(null),
+                                    measurementB.getLastMessageAt().orElse(null)
+                            ));
+                }));
+        return ConnectivityModelFactory.newAddressMetric(new HashSet<>(result.values()));
+    }
+
+    /**
+     * Merges the passed {@link AddressMetric} Maps and combines them into a new {@link AddressMetric} Map instance with
+     * the address inside the key of the maps.
+     *
+     * @param first the first Map to merge
+     * @param second the second Map to merge
+     * @return the combined new AddressMetric map with address keys.
+     */
+    public static Map<String, AddressMetric> mergeAddressMetricMap(final Map<String, AddressMetric> first,
+            final Map<String, AddressMetric> second) {
+        final Map<String, AddressMetric> result = new HashMap<>(first);
+        second.forEach((k, v) -> result.merge(k, v, ConnectivityCounterRegistry::mergeAddressMetric));
+        return result;
+    }
+
+    private static Map<String, Measurement> asMap(final AddressMetric a) {
+        return a.getMeasurements()
+                .stream()
+                .collect(Collectors.toMap(m -> m.getMetricType() + ":" + m.isSuccess(), m -> m));
+    }
+
+    private static Map<Duration, Long> mergeMeasurements(final Map<Duration, Long> measurementA,
+            final Map<Duration, Long> measurementB) {
+        final Map<Duration, Long> result = new HashMap<>(measurementA);
+        measurementB.forEach((k, v) -> result.merge(k, v, Long::sum));
+        return result;
+    }
+
+    @Nullable
+    private static Instant latest(@Nullable final Instant instantA, @Nullable final Instant instantB) {
+        if (instantA == null && instantB == null) {
+            return null;
+        } else if (instantA == null) {
+            return instantB;
+        } else if (instantB == null) {
+            return instantA;
+        } else {
+            return Instant.ofEpochMilli(Math.max(instantA.toEpochMilli(), instantB.toEpochMilli()));
+        }
     }
 
     /**

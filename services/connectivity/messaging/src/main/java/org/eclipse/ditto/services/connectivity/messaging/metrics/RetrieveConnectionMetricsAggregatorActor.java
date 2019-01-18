@@ -103,7 +103,8 @@ public final class RetrieveConnectionMetricsAggregatorActor extends AbstractActo
         if (theResponse == null) {
             theResponse = retrieveConnectionMetricsResponse;
         } else {
-            theResponse = theResponse.mergeWith(retrieveConnectionMetricsResponse);
+            theResponse = ConnectivityCounterRegistry.mergeRetrieveConnectionMetricsResponse(
+                    theResponse, retrieveConnectionMetricsResponse);
         }
 
         // if response is complete, send back to caller

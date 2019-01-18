@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -59,12 +60,15 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
     private final String connectionId;
     private final ConnectivityStatus connectionStatus;
     private final ConnectivityStatus liveStatus;
+    @Nullable private final Instant connectedSince;
     private final List<ResourceStatus> clientStatus;
     private final List<ResourceStatus> sourceStatus;
     private final List<ResourceStatus> targetStatus;
 
-    private RetrieveConnectionStatusResponse(final String connectionId, final ConnectivityStatus connectionStatus,
+    private RetrieveConnectionStatusResponse(final String connectionId,
+            final ConnectivityStatus connectionStatus,
             final ConnectivityStatus liveStatus,
+            @Nullable final Instant connectedSince,
             final List<ResourceStatus> clientStatus,
             final List<ResourceStatus> sourceStatus,
             final List<ResourceStatus> targetStatus,
@@ -73,6 +77,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
         this.connectionId = connectionId;
         this.connectionStatus = connectionStatus;
         this.liveStatus = liveStatus;
+        this.connectedSince = connectedSince;
         this.clientStatus = Collections.unmodifiableList(new ArrayList<>(clientStatus));
         this.sourceStatus = Collections.unmodifiableList(new ArrayList<>(sourceStatus));
         this.targetStatus = Collections.unmodifiableList(new ArrayList<>(targetStatus));
@@ -84,6 +89,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
      * @param connectionId the identifier of the connection.
      * @param connectionStatus the retrieved connection status.
      * @param liveStatus the live connection status.
+     * @param connectedSince the Instant since when the earliest client of the connection was connected.
      * @param sourceStatus the retrieved source status.
      * @param targetStatus the retrieved target status.
      * @param dittoHeaders the headers of the request.
@@ -93,6 +99,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
     public static RetrieveConnectionStatusResponse of(final String connectionId,
             final ConnectivityStatus connectionStatus,
             final ConnectivityStatus liveStatus,
+            @Nullable final Instant connectedSince,
             final List<ResourceStatus> clientStatus,
             final List<ResourceStatus> sourceStatus,
             final List<ResourceStatus> targetStatus,
@@ -100,8 +107,8 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
         checkNotNull(connectionId, "Connection ID");
         checkNotNull(connectionStatus, "Connection Status");
         checkNotNull(liveStatus, "Live Connection Status");
-        return new RetrieveConnectionStatusResponse(connectionId, connectionStatus, liveStatus, clientStatus,
-                sourceStatus, targetStatus, dittoHeaders);
+        return new RetrieveConnectionStatusResponse(connectionId, connectionStatus, liveStatus,
+                connectedSince, clientStatus, sourceStatus, targetStatus, dittoHeaders);
     }
 
     /**
@@ -119,12 +126,13 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
             final String address,
             final Instant connectionClosedAt,
             final ConnectivityStatus clientStatus,
-            final String statusDetails, final DittoHeaders dittoHeaders) {
+            final String statusDetails,
+            final DittoHeaders dittoHeaders) {
         checkNotNull(connectionId, "Connection ID");
         checkNotNull(connectionClosedAt, "connectionClosedAt");
         final ResourceStatus resourceStatus =
                 ConnectivityModelFactory.newClientStatus(address, clientStatus, statusDetails, connectionClosedAt);
-        return new RetrieveConnectionStatusResponse(connectionId, clientStatus, clientStatus,
+        return new RetrieveConnectionStatusResponse(connectionId, clientStatus, clientStatus, null,
                 Collections.singletonList(resourceStatus),
                 Collections.emptyList(),
                 Collections.emptyList(), dittoHeaders);
@@ -167,6 +175,8 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
                     final ConnectivityStatus readLiveStatus =
                             ConnectivityStatus.forName(jsonObject.getValueOrThrow(JsonFields.LIVE_STATUS))
                                     .orElse(ConnectivityStatus.UNKNOWN);
+                    final String connSinceStr = jsonObject.getValue(JsonFields.CONNECTED_SINCE).orElse(null);
+                    final Instant readConnectedSince = connSinceStr != null ? Instant.parse(connSinceStr) : null;
 
                     final List<ResourceStatus> readClientStatus =
                             readAddressStatus(jsonObject.getValueOrThrow(JsonFields.CLIENT_STATUS));
@@ -177,7 +187,8 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
                     final List<ResourceStatus> readTargetStatus =
                             readAddressStatus(jsonObject.getValueOrThrow(JsonFields.TARGET_STATUS));
 
-                    return of(readConnectionId, readConnectionStatus, readLiveStatus, readClientStatus,
+                    return of(readConnectionId, readConnectionStatus, readLiveStatus, readConnectedSince,
+                            readClientStatus,
                             readSourceStatus,
                             readTargetStatus, dittoHeaders);
                 });
@@ -204,6 +215,13 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
      */
     public ConnectivityStatus getLiveStatus() {
         return liveStatus;
+    }
+
+    /**
+     * @return the Instant since when the earliest client of the connection was connected.
+     */
+    public Optional<Instant> getConnectedSince() {
+        return Optional.ofNullable(connectedSince);
     }
 
     /**
@@ -235,8 +253,20 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
      * @return the new RetrieveConnectionStatusResponse.
      */
     public RetrieveConnectionStatusResponse withLiveStatus(final ConnectivityStatus liveStatus) {
-        return of(connectionId, connectionStatus, liveStatus, clientStatus, sourceStatus, targetStatus,
-                getDittoHeaders());
+        return of(connectionId, connectionStatus, liveStatus, connectedSince,
+                clientStatus,
+                sourceStatus, targetStatus, getDittoHeaders());
+    }
+    /**
+     * Builds a new instance of RetrieveConnectionStatusResponse based on {@code this} instance with the passed {@code
+     * connectedSince}.
+     *
+     * @param connectedSince the "connected since" value.
+     * @return the new RetrieveConnectionStatusResponse.
+     */
+    public RetrieveConnectionStatusResponse withConnectedSince(@Nullable final Instant connectedSince) {
+        return of(connectionId, connectionStatus, liveStatus, connectedSince,
+                clientStatus, sourceStatus, targetStatus, getDittoHeaders());
     }
 
     /**
@@ -272,8 +302,8 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
                 newTargetStatus = this.getTargetStatus();
                 break;
         }
-        return of(connectionId, connectionStatus, liveStatus, newClientStatus, newSourceStatus, newTargetStatus,
-                getDittoHeaders());
+        return of(connectionId, connectionStatus, liveStatus, connectedSince,
+                newClientStatus, newSourceStatus, newTargetStatus, getDittoHeaders());
     }
 
     private List<ResourceStatus> addToList(List<ResourceStatus> existing,
@@ -290,6 +320,8 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
         jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, connectionId, predicate);
         jsonObjectBuilder.set(JsonFields.CONNECTION_STATUS, connectionStatus.getName(), predicate);
         jsonObjectBuilder.set(JsonFields.LIVE_STATUS, liveStatus.getName(), predicate);
+        jsonObjectBuilder.set(JsonFields.CONNECTED_SINCE, connectedSince != null ? connectedSince.toString() : null,
+                predicate);
 
         jsonObjectBuilder.set(JsonFields.CLIENT_STATUS, clientStatus.stream()
                 .map(source -> source.toJson(schemaVersion, thePredicate))
@@ -321,7 +353,8 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
 
     @Override
     public RetrieveConnectionStatusResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(connectionId, connectionStatus, liveStatus, clientStatus, sourceStatus, targetStatus, dittoHeaders);
+        return of(connectionId, connectionStatus, liveStatus, connectedSince,
+                clientStatus, sourceStatus, targetStatus, dittoHeaders);
     }
 
     @Override
@@ -337,11 +370,14 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        if (!super.equals(o)) return false;
+        if (!super.equals(o)) {
+            return false;
+        }
         final RetrieveConnectionStatusResponse that = (RetrieveConnectionStatusResponse) o;
         return connectionId.equals(that.connectionId) &&
                 connectionStatus == that.connectionStatus &&
                 liveStatus == that.liveStatus &&
+                Objects.equals(connectedSince, that.connectedSince) &&
                 Objects.equals(clientStatus, that.clientStatus) &&
                 Objects.equals(sourceStatus, that.sourceStatus) &&
                 Objects.equals(targetStatus, that.targetStatus);
@@ -349,8 +385,8 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), connectionId, connectionStatus, liveStatus, clientStatus, sourceStatus,
-                targetStatus);
+        return Objects.hash(super.hashCode(), connectionId, connectionStatus, liveStatus, connectedSince,
+                clientStatus, sourceStatus, targetStatus);
     }
 
     @Override
@@ -359,6 +395,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
                 "connectionId=" + connectionId +
                 ", connectionStatus=" + connectionStatus +
                 ", liveStatus=" + liveStatus +
+                ", connectedSince=" + connectedSince +
                 ", clientStatus=" + clientStatus +
                 ", sourceStatus=" + sourceStatus +
                 ", targetStatus=" + targetStatus +
@@ -377,6 +414,10 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
 
         public static final JsonFieldDefinition<String> LIVE_STATUS =
                 JsonFactory.newStringFieldDefinition("liveStatus", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        public static final JsonFieldDefinition<String> CONNECTED_SINCE =
+                JsonFactory.newStringFieldDefinition("connectedSince", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         public static final JsonFieldDefinition<JsonArray> CLIENT_STATUS =

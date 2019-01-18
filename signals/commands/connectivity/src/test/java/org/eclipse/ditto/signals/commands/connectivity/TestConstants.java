@@ -29,7 +29,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
@@ -45,7 +44,6 @@ import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
 import org.eclipse.ditto.model.connectivity.Topic;
-import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 
 /**
  * Constants for testing.
@@ -140,8 +138,6 @@ public final class TestConstants {
                         entry(ONE_DAY, ONE_DAY.getSeconds()));
         public static final Measurement INBOUND =
                 ConnectivityModelFactory.newMeasurement(MetricType.CONSUMED, true, SOURCE_COUNTERS, LAST_MESSAGE_AT);
-        public static final Measurement FAILED_INBOUND =
-                ConnectivityModelFactory.newMeasurement(MetricType.CONSUMED, true, SOURCE_COUNTERS, LAST_MESSAGE_AT);
         public static final Map<Duration, Long> TARGET_COUNTERS = asMap(
                         entry(ONE_MINUTE, ONE_MINUTE.toMillis()),
                         entry(ONE_HOUR, ONE_HOUR.toMillis()),
@@ -154,8 +150,6 @@ public final class TestConstants {
                         entry(ONE_DAY, ONE_DAY.toMinutes()));
         public static final Measurement MAPPING =
                 ConnectivityModelFactory.newMeasurement(MetricType.MAPPED, true, MAPPING_COUNTERS, LAST_MESSAGE_AT);
-        public static final Measurement FAILED_MAPPING =
-                ConnectivityModelFactory.newMeasurement(MetricType.MAPPED, false, MAPPING_COUNTERS, LAST_MESSAGE_AT);
 
         public static final AddressMetric INBOUND_METRIC = ConnectivityModelFactory.newAddressMetric(asSet(INBOUND, MAPPING));
         public static final AddressMetric OUTBOUND_METRIC = ConnectivityModelFactory.newAddressMetric(asSet(MAPPING, OUTBOUND));
@@ -164,15 +158,6 @@ public final class TestConstants {
                 asMap(entry("source1", INBOUND_METRIC), entry("source2", INBOUND_METRIC)));
         public static final TargetMetrics TARGET_METRICS1 = ConnectivityModelFactory.newTargetMetrics(
                 asMap(entry("target1", OUTBOUND_METRIC), entry("target2", OUTBOUND_METRIC)));
-
-        public static final RetrieveConnectionMetricsResponse METRICS_RESPONSE1 = RetrieveConnectionMetricsResponse.of(ID, SOURCE_METRICS1, TARGET_METRICS1, DittoHeaders.empty());
-
-        public static final SourceMetrics SOURCE_METRICS2 = ConnectivityModelFactory.newSourceMetrics(
-                asMap(entry("source2", INBOUND_METRIC), entry("source3", INBOUND_METRIC)));
-        public static final TargetMetrics TARGET_METRICS2 = ConnectivityModelFactory.newTargetMetrics(
-                asMap(entry("target2", OUTBOUND_METRIC), entry("target3", OUTBOUND_METRIC)));
-
-        public static final RetrieveConnectionMetricsResponse METRICS_RESPONSE2 = RetrieveConnectionMetricsResponse.of(ID, SOURCE_METRICS2, TARGET_METRICS2, DittoHeaders.empty());
 
         public static final Measurement INBOUND_OVERALL = mergeMeasurements(MetricType.CONSUMED, true, Metrics.INBOUND, 4);
         public static final Measurement OUTBOUND_OVERALL = mergeMeasurements(MetricType.PUBLISHED, true, Metrics.OUTBOUND, 4);

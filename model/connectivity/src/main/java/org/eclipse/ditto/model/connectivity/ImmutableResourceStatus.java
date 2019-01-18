@@ -155,8 +155,8 @@ final class ImmutableResourceStatus implements ResourceStatus {
         final String readConnectionStatusDetails = jsonObject.getValue(JsonFields.STATUS_DETAILS).orElse(null);
         final Instant readInStateSince =
                 jsonObject.getValue(JsonFields.IN_STATE_SINCE).map(Instant::parse).orElse(null);
-        return ImmutableResourceStatus.of(readType, readClient, readConnectionStatus, readAddress, readConnectionStatusDetails,
-                readInStateSince);
+        return ImmutableResourceStatus.of(readType, readClient, readConnectionStatus, readAddress,
+                readConnectionStatusDetails, readInStateSince);
     }
 
     @Override

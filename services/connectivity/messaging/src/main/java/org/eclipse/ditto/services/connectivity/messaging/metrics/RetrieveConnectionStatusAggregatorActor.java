@@ -11,9 +11,11 @@
 package org.eclipse.ditto.services.connectivity.messaging.metrics;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.Optional;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -49,7 +51,7 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
         this.timeout = timeout;
         this.sender = sender;
         theResponse = RetrieveConnectionStatusResponse.of(connection.getId(), connection.getConnectionStatus(),
-                        ConnectivityStatus.UNKNOWN,
+                        ConnectivityStatus.UNKNOWN, Instant.EPOCH,
                         Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), originalHeaders);
 
         this.expectedResponses = new EnumMap<>(ResourceStatus.ResourceType.class);
@@ -149,7 +151,16 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
             }
         }
 
-        theResponse = theResponse.withLiveStatus(liveStatus);
+        final Optional<Instant> earliestConnectedSince = theResponse.getClientStatus().stream()
+                .filter(rs -> ConnectivityStatus.OPEN.equals(rs.getStatus()))
+                .map(ResourceStatus::getInStateSince)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .min(Instant::compareTo);
+
+        theResponse = theResponse
+                .withConnectedSince(earliestConnectedSince.orElse(null))
+                .withLiveStatus(liveStatus);
         sender.tell(theResponse, getSelf());
         stopSelf();
     }

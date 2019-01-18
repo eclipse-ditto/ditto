@@ -44,6 +44,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.MappingContext;
@@ -695,8 +696,12 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         final SourceMetrics sourceMetrics = ConnectivityCounterRegistry.aggregateSourceMetrics(connectionId());
         final TargetMetrics targetMetrics = ConnectivityCounterRegistry.aggregateTargetMetrics(connectionId());
 
+        final ConnectionMetrics connectionMetrics =
+                ConnectivityCounterRegistry.aggregateConnectionMetrics(sourceMetrics, targetMetrics);
+
         this.getSender().tell(
-                RetrieveConnectionMetricsResponse.of(connectionId(), sourceMetrics, targetMetrics, dittoHeaders),
+                RetrieveConnectionMetricsResponse.of(connectionId(), connectionMetrics, sourceMetrics, targetMetrics,
+                        dittoHeaders),
                 this.getSelf());
         return stay();
     }

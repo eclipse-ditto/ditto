@@ -52,7 +52,7 @@ public final class RetrieveConnectionStatusResponseTest {
                     newClientStatus("client1", ConnectivityStatus.OPEN, "Client is connected",
                             IN_CONNECTION_STATUS_SINCE),
                     newClientStatus("client2", ConnectivityStatus.FAILED, "Client failed to connect.",
-                            IN_CONNECTION_STATUS_SINCE)
+                            IN_CONNECTION_STATUS_SINCE.plusSeconds(3))
             );
     private static List<ResourceStatus> sourceStatus =
             Arrays.asList(
@@ -73,6 +73,7 @@ public final class RetrieveConnectionStatusResponseTest {
             .set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, TestConstants.ID)
             .set(RetrieveConnectionStatusResponse.JsonFields.CONNECTION_STATUS, ConnectivityStatus.OPEN.getName())
             .set(RetrieveConnectionStatusResponse.JsonFields.LIVE_STATUS, ConnectivityStatus.CLOSED.getName())
+            .set(RetrieveConnectionStatusResponse.JsonFields.CONNECTED_SINCE, IN_CONNECTION_STATUS_SINCE.toString())
             .set(RetrieveConnectionStatusResponse.JsonFields.CLIENT_STATUS,
                     JsonFactory.newArrayBuilder()
                             .add(JsonFactory.newObjectBuilder()
@@ -89,7 +90,7 @@ public final class RetrieveConnectionStatusResponseTest {
                                             .set(ResourceStatus.JsonFields.STATUS, ConnectivityStatus.FAILED.getName())
                                             .set(ResourceStatus.JsonFields.STATUS_DETAILS, "Client failed to connect.")
                                             .set(ResourceStatus.JsonFields.IN_STATE_SINCE,
-                                                    IN_CONNECTION_STATUS_SINCE.toString())
+                                                    IN_CONNECTION_STATUS_SINCE.plusSeconds(3).toString())
                                             .build()
                             ).build())
             .set(RetrieveConnectionStatusResponse.JsonFields.SOURCE_STATUS,
@@ -164,6 +165,7 @@ public final class RetrieveConnectionStatusResponseTest {
                 .isThrownBy(() -> RetrieveConnectionStatusResponse.of(null,
                         ConnectivityStatus.OPEN,
                         ConnectivityStatus.CLOSED,
+                        IN_CONNECTION_STATUS_SINCE,
                         Collections.emptyList(),
                         Collections.emptyList(),
                         Collections.emptyList(),
@@ -176,6 +178,7 @@ public final class RetrieveConnectionStatusResponseTest {
     public void retrieveInstanceWithNullConnectionStatus() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> RetrieveConnectionStatusResponse.of(TestConstants.ID, null, ConnectivityStatus.CLOSED,
+                        IN_CONNECTION_STATUS_SINCE,
                         Collections.emptyList(),
                         Collections.emptyList(),
                         Collections.emptyList(),
@@ -188,6 +191,7 @@ public final class RetrieveConnectionStatusResponseTest {
     public void retrieveInstanceWithNullLiveStatus() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectivityStatus.OPEN, null,
+                        IN_CONNECTION_STATUS_SINCE,
                         Collections.emptyList(),
                         Collections.emptyList(),
                         Collections.emptyList(),
@@ -200,6 +204,7 @@ public final class RetrieveConnectionStatusResponseTest {
     public void fromJsonReturnsExpected() {
         final RetrieveConnectionStatusResponse expected =
                 RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectivityStatus.OPEN, ConnectivityStatus.CLOSED,
+                        IN_CONNECTION_STATUS_SINCE,
                         clientStatus,
                         sourceStatus,
                         targetStatus,
@@ -215,6 +220,7 @@ public final class RetrieveConnectionStatusResponseTest {
     public void toJsonReturnsExpected() {
         final JsonObject actual =
                 RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectivityStatus.OPEN, ConnectivityStatus.CLOSED,
+                        IN_CONNECTION_STATUS_SINCE,
                         clientStatus,
                         sourceStatus,
                         targetStatus,
@@ -228,6 +234,7 @@ public final class RetrieveConnectionStatusResponseTest {
     public void mergeMultipleStatuses() {
         final RetrieveConnectionStatusResponse expected =
                 RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectivityStatus.OPEN, ConnectivityStatus.CLOSED,
+                        IN_CONNECTION_STATUS_SINCE,
                         clientStatus,
                         sourceStatus,
                         targetStatus,
@@ -236,6 +243,7 @@ public final class RetrieveConnectionStatusResponseTest {
 
         final RetrieveConnectionStatusResponse empty =
                 RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectivityStatus.OPEN, ConnectivityStatus.CLOSED,
+                        IN_CONNECTION_STATUS_SINCE,
                         Collections.emptyList(),
                         Collections.emptyList(),
                         Collections.emptyList(),
@@ -249,6 +257,7 @@ public final class RetrieveConnectionStatusResponseTest {
 
         RetrieveConnectionStatusResponse actual =
                 RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectivityStatus.OPEN, ConnectivityStatus.CLOSED,
+                        IN_CONNECTION_STATUS_SINCE,
                         Collections.emptyList(),
                         Collections.emptyList(),
                         Collections.emptyList(),

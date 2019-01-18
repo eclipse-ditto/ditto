@@ -13,7 +13,6 @@ package org.eclipse.ditto.signals.commands.connectivity.query;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.signals.commands.connectivity.TestConstants.ID;
-import static org.eclipse.ditto.signals.commands.connectivity.TestConstants.Metrics.mergeMeasurements;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -26,7 +25,6 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.MetricType;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -56,9 +54,10 @@ public final class RetrieveConnectionMetricsResponseTest {
             .set(CommandResponse.JsonFields.TYPE, RetrieveConnectionMetricsResponse.TYPE)
             .set(CommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
             .set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, ID)
-            .set(JsonFields.JSON_CONNECTION_METRICS, Metrics.Json.CONNECTION_METRICS_JSON)
-            .set(JsonFields.JSON_SOURCE_METRICS, Metrics.SOURCE_METRICS1.toJson())
-            .set(JsonFields.JSON_TARGET_METRICS, Metrics.TARGET_METRICS1.toJson())
+            .set(JsonFields.CONTAINS_FAILURES, false)
+            .set(JsonFields.CONNECTION_METRICS, Metrics.Json.CONNECTION_METRICS_JSON)
+            .set(JsonFields.SOURCE_METRICS, Metrics.SOURCE_METRICS1.toJson())
+            .set(JsonFields.TARGET_METRICS, Metrics.TARGET_METRICS1.toJson())
             .build();
 
     @Test
@@ -111,45 +110,6 @@ public final class RetrieveConnectionMetricsResponseTest {
         System.out.println(actual);
 
         assertThat(actual).isEqualTo(KNOWN_JSON);
-    }
-
-    @Test
-    public void mergeRetrieveConnectionMetricsResponses() {
-
-        final RetrieveConnectionMetricsResponse merged = Metrics.METRICS_RESPONSE1.mergeWith(Metrics.METRICS_RESPONSE2);
-
-        assertThat(merged.getConnectionId()).isEqualTo(ID);
-
-        // check overall sum of connection metrics
-        assertThat(merged.getConnectionMetrics().getInboundMetrics().getMeasurements())
-                .contains(mergeMeasurements(MetricType.CONSUMED, true, Metrics.INBOUND, 4));
-        assertThat(merged.getConnectionMetrics().getInboundMetrics().getMeasurements())
-                .contains(mergeMeasurements(MetricType.MAPPED, true, Metrics.MAPPING, 4));
-
-        assertThat(merged.getConnectionMetrics().getOutboundMetrics().getMeasurements())
-                .contains(mergeMeasurements(MetricType.PUBLISHED, true, Metrics.OUTBOUND, 4));
-        assertThat(merged.getConnectionMetrics().getOutboundMetrics().getMeasurements())
-                .contains(mergeMeasurements(MetricType.MAPPED, true, Metrics.MAPPING, 4));
-
-        // check source metrics
-        assertThat(merged.getSourceMetrics().getAddressMetrics()).containsKeys("source1", "source2", "source3");
-        assertThat(merged.getSourceMetrics().getAddressMetrics().get("source1").getMeasurements())
-                .contains(Metrics.INBOUND, Metrics.MAPPING);
-        assertThat(merged.getSourceMetrics().getAddressMetrics().get("source2").getMeasurements())
-                .contains(mergeMeasurements(MetricType.CONSUMED, true, Metrics.INBOUND,2),
-                        mergeMeasurements(MetricType.MAPPED, true, Metrics.MAPPING, 2));
-        assertThat(merged.getSourceMetrics().getAddressMetrics().get("source3").getMeasurements())
-                .contains(Metrics.INBOUND, Metrics.MAPPING);
-
-        // check target metrics
-        assertThat(merged.getTargetMetrics().getAddressMetrics()).containsKeys("target1", "target2", "target3");
-        assertThat(merged.getTargetMetrics().getAddressMetrics().get("target1").getMeasurements())
-                .contains(Metrics.MAPPING, Metrics.OUTBOUND);
-        assertThat(merged.getTargetMetrics().getAddressMetrics().get("target2").getMeasurements())
-                .contains(mergeMeasurements(MetricType.MAPPED, true, Metrics.MAPPING, 2),
-                        mergeMeasurements(MetricType.PUBLISHED, true, Metrics.OUTBOUND, 2));
-        assertThat(merged.getTargetMetrics().getAddressMetrics().get("target3").getMeasurements())
-                .contains(Metrics.MAPPING, Metrics.OUTBOUND);
     }
 
 }

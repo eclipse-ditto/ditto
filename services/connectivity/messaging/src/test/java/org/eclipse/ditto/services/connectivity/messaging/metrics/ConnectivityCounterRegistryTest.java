@@ -32,6 +32,8 @@ import org.eclipse.ditto.model.connectivity.Measurement;
 import org.eclipse.ditto.model.connectivity.MetricType;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
+import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -110,4 +112,54 @@ public class ConnectivityCounterRegistryTest {
                 FIXED_INSTANT);
     }
 
+    @Test
+    public void mergeRetrieveConnectionMetricsResponses() {
+
+        final RetrieveConnectionMetricsResponse merged = ConnectivityCounterRegistry.mergeRetrieveConnectionMetricsResponse(
+                TestConstants.Metrics.METRICS_RESPONSE1, TestConstants.Metrics.METRICS_RESPONSE2);
+
+        assertThat(merged.getConnectionId()).isEqualTo(TestConstants.Metrics.ID);
+
+        // check overall sum of connection metrics
+        assertThat(merged.getConnectionMetrics().getInboundMetrics().getMeasurements())
+                .contains(TestConstants.Metrics.mergeMeasurements(MetricType.CONSUMED, true,
+                        TestConstants.Metrics.INBOUND, 4));
+        assertThat(merged.getConnectionMetrics().getInboundMetrics().getMeasurements())
+                .contains(
+                        TestConstants.Metrics.mergeMeasurements(MetricType.MAPPED, true, TestConstants.Metrics.MAPPING,
+                                4));
+
+        assertThat(merged.getConnectionMetrics().getOutboundMetrics().getMeasurements())
+                .contains(TestConstants.Metrics.mergeMeasurements(MetricType.PUBLISHED, true,
+                        TestConstants.Metrics.OUTBOUND, 4));
+        assertThat(merged.getConnectionMetrics().getOutboundMetrics().getMeasurements())
+                .contains(
+                        TestConstants.Metrics.mergeMeasurements(MetricType.MAPPED, true, TestConstants.Metrics.MAPPING,
+                                4));
+
+        // check source metrics
+        assertThat(merged.getSourceMetrics().getAddressMetrics()).containsKeys("source1", "source2", "source3");
+        assertThat(merged.getSourceMetrics().getAddressMetrics().get("source1").getMeasurements())
+                .contains(TestConstants.Metrics.INBOUND, TestConstants.Metrics.MAPPING);
+        assertThat(merged.getSourceMetrics().getAddressMetrics().get("source2").getMeasurements())
+                .contains(TestConstants.Metrics.mergeMeasurements(MetricType.CONSUMED, true,
+                        TestConstants.Metrics.INBOUND, 2),
+                        TestConstants.Metrics.mergeMeasurements(MetricType.MAPPED, true, TestConstants.Metrics.MAPPING,
+                                2));
+        assertThat(merged.getSourceMetrics().getAddressMetrics().get("source3").getMeasurements())
+                .contains(TestConstants.Metrics.INBOUND, TestConstants.Metrics.MAPPING);
+
+        // check target metrics
+        assertThat(merged.getTargetMetrics().getAddressMetrics()).containsKeys("target1", "target2", "target3");
+        assertThat(merged.getTargetMetrics().getAddressMetrics().get("target1").getMeasurements())
+                .contains(TestConstants.Metrics.MAPPING, TestConstants.Metrics.OUTBOUND);
+        assertThat(merged.getTargetMetrics().getAddressMetrics().get("target2").getMeasurements())
+                .contains(
+                        TestConstants.Metrics.mergeMeasurements(MetricType.MAPPED, true, TestConstants.Metrics.MAPPING,
+                                2),
+                        TestConstants.Metrics.mergeMeasurements(MetricType.PUBLISHED, true,
+                                TestConstants.Metrics.OUTBOUND, 2));
+        assertThat(merged.getTargetMetrics().getAddressMetrics().get("target3").getMeasurements())
+                .contains(TestConstants.Metrics.MAPPING, TestConstants.Metrics.OUTBOUND);
+    }
 }

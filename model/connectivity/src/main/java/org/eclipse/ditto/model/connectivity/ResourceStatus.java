@@ -62,7 +62,7 @@ public interface ResourceStatus extends Jsonifiable.WithFieldSelectorAndPredicat
      */
     Optional<Instant> getInStateSince();
 
-      /**
+    /**
      * Returns all non hidden marked fields of this {@code AddressMetric}.
      *
      * @return a JSON object representation of this Source including only non hidden marked fields.
@@ -197,8 +197,9 @@ public interface ResourceStatus extends Jsonifiable.WithFieldSelectorAndPredicat
         public static final JsonFieldDefinition<String> STATUS_DETAILS =
                 JsonFactory.newStringFieldDefinition("statusDetails", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
+
         /**
-         * JSON field containing the instant since the resource is in the stater.
+         * JSON field containing the instant since the resource is in the state.
          */
         public static final JsonFieldDefinition<String> IN_STATE_SINCE =
                 JsonFactory.newStringFieldDefinition("inStateSince", FieldType.REGULAR, JsonSchemaVersion.V_1,
