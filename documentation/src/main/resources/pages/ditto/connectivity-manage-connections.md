@@ -32,7 +32,9 @@ Create a new connection by sending the following DevOps command:
 ```json
 {
     "targetActorSelection": "/system/sharding/connection",
-    "headers": {},
+    "headers": {
+      "aggregate": false
+    },
     "piggybackCommand": {
         "type": "connectivity.commands:createConnection",
         "connection": {}
@@ -52,7 +54,9 @@ Modify an existing connection by sending the following DevOps command:
 ```json
 {
     "targetActorSelection": "/system/sharding/connection",
-    "headers": {},
+    "headers": {
+      "aggregate": false
+    },
     "piggybackCommand": {
         "type": "connectivity.commands:modifyConnection",
         "connection": {}
@@ -70,7 +74,9 @@ The only parameter necessary for retrieving a connection is the `connectionId`:
 ```json
 {
     "targetActorSelection": "/system/sharding/connection",
-    "headers": {},
+    "headers": {
+      "aggregate": false
+    },
     "piggybackCommand": {
         "type": "connectivity.commands:retrieveConnection",
         "connectionId":"<connectionID>"
@@ -85,7 +91,9 @@ The only parameter necessary for opening a connection is the `connectionId`:
 ```json
 {
     "targetActorSelection": "/system/sharding/connection",
-    "headers": {},
+    "headers": {
+      "aggregate": false
+    },
     "piggybackCommand": {
         "type": "connectivity.commands:openConnection",
         "connectionId":"<connectionID>"
@@ -100,7 +108,9 @@ The only parameter necessary for closing a connection is the `connectionId`:
 ```json
 {
     "targetActorSelection": "/system/sharding/connection",
-    "headers": {},
+    "headers": {
+      "aggregate": false
+    },
     "piggybackCommand": {
         "type": "connectivity.commands:closeConnection",
         "connectionId":"<connectionID>"
@@ -115,7 +125,9 @@ The only parameter necessary for deleting a connection is the `connectionId`:
 ```json
 {
     "targetActorSelection": "/system/sharding/connection",
-    "headers": {},
+    "headers": {
+      "aggregate": false
+    },
     "piggybackCommand": {
         "type": "connectivity.commands:deleteConnection",
         "connectionId":"<connectionID>"
@@ -127,10 +139,10 @@ The only parameter necessary for deleting a connection is the `connectionId`:
 
 The following commands are available to help creating connections and retrieving the status of existing connections:
 
-
 * [test](#test-connection)
-* [retrieve desired connection status](#retrieve-connection-status)
-* [retrieve actual connection status + metrics](#retrieve-connection-metrics)
+* [retrieve connection status](#retrieve-connection-status)
+* [retrieve connection metrics](#retrieve-connection-metrics)
+* [reset connection metrics](#reset-connection-metrics)
 
 ### Test connection
 
@@ -142,7 +154,9 @@ command, it requires a full connection configuration in the piggyback command.
 ```json
 {
     "targetActorSelection": "/system/sharding/connection",
-    "headers": {},
+    "headers": {
+      "aggregate": false
+    },
     "piggybackCommand": {
         "type": "connectivity.commands:testConnection",
         "connection": {}
@@ -152,13 +166,15 @@ command, it requires a full connection configuration in the piggyback command.
 
 ### Retrieve connection status
 
-This command returns the connection status. It shows if a connection is currently enabled/disabled. The only parameter
-necessary for retrieving the connection status is the `connectionId`:
+This command returns the connection status by showing if a connection is currently enabled/disabled and if it is 
+successfully established. The only parameter necessary for retrieving the connection status is the `connectionId`:
 
 ```json
 {
     "targetActorSelection": "/system/sharding/connection",
-    "headers": {},
+    "headers": {
+      "aggregate": false
+    },
     "piggybackCommand": {
         "type": "connectivity.commands:retrieveConnectionStatus",
         "connectionId":"<connectionID>"
@@ -168,15 +184,40 @@ necessary for retrieving the connection status is the `connectionId`:
 
 ### Retrieve connection metrics
 
-This command returns the connection activity. It shows if a connection is currently established. The only parameter
+This command returns the connection metrics showing how many messages have been successfully or failed `conusmed`, 
+`filtered`, `mapped`, `published`, `dropped`. The metrics are collected and returned in different time intervals:
+* the last minute
+* the last hour
+* the last 24 hours 
+
+The only parameter necessary for retrieving the connection metrics is the `connectionId`:
+
+```json
+{
+    "targetActorSelection": "/system/sharding/connection",
+    "headers": {
+      "aggregate": false
+    },
+    "piggybackCommand": {
+        "type": "connectivity.commands:retrieveConnectionMetrics",
+        "connectionId":"<connectionID>"
+    }
+}
+```
+
+### Reset connection metrics
+
+This command resets the connection metrics - all metrics are set to `0` again. The only parameter
 necessary for retrieving the connection metrics is the `connectionId`:
 
 ```json
 {
     "targetActorSelection": "/system/sharding/connection",
-    "headers": {},
+    "headers": {
+      "aggregate": false
+    },
     "piggybackCommand": {
-        "type": "connectivity.commands:retrieveConnectionMetrics",
+        "type": "connectivity.commands:resetConnectionMetrics",
         "connectionId":"<connectionID>"
     }
 }

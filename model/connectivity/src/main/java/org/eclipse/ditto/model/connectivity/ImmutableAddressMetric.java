@@ -69,15 +69,19 @@ final class ImmutableAddressMetric implements AddressMetric {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
         jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
 
-        final List<Measurement> sortedMeasurements = new ArrayList<>(measurements);
-        sortedMeasurements.sort(getMeasurementComparator());
-        for (final Measurement measurement : sortedMeasurements) {
-            final JsonPointer pointer = JsonFactory.newPointer(
-                    JsonFactory.newKey(measurement.getMetricType().getName()),
-                    measurement.isSuccess() ? SUCCESS_KEY : FAILURE_KEY);
-            jsonObjectBuilder.set(pointer, measurement.toJson().getValue(pointer).orElse(JsonFactory.newObject()));
+        if (measurements.isEmpty()) {
+            return JsonFactory.nullObject();
+        } else {
+            final List<Measurement> sortedMeasurements = new ArrayList<>(measurements);
+            sortedMeasurements.sort(getMeasurementComparator());
+            for (final Measurement measurement : sortedMeasurements) {
+                final JsonPointer pointer = JsonFactory.newPointer(
+                        JsonFactory.newKey(measurement.getMetricType().getName()),
+                        measurement.isSuccess() ? SUCCESS_KEY : FAILURE_KEY);
+                jsonObjectBuilder.set(pointer, measurement.toJson().getValue(pointer).orElse(JsonFactory.newObject()));
+            }
+            return jsonObjectBuilder.build();
         }
-        return jsonObjectBuilder.build();
     }
 
     private static Comparator<Measurement> getMeasurementComparator() {

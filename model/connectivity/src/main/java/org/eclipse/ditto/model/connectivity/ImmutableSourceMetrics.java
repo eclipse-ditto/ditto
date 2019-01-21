@@ -53,17 +53,21 @@ final class ImmutableSourceMetrics implements SourceMetrics {
         return addressMetrics;
     }
 
-
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
 
         jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
-        jsonObjectBuilder.set(JsonFields.ADDRESS_METRICS, addressMetrics.entrySet().stream()
-                .map(e -> ImmutableAddressMetric.toJsonField(e.getKey(), e.getValue()))
-                .collect(JsonCollectors.fieldsToObject()), predicate);
+        jsonObjectBuilder.set(JsonFields.ADDRESS_METRICS, addressMetrics.isEmpty() ? JsonFactory.nullObject() :
+                addressMetricsToJson(), predicate);
         return jsonObjectBuilder.build();
+    }
+
+    private JsonObject addressMetricsToJson() {
+        return addressMetrics.entrySet().stream()
+                .map(e -> ImmutableAddressMetric.toJsonField(e.getKey(), e.getValue()))
+                .collect(JsonCollectors.fieldsToObject());
     }
 
     /**
@@ -86,8 +90,12 @@ final class ImmutableSourceMetrics implements SourceMetrics {
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) {return true;}
-        if (!(o instanceof ImmutableSourceMetrics)) {return false;}
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof ImmutableSourceMetrics)) {
+            return false;
+        }
         final ImmutableSourceMetrics that = (ImmutableSourceMetrics) o;
         return Objects.equals(addressMetrics, that.addressMetrics);
     }

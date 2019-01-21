@@ -59,10 +59,15 @@ final class ImmutableTargetMetrics implements TargetMetrics {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
 
         jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
-        jsonObjectBuilder.set(JsonFields.ADDRESS_METRICS, addressMetrics.entrySet().stream()
-                .map(e -> ImmutableAddressMetric.toJsonField(e.getKey(), e.getValue()))
-                .collect(JsonCollectors.fieldsToObject()), predicate);
+        jsonObjectBuilder.set(JsonFields.ADDRESS_METRICS, addressMetrics.isEmpty() ? JsonFactory.nullObject() :
+                addressMetricsToJson(), predicate);
         return jsonObjectBuilder.build();
+    }
+
+    private JsonObject addressMetricsToJson() {
+        return addressMetrics.entrySet().stream()
+                .map(e -> ImmutableAddressMetric.toJsonField(e.getKey(), e.getValue()))
+                .collect(JsonCollectors.fieldsToObject());
     }
 
     /**
@@ -86,8 +91,12 @@ final class ImmutableTargetMetrics implements TargetMetrics {
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) {return true;}
-        if (!(o instanceof ImmutableTargetMetrics)) {return false;}
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof ImmutableTargetMetrics)) {
+            return false;
+        }
         final ImmutableTargetMetrics that = (ImmutableTargetMetrics) o;
         return Objects.equals(addressMetrics, that.addressMetrics);
     }
