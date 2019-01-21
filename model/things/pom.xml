@@ -37,10 +37,6 @@
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-model-policies</artifactId>
-        </dependency>
     </dependencies>
 
     <build>
@@ -86,6 +82,9 @@
                 <configuration>
                     <parameter>
                         <excludes>
+                            <exclude>org.eclipse.ditto.model.things.Thing#NAMESPACE_PREFIX_REGEX</exclude>
+                            <exclude>org.eclipse.ditto.model.things.Thing#ID_NON_NAMESPACE_REGEX</exclude>
+                            <exclude>org.eclipse.ditto.model.things.Thing#ID_REGEX</exclude>
                         </excludes>
                     </parameter>
                 </configuration>
@@ -98,7 +97,8 @@
                     <execution>
                         <id>produce-json-examples</id>
                         <configuration>
-                            <mainClass>org.eclipse.ditto.model.things.examplejson.ThingModelJsonExamplesProducer</mainClass>
+                            <mainClass>org.eclipse.ditto.model.things.examplejson.ThingModelJsonExamplesProducer
+                            </mainClass>
                         </configuration>
                     </execution>
                 </executions>

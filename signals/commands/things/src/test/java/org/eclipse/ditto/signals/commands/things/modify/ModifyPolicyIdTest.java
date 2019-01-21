@@ -19,7 +19,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
+import org.eclipse.ditto.model.things.ThingPolicyIdInvalidException;
+import org.eclipse.ditto.model.things.ThingPolicyIdValidator;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
@@ -59,7 +60,7 @@ public final class ModifyPolicyIdTest {
     @SuppressWarnings("ConstantConditions")
     @Test
     public void tryToCreateInstanceWithNullPolicyId() {
-        assertThatExceptionOfType(PolicyIdInvalidException.class)
+        assertThatExceptionOfType(ThingPolicyIdInvalidException.class)
                 .isThrownBy(() -> ModifyPolicyId.of(TestConstants.Thing.THING_ID, null, DittoHeaders.empty()))
                 .withNoCause();
     }

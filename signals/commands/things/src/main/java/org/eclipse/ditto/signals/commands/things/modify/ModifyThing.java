@@ -28,11 +28,11 @@ import org.eclipse.ditto.model.base.common.Placeholders;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.policies.PolicyIdValidator;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclNotAllowedException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingIdValidator;
+import org.eclipse.ditto.model.things.ThingPolicyIdValidator;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
@@ -93,7 +93,7 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
         super(TYPE, dittoHeaders);
         ThingIdValidator.getInstance().accept(thingId, dittoHeaders);
         if (policyIdOrPlaceholder != null && !Placeholders.containsAnyPlaceholder(policyIdOrPlaceholder)) {
-            PolicyIdValidator.getInstance().accept(policyIdOrPlaceholder, dittoHeaders);
+            ThingPolicyIdValidator.getInstance().accept(policyIdOrPlaceholder, dittoHeaders);
         }
         this.thingId = thingId;
         this.thing = thing;

@@ -35,7 +35,6 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -173,7 +172,7 @@ public final class ImmutableThingTest {
     @Test
     public void createThingWithInvalidPolicyId() {
         final String invalidPolicyId = "namespace:";
-        assertThatExceptionOfType(PolicyIdInvalidException.class).isThrownBy(() -> {
+        assertThatExceptionOfType(ThingPolicyIdInvalidException.class).isThrownBy(() -> {
             ImmutableThing.of(
                     THING_ID,
                     invalidPolicyId,
@@ -199,7 +198,7 @@ public final class ImmutableThingTest {
                 REVISION,
                 MODIFIED);
 
-        assertThatExceptionOfType(PolicyIdInvalidException.class).isThrownBy(() -> thing.setPolicyId(invalidPolicyId));
+        assertThatExceptionOfType(ThingPolicyIdInvalidException.class).isThrownBy(() -> thing.setPolicyId(invalidPolicyId));
     }
 
     @Test

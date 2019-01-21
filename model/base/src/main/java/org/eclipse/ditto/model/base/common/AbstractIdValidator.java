@@ -48,12 +48,12 @@ public abstract class AbstractIdValidator implements BiConsumer<CharSequence, Di
         checkNotNull(dittoHeaders, "Ditto Headers");
         final IdValidator idValidator = IdValidator.newInstance(id, idRegex);
         if (!idValidator.isValid()) {
-            final DittoRuntimeExceptionBuilder builder = createBuilder(id).dittoHeaders(dittoHeaders);
+            final DittoRuntimeExceptionBuilder builder = createExceptionBuilder(id).dittoHeaders(dittoHeaders);
             idValidator.getReason().ifPresent(builder::message);
             throw builder.build();
         }
     }
 
-    protected abstract DittoRuntimeExceptionBuilder createBuilder(@Nullable CharSequence id);
+    protected abstract DittoRuntimeExceptionBuilder createExceptionBuilder(@Nullable CharSequence id);
 
 }

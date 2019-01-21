@@ -16,25 +16,26 @@ import org.eclipse.ditto.model.base.common.EntityIdValidator;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 
 /**
- * Validates an ID against {@link Thing#ID_REGEX}. If the ID is invalid a {@link ThingIdInvalidException} is thrown.
+ * Validates the id of a policy.
+ * If the ID is invalid a {@link org.eclipse.ditto.model.things.ThingPolicyIdInvalidException} is thrown.
  */
 @Immutable
-public final class ThingIdValidator extends EntityIdValidator {
+public final class ThingPolicyIdValidator extends EntityIdValidator {
 
-    private ThingIdValidator() { }
+    private ThingPolicyIdValidator() { }
 
     /**
      * Returns a {@code ThingIdValidator} instance.
      *
      * @return the ThingIdValidator.
      */
-    public static ThingIdValidator getInstance() {
-        return new ThingIdValidator();
+    public static ThingPolicyIdValidator getInstance() {
+        return new ThingPolicyIdValidator();
     }
 
     @Override
     protected DittoRuntimeExceptionBuilder createExceptionBuilder(final CharSequence id) {
-        return ThingIdInvalidException.newBuilder(id);
+        return ThingPolicyIdInvalidException.newBuilder(id);
     }
 
 }

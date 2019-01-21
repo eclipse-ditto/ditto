@@ -31,7 +31,6 @@ import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.policies.PolicyIdValidator;
 
 /**
  * Representation of one Thing within Ditto.
@@ -73,7 +72,7 @@ final class ImmutableThing implements Thing {
         this.acl = acl;
 
         if (policyId != null) {
-            PolicyIdValidator.getInstance().accept(policyId, DittoHeaders.empty());
+            ThingPolicyIdValidator.getInstance().accept(policyId, DittoHeaders.empty());
         }
 
         this.policyId = policyId;
