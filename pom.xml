@@ -658,6 +658,7 @@
                                     <thirdPartyFilename>NOTICE-THIRD-PARTY.md</thirdPartyFilename>
                                     <licenseMergesFile>${maven.multiModuleProjectDirectory}/legal/templates/licenses-merges-file
                                     </licenseMergesFile>
+                                    <excludedGroups>com\.lihaoyi.*</excludedGroups>
                                 </configuration>
                             </execution>
                         </executions>
@@ -688,6 +689,7 @@
                                     <fileTemplate>./legal/templates/third-party-file.ftl</fileTemplate>
                                     <thirdPartyFilename>NOTICE-THIRD-PARTY.md</thirdPartyFilename>
                                     <licenseMergesFile>./legal/templates/licenses-merges-file</licenseMergesFile>
+                                    <excludedGroups>com\.lihaoyi.*</excludedGroups>
                                 </configuration>
                             </execution>
                         </executions>

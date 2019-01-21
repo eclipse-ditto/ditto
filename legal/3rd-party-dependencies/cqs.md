@@ -6,6 +6,7 @@
 |---|---|---|---|
 |ch.qos.logback|logback-classic|1.2.3| [16306](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16306) |
 |ch.qos.logback|logback-core|1.2.3| [16305](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16305) |
+|com.ajjpj.simple-akka-downing|simple-akka-downing_2.12|0.9.2| [18601](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18601) |
 |com.chuusai|shapeless_2.12|2.3.2| [16295](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16295) |
 |com.eclipsesource.minimal-json|minimal-json|0.9.5| [16296](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16296) |
 |com.github.ben-manes.caffeine|caffeine|2.6.2| [16300](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16300) |
@@ -13,9 +14,8 @@
 |com.github.jnr|jnr-constants|0.9.9| [16302](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16302) |
 |com.github.jnr|jnr-ffi|2.1.7| [16303](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16303) |
 |com.github.jnr|jnr-x86asm|1.0.2| [16304](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16304) |
-|com.github.nscala-time|nscala-time_2.12|2.14.0| [16310](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16310) |
-|com.github.scullxbones|akka-persistence-mongo-casbah_2.12|2.0.9| [16312](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16312) |
-|com.github.scullxbones|akka-persistence-mongo-common_2.12|2.0.9| [16313](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16313) |
+|com.github.scullxbones|akka-persistence-mongo-common_2.12|2.2.2| [18708](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18708) |
+|com.github.scullxbones|akka-persistence-mongo-scala_2.12|2.2.2| [18709](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18709) |
 |com.lightbend.akka|akka-stream-alpakka-mqtt_2.12|0.20| [17357](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17357) |
 |com.lightbend.akka.discovery|akka-discovery_2.12|0.14.0| [16727](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16727) |
 |com.lightbend.akka.discovery|akka-discovery-dns_2.12|0.14.0| [16727](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16727) |
@@ -34,21 +34,20 @@
 |com.typesafe.akka|akka-http-spray-json_2.12|10.1.5| [16551](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16551) |
 |com.typesafe.akka|akka-parsing_2.12|10.1.5| [16551](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16551) |
 |com.typesafe.akka|akka-persistence_2.12|2.5.17| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
+|com.typesafe.akka|akka-persistence-query_2.12|2.5.17| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
 |com.typesafe.akka|akka-protobuf_2.12|2.5.17| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
 |com.typesafe.akka|akka-remote_2.12|2.5.17| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
 |com.typesafe.akka|akka-slf4j_2.12|2.5.17| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
 |com.typesafe.akka|akka-stream_2.12|2.5.17| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
-|com.typesafe|config|1.3.2| [14400](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14400) |
+|com.typesafe|config|1.3.3| [14400](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14400) |
 |com.typesafe|ssl-config-core_2.12|0.2.4| [16314](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16314) |
 |io.aeron|aeron-client|1.9.3| [16553](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16553) |
 |io.aeron|aeron-driver|1.9.3| [16552](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16552) |
-|io.dropwizard.metrics|metrics-core|3.1.2| [14465](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14465) |
-|io.dropwizard.metrics|metrics-healthchecks|3.1.2| [16317](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16317) |
 |io.jsonwebtoken|jjwt-api|0.10.1| [17097](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17097) |
 |io.jsonwebtoken|jjwt-impl|0.10.1| [17097](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17097) |
-|io.kamon|kamon-core_2.12|1.1.2 | [16740](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16740) |
-|io.kamon|kamon-prometheus_2.12|1.1.1 | [16742](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16742) |
-|io.kamon|kamon-system-metrics_2.12|1.0.0 | [16741](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16741) |
+|io.kamon|kamon-core_2.12|1.1.2| [16740](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16740) |
+|io.kamon|kamon-prometheus_2.12|1.1.1| [16742](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16742) |
+|io.kamon|kamon-system-metrics_2.12|1.0.0| [16741](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16741) |
 |io.netty|netty-buffer|4.1.27.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
 |io.netty|netty-codec-http|4.1.27.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
 |io.netty|netty-codec|4.1.27.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
@@ -59,11 +58,7 @@
 |io.netty|netty-transport-native-epoll|linux-x86_64| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
 |io.netty|netty-transport-native-kqueue|osx-x86_64| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
 |io.netty|netty-transport-native-unix-common|4.1.27.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
-|io.prometheus|simpleclient_common|0.4.0| [16949](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16949) |
-|io.prometheus|simpleclient_dropwizard|0.4.0| [16950](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16950) |
-|io.prometheus|simpleclient|0.4.0| [16948](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16948) |
 |io.spray|spray-json_2.12|1.3.3| [16555](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16555) |
-|joda-time|joda-time|2.9.4| [14468](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14468) |
 |nl.grons|metrics-scala_2.12|3.5.5_a2.4| [14491](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14491) |
 |org.agrona|agrona|0.9.18| [16554](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16554) |
 |org.apache.geronimo.specs|geronimo-jms_2.0_spec|1.0-alpha-2| [16327](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16327) |
@@ -71,18 +66,14 @@
 |org.apache.qpid|qpid-jms-client|0.36.0| [17532](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17532) |
 |org.eclipse.paho|org.eclipse.paho.client.mqttv3|1.2.0| not required as Eclipse project |
 |org.hdrhistogram|HdrHistogram|2.1.9| [14471](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14471) |
-|org.joda|joda-convert|1.2| [14472](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14472) |
 |org.lmdbjava|lmdbjava|0.6.1| [16336](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16336) |
-|org.mongodb|bson|3.6.3| [16349](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16349) |
-|org.mongodb|casbah_2.12|3.1.1| not required as only "pom" packaging |
-|org.mongodb|casbah-commons_2.12|3.1.1| [16337](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16337) |
-|org.mongodb|casbah-core_2.12|3.1.1| [16338](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16338) |
-|org.mongodb|casbah-gridfs_2.12|3.1.1| [16339](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16339) |
-|org.mongodb|casbah-query_2.12|3.1.1| [16340](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16340) |
-|org.mongodb|mongodb-driver-async|3.6.3| [16349](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16349) |
-|org.mongodb|mongodb-driver-core|3.6.3| [16349](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16349) |
-|org.mongodb|mongodb-driver-reactivestreams|1.7.1| [16350](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16350) |
-|org.mongodb|mongo-java-driver|3.6.3| [16349](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16349) |
+|org.mongodb|bson|3.8.2| [18673](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18673) |
+|org.mongodb|mongodb-driver-async|3.8.2| [18673](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18673) |
+|org.mongodb|mongodb-driver-core|3.8.2| [18673](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18673) |
+|org.mongodb|mongodb-driver-reactivestreams|1.9.2| [18674](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18674) |
+|org.mongodb|mongo-java-driver|3.8.2| [18673](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18673) |
+|org.mongodb.scala|mongo-scala-bson_2.12|2.4.2| [18675](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18675) |
+|org.mongodb.scala|mongo-scala-driver_2.12|2.4.2| [18675](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18675) |
 |org.mozilla|rhino|1.7.10| [16320](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16320) |
 |org.ow2.asm|asm-analysis|5.2| [16321](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16321) |
 |org.ow2.asm|asm-commons|5.2| [16322](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16322) |
@@ -94,6 +85,7 @@
 |org.scala-lang.modules|scala-java8-compat_2.12|0.8.0| [14402](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14402) |
 |org.scala-lang.modules|scala-parser-combinators_2.12|1.1.0| [16341](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16341) |
 |org.scala-lang|scala-library|2.12.6| [16335](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16335) |
+|org.scala-lang|scala-reflect|2.12.6| [18676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18676) |
 |org.slf4j|slf4j-api|1.7.25| [14404](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14404) |
 |org.typelevel|macro-compat_2.12|1.1.1| [16326](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16326) |
 |org.webjars.npm|bytebuffer|5.0.1| [16728](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16728) |
@@ -107,7 +99,6 @@
 |com.github.dnvriend|akka-persistence-inmemory_2.12|2.5.1.1| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |commons-io|commons-io|2.4| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |com.typesafe.akka|akka-http-testkit_2.12|10.1.5| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
-|com.typesafe.akka|akka-persistence-query_2.12|2.5.17| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |com.typesafe.akka|akka-stream-testkit_2.12|2.5.17| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |com.typesafe.akka|akka-testkit_2.12|2.5.17| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |de.flapdoodle.embed|de.flapdoodle.embed.mongo|2.0.0| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
@@ -134,7 +125,6 @@
 |org.openjdk.jmh|jmh-generator-annprocess|1.4.1| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.scalactic|scalactic_2.12|3.0.0| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.scala-lang.modules|scala-xml_2.12|1.0.5| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
-|org.scala-lang|scala-reflect|2.12.0| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.scalatest|scalatest_2.12|3.0.0| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.scalaz|scalaz-core_2.12|7.2.12| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.skyscreamer|jsonassert|1.2.3| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
@@ -162,3 +152,25 @@
 |org.codehaus.mojo|versions-maven-plugin|2.5| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.jacoco|jacoco-maven-plugin|0.8.0| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.sonatype.plugins|port-allocator-maven-plugin|1.2| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
+
+## To be removed from CQ list
+
+Manual step by sending mail to Eclipse IP team - this is a collection of dependencies to undeclare again:
+
+| Group ID  | Artifact ID  | Version  | CQ |
+|---|---|---|---|
+|com.github.nscala-time|nscala-time_2.12|2.14.0| [16310](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16310) |
+|com.github.scullxbones|akka-persistence-mongo-common_2.12|2.0.9| [16313](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16313) |
+|com.github.scullxbones|akka-persistence-mongo-casbah_2.12|2.0.9| [16312](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16312) |
+|io.dropwizard.metrics|metrics-core|3.1.2| [14465](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14465) |
+|io.dropwizard.metrics|metrics-healthchecks|3.1.2| [16317](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16317) |
+|io.prometheus|simpleclient_common|0.4.0| [16949](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16949) |
+|io.prometheus|simpleclient_dropwizard|0.4.0| [16950](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16950) |
+|io.prometheus|simpleclient|0.4.0| [16948](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16948) |
+|joda-time|joda-time|2.9.4| [14468](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14468) |
+|org.joda|joda-convert|1.2| [14472](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14472) |
+|org.mongodb|casbah_2.12|3.1.1| not required as only "pom" packaging |
+|org.mongodb|casbah-commons_2.12|3.1.1| [16337](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16337) |
+|org.mongodb|casbah-core_2.12|3.1.1| [16338](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16338) |
+|org.mongodb|casbah-gridfs_2.12|3.1.1| [16339](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16339) |
+|org.mongodb|casbah-query_2.12|3.1.1| [16340](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16340) |

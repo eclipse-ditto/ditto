@@ -1,0 +1,78 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ditto
+spec:
+  clusterIP: None
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app: nginx
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: nginx
+spec:
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: registry.access.redhat.com/rhscl/nginx-114-rhel7
+        command: ["/opt/rh/rh-nginx114/root/usr/sbin/nginx"]
+        args: ["-g", "daemon off;"]
+        volumeMounts:
+        - name: nginx-conf
+          mountPath: /etc/opt/rh/rh-nginx114/nginx/nginx.conf
+          subPath: nginx.conf
+        - name: nginx-htpasswd
+          mountPath: /opt/app-root/etc/nginx.default.d/nginx.htpasswd
+          subPath: nginx.htpasswd
+        - name: nginx-cors
+          mountPath: /opt/app-root/etc/nginx.default.d/nginx-cors.conf
+          subPath: nginx-cors.conf
+        - name: nginx-index
+          mountPath: /opt/rh/rh-nginx114/root/usr/share/nginx/html/index.html
+          subPath: index.html
+        resources:
+          requests:
+            cpu: "0.1"
+            memory: "200Mi"
+          limits:
+            cpu: "0.5"
+            memory: "500Mi"
+      volumes:
+      - name: nginx-conf
+        configMap:
+          name: nginx-conf
+      - name: nginx-htpasswd
+        configMap:
+          name: nginx-htpasswd
+      - name: nginx-cors
+        configMap:
+          name: nginx-cors
+      - name: nginx-index
+        configMap:
+          name: nginx-index
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: ditto
+spec:
+  host: ditto-digitaltwins.eclipse.com
+  path: /
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  to:
+    kind: Service
+    name: ditto
+    weight: 100
+  wildcardPolicy: None

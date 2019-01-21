@@ -31,7 +31,7 @@ import com.github.benmanes.caffeine.cache.stats.StatsCounter;
 
 /**
  * <p>
- * A caffeine {@link StatsCounter} implementation for Dropwizard Metrics.
+ * A caffeine {@link StatsCounter} implementation for Ditto Metrics.
  * </p>
  * <p>
  * Inspired by <a href="https://github.com/ben-manes/caffeine/blob/master/examples/stats-metrics">Caffeine examples</a>.

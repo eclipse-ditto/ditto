@@ -63,7 +63,7 @@ public interface Thing extends Entity<ThingRevision> {
      * <a href="http://www.ietf.org/rfc/rfc2396.txt">RFC-2396</a>.
      */
     String ID_NON_NAMESPACE_REGEX =
-            "(?<id>|(?:[-\\w:@&=+,.!~*'_;]|%\\p{XDigit}{2})(?:[-\\w:@&=+,.!~*'$_;]|%\\p{XDigit}{2})*+)";
+            "(?<id>(?:[-\\w:@&=+,.!~*'_;]|%\\p{XDigit}{2})(?:[-\\w:@&=+,.!~*'$_;]|%\\p{XDigit}{2})*+)";
 
     /**
      * The regex pattern a Thing ID has to conform to. Combines "namespace" pattern (java package notation + a

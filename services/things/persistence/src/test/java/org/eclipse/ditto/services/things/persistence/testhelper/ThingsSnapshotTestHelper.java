@@ -21,7 +21,8 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import com.mongodb.DBObject;
+import org.bson.BsonDocument;
+
 import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
@@ -47,7 +48,7 @@ public final class ThingsSnapshotTestHelper<S> {
     private static final int WAIT_TIMEOUT = 3;
 
     private final Function<String, String> domainIdToPersistenceId;
-    private final BiFunction<DBObject, Long, S> snapshotToDomainObject;
+    private final BiFunction<BsonDocument, Long, S> snapshotToDomainObject;
     private final ActorRef snapshotPlugin;
 
     /**
@@ -60,7 +61,7 @@ public final class ThingsSnapshotTestHelper<S> {
      * ID
      */
     public ThingsSnapshotTestHelper(final ActorSystem actorSystem,
-            final BiFunction<DBObject, Long, S> snapshotToDomainObject,
+            final BiFunction<BsonDocument, Long, S> snapshotToDomainObject,
             final Function<String, String> domainIdToPersistenceId) {
         this.snapshotToDomainObject = requireNonNull(snapshotToDomainObject);
         this.domainIdToPersistenceId = requireNonNull(domainIdToPersistenceId);
@@ -108,7 +109,7 @@ public final class ThingsSnapshotTestHelper<S> {
     }
 
     private S convertSnapshotDataToDomainObject(final SelectedSnapshot snapshotData) {
-        final DBObject dbObject = (DBObject) snapshotData.snapshot();
+        final BsonDocument dbObject = (BsonDocument) snapshotData.snapshot();
         return snapshotToDomainObject.apply(dbObject, snapshotData.metadata().sequenceNr());
     }
 

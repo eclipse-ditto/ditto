@@ -29,7 +29,6 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.services.base.config.LimitsConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.base.config.SuffixBuilderConfigReader;
-import org.eclipse.ditto.services.utils.cluster.ClusterMemberAwareActor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
 import org.eclipse.ditto.services.utils.devops.LogbackLoggingFacade;
@@ -73,10 +72,8 @@ import kamon.system.SystemMetrics;
  * <li>{@link #determineConfig()},</li>
  * <li>{@link #createActorSystem(Config)},</li>
  * <li>{@link #startStatusSupplierActor(ActorSystem, Config)},</li>
- * <li>{@link #startClusterMemberAwareActor(ActorSystem, ServiceConfigReader)} and</li>
  * <li>{@link #startServiceRootActors(ActorSystem, ServiceConfigReader)}.
  * <ol>
- * <li>{@link #addDropwizardMetricRegistries(ActorSystem, ServiceConfigReader)},</li>
  * <li>{@link #getMainRootActorProps(ServiceConfigReader, ActorRef, ActorMaterializer)},</li>
  * <li>{@link #startMainRootActor(ActorSystem, Props)},</li>
  * <li>{@link #getAdditionalRootActorsInformation(ServiceConfigReader, ActorRef, ActorMaterializer)} and</li>
@@ -199,7 +196,6 @@ public abstract class DittoService<C extends ServiceConfigReader> {
      * <li>{@link #determineConfig()},</li>
      * <li>{@link #createActorSystem(Config)},</li>
      * <li>{@link #startStatusSupplierActor(ActorSystem, Config)},</li>
-     * <li>{@link #startClusterMemberAwareActor(ActorSystem, ServiceConfigReader)} and</li>
      * <li>{@link #startServiceRootActors(ActorSystem, ServiceConfigReader)}.</li>
      * </ul>
      */
@@ -209,7 +205,6 @@ public abstract class DittoService<C extends ServiceConfigReader> {
 
         startStatusSupplierActor(actorSystem, config);
         startDevOpsCommandsActor(actorSystem, config);
-        startClusterMemberAwareActor(actorSystem, configReader);
         startServiceRootActors(actorSystem, configReader);
 
         CoordinatedShutdown.get(actorSystem).addTask(
@@ -306,33 +301,12 @@ public abstract class DittoService<C extends ServiceConfigReader> {
     }
 
     /**
-     * Starts the {@link ClusterMemberAwareActor}. May be overridden to change the way how the actor is started.
-     *
-     * @param actorSystem Akka actor system for starting actors.
-     * @param configReader the config reader of this service.
-     */
-    protected void startClusterMemberAwareActor(final ActorSystem actorSystem, final C configReader) {
-        startActor(actorSystem, ClusterMemberAwareActor.props(serviceName, isMajorityCheckEnabled(configReader),
-                getMajorityCheckDelay(configReader)), ClusterMemberAwareActor.ACTOR_NAME);
-    }
-
-    private boolean isMajorityCheckEnabled(final ServiceConfigReader configReader) {
-        return configReader.cluster().majorityCheckEnabled();
-
-    }
-
-    private Duration getMajorityCheckDelay(final ServiceConfigReader configReader) {
-        return configReader.cluster().majorityCheckDelay();
-    }
-
-    /**
      * Starts the root actor(s) of this service.
      * <p>
      * May be overridden to change the way how the root actor(s) of this service are started. <em>Note: If this method
      * is overridden, the following methods will not be called automatically:</em>
      * </p>
      * <ul>
-     * <li>{@link #addDropwizardMetricRegistries(ActorSystem, ServiceConfigReader)},</li>
      * <li>{@link #getMainRootActorProps(ServiceConfigReader, ActorRef, ActorMaterializer)},</li>
      * <li>{@link #startMainRootActor(ActorSystem, Props)},</li>
      * <li>{@link #getAdditionalRootActorsInformation(ServiceConfigReader, ActorRef, ActorMaterializer)} and</li>
@@ -348,8 +322,6 @@ public abstract class DittoService<C extends ServiceConfigReader> {
         Cluster.get(actorSystem).registerOnMemberUp(() -> {
             logger.info("Member successfully joined the cluster, instantiating remaining actors.");
 
-            addDropwizardMetricRegistries(actorSystem, configReader);
-
             final ActorRef pubSubMediator = getDistributedPubSubMediatorActor(actorSystem);
             final ActorMaterializer materializer = createActorMaterializer(actorSystem);
 
@@ -359,16 +331,6 @@ public abstract class DittoService<C extends ServiceConfigReader> {
             startAdditionalRootActors(actorSystem, getAdditionalRootActorsInformation(configReader, pubSubMediator,
                     materializer));
         });
-    }
-
-    /**
-     * May be overridden to add custom dropwizard metric registries. <em>The base implementation does nothing.</em>
-     *
-     * @param actorSystem Akka actor system for starting actors.
-     * @param configReader the configuration reader of this service.
-     */
-    protected void addDropwizardMetricRegistries(final ActorSystem actorSystem, final C configReader) {
-        // Does nothing by default.
     }
 
     /**
