@@ -36,15 +36,16 @@ public enum MetricType {
      */
     MAPPED("mapped", MetricDirection.INBOUND, MetricDirection.OUTBOUND),
 
-    /**
-     * Counts messages published to external systems.
-     */
-    PUBLISHED("published", MetricDirection.OUTBOUND),
 
     /**
      * Counts messages that were dropped (not published by intention e.g. because no reply-to address was given).
      */
-    DROPPED("dropped", MetricDirection.INBOUND, MetricDirection.OUTBOUND);
+    DROPPED("dropped", MetricDirection.INBOUND, MetricDirection.OUTBOUND),
+
+    /**
+     * Counts messages published to external systems.
+     */
+    PUBLISHED("published", MetricDirection.OUTBOUND);
 
     private final String name;
     private final List<MetricDirection> possibleMetricDirections;
