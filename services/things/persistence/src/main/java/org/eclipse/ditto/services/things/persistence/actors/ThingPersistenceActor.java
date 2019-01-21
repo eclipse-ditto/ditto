@@ -107,6 +107,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     private Cancellable activityChecker;
     private Thing thing;
 
+    private int firstMessageCounter = 0;
+
     ThingPersistenceActor(final String thingId, final ActorRef pubSubMediator,
             final ThingSnapshotter.Create thingSnapshotterCreate) {
 
@@ -129,7 +131,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         final Runnable becomeDeletedRunnable = this::becomeThingDeletedHandler;
         defaultContext =
                 DefaultContext.getInstance(thingId, log, thingSnapshotter, becomeCreatedRunnable,
-                        becomeDeletedRunnable);
+                        becomeDeletedRunnable, this::stopThisActor, this::isFirstMessage);
 
         handleThingEvents = ReceiveBuilder.create()
                 .match(ThingEvent.class, event -> {
@@ -217,6 +219,10 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         return thingId;
     }
 
+    private boolean isFirstMessage() {
+        return firstMessageCounter <= 1;
+    }
+
     private void scheduleCheckForThingActivity(final long intervalInSeconds) {
         log.debug("Scheduling for Activity Check in <{}> seconds.", intervalInSeconds);
         // if there is a previous activity checker, cancel it
@@ -273,16 +279,13 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         return new StrategyAwareReceiveBuilder(receiveBuilder, log)
                 .match(new CheckForActivityStrategy())
                 .matchAny(new MatchAnyDuringInitializeStrategy())
-                .setPeekConsumer(getIncomingMessagesLoggerOrNull())
+                .setPeekConsumer(getPeekConsumer())
                 .build();
     }
 
     @Nullable
-    private Consumer<Object> getIncomingMessagesLoggerOrNull() {
-        if (isLogIncomingMessages()) {
-            return new LogIncomingMessagesConsumer();
-        }
-        return null;
+    private Consumer<Object> getPeekConsumer() {
+        return new PeekConsumer(isLogIncomingMessages());
     }
 
     @Override
@@ -304,7 +307,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
                 // # Recovery timeout
                 .match(RecoveryTimedOut.class, rto ->
-                    log.warning("RecoveryTimeout occurred during recovery for Thing with ID {}", thingId)
+                        log.warning("RecoveryTimeout occurred during recovery for Thing with ID {}", thingId)
                 )
                 // # Recovery handling
                 .match(RecoveryCompleted.class, rc -> {
@@ -385,7 +388,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 .matchEach(thingSnapshotter.strategies())
                 .match(new CheckForActivityStrategy())
                 .matchAny(new ThingNotFoundStrategy())
-                .setPeekConsumer(getIncomingMessagesLoggerOrNull())
+                .setPeekConsumer(getPeekConsumer())
                 .build();
 
         getContext().become(receive, true);
@@ -510,6 +513,29 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 config.getBoolean(ConfigKeys.THINGS_LOG_INCOMING_MESSAGES);
     }
 
+    // stop the supervisor (otherwise it'd restart this actor) which causes this actor to stop, too.
+    private void stopThisActor() {
+        getContext().getParent().tell(PoisonPill.getInstance(), getSelf());
+    }
+
+    /**
+     * This consumer sets firstMessageCounter and calls other peek consumers as needed.
+     */
+    private final class PeekConsumer implements Consumer<Object> {
+
+        private final Consumer<Object> furtherConsumers;
+
+        private PeekConsumer(final boolean logIncomingMessages) {
+            furtherConsumers = logIncomingMessages ? new LogIncomingMessagesConsumer() : object -> {};
+        }
+
+        @Override
+        public void accept(final Object o) {
+            firstMessageCounter = Math.min(2, firstMessageCounter + 1);
+            furtherConsumers.accept(o);
+        }
+    }
+
     /**
      * This consumer logs the correlation ID, the thing ID as well as the type of any incoming message.
      */
@@ -632,8 +658,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
         private void shutdown(final String shutdownLogTemplate, final String thingId) {
             log.debug(shutdownLogTemplate, thingId);
-            // stop the supervisor (otherwise it'd restart this actor) which causes this actor to stop, too.
-            getContext().getParent().tell(PoisonPill.getInstance(), getSelf());
+            stopThisActor();
         }
 
     }

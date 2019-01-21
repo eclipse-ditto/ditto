@@ -64,6 +64,10 @@ final class ResultFactory {
         return new InfoResult<>(command, completeThing, response, eTagEntityProvider);
     }
 
+    static CommandStrategy.Result newSudoRetrieveThingResult(final WithDittoHeaders response) {
+        return new SudoRetrieveThingResult(response);
+    }
+
     static CommandStrategy.Result emptyResult() {
         return EmptyResult.INSTANCE;
     }
@@ -199,6 +203,35 @@ final class ResultFactory {
                     ", response=" + response +
                     ", completeThing=" + completeThing +
                     ", eTagEntityProvider=" + eTagEntityProvider +
+                    ']';
+        }
+    }
+
+    private static final class SudoRetrieveThingResult implements CommandStrategy.Result {
+
+        private final WithDittoHeaders response;
+
+        private SudoRetrieveThingResult(final WithDittoHeaders response) {
+            this.response = response;
+        }
+
+        @Override
+        public void apply(final CommandStrategy.Context context,
+                final BiConsumer<ThingModifiedEvent, BiConsumer<ThingModifiedEvent, Thing>> persistConsumer,
+                final Consumer<WithDittoHeaders> notifyConsumer) {
+
+            notifyConsumer.accept(response);
+
+            // actor woke up due to SudoRetrieveThing; stop it
+            if (context.isFirstMessage()) {
+                context.getStopThisActorRunnable().run();
+            }
+        }
+
+        @Override
+        public String toString() {
+            return this.getClass().getSimpleName() + " [" +
+                    "response=" + response +
                     ']';
         }
     }

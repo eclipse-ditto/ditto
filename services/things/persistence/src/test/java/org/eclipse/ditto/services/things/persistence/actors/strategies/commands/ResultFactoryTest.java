@@ -119,7 +119,7 @@ public final class ResultFactoryTest {
         final ThingSnapshotter snapshotter = mock(ThingSnapshotter.class);
 
         return DefaultContext.getInstance("org.example:my-thing", log, snapshotter,
-                mock(Runnable.class), mock(Runnable.class));
+                mock(Runnable.class), mock(Runnable.class), () -> {}, () -> false);
     }
 
     interface Dummy {
