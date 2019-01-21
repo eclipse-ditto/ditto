@@ -41,6 +41,7 @@ import akka.japi.Creator;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.PatternsCS;
+import akka.stream.DelayOverflowStrategy;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -179,7 +180,13 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
         activityCheck = scheduleActivityCheck(streamConsumerSettings);
         lastStreamStartOrStop = Instant.now();
 
-        computeAndScheduleNextStreamTrigger(null);
+        // schedule first stream after delay
+        PatternsCS.pipe(
+                computeNextStreamTriggerSource(null)
+                        .delay(streamConsumerSettings.getStreamInterval(), DelayOverflowStrategy.backpressure())
+                        .runWith(Sink.head(), materializer),
+                getContext().dispatcher()
+        ).to(getSelf());
     }
 
     /**
@@ -328,6 +335,11 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
     }
 
     private CompletionStage<StreamTrigger> computeNextStreamTrigger(@Nullable final Instant lastSuccessfulQueryEnd) {
+        return computeNextStreamTriggerSource(lastSuccessfulQueryEnd).runWith(Sink.head(), materializer);
+    }
+
+    private Source<StreamTrigger, NotUsed> computeNextStreamTriggerSource(
+            @Nullable final Instant lastSuccessfulQueryEnd) {
         final Instant now = Instant.now();
 
         final Source<Instant, NotUsed> queryStartSource;
@@ -359,7 +371,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
                     return StreamTrigger.calculateStreamTrigger(now, queryStart, startOffset, streamInterval);
                 });
 
-        return triggerSource.runWith(Sink.head(), materializer);
+        return triggerSource;
     }
 
     private void scheduleStream(final StreamTrigger streamTrigger) {
