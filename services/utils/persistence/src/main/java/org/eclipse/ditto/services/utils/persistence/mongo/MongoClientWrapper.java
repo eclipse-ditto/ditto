@@ -16,6 +16,7 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
@@ -23,6 +24,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import javax.net.ssl.SSLContext;
 
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.eclipse.ditto.services.utils.config.MongoConfig;
 import org.reactivestreams.Publisher;
 
@@ -40,12 +42,13 @@ import com.mongodb.connection.netty.NettyStreamFactoryFactory;
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;
 import com.mongodb.management.JMXConnectionPoolListener;
+import com.mongodb.reactivestreams.client.ChangeStreamPublisher;
+import com.mongodb.reactivestreams.client.ClientSession;
 import com.mongodb.reactivestreams.client.ListDatabasesPublisher;
 import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoClients;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
-import com.mongodb.session.ClientSession;
 import com.typesafe.config.Config;
 
 import io.netty.channel.EventLoopGroup;
@@ -150,7 +153,7 @@ public final class MongoClientWrapper implements DittoMongoClient {
 
     @Override
     public ListDatabasesPublisher<Document> listDatabases(final ClientSession clientSession) {
-        return mongoClient.listDatabases(clientSession);
+        return listDatabases(clientSession);
     }
 
     @Override
@@ -161,13 +164,67 @@ public final class MongoClientWrapper implements DittoMongoClient {
     }
 
     @Override
+    public ChangeStreamPublisher<Document> watch() {
+        return mongoClient.watch();
+    }
+
+    @Override
+    public <TResult> ChangeStreamPublisher<TResult> watch(final Class<TResult> tResultClass) {
+        return mongoClient.watch(tResultClass);
+    }
+
+    @Override
+    public ChangeStreamPublisher<Document> watch(final List<? extends Bson> pipeline) {
+        return mongoClient.watch(pipeline);
+    }
+
+    @Override
+    public <TResult> ChangeStreamPublisher<TResult> watch(final List<? extends Bson> pipeline,
+            final Class<TResult> tResultClass) {
+
+        return mongoClient.watch(pipeline, tResultClass);
+    }
+
+    @Override
+    public ChangeStreamPublisher<Document> watch(final ClientSession clientSession) {
+        return mongoClient.watch(clientSession);
+    }
+
+    @Override
+    public <TResult> ChangeStreamPublisher<TResult> watch(final ClientSession clientSession,
+            final Class<TResult> tResultClass) {
+
+        return mongoClient.watch(clientSession, tResultClass);
+    }
+
+    @Override
+    public ChangeStreamPublisher<Document> watch(final ClientSession clientSession,
+            final List<? extends Bson> pipeline) {
+
+        return mongoClient.watch(clientSession, pipeline);
+    }
+
+    @Override
+    public <TResult> ChangeStreamPublisher<TResult> watch(final ClientSession clientSession,
+            final List<? extends Bson> pipeline, final Class<TResult> tResultClass) {
+
+        return mongoClient.watch(clientSession, pipeline, tResultClass);
+    }
+
+    @Override
+    public Publisher<ClientSession> startSession() {
+        return mongoClient.startSession();
+    }
+
+    @Override
     public Publisher<ClientSession> startSession(final ClientSessionOptions options) {
         return mongoClient.startSession(options);
     }
 
+
     @Override
     public void close() {
-        if (eventLoopGroup != null) {
+        if (null != eventLoopGroup) {
             eventLoopGroup.shutdownGracefully();
         }
         mongoClient.close();

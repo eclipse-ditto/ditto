@@ -133,7 +133,7 @@ public final class RouteFactory {
      * @return the route.
      */
     public OverallStatusRoute newOverallStatusRoute() {
-        return new OverallStatusRoute(actorSystem, clusterStateSupplier, healthCheckingActor, statusAndHealthProvider);
+        return new OverallStatusRoute(clusterStateSupplier, statusAndHealthProvider);
     }
 
     /**

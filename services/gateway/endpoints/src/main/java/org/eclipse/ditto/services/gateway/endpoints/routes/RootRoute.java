@@ -28,12 +28,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -390,8 +390,8 @@ public final class RootRoute {
     private static ExceptionHandler createExceptionHandler() {
         return ExceptionHandler.newBuilder()
                 .match(DittoRuntimeException.class, cre -> {
-                    final Optional<String> correlationIdOpt = Optional.ofNullable(cre.getDittoHeaders())
-                    .flatMap(DittoHeaders::getCorrelationId);
+                    final DittoHeaders dittoHeaders = cre.getDittoHeaders();
+                    final Optional<String> correlationIdOpt = dittoHeaders.getCorrelationId();
                     if (!correlationIdOpt.isPresent()) {
                         LOGGER.warn("DittoHeaders / correlation-id was missing in DittoRuntimeException <{}>: {}",
                                 cre.getClass().getSimpleName(), cre.getMessage());
@@ -420,6 +420,7 @@ public final class RootRoute {
                 .build();
     }
 
+    @NotThreadSafe
     private static final class Builder implements RootRouteBuilder {
 
         private StatusRoute statusRoute;
@@ -449,7 +450,7 @@ public final class RootRoute {
 
         @Override
         public RootRouteBuilder statusRoute(final StatusRoute route) {
-            this.statusRoute = route;
+            statusRoute = route;
             return this;
         }
 
@@ -461,103 +462,103 @@ public final class RootRoute {
 
         @Override
         public RootRouteBuilder cachingHealthRoute(final CachingHealthRoute route) {
-            this.cachingHealthRoute = route;
+            cachingHealthRoute = route;
             return this;
         }
 
         @Override
         public RootRouteBuilder devopsRoute(final DevOpsRoute route) {
-            this.devopsRoute = route;
+            devopsRoute = route;
             return this;
         }
 
         @Override
         public RootRouteBuilder policiesRoute(final PoliciesRoute route) {
-            this.policiesRoute = route;
+            policiesRoute = route;
             return this;
         }
 
         @Override
         public RootRouteBuilder sseThingsRoute(final SseThingsRoute route) {
-            this.sseThingsRoute = route;
+            sseThingsRoute = route;
             return this;
         }
 
         @Override
         public RootRouteBuilder thingsRoute(final ThingsRoute route) {
-            this.thingsRoute = route;
+            thingsRoute = route;
             return this;
         }
 
         @Override
         public RootRouteBuilder thingSearchRoute(final ThingSearchRoute route) {
-            this.thingSearchRoute = route;
+            thingSearchRoute = route;
             return this;
         }
 
         @Override
         public RootRouteBuilder websocketRoute(final WebsocketRoute route) {
-            this.websocketRoute = route;
+            websocketRoute = route;
             return this;
         }
 
         @Override
         public RootRouteBuilder statsRoute(final StatsRoute route) {
-            this.statsRoute = route;
+            statsRoute = route;
             return this;
         }
 
         @Override
         public RootRouteBuilder customApiRoutesProvider(final CustomApiRoutesProvider provider) {
-            this.customApiRoutesProvider = provider;
+            customApiRoutesProvider = provider;
             return this;
         }
 
         @Override
         public RootRouteBuilder httpAuthenticationDirective(final GatewayAuthenticationDirective directive) {
-            this.httpAuthenticationDirective = directive;
+            httpAuthenticationDirective = directive;
             return this;
         }
 
         @Override
         public RootRouteBuilder wsAuthenticationDirective(final GatewayAuthenticationDirective directive) {
-            this.wsAuthenticationDirective = directive;
+            wsAuthenticationDirective = directive;
             return this;
         }
 
         @Override
         public RootRouteBuilder exceptionHandler(final ExceptionHandler handler) {
-            this.exceptionHandler = handler;
+            exceptionHandler = handler;
             return this;
         }
 
         @Override
         public RootRouteBuilder supportedSchemaVersions(final List<Integer> versions) {
-            this.supportedSchemaVersions = versions;
+            supportedSchemaVersions = versions;
             return this;
         }
 
         @Override
         public RootRouteBuilder protocolAdapterProvider(final ProtocolAdapterProvider provider) {
-            this.protocolAdapterProvider = provider;
+            protocolAdapterProvider = provider;
             return this;
         }
 
         @Override
         public RootRouteBuilder headerTranslator(final HeaderTranslator translator) {
-            this.headerTranslator = translator;
+            headerTranslator = translator;
             return this;
         }
 
         @Override
         public RootRouteBuilder customHeadersHandler(final CustomHeadersHandler handler) {
-            this.customHeadersHandler = handler;
+            customHeadersHandler = handler;
             return this;
         }
 
         @Override
         public RootRouteBuilder rejectionHandler(final RejectionHandler handler) {
-            this.rejectionHandler = handler;
+            rejectionHandler = handler;
             return this;
         }
 
