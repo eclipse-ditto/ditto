@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.model.things;
 
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FEATURES;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_ID;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES;
@@ -34,6 +35,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -166,6 +168,38 @@ public final class ImmutableThingTest {
                 .hasNoLifecycle()
                 .hasRevision(REVISION)
                 .hasModified(MODIFIED);
+    }
+
+    @Test
+    public void createThingWithInvalidPolicyId() {
+        final String invalidPolicyId = "namespace:";
+        assertThatExceptionOfType(PolicyIdInvalidException.class).isThrownBy(() -> {
+            ImmutableThing.of(
+                    THING_ID,
+                    invalidPolicyId,
+                    ATTRIBUTES,
+                    FEATURES,
+                    LIFECYCLE,
+                    REVISION,
+                    MODIFIED);
+        });
+    }
+
+    @Test
+    public void setInvalidPolicyId() {
+        final String validPolicyId = "namespace:name";
+        final String invalidPolicyId = "namespace:";
+
+        final Thing thing = ImmutableThing.of(
+                THING_ID,
+                validPolicyId,
+                ATTRIBUTES,
+                FEATURES,
+                LIFECYCLE,
+                REVISION,
+                MODIFIED);
+
+        assertThatExceptionOfType(PolicyIdInvalidException.class).isThrownBy(() -> thing.setPolicyId(invalidPolicyId));
     }
 
     @Test
