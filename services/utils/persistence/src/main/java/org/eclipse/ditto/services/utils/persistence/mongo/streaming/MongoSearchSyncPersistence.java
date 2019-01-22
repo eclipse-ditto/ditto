@@ -14,9 +14,6 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import javax.annotation.Nullable;
 
@@ -60,7 +57,7 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
      */
     private static final Logger LOGGER = LoggerFactory.getLogger(MongoSearchSyncPersistence.class);
     private final Materializer mat;
-    private final MongoCollection<Document> lastSuccessfulSearchSyncCollection;
+    private final CompletionStage<MongoCollection<Document>> lastSuccessfulSearchSyncCollection;
 
     /**
      * Constructor.
@@ -69,7 +66,8 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
      * stored.
      * @param mat the {@link Materializer} to be used for stream
      */
-    private MongoSearchSyncPersistence(final MongoCollection<Document> lastSuccessfulSearchSyncCollection,
+    private MongoSearchSyncPersistence(
+            final CompletionStage<MongoCollection<Document>> lastSuccessfulSearchSyncCollection,
             final Materializer mat) {
         this.mat = mat;
         this.lastSuccessfulSearchSyncCollection = lastSuccessfulSearchSyncCollection;
@@ -85,15 +83,14 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
      */
     public static MongoSearchSyncPersistence initializedInstance(final String collectionName,
             final MongoClientWrapper clientWrapper, final Materializer materializer) {
-        final MongoCollection<Document> lastSuccessfulSearchSyncCollection = createOrGetCappedCollection(
-                clientWrapper,
-                collectionName,
-                MIN_CAPPED_COLLECTION_SIZE_IN_BYTES,
-                BLOCKING_TIMEOUT_SECS,
-                materializer);
+        final CompletionStage<MongoCollection<Document>> lastSuccessfulSearchSyncCollection =
+                createOrGetCappedCollection(
+                        clientWrapper,
+                        collectionName,
+                        MIN_CAPPED_COLLECTION_SIZE_IN_BYTES,
+                        materializer);
         return new MongoSearchSyncPersistence(lastSuccessfulSearchSyncCollection, materializer);
     }
-
 
     @Override
     public Source<NotUsed, NotUsed> updateLastSuccessfulStreamEnd(final Instant timestamp) {
@@ -102,7 +99,8 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
         final Document toStore = new Document()
                 .append(FIELD_TIMESTAMP, mongoStorableDate);
 
-        return Source.fromPublisher(lastSuccessfulSearchSyncCollection.insertOne(toStore))
+        return Source.fromCompletionStage(lastSuccessfulSearchSyncCollection)
+                .flatMapConcat(collection -> Source.fromPublisher(collection.insertOne(toStore)))
                 .map(success -> {
                     LOGGER.debug("Successfully inserted timestamp for search synchronization: <{}>.", timestamp);
                     return NotUsed.getInstance();
@@ -114,8 +112,16 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
         return retrieveLastSuccessfulStreamEndAsync();
     }
 
+    /**
+     * @return the underlying collection in a future for tests
+     */
+    CompletionStage<MongoCollection<Document>> getCollection() {
+        return lastSuccessfulSearchSyncCollection;
+    }
+
     private Source<Optional<Instant>, NotUsed> retrieveLastSuccessfulStreamEndAsync() {
-        return Source.fromPublisher(lastSuccessfulSearchSyncCollection.find())
+        return Source.fromCompletionStage(lastSuccessfulSearchSyncCollection)
+                .flatMapConcat(collection -> Source.fromPublisher(collection.find()))
                 .limit(1)
                 .flatMapConcat(doc -> {
                     final Date date = doc.getDate(FIELD_TIMESTAMP);
@@ -132,52 +138,44 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
      * @param clientWrapper The client to use.
      * @param collectionName The name of the capped collection that should be created.
      * @param cappedCollectionSizeInBytes The size in bytes of the collection that should be created.
-     * @param createTimeoutSeconds How long to wait for success of the create operation.
-     * @param materializer The {@link akka.stream.Materializer} to be used for streams
+     * @param materializer The actor materializer to be used for streams
      * @return Returns the created or retrieved collection.
      */
-    private static MongoCollection<Document> createOrGetCappedCollection(
+    private static CompletionStage<MongoCollection<Document>> createOrGetCappedCollection(
             final MongoClientWrapper clientWrapper,
             final String collectionName,
             final long cappedCollectionSizeInBytes,
-            final long createTimeoutSeconds,
             final Materializer materializer) {
-        createCappedCollectionIfItDoesNotExist(clientWrapper, collectionName, cappedCollectionSizeInBytes,
-                createTimeoutSeconds, materializer);
-        return clientWrapper
-                .getDatabase()
-                .getCollection(collectionName);
+        final CompletionStage<Success> createCollectionFuture =
+                createCappedCollectionIfItDoesNotExist(clientWrapper, collectionName, cappedCollectionSizeInBytes,
+                        materializer);
+        return createCollectionFuture.thenApply(success -> clientWrapper.getDatabase().getCollection(collectionName));
     }
 
-    private static void createCappedCollectionIfItDoesNotExist(
+    private static CompletionStage<Success> createCappedCollectionIfItDoesNotExist(
             final MongoClientWrapper clientWrapper,
             final String collectionName,
             final long cappedCollectionSizeInBytes,
-            final long createTimeoutSeconds,
             final Materializer materializer) {
-        try {
-            final CreateCollectionOptions collectionOptions = new CreateCollectionOptions()
-                    .capped(true)
-                    .sizeInBytes(cappedCollectionSizeInBytes)
-                    .maxDocuments(1);
-            final Publisher<Success> publisher = clientWrapper.getDatabase()
-                    .createCollection(collectionName, collectionOptions);
-            final Source<Success, NotUsed> source = Source.fromPublisher(publisher);
-            final CompletionStage<Success> done = source.runWith(Sink.head(), materializer);
-            done.toCompletableFuture().get(createTimeoutSeconds, TimeUnit.SECONDS);
-            LOGGER.debug("Successfully created collection: <{}>.", collectionName);
-        } catch (final InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException(e);
-        } catch (final TimeoutException e) {
-            throw new IllegalStateException(e);
-        } catch (final ExecutionException e) {
-            if (isCollectionAlreadyExistsError(e.getCause())) {
-                LOGGER.debug("Collection already exists: <{}>.", collectionName);
-            } else {
-                throw new IllegalStateException(e);
-            }
-        }
+
+        final CreateCollectionOptions collectionOptions = new CreateCollectionOptions()
+                .capped(true)
+                .sizeInBytes(cappedCollectionSizeInBytes)
+                .maxDocuments(1);
+        final Publisher<Success> publisher = clientWrapper.getDatabase()
+                .createCollection(collectionName, collectionOptions);
+        final Source<Success, NotUsed> source = Source.fromPublisher(publisher);
+        return source.runWith(Sink.head(), materializer)
+                .handle((result, error) -> {
+                    if (error == null) {
+                        LOGGER.debug("Successfully created collection: <{}>.", collectionName);
+                    } else if (isCollectionAlreadyExistsError(error)) {
+                        LOGGER.debug("Collection already exists: <{}>.", collectionName);
+                    } else {
+                        throw new IllegalStateException(error);
+                    }
+                    return result;
+                });
     }
 
     private static boolean isCollectionAlreadyExistsError(@Nullable final Throwable t) {

@@ -13,12 +13,12 @@ package org.eclipse.ditto.services.utils.persistence.mongo.streaming;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.Stream;
 
+import org.bson.Document;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.test.mongo.MongoDbResource;
 import org.junit.After;
@@ -28,6 +28,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.mongodb.reactivestreams.client.MongoClient;
+import com.mongodb.reactivestreams.client.MongoCollection;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
@@ -117,23 +118,43 @@ public final class MongoSearchSyncPersistenceIT {
         assertThat(persistedTs).hasValue(ts);
     }
 
+    @Test
+    public void ensureCollectionIsCapped() throws Exception {
+        final MongoCollection<Document> collection =
+                syncPersistence.getCollection().toCompletableFuture().get();
+
+        runBlocking(syncPersistence.updateLastSuccessfulStreamEnd(Instant.now()));
+        runBlocking(syncPersistence.updateLastSuccessfulStreamEnd(Instant.now()));
+
+        assertThat(runBlocking(Source.fromPublisher(collection.count()))).containsExactly(1L);
+    }
+
+    @Test
+    public void createCollectionMultipleTimesWithoutError() {
+        final MongoSearchSyncPersistence persistence1 =
+                MongoSearchSyncPersistence.initializedInstance(KNOWN_COLLECTION, mongoClient, materializer);
+        final MongoSearchSyncPersistence persistence2 =
+                MongoSearchSyncPersistence.initializedInstance(KNOWN_COLLECTION, mongoClient, materializer);
+
+        runBlocking(Source.fromCompletionStage(syncPersistence.getCollection()
+                .thenCompose(d -> persistence1.getCollection())
+                .thenCompose(d -> persistence2.getCollection())));
+    }
+
     private <T> T getResult(final Source<T, ?> source) {
         final CompletableFuture<T> future = source.runWith(Sink.head(), materializer).toCompletableFuture();
         finishCompletableFuture(future);
         return future.join();
     }
 
-    private void runBlocking(final Source<?, ?>... publishers) {
-        Stream.of(publishers)
-                .map(p -> p.runWith(Sink.ignore(), materializer))
-                .map(CompletionStage::toCompletableFuture)
-                .forEach(this::finishCompletableFuture);
+    private <T> List<T> runBlocking(final Source<T, ?> publisher) {
+        return finishCompletableFuture(publisher.runWith(Sink.seq(), materializer).toCompletableFuture());
     }
 
-    private void finishCompletableFuture(final CompletableFuture future) {
+    private <T> T finishCompletableFuture(final CompletableFuture<T> future) {
         try {
-            future.get();
-        } catch (final InterruptedException | ExecutionException e) {
+            return future.get();
+        } catch (final Exception e) {
             throw mapAsRuntimeException(e);
         }
     }
