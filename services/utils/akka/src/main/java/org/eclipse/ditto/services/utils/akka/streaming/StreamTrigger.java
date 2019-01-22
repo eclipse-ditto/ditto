@@ -36,7 +36,6 @@ public final class StreamTrigger {
      * @param queryEnd the maximum creation time of the entities to be queried
      * @param plannedStreamStart the planned start of the stream: will normally be some time after {@code queryStart},
      * otherwise data might get lost due to clock drift etc.
-     *
      * @return the new trigger.
      */
     public static StreamTrigger of(final Instant queryStart, final Instant queryEnd, final Instant plannedStreamStart) {
@@ -54,6 +53,7 @@ public final class StreamTrigger {
 
     /**
      * Returns the minimum creation time of the entities to be queried.
+     *
      * @return the minimum creation time of the entities to be queried.
      */
     public Instant getQueryEnd() {
@@ -62,6 +62,7 @@ public final class StreamTrigger {
 
     /**
      * Returns the maximum creation time of the entities to be queried.
+     *
      * @return the maximum creation time of the entities to be queried.
      */
     public Instant getQueryStart() {
@@ -72,7 +73,6 @@ public final class StreamTrigger {
      * Reschedules this trigger at {@code newPlannedStreamStart}.
      *
      * @param newPlannedStreamStart the new planned stream start
-     *
      * @return a new instance of trigger with {@code newPlannedStreamStart}.
      */
     public StreamTrigger rescheduleAt(final Instant newPlannedStreamStart) {
@@ -89,17 +89,34 @@ public final class StreamTrigger {
      * the past.
      * @param streamInterval the interval of the stream: the query end {@link #getQueryEnd()} is calculated by adding
      * this interval to the query start {@link #getQueryStart()}.
-     *
      * @return the trigger
      */
     public static StreamTrigger calculateStreamTrigger(final Instant now,
-            final Instant queryStart, final Duration startOffset,
+            final Instant queryStart,
+            final Duration startOffset,
             final Duration streamInterval) {
+
+        return calculateStreamTrigger(now, queryStart, startOffset, streamInterval, false);
+    }
+
+    static StreamTrigger calculateStreamTrigger(final Instant now,
+            final Instant queryStart,
+            final Duration startOffset,
+            final Duration streamInterval,
+            final boolean isFirstStreamTrigger) {
+
         final Instant queryEnd = queryStart.plus(streamInterval);
 
-        Instant plannedStreamStart = queryEnd.plus(startOffset);
-        if (now.isAfter(plannedStreamStart)) {
-            plannedStreamStart = now;
+        final Instant plannedStreamStart;
+        if (isFirstStreamTrigger) {
+            plannedStreamStart = now.plus(streamInterval);
+        } else {
+            final Instant optimalStreamStart = queryEnd.plus(startOffset);
+            if (now.isAfter(optimalStreamStart)) {
+                plannedStreamStart = now;
+            } else {
+                plannedStreamStart = optimalStreamStart;
+            }
         }
 
         return of(queryStart, queryEnd, plannedStreamStart);
