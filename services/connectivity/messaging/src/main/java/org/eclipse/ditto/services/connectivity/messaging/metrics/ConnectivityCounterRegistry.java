@@ -81,6 +81,7 @@ public final class ConnectivityCounterRegistry {
                 .map(Target::getAddress)
                 .forEach(address ->
                         initCounter(connectionId, MetricDirection.OUTBOUND, address, false));
+        initCounter(connectionId, MetricDirection.OUTBOUND, RESPONSES_ADDRESS, false);
     }
 
     /**
@@ -100,6 +101,7 @@ public final class ConnectivityCounterRegistry {
                 .map(Target::getAddress)
                 .forEach(address ->
                         initCounter(connectionId, MetricDirection.OUTBOUND, address, true));
+        initCounter(connectionId, MetricDirection.OUTBOUND, RESPONSES_ADDRESS, true);
     }
 
     private static void initCounter(final String connectionId, final MetricDirection metricDirection,
