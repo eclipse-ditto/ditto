@@ -121,7 +121,7 @@ public final class MongoSearchSyncPersistenceIT {
     @Test
     public void ensureCollectionIsCapped() throws Exception {
         final MongoCollection<Document> collection =
-                syncPersistence.getCollection().toCompletableFuture().get();
+                syncPersistence.getCollection().runWith(Sink.head(), materializer).toCompletableFuture().get();
 
         runBlocking(syncPersistence.updateLastSuccessfulStreamEnd(Instant.now()));
         runBlocking(syncPersistence.updateLastSuccessfulStreamEnd(Instant.now()));
@@ -136,9 +136,9 @@ public final class MongoSearchSyncPersistenceIT {
         final MongoSearchSyncPersistence persistence2 =
                 MongoSearchSyncPersistence.initializedInstance(KNOWN_COLLECTION, mongoClient, materializer);
 
-        runBlocking(Source.fromCompletionStage(syncPersistence.getCollection()
-                .thenCompose(d -> persistence1.getCollection())
-                .thenCompose(d -> persistence2.getCollection())));
+        runBlocking(syncPersistence.getCollection()
+                .flatMapConcat(d -> persistence1.getCollection())
+                .flatMapConcat(d -> persistence2.getCollection()));
     }
 
     private <T> T getResult(final Source<T, ?> source) {
@@ -175,4 +175,3 @@ public final class MongoSearchSyncPersistenceIT {
     }
 
 }
-
