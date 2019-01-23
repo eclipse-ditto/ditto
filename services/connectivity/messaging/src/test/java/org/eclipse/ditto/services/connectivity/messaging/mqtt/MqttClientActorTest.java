@@ -87,7 +87,6 @@ public class MqttClientActorTest {
     private static final Status.Success CONNECTED_SUCCESS = new Status.Success(BaseClientState.CONNECTED);
     private static final Status.Success DISCONNECTED_SUCCESS = new Status.Success(BaseClientState.DISCONNECTED);
     private static final Target TARGET = newTarget("target", AUTHORIZATION_CONTEXT, null, 1, Topic.TWIN_EVENTS);
-    private static final Source SOURCE = newMqttSource(1, 1, "foo");
     private static final String SOURCE_ADDRESS = "source";
     private static final Source MQTT_SOURCE = ConnectivityModelFactory
             .newSourceBuilder()

@@ -57,6 +57,7 @@ final class UnmappedOutboundSignal implements OutboundSignal {
      * {@code source} Signal
      * @return a new OutboundSignal which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if {@code mappingStrategy} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
     public static OutboundSignal fromJson(final JsonObject jsonObject, final MappingStrategy mappingStrategy) {

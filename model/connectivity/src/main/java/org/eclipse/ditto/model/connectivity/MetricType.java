@@ -63,10 +63,13 @@ public enum MetricType {
     }
 
     /**
-     * @return the possible {@link MetricDirection}s this MetricType supports.
+     * Checks whether the given {@code direction} is supported by this MetricType.
+     *
+     * @param direction the direction to check.
+     * @return true if the {@code direction} is supported by this MetricType.
      */
-    public List<MetricDirection> getPossibleMetricDirections() {
-        return possibleMetricDirections;
+    public boolean supportsDirection(final MetricDirection direction) {
+        return possibleMetricDirections.contains(direction);
     }
 
     /**

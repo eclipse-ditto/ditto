@@ -23,14 +23,15 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -51,7 +52,7 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionM
  */
 public final class ConnectivityCounterRegistry {
 
-    private static final ConcurrentMap<String, ConnectionMetricsCollector> counters = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<MapKey, ConnectionMetricsCollector> counters = new ConcurrentHashMap<>();
 
     private static final MeasurementWindow[] DEFAULT_WINDOWS = {ONE_MINUTE, ONE_HOUR, ONE_DAY};
 
@@ -74,9 +75,9 @@ public final class ConnectivityCounterRegistry {
         final String connectionId = connection.getId();
         connection.getSources().stream()
                 .map(Source::getAddresses)
-                .forEach(addresses -> addresses
-                        .forEach(address ->
-                                initCounter(connectionId, MetricDirection.INBOUND, address, false)));
+                .flatMap(Collection::stream)
+                .forEach(address ->
+                        initCounter(connectionId, MetricDirection.INBOUND, address, false));
         connection.getTargets().stream()
                 .map(Target::getAddress)
                 .forEach(address ->
@@ -94,9 +95,9 @@ public final class ConnectivityCounterRegistry {
         final String connectionId = connection.getId();
         connection.getSources().stream()
                 .map(Source::getAddresses)
-                .forEach(addresses -> addresses
-                        .forEach(address ->
-                                initCounter(connectionId, MetricDirection.INBOUND, address, true)));
+                .flatMap(Collection::stream)
+                .forEach(address ->
+                        initCounter(connectionId, MetricDirection.INBOUND, address, true));
         connection.getTargets().stream()
                 .map(Target::getAddress)
                 .forEach(address ->
@@ -107,9 +108,9 @@ public final class ConnectivityCounterRegistry {
     private static void initCounter(final String connectionId, final MetricDirection metricDirection,
             final String address, final boolean reset) {
         Arrays.stream(MetricType.values())
-                .filter(metricType -> metricType.getPossibleMetricDirections().contains(metricDirection))
+                .filter(metricType -> metricType.supportsDirection(metricDirection))
                 .forEach(metricType -> {
-                    final String key = new MapKey(connectionId, metricType, metricDirection, address).toString();
+                    final MapKey key = new MapKey(connectionId, metricType, metricDirection, address);
                     if (reset) {
                         counters.remove(key);
                     }
@@ -155,7 +156,7 @@ public final class ConnectivityCounterRegistry {
             final MetricDirection metricDirection,
             final String address) {
 
-        final String key = new MapKey(connectionId, metricType, metricDirection, address).toString();
+        final MapKey key = new MapKey(connectionId, metricType, metricDirection, address);
         return counters.computeIfAbsent(key, m -> {
             final SlidingWindowCounter counter = new SlidingWindowCounter(clock, DEFAULT_WINDOWS);
             return new ConnectionMetricsCollector(metricDirection, address, metricType, counter);
@@ -284,7 +285,7 @@ public final class ConnectivityCounterRegistry {
 
         return counters.entrySet()
                 .stream()
-                .filter(e -> e.getKey().startsWith(connectionId))
+                .filter(e -> e.getKey().connectionId.equals(connectionId))
                 .filter(e -> metricDirection == e.getValue().getMetricDirection())
                 .map(Map.Entry::getValue);
     }
@@ -459,7 +460,8 @@ public final class ConnectivityCounterRegistry {
     /**
      * Helper class to build the map key of the registry.
      */
-    private static class MapKey implements CharSequence {
+    @Immutable
+    private static class MapKey {
 
         private final String connectionId;
         private final String metric;
@@ -485,27 +487,30 @@ public final class ConnectivityCounterRegistry {
         }
 
         @Override
-        public int length() {
-            return toString().length();
+        public boolean equals(@Nullable final Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            final MapKey mapKey = (MapKey) o;
+            return Objects.equals(connectionId, mapKey.connectionId) &&
+                    Objects.equals(metric, mapKey.metric) &&
+                    Objects.equals(direction, mapKey.direction) &&
+                    Objects.equals(address, mapKey.address);
         }
 
         @Override
-        public char charAt(final int index) {
-            return toString().charAt(index);
+        public int hashCode() {
+            return Objects.hash(connectionId, metric, direction, address);
         }
 
         @Override
-        public CharSequence subSequence(final int start, final int end) {
-            return toString().subSequence(start, end);
-        }
-
-        @Override
-        @Nonnull
         public String toString() {
-            return connectionId
-                    + ":" + metric
-                    + ":" + direction
-                    + ":" + address;
+            return getClass().getSimpleName() + " [" +
+                    ", connectionId=" + connectionId +
+                    ", metric=" + metric +
+                    ", direction=" + direction +
+                    ", address=" + address +
+                    "]";
         }
+
     }
 }
