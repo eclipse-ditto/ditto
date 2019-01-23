@@ -139,6 +139,7 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
      * @param clientWrapper The client to use.
      * @param collectionName The name of the capped collection that should be created.
      * @param cappedCollectionSizeInBytes The size in bytes of the collection that should be created.
+     * @param materializer The actor materializer to pre-materialize the restart source.
      * @return Returns the created or retrieved collection.
      */
     private static Source<MongoCollection, NotUsed> createOrGetCappedCollection(
@@ -183,7 +184,7 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
 
     }
 
-    private static boolean isCollectionAlreadyExistsError(@Nullable final MongoCommandException error) {
-        return error != null && error.getErrorCode() == COLLECTION_ALREADY_EXISTS_ERROR_CODE;
+    private static boolean isCollectionAlreadyExistsError(final MongoCommandException error) {
+        return error.getErrorCode() == COLLECTION_ALREADY_EXISTS_ERROR_CODE;
     }
 }
