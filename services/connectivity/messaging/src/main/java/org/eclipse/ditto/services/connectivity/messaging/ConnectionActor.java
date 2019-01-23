@@ -403,7 +403,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
         // forward to client actor if topic was subscribed and there are targets that are authorized to read
         final Set<Target> filteredTargets =
-                PlaceholderFilter.filterTargets(subscribedAndAuthorizedTargets, signal.getId(),
+                PlaceholderFilter.applyThingPlaceholderToTargets(subscribedAndAuthorizedTargets, signal.getId(),
                         unresolvedPlaceholder -> log.info(UNRESOLVED_PLACEHOLDERS_MESSAGE, unresolvedPlaceholder));
 
         log.debug("Forwarding signal <{}> to client actor with targets: {}.", signal.getType(), filteredTargets);

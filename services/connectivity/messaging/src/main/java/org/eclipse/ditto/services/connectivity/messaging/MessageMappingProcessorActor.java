@@ -37,15 +37,18 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.Placeholders;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MetricDirection;
 import org.eclipse.ditto.model.connectivity.MetricType;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectionMetricsCollector;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
@@ -97,6 +100,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private final Function<ExternalMessage, ExternalMessage> placeholderSubstitution;
     private final BiFunction<ExternalMessage, DittoHeaders, DittoHeaders> adjustHeaders;
     private final Function<InboundExternalMessage, DittoHeaders> mapHeaders;
+    private final BiFunction<OutboundSignal, ExternalMessage, OutboundSignal.WithExternalMessage> replaceTopicPlaceholders;
     private final BiConsumer<ExternalMessage, Signal<?>> applySignalIdEnforcement;
     private final ConnectionMetricsCollector responseConsumedCounter;
     private final ConnectionMetricsCollector responseDroppedCounter;
@@ -116,6 +120,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         adjustHeaders = new AdjustHeaders(connectionId);
         mapHeaders = new ApplyHeaderMapping(log);
         applySignalIdEnforcement = new ApplySignalIdEnforcement(log);
+        replaceTopicPlaceholders = new TopicPlaceholderInTargetAddressSubstitution();
         responseConsumedCounter = ConnectivityCounterRegistry.getResponseConsumedCounter(connectionId);
         responseDroppedCounter = ConnectivityCounterRegistry.getResponseDroppedCounter(connectionId);
         responseMappedCounter = ConnectivityCounterRegistry.getResponseMappedCounter(connectionId);
@@ -274,9 +279,9 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         enhanceLogUtil(outbound.getSource());
         log.debug("Handling outbound signal: {}", outbound.getSource());
 
-
         final Optional<OutboundSignal.WithExternalMessage> mappedOutboundSignal = mapToExternalMessage(outbound)
-                .map(message -> OutboundSignalFactory.newMappedOutboundSignal(outbound, message));
+                .map(externalMessage -> replaceTopicPlaceholders.apply(outbound, externalMessage));
+
         if (mappedOutboundSignal.isPresent()) {
             publisherActor.forward(mappedOutboundSignal.get(), getContext());
         } else {
@@ -299,7 +304,8 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
     private Optional<ExternalMessage> mapToExternalMessage(final OutboundSignal outbound) {
         try {
-            final Set<ConnectionMetricsCollector> collectors = getCountersForOutboundSignal(outbound, connectionId, MAPPED);
+            final Set<ConnectionMetricsCollector> collectors =
+                    getCountersForOutboundSignal(outbound, connectionId, MAPPED);
             return ConnectionMetricsCollector.record(collectors, () -> processor.process(outbound.getSource()));
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException during processing Signal: {} - {}", e.getMessage(),
@@ -363,13 +369,48 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         }
     }
 
+    /**
+     * Helper class that replaces topic placeholders in target addresses. This is done here and not in
+     * ConnectionActor because we have the topic at hand not before the mapping was done.
+     */
+    static final class TopicPlaceholderInTargetAddressSubstitution
+            implements BiFunction<OutboundSignal, ExternalMessage, OutboundSignal.WithExternalMessage> {
+
+        private static final TopicPathPlaceholder TOPIC_PLACEHOLDER = PlaceholderFactory.newTopicPathPlaceholder();
+
+        @Override
+        public OutboundSignal.WithExternalMessage apply(final OutboundSignal outboundSignal,
+                final ExternalMessage externalMessage) {
+            final Optional<TopicPath> topicPathOpt = externalMessage.getTopicPath();
+            if (topicPathOpt.isPresent() &&
+                    outboundSignal
+                            .getTargets()
+                            .stream()
+                            .anyMatch(t -> Placeholders.containsAnyPlaceholder(t.getAddress()))) {
+                final Set<Target> targets = outboundSignal.getTargets().stream().map(t -> {
+                    final String addressWithTopicReplaced =
+                            PlaceholderFilter.apply(t.getAddress(), topicPathOpt.get(), TOPIC_PLACEHOLDER, true);
+                    return ConnectivityModelFactory.newTarget(t, addressWithTopicReplaced,
+                            t.getQos().orElse(null));
+                }).collect(Collectors.toSet());
+                final OutboundSignal modifiedOutboundSignal =
+                        OutboundSignalFactory.newOutboundSignal(outboundSignal.getSource(), targets);
+                return OutboundSignalFactory.newMappedOutboundSignal(modifiedOutboundSignal,
+                        externalMessage);
+            } else {
+                return OutboundSignalFactory.newMappedOutboundSignal(outboundSignal,
+                        externalMessage);
+            }
+        }
+    }
+
     static final class PlaceholderSubstitution implements Function<ExternalMessage, ExternalMessage> {
 
         @Override
         public ExternalMessage apply(final ExternalMessage externalMessage) {
             final AuthorizationContext authorizationContext = getAuthorizationContextFromMessage(externalMessage);
             final AuthorizationContext filteredContext =
-                    PlaceholderFilter.filterAuthorizationContext(authorizationContext, externalMessage.getHeaders());
+                    PlaceholderFilter.applyHeadersPlaceholderToAuthContext(authorizationContext, externalMessage.getHeaders());
             final JsonArray authSubjectsArray = mapAuthorizationContextToSubjectsArray(filteredContext);
             final ExternalMessage externalMessageWithSourceHeader = authSubjectsArray.get(0)
                     .map(JsonValue::asString)

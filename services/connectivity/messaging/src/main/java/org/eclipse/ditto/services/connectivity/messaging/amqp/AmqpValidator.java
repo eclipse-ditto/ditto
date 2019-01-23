@@ -10,6 +10,9 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
+import static org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory.newThingPlaceholder;
+import static org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory.newTopicPathPlaceholder;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -59,6 +62,7 @@ public final class AmqpValidator extends AbstractProtocolValidator {
     protected void validateTarget(final Target target, final DittoHeaders dittoHeaders,
             final Supplier<String> sourceDescription) {
         target.getHeaderMapping().ifPresent(mapping -> validateHeaderMapping(mapping, dittoHeaders));
+        validateTemplate(target.getAddress(), dittoHeaders, newThingPlaceholder(), newTopicPathPlaceholder());
     }
 
     @Override

@@ -10,9 +10,14 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.validation;
 
+import static java.util.stream.Collectors.joining;
+import static org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory.newHeadersPlaceholder;
+import static org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory.newThingPlaceholder;
+
 import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -24,7 +29,6 @@ import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.models.connectivity.placeholder.Placeholder;
-import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory;
 import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFilter;
 
 /**
@@ -101,15 +105,12 @@ public abstract class AbstractProtocolValidator {
      */
     protected void validateTargetConfigs(final Connection connection,
             final DittoHeaders dittoHeaders) {
-        connection.getTargets().forEach(target ->
-                validateTarget(target, dittoHeaders, targetDescription(target, connection)));
+        connection.getTargets().forEach(target -> validateTarget(target, dittoHeaders, targetDescription(target, connection)));
     }
 
     protected void validateHeaderMapping(final HeaderMapping headerMapping, final DittoHeaders dittoHeaders) {
-        headerMapping.getMapping().forEach((key, value) -> {
-            final String replaced = validateTemplate(value, PlaceholderFactory.newHeadersPlaceholder(), dittoHeaders, true);
-            validateTemplate(replaced, PlaceholderFactory.newThingPlaceholder(), dittoHeaders, false);
-        });
+        headerMapping.getMapping().forEach((key, value)
+                -> validateTemplate(value, dittoHeaders, newHeadersPlaceholder(), newThingPlaceholder()));
     }
 
     protected abstract void validateTarget(final Target target, final DittoHeaders dittoHeaders,
@@ -139,19 +140,19 @@ public abstract class AbstractProtocolValidator {
                 target.getAddress(), connection.getId());
     }
 
-    protected <T> String validateTemplate(final String template, final Placeholder<T> placeholder,
+    protected void validateTemplate(final String template, final Placeholder<?> placeholder,
             final DittoHeaders headers) {
-        return validateTemplate(template, placeholder, headers, false);
+        validateTemplate(template, headers, placeholder);
     }
 
-    private <T> String validateTemplate(final String template, final Placeholder<T> placeholder,
-            final DittoHeaders headers, final boolean allowUnresolved) {
+    protected void validateTemplate(final String template, final DittoHeaders headers,
+            final Placeholder<?>... placeholders) {
         try {
-            return PlaceholderFilter.validate(template, placeholder, allowUnresolved);
+            PlaceholderFilter.validate(template, placeholders);
         } catch (final DittoRuntimeException exception) {
             throw ConnectionConfigurationInvalidException
                     .newBuilder(MessageFormat.format(ENFORCEMENT_ERROR_MESSAGE, template,
-                            placeholder.getClass().getSimpleName()))
+                            Stream.of(placeholders).map(Placeholder::getPrefix).collect(joining(","))))
                     .cause(exception)
                     .dittoHeaders(headers)
                     .build();

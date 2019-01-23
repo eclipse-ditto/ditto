@@ -10,6 +10,9 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
+import static org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory.newThingPlaceholder;
+import static org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory.newTopicPathPlaceholder;
+
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Collection;
@@ -116,6 +119,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
         }
 
         validateTargetQoS(target.getQos().get(), dittoHeaders, targetDescription);
+        validateTemplate(target.getAddress(), dittoHeaders, newThingPlaceholder(), newTopicPathPlaceholder());
     }
 
     /**
@@ -142,7 +146,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
             validateEnforcementInput(enforcement, sourceDescription, dittoHeaders);
 
             final String dummyThingId = "namespace:name";
-            final Map<String, String> filtersMap = PlaceholderFilter.filterAddressesAsMap(enforcement.getFilters(),
+            final Map<String, String> filtersMap = PlaceholderFilter.applyThingPlaceholderToAddresses(enforcement.getFilters(),
                     dummyThingId, filter -> {
                         throw invalidValueForConfig(filter, "filters", sourceDescription.get())
                                 .description("Placeholder substitution failed. " +

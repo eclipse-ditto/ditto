@@ -50,7 +50,7 @@ public final class PlaceholderFilter {
      * @param headers the headers to apply HeadersPlaceholder substitution with.
      * @return AuthorizationContext as result of placeholder substitution.
      */
-    public static AuthorizationContext filterAuthorizationContext(final AuthorizationContext authorizationContext,
+    public static AuthorizationContext applyHeadersPlaceholderToAuthContext(final AuthorizationContext authorizationContext,
             final Map<String, String> headers) {
 
         // check if we have to replace anything at all
@@ -77,7 +77,7 @@ public final class PlaceholderFilter {
      * @param unresolvedPlaceholderListener callback to call with unresolved placeholders.
      * @return Targets as result of placeholder substitution.
      */
-    public static Set<Target> filterTargets(final Set<Target> targets, final String thingId,
+    public static Set<Target> applyThingPlaceholderToTargets(final Set<Target> targets, final String thingId,
             final Consumer<String> unresolvedPlaceholderListener) {
         // check if we have to replace anything at all
         if (targets.stream().map(Target::getAddress).noneMatch(Placeholders::containsAnyPlaceholder)) {
@@ -102,7 +102,7 @@ public final class PlaceholderFilter {
      * @param unresolvedPlaceholderListener what to do if placeholder substitution fails.
      * @return map from successfully filtered addresses to the result of placeholder substitution.
      */
-    public static Map<String, String> filterAddressesAsMap(final Collection<String> addresses, final String thingId,
+    public static Map<String, String> applyThingPlaceholderToAddresses(final Collection<String> addresses, final String thingId,
             final Consumer<String> unresolvedPlaceholderListener) {
 
         return addresses.stream()
@@ -186,9 +186,15 @@ public final class PlaceholderFilter {
                 UNRESOLVED_INPUT_HANDLER, allowUnresolved);
     }
 
-    public static <T> String validate(final String template, final Placeholder<T> thePlaceholder,
-            final boolean allowUnresolved) {
-        return doApply(template, thePlaceholder, allowUnresolved, placeholder -> Optional.of("dummy"));
+    public static String validate(final String template, final Placeholder<?>... placeholders) {
+        String replaced = template;
+        for (int i = 0; i < placeholders.length; i++) {
+            boolean isNotLastPlaceholder = i < placeholders.length - 1;
+            final Placeholder<?> thePlaceholder = placeholders[i];
+            replaced = doApply(template, thePlaceholder, isNotLastPlaceholder,
+                    placeholder -> Optional.of(thePlaceholder.getPrefix()));
+        }
+        return replaced;
     }
 
     static String checkAllPlaceholdersResolved(final String input) {
