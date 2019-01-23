@@ -217,11 +217,6 @@ public final class MqttClientActor extends BaseClientActor {
             return;
         }
 
-        if (!(source.getQos().isPresent())) {
-            log.warning("Source does not include required QoS for MQTT: {}", source);
-            return;
-        }
-
         for (int i = 0; i < source.getConsumerCount(); i++) {
 
             log.debug("Starting {}. consumer actor for source <{}> on connection <{}>.", i, source.getIndex(),
