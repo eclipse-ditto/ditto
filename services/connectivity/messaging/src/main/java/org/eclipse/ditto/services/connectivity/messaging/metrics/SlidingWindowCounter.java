@@ -29,7 +29,8 @@ public final class SlidingWindowCounter {
 
     private final Clock clock;
     private final MeasurementWindow[] windows;
-    private final ConcurrentMap<Long, Long> measurements = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Long, Long> successMeasurements = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Long, Long> failureMeasurements = new ConcurrentHashMap<>();
 
     private final AtomicLong lastSuccessTimestamp = new AtomicLong(Instant.EPOCH.toEpochMilli());
     private final AtomicLong lastFailureTimestamp = new AtomicLong(Instant.EPOCH.toEpochMilli());
@@ -67,38 +68,15 @@ public final class SlidingWindowCounter {
     }
 
     /**
-     * Increment this counter.
-     *
-     * @param success whether to increment success or failure count
-     * @param ts the timestamp when the operation happened (mostly useful for testing)
+     * Increment success counter with current timestamp.
      */
-    void increment(final boolean success, final long ts) {
-        final long theTimestamp;
-        if (success) {
-            theTimestamp = this.lastSuccessTimestamp.getAndUpdate(previous -> Math.max(previous, ts));
-        } else {
-            theTimestamp = this.lastFailureTimestamp.getAndUpdate(previous -> Math.max(previous, ts));
-        }
-
-
-        for (final MeasurementWindow window : windows) {
-            final long slot = getSlot(ts, window.getResolution().toMillis());
-            // store failure in negative space
-            if (success) {
-                measurements.compute(slot, (key, value) -> (value == null) ? 1 : value + 1);
-            } else {
-                measurements.compute(-slot, (key, value) -> (value == null) ? 1 : value + 1);
-            }
-        }
-
-        // if diff between current and last timestamp is too large, cleanup old measurements
-        if (theTimestamp > ts - minResolution.toMillis()) {
-            cleanUp();
-        }
+    void increment() {
+        increment(true);
     }
 
     /**
      * Increment counter with current timestamp.
+     *
      * @param success whether to increment success or failure count
      */
     void increment(final boolean success) {
@@ -106,17 +84,44 @@ public final class SlidingWindowCounter {
     }
 
     /**
-     * Increment success counter with current timestamp.
+     * Increment this counter.
+     *
+     * @param success whether to increment success or failure count
+     * @param ts the timestamp when the operation happened (mostly useful for testing)
      */
-    void increment() {
-        increment(true, clock.instant().toEpochMilli());
+    void increment(final boolean success, final long ts) {
+        final long previousTimestamp;
+        if (success) {
+            previousTimestamp = updateTimestampAndReturnPrevious(lastSuccessTimestamp, ts);
+            incrementMeasurements(ts, successMeasurements);
+        } else {
+            previousTimestamp = updateTimestampAndReturnPrevious(lastFailureTimestamp, ts);
+            incrementMeasurements(ts, failureMeasurements);
+        }
+
+        // if diff between current and last timestamp is too large, cleanup old measurements
+        if (previousTimestamp > ts - minResolution.toMillis()) {
+            cleanUpOldMeasurements();
+        }
     }
 
-    private long getSlot(long ts, final long resolutionInMs) {
-        return ts / resolutionInMs;
+    private long updateTimestampAndReturnPrevious(final AtomicLong toUpdate, final long ts) {
+        return toUpdate.getAndUpdate(previous -> Math.max(previous, ts));
     }
 
-    private void cleanUp() {
+    private void incrementMeasurements(final long ts, final Map<Long, Long> measurements) {
+        for (final MeasurementWindow window : windows) {
+            final long slot = getSlot(ts, window.getResolution().toMillis());
+            measurements.compute(slot, (key, value) -> (value == null) ? 1 : value + 1);
+        }
+    }
+
+    private void cleanUpOldMeasurements() {
+        cleanUpOldMeasurements(successMeasurements);
+        cleanUpOldMeasurements(failureMeasurements);
+    }
+
+    private void cleanUpOldMeasurements(final Map<Long, Long> measurements) {
         measurements.entrySet().removeIf(e -> isOld(e.getKey()));
     }
 
@@ -129,9 +134,7 @@ public final class SlidingWindowCounter {
             final long max = getSlot(now, resolutionInMs);
             // min slot is current slot minus window size
             final long min = getSlot(now - windowInMs, resolutionInMs);
-            // we check for the absolute value because we store failures in negative timestamps
-            final long abs = Math.abs(slot);
-            if (abs <= max && abs >= min) {
+            if (slot <= max && slot >= min) {
                 return false;
             }
         }
@@ -145,6 +148,19 @@ public final class SlidingWindowCounter {
      * @return the counts for all windows
      */
     Map<Duration, Long> getCounts(final boolean success) {
+        if (success) {
+            return getCounts(successMeasurements);
+        }
+        return getCounts(failureMeasurements);
+    }
+
+    /**
+     * Gets counts for all measurement windows given.
+     *
+     * @param measurements the measurements map to use
+     * @return the counts for all windows
+     */
+    private Map<Duration, Long> getCounts(final Map<Long, Long> measurements) {
         final Map<Duration, Long> result = new HashMap<>();
         final long now = clock.instant().toEpochMilli();
         for (final MeasurementWindow window : windows) {
@@ -156,7 +172,7 @@ public final class SlidingWindowCounter {
             final long max = getSlot(now, resolutionInMs);
             long sum = 0;
             for (final Map.Entry<Long, Long> e : measurements.entrySet()) {
-                long slot = success ? e.getKey() : -e.getKey();
+                long slot = e.getKey();
                 if (slot > min && slot <= max) {
                     sum += e.getValue();
                 }
@@ -166,20 +182,30 @@ public final class SlidingWindowCounter {
         return result;
     }
 
-
     /**
      * Reset all counts.
      */
     void reset() {
+        reset(successMeasurements);
+        reset(failureMeasurements);
+    }
+
+    private void reset(final Map<Long, Long> measurements) {
         measurements.clear();
+    }
+
+    private long getSlot(long ts, final long resolutionInMs) {
+        return ts / resolutionInMs;
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "measurements=" + measurements +
+                ", successMeasurements=" + successMeasurements +
+                ", failureMeasurements=" + failureMeasurements +
                 ", lastSuccessTimestamp=" + lastSuccessTimestamp +
                 ", lastFailureTimestamp=" + lastFailureTimestamp +
                 "]";
     }
+
 }

@@ -43,11 +43,11 @@ public class SlidingWindowCounterTest {
                 - MeasurementWindow.ONE_HOUR.getResolution().toMillis();
 
         // add one success measurement every second
-        for (long i = start; i <= ts; i+=1000) {
+        for (long i = start; i <= ts; i += 1000) {
             counter.increment(true, i);
         }
         // add one failure measurement every 5 seconds
-        for (long i = start; i <= ts; i+=5000) {
+        for (long i = start; i <= ts; i += 5000) {
             counter.increment(false, i);
         }
 
@@ -60,4 +60,5 @@ public class SlidingWindowCounterTest {
         assertThat(failure).containsEntry(MeasurementWindow.ONE_HOUR.getWindow(), 720L);
 
     }
+
 }
