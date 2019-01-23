@@ -41,6 +41,8 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnectionRe
 import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
+import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionMetrics;
+import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnection;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
@@ -87,6 +89,7 @@ public final class ConnectionActorTest extends WithMockServers {
     private DeleteConnectionResponse deleteConnectionResponse;
     private RetrieveConnection retrieveConnection;
     private RetrieveConnectionStatus retrieveConnectionStatus;
+    private ResetConnectionMetrics resetConnectionMetrics;
     private RetrieveConnectionResponse retrieveModifiedConnectionResponse;
     private RetrieveConnectionStatusResponse retrieveConnectionStatusOpenResponse;
     private ConnectionNotAccessibleException connectionNotAccessibleException;
@@ -125,6 +128,7 @@ public final class ConnectionActorTest extends WithMockServers {
         deleteConnectionResponse = DeleteConnectionResponse.of(connectionId, DittoHeaders.empty());
         retrieveConnection = RetrieveConnection.of(connectionId, DittoHeaders.empty());
         retrieveConnectionStatus = RetrieveConnectionStatus.of(connectionId, DittoHeaders.empty());
+        resetConnectionMetrics = ResetConnectionMetrics.of(connectionId, DittoHeaders.empty());
         retrieveModifiedConnectionResponse =
                 RetrieveConnectionResponse.of(modifiedConnection, DittoHeaders.empty());
         retrieveConnectionStatusOpenResponse =
@@ -241,7 +245,7 @@ public final class ConnectionActorTest extends WithMockServers {
             expectMsg(createClosedConnectionResponse);
             probe.expectNoMessage();
 
-            // create connection
+            // retrieve metrics
             underTest.tell(RetrieveConnectionMetrics.of(connectionId, DittoHeaders.empty()), getRef());
             probe.expectNoMessage();
 
@@ -510,6 +514,29 @@ public final class ConnectionActorTest extends WithMockServers {
     public void testLiveMessageWithAuthorizedSubjectExpectIsNotForwarded() {
         final Set<String> valid = Collections.singleton(TestConstants.Authorization.SUBJECT_ID);
         testForwardThingEvent(false, TestConstants.sendThingMessage(valid));
+    }
+
+    @Test
+    public void testResetConnectionMetrics() {
+        new TestKit(actorSystem) {{
+            final TestProbe probe = TestProbe.apply(actorSystem);
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+            watch(underTest);
+
+            // create connection
+            underTest.tell(createConnection, getRef());
+            probe.expectMsg(openConnection);
+            expectMsg(createConnectionResponse);
+
+            // reset metrics
+            underTest.tell(resetConnectionMetrics, getRef());
+            probe.expectMsg(resetConnectionMetrics);
+
+            final ResetConnectionMetricsResponse resetResponse = ResetConnectionMetricsResponse.of(connectionId, DittoHeaders.empty());
+            expectMsg(resetResponse);
+        }};
     }
 
     private void testForwardThingEvent(final boolean isForwarded, final Signal<?> signal) {
