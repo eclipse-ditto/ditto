@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
@@ -223,7 +224,8 @@ final class ResultFactory {
             notifyConsumer.accept(response);
 
             // actor woke up due to SudoRetrieveThing; stop it
-            if (context.isFirstMessage()) {
+            final boolean requestedToGoBackToSleep = SudoRetrieveThing.shouldGoBackToSleep(response.getDittoHeaders());
+            if (requestedToGoBackToSleep && context.isFirstMessage()) {
                 context.getStopThisActorRunnable().run();
             }
         }
