@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 
+import org.bson.BsonDocument;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
@@ -64,7 +65,6 @@ import org.junit.rules.TestWatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.mongodb.DBObject;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
@@ -859,12 +859,12 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
         Assertions.retryOnAssertionError(r, PERSISTENCE_ASSERT_WAIT_AT_MOST_MS, PERSISTENCE_ASSERT_RETRY_DELAY_MS);
     }
 
-    private ThingEvent convertJournalEntryToEvent(final DBObject dbObject, final long sequenceNumber) {
+    private ThingEvent convertJournalEntryToEvent(final BsonDocument dbObject, final long sequenceNumber) {
         final ThingEvent<?> head = (ThingEvent) eventAdapter.fromJournal(dbObject, null).events().head();
         return head.setRevision(sequenceNumber);
     }
 
-    private static Thing convertSnapshotDataToThing(final DBObject dbObject, final long sequenceNumber) {
+    private static Thing convertSnapshotDataToThing(final BsonDocument dbObject, final long sequenceNumber) {
         final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();
         final JsonObject json = dittoBsonJson.serialize(dbObject).asObject();
 

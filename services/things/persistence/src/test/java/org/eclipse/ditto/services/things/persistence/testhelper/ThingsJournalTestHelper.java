@@ -22,7 +22,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import com.mongodb.DBObject;
+import org.bson.BsonDocument;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
@@ -43,7 +43,7 @@ public final class ThingsJournalTestHelper<J> {
 
     private static final int WAIT_TIMEOUT = 3;
     private final Function<String, String> domainIdToPersistenceId;
-    private final BiFunction<DBObject, Long, J> journalEntryToDomainObject;
+    private final BiFunction<BsonDocument, Long, J> journalEntryToDomainObject;
     private final ActorMaterializer mat;
     private final InMemoryReadJournal readJournal;
 
@@ -57,7 +57,7 @@ public final class ThingsJournalTestHelper<J> {
      * persistence ID
      */
     public ThingsJournalTestHelper(final ActorSystem actorSystem,
-            final BiFunction<DBObject, Long, J> journalEntryToDomainObject, final Function<String, String>
+            final BiFunction<BsonDocument, Long, J> journalEntryToDomainObject, final Function<String, String>
             domainIdToPersistenceId) {
         this.journalEntryToDomainObject = requireNonNull(journalEntryToDomainObject);
         this.domainIdToPersistenceId = requireNonNull(domainIdToPersistenceId);
@@ -85,7 +85,7 @@ public final class ThingsJournalTestHelper<J> {
     }
 
     private J convertEventEnvelopeToDomainObject(final EventEnvelope eventEnvelope) {
-        final DBObject event = (DBObject) eventEnvelope.event();
+        final BsonDocument event = (BsonDocument) eventEnvelope.event();
         return journalEntryToDomainObject.apply(event, eventEnvelope.sequenceNr());
     }
 

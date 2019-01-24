@@ -45,8 +45,14 @@ import akka.http.javadsl.testkit.TestRouteResult;
 public final class RootRouteTest extends EndpointTestBase {
 
     private static final String ROOT_PATH = "/";
-    private static final String STATUS_PATH = ROOT_PATH + OverallStatusRoute.PATH_STATUS;
+    private static final String STATUS_SUB_PATH = "status";
+    private static final String HEALTH_SUB_PATH = "health";
+    private static final String CLUSTER_SUB_PATH = "cluster";
+    private static final String OVERALL_STATUS_PATH =
+            ROOT_PATH + OverallStatusRoute.PATH_OVERALL + "/" + STATUS_SUB_PATH;
     private static final String HEALTH_PATH = ROOT_PATH + CachingHealthRoute.PATH_HEALTH;
+    private static final String STATUS_CLUSTER_PATH = ROOT_PATH + STATUS_SUB_PATH + "/" + CLUSTER_SUB_PATH;
+    private static final String STATUS_HEALTH_PATH = ROOT_PATH + STATUS_SUB_PATH + "/" + HEALTH_SUB_PATH;
     private static final String THINGS_1_PATH = ROOT_PATH + RootRoute.HTTP_PATH_API_PREFIX + "/" +
             JsonSchemaVersion.V_1.toInt() + "/" + ThingsRoute.PATH_THINGS;
     private static final String THINGS_2_PATH = ROOT_PATH + RootRoute.HTTP_PATH_API_PREFIX + "/" +
@@ -60,7 +66,8 @@ public final class RootRouteTest extends EndpointTestBase {
     private static final String WS_2_PATH = ROOT_PATH + RootRoute.WS_PATH_PREFIX + "/" + JsonSchemaVersion.V_2.toInt();
 
     private static final String PATH_WITH_INVALID_ENCODING = ROOT_PATH + RootRoute.HTTP_PATH_API_PREFIX + "/" +
-            JsonSchemaVersion.V_1.toInt() + "/" + ThingsRoute.PATH_THINGS + "/:bumlux/features?fields=feature-1%2properties";
+            JsonSchemaVersion.V_1.toInt() + "/" + ThingsRoute.PATH_THINGS +
+            "/:bumlux/features?fields=feature-1%2properties";
 
     private static final String HTTPS = "https";
 
@@ -96,19 +103,51 @@ public final class RootRouteTest extends EndpointTestBase {
     @Test
     public void getStatusWithAuth() {
         final TestRouteResult result =
-                rootTestRoute.run(withHttps(withDevopsCredentials(HttpRequest.GET(STATUS_PATH))));
+                rootTestRoute.run(withHttps(withDevopsCredentials(HttpRequest.GET(OVERALL_STATUS_PATH))));
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
     }
 
     @Test
     public void getStatusWithoutAuth() {
-        final TestRouteResult result = rootTestRoute.run(withHttps(HttpRequest.GET(STATUS_PATH)));
+        final TestRouteResult result = rootTestRoute.run(withHttps(HttpRequest.GET(OVERALL_STATUS_PATH)));
         result.assertStatusCode(StatusCodes.UNAUTHORIZED);
     }
 
     @Test
     public void getStatusUrlWithoutHttps() {
-        final TestRouteResult result = rootTestRoute.run(HttpRequest.GET(STATUS_PATH));
+        final TestRouteResult result = rootTestRoute.run(HttpRequest.GET(OVERALL_STATUS_PATH));
+        result.assertStatusCode(StatusCodes.NOT_FOUND);
+    }
+
+    @Test
+    public void getStatusHealth() {
+        // If the endpoint /status/health should be secured do it via webserver for example
+        final TestRouteResult result =
+                rootTestRoute.run(withHttps(HttpRequest.GET(STATUS_HEALTH_PATH)));
+        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+    }
+
+    @Test
+    public void getStatusHealthWithoutHttps() {
+        final TestRouteResult result =
+                rootTestRoute.run(HttpRequest.GET(STATUS_HEALTH_PATH));
+        result.assertStatusCode(StatusCodes.NOT_FOUND);
+    }
+
+    @Test
+    public void getStatusCluster() {
+
+        // If the endpoint /status/cluster should be secured do it via webserver for example
+        final TestRouteResult result =
+                rootTestRoute.run(withHttps(HttpRequest.GET(STATUS_CLUSTER_PATH)));
+        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+    }
+
+    @Test
+    public void getStatusClusterWithoutHttps() {
+
+        final TestRouteResult result =
+                rootTestRoute.run(HttpRequest.GET(STATUS_CLUSTER_PATH));
         result.assertStatusCode(StatusCodes.NOT_FOUND);
     }
 
@@ -168,7 +207,6 @@ public final class RootRouteTest extends EndpointTestBase {
                 withHttps(withDummyAuthentication(HttpRequest.GET(THING_SEARCH_2_PATH)));
 
         final TestRouteResult result = rootTestRoute.run(request);
-
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
     }
 
@@ -178,7 +216,6 @@ public final class RootRouteTest extends EndpointTestBase {
                 withHttps(withDummyAuthentication(HttpRequest.GET(UNKNOWN_SEARCH_PATH)));
 
         final TestRouteResult result = rootTestRoute.run(request);
-
         result.assertStatusCode(StatusCodes.NOT_FOUND);
     }
 

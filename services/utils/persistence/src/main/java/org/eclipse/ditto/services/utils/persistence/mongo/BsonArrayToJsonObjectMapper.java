@@ -16,35 +16,35 @@ import java.util.function.Function;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonObject;
-
-import com.mongodb.BasicDBObject;
+import org.bson.BsonArray;
+import org.eclipse.ditto.json.JsonArray;
 
 /**
- * This function maps a specified {@link com.mongodb.BasicDBObject} to a {@link org.eclipse.ditto.json.JsonObject}.
+ * This function maps a specified {@link BsonArray} to a {@link JsonArray}.
  * While mapping, the keys of all JSON objects can be revised by utilising a configurable function.
  */
 @Immutable
-final class BasicDBObjectToJsonObjectMapper extends AbstractBasicDBMapper<BasicDBObject, JsonObject> {
+final class BsonArrayToJsonObjectMapper extends AbstractBasicDBMapper<BsonArray, JsonArray> {
 
-    private BasicDBObjectToJsonObjectMapper(final Function<String, String> theJsonKeyNameReviser) {
+    private BsonArrayToJsonObjectMapper(final Function<String, String> theJsonKeyNameReviser) {
         super(theJsonKeyNameReviser);
     }
 
     /**
-     * Returns an instance of {@code BasicDBObjectToJsonObjectMapper}.
+     * Returns an instance of {@code BsonArrayToJsonObjectMapper}.
      *
      * @param jsonKeyNameReviser is used to revise the json key names of JSON objects.
      * @return the instance.
      * @throws NullPointerException if {@code jsonKeyNameReviser} is {@code null}.
      */
-    public static BasicDBObjectToJsonObjectMapper getInstance(final Function<String, String> jsonKeyNameReviser) {
-        return new BasicDBObjectToJsonObjectMapper(jsonKeyNameReviser);
+    public static BsonArrayToJsonObjectMapper getInstance(final Function<String, String> jsonKeyNameReviser) {
+        return new BsonArrayToJsonObjectMapper(jsonKeyNameReviser);
     }
 
     @Override
-    public JsonObject apply(final BasicDBObject basicDBObject) {
-        return mapBasicDBObjectToJsonObject(checkNotNull(basicDBObject, "BasicDBObject to be mapped"),
-                jsonKeyNameReviser);
+    public JsonArray apply(final BsonArray basicDBList) {
+        return AbstractBasicDBMapper.mapBsonArrayToJsonArray(
+                checkNotNull(basicDBList, "BsonArray to be mapped"), jsonKeyNameReviser);
     }
+
 }

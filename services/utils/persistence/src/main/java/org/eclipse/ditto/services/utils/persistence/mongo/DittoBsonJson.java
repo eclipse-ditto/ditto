@@ -15,41 +15,39 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.function.Function;
 
+import org.bson.BsonArray;
+import org.bson.BsonDocument;
+import org.bson.BsonValue;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 
-import com.mongodb.BasicDBList;
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBObject;
-
 /**
  * This is a specialized MongoDB BSON converter which additionally takes care that in JSON keys dots "." and dollar
- * signs "$" are replaced with their unicode representations in the {@link #parse(org.eclipse.ditto.json.JsonObject)}
- * {@link #parse(org.eclipse.ditto.json.JsonArray)} function and vice versa in
- * the {@link #serialize(com.mongodb.DBObject)} function.
+ * signs "$" are replaced with their unicode representations in the {@link #parse(JsonObject)} {@link #parse(JsonArray)}
+ * function and vice versa in the {@link #serialize(BsonValue)} function.
  */
 public final class DittoBsonJson {
 
     private static final DittoBsonJson INSTANCE = DittoBsonJson.newInstance();
 
-    private final Function<JsonObject, BasicDBObject> jsonObjectToBasicDBObjectMapper;
-    private final Function<JsonArray, BasicDBList> jsonArrayToBasicDBListMapper;
-    private final Function<BasicDBObject, JsonObject> basicDBObjectToJsonObjectMapper;
-    private final Function<BasicDBList, JsonArray> basicDBListToJsonObjectMapper;
+    private final Function<JsonObject, BsonDocument> jsonObjectToBsonDocumentMapper;
+    private final Function<JsonArray, BsonArray> jsonArrayToBsonArrayMapper;
+    private final Function<BsonDocument, JsonObject> bsonDocumentToJsonObjectMapper;
+    private final Function<BsonArray, JsonArray> bsonArrayToJsonObjectMapper;
 
     /*
      * Inhibit instantiation of this utility class.
      */
-    private DittoBsonJson(final Function<JsonObject, BasicDBObject> jsonObjectToBasicDBObjectMapper,
-            final Function<JsonArray, BasicDBList> jsonArrayToBasicDBListMapper,
-            final Function<BasicDBObject, JsonObject> basicDBObjectToJsonObjectMapper,
-            final Function<BasicDBList, JsonArray> basicDBListToJsonObjectMapper) {
+    private DittoBsonJson(final Function<JsonObject, BsonDocument> jsonObjectToBsonDocumentMapper,
+            final Function<JsonArray, BsonArray> jsonArrayToBsonArrayMapper,
+            final Function<BsonDocument, JsonObject> bsonDocumentToJsonObjectMapper,
+            final Function<BsonArray, JsonArray> bsonArrayToJsonObjectMapper) {
 
-        this.jsonObjectToBasicDBObjectMapper = jsonObjectToBasicDBObjectMapper;
-        this.jsonArrayToBasicDBListMapper = jsonArrayToBasicDBListMapper;
-        this.basicDBObjectToJsonObjectMapper = basicDBObjectToJsonObjectMapper;
-        this.basicDBListToJsonObjectMapper = basicDBListToJsonObjectMapper;
+        this.jsonObjectToBsonDocumentMapper = jsonObjectToBsonDocumentMapper;
+        this.jsonArrayToBsonArrayMapper = jsonArrayToBsonArrayMapper;
+        this.bsonDocumentToJsonObjectMapper = bsonDocumentToJsonObjectMapper;
+        this.bsonArrayToJsonObjectMapper = bsonArrayToJsonObjectMapper;
     }
 
     /**
@@ -65,76 +63,78 @@ public final class DittoBsonJson {
         final KeyNameReviser jsonToMongoDbKeyNameReviser = KeyNameReviser.escapeProblematicPlainChars();
         final KeyNameReviser jsonKeyNameReviser = KeyNameReviser.decodeKnownUnicodeChars();
 
-        return new DittoBsonJson(JsonValueToDbEntityMapper.forJsonObject(jsonToMongoDbKeyNameReviser),
+        return new DittoBsonJson(
+                JsonValueToDbEntityMapper.forJsonObject(jsonToMongoDbKeyNameReviser),
                 JsonValueToDbEntityMapper.forJsonArray(jsonToMongoDbKeyNameReviser),
-                BasicDBObjectToJsonObjectMapper.getInstance(jsonKeyNameReviser),
-                BasicDBListToJsonObjectMapper.getInstance(jsonKeyNameReviser));
+                BsonDocumentToJsonObjectMapper.getInstance(jsonKeyNameReviser),
+                BsonArrayToJsonObjectMapper.getInstance(jsonKeyNameReviser));
     }
 
     /**
-     * Serializes the specified {@link com.mongodb.DBObject} to Json, applying replacement of "special" characters
-     * {@code "$"} and {@code "."}.
+     * Serializes the specified {@link BsonValue} to Json, applying replacement of "special" characters {@code "$"} and
+     * {@code "."}.
      *
-     * @param object the DBObject to be serialized.
-     * @return the DBObject serialized as JsonValue.
-     * @throws NullPointerException if {@code object} is {@code null}.
-     * @throws IllegalArgumentException if {@code object} is not an instance of {@link com.mongodb.BasicDBObject}.
+     * @param bsonValue the BsonValue to be serialized.
+     * @return the BsonValue serialized as JsonValue.
+     * @throws NullPointerException if {@code bsonValue} is {@code null}.
+     * @throws IllegalArgumentException if {@code bsonValue} is not an instance of {@link BsonDocument} or {@link
+     * BsonArray}.
      */
-    public JsonValue serialize(final DBObject object) {
-        checkNotNull(object, "DBObject to be serialized");
-        if (object instanceof BasicDBObject) {
-            return serialize((BasicDBObject) object);
-        } else if (object instanceof BasicDBList) {
-            return serialize((BasicDBList) object);
+    public JsonValue serialize(final BsonValue bsonValue) {
+        checkNotNull(bsonValue, "BsonValue to be serialized");
+        if (bsonValue instanceof BsonDocument) {
+            return serialize((BsonDocument) bsonValue);
+        } else if (bsonValue instanceof BsonArray) {
+            return serialize((BsonArray) bsonValue);
         } else {
-            throw new IllegalArgumentException("Can only serialize BasicDBObjects");
+            throw new IllegalArgumentException("Can only serialize BsonDocument or BsonArray");
         }
     }
 
     /**
-     * Serializes the specified {@link com.mongodb.BasicDBObject} to Json, applying replacement of "special" characters
-     * {@code "$"} and {@code "."}.
+     * Serializes the specified {@link BsonDocument} to Json, applying replacement of "special" characters {@code "$"}
+     * and {@code "."}.
      *
-     * @param basicDBObject the BasicDBObject to be serialized.
-     * @return the BasicDBObject serialized as JsonValue.
-     * @throws NullPointerException if {@code basicDBObject} is {@code null}.
+     * @param bsonDocument the BsonDocument to be serialized.
+     * @return the BsonDocument serialized as JsonValue.
+     * @throws NullPointerException if {@code bsonDocument} is {@code null}.
      */
-    public JsonObject serialize(final BasicDBObject basicDBObject) {
-        return basicDBObjectToJsonObjectMapper.apply(checkNotNull(basicDBObject, "BasicDBObject to be serialized"));
+    public JsonObject serialize(final BsonDocument bsonDocument) {
+        return bsonDocumentToJsonObjectMapper.apply(checkNotNull(bsonDocument, "BsonDocument to be serialized"));
     }
 
     /**
-     * Serializes the specified {@link com.mongodb.BasicDBList} to Json, applying replacement of "special" characters
-     * {@code "$"} and {@code "."}.
+     * Serializes the specified {@link BsonArray} to Json, applying replacement of "special" characters {@code "$"} and
+     * {@code "."}.
      *
-     * @param basicDBList the BasicDBList to be serialized.
-     * @return the BasicDBList serialized as JsonValue.
-     * @throws NullPointerException if {@code basicDBList} is {@code null}.
+     * @param bsonArray the BsonArray to be serialized.
+     * @return the BsonArray serialized as JsonValue.
+     * @throws NullPointerException if {@code bsonArray} is {@code null}.
      */
-    public JsonArray serialize(final BasicDBList basicDBList) {
-        return basicDBListToJsonObjectMapper.apply(checkNotNull(basicDBList, "BasicDBList to be serialized"));
+    public JsonArray serialize(final BsonArray bsonArray) {
+        return bsonArrayToJsonObjectMapper.apply(checkNotNull(bsonArray, "BsonArray to be serialized"));
     }
 
     /**
-     * Parses the specified {@link org.eclipse.ditto.json.JsonObject} into an {@link com.mongodb.DBObject}.
+     * Parses the specified {@link JsonObject} into an {@link BsonDocument}.
      *
      * @param jsonObject the JSON object to be parsed.
-     * @return the parsed JSON object as DBObject.
+     * @return the parsed JSON object as BsonDocument.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      */
-    public DBObject parse(final JsonObject jsonObject) {
-        return jsonObjectToBasicDBObjectMapper.apply(jsonObject);
+    public BsonDocument parse(final JsonObject jsonObject) {
+        return jsonObjectToBsonDocumentMapper.apply(jsonObject);
     }
 
     /**
-     * Parses the passed in {@link org.eclipse.ditto.json.JsonArray} into an {@link com.mongodb.DBObject}.
+     * Parses the passed in {@link JsonArray} into an {@link BsonArray}.
      *
      * @param jsonArray the JSON array to be parsed.
-     * @return the parsed JSON array as DBObject.
+     * @return the parsed JSON array as BsonArray.
      * @throws NullPointerException if {@code jsonArray} is {@code null}.
      */
-    public DBObject parse(final JsonArray jsonArray) {
-        return jsonArrayToBasicDBListMapper.apply(jsonArray);
+    public BsonArray parse(final JsonArray jsonArray) {
+        return jsonArrayToBsonArrayMapper.apply(jsonArray);
     }
 
 }
