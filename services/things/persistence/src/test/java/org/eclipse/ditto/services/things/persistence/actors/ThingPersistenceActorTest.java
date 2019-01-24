@@ -27,7 +27,6 @@ import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils
 
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import org.assertj.core.api.Assertions;
@@ -60,7 +59,6 @@ import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.services.things.persistence.snapshotting.DittoThingSnapshotter;
 import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
 import org.eclipse.ditto.signals.commands.common.ShutdownReasonFactory;
@@ -149,13 +147,11 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     @Rule
     public final TestWatcher watchman = new TestedMethodLoggingWatcher(LoggerFactory.getLogger(getClass()));
 
-    /** */
     @Before
     public void setUp() {
         setup(ConfigFactory.empty());
     }
 
-    /** */
     @Test
     public void unavailableExpectedIfPersistenceActorTerminates() throws Exception {
         new TestKit(actorSystem) {
@@ -198,7 +194,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
     @Test
     public void tryToModifyFeaturePropertyAndReceiveCorrectErrorCode() {
         final String thingId = "org.eclipse.ditto:myThing";
@@ -235,7 +230,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
     @Test
     public void tryToRetrieveThingWhichWasNotYetCreated() {
         final String thingId = "test.ns:23420815";
@@ -273,7 +267,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         }
     }
 
-    /** */
     @Test
     public void createThingV2() {
         new TestKit(actorSystem) {
@@ -290,7 +283,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
     @Test
     public void modifyThingV1() {
         final Thing thing = createThingV1WithRandomId();
@@ -300,7 +292,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         testModifyThing(dittoHeadersV1, thing, modifiedThing);
     }
 
-    /** */
     @Test
     public void modifyThingV2() {
         final Thing thing = createThingV2WithRandomId();
@@ -350,7 +341,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
     @Test
     public void modifyThingKeepsOverwritesExistingFirstLevelFieldsWhenExplicitlySpecifiedV1() {
         final Thing thingWithFirstLevelFields = createThingV1WithRandomId();
@@ -364,7 +354,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 thingWithDifferentFirstLevelFields, dittoHeadersV1);
     }
 
-    /** */
     @Test
     public void modifyThingKeepsOverwritesExistingFirstLevelFieldsWhenExplicitlySpecifiedV2() {
         final Thing thingWithFirstLevelFields = createThingV2WithRandomId();
@@ -419,7 +408,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
     @Test
     public void modifyThingKeepsAlreadyExistingFirstLevelFieldsWhenNotExplicitlyOverwrittenV1() {
         final Thing thingWithFirstLevelFields = createThingV1WithRandomId();
@@ -427,7 +415,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 dittoHeadersV1);
     }
 
-    /** */
     @Test
     public void modifyThingKeepsAlreadyExistingFirstLevelFieldsWhenNotExplicitlyOverwrittenV2() {
         final Thing thingWithFirstLevelFields = createThingV2WithRandomId();
@@ -513,7 +500,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
     @Test
     public void retrieveThingV2() {
         final Thing thing = createThingV2WithRandomId();
@@ -535,7 +521,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
     @Test
     public void retrieveThingsWithoutThingIdOfActor() {
         final Thing thing = createThingV2WithRandomId();
@@ -558,7 +543,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
     @Test
     public void deleteThingV1() {
         new TestKit(actorSystem) {
@@ -578,7 +562,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
     @Test
     public void deleteThingV2() {
         new TestKit(actorSystem) {
@@ -643,7 +626,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
     @Test
     public void modifyFeatures() {
         new TestKit(actorSystem) {
@@ -682,7 +664,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
     @Test
     public void modifyAttributes() {
         new TestKit(actorSystem) {
@@ -726,7 +707,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
     @Test
     public void modifyAttribute() {
         final JsonObjectBuilder attributesBuilder = JsonFactory.newObjectBuilder();
@@ -764,7 +744,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
     @Test
     public void retrieveAttribute() {
         final JsonPointer attributeKey = JsonFactory.newPointer("isValid");
@@ -801,7 +780,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
     @Test
     public void deleteAttribute() {
         final JsonPointer attributeKey = JsonFactory.newPointer("isValid");
@@ -836,7 +814,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
     @Test
     public void tryToRetrieveThingAfterDeletion() {
         final Thing thing = createThingV2WithRandomId();
@@ -862,7 +839,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
     @Test
     public void recoverThingCreated() {
         new TestKit(actorSystem) {
@@ -896,7 +872,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
     @Test
     public void recoverThingDeleted() {
         new TestKit(actorSystem) {
@@ -931,7 +906,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
     @Test
     public void recoverAclModified() {
         new TestKit(actorSystem) {
@@ -966,7 +940,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
     @Test
     public void recoverAclEntryModified() {
         new TestKit(actorSystem) {
@@ -1002,7 +975,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
     @Test
     public void recoverAclEntryDeleted() {
         new TestKit(actorSystem) {
@@ -1043,7 +1015,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
     @Test
     public void ensureSequenceNumberCorrectness() {
         new TestKit(actorSystem) {
@@ -1084,7 +1055,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
     @Test
     public void ensureSequenceNumberCorrectnessAfterRecovery() {
         new TestKit(actorSystem) {
@@ -1131,7 +1101,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
     @Test
     public void createThingInV1AndRetrieveWithV1() {
         final String thingIdOfActor = "test.ns.v1:createThingInV1AndRetrieveWithV1";
@@ -1160,8 +1129,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /**
-     */
     @Test
     public void createThingInV1AndRetrieveWithV2() {
         final String thingIdOfActor = "test.ns.v1:createThingInV1AndRetrieveWithV2";
@@ -1190,8 +1157,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /**
-     */
     @Test
     public void createThingInV1AndUpdateWithV2() {
         final String thingId = "test.ns.v1:createThingInV1AndUpdateWithV2";
@@ -1231,8 +1196,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /**
-     */
     @Test
     public void createThingInV2WithMissingPolicyIdThrowsPolicyIdMissingException() {
         final String thingIdOfActor = "test.ns.v1:createThingInV2WithMissingPolicyId";
@@ -1253,7 +1216,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
     @Test
     public void responsesDuringInitializationAreSentWithDittoHeaders() {
         new TestKit(actorSystem) {
@@ -1280,7 +1242,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
     @Test
     public void ensureModifiedCorrectnessAfterCreation() {
         new TestKit(actorSystem) {
@@ -1312,7 +1273,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
     @Test
     public void ensureModifiedCorrectnessAfterModification() {
         new TestKit(actorSystem) {
@@ -1361,7 +1321,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
     @Test
     public void ensureModifiedCorrectnessAfterRecovery() {
         new TestKit(actorSystem) {
@@ -1435,8 +1394,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         }};
     }
 
-    /**
-     */
     @Test
     public void createThingInV1AndUpdateWithV2WithoutPolicyId() {
         final String thingId = "test.ns.v1:createThingInV1AndUpdateWithV2WithoutPolicyId";
@@ -1458,8 +1415,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         }};
     }
 
-    /**
-     */
     @Test
     public void createThingInV1AndUpdateWithV2WithPolicyId() {
         final String thingId = "test.ns.v1:createThingInV1AndUpdateWithV2WithPolicyId";
@@ -1481,8 +1436,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         }};
     }
 
-    /**
-     */
     @Test
     public void createThingInV2AndUpdateWithV1() {
         final String thingId = "test.ns.v1:createThingInV2AndUpdateWithV1";
@@ -1509,8 +1462,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         }};
     }
 
-    /**
-     */
     @Test
     public void createThingInV2AndUpdateWithV1WithACL() {
         final String thingId = "test.ns.v1:createThingInV2AndUpdateWithV1WithACL";
@@ -1534,8 +1485,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         }};
     }
 
-    /**
-     */
     @Test
     public void createThingInV2AndUpdateWithV2AndChangedPolicyId() {
         final String thingId = "test.ns.v1:createThingInV2AndUpdateWithV2AndChangedPolicyId";
@@ -1553,36 +1502,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                                     false));
             assertPublishEvent(this, ThingModified.of(thingV2_2, 2L, headersUsed));
         }};
-    }
-
-    @Test
-    public void checkForActivityOfNonexistentThing() {
-        new TestKit(actorSystem) {
-            {
-                // GIVEN: props increments counter whenever a ThingPersistenceActor is created
-                final AtomicInteger restartCounter = new AtomicInteger(0);
-                final String thingId = "test.ns:nonexistent.thing";
-                final Props props = Props.create(ThingPersistenceActor.class, () -> {
-                    restartCounter.incrementAndGet();
-                    return new ThingPersistenceActor(thingId, pubSubMediator, DittoThingSnapshotter::getInstance);
-                });
-
-                // WHEN: CheckForActivity is sent to a persistence actor of nonexistent thing after startup
-                final ActorRef underTest = actorSystem.actorOf(props);
-                watch(underTest);
-
-                final Object checkForActivity = new CheckForActivity(1L, 1L);
-                underTest.tell(checkForActivity, ActorRef.noSender());
-                underTest.tell(checkForActivity, ActorRef.noSender());
-                underTest.tell(checkForActivity, ActorRef.noSender());
-
-                // THEN: persistence actor shuts down
-                expectTerminated(Duration.apply(10, TimeUnit.SECONDS), underTest);
-
-                // THEN: actor should not restart itself.
-                assertThat(restartCounter.get()).isEqualTo(1);
-            }
-        };
     }
 
     @Test

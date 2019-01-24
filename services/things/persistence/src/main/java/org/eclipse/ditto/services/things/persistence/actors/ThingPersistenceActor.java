@@ -51,7 +51,6 @@ import akka.ConfigurationException;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Cancellable;
-import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
@@ -515,7 +514,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     // stop the supervisor (otherwise it'd restart this actor) which causes this actor to stop, too.
     private void stopThisActor() {
-        getContext().getParent().tell(PoisonPill.getInstance(), getSelf());
+        getContext().getParent().tell(ThingSupervisorActor.Control.PASSIVATE, getSelf());
     }
 
     /**
