@@ -20,6 +20,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.policies.TestConstants;
 import org.junit.Test;
 
@@ -50,7 +51,7 @@ public class ResourcesNotModifiableExceptionTest {
     @Test
     public void checkResourcesErrorCodeWorks() {
         final DittoRuntimeException actual =
-                PolicyErrorRegistry.newInstance().parse(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
+                GlobalErrorRegistry.getInstance().parse(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(actual).isEqualTo(TestConstants.Policy.RESOURCES_NOT_MODIFIABLE_EXCEPTION);
     }

@@ -22,12 +22,14 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
  * Thrown if the Policy's ID is not valid (for example if it does not comply to the Policy ID REGEX).
  */
 @Immutable
+@JsonParsableException(errorCode = PolicyIdInvalidException.ERROR_CODE)
 public final class PolicyIdInvalidException extends DittoRuntimeException implements PolicyException {
 
     /**

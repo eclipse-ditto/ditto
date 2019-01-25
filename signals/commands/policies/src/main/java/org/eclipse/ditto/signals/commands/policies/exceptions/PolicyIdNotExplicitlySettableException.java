@@ -22,12 +22,14 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyException;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown if either for a REST PUT request for creating a Policy it was tried to set an explicit {@code policyId}
  * in the JSON body.
  */
 @Immutable
+@JsonParsableException(errorCode = PolicyIdNotExplicitlySettableException.ERROR_CODE)
 public final class PolicyIdNotExplicitlySettableException extends DittoRuntimeException implements PolicyException {
 
     /**

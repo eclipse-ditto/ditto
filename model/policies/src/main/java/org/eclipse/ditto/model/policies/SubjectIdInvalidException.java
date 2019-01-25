@@ -22,6 +22,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -29,6 +30,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  * "{@value SubjectId#ISSUER_DELIMITER}" in it).
  */
 @Immutable
+@JsonParsableException(errorCode = SubjectIdInvalidException.ERROR_CODE)
 public final class SubjectIdInvalidException extends DittoRuntimeException implements PolicyException {
 
     /**
