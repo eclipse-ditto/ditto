@@ -30,7 +30,7 @@ public enum PermissionEffect {
 
     private final String id;
 
-    private PermissionEffect(final String id) {
+    PermissionEffect(final String id) {
         this.id = id;
     }
 

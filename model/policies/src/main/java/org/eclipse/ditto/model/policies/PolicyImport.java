@@ -22,20 +22,23 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
- *
+ * Represents a single import of another {@link Policy} based on its {@code policyId} and {@link EffectedImports}
+ * containing optional includes and excludes.
  */
 public interface PolicyImport extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
      * Returns a new {@code PolicyImport} with the specified {@code resourceKey} and {@code effectedPermissions}.
      *
-     * @param effectedImportedEntries the EffectedImportedEntries of the new PolicyImport to create.
+     * @param importedPolicyId TODO TJ doc
+     * @param isProtected
+     * @param effectedImports the EffectedImports of the new PolicyImport to create.
      * @return the new {@code PolicyImport}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    static PolicyImport newInstance(final String importedPolicyId,
-            final EffectedImportedEntries effectedImportedEntries) {
-        return PoliciesModelFactory.newPolicyImport(importedPolicyId, effectedImportedEntries);
+    static PolicyImport newInstance(final String importedPolicyId, final boolean isProtected,
+            final EffectedImports effectedImports) {
+        return PoliciesModelFactory.newPolicyImport(importedPolicyId, isProtected, effectedImports);
     }
 
     /**
@@ -56,11 +59,19 @@ public interface PolicyImport extends Jsonifiable.WithFieldSelectorAndPredicate<
     String getImportedPolicyId();
 
     /**
-     * Returns the {@link EffectedImportedEntries} (containing included and excluded ones) for this PolicyImport.
+     * Returns whether this import is a protected one meaning that it may only be written once - afterwards noone is
+     * able to change or delete it again.
+     *
+     * @return whether this import is a protected one.
+     */
+    boolean isProtected();
+
+    /**
+     * Returns the {@link EffectedImports} (containing included and excluded ones) for this PolicyImport.
      *
      * @return the effected imported entries.
      */
-    EffectedImportedEntries getEffectedImportedEntries();
+    EffectedImports getEffectedImports();
 
     /**
      * Returns all non hidden marked fields of this PolicyImport.
@@ -89,6 +100,12 @@ public interface PolicyImport extends Jsonifiable.WithFieldSelectorAndPredicate<
         public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
                 JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
                         JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the PolicyImport's {@code protected} value.
+         */
+        public static final JsonFieldDefinition<Boolean> PROTECTED =
+                JsonFactory.newBooleanFieldDefinition("protected", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

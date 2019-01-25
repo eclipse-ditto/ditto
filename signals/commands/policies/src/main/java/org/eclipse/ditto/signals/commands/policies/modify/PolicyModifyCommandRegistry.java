@@ -41,6 +41,10 @@ public final class PolicyModifyCommandRegistry extends AbstractCommandRegistry<P
         parseStrategies.put(ModifyPolicy.TYPE, ModifyPolicy::fromJson);
         parseStrategies.put(DeletePolicy.TYPE, DeletePolicy::fromJson);
 
+        parseStrategies.put(ModifyPolicyImports.TYPE, ModifyPolicyImports::fromJson);
+        parseStrategies.put(ModifyPolicyImport.TYPE, ModifyPolicyImport::fromJson);
+        parseStrategies.put(DeletePolicyImport.TYPE, DeletePolicyImport::fromJson);
+
         parseStrategies.put(ModifyPolicyEntries.TYPE, ModifyPolicyEntries::fromJson);
         parseStrategies.put(ModifyPolicyEntry.TYPE, ModifyPolicyEntry::fromJson);
         parseStrategies.put(DeletePolicyEntry.TYPE, DeletePolicyEntry::fromJson);

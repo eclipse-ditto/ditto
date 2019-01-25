@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.LabelInvalidException;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
@@ -344,6 +345,10 @@ public class JsonExamplesProducer {
         final PolicyIdInvalidException policyIdInvalidException =
                 PolicyIdInvalidException.newBuilder("invalid id").build();
         writeJson(exceptionsDir.resolve(Paths.get("policyIdInvalidException.json")), policyIdInvalidException);
+
+        final LabelInvalidException labelInvalidException =
+                LabelInvalidException.newBuilder("imported-label").build();
+        writeJson(exceptionsDir.resolve(Paths.get("labelInvalidException.json")), labelInvalidException);
 
         final PolicyEntryInvalidException policyEntryInvalidException =
                 PolicyEntryInvalidException.newBuilder().build();

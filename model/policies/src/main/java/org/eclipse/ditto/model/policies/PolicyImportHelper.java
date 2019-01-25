@@ -16,11 +16,18 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
  * TODO TJ doc
  */
 public final class PolicyImportHelper {
+
+    /**
+     * Prefix for Policy labels which were imported. As a consequence Policy entries may not start with the prefix.
+     */
+    private static final String IMPORTED_PREFIX = "imported-";
 
     private PolicyImportHelper() {
         throw new AssertionError();
@@ -38,20 +45,23 @@ public final class PolicyImportHelper {
                 .map(stream -> stream
                         .map(policyImport -> {
 
-                            final Optional<Policy> loadedPolicyOpt = policyLoader.apply(policyImport.getImportedPolicyId());
+                            final String importedPolicyId = policyImport.getImportedPolicyId();
+                            final Optional<Policy> loadedPolicyOpt = policyLoader.apply(
+                                    importedPolicyId);
                             return loadedPolicyOpt.map(loadedPolicy -> {
-                                final ImportedEntries included =
-                                        policyImport.getEffectedImportedEntries().getIncludedImportedEntries();
-                                final ImportedEntries excluded =
-                                        policyImport.getEffectedImportedEntries().getExcludedImportedEntries();
+                                final ImportedLabels included =
+                                        policyImport.getEffectedImports().getIncludedImportedEntries();
+                                final ImportedLabels excluded =
+                                        policyImport.getEffectedImports().getExcludedImportedEntries();
 
                                 if (included.isEmpty() && excluded.isEmpty()) {
                                     // import them all:
-                                    return loadedPolicy.getEntriesSet();
+                                    return rewriteImportedLabels(importedPolicyId, loadedPolicy.getEntriesSet());
                                 } else if (included.isEmpty()) {
                                     // only apply excludes:
                                     final Set<CharSequence> excludedEntryLabels = new HashSet<>(excluded);
-                                    return loadedPolicy.removeEntries(excludedEntryLabels);
+                                    return rewriteImportedLabels(importedPolicyId,
+                                            loadedPolicy.removeEntries(excludedEntryLabels));
                                 } else {
                                     // calculate those we want to import:
                                     final Set<CharSequence> allExistingLabels = loadedPolicy.getLabels().stream()
@@ -61,16 +71,31 @@ public final class PolicyImportHelper {
                                     allExistingLabels.retainAll(included);
                                     allExistingLabels.removeAll(excluded);
 
-                                    return loadedPolicy.stream()
-                                            .filter(policyEntry -> allExistingLabels.contains(policyEntry.getLabel()))
+                                    return rewriteImportedLabels(importedPolicyId, loadedPolicy.stream()
+                                            .filter(policyEntry -> allExistingLabels.contains(policyEntry.getLabel())))
                                             .collect(Collectors.toSet());
                                 }
                             }).orElse(Collections.emptySet());
                         })
                 )
-                .ifPresent(stream -> stream.forEach(importedEntries ->
-                        importedEntries.forEach(policyEntriesSet::add)
-                ));
+                .ifPresent(stream -> stream.forEach(policyEntriesSet::addAll));
         return policyEntriesSet;
+    }
+
+    private static Set<PolicyEntry> rewriteImportedLabels(final String importedPolicyId,
+            final Iterable<PolicyEntry> importedEntries) {
+
+        return rewriteImportedLabels(importedPolicyId,
+                StreamSupport.stream(importedEntries.spliterator(), false)).collect(Collectors.toSet());
+    }
+
+    private static Stream<PolicyEntry> rewriteImportedLabels(final String importedPolicyId,
+            final Stream<PolicyEntry> importedEntriesStream) {
+
+        return importedEntriesStream
+                .map(entry -> PoliciesModelFactory.newPolicyEntry(
+                        IMPORTED_PREFIX + importedPolicyId + "-" + entry.getLabel(),
+                        entry.getSubjects(), entry.getResources()
+                ));
     }
 }

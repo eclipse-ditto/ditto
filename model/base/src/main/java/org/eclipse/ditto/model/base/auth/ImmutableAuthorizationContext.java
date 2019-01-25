@@ -41,7 +41,9 @@ final class ImmutableAuthorizationContext implements AuthorizationContext {
     private final List<AuthorizationSubject> authorizationSubjects;
 
     private ImmutableAuthorizationContext(final List<AuthorizationSubject> theAuthorizationSubjects) {
-        authorizationSubjects = theAuthorizationSubjects;
+        final ArrayList<AuthorizationSubject> theList = new ArrayList<>(theAuthorizationSubjects);
+        theList.add(AuthorizationSubject.newInstance(AuthorizationSubject.WILDCARD_SUBJECT));
+        authorizationSubjects = Collections.unmodifiableList(theList);
     }
 
     /**
@@ -54,7 +56,7 @@ final class ImmutableAuthorizationContext implements AuthorizationContext {
     public static AuthorizationContext of(final List<AuthorizationSubject> authorizationSubjects) {
         checkNotNull(authorizationSubjects, "authorization subjects");
 
-        return new ImmutableAuthorizationContext(Collections.unmodifiableList(authorizationSubjects));
+        return new ImmutableAuthorizationContext(authorizationSubjects);
     }
 
     /**

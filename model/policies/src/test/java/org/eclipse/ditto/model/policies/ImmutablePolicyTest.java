@@ -49,7 +49,7 @@ public final class ImmutablePolicyTest {
     private static final String POLICY_ID = "com.example:myPolicy";
 
     private static final PolicyImports POLICY_IMPORTS = PoliciesModelFactory.newPolicyImports(
-            PoliciesModelFactory.newPolicyImport("com.example:importedPolicy"));
+            PoliciesModelFactory.newPolicyImport("com.example:importedPolicy", false));
 
     private static Policy createPolicy() {
         final List<PolicyEntry> policyEntries = Arrays.asList(createPolicyEntry1(), createPolicyEntry2());

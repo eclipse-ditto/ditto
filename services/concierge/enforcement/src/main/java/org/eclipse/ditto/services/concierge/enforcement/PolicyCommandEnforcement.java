@@ -17,8 +17,11 @@ import java.util.Set;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -95,7 +98,20 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
         final boolean authorized;
         if (command instanceof PolicyModifyCommand) {
             final String permission = Permission.WRITE;
-            authorized = enforcer.hasUnrestrictedPermissions(policyResourceKey, authorizationContext, permission);
+            authorized = ((PolicyModifyCommand) command).getEntity()
+                    .filter(JsonValue::isObject)
+                    .map(JsonValue::asObject)
+                    .map(policyJsonObj -> policyJsonObj.stream()
+                            .filter(f -> !f.getValue().isNull())
+                            .map(JsonField::getKey)
+                            .map(JsonKey::toString))
+                    .map(keys -> keys.map(key ->
+                            PoliciesResourceType.policyResource(command.getResourcePath().append(JsonPointer.of(key)))))
+                    .filter(keys -> keys.allMatch(key ->
+                            enforcer.hasUnrestrictedPermissions(key, authorizationContext, permission))
+                    ).isPresent();
+
+//            authorized = enforcer.hasUnrestrictedPermissions(policyResourceKey, authorizationContext, permission);
         } else {
             final String permission = Permission.READ;
             authorized = enforcer.hasPartialPermissions(policyResourceKey, authorizationContext, permission);

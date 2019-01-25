@@ -16,6 +16,7 @@ import java.util.Map;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.policies.LabelInvalidException;
 import org.eclipse.ditto.model.policies.PolicyEntryInvalidException;
 import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.model.policies.PolicyTooLargeException;
@@ -103,6 +104,9 @@ public final class PolicyErrorRegistry extends AbstractErrorRegistry<DittoRuntim
         parseStrategies.put(SubjectsNotModifiableException.ERROR_CODE,
                 SubjectsNotModifiableException::fromJson);
 
+        parseStrategies.put(PolicyImportProtectedException.ERROR_CODE,
+                PolicyImportProtectedException::fromJson);
+
         // exceptions in package org.eclipse.ditto.model.policies
         parseStrategies.put(PolicyEntryInvalidException.ERROR_CODE,
                 PolicyEntryInvalidException::fromJson);
@@ -115,6 +119,9 @@ public final class PolicyErrorRegistry extends AbstractErrorRegistry<DittoRuntim
 
         parseStrategies.put(SubjectIdInvalidException.ERROR_CODE,
                 SubjectIdInvalidException::fromJson);
+
+        parseStrategies.put(LabelInvalidException.ERROR_CODE,
+                LabelInvalidException::fromJson);
 
         return new PolicyErrorRegistry(parseStrategies);
     }

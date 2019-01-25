@@ -19,9 +19,10 @@ import java.util.function.Predicate;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
@@ -34,82 +35,75 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 final class ImmutablePolicyImport implements PolicyImport {
 
     private final String importedPolicyId;
-    private final EffectedImportedEntries effectedImportedEntries;
+    private final boolean isProtected;
+    private final EffectedImports effectedImports;
 
-    private ImmutablePolicyImport(final String importedPolicyId, final EffectedImportedEntries effectedPermissions) {
+    private ImmutablePolicyImport(final String importedPolicyId, final boolean isProtected,
+            final EffectedImports effectedPermissions) {
         this.importedPolicyId = checkNotNull(importedPolicyId, "imported policy id");
-        this.effectedImportedEntries = checkNotNull(effectedPermissions, "effected imported entries");
+        this.isProtected = isProtected;
+        this.effectedImports = checkNotNull(effectedPermissions, "effected imported entries");
+    }
+
+    /**
+     * Creates a new {@code PolicyImport} object based on the given {@code importedPolicyId} with empty
+     * {@code effectedImports}.
+     *
+     * @param importedPolicyId TODO TJ doc
+     * @param isProtected
+     * @return a new {@code PolicyImport} object.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static PolicyImport of(final String importedPolicyId, final boolean isProtected) {
+        return new ImmutablePolicyImport(importedPolicyId, isProtected,
+                PoliciesModelFactory.emptyEffectedImportedEntries());
+    }
+
+    /**
+     * Creates a new {@code PolicyImport} object based on the given {@code importedPolicyId} and {@code effectedImports}.
+     *
+     * @param importedPolicyId TODO TJ doc
+     * @param isProtected
+     * @param effectedImports
+     * @return a new {@code PolicyImport} object.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static PolicyImport of(final String importedPolicyId, final boolean isProtected,
+            final EffectedImports effectedImports) {
+        return new ImmutablePolicyImport(importedPolicyId, isProtected, effectedImports);
     }
 
     /**
      * Creates a new {@code PolicyImport} object based on the given {@code importedPolicyId} and {@code jsonValue}.
      *
-     * @param importedPolicyId the JSON key which is assumed to be ...
+     * @param importedPolicyId the JSON key which is assumed to be ... TODO TJ doc
      * @param jsonValue the JSON value containing the effected permissions for the PolicyImport. This value is supposed to
      * be a {@link JsonObject}.
      * @return a new {@code PolicyImport} object.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws DittoJsonException if {@code jsonValue} is not a JSON object or the JSON has not the expected format.
      */
-    public static PolicyImport of(final String importedPolicyId, final JsonValue jsonValue) {
+    public static PolicyImport fromJson(final String importedPolicyId, final JsonValue jsonValue) {
         checkNotNull(jsonValue, "JSON value");
 
-        final EffectedImportedEntries effectedImportedEntries = Optional.of(jsonValue)
+        final Optional<JsonObject> jsonFields = Optional.of(jsonValue)
                 .filter(JsonValue::isObject)
-                .map(JsonValue::asObject)
-                .map(object -> wrapJsonRuntimeException(() -> ImmutableEffectedImportedEntries.fromJson(object)))
+                .map(JsonValue::asObject);
+
+        final boolean isProtected = jsonFields
+                .map(object -> wrapJsonRuntimeException(() -> object.getValueOrThrow(JsonFields.PROTECTED)))
+                .orElseThrow(() -> new DittoJsonException(JsonParseException.newBuilder()
+                        .message("The JSON object containing the 'protected' value of the 'imported policy' with ID '" +
+                                importedPolicyId + "' is missing or not an object.")
+                        .build()));
+        final EffectedImports effectedImports = jsonFields
+                .map(object -> wrapJsonRuntimeException(() -> ImmutableEffectedImports.fromJson(object)))
                 .orElseThrow(() -> new DittoJsonException(JsonParseException.newBuilder()
                         .message("The JSON object for the 'entries' (included/excluded) of the 'imported policy' with ID '" +
                                 importedPolicyId + "' is missing or not an object.")
                         .build()));
 
-        return of(importedPolicyId, effectedImportedEntries);
-    }
-
-    /**
-     * Creates a new {@code PolicyImport} object based on the given {@code importedPolicyId} with empty
-     * {@code effectedImportedEntries}.
-     *
-     * @return a new {@code PolicyImport} object.
-     * @throws NullPointerException if any argument is {@code null}.
-     */
-    public static PolicyImport of(final String importedPolicyId) {
-        return new ImmutablePolicyImport(importedPolicyId, PoliciesModelFactory.emptyEffectedImportedEntries());
-    }
-
-    /**
-     * Creates a new {@code PolicyImport} object based on the given {@code importedPolicyId} and {@code effectedImportedEntries}.
-     *
-     * @return a new {@code PolicyImport} object.
-     * @throws NullPointerException if any argument is {@code null}.
-     */
-    public static PolicyImport of(final String importedPolicyId, final EffectedImportedEntries effectedImportedEntries) {
-        return new ImmutablePolicyImport(importedPolicyId, effectedImportedEntries);
-    }
-
-    /**
-     * Creates a new {@code Resource} object from the specified JSON object.
-     *
-     * @param jsonObject a JSON object which provides the data for the Resource to be created.
-     * @return a new Resource which is initialised with the extracted data from {@code jsonObject}.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @throws DittoJsonException if {@code jsonObject}
-     * <ul>
-     *     <li>is empty,</li>
-     *     <li>contains only a field with the schema version</li>
-     *     <li>or it contains more than two fields.</li>
-     * </ul>
-     */
-    public static PolicyImport fromJson(final JsonObject jsonObject) {
-        checkNotNull(jsonObject, "JSON object");
-
-        return jsonObject.stream()
-                .filter(field -> !Objects.equals(field.getKey(), JsonSchemaVersion.getJsonKey()))
-                .findFirst()
-                .map(field -> of(field.getKeyName(), field.getValue()))
-                .orElseThrow(() -> new DittoJsonException(JsonMissingFieldException.newBuilder()
-                        .message("The JSON object for the 'imported policy' is missing.")
-                        .build()));
+        return of(importedPolicyId, isProtected, effectedImports);
     }
 
     @Override
@@ -117,15 +111,25 @@ final class ImmutablePolicyImport implements PolicyImport {
         return importedPolicyId;
     }
 
+    @Override
+    public boolean isProtected() {
+        return isProtected;
+    }
 
     @Override
-    public EffectedImportedEntries getEffectedImportedEntries() {
-        return effectedImportedEntries;
+    public EffectedImports getEffectedImports() {
+        return effectedImports;
     }
 
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
-        return effectedImportedEntries.toJson(schemaVersion, thePredicate);
+        final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
+        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
+
+        jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
+        jsonObjectBuilder.set(JsonFields.PROTECTED, isProtected, predicate);
+        jsonObjectBuilder.setAll(effectedImports.toJson(schemaVersion, thePredicate));
+        return jsonObjectBuilder.build();
     }
 
     @Override
@@ -138,19 +142,21 @@ final class ImmutablePolicyImport implements PolicyImport {
         }
         final ImmutablePolicyImport resource = (ImmutablePolicyImport) o;
         return Objects.equals(importedPolicyId, resource.importedPolicyId) &&
-                Objects.equals(effectedImportedEntries, resource.effectedImportedEntries);
+                isProtected == resource.isProtected &&
+                Objects.equals(effectedImports, resource.effectedImports);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(importedPolicyId, effectedImportedEntries);
+        return Objects.hash(importedPolicyId, isProtected, effectedImports);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "importedPolicyId=" + importedPolicyId +
-                ", effectedImportedEntries=" + effectedImportedEntries +
+                "isProtected=" + isProtected +
+                ", effectedImports=" + effectedImports +
                 "]";
     }
 

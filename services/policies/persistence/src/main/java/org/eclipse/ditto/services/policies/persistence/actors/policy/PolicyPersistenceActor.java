@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import javax.annotation.concurrent.NotThreadSafe;
@@ -34,6 +35,7 @@ import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyBuilder;
 import org.eclipse.ditto.model.policies.PolicyEntry;
+import org.eclipse.ditto.model.policies.PolicyImport;
 import org.eclipse.ditto.model.policies.PolicyLifecycle;
 import org.eclipse.ditto.model.policies.PolicyTooLargeException;
 import org.eclipse.ditto.model.policies.Resource;
@@ -59,6 +61,7 @@ import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyConflictException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyEntryModificationInvalidException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyEntryNotAccessibleException;
+import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyImportProtectedException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyModificationInvalidException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.ResourceNotAccessibleException;
@@ -904,11 +907,30 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             final Policy modifiedPolicy = command.getPolicy();
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
+            final List<PolicyImport> protectedPolicyImports = policy.getImports()
+                    .map(pi -> pi.stream()
+                            .filter(PolicyImport::isProtected)
+                    )
+                    .orElse(Stream.empty())
+                    .collect(Collectors.toList());
+
+            if (modifiedPolicy.getImports().isPresent() && !protectedPolicyImports.isEmpty()) {
+                final PolicyImportProtectedException importProtectedException =
+                        PolicyImportProtectedException.newBuilder(
+                                protectedPolicyImports.get(0).getImportedPolicyId(), policyId
+                        )
+                                .dittoHeaders(dittoHeaders)
+                                .build();
+                notifySender(importProtectedException);
+                return;
+            }
+
             try {
                 PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> modifiedPolicy.toJsonString().length(),
                         command::getDittoHeaders);
             } catch (final PolicyTooLargeException e) {
                 notifySender(e);
+                return;
             }
 
             final PoliciesValidator validator = PoliciesValidator.newInstance(modifiedPolicy);

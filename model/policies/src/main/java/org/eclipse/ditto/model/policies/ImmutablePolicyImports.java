@@ -86,7 +86,7 @@ final class ImmutablePolicyImports implements PolicyImports {
     public static PolicyImports fromJson(final JsonObject jsonObject) {
         final List<PolicyImport> thePolicyImports = jsonObject.stream()
                 .filter(field -> !Objects.equals(field.getKey(), JsonSchemaVersion.getJsonKey()))
-                .map(field -> ImmutablePolicyImport.of(field.getKeyName(), field.getValue()))
+                .map(field -> ImmutablePolicyImport.fromJson(field.getKeyName(), field.getValue()))
                 .collect(Collectors.toList());
 
         return of(thePolicyImports);

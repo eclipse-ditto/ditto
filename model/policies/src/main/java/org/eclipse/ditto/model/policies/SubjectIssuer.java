@@ -25,6 +25,11 @@ public interface SubjectIssuer extends CharSequence {
      */
     SubjectIssuer INTEGRATION = PoliciesModelFactory.newSubjectIssuer("integration");
 
+    /**
+     * The issuer for authentication subjects from any provider - Wildcard.
+     */
+    SubjectIssuer WILDCARD = PoliciesModelFactory.newSubjectIssuer("*");
+
     @Override
     String toString();
 

@@ -19,11 +19,14 @@ import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicyResponse;
 import org.eclipse.ditto.signals.commands.policies.modify.DeletePolicyEntryResponse;
+import org.eclipse.ditto.signals.commands.policies.modify.DeletePolicyImportResponse;
 import org.eclipse.ditto.signals.commands.policies.modify.DeletePolicyResponse;
 import org.eclipse.ditto.signals.commands.policies.modify.DeleteResourceResponse;
 import org.eclipse.ditto.signals.commands.policies.modify.DeleteSubjectResponse;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicyEntriesResponse;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicyEntryResponse;
+import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicyImportResponse;
+import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicyImportsResponse;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicyResponse;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyResourceResponse;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyResourcesResponse;
@@ -31,6 +34,8 @@ import org.eclipse.ditto.signals.commands.policies.modify.ModifySubjectResponse;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifySubjectsResponse;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyEntriesResponse;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyEntryResponse;
+import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyImportResponse;
+import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyImportsResponse;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyResponse;
 import org.eclipse.ditto.signals.commands.policies.query.RetrieveResourceResponse;
 import org.eclipse.ditto.signals.commands.policies.query.RetrieveResourcesResponse;
@@ -58,6 +63,10 @@ public final class PolicyCommandResponseRegistry extends AbstractCommandResponse
         parseStrategies.put(ModifyPolicyEntryResponse.TYPE, ModifyPolicyEntryResponse::fromJson);
         parseStrategies.put(DeletePolicyEntryResponse.TYPE, DeletePolicyEntryResponse::fromJson);
 
+        parseStrategies.put(ModifyPolicyImportsResponse.TYPE, ModifyPolicyImportsResponse::fromJson);
+        parseStrategies.put(ModifyPolicyImportResponse.TYPE, ModifyPolicyImportResponse::fromJson);
+        parseStrategies.put(DeletePolicyImportResponse.TYPE, DeletePolicyImportResponse::fromJson);
+
         parseStrategies.put(ModifySubjectsResponse.TYPE, ModifySubjectsResponse::fromJson);
         parseStrategies.put(ModifySubjectResponse.TYPE, ModifySubjectResponse::fromJson);
         parseStrategies.put(DeleteSubjectResponse.TYPE, DeleteSubjectResponse::fromJson);
@@ -67,6 +76,9 @@ public final class PolicyCommandResponseRegistry extends AbstractCommandResponse
         parseStrategies.put(DeleteResourceResponse.TYPE, DeleteResourceResponse::fromJson);
 
         parseStrategies.put(RetrievePolicyResponse.TYPE, RetrievePolicyResponse::fromJson);
+
+        parseStrategies.put(RetrievePolicyImportsResponse.TYPE, RetrievePolicyImportsResponse::fromJson);
+        parseStrategies.put(RetrievePolicyImportResponse.TYPE, RetrievePolicyImportResponse::fromJson);
 
         parseStrategies.put(RetrievePolicyEntriesResponse.TYPE, RetrievePolicyEntriesResponse::fromJson);
         parseStrategies.put(RetrievePolicyEntryResponse.TYPE, RetrievePolicyEntryResponse::fromJson);

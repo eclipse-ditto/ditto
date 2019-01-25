@@ -13,24 +13,24 @@ package org.eclipse.ditto.model.policies;
 import javax.annotation.concurrent.Immutable;
 
 /**
- * An enumeration ... effects.
+ * An enumeration of the available {@link ImportedLabels} effects.
  */
 @Immutable
-public enum ImportedEntryEffect {
+public enum ImportedEffect {
 
     /**
-     * Effect including the contained {@link ImportedEntries}.
+     * Effect including the contained {@link ImportedLabels}.
      */
     INCLUDED("included"),
 
     /**
-     * Effect excluding the contained {@link ImportedEntries}.
+     * Effect excluding the contained {@link ImportedLabels}.
      */
     EXCLUDED("excluded");
 
     private final String id;
 
-    ImportedEntryEffect(final String id) {
+    ImportedEffect(final String id) {
         this.id = id;
     }
 

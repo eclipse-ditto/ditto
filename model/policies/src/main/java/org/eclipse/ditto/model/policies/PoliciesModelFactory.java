@@ -51,6 +51,7 @@ public final class PoliciesModelFactory {
      * @return a new Label with {@code labelValue} as its value.
      * @throws NullPointerException if {@code labelValue} is {@code null}.
      * @throws IllegalArgumentException if {@code labelValue} is empty.
+     * @throws LabelInvalidException of the {@code labelValue} can not be used to to blacklisted prefixes.
      */
     public static Label newLabel(final CharSequence labelValue) {
         if (labelValue instanceof Label) {
@@ -594,60 +595,83 @@ public final class PoliciesModelFactory {
      *
      * @return the new {@code EffectedPermissions}.
      */
-    public static EffectedImportedEntries newEffectedImportedEntries(@Nullable final Iterable<String> includedImportedEntries,
+    public static EffectedImports newEffectedImportedEntries(@Nullable final Iterable<String> includedImportedEntries,
             @Nullable final Iterable<String> excludedImportedEntries) {
 
-        return ImmutableEffectedImportedEntries.of(getOrEmptyCollection(includedImportedEntries),
+        return ImmutableEffectedImports.of(getOrEmptyCollection(includedImportedEntries),
                 getOrEmptyCollection(excludedImportedEntries));
     }
 
     /**
-     * Returns a new immutable instance of {@link ImportedEntries} containing the given entry labels.
+     * Returns a new immutable instance of {@link ImportedLabels} containing the given entry labels.
      *
      * @param entryLabels the entryLabels to initialise the result with.
-     * @return the new {@code ImportedEntries}.
+     * @return the new {@code ImportedLabels}.
      * @throws NullPointerException if {@code entryLabels} is {@code null};
      */
-    public static ImportedEntries newImportedEntries(final Collection<String> entryLabels) {
-        return ImmutableImportedEntries.of(entryLabels);
+    public static ImportedLabels newImportedEntries(final Collection<String> entryLabels) {
+        return ImmutableImportedLabels.of(entryLabels);
     }
 
     /**
-     * Returns a new immutable instance of {@link ImportedEntries} containing the given entry labels.
+     * Returns a new immutable instance of {@link ImportedLabels} containing the given entry labels.
      *
      * @param entryLabel the mandatory entryLabel to be contained in the result.
      * @param furtherEntryLabels additional entryLabels to be contained in the result.
-     * @return the new {@code ImportedEntries}.
+     * @return the new {@code ImportedLabels}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ImportedEntries newImportedEntries(final String entryLabel, final String... furtherEntryLabels) {
-        return ImmutableImportedEntries.of(entryLabel, furtherEntryLabels);
+    public static ImportedLabels newImportedEntries(final CharSequence entryLabel, final CharSequence... furtherEntryLabels) {
+        return ImmutableImportedLabels.of(entryLabel, furtherEntryLabels);
     }
 
-    public static ImportedEntries noImportedEntries() {
-        return ImmutableImportedEntries.none();
+    /**
+     * TODO TJ doc
+     * @return
+     */
+    public static ImportedLabels noImportedEntries() {
+        return ImmutableImportedLabels.none();
     }
 
     /**
      * Returns a new {@link PolicyImport} with the specified {@code importedPolicyId} and {@code effectedImportedEntries}.
      *
+     * @param importedPolicyId TODO TJ doc
+     * @param isProtected
      * @return the new {@link PolicyImport}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static PolicyImport newPolicyImport(final String importedPolicyId) {
-        return ImmutablePolicyImport.of(importedPolicyId);
+    public static PolicyImport newPolicyImport(final String importedPolicyId, final boolean isProtected) {
+        return ImmutablePolicyImport.of(importedPolicyId, isProtected);
     }
 
     /**
-     * Returns a new {@link PolicyImport} with the specified {@code importedPolicyId} and {@code effectedImportedEntries}.
+     * Returns a new {@link PolicyImport} with the specified {@code importedPolicyId} and {@code effectedImports}.
      *
+     * @param importedPolicyId TODO TJ doc
+     * @param isProtected
+     * @param effectedImports
      * @return the new {@link PolicyImport}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static PolicyImport newPolicyImport(final String importedPolicyId,
-            final EffectedImportedEntries effectedImportedEntries) {
-        return ImmutablePolicyImport.of(importedPolicyId, effectedImportedEntries);
+    public static PolicyImport newPolicyImport(final String importedPolicyId, final boolean isProtected,
+            final EffectedImports effectedImports) {
+        return ImmutablePolicyImport.of(importedPolicyId, isProtected, effectedImports);
     }
+
+    /**
+     * Returns a new immutable {@link PolicyImport} based on the given JSON object.
+     *
+     * @param importedPolicyId TODO TJ doc
+     * @param jsonObject the JSON object representation of a PolicyImport.
+     * @return the new Policy import.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code jsonObject} cannot be parsed.
+     */
+    public static PolicyImport newPolicyImport(final String importedPolicyId, final JsonObject jsonObject) {
+        return ImmutablePolicyImport.fromJson(importedPolicyId, jsonObject);
+    }
+
 
     /**
      * Returns a new empty {@link PolicyImports}.
@@ -705,7 +729,7 @@ public final class PoliciesModelFactory {
         return ImmutablePolicyImports.fromJson(jsonObject);
     }
 
-    public static EffectedImportedEntries emptyEffectedImportedEntries() {
-        return ImmutableEffectedImportedEntries.of(Collections.emptyList(), Collections.emptyList());
+    public static EffectedImports emptyEffectedImportedEntries() {
+        return ImmutableEffectedImports.of(Collections.emptyList(), Collections.emptyList());
     }
 }

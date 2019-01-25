@@ -30,10 +30,13 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonFieldSelectorBuilder;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -1057,7 +1060,19 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         final boolean authorized;
         if (command instanceof ThingModifyCommand) {
             final String permission = Permission.WRITE;
-            authorized = policyEnforcer.hasUnrestrictedPermissions(thingResourceKey, authorizationContext, permission);
+            authorized = ((ThingModifyCommand) command).getEntity()
+                    .filter(JsonValue::isObject)
+                    .map(JsonValue::asObject)
+                    .map(policyJsonObj -> policyJsonObj.stream()
+                            .filter(f -> !f.getValue().isNull())
+                            .map(JsonField::getKey)
+                            .map(JsonKey::toString))
+                    .map(keys -> keys.map(key ->
+                            PoliciesResourceType.thingResource(command.getResourcePath().append(JsonPointer.of(key)))))
+                    .filter(keys -> keys.allMatch(key ->
+                            policyEnforcer.hasUnrestrictedPermissions(key, authorizationContext, permission))
+                    ).isPresent();
+//            authorized = policyEnforcer.hasUnrestrictedPermissions(thingResourceKey, authorizationContext, permission);
         } else {
             final String permission = Permission.READ;
             authorized = policyEnforcer.hasPartialPermissions(thingResourceKey, authorizationContext, permission);

@@ -39,6 +39,9 @@ public final class PolicyQueryCommandRegistry extends AbstractCommandRegistry<Po
 
         parseStrategies.put(RetrievePolicy.TYPE, RetrievePolicy::fromJson);
 
+        parseStrategies.put(RetrievePolicyImports.TYPE, RetrievePolicyImports::fromJson);
+        parseStrategies.put(RetrievePolicyImport.TYPE, RetrievePolicyImport::fromJson);
+
         parseStrategies.put(RetrievePolicyEntries.TYPE, RetrievePolicyEntries::fromJson);
         parseStrategies.put(RetrievePolicyEntry.TYPE, RetrievePolicyEntry::fromJson);
 

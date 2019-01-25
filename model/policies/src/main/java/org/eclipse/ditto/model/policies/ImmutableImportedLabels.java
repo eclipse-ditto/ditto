@@ -21,6 +21,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
@@ -30,83 +31,84 @@ import org.eclipse.ditto.json.JsonArrayBuilder;
 import org.eclipse.ditto.json.JsonFactory;
 
 /**
- * Immutable implementation of {@link ImportedEntries}.
+ * Immutable implementation of {@link ImportedLabels}.
  */
 @Immutable
-final class ImmutableImportedEntries extends AbstractSet<String> implements ImportedEntries {
+final class ImmutableImportedLabels extends AbstractSet<String> implements ImportedLabels {
 
     private final Set<String> entryLabels;
 
-    private ImmutableImportedEntries(final Set<String> entryLabels) {
+    private ImmutableImportedLabels(final Set<String> entryLabels) {
         checkNotNull(entryLabels, "entry labels");
         this.entryLabels = Collections.unmodifiableSet(new HashSet<>(entryLabels));
     }
 
     /**
-     * Returns a new empty set of permissions.
+     * Returns a new empty set of ImportedLabels.
      *
-     * @return a new empty set of permissions.
+     * @return a new empty set of ImportedLabels.
      */
-    public static ImportedEntries none() {
-        return new ImmutableImportedEntries(Collections.emptySet());
+    public static ImportedLabels none() {
+        return new ImmutableImportedLabels(Collections.emptySet());
     }
 
     /**
-     * Returns a new {@code ImportedEntries} object which is initialised with the given entry labels.
+     * Returns a new {@code ImportedLabels} object which is initialised with the given entry labels.
      *
      * @param entryLabel the mandatory entryLabel to initialise the result with.
      * @param furtherEntryLabels additional entryLabels to initialise the result with.
-     * @return a new {@code ImportedEntries} object which is initialised with {@code entryLabel} and {@code
+     * @return a new {@code ImportedLabels} object which is initialised with {@code entryLabel} and {@code
      * furtherEntryLabels}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ImportedEntries of(final String entryLabel, final String... furtherEntryLabels) {
+    public static ImportedLabels of(final CharSequence entryLabel, final CharSequence... furtherEntryLabels) {
         checkNotNull(entryLabel, "entryLabel");
         checkNotNull(furtherEntryLabels, "further entryLabels");
 
-        final HashSet<String> permissions = new HashSet<>(1 + furtherEntryLabels.length);
-        permissions.add(entryLabel);
-        Collections.addAll(permissions, furtherEntryLabels);
+        final HashSet<String> entryLabels = new HashSet<>(1 + furtherEntryLabels.length);
+        entryLabels.add(entryLabel.toString());
+        Collections.addAll(entryLabels,
+                Arrays.stream(furtherEntryLabels).map(CharSequence::toString).toArray(String[]::new));
 
-        return new ImmutableImportedEntries(permissions);
+        return new ImmutableImportedLabels(entryLabels);
     }
 
     /**
-     * Returns a new {@code ImportedEntries} object which is initialised with the given entryLabels.
+     * Returns a new {@code ImportedLabels} object which is initialised with the given entryLabels.
      *
      * @param entryLabels the entryLabels to initialise the result with.
-     * @return a new {@code ImportedEntries} object which is initialised with {@code entryLabels}.
+     * @return a new {@code ImportedLabels} object which is initialised with {@code entryLabels}.
      * @throws NullPointerException if {@code entryLabels} is {@code null}.
      */
-    public static ImportedEntries of(final Collection<String> entryLabels) {
+    public static ImportedLabels of(final Collection<String> entryLabels) {
         checkNotNull(entryLabels, "entryLabels");
 
-        final HashSet<String> permissionSet = new HashSet<>();
+        final HashSet<String> entryLabelSet = new HashSet<>();
 
         if (!entryLabels.isEmpty()) {
-            permissionSet.addAll(entryLabels);
+            entryLabelSet.addAll(entryLabels);
         }
 
-        return new ImmutableImportedEntries(permissionSet);
+        return new ImmutableImportedLabels(entryLabelSet);
     }
 
     @Override
-    public boolean contains(final String entryLabel, final String... furtherEntryLabels) {
-        checkNotNull(entryLabel, "permission whose presence is to be checked");
-        checkNotNull(furtherEntryLabels, "further permissions whose presence are to be checked");
+    public boolean contains(final CharSequence label, final CharSequence... furtherLabels) {
+        checkNotNull(label, "label whose presence is to be checked");
+        checkNotNull(furtherLabels, "further labels whose presence are to be checked");
 
-        final HashSet<String> permissionSet = new HashSet<>();
-        permissionSet.add(entryLabel);
-        permissionSet.addAll(Arrays.asList(furtherEntryLabels));
+        final HashSet<String> entryLabelSet = new HashSet<>();
+        entryLabelSet.add(label.toString());
+        entryLabelSet.addAll(Arrays.stream(furtherLabels).map(CharSequence::toString).collect(Collectors.toSet()));
 
-        return entryLabels.containsAll(permissionSet);
+        return entryLabels.containsAll(entryLabelSet);
     }
 
     @Override
-    public boolean contains(final ImportedEntries importedEntries) {
-        checkNotNull(importedEntries, "permissions whose presence is to be checked");
+    public boolean contains(final ImportedLabels label) {
+        checkNotNull(label, "labels whose presence is to be checked");
 
-        return this.entryLabels.containsAll(importedEntries);
+        return this.entryLabels.containsAll(label);
     }
 
     @Override

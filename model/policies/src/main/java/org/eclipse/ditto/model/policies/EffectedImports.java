@@ -24,28 +24,28 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
- * Holds {@link ImportedEntries} for {@link PermissionEffect}s (grant/revoke).
+ * Holds {@link ImportedLabels} for {@link ImportedEffect}s (included/excluded).
  */
-public interface EffectedImportedEntries extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
+public interface EffectedImports extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
-     * Returns a new {@code EffectedImportedEntries} containing the given {@code includedImportedEntries} and {@code
-     * excludedImportedEntries}.
+     * Returns a new {@code EffectedImports} containing the given {@code includedEntries} and {@code
+     * excludedEntries}.
      *
-     * @param includedImportedEntries the ImportedEntries which should be granted, may be {@code null}.
-     * @param excludedImportedEntries the ImportedEntries which should be revoked, may be {@code null}.
-     * @return the new {@code EffectedImportedEntries}.
+     * @param includedEntries the ImportedLabels which should be included, may be {@code null}.
+     * @param excludedEntries the ImportedLabels which should be excluded, may be {@code null}.
+     * @return the new {@code EffectedImports}.
      */
-    static EffectedImportedEntries newInstance(@Nullable final Iterable<String> includedImportedEntries,
-            @Nullable final Iterable<String> excludedImportedEntries) {
+    static EffectedImports newInstance(@Nullable final Iterable<String> includedEntries,
+            @Nullable final Iterable<String> excludedEntries) {
 
-        return PoliciesModelFactory.newEffectedImportedEntries(includedImportedEntries, excludedImportedEntries);
+        return PoliciesModelFactory.newEffectedImportedEntries(includedEntries, excludedEntries);
     }
 
     /**
-     * EffectedImportedEntries is only available in JsonSchemaVersion V_2.
+     * EffectedImports is only available in JsonSchemaVersion V_2.
      *
-     * @return the supported JsonSchemaVersions of EffectedImportedEntries.
+     * @return the supported JsonSchemaVersions of EffectedImports.
      */
     @Override
     default JsonSchemaVersion[] getSupportedSchemaVersions() {
@@ -53,37 +53,37 @@ public interface EffectedImportedEntries extends Jsonifiable.WithFieldSelectorAn
     }
 
     /**
-     * Returns the {@link ImportedEntries} which are valid for the passed {@code effect}.
+     * Returns the {@link ImportedLabels} which are valid for the passed {@code effect}.
      *
-     * @param effect the PermissionEffect for which to return the ImportedEntries.
-     * @return the ImportedEntries which are valid for the passed effect.
+     * @param effect the ImportedEffect for which to return the ImportedLabels.
+     * @return the ImportedLabels which are valid for the passed effect.
      * @throws NullPointerException if {@code effect} is {@code null}.
      * @throws IllegalArgumentException if {@code effect} is unknown.
      */
-    ImportedEntries getImportedEntries(ImportedEntryEffect effect);
+    ImportedLabels getImportedEntries(ImportedEffect effect);
 
     /**
-     * Returns the included {@link ImportedEntries}.
+     * Returns the included {@link ImportedLabels}.
      *
-     * @return the included ImportedEntries.
+     * @return the included ImportedLabels.
      */
-    default ImportedEntries getIncludedImportedEntries() {
-        return getImportedEntries(ImportedEntryEffect.INCLUDED);
+    default ImportedLabels getIncludedImportedEntries() {
+        return getImportedEntries(ImportedEffect.INCLUDED);
     }
 
     /**
-     * Returns the excluded {@link ImportedEntries}.
+     * Returns the excluded {@link ImportedLabels}.
      *
-     * @return the excluded ImportedEntries.
+     * @return the excluded ImportedLabels.
      */
-    default ImportedEntries getExcludedImportedEntries() {
-        return getImportedEntries(ImportedEntryEffect.EXCLUDED);
+    default ImportedLabels getExcludedImportedEntries() {
+        return getImportedEntries(ImportedEffect.EXCLUDED);
     }
 
     /**
-     * Returns all non hidden marked fields of this EffectedImportedEntries.
+     * Returns all non hidden marked fields of this EffectedImports.
      *
-     * @return a JSON object representation of this EffectedImportedEntries including only non hidden marked fields.
+     * @return a JSON object representation of this EffectedImports including only non hidden marked fields.
      */
     @Override
     default JsonObject toJson() {
@@ -96,7 +96,7 @@ public interface EffectedImportedEntries extends Jsonifiable.WithFieldSelectorAn
     }
 
     /**
-     * An enumeration of the known {@link JsonField}s of a EffectedImportedEntries.
+     * An enumeration of the known {@link JsonField}s of a EffectedImports.
      */
     @Immutable
     final class JsonFields {
@@ -109,13 +109,13 @@ public interface EffectedImportedEntries extends Jsonifiable.WithFieldSelectorAn
                         JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the EffectedImportedEntries's {@code included} ImportedEntries.
+         * JSON field containing the EffectedImports's {@code included} ImportedLabels.
          */
         public static final JsonFieldDefinition<JsonArray> INCLUDED =
                 JsonFactory.newJsonArrayFieldDefinition("included", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the EffectedImportedEntries's {@code excluded} ImportedEntries.
+         * JSON field containing the EffectedImports's {@code excluded} ImportedLabels.
          */
         public static final JsonFieldDefinition<JsonArray> EXCLUDED =
                 JsonFactory.newJsonArrayFieldDefinition("excluded", FieldType.REGULAR, JsonSchemaVersion.V_2);
