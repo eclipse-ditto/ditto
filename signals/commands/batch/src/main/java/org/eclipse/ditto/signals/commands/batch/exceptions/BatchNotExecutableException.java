@@ -30,6 +30,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.base.WithId;
 
@@ -37,6 +38,7 @@ import org.eclipse.ditto.signals.base.WithId;
  * Thrown if a batch command cannot be executed by the coordinator.
  */
 @Immutable
+@JsonParsableException(errorCode = BatchNotExecutableException.ERROR_CODE)
 public final class BatchNotExecutableException extends DittoRuntimeException implements BatchException, WithId {
 
     /**
