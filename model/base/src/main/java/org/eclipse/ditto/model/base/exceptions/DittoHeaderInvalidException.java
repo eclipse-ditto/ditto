@@ -22,11 +22,13 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown when an (external) header value can not be converted to a Ditto header.
  */
 @Immutable
+@JsonParsableException(errorCode = DittoHeaderInvalidException.ERROR_CODE)
 public final class DittoHeaderInvalidException extends DittoRuntimeException {
 
     /**

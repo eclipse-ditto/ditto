@@ -22,11 +22,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown if a {@link Command} is not supported by the version called.
  */
 @Immutable
+@JsonParsableException(errorCode = CommandNotSupportedException.ERROR_CODE)
 public final class CommandNotSupportedException extends DittoRuntimeException {
 
     /**
@@ -86,7 +88,7 @@ public final class CommandNotSupportedException extends DittoRuntimeException {
      * JsonFields#MESSAGE} field.
      */
     public static CommandNotSupportedException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return  new Builder()
+        return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(readMessage(jsonObject))
                 .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
@@ -96,7 +98,6 @@ public final class CommandNotSupportedException extends DittoRuntimeException {
 
     /**
      * A mutable builder with a fluent API for a {@link CommandNotSupportedException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<CommandNotSupportedException> {

@@ -19,7 +19,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.junit.Test;
 
-public final class GlobalErrorRegistryTest {
+public final class GlobalErrorRegistryValidationTest {
 
     @Test
     public void allExceptionsRegistered() {

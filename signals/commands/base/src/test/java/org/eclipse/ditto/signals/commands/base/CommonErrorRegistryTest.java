@@ -18,9 +18,6 @@ import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.signals.base.JsonParsableRegistry;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayMethodNotAllowedException;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceTimeoutException;
 import org.junit.Test;
 
 
@@ -43,44 +40,4 @@ public class CommonErrorRegistryTest {
 
         assertThat(parsedError).isEqualTo(error);
     }
-
-
-    @Test
-    public void parseGatewayTimeoutError() {
-        final GatewayServiceTimeoutException error =
-                GatewayServiceTimeoutException.newBuilder().message("Gateway timeout")
-                        .dittoHeaders(TestConstants.DITTO_HEADERS).build();
-        final JsonObject jsonObject = error.toJson(FieldType.regularOrSpecial());
-
-        final DittoRuntimeException parsedError = underTest.parse(jsonObject, TestConstants.DITTO_HEADERS);
-
-        assertThat(parsedError).isEqualTo(error);
-    }
-
-
-    @Test
-    public void parseGatewayMethodNotAllowedError() {
-        final GatewayMethodNotAllowedException error =
-                GatewayMethodNotAllowedException.newBuilder("PUT")
-                        .dittoHeaders(TestConstants.DITTO_HEADERS).build();
-        final JsonObject jsonObject = error.toJson(FieldType.regularOrSpecial());
-
-        final DittoRuntimeException parsedError = underTest.parse(jsonObject, TestConstants.DITTO_HEADERS);
-
-        assertThat(parsedError).isEqualTo(error);
-    }
-
-
-    @Test
-    public void parseGatewayInternalError() {
-        final GatewayInternalErrorException error =
-                GatewayInternalErrorException.newBuilder().message("PUT is not allowed!")
-                        .dittoHeaders(TestConstants.DITTO_HEADERS).build();
-        final JsonObject jsonObject = error.toJson(FieldType.regularOrSpecial());
-
-        final DittoRuntimeException parsedError = underTest.parse(jsonObject, TestConstants.DITTO_HEADERS);
-
-        assertThat(parsedError).isEqualTo(error);
-    }
-
 }

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
- *  
+ *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -21,11 +21,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * This exception indicates that an HTTP query is aborted because it took too long on the backend.
  */
 @Immutable
+@JsonParsableException(errorCode = GatewayQueryTimeExceededException.ERROR_CODE)
 public final class GatewayQueryTimeExceededException extends DittoRuntimeException implements GatewayException {
 
     /**

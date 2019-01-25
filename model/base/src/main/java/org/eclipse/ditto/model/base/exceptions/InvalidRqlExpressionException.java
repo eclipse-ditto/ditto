@@ -17,10 +17,12 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown if an RQL expression is invalid.
  */
+@JsonParsableException(errorCode = InvalidRqlExpressionException.ERROR_CODE)
 public class InvalidRqlExpressionException extends DittoRuntimeException {
 
     /**

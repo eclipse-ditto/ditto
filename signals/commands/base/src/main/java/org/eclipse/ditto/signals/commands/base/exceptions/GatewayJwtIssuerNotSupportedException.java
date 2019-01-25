@@ -24,11 +24,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * This exception indicates that the sent JWT cannot be validated because the issuer is not supported.
  */
 @Immutable
+@JsonParsableException(errorCode = GatewayJwtIssuerNotSupportedException.ERROR_CODE)
 public final class GatewayJwtIssuerNotSupportedException extends DittoRuntimeException implements GatewayException {
 
     /**
@@ -51,8 +53,8 @@ public final class GatewayJwtIssuerNotSupportedException extends DittoRuntimeExc
 
     /**
      * A mutable builder for a {@code GatewayJwtIssuerNotSupportedException}.
-     * @param issuer the JWT issuer which is not supported
      *
+     * @param issuer the JWT issuer which is not supported
      * @return the builder.
      */
     public static Builder newBuilder(final CharSequence issuer) {
@@ -66,7 +68,8 @@ public final class GatewayJwtIssuerNotSupportedException extends DittoRuntimeExc
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new GatewayJwtIssuerNotSupportedException.
      */
-    public static GatewayJwtIssuerNotSupportedException fromMessage(final String message, final DittoHeaders dittoHeaders) {
+    public static GatewayJwtIssuerNotSupportedException fromMessage(final String message,
+            final DittoHeaders dittoHeaders) {
         return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(message)
@@ -95,7 +98,6 @@ public final class GatewayJwtIssuerNotSupportedException extends DittoRuntimeExc
 
     /**
      * A mutable builder with a fluent API for a {@link GatewayJwtIssuerNotSupportedException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<GatewayJwtIssuerNotSupportedException> {
