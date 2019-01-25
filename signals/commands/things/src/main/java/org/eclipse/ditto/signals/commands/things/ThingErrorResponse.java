@@ -113,32 +113,17 @@ public final class ThingErrorResponse extends AbstractCommandResponse<ThingError
     }
 
     /**
-     * Creates a new {@code ThingErrorResponse} containing the causing {@code DittoRuntimeException} which is deserialized
-     * from the passed {@code jsonString}.
+     * Creates a new {@code ThingErrorResponse} containing the causing {@code DittoRuntimeException} which is
+     * deserialized from the passed {@code jsonString}.
      *
      * @param jsonString the JSON string representation of the causing {@code DittoRuntimeException}.
      * @param dittoHeaders the DittoHeaders to use.
      * @return the ThingErrorResponse.
      */
     public static ThingErrorResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(GLOBAL_ERROR_REGISTRY, jsonString, dittoHeaders);
-    }
-
-    /**
-     * Creates a new {@code ThingErrorResponse} containing the causing {@code DittoRuntimeException} which is deserialized
-     * from the passed {@code jsonString} using a special {@code ThingErrorRegistry}.
-     *
-     * @param globalErrorRegistry the special {@code GlobalErrorRegistry} to use for deserializing the
-     * DittoRuntimeException.
-     * @param jsonString the JSON string representation of the causing {@code DittoRuntimeException}.
-     * @param dittoHeaders the DittoHeaders to use.
-     * @return the ThingErrorResponse.
-     */
-    public static ThingErrorResponse fromJson(final GlobalErrorRegistry globalErrorRegistry, final String jsonString,
-            final DittoHeaders dittoHeaders) {
         final JsonObject jsonObject =
                 DittoJsonException.wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
-        return fromJson(globalErrorRegistry, jsonObject, dittoHeaders);
+        return fromJson(jsonObject, dittoHeaders);
     }
 
     /**
@@ -150,23 +135,6 @@ public final class ThingErrorResponse extends AbstractCommandResponse<ThingError
      * @return the ThingErrorResponse.
      */
     public static ThingErrorResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return fromJson(GLOBAL_ERROR_REGISTRY, jsonObject, dittoHeaders);
-    }
-
-    /**
-     * Creates a new {@code ThingErrorResponse} containing the causing {@code DittoRuntimeException} which is deserialized
-     * from the passed {@code jsonObject} using a special {@code ThingErrorRegistry}.
-     *
-     * @param globalErrorRegistry the special {@code GlobalErrorRegistry} to use for deserializing the
-     * DittoRuntimeException.
-     * @param jsonObject the JSON representation of the causing {@code DittoRuntimeException}.
-     * @param dittoHeaders the DittoHeaders to use.
-     * @return the ThingErrorResponse.
-     */
-    public static ThingErrorResponse fromJson(final GlobalErrorRegistry globalErrorRegistry,
-            final JsonObject jsonObject,
-            final DittoHeaders dittoHeaders) {
-
         final String thingId = jsonObject.getValue(ThingCommandResponse.JsonFields.JSON_THING_ID)
                 .orElseThrow(() -> JsonMissingFieldException.newBuilder()
                         .fieldName(ThingCommandResponse.JsonFields.JSON_THING_ID.getPointer())
@@ -175,7 +143,7 @@ public final class ThingErrorResponse extends AbstractCommandResponse<ThingError
 
         DittoRuntimeException exception;
         try {
-            exception = globalErrorRegistry.parse(payload, dittoHeaders);
+            exception = GLOBAL_ERROR_REGISTRY.parse(payload, dittoHeaders);
         } catch (final Exception e) {
             final int status = jsonObject.getValue(CommandResponse.JsonFields.STATUS).orElse(500);
             final String errorCode =

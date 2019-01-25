@@ -87,24 +87,9 @@ public final class ConnectivityErrorResponse extends AbstractCommandResponse<Con
      * @return the ConnectivityErrorResponse.
      */
     public static ConnectivityErrorResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(ERROR_REGISTRY, jsonString, dittoHeaders);
-    }
-
-    /**
-     * Creates a new {@code ConnectivityErrorResponse} containing the causing {@code DittoRuntimeException} which is
-     * deserialized from the passed {@code jsonString} using a special {@code ConnectivityErrorRegistry}.
-     *
-     * @param globalErrorRegistry the special {@code GlobalErrorRegistry} to use for deserializing the
-     * DittoRuntimeException.
-     * @param jsonString the JSON string representation of the causing {@code DittoRuntimeException}.
-     * @param dittoHeaders the DittoHeaders to use.
-     * @return the ConnectivityErrorResponse.
-     */
-    public static ConnectivityErrorResponse fromJson(final GlobalErrorRegistry globalErrorRegistry,
-            final String jsonString, final DittoHeaders dittoHeaders) {
         final JsonObject jsonObject =
                 DittoJsonException.wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
-        return fromJson(globalErrorRegistry, jsonObject, dittoHeaders);
+        return fromJson(jsonObject, dittoHeaders);
     }
 
     /**
@@ -116,27 +101,12 @@ public final class ConnectivityErrorResponse extends AbstractCommandResponse<Con
      * @return the ConnectivityErrorResponse.
      */
     public static ConnectivityErrorResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return fromJson(ERROR_REGISTRY, jsonObject, dittoHeaders);
-    }
-
-    /**
-     * Creates a new {@code ConnectivityErrorResponse} containing the causing {@code DittoRuntimeException} which is
-     * deserialized from the passed {@code jsonObject} using a special {@code ConnectivityErrorRegistry}.
-     *
-     * @param globalErrorRegistry the special {@code GlobalErrorRegistry} to use for deserializing the
-     * DittoRuntimeException.
-     * @param jsonObject the JSON representation of the causing {@code DittoRuntimeException}.
-     * @param dittoHeaders the DittoHeaders to use.
-     * @return the ConnectivityErrorResponse.
-     */
-    public static ConnectivityErrorResponse fromJson(final GlobalErrorRegistry globalErrorRegistry,
-            final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         final JsonObject payload = jsonObject.getValue(ConnectivityCommandResponse.JsonFields.PAYLOAD)
                 .map(JsonValue::asObject)
                 .orElseThrow(
                         () -> new JsonMissingFieldException(
                                 ConnectivityCommandResponse.JsonFields.PAYLOAD.getPointer()));
-        final DittoRuntimeException exception = globalErrorRegistry.parse(payload, dittoHeaders);
+        final DittoRuntimeException exception = ERROR_REGISTRY.parse(payload, dittoHeaders);
         return of(exception, dittoHeaders);
     }
 
