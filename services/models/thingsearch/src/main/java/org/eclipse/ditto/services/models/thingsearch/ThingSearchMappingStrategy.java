@@ -32,7 +32,6 @@ import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandRegistry;
 import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommandRegistry;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommandResponseRegistry;
-import org.eclipse.ditto.signals.commands.thingsearch.exceptions.ThingSearchErrorRegistry;
 
 /**
  * {@link MappingStrategy} for the Thing Search service containing all {@link Jsonifiable} types known to Things Search.
@@ -70,7 +69,7 @@ public final class ThingSearchMappingStrategy implements MappingStrategy {
     private static void addThingSearchStrategies(final MappingStrategiesBuilder builder) {
         builder.add(ThingSearchCommandRegistry.newInstance());
         builder.add(ThingSearchCommandResponseRegistry.newInstance());
-        builder.add(ThingSearchErrorRegistry.newInstance());
+        builder.add(GlobalErrorRegistry.getInstance());
         builder.add(ThingSearchSudoCommandRegistry.newInstance());
         builder.add(ThingSearchSudoCommandResponseRegistry.newInstance());
         builder.add(StreamingRegistry.newInstance());
@@ -88,7 +87,6 @@ public final class ThingSearchMappingStrategy implements MappingStrategy {
     private static void addNamespacesStrategies(final MappingStrategiesBuilder builder) {
         builder.add(NamespaceCommandRegistry.getInstance());
         builder.add(NamespaceCommandResponseRegistry.getInstance());
-        builder.add(GlobalErrorRegistry.getInstance());
     }
 
 }

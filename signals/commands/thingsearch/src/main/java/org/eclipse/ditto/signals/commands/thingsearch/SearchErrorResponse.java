@@ -28,9 +28,9 @@ import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
-import org.eclipse.ditto.signals.commands.thingsearch.exceptions.ThingSearchErrorRegistry;
 
 /**
  * Response to a {@link ThingSearchCommand} which wraps the exception thrown by SearchService when processing the
@@ -44,7 +44,7 @@ public final class SearchErrorResponse extends AbstractCommandResponse<SearchErr
      * Type of this response.
      */
     public static final String TYPE = TYPE_PREFIX + "errorResponse";
-    private final static ThingSearchErrorRegistry SEARCH_ERROR_REGISTRY = ThingSearchErrorRegistry.newInstance();
+    private final static GlobalErrorRegistry GLOBAL_ERROR_REGISTRY = GlobalErrorRegistry.getInstance();
     private final DittoRuntimeException dittoRuntimeException;
 
     private SearchErrorResponse(final DittoRuntimeException dittoRuntimeException, final DittoHeaders dittoHeaders) {
@@ -75,25 +75,25 @@ public final class SearchErrorResponse extends AbstractCommandResponse<SearchErr
      * @return the SearchErrorResponse.
      */
     public static SearchErrorResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(SEARCH_ERROR_REGISTRY, jsonString, dittoHeaders);
+        return fromJson(GLOBAL_ERROR_REGISTRY, jsonString, dittoHeaders);
     }
 
     /**
      * Creates a new {@code SearchErrorResponse} containing the causing {@code DittoRuntimeException} which is
      * deserialized from the passed {@code jsonString} using a special {@code SearchErrorRegistry}.
      *
-     * @param searchErrorRegistry the special {@code SearchErrorRegistry} to use for deserializing the
+     * @param globalErrorRegistry the special {@code GlobalErrorRegistry} to use for deserializing the
      * DittoRuntimeException.
      * @param jsonString the JSON string representation of the causing {@code DittoRuntimeException}.
      * @param dittoHeaders the DittoHeaders to use.
      * @return the KeystoreErrorResponse.
      */
-    public static SearchErrorResponse fromJson(final ThingSearchErrorRegistry searchErrorRegistry,
+    public static SearchErrorResponse fromJson(final GlobalErrorRegistry globalErrorRegistry,
             final String jsonString,
             final DittoHeaders dittoHeaders) {
         final JsonObject jsonObject =
                 DittoJsonException.wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
-        return fromJson(searchErrorRegistry, jsonObject, dittoHeaders);
+        return fromJson(globalErrorRegistry, jsonObject, dittoHeaders);
     }
 
     /**
@@ -105,25 +105,25 @@ public final class SearchErrorResponse extends AbstractCommandResponse<SearchErr
      * @return the SearchErrorResponse.
      */
     public static SearchErrorResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return fromJson(SEARCH_ERROR_REGISTRY, jsonObject, dittoHeaders);
+        return fromJson(GLOBAL_ERROR_REGISTRY, jsonObject, dittoHeaders);
     }
 
     /**
      * Creates a new {@code SearchErrorResponse} containing the causing {@code DittoRuntimeException} which is
      * deserialized from the passed {@code jsonObject} using a special {@code SearchErrorRegistry}.
      *
-     * @param searchErrorRegistry the special {@code SearchErrorRegistry} to use for deserializing the
+     * @param globalErrorRegistry the special {@code GlobalErrorRegistry} to use for deserializing the
      * DittoRuntimeException.
      * @param jsonObject the JSON representation of the causing {@code DittoRuntimeException}.
      * @param dittoHeaders the DittoHeaders to use.
      * @return the SearchErrorResponse.
      */
-    public static SearchErrorResponse fromJson(final ThingSearchErrorRegistry searchErrorRegistry,
+    public static SearchErrorResponse fromJson(final GlobalErrorRegistry globalErrorRegistry,
             final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         final JsonObject payload = jsonObject.getValue(JsonFields.PAYLOAD)
                 .map(JsonValue::asObject)
                 .orElseThrow(() -> new JsonMissingFieldException(JsonFields.PAYLOAD.getPointer()));
-        final DittoRuntimeException exception = searchErrorRegistry.parse(payload, dittoHeaders);
+        final DittoRuntimeException exception = globalErrorRegistry.parse(payload, dittoHeaders);
         return of(exception, dittoHeaders);
     }
 
