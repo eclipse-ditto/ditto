@@ -25,7 +25,6 @@ import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandRegistry;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponseRegistry;
-import org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandRegistry;
@@ -64,7 +63,7 @@ public final class ConnectivityMappingStrategy implements MappingStrategy {
                 .add(ConnectivityCommandRegistry.newInstance())
                 .add(ConnectivityCommandResponseRegistry.newInstance())
                 .add(ConnectivityEventRegistry.newInstance())
-                .add(ConnectivityErrorRegistry.newInstance())
+                .add(GlobalErrorRegistry.getInstance())
                 .add(Connection.class, (jsonObject) ->
                         ConnectivityModelFactory.connectionFromJson(jsonObject)) // do not replace with lambda!
                 .add("ImmutableConnection", (jsonObject) ->

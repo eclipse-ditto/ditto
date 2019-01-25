@@ -22,6 +22,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityException;
 
@@ -29,6 +30,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityException;
  * Thrown if a {@link Connection} exists but is not available at the moment.
  */
 @Immutable
+@JsonParsableException(errorCode = ConnectionConflictException.ERROR_CODE)
 public final class ConnectionConflictException extends DittoRuntimeException implements ConnectivityException {
 
     /**
@@ -39,7 +41,8 @@ public final class ConnectionConflictException extends DittoRuntimeException imp
     private static final String MESSAGE_TEMPLATE =
             "The Connection with ID ''{0}'' was already created.";
 
-    private static final String DEFAULT_DESCRIPTION = "If you need to update it, remove it first before creating it again.";
+    private static final String DEFAULT_DESCRIPTION =
+            "If you need to update it, remove it first before creating it again.";
 
     private static final long serialVersionUID = -4525302146860945435L;
 

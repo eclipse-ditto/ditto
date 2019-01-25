@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 
@@ -43,7 +44,7 @@ public final class ConnectivityErrorResponse extends AbstractCommandResponse<Con
      */
     public static final String TYPE = TYPE_PREFIX + "errorResponse";
 
-    private static final ConnectivityErrorRegistry ERROR_REGISTRY = ConnectivityErrorRegistry.newInstance();
+    private static final GlobalErrorRegistry ERROR_REGISTRY = GlobalErrorRegistry.getInstance();
 
     private final DittoRuntimeException dittoRuntimeException;
 
@@ -93,17 +94,17 @@ public final class ConnectivityErrorResponse extends AbstractCommandResponse<Con
      * Creates a new {@code ConnectivityErrorResponse} containing the causing {@code DittoRuntimeException} which is
      * deserialized from the passed {@code jsonString} using a special {@code ConnectivityErrorRegistry}.
      *
-     * @param connectivityErrorRegistry the special {@code ConnectivityErrorRegistry} to use for deserializing the
+     * @param globalErrorRegistry the special {@code GlobalErrorRegistry} to use for deserializing the
      * DittoRuntimeException.
      * @param jsonString the JSON string representation of the causing {@code DittoRuntimeException}.
      * @param dittoHeaders the DittoHeaders to use.
      * @return the ConnectivityErrorResponse.
      */
-    public static ConnectivityErrorResponse fromJson(final ConnectivityErrorRegistry connectivityErrorRegistry,
+    public static ConnectivityErrorResponse fromJson(final GlobalErrorRegistry globalErrorRegistry,
             final String jsonString, final DittoHeaders dittoHeaders) {
         final JsonObject jsonObject =
                 DittoJsonException.wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
-        return fromJson(connectivityErrorRegistry, jsonObject, dittoHeaders);
+        return fromJson(globalErrorRegistry, jsonObject, dittoHeaders);
     }
 
     /**
@@ -122,19 +123,20 @@ public final class ConnectivityErrorResponse extends AbstractCommandResponse<Con
      * Creates a new {@code ConnectivityErrorResponse} containing the causing {@code DittoRuntimeException} which is
      * deserialized from the passed {@code jsonObject} using a special {@code ConnectivityErrorRegistry}.
      *
-     * @param connectivityErrorRegistry the special {@code ConnectivityErrorRegistry} to use for deserializing the
+     * @param globalErrorRegistry the special {@code GlobalErrorRegistry} to use for deserializing the
      * DittoRuntimeException.
      * @param jsonObject the JSON representation of the causing {@code DittoRuntimeException}.
      * @param dittoHeaders the DittoHeaders to use.
      * @return the ConnectivityErrorResponse.
      */
-    public static ConnectivityErrorResponse fromJson(final ConnectivityErrorRegistry connectivityErrorRegistry,
+    public static ConnectivityErrorResponse fromJson(final GlobalErrorRegistry globalErrorRegistry,
             final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         final JsonObject payload = jsonObject.getValue(ConnectivityCommandResponse.JsonFields.PAYLOAD)
                 .map(JsonValue::asObject)
                 .orElseThrow(
-                        () -> new JsonMissingFieldException(ConnectivityCommandResponse.JsonFields.PAYLOAD.getPointer()));
-        final DittoRuntimeException exception = connectivityErrorRegistry.parse(payload, dittoHeaders);
+                        () -> new JsonMissingFieldException(
+                                ConnectivityCommandResponse.JsonFields.PAYLOAD.getPointer()));
+        final DittoRuntimeException exception = globalErrorRegistry.parse(payload, dittoHeaders);
         return of(exception, dittoHeaders);
     }
 
@@ -162,7 +164,8 @@ public final class ConnectivityErrorResponse extends AbstractCommandResponse<Con
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(
-                ConnectivityCommandResponse.JsonFields.PAYLOAD, dittoRuntimeException.toJson(schemaVersion, thePredicate),
+                ConnectivityCommandResponse.JsonFields.PAYLOAD,
+                dittoRuntimeException.toJson(schemaVersion, thePredicate),
                 predicate);
     }
 

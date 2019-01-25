@@ -21,11 +21,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown if the the configuration of a {@link Connection} was invalid.
  */
 @Immutable
+@JsonParsableException(errorCode = ConnectionConfigurationInvalidException.ERROR_CODE)
 public final class ConnectionConfigurationInvalidException extends DittoRuntimeException
         implements ConnectivityException {
 

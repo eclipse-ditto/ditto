@@ -22,12 +22,14 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.connectivity.ConnectivityException;
 
 /**
  * Thrown if a connection command arrives while a connection operation is underway.
  */
 @Immutable
+@JsonParsableException(errorCode = ConnectionSignalIllegalException.ERROR_CODE)
 public final class ConnectionSignalIllegalException extends DittoRuntimeException implements ConnectivityException {
 
     /**
@@ -39,7 +41,7 @@ public final class ConnectionSignalIllegalException extends DittoRuntimeExceptio
 
     private static final String OPERATING_DESCRIPTION_TEMPLATE = "Please retry in {0} {1}.";
 
-    private static final String DEFAULT_DESCRIPTION ="Please retry later.";
+    private static final String DEFAULT_DESCRIPTION = "Please retry later.";
 
     private static final String STAYING_MESSAGE_TEMPLATE = "The message ''{2}'' is illegal for the {1} Connection " +
             "with ID ''{0}''";

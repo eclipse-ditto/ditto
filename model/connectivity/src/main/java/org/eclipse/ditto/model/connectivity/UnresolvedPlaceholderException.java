@@ -22,11 +22,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown if a placeholder in the connection configuration could not be resolved.
  */
 @Immutable
+@JsonParsableException(errorCode = UnresolvedPlaceholderException.ERROR_CODE)
 public final class UnresolvedPlaceholderException extends DittoRuntimeException
         implements ConnectivityException {
 

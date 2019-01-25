@@ -22,6 +22,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityException;
 
@@ -29,6 +30,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityException;
  * Thrown if a {@link Connection} exists but is not available at the moment.
  */
 @Immutable
+@JsonParsableException(errorCode = ConnectionUnavailableException.ERROR_CODE)
 public final class ConnectionUnavailableException extends DittoRuntimeException implements ConnectivityException {
 
     /**
