@@ -30,7 +30,6 @@ import org.eclipse.ditto.services.base.config.LimitsConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.base.config.SuffixBuilderConfigReader;
 import org.eclipse.ditto.services.base.config.namespaces.NamespaceSuffixCollectionNames;
-import org.eclipse.ditto.services.utils.cluster.ClusterMemberAwareActor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
 import org.eclipse.ditto.services.utils.devops.LogbackLoggingFacade;

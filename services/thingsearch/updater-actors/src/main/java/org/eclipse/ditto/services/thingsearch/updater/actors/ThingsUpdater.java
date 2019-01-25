@@ -31,10 +31,10 @@ import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.models.thingsearch.ThingsSearchConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CacheFactory;
 import org.eclipse.ditto.services.utils.cache.PolicyCacheLoader;
-import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.services.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
@@ -106,7 +106,8 @@ final class ThingsUpdater extends AbstractActor {
         final PolicyCacheLoader policyCacheLoader =
                 new PolicyCacheLoader(askTimeout, policiesShardRegion);
         policyCache = CacheFactory.createCache(policyCacheLoader, configReader.caches().policy(),
-                POLICY_CACHE_METRIC_NAME_PREFIX + "policy");
+                POLICY_CACHE_METRIC_NAME_PREFIX + "policy",
+                actorSystem.dispatchers().lookup("policy-cache-dispatcher"));
         policyCache.subscribeForInvalidation(policyCacheLoader);
         policyCacheLoader.registerCacheInvalidator(policyCache::invalidate);
 

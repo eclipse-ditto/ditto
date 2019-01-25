@@ -38,22 +38,22 @@ import org.eclipse.ditto.services.concierge.enforcement.validators.CommandWithOp
 import org.eclipse.ditto.services.concierge.starter.actors.CachedNamespaceInvalidator;
 import org.eclipse.ditto.services.concierge.starter.actors.DispatcherActorCreator;
 import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
-import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.caching.EntityId;
-import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.models.caching.Entry;
+import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
+import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.utils.cache.Cache;
+import org.eclipse.ditto.services.utils.cache.CacheFactory;
+import org.eclipse.ditto.services.utils.cache.PolicyCacheLoader;
+import org.eclipse.ditto.services.utils.cache.update.PolicyCacheUpdateActor;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespacesUpdater;
-import org.eclipse.ditto.services.utils.cache.CacheFactory;
-import org.eclipse.ditto.services.utils.cache.PolicyCacheLoader;
-import org.eclipse.ditto.services.utils.cache.update.PolicyCacheUpdateActor;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
@@ -97,7 +97,8 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
                 new PolicyCacheLoader(askTimeout, policiesShardRegionProxy);
         final Cache<EntityId, Entry<Policy>> policyCache =
                 CacheFactory.createCache(policyCacheLoader, configReader.caches().policy(),
-                        POLICY_CACHE_METRIC_NAME_PREFIX + "policy");
+                        POLICY_CACHE_METRIC_NAME_PREFIX + "policy",
+                        actorSystem.dispatchers().lookup("policy-cache-dispatcher"));
         policyCache.subscribeForInvalidation(policyCacheLoader);
         policyCacheLoader.registerCacheInvalidator(policyCache::invalidate);
 

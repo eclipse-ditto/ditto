@@ -30,8 +30,6 @@ import org.eclipse.ditto.model.policies.PolicyRevision;
 import org.eclipse.ditto.services.models.caching.EntityId;
 import org.eclipse.ditto.services.models.caching.Entry;
 import org.eclipse.ditto.services.utils.cache.Cache;
-import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
-import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
@@ -53,7 +51,6 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<EntityI
     public PolicyEnforcerCacheLoader(final Duration askTimeout,
             final Cache<EntityId, Entry<Policy>> policyCacheLoader) {
         requireNonNull(askTimeout);
-        requireNonNull(policiesShardRegionProxy);
         this.policyCacheLoader = requireNonNull(policyCacheLoader);
     }
 
