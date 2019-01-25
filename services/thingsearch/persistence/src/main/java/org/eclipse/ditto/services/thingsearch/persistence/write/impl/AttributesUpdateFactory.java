@@ -166,14 +166,15 @@ final class AttributesUpdateFactory {
 
     private static List<Document> toFlatAttributesList(final String path, final JsonValue value,
             final List<Document> flatAttributes) {
+
         if (value.isString()) {
             flatAttributes.add(createFlatSubDocument(path, value.asString()));
         } else if (value.isBoolean()) {
             flatAttributes.add(createFlatSubDocument(path, value.asBoolean()));
         } else if (value.isNumber()) {
-            try {
+            if (value.isLong()) {
                 flatAttributes.add(createFlatSubDocument(path, value.asLong()));
-            } catch (final NumberFormatException e) {
+            } else {
                 flatAttributes.add(createFlatSubDocument(path, value.asDouble()));
             }
         } else if (value.isNull()) {

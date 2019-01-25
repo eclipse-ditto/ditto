@@ -10,33 +10,81 @@
  */
 package org.eclipse.ditto.json;
 
+import static java.util.Objects.requireNonNull;
+
+import java.util.Objects;
+
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 /**
- * An immutable JSON string. It differs from a Java string by being surrounded by escaped quote characters. For example
- * the Java string {@code "foo"} would be {@code "\"foo\""} as JSON string.
+ * An immutable JSON string.
+ * It differs from a Java string by being surrounded by escaped quote characters.
+ * For example the Java string {@code "foo"} would be {@code "\"foo\""} as JSON string.
  */
 @Immutable
-final class ImmutableJsonString extends AbstractMinimalJsonValueWrapper {
+final class ImmutableJsonString extends AbstractJsonValue {
 
-    private ImmutableJsonString(final com.eclipsesource.json.JsonValue toWrap) {
-        super(toWrap);
-        if (!toWrap.isString()) {
-            throw new IllegalArgumentException("Is not a string: " + toWrap.toString());
-        }
+    private final String value;
+    @Nullable private String stringRepresentation;
+
+    private ImmutableJsonString(final String jsonString) {
+        value = jsonString;
+        stringRepresentation = null;
     }
 
     /**
-     * Returns a new {@code ImmutableJsonString} instance based on the given value.
+     * Returns an instance of {@code ImmutableJsonString} which wraps the specified String.
      *
-     * @param minimalJsonValue the value from which to create a new JSON string.
-     * @return a new JSON string.
-     * @throws NullPointerException if {@code minimalJsonValue} is {@code null}.
-     * @throws IllegalArgumentException if {@code minimalJsonValue} is not a string.
-     * @see JsonValue#isString()
+     * @param string the value of the returned instance.
+     * @return the instance.
+     * @throws NullPointerException if {@code string} is {@code null}.
      */
-    public static ImmutableJsonString of(final com.eclipsesource.json.JsonValue minimalJsonValue) {
-        return new ImmutableJsonString(minimalJsonValue);
+    public static ImmutableJsonString of(final String string) {
+        return new ImmutableJsonString(requireNonNull(string, "The string value must not be null!"));
+    }
+
+    @Override
+    public boolean isString() {
+        return true;
+    }
+
+    @Override
+    public String asString() {
+        return value;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final ImmutableJsonString that = (ImmutableJsonString) o;
+        return Objects.equals(value, that.value);
+    }
+
+    @Override
+    public int hashCode() {
+        return value.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        // keep escaped string as escaping is expensive
+        String result = stringRepresentation;
+        if (null == result) {
+            result = createStringRepresentation();
+            stringRepresentation = result;
+        }
+        return result;
+    }
+
+    private String createStringRepresentation() {
+        final JavaStringToEscapedJsonString javaStringToEscapedJsonString = JavaStringToEscapedJsonString.getInstance();
+        return javaStringToEscapedJsonString.apply(value);
     }
 
 }

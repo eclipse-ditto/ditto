@@ -17,7 +17,9 @@ import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -126,7 +128,7 @@ public final class ThingsUpdaterTest {
             underTest.tell(event, getRef());
 
             waitUntil().getThingIdsForPolicy(KNOWN_POLICY_ID);
-            thingIds.forEach(thingId -> expectShardedMessage(shardMessageReceiver, event, thingId));
+            expectShardedMessage(shardMessageReceiver, event, thingIds);
         }};
     }
 
@@ -204,6 +206,21 @@ public final class ThingsUpdaterTest {
 
         assertThat(envelope.getMessage()).isEqualTo(event.toJson());
         assertThat(envelope.getId()).isEqualTo(id);
+    }
+
+    private static void expectShardedMessage(final TestProbe probe, final Jsonifiable event,
+            final Collection<String> ids) {
+        final Collection<String> receivedIds = new ArrayList<>(ids.size());
+
+        for (int i = 0; i < ids.size(); ++i) {
+            final ShardedMessageEnvelope envelope = probe.expectMsgClass(ShardedMessageEnvelope.class);
+            assertThat(envelope.getMessage()).isEqualTo(event.toJson());
+            assertThat(envelope.getId()).isIn(ids);
+
+            receivedIds.add(envelope.getId());
+        }
+
+        assertThat(receivedIds).containsAll(ids);
     }
 
     private ActorRef createThingsUpdater() {

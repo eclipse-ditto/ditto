@@ -30,6 +30,7 @@ import org.eclipse.ditto.services.models.caching.EntityId;
 import org.eclipse.ditto.services.models.caching.Entry;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.models.streaming.StreamingType;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 import org.eclipse.ditto.signals.base.Signal;
@@ -115,11 +116,13 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
         public AbstractEnforcement<Signal> createEnforcement(final Context context) {
             return new LiveSignalEnforcement(context, thingIdCache, policyEnforcerCache, aclEnforcerCache);
         }
+
     }
 
     @Override
     public CompletionStage<Void> enforce(final Signal signal, final ActorRef sender,
             final DiagnosticLoggingAdapter log) {
+        LogUtil.enhanceLogWithCorrelationIdOrRandom(signal);
         return enforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             if (enforcerEntry.exists()) {
                 final Enforcer enforcer = enforcerEntry.getValue();
@@ -312,4 +315,5 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
                 .map(Duration::isZero)
                 .orElseGet(() -> !command.getDittoHeaders().isResponseRequired());
     }
+
 }

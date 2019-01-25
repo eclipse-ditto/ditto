@@ -33,6 +33,7 @@ import org.apache.qpid.jms.JmsQueue;
 import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.message.facade.JmsMessageFacade;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsMessageFacade;
+import org.apache.qpid.proton.amqp.Symbol;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
@@ -68,7 +69,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
             if (message instanceof JmsMessage) {
                 final JmsMessageFacade facade = ((JmsMessage) message).getFacade();
                 if (facade instanceof AmqpJmsMessageFacade) {
-                    ((AmqpJmsMessageFacade) facade).setContentType(value);
+                    ((AmqpJmsMessageFacade) facade).setContentType(Symbol.getSymbol(value));
                 }
             }
         }));

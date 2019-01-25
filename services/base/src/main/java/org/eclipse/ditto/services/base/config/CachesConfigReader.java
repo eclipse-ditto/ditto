@@ -67,7 +67,7 @@ public final class CachesConfigReader extends AbstractConfigReader {
     }
 
     private CacheConfigReader getCacheConfigReader(final String childPath) {
-        return new CacheConfigReader(getChild(childPath));
+        return CacheConfigReader.newInstance(getChild(childPath));
     }
 
 }

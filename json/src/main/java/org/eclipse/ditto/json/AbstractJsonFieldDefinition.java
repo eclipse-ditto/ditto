@@ -24,8 +24,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 /**
- * This abstract implementation of {@link org.eclipse.ditto.json.JsonFieldDefinition} is meant to be used for all value
- * types which are supported by {@link org.eclipse.ditto.json.JsonValue} to make parsing a JsonObject easier and most
+ * This abstract implementation of {@link JsonFieldDefinition} is meant to be used for all value
+ * types which are supported by {@link JsonValue} to make parsing a JsonObject easier and most
  * notably, type safe.
  *
  * @param <T> the type of this definition's value type.

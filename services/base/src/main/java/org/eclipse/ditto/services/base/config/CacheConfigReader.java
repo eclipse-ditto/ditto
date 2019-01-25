@@ -24,8 +24,12 @@ public final class CacheConfigReader extends AbstractConfigReader {
     private static final String PATH_MAXIMUM_SIZE = "maximum-size";
     private static final String PATH_EXPIRE_AFTER_WRITE = "expire-after-write";
 
-    CacheConfigReader(final Config config) {
+    private CacheConfigReader(final Config config) {
         super(config);
+    }
+
+    public static CacheConfigReader newInstance(final Config config) {
+        return new CacheConfigReader(config);
     }
 
     /**
@@ -45,4 +49,5 @@ public final class CacheConfigReader extends AbstractConfigReader {
     public Duration expireAfterWrite() {
         return config.getDuration(PATH_EXPIRE_AFTER_WRITE);
     }
+
 }

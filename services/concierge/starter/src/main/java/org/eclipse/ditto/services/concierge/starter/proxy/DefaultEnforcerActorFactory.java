@@ -18,6 +18,7 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -89,7 +90,8 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
                 new ThingEnforcementIdCacheLoader(askTimeout, thingsShardRegionProxy);
         final Cache<EntityId, Entry<EntityId>> thingIdCache =
                 CacheFactory.createCache(thingEnforcerIdCacheLoader, configReader.caches().id(),
-                        ID_CACHE_METRIC_NAME_PREFIX + ThingCommand.RESOURCE_TYPE);
+                        ID_CACHE_METRIC_NAME_PREFIX + ThingCommand.RESOURCE_TYPE,
+                        actorSystem.dispatchers().lookup("thing-id-cache-dispatcher"));
 
         final PolicyCacheLoader policyCacheLoader =
                 new PolicyCacheLoader(askTimeout, policiesShardRegionProxy);
@@ -103,14 +105,16 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
                 new PolicyEnforcerCacheLoader(askTimeout, policyCache);
         final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache =
                 CacheFactory.createCache(policyEnforcerCacheLoader, configReader.caches().enforcer(),
-                        ENFORCER_CACHE_METRIC_NAME_PREFIX + "policy");
+                        ENFORCER_CACHE_METRIC_NAME_PREFIX + "policy",
+                        actorSystem.dispatchers().lookup("policy-enforcer-cache-dispatcher"));
         policyCacheLoader.registerCacheInvalidator(policyEnforcerCache::invalidate);
 
         final AsyncCacheLoader<EntityId, Entry<Enforcer>> aclEnforcerCacheLoader =
                 new AclEnforcerCacheLoader(askTimeout, thingsShardRegionProxy);
         final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache =
                 CacheFactory.createCache(aclEnforcerCacheLoader, configReader.caches().enforcer(),
-                        ENFORCER_CACHE_METRIC_NAME_PREFIX + "acl");
+                        ENFORCER_CACHE_METRIC_NAME_PREFIX + "acl",
+                        actorSystem.dispatchers().lookup("acl-enforcer-cache-dispatcher"));
 
         // pre-enforcer
         final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
@@ -129,9 +133,10 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
         // set activity check interval identical to cache retention
         final Duration activityCheckInterval = configReader.caches().id().expireAfterWrite();
         final ActorRef conciergeForwarder = getInternalConciergeForwarder(context, configReader, pubSubMediator);
+        final Executor enforcerExecutor = actorSystem.dispatchers().lookup(ENFORCER_DISPATCHER);
         final Props enforcerProps =
                 EnforcerActorCreator.props(pubSubMediator, enforcementProviders, enforcementAskTimeout,
-                        conciergeForwarder, preEnforcer, activityCheckInterval);
+                        conciergeForwarder, enforcerExecutor, preEnforcer, activityCheckInterval);
         final ActorRef enforcerShardRegion = startShardRegion(context.system(), configReader.cluster(), enforcerProps);
 
         // start cache updaters

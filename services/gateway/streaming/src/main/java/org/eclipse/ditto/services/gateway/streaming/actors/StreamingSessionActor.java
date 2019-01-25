@@ -12,7 +12,7 @@ package org.eclipse.ditto.services.gateway.streaming.actors;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -86,8 +86,8 @@ final class StreamingSessionActor extends AbstractActor {
         this.pubSubMediator = pubSubMediator;
         this.eventAndResponsePublisher = eventAndResponsePublisher;
         outstandingSubscriptionAcks = new HashSet<>();
-        namespacesForStreamingTypes = new HashMap<>();
-        eventFilterCriteriaForStreamingTypes = new HashMap<>();
+        namespacesForStreamingTypes = new EnumMap<>(StreamingType.class);
+        eventFilterCriteriaForStreamingTypes = new EnumMap<>(StreamingType.class);
 
         getContext().watch(eventAndResponsePublisher);
     }

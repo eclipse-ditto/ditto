@@ -77,13 +77,14 @@ final class FeaturesDocumentBuilder {
 
     private FeaturesDocumentBuilder mainFeatureProperties(final String key, final Object value,
             final String featureId) {
+
         final Document doc = (Document) tDocument.get(PersistenceConstants.FIELD_FEATURES);
         final Document featurePropertiesDoc = getSubDocument(doc, featureId);
         featurePropertiesDoc.append(KeyEscapeUtil.escape(key), value);
         return this;
     }
 
-    private Document getSubDocument(final Document doc, final String featureId) {
+    private static Document getSubDocument(final Document doc, final String featureId) {
         final String featureKey = KeyEscapeUtil.escape(featureId);
         if (doc.get(featureId) == null) {
             doc.put(featureKey, newFeaturePropertiesDocument());
@@ -91,7 +92,7 @@ final class FeaturesDocumentBuilder {
         return (Document) ((Document) doc.get(featureKey)).get(PersistenceConstants.FIELD_PROPERTIES);
     }
 
-    private Document newFeaturePropertiesDocument() {
+    private static Document newFeaturePropertiesDocument() {
         return new Document(PersistenceConstants.FIELD_PROPERTIES, ThingDocumentMapper.newDocument());
     }
 
@@ -112,9 +113,9 @@ final class FeaturesDocumentBuilder {
     }
 
     private void addNumberFeature(final String path, final JsonValue jsonValue, final String featureId) {
-        try {
+        if (jsonValue.isLong()) {
             featureInternally(path, jsonValue.asLong(), featureId);
-        } catch (final NumberFormatException e) {
+        } else {
             featureInternally(path, jsonValue.asDouble(), featureId);
         }
     }

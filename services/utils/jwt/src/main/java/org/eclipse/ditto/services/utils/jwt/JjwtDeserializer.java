@@ -70,9 +70,7 @@ public final class JjwtDeserializer implements Deserializer {
 
     private static Map<String, Object> toJavaMap(final JsonObject jsonObject) {
         return jsonObject.stream()
-                .collect(Collectors.toMap(
-                        JsonField::getKeyName,
-                        field -> toJavaObject(field.getValue())));
+                .collect(Collectors.toMap(JsonField::getKeyName, field -> toJavaObject(field.getValue())));
     }
 
     private static List<Object> toJavaList(final JsonArray jsonArray) {
@@ -93,13 +91,12 @@ public final class JjwtDeserializer implements Deserializer {
         } else if (jsonValue.isBoolean()) {
             result = jsonValue.asBoolean();
         } else if (jsonValue.isNumber()) {
-            final Double doubleValue = jsonValue.asDouble();
-            if (doubleValue.intValue() == doubleValue) {
-                result = doubleValue.intValue();
-            } else if (doubleValue.longValue() == doubleValue) {
-                result = doubleValue.longValue();
+            if (jsonValue.isInt()) {
+                result = jsonValue.asInt();
+            } else if (jsonValue.isLong()) {
+                result = jsonValue.asLong();
             } else {
-                result = doubleValue;
+                result = jsonValue.asDouble();
             }
         } else if (jsonValue.isObject()) {
             result = toJavaMap(jsonValue.asObject());

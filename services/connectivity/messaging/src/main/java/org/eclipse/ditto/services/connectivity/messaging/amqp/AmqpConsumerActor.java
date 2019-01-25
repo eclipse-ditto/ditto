@@ -19,6 +19,7 @@ import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -33,6 +34,7 @@ import javax.jms.TextMessage;
 import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.message.facade.JmsMessageFacade;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsMessageFacade;
+import org.apache.qpid.proton.amqp.Symbol;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
@@ -191,7 +193,7 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
                 messageMappingProcessor.forward(e.setDittoHeaders(DittoHeaders.of(headers)), getContext());
             }
         } catch (final Exception e) {
-            log.info("Unexpected {}: {}", e.getClass().getName(), e.getMessage());
+            log.error(e, "Unexpected {}: {}", e.getClass().getName(), e.getMessage());
         } finally {
             try {
                 // we use the manual acknowledge mode so we always have to ack the message
@@ -240,8 +242,10 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
                     .filter(Objects::nonNull)
                     .collect(toMap(Map.Entry::getKey, Map.Entry::getValue)));
 
-            final String contentType = amqpJmsMessageFacade.getContentType();
-            headersFromJmsProperties.put(ExternalMessage.CONTENT_TYPE_HEADER, contentType);
+            final Symbol contentType = amqpJmsMessageFacade.getContentType();
+            if (null != contentType) {
+                headersFromJmsProperties.put(ExternalMessage.CONTENT_TYPE_HEADER, contentType.toString());
+            }
         } else {
             throw new JMSException("Message facade was not of type AmqpJmsMessageFacade");
         }

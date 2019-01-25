@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.json;
 
+import static org.assertj.core.api.Assertions.*;
 import static org.eclipse.ditto.json.JsonFactory.newValue;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -17,19 +18,20 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.lang.ref.SoftReference;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.eclipse.ditto.json.ImmutableJsonArray.SoftReferencedValueList;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
-import nl.jqno.equalsverifier.Warning;
 
 /**
  * Unit test for {@link ImmutableJsonArray}.
@@ -49,25 +51,45 @@ public final class ImmutableJsonArrayTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ImmutableJsonArray.class, areImmutable(), provided(JsonValue.class).isAlsoImmutable());
+        assertInstancesOf(ImmutableJsonArray.class,
+                areImmutable(),
+                provided(SoftReferencedValueList.class).isAlsoImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        final SoftReference<JsonObject> red = new SoftReference<>(JsonFactory.newObject("{\"foo\": 1}"));
-        final SoftReference<JsonObject> black = new SoftReference<>(JsonFactory.newObject("{\"foo\": 2}"));
+        final List<JsonValue> stringJsonValueList = toList(JsonValue.of("foo"), JsonValue.of("bar"));
+        final List<JsonValue> numberJsonValueList = toList(JsonValue.of(1), JsonValue.of(2), JsonValue.of(3));
+        final ImmutableJsonArray redArray = ImmutableJsonArray.of(stringJsonValueList);
+        final ImmutableJsonArray blackArray = ImmutableJsonArray.of(numberJsonValueList);
+        final SoftReferencedValueList redValueList = SoftReferencedValueList.of(stringJsonValueList);
+        final SoftReferencedValueList blackValueList = SoftReferencedValueList.of(numberJsonValueList);
 
         EqualsVerifier.forClass(ImmutableJsonArray.class)
-                .withIgnoredFields("stringRepresentation")
-                .withRedefinedSuperclass()
-                .suppress(Warning.NULL_FIELDS)
-                .withPrefabValues(SoftReference.class, red, black)
+                .withPrefabValues(ImmutableJsonArray.class, redArray, blackArray)
+                .withPrefabValues(SoftReferencedValueList.class, redValueList, blackValueList)
+                .withNonnullFields("valueList")
                 .verify();
     }
 
-    @Test(expected = NullPointerException.class)
-    public void tryToCreateInstanceFromNullJsonArray() {
-        ImmutableJsonArray.of(null);
+    private static List<JsonValue> toList(final JsonValue... jsonValue) {
+        final List<JsonValue> result = new ArrayList<>(jsonValue.length);
+        Collections.addAll(result, jsonValue);
+        return result;
+    }
+
+    @Test
+    public void twoParsedArraysFromSameStringHaveSameHashCode() {
+        final String jsonArrayString =
+                "[\"latitude\", 44.673856, \"longitude\", 8.261719, \"maker\", \"ACME\"]";
+        final Function<String, JsonValue> parser = JsonValueParser.fromString();
+
+        final JsonValue parsedFirst = parser.apply(jsonArrayString);
+        final JsonValue parsedSecond = parser.apply(jsonArrayString);
+
+        assertThat(parsedFirst).isInstanceOf(ImmutableJsonArray.class);
+        assertThat(parsedSecond).isInstanceOf(ImmutableJsonArray.class);
+        assertThat(parsedFirst.hashCode()).isEqualTo(parsedSecond.hashCode());
     }
 
     @Test
@@ -103,6 +125,9 @@ public final class ImmutableJsonArrayTest {
         assertThat(underTest).isNotNumber();
         assertThat(underTest).isNotString();
         assertThat(underTest).isNotObject();
+        assertThat(underTest.isInt()).isFalse();
+        assertThat(underTest.isLong()).isFalse();
+        assertThat(underTest.isDouble()).isFalse();
     }
 
     @Test
@@ -141,7 +166,7 @@ public final class ImmutableJsonArrayTest {
         final int secondIntValueToAdd = 1983;
         final int thirdIntValueToAdd = 1984;
         final int expectedSize = underTest.getSize() + 3;
-        final JsonArray afterAdd = underTest.add(firstIntValueToAdd, secondIntValueToAdd, thirdIntValueToAdd);
+        final ImmutableJsonArray afterAdd = underTest.add(firstIntValueToAdd, secondIntValueToAdd, thirdIntValueToAdd);
 
         assertThat(afterAdd).isNotSameAs(underTest);
         assertThat(afterAdd).hasSize(expectedSize);
@@ -229,13 +254,13 @@ public final class ImmutableJsonArrayTest {
     }
 
     @Test
-    public void addBooleanReturnsDisjunctArray() {
+    public void addBooleanReturnsDisjointArray() {
         final ImmutableJsonArray underTest = ImmutableJsonArray.empty();
         final boolean firstBooleanValueToAdd = true;
         final boolean secondBooleanValueToAdd = false;
         final boolean thirdBooleanValueToAdd = true;
         final int expectedSize = underTest.getSize() + 3;
-        final JsonArray afterAdd =
+        final ImmutableJsonArray afterAdd =
                 underTest.add(firstBooleanValueToAdd, secondBooleanValueToAdd, thirdBooleanValueToAdd);
 
         assertThat(afterAdd).isNotSameAs(underTest);

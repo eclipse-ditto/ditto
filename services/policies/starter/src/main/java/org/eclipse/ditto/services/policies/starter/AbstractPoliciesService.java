@@ -13,11 +13,7 @@ package org.eclipse.ditto.services.policies.starter;
 import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
-import org.eclipse.ditto.services.utils.metrics.dropwizard.DropwizardMetricsPrometheusReporter;
-import org.eclipse.ditto.services.utils.metrics.dropwizard.MetricRegistryFactory;
 import org.slf4j.Logger;
-
-import akka.actor.ActorSystem;
 
 /**
  * Abstract base implementation for starting Policies service with configurable actors.
@@ -42,10 +38,4 @@ public abstract class AbstractPoliciesService extends DittoService<ServiceConfig
         super(logger, SERVICE_NAME, PoliciesRootActor.ACTOR_NAME, DittoServiceConfigReader.from(SERVICE_NAME));
     }
 
-    @Override
-    protected void addDropwizardMetricRegistries(final ActorSystem actorSystem,
-            final ServiceConfigReader configReader) {
-        DropwizardMetricsPrometheusReporter.addMetricRegistry(
-                MetricRegistryFactory.mongoDb(actorSystem, configReader.getRawConfig()));
-    }
 }

@@ -25,8 +25,6 @@ import java.util.Map;
 
 import org.junit.Test;
 
-import com.eclipsesource.json.Json;
-
 /**
  * Unit test for {@link JsonFactory}.
  */
@@ -118,8 +116,26 @@ public final class JsonFactoryTest {
     }
 
     @Test
+    public void newValueFromMaxIntReturnsExpected() {
+        final int intValue = Integer.MAX_VALUE;
+        final JsonValue underTest = JsonFactory.newValue(intValue);
+
+        assertThat(underTest).isNumber();
+        assertThat(underTest.asInt()).isEqualTo(intValue);
+    }
+
+    @Test
     public void newValueFromLongReturnsExpected() {
         final long longValue = 1337L;
+        final JsonValue underTest = JsonFactory.newValue(longValue);
+
+        assertThat(underTest).isNumber();
+        assertThat(underTest.asLong()).isEqualTo(longValue);
+    }
+
+    @Test
+    public void newValueFromMaxLongReturnsExpected() {
+        final long longValue = Long.MAX_VALUE;
         final JsonValue underTest = JsonFactory.newValue(longValue);
 
         assertThat(underTest).isNumber();
@@ -244,155 +260,6 @@ public final class JsonFactoryTest {
         assertThat(underTest).contains("one");
         assertThat(underTest).contains("two");
         assertThat(underTest).contains("three");
-    }
-
-    @Test
-    public void convertMinimalJsonNullReturnsNull() {
-        final com.eclipsesource.json.JsonValue minimalJsonValue = null;
-        final JsonValue underTest = JsonFactory.convert(minimalJsonValue);
-
-        assertThat(underTest).isNull();
-    }
-
-    @Test
-    public void convertMinimalJsonObjectReturnsExpected() {
-        final com.eclipsesource.json.JsonValue parsedJsonObjectString = Json.parse(KNOWN_JSON_OBJECT_STRING);
-        final com.eclipsesource.json.JsonObject minimalJsonObject = parsedJsonObjectString.asObject();
-
-        final JsonValue underTest = JsonFactory.convert(minimalJsonObject);
-        final byte expectedSize = 3;
-
-        assertThat(underTest).isObject();
-        assertThat((JsonObject) underTest).hasSize(expectedSize);
-    }
-
-    @Test
-    public void convertMinimalJsonStringReturnsExpected() {
-        final String javaString = "summer";
-        final com.eclipsesource.json.JsonValue minimalJsonString = Json.value(javaString);
-        final JsonValue underTest = JsonFactory.convert(minimalJsonString);
-
-        assertThat(underTest).isString();
-        assertThat(underTest.asString()).isEqualTo(javaString);
-    }
-
-    @Test
-    public void convertMinimalJsonArrayReturnsExpected() {
-        final com.eclipsesource.json.JsonValue parsedJsonArrayString = Json.parse(KNOWN_JSON_ARRAY_STRING);
-        final com.eclipsesource.json.JsonArray minimalJsonArray = parsedJsonArrayString.asArray();
-
-        final JsonValue underTest = JsonFactory.convert(minimalJsonArray);
-        final byte expectedSize = 3;
-
-        assertThat(underTest).isArray();
-        assertThat((JsonArray) underTest).hasSize(expectedSize);
-    }
-
-    @Test
-    public void convertMinimalJsonBooleanReturnsExpected() {
-        final com.eclipsesource.json.JsonValue minimalJsonBoolean = Json.FALSE;
-        final JsonValue underTest = JsonFactory.convert(minimalJsonBoolean);
-
-        assertThat(underTest).isBoolean();
-        assertThat(underTest.asBoolean()).isFalse();
-    }
-
-    @Test
-    public void convertMinimalJsonNullLiteralReturnsExpected() {
-        final com.eclipsesource.json.JsonValue minimalJsonNullLiteral = Json.NULL;
-        final JsonValue underTest = JsonFactory.convert(minimalJsonNullLiteral);
-
-        assertThat(underTest).isNullLiteral();
-    }
-
-    @Test
-    public void convertMinimalJsonNumberReturnsExpected() {
-        final double numberValue = 23.42D;
-        final com.eclipsesource.json.JsonValue minimalJsonNumber = Json.value(numberValue);
-        final JsonValue underTest = JsonFactory.convert(minimalJsonNumber);
-
-        assertThat(underTest).isNumber();
-        assertThat(underTest.asDouble()).isEqualTo(numberValue);
-    }
-
-    @Test
-    public void convertNullReturnsNull() {
-        final JsonValue jsonValue = null;
-        final com.eclipsesource.json.JsonValue underTest = JsonFactory.convert(jsonValue);
-
-        assertThat(underTest).isNull();
-    }
-
-    @Test
-    public void convertObjectToMinimalJsonObject() {
-        final JsonObject jsonObject = JsonFactory.newObject(KNOWN_JSON_OBJECT_STRING);
-        final com.eclipsesource.json.JsonValue underTest = JsonFactory.convert(jsonObject);
-
-        assertThat(underTest.isObject()).isTrue();
-
-        final com.eclipsesource.json.JsonObject underTestAsObject = (com.eclipsesource.json.JsonObject) underTest;
-
-        assertThat(underTestAsObject.getString("featureId", "-1")).isEqualTo("1");
-        assertThat(underTestAsObject.get("functionblock")).isEqualTo(Json.NULL);
-
-        final com.eclipsesource.json.JsonObject expectedProperties = new com.eclipsesource.json.JsonObject();
-        expectedProperties.add("someInt", 42).add("someString", "foo").add("someBool", false);
-        expectedProperties.add("someObj", new com.eclipsesource.json.JsonObject().add("aKey", "aValue"));
-
-        assertThat(underTestAsObject.get("properties")).isEqualTo(expectedProperties);
-    }
-
-    @Test
-    public void convertJsonStringToMinimalJsonString() {
-        final String stringValue = "winter";
-        final JsonValue jsonString = JsonFactory.newValue(stringValue);
-        final com.eclipsesource.json.JsonValue underTest = JsonFactory.convert(jsonString);
-
-        assertThat(underTest.isString()).isTrue();
-        assertThat(underTest.asString()).isEqualTo(stringValue);
-    }
-
-    @Test
-    public void convertArrayToMinimalJsonArray() {
-        final JsonArray jsonArray = JsonFactory.newArray(KNOWN_JSON_ARRAY_STRING);
-        final com.eclipsesource.json.JsonValue underTest = JsonFactory.convert(jsonArray);
-
-        assertThat(underTest.isArray()).isTrue();
-
-        @SuppressWarnings("unchecked")
-        final Iterable<com.eclipsesource.json.JsonValue> underTestAsArray =
-                (Iterable<com.eclipsesource.json.JsonValue>) underTest;
-        final byte expectedSize = 3;
-
-        assertThat(underTestAsArray).hasSize(expectedSize);
-        assertThat(underTestAsArray).containsSequence(Json.value("one"), Json.value("two"), Json.value("three"));
-    }
-
-    @Test
-    public void convertJsonBooleanToMinimalJsonBoolean() {
-        final JsonValue jsonBoolean = JsonFactory.newValue(true);
-        final com.eclipsesource.json.JsonValue underTest = JsonFactory.convert(jsonBoolean);
-
-        assertThat(underTest.isBoolean()).isTrue();
-        assertThat(underTest.asBoolean()).isTrue();
-    }
-
-    @Test
-    public void convertJsonNullLiteralToMinimalJsonNullLiteral() {
-        final JsonValue jsonNullLiteral = JsonFactory.nullLiteral();
-        final com.eclipsesource.json.JsonValue underTest = JsonFactory.convert(jsonNullLiteral);
-
-        assertThat(underTest.isNull()).isTrue();
-    }
-
-    @Test
-    public void convertJsonNumberToMinimalJsonNumber() {
-        final double numberValue = 23.42D;
-        final JsonValue jsonNumber = JsonFactory.newValue(numberValue);
-        final com.eclipsesource.json.JsonValue underTest = JsonFactory.convert(jsonNumber);
-
-        assertThat(underTest.isNumber()).isTrue();
-        assertThat(underTest.asDouble()).isEqualTo(numberValue);
     }
 
     @Test(expected = JsonParseException.class)
@@ -523,88 +390,6 @@ public final class JsonFactoryTest {
     }
 
     @Test
-    public void convertLongJsonValueToMinimalJsonValue() {
-        final long longValue = System.currentTimeMillis();
-        final JsonValue jsonValue = JsonFactory.newValue(longValue);
-        final com.eclipsesource.json.JsonValue minimalJsonValue = JsonFactory.convert(jsonValue);
-
-        assertThat(minimalJsonValue.toString()).isEqualTo(String.valueOf(longValue));
-    }
-
-    @Test
-    public void convertMaxLongJsonValueToMinimalJsonValue() {
-        final long longValue = Long.MAX_VALUE;
-        final JsonValue jsonValue = JsonFactory.newValue(longValue);
-        final com.eclipsesource.json.JsonValue minimalJsonValue = JsonFactory.convert(jsonValue);
-
-        assertThat(minimalJsonValue.toString()).isEqualTo(String.valueOf(longValue));
-    }
-
-    @Test
-    public void convertMinLongJsonValueToMinimalJsonValue() {
-        final long longValue = Long.MIN_VALUE;
-        final JsonValue jsonValue = JsonFactory.newValue(longValue);
-        final com.eclipsesource.json.JsonValue minimalJsonValue = JsonFactory.convert(jsonValue);
-
-        assertThat(minimalJsonValue.toString()).isEqualTo(String.valueOf(longValue));
-    }
-
-    @Test
-    public void convertIntegerAsDoubleJsonValueToMinimalJsonValue() {
-        final double doubleValue = 1.449662035141E12D;
-        final JsonValue jsonValue = JsonFactory.newValue(doubleValue);
-        final com.eclipsesource.json.JsonValue minimalJsonValue = JsonFactory.convert(jsonValue);
-
-
-        assertThat(minimalJsonValue.toString()).isEqualTo("1449662035141");
-    }
-
-    @Test
-    public void convertPureDoubleJsonValueToMinimalJsonValue() {
-        final double doubleValue = 42.23D;
-        final JsonValue jsonValue = JsonFactory.newValue(doubleValue);
-        final com.eclipsesource.json.JsonValue minimalJsonValue = JsonFactory.convert(jsonValue);
-
-        assertThat(minimalJsonValue.toString()).isEqualTo(String.valueOf(doubleValue));
-    }
-
-    @Test
-    public void convertMaxDoubleJsonValueToMinimalJsonValue() {
-        final double doubleValue = Double.MAX_VALUE;
-        final JsonValue jsonValue = JsonFactory.newValue(doubleValue);
-        final com.eclipsesource.json.JsonValue minimalJsonValue = JsonFactory.convert(jsonValue);
-
-        assertThat(minimalJsonValue.toString()).isEqualTo(String.valueOf(doubleValue));
-    }
-
-    @Test
-    public void convertMinDoubleJsonValueToMinimalJsonValue() {
-        final double doubleValue = Double.MIN_VALUE;
-        final JsonValue jsonValue = JsonFactory.newValue(doubleValue);
-        final com.eclipsesource.json.JsonValue minimalJsonValue = JsonFactory.convert(jsonValue);
-
-        assertThat(minimalJsonValue.toString()).isEqualTo(String.valueOf(doubleValue));
-    }
-
-    @Test
-    public void convertMaxIntegerJsonValueToMinimalJsonValue() {
-        final int intValue = Integer.MAX_VALUE;
-        final JsonValue jsonValue = JsonFactory.newValue(intValue);
-        final com.eclipsesource.json.JsonValue minimalJsonValue = JsonFactory.convert(jsonValue);
-
-        assertThat(minimalJsonValue.toString()).isEqualTo(String.valueOf(intValue));
-    }
-
-    @Test
-    public void convertMinIntegerJsonValueToMinimalJsonValue() {
-        final int intValue = Integer.MIN_VALUE;
-        final JsonValue jsonValue = JsonFactory.newValue(intValue);
-        final com.eclipsesource.json.JsonValue minimalJsonValue = JsonFactory.convert(jsonValue);
-
-        assertThat(minimalJsonValue.toString()).isEqualTo(String.valueOf(intValue));
-    }
-
-    @Test
     public void getAppropriateValueForNullReturnsNullLiteral() {
         assertThat(JsonFactory.getAppropriateValue(null)).isEqualTo(JsonFactory.nullLiteral());
     }
@@ -639,7 +424,7 @@ public final class JsonFactoryTest {
 
     @Test
     public void getAppropriateValueForBoxedDoubleReturnsJsonDoubleValue() {
-        final Double doubleValue = Double.parseDouble("23.42");
+        final Double doubleValue = Double.MAX_VALUE;
         final JsonValue expected = JsonFactory.newValue(doubleValue);
 
         assertThat(JsonFactory.getAppropriateValue(doubleValue)).isEqualTo(expected);

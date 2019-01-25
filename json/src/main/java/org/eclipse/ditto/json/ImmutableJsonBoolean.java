@@ -1,0 +1,80 @@
+/*
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ *
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v2.0
+ * which accompanies this distribution, and is available at
+ * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
+package org.eclipse.ditto.json;
+
+import java.util.Objects;
+
+import javax.annotation.concurrent.Immutable;
+
+/**
+ * An immutable JSON boolean value.
+ */
+@Immutable
+final class ImmutableJsonBoolean extends AbstractJsonValue {
+
+    /**
+     * The JSON literal for the boolean value {@code true}.
+     */
+    static final ImmutableJsonBoolean TRUE = ImmutableJsonBoolean.of(true);
+
+    /**
+     * The JSON literal for the boolean value {@code false}.
+     */
+    static final ImmutableJsonBoolean FALSE = ImmutableJsonBoolean.of(false);
+
+    private final boolean value;
+
+    private ImmutableJsonBoolean(final boolean theValue) {
+        value = theValue;
+    }
+
+    /**
+     * Creates a new {@code ImmutableJsonLiteral} object of a Minimal Json Literal.
+     *
+     * @return a new ImmutableJsonLiteral object.
+     */
+    public static ImmutableJsonBoolean of(final boolean value) {
+        return new ImmutableJsonBoolean(value);
+    }
+
+    @Override
+    public boolean isBoolean() {
+        return true;
+    }
+
+    @Override
+    public boolean asBoolean() {
+        return value;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final ImmutableJsonBoolean that = (ImmutableJsonBoolean) o;
+        return value == that.value;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(value);
+    }
+
+    @Override
+    public String toString() {
+        return String.valueOf(value);
+    }
+
+}

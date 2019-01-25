@@ -17,18 +17,25 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.bson.BsonArray;
+import org.bson.BsonBoolean;
+import org.bson.BsonDocument;
+import org.bson.BsonDouble;
+import org.bson.BsonInt32;
+import org.bson.BsonInt64;
+import org.bson.BsonNull;
+import org.bson.BsonNumber;
+import org.bson.BsonString;
+import org.bson.BsonValue;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 
-import com.mongodb.BasicDBList;
-import com.mongodb.BasicDBObject;
-
 /**
- * This class provides functions to map a specified {@link org.eclipse.ditto.json.JsonObject} or
- * {@link org.eclipse.ditto.json.JsonArray} to a {@link com.mongodb.DBObject}. While mapping the keys of all JSON
+ * This class provides functions to map a specified {@link JsonObject} or
+ * {@link JsonArray} to a {@link BsonDocument} or {@link BsonArray}. While mapping the keys of all JSON
  * objects can be revised by utilising a configurable function.
  */
 @AllParametersAndReturnValuesAreNonnullByDefault
@@ -42,45 +49,27 @@ final class JsonValueToDbEntityMapper {
     }
 
     /**
-     * Returns a Function for mapping a {@link org.eclipse.ditto.json.JsonObject} to a
-     * {@link com.mongodb.BasicDBObject}.
+     * Returns a Function for mapping a {@link JsonObject} to a {@link BsonDocument}.
      *
      * @param jsonKeyNameReviser is used to revise the json key names of JSON objects.
      * @return the function.
      * @throws NullPointerException if {@code jsonKeyNameReviser} is {@code null}.
      */
-    public static Function<JsonObject, BasicDBObject> forJsonObject(final Function<String, String> jsonKeyNameReviser) {
+    public static Function<JsonObject, BsonDocument> forJsonObject(final Function<String, String> jsonKeyNameReviser) {
         final JsonValueToDbEntityMapper mapper = new JsonValueToDbEntityMapper(jsonKeyNameReviser);
-        return mapper::mapJsonObjectToBasicDBObject;
+        return mapper::mapJsonObjectToBsonDocument;
     }
 
     /**
-     * Returns a Function for mapping a {@link org.eclipse.ditto.json.JsonArray} to a
-     * {@link com.mongodb.BasicDBList}.
+     * Returns a Function for mapping a {@link JsonArray} to a  {@link BsonArray}.
      *
      * @param jsonKeyNameReviser is used to revise the json key names of JSON objects.
      * @return the function.
      * @throws NullPointerException if {@code jsonKeyNameReviser} is {@code null}.
      */
-    public static Function<JsonArray, BasicDBList> forJsonArray(final Function<String, String> jsonKeyNameReviser) {
+    public static Function<JsonArray, BsonArray> forJsonArray(final Function<String, String> jsonKeyNameReviser) {
         final JsonValueToDbEntityMapper mapper = new JsonValueToDbEntityMapper(jsonKeyNameReviser);
-        return mapper::mapJsonArrayToBasicDBList;
-    }
-
-    /**
-     * Maps the specified JsonObject to a {@link com.mongodb.BasicDBObject} which can be stored in MongoDB.
-     *
-     * @param jsonObject the object to be mapped.
-     * @return {@code jsonObject} as BasicDBObject.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     */
-    private BasicDBObject mapJsonObjectToBasicDBObject(final JsonObject jsonObject) {
-        checkNotNull(jsonObject, "JSON object to be mapped");
-
-        final BasicDBObject result = new BasicDBObject(jsonObject.getSize());
-        jsonObject.forEach(jsonField -> result.put(reviseKeyName(jsonField.getKey()),
-                mapJsonValueToJavaObject(jsonField.getValue())));
-        return result;
+        return mapper::mapJsonArrayToBsonArray;
     }
 
     private String reviseKeyName(final JsonKey jsonKey) {
@@ -88,17 +77,33 @@ final class JsonValueToDbEntityMapper {
     }
 
     /**
-     * Maps the specified JsonArray to a {@link com.mongodb.BasicDBList} which can be stored in MongoDB.
+     * Maps the specified JsonObject to a {@link BsonDocument} which can be stored in MongoDB.
+     *
+     * @param jsonObject the object to be mapped.
+     * @return {@code jsonObject} as BsonDocument.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     */
+    private BsonDocument mapJsonObjectToBsonDocument(final JsonObject jsonObject) {
+        checkNotNull(jsonObject, "JSON object to be mapped");
+
+        final BsonDocument result = new BsonDocument();
+        jsonObject.forEach(jsonField -> result.put(reviseKeyName(jsonField.getKey()),
+                mapJsonValueToBsonValue(jsonField.getValue())));
+        return result;
+    }
+
+    /**
+     * Maps the specified JsonArray to a {@link BsonArray} which can be stored in MongoDB.
      *
      * @param jsonArray the array to be mapped.
-     * @return {@code jsonArray} as BasicDBList.
+     * @return {@code jsonArray} as BsonArray.
      * @throws NullPointerException if {@code jsonArray} is {@code null}.
      */
-    private BasicDBList mapJsonArrayToBasicDBList(final JsonArray jsonArray) {
+    private BsonArray mapJsonArrayToBsonArray(final JsonArray jsonArray) {
         checkNotNull(jsonArray, "JSON array to be mapped");
 
-        final BasicDBList result = new BasicDBList();
-        jsonArray.forEach(jsonValue -> result.add(mapJsonValueToJavaObject(jsonValue)));
+        final BsonArray result = new BsonArray();
+        jsonArray.forEach(jsonValue -> result.add(mapJsonValueToBsonValue(jsonValue)));
         return result;
     }
 
@@ -121,9 +126,9 @@ final class JsonValueToDbEntityMapper {
         } else if (jsonValue.isNumber()) {
             result = mapJsonNumberToJavaNumber(jsonValue);
         } else if (jsonValue.isObject()) {
-            result = mapJsonObjectToBasicDBObject(jsonValue.asObject());
+            result = mapJsonObjectToBsonDocument(jsonValue.asObject());
         } else if (jsonValue.isArray()) {
-            result = mapJsonArrayToBasicDBList(jsonValue.asArray());
+            result = mapJsonArrayToBsonArray(jsonValue.asArray());
         } else if (jsonValue.isBoolean()) {
             result = jsonValue.asBoolean();
         } else {
@@ -133,24 +138,63 @@ final class JsonValueToDbEntityMapper {
         return result;
     }
 
-    private static Number mapJsonNumberToJavaNumber(final JsonValue jsonNumberValue) {
-        Number result;
-        if (isDouble(jsonNumberValue)) {
-            result = jsonNumberValue.asDouble();
+    /**
+     * Maps the specified JsonValue to a Java Object which can be stored in MongoDB.
+     *
+     * @param jsonValue the value to be mapped.
+     * @return {@code jsonValue} as Java Object which can be stored in MongoDB or {@code null}.
+     * @throws NullPointerException if {@code jsonValue} is {@code null}.
+     */
+    @Nullable
+    private BsonValue mapJsonValueToBsonValue(final JsonValue jsonValue) {
+        checkNotNull(jsonValue, "JSON value to be mapped");
+
+        final BsonValue result;
+        if (jsonValue.isNull()) {
+            result = BsonNull.VALUE;
+        } else if (jsonValue.isString()) {
+            result = new BsonString(jsonValue.asString());
+        } else if (jsonValue.isNumber()) {
+            result = mapJsonNumberToBsonNumber(jsonValue);
+        } else if (jsonValue.isObject()) {
+            result = mapJsonObjectToBsonDocument(jsonValue.asObject());
+        } else if (jsonValue.isArray()) {
+            result = mapJsonArrayToBsonArray(jsonValue.asArray());
+        } else if (jsonValue.isBoolean()) {
+            result = BsonBoolean.valueOf(jsonValue.asBoolean());
         } else {
-            try {
-                result = jsonNumberValue.asInt();
-            } catch (final NumberFormatException e) {
-                result = jsonNumberValue.asLong();
-            }
+            result = null;
         }
 
         return result;
     }
 
-    private static boolean isDouble(final JsonValue jsonNumberValue) {
-        final String s = jsonNumberValue.toString();
-        return 0 <= s.indexOf('.');
+    private static Number mapJsonNumberToJavaNumber(final JsonValue jsonNumberValue) {
+        final Number result;
+
+        if (jsonNumberValue.isInt()) {
+            result = jsonNumberValue.asInt();
+        } else if (jsonNumberValue.isLong()) {
+            result = jsonNumberValue.asLong();
+        } else {
+            result = jsonNumberValue.asDouble();
+        }
+
+        return result;
+    }
+
+    private static BsonNumber mapJsonNumberToBsonNumber(final JsonValue jsonNumberValue) {
+        final BsonNumber result;
+
+        if (jsonNumberValue.isInt()) {
+            result = new BsonInt32(jsonNumberValue.asInt());
+        } else if (jsonNumberValue.isLong()) {
+            result = new BsonInt64(jsonNumberValue.asLong());
+        } else {
+            result = new BsonDouble(jsonNumberValue.asDouble());
+        }
+
+        return result;
     }
 
 }

@@ -66,6 +66,14 @@
         </dependency>
 
         <dependency>
+            <groupId>org.mongodb.scala</groupId>
+            <artifactId>mongo-scala-driver_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.mongodb.scala</groupId>
+            <artifactId>mongo-scala-bson_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.mongodb</groupId>
             <artifactId>mongo-java-driver</artifactId>
         </dependency>
@@ -76,6 +84,10 @@
         <dependency>
             <groupId>com.github.scullxbones</groupId>
             <artifactId>akka-persistence-mongo-common_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.github.scullxbones</groupId>
+            <artifactId>akka-persistence-mongo-scala_${scala.version}</artifactId>
         </dependency>
 
         <dependency>

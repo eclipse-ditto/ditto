@@ -25,7 +25,11 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.models.caching.EntityId;
 import org.eclipse.ditto.services.models.caching.Entry;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
@@ -42,11 +46,12 @@ import akka.pattern.PatternsCS;
 @Immutable
 public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<EntityId, Entry<V>> {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(ActorAskCacheLoader.class);
+
     private final long askTimeoutMillis;
     private final Function<String, ActorRef> entityRegionProvider;
     private final Map<String, Function<String, T>> commandCreatorMap;
     private final Map<String, Function<Object, Entry<V>>> responseTransformerMap;
-
 
     private ActorAskCacheLoader(final Duration askTimeout,
             final Function<String, ActorRef> entityRegionProvider,
@@ -145,15 +150,19 @@ public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<EntityI
     @Override
     public final CompletableFuture<Entry<V>> asyncLoad(final EntityId key, final Executor executor) {
         final String resourceType = key.getResourceType();
+        // provide correlation id to inner thread
+        final String correlationId = MDC.get(LogUtil.X_CORRELATION_ID);
         return CompletableFuture.supplyAsync(() -> {
+            MDC.put(LogUtil.X_CORRELATION_ID, correlationId);
             final String entityId = getEntityId(key);
             return getCommand(resourceType, entityId);
-        }, executor).thenComposeAsync(command -> {
+        }, executor).thenCompose(command -> {
             final ActorRef entityRegion = getEntityRegion(key.getResourceType());
+            LOGGER.debug("Going to retrieve cache entry for key <{}> with command <{}>: ", key, command);
             return PatternsCS.ask(entityRegion, command, askTimeoutMillis)
                     .thenApply(response -> transformResponse(resourceType, response))
                     .toCompletableFuture();
-        }, executor);
+        });
     }
 
     private static String getEntityId(final EntityId key) {

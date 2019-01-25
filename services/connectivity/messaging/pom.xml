@@ -118,12 +118,7 @@
         </dependency>
         <dependency>
             <groupId>com.github.scullxbones</groupId>
-            <artifactId>akka-persistence-mongo-casbah_${scala.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.mongodb</groupId>
-            <artifactId>casbah_${scala.version}</artifactId>
-            <type>pom</type>
+            <artifactId>akka-persistence-mongo-scala_${scala.version}</artifactId>
         </dependency>
 
         <dependency>

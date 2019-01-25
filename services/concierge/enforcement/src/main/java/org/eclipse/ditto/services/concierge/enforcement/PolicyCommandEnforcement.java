@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.services.models.caching.EntityId;
 import org.eclipse.ditto.services.models.caching.Entry;
 import org.eclipse.ditto.services.models.policies.Permission;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.IdentityCache;
 import org.eclipse.ditto.signals.commands.base.CommandToExceptionRegistry;
@@ -163,7 +164,9 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
     }
 
     @Override
-    public CompletionStage<Void> enforce(final PolicyCommand signal, final ActorRef sender, final DiagnosticLoggingAdapter log) {
+    public CompletionStage<Void> enforce(final PolicyCommand signal, final ActorRef sender,
+            final DiagnosticLoggingAdapter log) {
+        LogUtil.enhanceLogWithCorrelationIdOrRandom(signal);
         return enforcerRetriever.retrieve(entityId(), (idEntry, enforcerEntry) -> {
             if (enforcerEntry.exists()) {
                 enforcePolicyCommandByEnforcer(signal, enforcerEntry.getValue(), sender);
@@ -261,7 +264,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
                                 commandWithReadSubjects.getDittoHeaders());
                     }
                     return null;
-                });
+                }, getEnforcementExecutor());
     }
 
     private void reportTimeoutForPolicyQuery(
@@ -319,5 +322,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
         public AbstractEnforcement<PolicyCommand> createEnforcement(final AbstractEnforcement.Context context) {
             return new PolicyCommandEnforcement(context, policiesShardRegion, policyCache, enforcerCache);
         }
+
     }
+
 }

@@ -179,6 +179,7 @@ public final class Placeholders {
         while (matcher.find()) {
             final String placeholder = matcher.group(PLACEHOLDER_GROUP_NAME);
             replacerFunction.apply(placeholder)
+                    .map(Matcher::quoteReplacement)
                     .ifPresent(replacement -> matcher.appendReplacement(lazyGet(bufferReference, StringBuffer::new),
                             replacement));
         }

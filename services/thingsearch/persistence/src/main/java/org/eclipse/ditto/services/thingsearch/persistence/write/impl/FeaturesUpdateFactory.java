@@ -327,9 +327,9 @@ final class FeaturesUpdateFactory {
         } else if (value.isBoolean()) {
             flatFeatures.add(createFlatSubDocument(path, featureId, value.asBoolean()));
         } else if (value.isNumber()) {
-            try {
+            if (value.isLong()) {
                 flatFeatures.add(createFlatSubDocument(path, featureId, value.asLong()));
-            } catch (final NumberFormatException e) {
+            } else {
                 flatFeatures.add(createFlatSubDocument(path, featureId, value.asDouble()));
             }
         } else if (value.isNull()) {

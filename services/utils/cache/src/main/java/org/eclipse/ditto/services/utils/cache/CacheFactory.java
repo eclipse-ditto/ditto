@@ -12,6 +12,8 @@ package org.eclipse.ditto.services.utils.cache;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.concurrent.Executor;
+
 import org.eclipse.ditto.services.base.config.CacheConfigReader;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
@@ -29,27 +31,52 @@ public final class CacheFactory {
     /**
      * Creates a cache.
      *
+     * @param cacheConfigReader the {@link CacheConfigReader} which defines the cache's configuration.
+     * @param cacheName the name of the cache. Used as metric label.
+     * @param executor the executor to use in the cache.
+     * @param <K> the type of the cache keys.
+     * @param <V> the type of the cache values.
+     * @return the created cache.
+     */
+    public static <K, V> Cache<K, V> createCache(final CacheConfigReader cacheConfigReader,
+            final String cacheName,
+            final Executor executor) {
+        requireNonNull(cacheConfigReader);
+        requireNonNull(cacheName);
+
+        return CaffeineCache.of(caffeine(cacheConfigReader, executor), cacheName);
+    }
+
+    /**
+     * Creates a cache.
+     *
      * @param cacheLoader the cache loader.
      * @param cacheConfigReader the {@link CacheConfigReader} which defines the cache's configuration.
      * @param cacheName the name of the cache. Used as metric label.
+     * @param executor the executor to use in the cache.
      * @param <K> the type of the cache keys.
      * @param <V> the type of the cache values.
      * @return the created cache.
      */
     public static <K, V> Cache<K, V> createCache(final AsyncCacheLoader<K, V> cacheLoader,
             final CacheConfigReader cacheConfigReader,
-            final String cacheName) {
+            final String cacheName,
+            final Executor executor) {
         requireNonNull(cacheLoader);
         requireNonNull(cacheConfigReader);
         requireNonNull(cacheName);
 
-        return CaffeineCache.of(caffeine(cacheConfigReader), cacheLoader, cacheName);
+        return CaffeineCache.of(caffeine(cacheConfigReader, executor), cacheLoader, cacheName);
     }
 
-    private static Caffeine<Object, Object> caffeine(final CacheConfigReader cacheConfigReader) {
+
+    private static Caffeine<Object, Object> caffeine(final CacheConfigReader cacheConfigReader,
+            final Executor executor) {
         final Caffeine<Object, Object> caffeine = Caffeine.newBuilder();
         caffeine.maximumSize(cacheConfigReader.maximumSize());
         caffeine.expireAfterWrite(cacheConfigReader.expireAfterWrite());
+        caffeine.executor(executor);
         return caffeine;
     }
+
 }

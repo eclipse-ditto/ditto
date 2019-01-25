@@ -107,7 +107,6 @@ final class AttributesDocumentBuilder {
         return tDocument;
     }
 
-
     private AttributesDocumentBuilder attributeInternally(final String key, final Object value) {
         // add attribute to flat representation
         final List<Document> attributesList = ThingDocumentMapper.toList(tDocument, PersistenceConstants.FIELD_INTERNAL);
@@ -127,7 +126,7 @@ final class AttributesDocumentBuilder {
     }
 
     private void addInternalAttributes(final String path, final JsonValue jsonValue) {
-        if ((jsonValue == null) || jsonValue.isNull()) {
+        if (jsonValue == null || jsonValue.isNull()) {
             attributeInternally(path, null);
         } else if (jsonValue.isString()) {
             attributeInternally(path, jsonValue.asString());
@@ -142,9 +141,9 @@ final class AttributesDocumentBuilder {
     }
 
     private void addNumberAttribute(final String path, final JsonValue jsonValue) {
-        try {
+        if (jsonValue.isLong()) {
             attributeInternally(path, jsonValue.asLong());
-        } catch (final NumberFormatException e) {
+        } else {
             attributeInternally(path, jsonValue.asDouble());
         }
     }

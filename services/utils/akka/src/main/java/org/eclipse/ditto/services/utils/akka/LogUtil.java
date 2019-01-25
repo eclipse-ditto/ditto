@@ -14,7 +14,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -64,7 +66,7 @@ public final class LogUtil {
      * @param withDittoHeaders where to extract a possible correlationId from.
      * @param logConsumer the consumer with which the caller must log.
      */
-    public static void logWithCorrelationId(final Logger slf4jLogger, final WithDittoHeaders<?> withDittoHeaders, 
+    public static void logWithCorrelationId(final Logger slf4jLogger, final WithDittoHeaders<?> withDittoHeaders,
             final Consumer<Logger> logConsumer) {
         logWithCorrelationId(slf4jLogger, withDittoHeaders.getDittoHeaders(), logConsumer);
     }
@@ -252,6 +254,92 @@ public final class LogUtil {
             mdcMap.put(fieldName, fieldValue);
             loggingAdapter.setMDC(mdcMap);
         }
+    }
+
+    /**
+     * Enhances the default slf4j {@link org.slf4j.MDC} with a {@code correlationId} of the passed
+     * {@code withDittoHeaders} (if present).
+     *
+     * @param withDittoHeaders where to extract a possible correlationId from.
+     */
+    public static void enhanceLogWithCorrelationId(final WithDittoHeaders<?> withDittoHeaders) {
+        withDittoHeaders.getDittoHeaders()
+                .getCorrelationId()
+                .ifPresent(LogUtil::enhanceLogWithCorrelationId);
+    }
+
+    /**
+     * Enhances the default slf4j {@link org.slf4j.MDC} with a {@code correlationId} of the passed
+     * {@code dittoHeaders} (if present).
+     *
+     * @param dittoHeaders where to extract a possible correlationId from.
+     */
+    public static void enhanceLogWithCorrelationId(final DittoHeaders dittoHeaders) {
+        dittoHeaders
+                .getCorrelationId()
+                .ifPresent(LogUtil::enhanceLogWithCorrelationId);
+    }
+
+    /**
+     * Enhances the default slf4j {@link org.slf4j.MDC} with a {@code correlationId} of the passed
+     * {@code withDittoHeaders} (if present), else a random correlation id.
+     *
+     * @param withDittoHeaders where to extract a possible correlationId from.
+     */
+    public static void enhanceLogWithCorrelationIdOrRandom(final WithDittoHeaders<?> withDittoHeaders) {
+        LogUtil.enhanceLogWithCorrelationIdOrRandom(withDittoHeaders.getDittoHeaders());
+    }
+
+    /**
+     * Enhances the default slf4j {@link org.slf4j.MDC} with a {@code correlationId} of the passed
+     * {@code dittoHeaders} (if present), else a random correlation id.
+     *
+     * @param dittoHeaders where to extract a possible correlationId from.
+     */
+    public static void enhanceLogWithCorrelationIdOrRandom(final DittoHeaders dittoHeaders) {
+        LogUtil.enhanceLogWithCorrelationId(dittoHeaders.getCorrelationId().orElse(UUID.randomUUID().toString()));
+    }
+
+    /**
+     * Enhances the default slf4j {@link org.slf4j.MDC} with a {@code correlationId}.
+     *
+     * @param correlationId the optional correlationId to set.
+     */
+    public static void enhanceLogWithCorrelationId(final String correlationId) {
+        if (correlationId != null && !correlationId.isEmpty()) {
+            MDC.put(X_CORRELATION_ID, correlationId);
+        }
+    }
+
+    /**
+     * Gets the {@code correlationId} from the default slf4j {@link org.slf4j.MDC}.
+     *
+     * @return the {@code correlationId} from {@link org.slf4j.MDC} or an empty {@link java.util.Optional} if it didn't exist.
+     */
+    public static Optional<String> getCorrelationId() {
+        final String correlationId = MDC.get(X_CORRELATION_ID);
+        if (null != correlationId) {
+            return Optional.of(correlationId);
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Gets the {@code correlationId} from the default slf4j {@link org.slf4j.MDC}.
+     *
+     * @param defaultCorrelationIdSupplier supplies a default correlation id if none could be found inside {@link org.slf4j.MDC}.
+     * @return The {@code correlationId} from {@link org.slf4j.MDC} or from {@code defaultCorrelationIdSupplier} if it didn't exist.
+     */
+    public static String getCorrelationId(final Supplier<String> defaultCorrelationIdSupplier) {
+        return getCorrelationId()
+                .orElseGet(defaultCorrelationIdSupplier);
+    }
+
+    /**
+     * Removes the {@code correlationId} from the default slf4j {@link org.slf4j.MDC}.
+     */
+    public static void removeCorrelationId() {
+        MDC.remove(X_CORRELATION_ID);
     }
 
 }

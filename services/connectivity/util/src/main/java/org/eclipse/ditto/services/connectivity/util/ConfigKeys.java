@@ -57,18 +57,6 @@ public final class ConfigKeys {
 
         private static final String PREFIX = CONNECTIVITY_PREFIX + "cluster.";
 
-        private static final String MAJORITY_CHECK_PREFIX = PREFIX + "majority-check.";
-
-        /**
-         * Key of the majority check delay.
-         */
-        public static final String MAJORITY_CHECK_DELAY = MAJORITY_CHECK_PREFIX + "delay";
-
-        /**
-         * Key of the majority check enabled configuration.
-         */
-        public static final String MAJORITY_CHECK_ENABLED = MAJORITY_CHECK_PREFIX + "enabled";
-
         /**
          * Key of the how many shards should be used in the cluster.
          */

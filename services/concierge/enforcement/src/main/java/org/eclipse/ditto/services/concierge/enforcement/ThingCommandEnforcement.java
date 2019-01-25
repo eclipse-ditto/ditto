@@ -71,6 +71,7 @@ import org.eclipse.ditto.services.models.caching.Entry;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.models.policies.PoliciesAclMigrations;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.IdentityCache;
 import org.eclipse.ditto.signals.commands.base.CommandToExceptionRegistry;
@@ -103,6 +104,8 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
 import akka.event.DiagnosticLoggingAdapter;
@@ -113,6 +116,8 @@ import akka.pattern.PatternsCS;
  * Authorize {@code ThingCommand}.
  */
 public final class ThingCommandEnforcement extends AbstractEnforcement<ThingCommand> {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ThingCommandEnforcement.class);
 
     /**
      * Label of default policy entry in default policy.
@@ -165,6 +170,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     @Override
     public CompletionStage<Void> enforce(final ThingCommand signal, final ActorRef sender,
             final DiagnosticLoggingAdapter log) {
+        LogUtil.enhanceLogWithCorrelationIdOrRandom(signal);
         return thingEnforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             if (!enforcerEntry.exists()) {
                 enforceThingCommandByNonexistentEnforcer(enforcerKeyEntry, signal, sender);
@@ -357,7 +363,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                                 sender, response, error, retrieveThing.getDittoHeaders());
                     }
                     return null;
-                });
+                }, getEnforcementExecutor());
     }
 
     /**
@@ -440,7 +446,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                                 commandWithReadSubjects.getDittoHeaders());
                     }
                     return null;
-                });
+                }, getEnforcementExecutor());
         return true;
     }
 
@@ -514,7 +520,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                                 sender, response, error, retrieveThing.getDittoHeaders());
                     }
                     return Optional.empty();
-                });
+                }, getEnforcementExecutor());
     }
 
     private void reportThingUnavailable(final String thingId, final DittoHeaders dittoHeaders, final ActorRef sender) {
@@ -535,8 +541,9 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             final RetrievePolicy retrievePolicy) {
 
         return blockCachedNamespaces.apply(retrievePolicy)
-                .thenCompose(msg -> PatternsCS.ask(policiesShardRegion, msg, getAskTimeout().toMillis()))
+                .thenCompose(msg -> PatternsCS.ask(policiesShardRegion, msg, getAskTimeout()))
                 .handleAsync((response, error) -> {
+                    LOGGER.debug("Response of policiesShardRegion: <{}>", response);
                     if (response instanceof RetrievePolicyResponse) {
                         return Optional.of((RetrievePolicyResponse) response);
                     } else if (error != null) {
@@ -547,7 +554,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                                 retrievePolicy.getId(), retrieveThing.getThingId(), response);
                     }
                     return Optional.empty();
-                });
+                }, getEnforcementExecutor());
     }
 
     /**
@@ -882,7 +889,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
         final CompletionStage<Policy> policyCompletionStage =
                 PatternsCS.ask(conciergeForwarder(), RetrievePolicy.of(policyId, dittoHeaders), getAskTimeout())
-                        .thenApply(response -> {
+                        .thenApplyAsync(response -> {
                             if (response instanceof RetrievePolicyResponse) {
                                 return ((RetrievePolicyResponse) response).getPolicy();
                             } else if (response instanceof PolicyErrorResponse) {
@@ -895,7 +902,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                                                 " during Thing creation: {}", response);
                                 throw GatewayInternalErrorException.newBuilder().build();
                             }
-                        });
+                        }, getEnforcementExecutor());
 
         return awaitPolicyCompletionStage(policyCompletionStage, dittoHeaders);
 
@@ -1287,7 +1294,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                     });
 
                     return null;
-                });
+                }, getEnforcementExecutor());
 
         return true;
     }

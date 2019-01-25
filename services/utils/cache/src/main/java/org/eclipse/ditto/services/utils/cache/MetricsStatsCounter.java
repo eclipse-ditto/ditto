@@ -31,7 +31,7 @@ import com.github.benmanes.caffeine.cache.stats.StatsCounter;
 
 /**
  * <p>
- * A caffeine {@link StatsCounter} implementation for Dropwizard Metrics.
+ * A caffeine {@link StatsCounter} implementation for Ditto Metrics.
  * </p>
  * <p>
  * Inspired by <a href="https://github.com/ben-manes/caffeine/blob/master/examples/stats-metrics">Caffeine examples</a>.
@@ -89,7 +89,12 @@ public final class MetricsStatsCounter implements StatsCounter {
          * Estimated cache invalidations (manual, in contrast to {@link #EVICTIONS}). The value is estimated, it may
          * be not completely correct in case of parallel loads or evictions.
          */
-        ESTIMATED_INVALIDATIONS(CACHE_PREFIX + "_estimated-invalidations");
+        ESTIMATED_INVALIDATIONS(CACHE_PREFIX + "_estimated-invalidations"),
+        /**
+         * Estimated cache invalidations (manual, in contrast to {@link #EVICTIONS}) that did not invalidate an item
+         * because it didn't exist in cache.
+         */
+        ESTIMATED_INVALIDATIONS_WITHOUT_ITEM(CACHE_PREFIX + "_estimated-invalidations-without-item");
 
         private final String name;
 
@@ -125,6 +130,7 @@ public final class MetricsStatsCounter implements StatsCounter {
     private final Gauge estimatedSize;
     private final Gauge maxSize;
     private final Counter estimatedInvalidations;
+    private final Counter estimatedInvalidationsWithoutItem;
 
     private volatile @Nullable Cache cache;
 
@@ -140,6 +146,8 @@ public final class MetricsStatsCounter implements StatsCounter {
         maxSize = DittoMetrics.gauge(MetricName.MAX_SIZE.getValue()).tag(CACHE_NAME_TAG, cacheName);
         estimatedInvalidations =
                 DittoMetrics.counter(MetricName.ESTIMATED_INVALIDATIONS.getValue()).tag(CACHE_NAME_TAG, cacheName);
+        estimatedInvalidationsWithoutItem =
+                DittoMetrics.counter(MetricName.ESTIMATED_INVALIDATIONS_WITHOUT_ITEM.getValue()).tag(CACHE_NAME_TAG, cacheName);
     }
 
     /**
@@ -208,6 +216,10 @@ public final class MetricsStatsCounter implements StatsCounter {
     public void recordInvalidation() {
         estimatedInvalidations.increment();
         updateCacheSizeMetrics();
+    }
+
+    public void recordInvalidationWithoutItem() {
+        estimatedInvalidationsWithoutItem.increment();
     }
 
     @Override

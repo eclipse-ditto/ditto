@@ -121,7 +121,9 @@ public final class ThingsSearchIndexDeletionActor extends AbstractActor {
     private void performDeletion() {
 
         final Date deletionDate = Date.from(Instant.now().minus(age).truncatedTo(ChronoUnit.SECONDS));
-        final Bson deleteFilter = Filters.lte(PersistenceConstants.FIELD_DELETED, deletionDate);
+        final Bson deleteFilter = Filters.and(
+                Filters.eq(PersistenceConstants.FIELD_DELETED_FLAG, true),
+                Filters.lte(PersistenceConstants.FIELD_DELETED, deletionDate));
         log.info("About to delete marked as deleted fields in collection <{}> matching the filter: <{}>",
                 THINGS_COLLECTION_NAME, deleteFilter);
 

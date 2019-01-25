@@ -41,6 +41,9 @@ public class ThingUpdateFactoryTest {
         final LocalDateTime before = LocalDateTime.now().minus(1, ChronoUnit.SECONDS);
 
         final Document result = (Document) ThingUpdateFactory.createDeleteThingUpdate();
+        assertThat(result.get(PersistenceConstants.SET, Document.class)
+                .get(PersistenceConstants.FIELD_DELETED_FLAG, Boolean.class))
+                .isTrue();
         final LocalDateTime deleteTime = LocalDateTime.ofInstant(
                 result.get(PersistenceConstants.SET, Document.class)
                         .get(PersistenceConstants.FIELD_DELETED, Date.class)
@@ -60,7 +63,8 @@ public class ThingUpdateFactoryTest {
                 .setId(":thing")
                 .build();
 
-        final Document expected = new Document(PersistenceConstants.SET, ThingDocumentMapper.toDocument(restricted))
+        final Document expected = new Document(PersistenceConstants.SET,
+                ThingDocumentMapper.toDocument(restricted).append(PersistenceConstants.FIELD_DELETED_FLAG, false))
                 .append(PersistenceConstants.UNSET, new Document(PersistenceConstants.FIELD_DELETED, 1));
 
         when(indexLengthRestrictionEnforcer.enforceRestrictions(any(Thing.class))).thenReturn(restricted);

@@ -51,7 +51,7 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
      * <a href="http://www.ietf.org/rfc/rfc2396.txt">RFC-2396</a>.
      */
     String ID_NON_NAMESPACE_REGEX =
-            "(?<id>|(?:[-\\w:@&=+,.!~*'_;]|%\\p{XDigit}{2})(?:[-\\w:@&=+,.!~*'$_;]|%\\p{XDigit}{2})*+)";
+            "(?<id>(?:[-\\w:@&=+,.!~*'_;]|%\\p{XDigit}{2})(?:[-\\w:@&=+,.!~*'$_;]|%\\p{XDigit}{2})*+)";
 
     /**
      * The regex pattern a Policy ID has to conform to. Combines "namespace" pattern (java package notation + a
