@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.policies.persistence.actors.policies;
+package org.eclipse.ditto.services.gateway.starter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -20,7 +20,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.junit.Test;
 
-public final class GlobalErrorRegistryValidationTest {
+public final class GatewayServiceGlobalErrorRegistryTest {
 
     @Test
     public void allExceptionsRegistered() {
