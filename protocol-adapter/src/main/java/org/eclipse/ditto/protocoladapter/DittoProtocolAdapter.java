@@ -12,8 +12,6 @@ package org.eclipse.ditto.protocoladapter;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -29,7 +27,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.signals.base.AbstractErrorRegistry;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
-import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -80,7 +77,7 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
      * @param headerTranslator translator between external and Ditto headers.
      */
     public static DittoProtocolAdapter of(final HeaderTranslator headerTranslator) {
-        return new DittoProtocolAdapter(ProtocolAdapterErrorRegistry.newInstance(), requireNonNull(headerTranslator));
+        return new DittoProtocolAdapter(GlobalErrorRegistry.getInstance(), requireNonNull(headerTranslator));
     }
 
     /**
@@ -89,7 +86,7 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
      * @return the instance.
      */
     public static DittoProtocolAdapter newInstance() {
-        return new DittoProtocolAdapter(ProtocolAdapterErrorRegistry.newInstance(), headerTranslator());
+        return new DittoProtocolAdapter(GlobalErrorRegistry.getInstance(), headerTranslator());
     }
 
     /**
@@ -395,43 +392,5 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
 
         final String thingId = topicPath.getNamespace() + ":" + topicPath.getId();
         return ThingErrorResponse.of(thingId, dittoRuntimeException, dittoRuntimeException.getDittoHeaders());
-    }
-
-    /**
-     * ErrorRegistry for DittoProtocolAdapter.
-     */
-    public static final class ProtocolAdapterErrorRegistry extends AbstractErrorRegistry<DittoRuntimeException> {
-
-        private ProtocolAdapterErrorRegistry(final Map<String, JsonParsable<DittoRuntimeException>> parseStrategies) {
-            super(parseStrategies);
-        }
-
-        /**
-         * Returns a new {@code ProtocolAdapterErrorRegistry}.
-         *
-         * @return the error registry.
-         */
-        public static ProtocolAdapterErrorRegistry newInstance() {
-            final Map<String, JsonParsable<DittoRuntimeException>> parseStrategies = new HashMap<>();
-
-            final GlobalErrorRegistry globalErrorRegistry = GlobalErrorRegistry.getInstance();
-            globalErrorRegistry.getTypes().forEach(type -> parseStrategies.put(type, globalErrorRegistry));
-
-            // Protocol Adapter exceptions:
-            parseStrategies.put(UnknownCommandException.ERROR_CODE,
-                    UnknownCommandException::fromJson);
-            parseStrategies.put(UnknownCommandResponseException.ERROR_CODE,
-                    UnknownCommandResponseException::fromJson);
-            parseStrategies.put(UnknownEventException.ERROR_CODE,
-                    UnknownEventException::fromJson);
-            parseStrategies.put(UnknownPathException.ERROR_CODE,
-                    UnknownPathException::fromJson);
-            parseStrategies.put(UnknownSignalException.ERROR_CODE,
-                    UnknownSignalException::fromJson);
-            parseStrategies.put(UnknownTopicPathException.ERROR_CODE,
-                    UnknownTopicPathException::fromJson);
-
-            return new ProtocolAdapterErrorRegistry(parseStrategies);
-        }
     }
 }
