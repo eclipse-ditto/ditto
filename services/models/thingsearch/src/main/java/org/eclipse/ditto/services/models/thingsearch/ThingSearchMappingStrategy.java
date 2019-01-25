@@ -24,12 +24,12 @@ import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSu
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommandResponseRegistry;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
+import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.common.CommonCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandRegistry;
 import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandResponseRegistry;
-import org.eclipse.ditto.signals.commands.namespaces.NamespaceErrorRegistry;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommandRegistry;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.ThingSearchErrorRegistry;
@@ -88,7 +88,7 @@ public final class ThingSearchMappingStrategy implements MappingStrategy {
     private static void addNamespacesStrategies(final MappingStrategiesBuilder builder) {
         builder.add(NamespaceCommandRegistry.getInstance());
         builder.add(NamespaceCommandResponseRegistry.getInstance());
-        builder.add(NamespaceErrorRegistry.getInstance());
+        builder.add(GlobalErrorRegistry.getInstance());
     }
 
 }

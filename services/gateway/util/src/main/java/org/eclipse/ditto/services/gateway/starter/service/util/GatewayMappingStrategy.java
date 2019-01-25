@@ -32,7 +32,6 @@ import org.eclipse.ditto.signals.commands.messages.MessageCommandRegistry;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandRegistry;
 import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandResponseRegistry;
-import org.eclipse.ditto.signals.commands.namespaces.NamespaceErrorRegistry;
 
 /**
  * {@link MappingStrategy} for the Gateway service containing all {@link Jsonifiable} types known to Gateway.
@@ -94,7 +93,7 @@ public final class GatewayMappingStrategy implements MappingStrategy {
     private static void addNamespacesStrategies(final MappingStrategiesBuilder builder) {
         builder.add(NamespaceCommandRegistry.getInstance());
         builder.add(NamespaceCommandResponseRegistry.getInstance());
-        builder.add(NamespaceErrorRegistry.getInstance());
+        builder.add(GlobalErrorRegistry.getInstance());
     }
 
 }
