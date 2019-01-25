@@ -38,7 +38,6 @@ import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingErrorRegistry;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
@@ -415,8 +414,6 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
         public static ProtocolAdapterErrorRegistry newInstance() {
             final Map<String, JsonParsable<DittoRuntimeException>> parseStrategies = new HashMap<>();
 
-            final ThingErrorRegistry thingErrorRegistry = ThingErrorRegistry.newInstance();
-            thingErrorRegistry.getTypes().forEach(type -> parseStrategies.put(type, thingErrorRegistry));
             final GlobalErrorRegistry globalErrorRegistry = GlobalErrorRegistry.getInstance();
             globalErrorRegistry.getTypes().forEach(type -> parseStrategies.put(type, globalErrorRegistry));
 

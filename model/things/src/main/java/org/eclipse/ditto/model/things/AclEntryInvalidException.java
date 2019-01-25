@@ -21,6 +21,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -28,6 +29,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  * the description.
  */
 @Immutable
+@JsonParsableException(errorCode = AclEntryInvalidException.ERROR_CODE)
 public final class AclEntryInvalidException extends DittoRuntimeException implements ThingException {
 
     /**
@@ -98,7 +100,6 @@ public final class AclEntryInvalidException extends DittoRuntimeException implem
 
     /**
      * A mutable builder with a fluent API for a {@link AclEntryInvalidException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<AclEntryInvalidException> {

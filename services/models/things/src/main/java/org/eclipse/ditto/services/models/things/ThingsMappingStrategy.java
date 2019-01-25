@@ -24,6 +24,7 @@ import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommandRegistr
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommandResponseRegistry;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
+import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.common.CommonCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
@@ -32,7 +33,6 @@ import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandResponseReg
 import org.eclipse.ditto.signals.commands.namespaces.NamespaceErrorRegistry;
 import org.eclipse.ditto.signals.commands.things.ThingCommandRegistry;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponseRegistry;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingErrorRegistry;
 import org.eclipse.ditto.signals.events.things.ThingEventRegistry;
 
 /**
@@ -53,7 +53,7 @@ public final class ThingsMappingStrategy implements MappingStrategy {
     }
 
     private static void addThingsStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(ThingErrorRegistry.newInstance())
+        builder.add(GlobalErrorRegistry.getInstance())
                 .add(ThingCommandRegistry.newInstance())
                 .add(ThingCommandResponseRegistry.newInstance())
                 .add(ThingEventRegistry.newInstance())

@@ -21,11 +21,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.things.ThingException;
 
 /**
  * Indicates that the feature properties cannot be modified.
  */
+@JsonParsableException(errorCode = FeaturePropertiesNotModifiableException.ERROR_CODE)
 public class FeaturePropertiesNotModifiableException extends DittoRuntimeException implements ThingException {
 
     /**
@@ -99,7 +101,6 @@ public class FeaturePropertiesNotModifiableException extends DittoRuntimeExcepti
 
     /**
      * A mutable builder with a fluent API for a {@link FeaturePropertiesNotModifiableException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<FeaturePropertiesNotModifiableException> {

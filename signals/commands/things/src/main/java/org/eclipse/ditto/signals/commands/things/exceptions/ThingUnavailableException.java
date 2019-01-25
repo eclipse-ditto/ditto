@@ -22,12 +22,14 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.things.ThingException;
 
 /**
  * Thrown if the Thing exists but is not available at the moment.
  */
 @Immutable
+@JsonParsableException(errorCode = ThingUnavailableException.ERROR_CODE)
 public final class ThingUnavailableException extends DittoRuntimeException implements ThingException {
 
     /**
@@ -96,7 +98,6 @@ public final class ThingUnavailableException extends DittoRuntimeException imple
 
     /**
      * A mutable builder with a fluent API for a {@link ThingUnavailableException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<ThingUnavailableException> {

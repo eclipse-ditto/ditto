@@ -23,12 +23,14 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.things.ThingException;
 
 /**
  * Exception which indicates that an attribute pointer is invalid.
  */
 @Immutable
+@JsonParsableException(errorCode = AttributePointerInvalidException.ERROR_CODE)
 public final class AttributePointerInvalidException extends DittoRuntimeException implements ThingException {
 
     /**

@@ -22,6 +22,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.things.ThingException;
 
 /**
@@ -29,6 +30,7 @@ import org.eclipse.ditto.model.things.ThingException;
  * insufficient permissions to "WRITE" it.
  */
 @Immutable
+@JsonParsableException(errorCode = ThingNotModifiableException.ERROR_CODE)
 public final class ThingNotModifiableException extends DittoRuntimeException implements ThingException {
 
     /**
@@ -98,7 +100,6 @@ public final class ThingNotModifiableException extends DittoRuntimeException imp
 
     /**
      * A mutable builder with a fluent API for a {@link ThingNotModifiableException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<ThingNotModifiableException> {

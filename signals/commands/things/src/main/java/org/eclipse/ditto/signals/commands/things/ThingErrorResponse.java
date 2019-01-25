@@ -29,10 +29,10 @@ import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingErrorRegistry;
 
 /**
  * Response to a {@link ThingCommand} which wraps the exception thrown while processing the command.
@@ -46,7 +46,7 @@ public final class ThingErrorResponse extends AbstractCommandResponse<ThingError
      */
     public static final String TYPE = TYPE_PREFIX + "errorResponse";
 
-    private static final ThingErrorRegistry THING_ERROR_REGISTRY = ThingErrorRegistry.newInstance();
+    private static final GlobalErrorRegistry GLOBAL_ERROR_REGISTRY = GlobalErrorRegistry.getInstance();
     private static final String FALLBACK_ID = "unknown:unknown";
     private static final String FALLBACK_THING_ID = FALLBACK_ID;
     private static final String FALLBACK_ERROR_CODE = FALLBACK_ID;
@@ -121,24 +121,24 @@ public final class ThingErrorResponse extends AbstractCommandResponse<ThingError
      * @return the ThingErrorResponse.
      */
     public static ThingErrorResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(THING_ERROR_REGISTRY, jsonString, dittoHeaders);
+        return fromJson(GLOBAL_ERROR_REGISTRY, jsonString, dittoHeaders);
     }
 
     /**
      * Creates a new {@code ThingErrorResponse} containing the causing {@code DittoRuntimeException} which is deserialized
      * from the passed {@code jsonString} using a special {@code ThingErrorRegistry}.
      *
-     * @param thingErrorRegistry the special {@code ThingErrorRegistry} to use for deserializing the
+     * @param globalErrorRegistry the special {@code GlobalErrorRegistry} to use for deserializing the
      * DittoRuntimeException.
      * @param jsonString the JSON string representation of the causing {@code DittoRuntimeException}.
      * @param dittoHeaders the DittoHeaders to use.
      * @return the ThingErrorResponse.
      */
-    public static ThingErrorResponse fromJson(final ThingErrorRegistry thingErrorRegistry, final String jsonString,
+    public static ThingErrorResponse fromJson(final GlobalErrorRegistry globalErrorRegistry, final String jsonString,
             final DittoHeaders dittoHeaders) {
         final JsonObject jsonObject =
                 DittoJsonException.wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
-        return fromJson(thingErrorRegistry, jsonObject, dittoHeaders);
+        return fromJson(globalErrorRegistry, jsonObject, dittoHeaders);
     }
 
     /**
@@ -150,20 +150,21 @@ public final class ThingErrorResponse extends AbstractCommandResponse<ThingError
      * @return the ThingErrorResponse.
      */
     public static ThingErrorResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return fromJson(THING_ERROR_REGISTRY, jsonObject, dittoHeaders);
+        return fromJson(GLOBAL_ERROR_REGISTRY, jsonObject, dittoHeaders);
     }
 
     /**
      * Creates a new {@code ThingErrorResponse} containing the causing {@code DittoRuntimeException} which is deserialized
      * from the passed {@code jsonObject} using a special {@code ThingErrorRegistry}.
      *
-     * @param thingErrorRegistry the special {@code ThingErrorRegistry} to use for deserializing the
+     * @param globalErrorRegistry the special {@code GlobalErrorRegistry} to use for deserializing the
      * DittoRuntimeException.
      * @param jsonObject the JSON representation of the causing {@code DittoRuntimeException}.
      * @param dittoHeaders the DittoHeaders to use.
      * @return the ThingErrorResponse.
      */
-    public static ThingErrorResponse fromJson(final ThingErrorRegistry thingErrorRegistry, final JsonObject jsonObject,
+    public static ThingErrorResponse fromJson(final GlobalErrorRegistry globalErrorRegistry,
+            final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
         final String thingId = jsonObject.getValue(ThingCommandResponse.JsonFields.JSON_THING_ID)
@@ -174,7 +175,7 @@ public final class ThingErrorResponse extends AbstractCommandResponse<ThingError
 
         DittoRuntimeException exception;
         try {
-            exception = thingErrorRegistry.parse(payload, dittoHeaders);
+            exception = globalErrorRegistry.parse(payload, dittoHeaders);
         } catch (final Exception e) {
             final int status = jsonObject.getValue(CommandResponse.JsonFields.STATUS).orElse(500);
             final String errorCode =
