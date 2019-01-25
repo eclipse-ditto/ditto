@@ -22,6 +22,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.services.models.things.ThingsMappingStrategy;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
+import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandRegistry;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorRegistry;
@@ -29,7 +30,6 @@ import org.eclipse.ditto.signals.commands.devops.DevOpsCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandRegistry;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponseRegistry;
-import org.eclipse.ditto.signals.commands.messages.MessageErrorRegistry;
 import org.eclipse.ditto.signals.events.connectivity.ConnectivityEventRegistry;
 
 /**
@@ -69,7 +69,7 @@ public final class ConnectivityMappingStrategy implements MappingStrategy {
                         ConnectivityModelFactory.connectionFromJson(jsonObject)) // do not replace with lambda!
                 .add("ImmutableConnection", (jsonObject) ->
                         ConnectivityModelFactory.connectionFromJson(jsonObject)) // do not replace with lambda!
-        ;
+                ;
 
         addMessagesStrategies(strategiesBuilder);
         addDevOpsStrategies(strategiesBuilder);
@@ -83,7 +83,7 @@ public final class ConnectivityMappingStrategy implements MappingStrategy {
     private static void addMessagesStrategies(final MappingStrategiesBuilder builder) {
         builder.add(MessageCommandRegistry.newInstance());
         builder.add(MessageCommandResponseRegistry.newInstance());
-        builder.add(MessageErrorRegistry.newInstance());
+        builder.add(GlobalErrorRegistry.getInstance());
     }
 
     private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {

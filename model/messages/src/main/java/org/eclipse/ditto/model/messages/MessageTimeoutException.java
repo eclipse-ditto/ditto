@@ -22,11 +22,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown if a message reached its defined timeout.
  */
 @Immutable
+@JsonParsableException(errorCode = MessageTimeoutException.ERROR_CODE)
 public final class MessageTimeoutException extends DittoRuntimeException implements MessageException {
 
     /**

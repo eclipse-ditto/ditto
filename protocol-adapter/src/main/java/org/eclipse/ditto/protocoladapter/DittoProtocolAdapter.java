@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.signals.base.AbstractErrorRegistry;
+import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 import org.eclipse.ditto.signals.base.Signal;
@@ -35,7 +36,6 @@ import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
-import org.eclipse.ditto.signals.commands.messages.MessageErrorRegistry;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingErrorRegistry;
@@ -416,11 +416,9 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
             final Map<String, JsonParsable<DittoRuntimeException>> parseStrategies = new HashMap<>();
 
             final ThingErrorRegistry thingErrorRegistry = ThingErrorRegistry.newInstance();
-            thingErrorRegistry.getTypes()
-                    .forEach(type -> parseStrategies.put(type, thingErrorRegistry));
-            final MessageErrorRegistry messageErrorRegistry = MessageErrorRegistry.newInstance();
-            messageErrorRegistry.getTypes()
-                    .forEach(type -> parseStrategies.put(type, messageErrorRegistry));
+            thingErrorRegistry.getTypes().forEach(type -> parseStrategies.put(type, thingErrorRegistry));
+            final GlobalErrorRegistry globalErrorRegistry = GlobalErrorRegistry.getInstance();
+            globalErrorRegistry.getTypes().forEach(type -> parseStrategies.put(type, globalErrorRegistry));
 
             // Protocol Adapter exceptions:
             parseStrategies.put(UnknownCommandException.ERROR_CODE,

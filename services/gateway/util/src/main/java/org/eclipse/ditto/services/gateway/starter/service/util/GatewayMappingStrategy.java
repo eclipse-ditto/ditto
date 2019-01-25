@@ -24,12 +24,12 @@ import org.eclipse.ditto.services.models.things.ThingsMappingStrategy;
 import org.eclipse.ditto.services.models.thingsearch.ThingSearchMappingStrategy;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
+import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.common.CommonCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandRegistry;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponseRegistry;
-import org.eclipse.ditto.signals.commands.messages.MessageErrorRegistry;
 import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandRegistry;
 import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.namespaces.NamespaceErrorRegistry;
@@ -79,7 +79,7 @@ public final class GatewayMappingStrategy implements MappingStrategy {
     private static void addMessagesStrategies(final MappingStrategiesBuilder builder) {
         builder.add(MessageCommandRegistry.newInstance());
         builder.add(MessageCommandResponseRegistry.newInstance());
-        builder.add(MessageErrorRegistry.newInstance());
+        builder.add(GlobalErrorRegistry.getInstance());
     }
 
     private static void addCommonStrategies(final MappingStrategiesBuilder builder) {
