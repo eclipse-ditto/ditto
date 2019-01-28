@@ -160,24 +160,25 @@ public abstract class AbstractProtocolValidator {
     /**
      * TODO TJ doc
      * @param template
-     * @param placeholder
-     * @param headers
-     */
-    protected void validateTemplate(final String template, final Placeholder<?> placeholder,
-            final DittoHeaders headers) {
-        validateTemplate(template, headers, placeholder);
-    }
-
-    /**
-     * TODO TJ doc
-     * @param template
      * @param headers
      * @param placeholders
      */
     protected void validateTemplate(final String template, final DittoHeaders headers,
             final Placeholder<?>... placeholders) {
+        validateTemplate(template, false, headers, placeholders);
+    }
+
+    /**
+     * TODO TJ doc
+     * @param template
+     * @param allowUnresolved
+     * @param headers
+     * @param placeholders
+     */
+    protected void validateTemplate(final String template, final boolean allowUnresolved, final DittoHeaders headers,
+            final Placeholder<?>... placeholders) {
         try {
-            PlaceholderFilter.validate(template, placeholders);
+            PlaceholderFilter.validate(template, allowUnresolved, placeholders);
         } catch (final DittoRuntimeException exception) {
             throw ConnectionConfigurationInvalidException
                     .newBuilder(MessageFormat.format(ENFORCEMENT_ERROR_MESSAGE, template,

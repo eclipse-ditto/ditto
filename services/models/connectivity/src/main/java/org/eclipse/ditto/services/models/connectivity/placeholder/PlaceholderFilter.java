@@ -189,17 +189,21 @@ public final class PlaceholderFilter {
     /**
      * TODO TJ doc
      *
+     * TODO TJ this should not throw an exception if placeholders could not be resolved I guess?!
      * @param template
+     * @param allowUnresolved
      * @param placeholders
      * @return
      */
-    public static String validate(final String template, final Placeholder<?>... placeholders) {
+    public static void validate(final String template, final boolean allowUnresolved,
+            final Placeholder<?>... placeholders) {
         String replaced = template;
-        for (final Placeholder<?> thePlaceholder : placeholders) {
-            replaced = doApply(template, thePlaceholder, true, // when validating, placeholders may be unresolved
-                    placeholder -> Optional.of(thePlaceholder.getPrefix()));
+        for (int i = 0; i < placeholders.length; i++) {
+            boolean isNotLastPlaceholder = i < placeholders.length - 1;
+            final Placeholder<?> thePlaceholder = placeholders[i];
+            replaced = doApply(replaced, thePlaceholder, allowUnresolved || isNotLastPlaceholder,
+                    placeholder -> Optional.of("validated-" + thePlaceholder.getPrefix()));
         }
-        return replaced;
     }
 
     static String checkAllPlaceholdersResolved(final String input) {

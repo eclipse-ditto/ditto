@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -85,7 +86,8 @@ public final class MqttValidator extends AbstractProtocolValidator {
     @Override
     protected void validateSource(final Source source, final DittoHeaders dittoHeaders,
             final Supplier<String> sourceDescription) {
-        if (!(source.getQos().isPresent())) {
+        final Optional<Integer> qos = source.getQos();
+        if (!(qos.isPresent())) {
             final String message =
                     MessageFormat.format("MQTT Source {0} must contain QoS value.", sourceDescription.get());
             throw ConnectionConfigurationInvalidException.newBuilder(message)
@@ -98,14 +100,15 @@ public final class MqttValidator extends AbstractProtocolValidator {
                     "sources.").dittoHeaders(dittoHeaders).build();
         }
 
-        validateSourceQoS(source.getQos().get(), dittoHeaders, sourceDescription);
+        validateSourceQoS(qos.get(), dittoHeaders, sourceDescription);
         validateSourceEnforcement(source.getEnforcement().orElse(null), dittoHeaders, sourceDescription);
     }
 
     @Override
     protected void validateTarget(final Target target, final DittoHeaders dittoHeaders,
             final Supplier<String> targetDescription) {
-        if (!(target.getQos().isPresent())) {
+        final Optional<Integer> qos = target.getQos();
+        if (!(qos.isPresent())) {
             final String message =
                     MessageFormat.format("MQTT Target {0} must contain QoS value.", targetDescription.get());
             throw ConnectionConfigurationInvalidException.newBuilder(message)
@@ -118,7 +121,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
                     "targets.").dittoHeaders(dittoHeaders).build();
         }
 
-        validateTargetQoS(target.getQos().get(), dittoHeaders, targetDescription);
+        validateTargetQoS(qos.get(), dittoHeaders, targetDescription);
         validateTemplate(target.getAddress(), dittoHeaders, newThingPlaceholder(), newTopicPathPlaceholder());
     }
 
