@@ -96,24 +96,26 @@ public final class StreamTrigger {
             final Duration startOffset,
             final Duration streamInterval) {
 
-        return calculateStreamTrigger(now, queryStart, startOffset, streamInterval, false);
+        return calculateStreamTrigger(now, queryStart, startOffset, streamInterval, Duration.ZERO, false);
     }
 
     static StreamTrigger calculateStreamTrigger(final Instant now,
             final Instant queryStart,
             final Duration startOffset,
             final Duration streamInterval,
+            final Duration minDelay,
             final boolean isFirstStreamTrigger) {
 
-        final Instant queryEnd = queryStart.plus(streamInterval);
+        final Instant nextSchedulableInstant = now.plus(minDelay);
+        final Instant queryEnd = queryStart.plus(streamInterval.plus(minDelay));
 
         final Instant plannedStreamStart;
         if (isFirstStreamTrigger) {
-            plannedStreamStart = now.plus(streamInterval);
+            plannedStreamStart = nextSchedulableInstant.plus(streamInterval);
         } else {
             final Instant optimalStreamStart = queryEnd.plus(startOffset);
-            if (now.isAfter(optimalStreamStart)) {
-                plannedStreamStart = now;
+            if (nextSchedulableInstant.isAfter(optimalStreamStart)) {
+                plannedStreamStart = nextSchedulableInstant;
             } else {
                 plannedStreamStart = optimalStreamStart;
             }

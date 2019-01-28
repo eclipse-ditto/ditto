@@ -362,8 +362,9 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
 
                     final Duration startOffset = streamConsumerSettings.getStartOffset();
                     final Duration streamInterval = streamConsumerSettings.getStreamInterval();
+                    final Duration minimalDelayBetweenStreams = streamConsumerSettings.getMinimalDelayBetweenStreams();
                     return StreamTrigger.calculateStreamTrigger(now, queryStart, startOffset, streamInterval,
-                            lastSuccessfulQueryEnd == null);
+                            minimalDelayBetweenStreams, lastSuccessfulQueryEnd == null);
                 });
 
         return triggerSource;
