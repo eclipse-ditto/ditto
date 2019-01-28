@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.bson.BsonValue;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -53,8 +54,6 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingEventRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.mongodb.DBObject;
 
 import akka.actor.ExtendedActorSystem;
 import akka.persistence.journal.EventAdapter;
@@ -164,13 +163,11 @@ public final class ThingMongoEventAdapter implements EventAdapter {
 
     @Override
     public EventSeq fromJournal(final Object event, final String manifest) {
-        if (event instanceof DBObject) {
-            final DBObject dbObject = (DBObject) event;
-            final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();
-            return EventSeq.single(tryToCreateEventFrom(dittoBsonJson.serialize(dbObject)));
+        if (event instanceof BsonValue) {
+            return EventSeq.single(tryToCreateEventFrom(DittoBsonJson.getInstance().serialize((BsonValue) event)));
         } else {
             throw new IllegalArgumentException(
-                    "Unable to fromJournal a non-'DBObject' object! Was: " + event.getClass());
+                    "Unable to fromJournal a non-'BsonValue' object! Was: " + event.getClass());
         }
     }
 

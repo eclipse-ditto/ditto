@@ -18,6 +18,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 
+import org.bson.BsonValue;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
@@ -28,15 +29,11 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.slf4j.Logger;
 
-import com.mongodb.DBObject;
-
 import akka.persistence.SelectedSnapshot;
 import akka.persistence.SnapshotOffer;
 
 /**
- * Abstract implementation of a MongoDB specific
- * {@link org.eclipse.ditto.services.utils.persistence.SnapshotAdapter} for a
- * {@link org.eclipse.ditto.model.base.json.Jsonifiable}.
+ * Abstract implementation of a MongoDB specific {@link SnapshotAdapter} for a {@link Jsonifiable}.
  *
  * @param <T> the jsonifiable type to snapshot.
  */
@@ -83,7 +80,7 @@ public abstract class AbstractMongoSnapshotAdapter<T extends Jsonifiable.WithFie
     }
 
     /**
-     * Converts the specified snapshot entity to its {@link org.eclipse.ditto.json.JsonObject} representation.
+     * Converts the specified snapshot entity to its {@link JsonObject} representation.
      *
      * @param snapshotEntity the snapshot entity to be converted to a JsonObject.
      * @return {@code snapshotEntity} as JsonObject.
@@ -100,37 +97,36 @@ public abstract class AbstractMongoSnapshotAdapter<T extends Jsonifiable.WithFie
      * @param rawSnapshotEntity the snapshot entity to be converted.
      * @return a Jsonifiable whose origin is {@code rawSnapshotEntity} or {@code null}.
      * @throws NullPointerException if {@code rawSnapshotEntity} is {@code null}.
-     * @throws IllegalArgumentException if {@code rawSnapshotEntity} is not an instance of {@code DBObject}.
      */
     @Nullable
     private T convertSnapshotToJsonifiable(@Nonnull final Object rawSnapshotEntity) {
-        final DBObject snapshotEntityAsDBObject = getSnapshotEntityAsDBObject(rawSnapshotEntity);
-        final JsonObject jsonObject = convertToJson(snapshotEntityAsDBObject);
+        final JsonObject jsonObject = convertSnapshotEntityToJson(rawSnapshotEntity);
         return tryToCreateJsonifiableFrom(jsonObject);
     }
 
-    private static DBObject getSnapshotEntityAsDBObject(@Nonnull final Object rawSnapshotEntity) {
+    private static JsonObject convertSnapshotEntityToJson(@Nonnull final Object rawSnapshotEntity) {
         checkNotNull(rawSnapshotEntity, "raw snapshot entity");
-        if (!(rawSnapshotEntity instanceof DBObject)) {
-            final String pattern = "Unable to create a Jsonifiable from <{0}>! Expected was a DBObject instance.";
+        if (rawSnapshotEntity instanceof BsonValue) {
+            return convertToJson((BsonValue) rawSnapshotEntity);
+        } else {
+            final String pattern = "Unable to create a Jsonifiable from <{0}>! Expected was a BsonDocument instance.";
             throw new IllegalArgumentException(MessageFormat.format(pattern, rawSnapshotEntity.getClass()));
         }
-        return (DBObject) rawSnapshotEntity;
     }
 
     /**
-     * Converts the specified DBObject to a {@link org.eclipse.ditto.json.JsonObject}.
+     * Converts the specified BsonDocument to a {@link JsonObject}.
      *
-     * @param dbObject the DBObject to be converted.
-     * @return a JsonObject whose origin is {@code dbObject}.
-     * @throws NullPointerException if {@code dbObject} is {@code null}.
-     * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code dbObject} cannot be serialized to a
+     * @param bsonValue the BsonDocument to be converted.
+     * @return a JsonObject whose origin is {@code bsonValue}.
+     * @throws NullPointerException if {@code bsonValue} is {@code null}.
+     * @throws DittoJsonException if {@code bsonValue} cannot be serialized to a
      * JsonObject.
      */
-    private static JsonObject convertToJson(@Nonnull final DBObject dbObject) {
-        checkNotNull(dbObject, "DBObject to be converted");
+    private static JsonObject convertToJson(@Nonnull final BsonValue bsonValue) {
+        checkNotNull(bsonValue, "BsonValue to be converted");
         final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();
-        final JsonObject jsonObject = dittoBsonJson.serialize(dbObject).asObject();
+        final JsonObject jsonObject = dittoBsonJson.serialize(bsonValue).asObject();
         return DittoJsonException.wrapJsonRuntimeException(() -> jsonObject);
     }
 

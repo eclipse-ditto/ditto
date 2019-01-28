@@ -1,7 +1,6 @@
    com.github.dnvriend:akka-persistence-inmemory_2.12:jar:2.5.1.1:test
    commons-io:commons-io:jar:2.4:test
    com.typesafe.akka:akka-http-testkit_2.12:jar:10.1.5:test
-   com.typesafe.akka:akka-persistence-query_2.12:jar:2.5.17:test
    com.typesafe.akka:akka-stream-testkit_2.12:jar:2.5.17:test
    com.typesafe.akka:akka-testkit_2.12:jar:2.5.17:test
    de.flapdoodle.embed:de.flapdoodle.embed.mongo:jar:2.0.0:test
@@ -12,7 +11,7 @@
    net.java.dev.jna:jna:jar:4.0.0:test
    net.java.dev.jna:jna-platform:jar:4.0.0:test
    net.sf.jopt-simple:jopt-simple:jar:4.6:test
-   nl.jqno.equalsverifier:equalsverifier:jar:2.3:test
+   nl.jqno.equalsverifier:equalsverifier:jar:3.0.3:test
    org.apache.commons:commons-compress:jar:1.10:test
    org.apache.commons:commons-lang3:jar:3.1:test
    org.apache.commons:commons-math3:jar:3.2:test
@@ -28,7 +27,6 @@
    org.openjdk.jmh:jmh-generator-annprocess:jar:1.4.1:test
    org.scalactic:scalactic_2.12:jar:3.0.0:test
    org.scala-lang.modules:scala-xml_2.12:jar:1.0.5:test
-   org.scala-lang:scala-reflect:jar:2.12.0:test
    org.scalatest:scalatest_2.12:jar:3.0.0:test
    org.scalaz:scalaz-core_2.12:jar:7.2.12:test
    org.skyscreamer:jsonassert:jar:1.2.3:test

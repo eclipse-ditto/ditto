@@ -53,15 +53,6 @@
             <artifactId>akka-persistence_${scala.version}</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.github.scullxbones</groupId>
-            <artifactId>akka-persistence-mongo-casbah_${scala.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.mongodb</groupId>
-            <artifactId>casbah_${scala.version}</artifactId>
-            <type>pom</type>
-        </dependency>
-        <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-persistence</artifactId>
         </dependency>

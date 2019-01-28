@@ -18,6 +18,8 @@ import static akka.http.javadsl.server.Directives.put;
 import static akka.http.javadsl.server.Directives.rawPathPrefix;
 import static akka.http.javadsl.server.Directives.route;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
+import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.REALM_DEVOPS;
+import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.authenticateDevopsBasic;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -76,17 +78,20 @@ public final class DevOpsRoute extends AbstractRoute {
      */
     public Route buildDevopsRoute(final RequestContext ctx) {
         return rawPathPrefix(mergeDoubleSlashes().concat(PATH_DEVOPS), () -> // /devops
-                parameterOptional(Unmarshaller.sync(Long::parseLong), TIMEOUT_PARAMETER, optionalTimeout ->
-                        route(
-                                rawPathPrefix(mergeDoubleSlashes().concat(PATH_LOGGING), () -> // /devops/logging
-                                        logging(ctx, createHeaders(optionalTimeout))
-                                ),
-                                rawPathPrefix(mergeDoubleSlashes().concat(PATH_PIGGYBACK), () -> // /devops/piggyback
-                                        piggyback(ctx, createHeaders(optionalTimeout))
+                authenticateDevopsBasic(REALM_DEVOPS,
+                        parameterOptional(Unmarshaller.sync(Long::parseLong), TIMEOUT_PARAMETER, optionalTimeout ->
+                                route(
+                                        rawPathPrefix(mergeDoubleSlashes().concat(PATH_LOGGING),
+                                                () -> // /devops/logging
+                                                        logging(ctx, createHeaders(optionalTimeout))
+                                        ),
+                                        rawPathPrefix(mergeDoubleSlashes().concat(PATH_PIGGYBACK),
+                                                () -> // /devops/piggyback
+                                                        piggyback(ctx, createHeaders(optionalTimeout))
+                                        )
                                 )
                         )
-                )
-        );
+                ));
     }
 
     /*
@@ -97,8 +102,8 @@ public final class DevOpsRoute extends AbstractRoute {
     }
 
     /*
-    * @return {@code /devops/piggyback} route.
-    */
+     * @return {@code /devops/piggyback} route.
+     */
     private Route piggyback(final RequestContext ctx, final DittoHeaders dittoHeaders) {
         return buildRouteWithOptionalServiceNameAndInstance(ctx, dittoHeaders, this::routePiggyback);
     }

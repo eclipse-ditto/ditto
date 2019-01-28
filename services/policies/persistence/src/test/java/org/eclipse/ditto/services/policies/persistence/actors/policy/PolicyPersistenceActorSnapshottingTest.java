@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 
+import org.bson.BsonDocument;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -55,7 +56,6 @@ import org.eclipse.ditto.signals.events.policies.PolicyDeleted;
 import org.eclipse.ditto.signals.events.policies.PolicyModified;
 import org.junit.Test;
 
-import com.mongodb.DBObject;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
@@ -133,7 +133,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         }
     }
 
-    private static Policy convertSnapshotDataToPolicy(final DBObject dbObject, final long sequenceNumber) {
+    private static Policy convertSnapshotDataToPolicy(final BsonDocument dbObject, final long sequenceNumber) {
         final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();
         final JsonObject json = dittoBsonJson.serialize(dbObject).asObject();
 
@@ -484,7 +484,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         });
     }
 
-    private Event convertJournalEntryToEvent(final DBObject dbObject, final long sequenceNumber) {
+    private Event convertJournalEntryToEvent(final BsonDocument dbObject, final long sequenceNumber) {
         return ((Event) eventAdapter.fromJournal(dbObject, null).events().head()).setRevision(sequenceNumber);
     }
 

@@ -19,12 +19,11 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.util.function.Function;
 
+import org.bson.BsonDocument;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import com.mongodb.BasicDBObject;
 
 /**
  * Unit test for {@link org.eclipse.ditto.services.utils.persistence.mongo.JsonValueToDbEntityMapper}.
@@ -47,7 +46,7 @@ public final class JsonValueToDbEntityMapperTest {
     @Test
     public void tryToTestNullJsonObject() {
         final Function<String, String> jsonKeyNameReviser = Mockito.mock(Function.class);
-        final Function<JsonObject, BasicDBObject> underTest =
+        final Function<JsonObject, BsonDocument> underTest =
                 JsonValueToDbEntityMapper.forJsonObject(jsonKeyNameReviser);
 
         assertThatExceptionOfType(NullPointerException.class)
@@ -57,7 +56,7 @@ public final class JsonValueToDbEntityMapperTest {
     }
 
     @Test
-    public void mapJsonObjectReturnsExpectedBasicDBObject() {
+    public void mapJsonObjectReturnsExpectedBsonDocument() {
         final JsonObject jsonObject = JsonFactory.newObjectBuilder()
                 .set("foo", JsonFactory.newObjectBuilder()
                     .set("org.eclipse.ditto", 42)
@@ -71,14 +70,14 @@ public final class JsonValueToDbEntityMapperTest {
                 .set("nada", JsonFactory.nullObject())
                 .build();
 
-        final BasicDBObject expectedBasicDBObject = BasicDBObject.parse(jsonObject.toString());
+        final BsonDocument expectedBsonDocument = BsonDocument.parse(jsonObject.toString());
         final Function<String, String> jsonKeyNameReviser = s -> s;
-        final Function<JsonObject, BasicDBObject> underTest =
+        final Function<JsonObject, BsonDocument> underTest =
                 JsonValueToDbEntityMapper.forJsonObject(jsonKeyNameReviser);
 
-        final BasicDBObject actualBasicDBObject = underTest.apply(jsonObject);
+        final BsonDocument actualBasicDocument = underTest.apply(jsonObject);
 
-        assertThat(actualBasicDBObject).isEqualTo(expectedBasicDBObject);
+        assertThat(actualBasicDocument).isEqualTo(expectedBsonDocument);
     }
 
 }
