@@ -34,7 +34,7 @@ public final class ThingPolicyIdInvalidException extends DittoRuntimeException i
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "policyid.invalid";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "policy.id.invalid";
 
     private static final String MESSAGE_TEMPLATE = "Policy ID ''{0}'' is not valid!";
 
