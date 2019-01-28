@@ -96,9 +96,9 @@ public abstract class AbstractProtocolValidator {
 
     /**
      * TODO TJ doc
-     * @param source
-     * @param dittoHeaders
-     * @param sourceDescription
+     * @param source TODO
+     * @param dittoHeaders TODO
+     * @param sourceDescription TODO
      */
     protected abstract void validateSource(final Source source, final DittoHeaders dittoHeaders,
             final Supplier<String> sourceDescription);
@@ -116,8 +116,8 @@ public abstract class AbstractProtocolValidator {
 
     /**
      * TODO TJ doc
-     * @param headerMapping
-     * @param dittoHeaders
+     * @param headerMapping TODO
+     * @param dittoHeaders TODO
      */
     protected void validateHeaderMapping(final HeaderMapping headerMapping, final DittoHeaders dittoHeaders) {
         headerMapping.getMapping().forEach((key, value)
@@ -126,9 +126,9 @@ public abstract class AbstractProtocolValidator {
 
     /**
      * TODO TJ doc
-     * @param target
-     * @param dittoHeaders
-     * @param sourceDescription
+     * @param target TODO
+     * @param dittoHeaders TODO
+     * @param sourceDescription TODO
      */
     protected abstract void validateTarget(final Target target, final DittoHeaders dittoHeaders,
             final Supplier<String> sourceDescription);
@@ -159,9 +159,9 @@ public abstract class AbstractProtocolValidator {
 
     /**
      * TODO TJ doc
-     * @param template
-     * @param headers
-     * @param placeholders
+     * @param template TODO
+     * @param headers TODO
+     * @param placeholders TODO
      */
     protected void validateTemplate(final String template, final DittoHeaders headers,
             final Placeholder<?>... placeholders) {
@@ -170,10 +170,10 @@ public abstract class AbstractProtocolValidator {
 
     /**
      * TODO TJ doc
-     * @param template
-     * @param allowUnresolved
-     * @param headers
-     * @param placeholders
+     * @param template TODO
+     * @param allowUnresolved TODO
+     * @param headers TODO
+     * @param placeholders TODO
      */
     protected void validateTemplate(final String template, final boolean allowUnresolved, final DittoHeaders headers,
             final Placeholder<?>... placeholders) {

@@ -190,10 +190,10 @@ public final class PlaceholderFilter {
      * TODO TJ doc
      *
      * TODO TJ this should not throw an exception if placeholders could not be resolved I guess?!
-     * @param template
-     * @param allowUnresolved
-     * @param placeholders
-     * @return
+     * @param template TODO
+     * @param allowUnresolved TODO
+     * @param placeholders TODO
+     * @return TODO
      */
     public static void validate(final String template, final boolean allowUnresolved,
             final Placeholder<?>... placeholders) {
