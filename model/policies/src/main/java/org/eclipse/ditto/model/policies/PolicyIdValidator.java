@@ -13,18 +13,16 @@ package org.eclipse.ditto.model.policies;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.common.AbstractIdValidator;
+import org.eclipse.ditto.model.base.common.EntityIdValidator;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 
 /**
  * Validates an ID against {@link Policy#ID_REGEX}. If the ID is invalid a {@link PolicyIdInvalidException} is thrown.
  */
 @Immutable
-public final class PolicyIdValidator extends AbstractIdValidator {
+public final class PolicyIdValidator extends EntityIdValidator {
 
-    private PolicyIdValidator() {
-        super(Policy.ID_REGEX);
-    }
+    private PolicyIdValidator() { }
 
     /**
      * Returns a {@code PolicyIdValidator} instance.
@@ -36,7 +34,7 @@ public final class PolicyIdValidator extends AbstractIdValidator {
     }
 
     @Override
-    protected DittoRuntimeExceptionBuilder createBuilder(@Nullable final CharSequence id) {
+    protected DittoRuntimeExceptionBuilder createExceptionBuilder(@Nullable final CharSequence id) {
         return PolicyIdInvalidException.newBuilder(id);
     }
 

@@ -1447,7 +1447,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
         @Test
         public void getThingIdsForPolicy() {
-            final String policyId = "any-ns:testPolicyId";
+            final String policyId = "myNamespace:testPolicyId";
             final Thing thing1 = createThing("test:id1", "val1", isV2).setPolicyId(policyId);
             final Thing thing2 = createThing("test:id2", "val2", isV2).setPolicyId(policyId);
 

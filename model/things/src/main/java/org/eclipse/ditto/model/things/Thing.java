@@ -54,24 +54,6 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 public interface Thing extends Entity<ThingRevision> {
 
     /**
-     * The regex pattern a Thing Namespace.
-     */
-    String NAMESPACE_PREFIX_REGEX = "(?<ns>|(?:(?:[a-zA-Z]\\w*+)(?:\\.[a-zA-Z]\\w*+)*+))";
-
-    /**
-     * The regex pattern a Thing ID has to conform to. Defined by
-     * <a href="http://www.ietf.org/rfc/rfc2396.txt">RFC-2396</a>.
-     */
-    String ID_NON_NAMESPACE_REGEX =
-            "(?<id>(?:[-\\w:@&=+,.!~*'_;]|%\\p{XDigit}{2})(?:[-\\w:@&=+,.!~*'$_;]|%\\p{XDigit}{2})*+)";
-
-    /**
-     * The regex pattern a Thing ID has to conform to. Combines "namespace" pattern (java package notation + a
-     * semicolon) and "non namespace" (Defined by <a href="http://www.ietf.org/rfc/rfc2396.txt">RFC-2396</a>) pattern.
-     */
-    String ID_REGEX = NAMESPACE_PREFIX_REGEX + "\\:" + ID_NON_NAMESPACE_REGEX;
-
-    /**
      * The set of permissions which at least must be present in the ACL of a Thing for one Authorization Subject.
      */
     @SuppressWarnings("squid:S2386")
