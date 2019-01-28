@@ -193,7 +193,6 @@ public final class PlaceholderFilter {
      * @param template TODO
      * @param allowUnresolved TODO
      * @param placeholders TODO
-     * @return TODO
      */
     public static void validate(final String template, final boolean allowUnresolved,
             final Placeholder<?>... placeholders) {
