@@ -58,6 +58,7 @@ public final class AmqpValidatorTest {
                 .headerMapping(TestConstants.HEADER_MAPPING)
                 .build();
 
+        // TODO TJ - when validating the mapping should not be applied, should it?
         UNDER_TEST.validateSource(source, DittoHeaders.empty(), () -> "testSource");
     }
 

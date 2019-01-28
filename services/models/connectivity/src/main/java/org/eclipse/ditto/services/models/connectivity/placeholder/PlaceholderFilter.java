@@ -186,12 +186,17 @@ public final class PlaceholderFilter {
                 UNRESOLVED_INPUT_HANDLER, allowUnresolved);
     }
 
+    /**
+     * TODO TJ doc
+     *
+     * @param template
+     * @param placeholders
+     * @return
+     */
     public static String validate(final String template, final Placeholder<?>... placeholders) {
         String replaced = template;
-        for (int i = 0; i < placeholders.length; i++) {
-            boolean isNotLastPlaceholder = i < placeholders.length - 1;
-            final Placeholder<?> thePlaceholder = placeholders[i];
-            replaced = doApply(template, thePlaceholder, isNotLastPlaceholder,
+        for (final Placeholder<?> thePlaceholder : placeholders) {
+            replaced = doApply(template, thePlaceholder, true, // when validating, placeholders may be unresolved
                     placeholder -> Optional.of(thePlaceholder.getPrefix()));
         }
         return replaced;

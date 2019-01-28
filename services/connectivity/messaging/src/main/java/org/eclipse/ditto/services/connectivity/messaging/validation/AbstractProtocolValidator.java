@@ -94,6 +94,12 @@ public abstract class AbstractProtocolValidator {
                 validateSource(source, dittoHeaders, sourceDescription(source, connection)));
     }
 
+    /**
+     * TODO TJ doc
+     * @param source
+     * @param dittoHeaders
+     * @param sourceDescription
+     */
     protected abstract void validateSource(final Source source, final DittoHeaders dittoHeaders,
             final Supplier<String> sourceDescription);
 
@@ -108,11 +114,22 @@ public abstract class AbstractProtocolValidator {
         connection.getTargets().forEach(target -> validateTarget(target, dittoHeaders, targetDescription(target, connection)));
     }
 
+    /**
+     * TODO TJ doc
+     * @param headerMapping
+     * @param dittoHeaders
+     */
     protected void validateHeaderMapping(final HeaderMapping headerMapping, final DittoHeaders dittoHeaders) {
         headerMapping.getMapping().forEach((key, value)
                 -> validateTemplate(value, dittoHeaders, newHeadersPlaceholder(), newThingPlaceholder()));
     }
 
+    /**
+     * TODO TJ doc
+     * @param target
+     * @param dittoHeaders
+     * @param sourceDescription
+     */
     protected abstract void validateTarget(final Target target, final DittoHeaders dittoHeaders,
             final Supplier<String> sourceDescription);
 
@@ -140,11 +157,23 @@ public abstract class AbstractProtocolValidator {
                 target.getAddress(), connection.getId());
     }
 
+    /**
+     * TODO TJ doc
+     * @param template
+     * @param placeholder
+     * @param headers
+     */
     protected void validateTemplate(final String template, final Placeholder<?> placeholder,
             final DittoHeaders headers) {
         validateTemplate(template, headers, placeholder);
     }
 
+    /**
+     * TODO TJ doc
+     * @param template
+     * @param headers
+     * @param placeholders
+     */
     protected void validateTemplate(final String template, final DittoHeaders headers,
             final Placeholder<?>... placeholders) {
         try {
