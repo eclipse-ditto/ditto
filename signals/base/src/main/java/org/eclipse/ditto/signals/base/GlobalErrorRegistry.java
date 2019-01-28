@@ -31,7 +31,8 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
- * Collects
+ * Contains all strategies to deserialize subclasses of {@link DittoRuntimeException} from a combination of
+ * {@link JsonObject} and {@link DittoHeaders}.
  */
 @Immutable
 public final class GlobalErrorRegistry extends AbstractErrorRegistry<DittoRuntimeException> {
@@ -63,6 +64,10 @@ public final class GlobalErrorRegistry extends AbstractErrorRegistry<DittoRuntim
     }
 
 
+    /**
+     * Contains all strategies to deserialize {@link DittoJsonException} from a combination of
+     * {@link JsonObject} and {@link DittoHeaders}.
+     */
     private static class DittoJsonExceptionRegistry {
 
         private final Map<String, JsonParsable<DittoRuntimeException>> dittoJsonParseRegistries = new HashMap<>();
@@ -101,6 +106,10 @@ public final class GlobalErrorRegistry extends AbstractErrorRegistry<DittoRuntim
 
     }
 
+    /**
+     * Contains all strategies to deserialize {@link DittoRuntimeException} annotated with {@link JsonParsableException}
+     * from a combination of {@link JsonObject} and {@link DittoHeaders}.
+     */
     private static class JsonParsableExceptionRegistry {
 
         private static final Class<?> JSON_OBJECT_PARAMETER = JsonObject.class;
