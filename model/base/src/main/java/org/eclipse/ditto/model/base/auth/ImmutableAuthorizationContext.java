@@ -42,7 +42,6 @@ final class ImmutableAuthorizationContext implements AuthorizationContext {
 
     private ImmutableAuthorizationContext(final List<AuthorizationSubject> theAuthorizationSubjects) {
         final ArrayList<AuthorizationSubject> theList = new ArrayList<>(theAuthorizationSubjects);
-        theList.add(AuthorizationSubject.newInstance(AuthorizationSubject.WILDCARD_SUBJECT));
         authorizationSubjects = Collections.unmodifiableList(theList);
     }
 

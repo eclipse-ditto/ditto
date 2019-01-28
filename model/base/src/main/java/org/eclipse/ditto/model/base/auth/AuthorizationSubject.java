@@ -20,11 +20,6 @@ import javax.annotation.concurrent.Immutable;
 public interface AuthorizationSubject {
 
     /**
-     * The authorization wildcard subject.
-     */
-    String WILDCARD_SUBJECT = "*:*";
-
-    /**
      * Returns a new immutable {@code AuthorizationSubject} with the given identifier.
      *
      * @param identifier the identifier of the new authorization subject.
