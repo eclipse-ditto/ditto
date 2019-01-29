@@ -20,7 +20,7 @@
     <includeBaseDirectory>false</includeBaseDirectory>
     <dependencySets>
         <dependencySet>
-            <outputDirectory>/</outputDirectory>
+            <outputDirectory/>
             <useProjectArtifact>true</useProjectArtifact>
             <unpack>true</unpack>
             <scope>test</scope>
