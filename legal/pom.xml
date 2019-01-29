@@ -82,10 +82,6 @@
                         <id>copy-legal-docs</id>
                         <phase>none</phase>
                     </execution>
-                    <execution>
-                        <id>copy-dependencies</id>
-                        <phase>none</phase>
-                    </execution>
                 </executions>
             </plugin>
         </plugins>
