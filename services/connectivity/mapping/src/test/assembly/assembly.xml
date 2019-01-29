@@ -29,7 +29,7 @@
     <fileSets>
         <fileSet>
             <directory>${project.build.directory}/test-classes</directory>
-            <outputDirectory>/</outputDirectory>
+            <outputDirectory/>
             <includes>
                 <include>**/*</include>
             </includes>
