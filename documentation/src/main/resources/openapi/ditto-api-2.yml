@@ -143,6 +143,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
+        '413':
+          $ref: '#/components/responses/entityTooLarge'
       requestBody:
         content:
           application/json:
@@ -371,6 +373,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
+        '413':
+          $ref: '#/components/responses/entityTooLarge'
       requestBody:
         content:
           application/json:
@@ -542,6 +546,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
+        '413':
+          $ref: '#/components/responses/entityTooLarge'
       requestBody:
         content:
           application/json:
@@ -682,6 +688,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
+        '413':
+          $ref: '#/components/responses/entityTooLarge'
       requestBody:
         content:
           application/json:
@@ -866,6 +874,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
+        '413':
+          $ref: '#/components/responses/entityTooLarge'
       requestBody:
         $ref: '#/components/requestBodies/Value'
     delete:
@@ -1054,6 +1064,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
+        '413':
+          $ref: '#/components/responses/entityTooLarge'
       requestBody:
         content:
           application/json:
@@ -1245,6 +1257,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
+        '413':
+          $ref: '#/components/responses/entityTooLarge'
       requestBody:
         content:
           application/json:
@@ -1435,6 +1449,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
+        '413':
+          $ref: '#/components/responses/entityTooLarge'
       requestBody:
         content:
           application/json:
@@ -1615,6 +1631,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
+        '413':
+          $ref: '#/components/responses/entityTooLarge'
       requestBody:
         content:
           application/json:
@@ -1801,6 +1819,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
+        '413':
+          $ref: '#/components/responses/entityTooLarge'
       requestBody:
         $ref: '#/components/requestBodies/Value'
     delete:
@@ -1899,6 +1919,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
+        '413':
+          $ref: '#/components/responses/messageTooLarge'
         '429':
           description: >-
             The user has sent too many requests in a given amount of time ("rate limiting").
@@ -1957,6 +1979,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
+        '413':
+          $ref: '#/components/responses/messageTooLarge'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
   '/things/{thingId}/outbox/messages/{messageSubject}':
@@ -2006,6 +2030,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
+        '413':
+          $ref: '#/components/responses/messageTooLarge'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
   '/things/{thingId}/features/{featureId}/inbox/messages/{messageSubject}':
@@ -2058,6 +2084,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
+        '413':
+          $ref: '#/components/responses/messageTooLarge'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
   '/things/{thingId}/features/{featureId}/outbox/messages/{messageSubject}':
@@ -2108,6 +2136,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
+        '413':
+          $ref: '#/components/responses/messageTooLarge'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
   ###
@@ -2242,6 +2272,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
+        '413':
+          $ref: '#/components/responses/entityTooLarge'
       requestBody:
         content:
           application/json:
@@ -2417,6 +2449,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
+        '413':
+          $ref: '#/components/responses/entityTooLarge'
       requestBody:
         content:
           application/json:
@@ -2563,6 +2597,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
+        '413':
+          $ref: '#/components/responses/entityTooLarge'
       requestBody:
         content:
           application/json:
@@ -2740,6 +2776,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
+        '413':
+          $ref: '#/components/responses/entityTooLarge'
       requestBody:
         content:
           application/json:
@@ -2888,6 +2926,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
+        '413':
+          $ref: '#/components/responses/entityTooLarge'
       requestBody:
         content:
           application/json:
@@ -3061,6 +3101,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
+        '413':
+          $ref: '#/components/responses/entityTooLarge'
       requestBody:
         content:
           application/json:
@@ -3205,6 +3247,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
+        '413':
+          $ref: '#/components/responses/entityTooLarge'
       requestBody:
         content:
           application/json:
