@@ -77,12 +77,12 @@ public final class ConnectivityCounterRegistry {
                 .map(Source::getAddresses)
                 .flatMap(Collection::stream)
                 .forEach(address ->
-                        initCounter(connectionId, MetricDirection.INBOUND, address, false));
+                        initCounter(connectionId, MetricDirection.INBOUND, address));
         connection.getTargets().stream()
                 .map(Target::getAddress)
                 .forEach(address ->
-                        initCounter(connectionId, MetricDirection.OUTBOUND, address, false));
-        initCounter(connectionId, MetricDirection.OUTBOUND, RESPONSES_ADDRESS, false);
+                        initCounter(connectionId, MetricDirection.OUTBOUND, address));
+        initCounter(connectionId, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
     }
 
     /**
@@ -93,27 +93,17 @@ public final class ConnectivityCounterRegistry {
     public static void resetCountersForConnection(final Connection connection) {
 
         final String connectionId = connection.getId();
-        connection.getSources().stream()
-                .map(Source::getAddresses)
-                .flatMap(Collection::stream)
-                .forEach(address ->
-                        initCounter(connectionId, MetricDirection.INBOUND, address, true));
-        connection.getTargets().stream()
-                .map(Target::getAddress)
-                .forEach(address ->
-                        initCounter(connectionId, MetricDirection.OUTBOUND, address, true));
-        initCounter(connectionId, MetricDirection.OUTBOUND, RESPONSES_ADDRESS, true);
+        counters.keySet().stream()
+                .filter(key -> key.connectionId.equals(connectionId))
+                .forEach(counters::remove);
     }
 
     private static void initCounter(final String connectionId, final MetricDirection metricDirection,
-            final String address, final boolean reset) {
+            final String address) {
         Arrays.stream(MetricType.values())
                 .filter(metricType -> metricType.supportsDirection(metricDirection))
                 .forEach(metricType -> {
                     final MapKey key = new MapKey(connectionId, metricType, metricDirection, address);
-                    if (reset) {
-                        counters.remove(key);
-                    }
                     counters.computeIfAbsent(key, m -> {
                         final SlidingWindowCounter counter = new SlidingWindowCounter(CLOCK_UTC, DEFAULT_WINDOWS);
                         return new ConnectionMetricsCollector(metricDirection, address, metricType, counter);
@@ -488,8 +478,12 @@ public final class ConnectivityCounterRegistry {
 
         @Override
         public boolean equals(@Nullable final Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
             final MapKey mapKey = (MapKey) o;
             return Objects.equals(connectionId, mapKey.connectionId) &&
                     Objects.equals(metric, mapKey.metric) &&
