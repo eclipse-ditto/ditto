@@ -120,7 +120,7 @@ public final class GlobalErrorRegistry extends AbstractErrorRegistry<DittoRuntim
 
         private JsonParsableExceptionRegistry() {
 
-            final List<Class<? extends DittoRuntimeException>> jsonParsableExceptions = getJsonParsableExceptions();
+            final Iterable<Class<?>> jsonParsableExceptions = ClassIndex.getAnnotated(JsonParsableException.class);
             jsonParsableExceptions.forEach(parsableException -> {
                 final JsonParsableException fromJsonAnnotation =
                         parsableException.getAnnotation(JsonParsableException.class);
@@ -133,7 +133,7 @@ public final class GlobalErrorRegistry extends AbstractErrorRegistry<DittoRuntim
                     appendMethodToParseStrategies(errorCode, method);
 
                 } catch (NoSuchMethodException e) {
-                    // TODO: Log warning or Throw an appropriate exception?
+                    // TODO: Log warning or throw an exception?
                 }
             });
         }
@@ -149,17 +149,6 @@ public final class GlobalErrorRegistry extends AbstractErrorRegistry<DittoRuntim
                                     .build();
                         }
                     });
-        }
-
-        private List<Class<? extends DittoRuntimeException>> getJsonParsableExceptions() {
-            final Iterable<Class<?>> jsonParsableClasses = ClassIndex.getAnnotated(JsonParsableException.class);
-            final ArrayList<Class<? extends DittoRuntimeException>> jsonParsableExceptions = new ArrayList<>();
-            for (Class<?> classFromJson : jsonParsableClasses) {
-                if (DittoRuntimeException.class.isAssignableFrom(classFromJson)) {
-                    jsonParsableExceptions.add(classFromJson.asSubclass(DittoRuntimeException.class));
-                }
-            }
-            return jsonParsableExceptions;
         }
 
         private Map<String, JsonParsable<DittoRuntimeException>> getParseRegistries() {
