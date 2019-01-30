@@ -495,9 +495,9 @@ public final class ConnectionActorTest extends WithMockServers {
         final Connection connection = TestConstants.createConnection(connectionId, actorSystem,
                 TestConstants.Targets.TARGET_WITH_PLACEHOLDER);
 
+        // expect that address is still with placeholders (as replacement was moved to MessageMappingProcessorActor
         final Target expectedTarget = ConnectivityModelFactory.newTarget(TestConstants.Targets.TARGET_WITH_PLACEHOLDER,
-                "target:" + TestConstants.Things.NAMESPACE + "/" +
-                        TestConstants.Things.ID, null);
+                TestConstants.Targets.TARGET_WITH_PLACEHOLDER.getAddress(), null);
 
         final CreateConnection createConnection = CreateConnection.of(connection, DittoHeaders.empty());
         final Set<String> valid = Collections.singleton(TestConstants.Authorization.SUBJECT_ID);
