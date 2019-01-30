@@ -56,6 +56,12 @@ public interface ExternalMessage {
     ExternalMessage withHeaders(Map<String, String> additionalHeaders);
 
     /**
+     * @param topicPath the {@link TopicPath} to set in the new built ExternalMessage
+     * @return new instance of {@link ExternalMessage} including the provided TopicPath
+     */
+    ExternalMessage withTopicPath(TopicPath topicPath);
+
+    /**
      * @return the optional value of the Content-Type header
      */
     default Optional<String> findContentType() {

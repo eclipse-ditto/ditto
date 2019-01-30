@@ -16,9 +16,7 @@ import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -31,7 +29,6 @@ import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.Placeholders;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 
 /**
@@ -67,31 +64,6 @@ public final class PlaceholderFilter {
                 .map(AuthorizationModelFactory::newAuthSubject)
                 .collect(Collectors.toList());
         return AuthorizationModelFactory.newAuthContext(subjects);
-    }
-
-    /**
-     * Apply {@link ThingPlaceholder}s to the passed {@code targets} with the passed {@code thingId}.
-     *
-     * @param targets {@link Target}s to apply placeholder substitution in.
-     * @param thingId the thing ID.
-     * @param unresolvedPlaceholderListener callback to call with unresolved placeholders.
-     * @return Targets as result of placeholder substitution.
-     */
-    public static Set<Target> applyThingPlaceholderToTargets(final Set<Target> targets, final String thingId,
-            final Consumer<String> unresolvedPlaceholderListener) {
-        // check if we have to replace anything at all
-        if (targets.stream().map(Target::getAddress).noneMatch(Placeholders::containsAnyPlaceholder)) {
-            return targets;
-        }
-
-        return targets.stream()
-                .map(target -> {
-                    final String filtered =
-                            applyThingPlaceholder(target.getAddress(), thingId, unresolvedPlaceholderListener);
-                    return filtered != null ? target.withAddress(filtered) : null;
-                })
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
     }
 
     /**
@@ -187,12 +159,14 @@ public final class PlaceholderFilter {
     }
 
     /**
-     * TODO TJ doc
+     * Validates that the passed {@code template} is both valid and depending on the {@code allowUnresolved} boolean
+     * that the placeholders in the passed {@code template} are completely replaceable by the provided
+     * {@code placeholders}.
      *
-     * TODO TJ this should not throw an exception if placeholders could not be resolved I guess?!
-     * @param template TODO
-     * @param allowUnresolved TODO
-     * @param placeholders TODO
+     * @param template a string potentially containing placeholders to replace
+     * @param allowUnresolved whether to allow if there could be placeholders in the template left unreplaced
+     * @param placeholders the {@link Placeholder}s to use for replacement
+     * @throws UnresolvedPlaceholderException in case the template's placeholders could not completely be resolved
      */
     public static void validate(final String template, final boolean allowUnresolved,
             final Placeholder<?>... placeholders) {

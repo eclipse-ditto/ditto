@@ -100,7 +100,8 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private final Function<ExternalMessage, ExternalMessage> placeholderSubstitution;
     private final BiFunction<ExternalMessage, DittoHeaders, DittoHeaders> adjustHeaders;
     private final Function<InboundExternalMessage, DittoHeaders> mapHeaders;
-    private final BiFunction<OutboundSignal, ExternalMessage, OutboundSignal.WithExternalMessage> replaceTopicPlaceholders;
+    private final BiFunction<OutboundSignal, ExternalMessage, OutboundSignal.WithExternalMessage>
+            replaceTargetAddressPlaceholders;
     private final BiConsumer<ExternalMessage, Signal<?>> applySignalIdEnforcement;
     private final ConnectionMetricsCollector responseConsumedCounter;
     private final ConnectionMetricsCollector responseDroppedCounter;
@@ -120,7 +121,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         adjustHeaders = new AdjustHeaders(connectionId);
         mapHeaders = new ApplyHeaderMapping(log);
         applySignalIdEnforcement = new ApplySignalIdEnforcement(log);
-        replaceTopicPlaceholders = new TopicPlaceholderInTargetAddressSubstitution();
+        replaceTargetAddressPlaceholders = new PlaceholderInTargetAddressSubstitution(log);
         responseConsumedCounter = ConnectivityCounterRegistry.getResponseConsumedCounter(connectionId);
         responseDroppedCounter = ConnectivityCounterRegistry.getResponseDroppedCounter(connectionId);
         responseMappedCounter = ConnectivityCounterRegistry.getResponseMappedCounter(connectionId);
@@ -280,7 +281,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         log.debug("Handling outbound signal: {}", outbound.getSource());
 
         final Optional<OutboundSignal.WithExternalMessage> mappedOutboundSignal = mapToExternalMessage(outbound)
-                .map(externalMessage -> replaceTopicPlaceholders.apply(outbound, externalMessage));
+                .map(externalMessage -> replaceTargetAddressPlaceholders.apply(outbound, externalMessage));
 
         if (mappedOutboundSignal.isPresent()) {
             publisherActor.forward(mappedOutboundSignal.get(), getContext());
@@ -370,28 +371,40 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     }
 
     /**
-     * Helper class that replaces topic placeholders in target addresses. This is done here and not in
+     * Helper class that replaces thing + topic placeholders in target addresses. This is done here and not in
      * ConnectionActor because we have the topic at hand not before the mapping was done.
      */
-    static final class TopicPlaceholderInTargetAddressSubstitution
+    static final class PlaceholderInTargetAddressSubstitution
             implements BiFunction<OutboundSignal, ExternalMessage, OutboundSignal.WithExternalMessage> {
 
+        private static final ThingPlaceholder THING_PLACEHOLDER = PlaceholderFactory.newThingPlaceholder();
         private static final TopicPathPlaceholder TOPIC_PLACEHOLDER = PlaceholderFactory.newTopicPathPlaceholder();
+
+        private final DiagnosticLoggingAdapter log;
+
+        private PlaceholderInTargetAddressSubstitution(final DiagnosticLoggingAdapter log) {
+            this.log = log;
+        }
 
         @Override
         public OutboundSignal.WithExternalMessage apply(final OutboundSignal outboundSignal,
                 final ExternalMessage externalMessage) {
             final Optional<TopicPath> topicPathOpt = externalMessage.getTopicPath();
-            if (topicPathOpt.isPresent() &&
-                    outboundSignal
-                            .getTargets()
-                            .stream()
-                            .anyMatch(t -> Placeholders.containsAnyPlaceholder(t.getAddress()))) {
+            if (outboundSignal
+                    .getTargets()
+                    .stream()
+                    .anyMatch(t -> Placeholders.containsAnyPlaceholder(t.getAddress()))) {
                 final Set<Target> targets = outboundSignal.getTargets().stream().map(t -> {
-                    final String addressWithTopicReplaced =
-                            PlaceholderFilter.apply(t.getAddress(), topicPathOpt.get(), TOPIC_PLACEHOLDER, true);
-                    return ConnectivityModelFactory.newTarget(t, addressWithTopicReplaced,
-                            t.getQos().orElse(null));
+                    String address =
+                            PlaceholderFilter.apply(t.getAddress(), outboundSignal.getSource().getId(), THING_PLACEHOLDER, true);
+                    if (topicPathOpt.isPresent()) {
+                        address =
+                                PlaceholderFilter.apply(address, topicPathOpt.get(), TOPIC_PLACEHOLDER, true);
+                    } else {
+                        log.warning("TopicPath for ExternalMessage was absent when trying to replace placeholders, " +
+                                "remaining address: <{}>", address);
+                    }
+                    return ConnectivityModelFactory.newTarget(t, address, t.getQos().orElse(null));
                 }).collect(Collectors.toSet());
                 final OutboundSignal modifiedOutboundSignal =
                         OutboundSignalFactory.newOutboundSignal(outboundSignal.getSource(), targets);

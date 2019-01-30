@@ -86,6 +86,11 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
     }
 
     @Override
+    public ExternalMessage withTopicPath(final TopicPath topicPath) {
+        return new UnmodifiableExternalMessageBuilder(this).withTopicPath(topicPath).build();
+    }
+
+    @Override
     public Optional<String> findHeader(final String key) {
         return Optional.ofNullable(headers.get(key)).filter(s -> !s.isEmpty());
     }

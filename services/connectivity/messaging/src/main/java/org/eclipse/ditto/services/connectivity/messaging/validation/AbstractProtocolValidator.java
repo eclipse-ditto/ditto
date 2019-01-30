@@ -95,10 +95,13 @@ public abstract class AbstractProtocolValidator {
     }
 
     /**
-     * TODO TJ doc
-     * @param source TODO
-     * @param dittoHeaders TODO
-     * @param sourceDescription TODO
+     * Validates the passed in {@code source} e.g. by validating its {@code enforcement} and {@code headerMapping}
+     * for valid placeholder usage.
+     *
+     * @param source the source to validate
+     * @param dittoHeaders the DittoHeaders to use in order for e.g. building DittoRuntimeExceptions
+     * @param sourceDescription a descriptive text of the source
+     * @throws ConnectionConfigurationInvalidException in case the Source configuration is invalid
      */
     protected abstract void validateSource(final Source source, final DittoHeaders dittoHeaders,
             final Supplier<String> sourceDescription);
@@ -115,9 +118,11 @@ public abstract class AbstractProtocolValidator {
     }
 
     /**
-     * TODO TJ doc
-     * @param headerMapping TODO
-     * @param dittoHeaders TODO
+     * Validates the passed in {@code headerMapping} by validating valid placeholder usage.
+     *
+     * @param headerMapping the headerMapping to validate
+     * @param dittoHeaders the DittoHeaders to use in order for e.g. building DittoRuntimeExceptions
+     * @throws ConnectionConfigurationInvalidException in case the HeaderMapping configuration is invalid
      */
     protected void validateHeaderMapping(final HeaderMapping headerMapping, final DittoHeaders dittoHeaders) {
         headerMapping.getMapping().forEach((key, value)
@@ -125,13 +130,16 @@ public abstract class AbstractProtocolValidator {
     }
 
     /**
-     * TODO TJ doc
-     * @param target TODO
-     * @param dittoHeaders TODO
-     * @param sourceDescription TODO
+     * Validates the passed in {@code target} e.g. by validating its {@code address} and {@code headerMapping}
+     * for valid placeholder usage.
+     *
+     * @param target the target to validate
+     * @param dittoHeaders the DittoHeaders to use in order for e.g. building DittoRuntimeExceptions
+     * @param targetDescription a descriptive text of the target
+     * @throws ConnectionConfigurationInvalidException in case the Target configuration is invalid
      */
     protected abstract void validateTarget(final Target target, final DittoHeaders dittoHeaders,
-            final Supplier<String> sourceDescription);
+            final Supplier<String> targetDescription);
 
     /**
      * Obtain a supplier of a description of a source of a connection.
@@ -158,10 +166,14 @@ public abstract class AbstractProtocolValidator {
     }
 
     /**
-     * TODO TJ doc
-     * @param template TODO
-     * @param headers TODO
-     * @param placeholders TODO
+     * Validates that the passed {@code template} is both valid and that the placeholders in the passed {@code template}
+     * are completely replaceable by the provided {@code placeholders}.
+     *
+     * @param template a string potentially containing placeholders to replace
+     * @param headers the DittoHeaders to use in order for e.g. building DittoRuntimeExceptions
+     * @param placeholders the {@link Placeholder}s to use for replacement
+     * @throws ConnectionConfigurationInvalidException in case the template's placeholders could not completely be
+     * resolved
      */
     protected void validateTemplate(final String template, final DittoHeaders headers,
             final Placeholder<?>... placeholders) {
@@ -169,11 +181,16 @@ public abstract class AbstractProtocolValidator {
     }
 
     /**
-     * TODO TJ doc
-     * @param template TODO
-     * @param allowUnresolved TODO
-     * @param headers TODO
-     * @param placeholders TODO
+     * Validates that the passed {@code template} is both valid and depending on the {@code allowUnresolved} boolean
+     * that the placeholders in the passed {@code template} are completely replaceable by the provided
+     * {@code placeholders}.
+     *
+     * @param template a string potentially containing placeholders to replace
+     * @param allowUnresolved whether to allow if there could be placeholders in the template left unreplaced
+     * @param headers the DittoHeaders to use in order for e.g. building DittoRuntimeExceptions
+     * @param placeholders the {@link Placeholder}s to use for replacement
+     * @throws ConnectionConfigurationInvalidException in case the template's placeholders could not completely be
+     * resolved
      */
     protected void validateTemplate(final String template, final boolean allowUnresolved, final DittoHeaders headers,
             final Placeholder<?>... placeholders) {
