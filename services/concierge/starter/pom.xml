@@ -196,12 +196,6 @@
                         <groupId>org.atteo.classindex</groupId>
                         <artifactId>classindex-transformer</artifactId>
                         <version>${classindex.version}</version>
-                        <exclusions>
-                            <exclusion>
-                                <groupId>javax.xml.bind</groupId>
-                                <artifactId>jaxb-api</artifactId>
-                            </exclusion>
-                        </exclusions>
                     </dependency>
                 </dependencies>
             </plugin>
