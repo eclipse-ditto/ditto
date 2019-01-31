@@ -24,12 +24,15 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.common.Placeholders;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclNotAllowedException;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingIdValidator;
+import org.eclipse.ditto.model.things.ThingPolicyIdValidator;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
@@ -88,6 +91,10 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
     private ModifyThing(final String thingId, final Thing thing, @Nullable final JsonObject initialPolicy,
             @Nullable final String policyIdOrPlaceholder, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
+        ThingIdValidator.getInstance().accept(thingId, dittoHeaders);
+        if (policyIdOrPlaceholder != null && !Placeholders.containsAnyPlaceholder(policyIdOrPlaceholder)) {
+            ThingPolicyIdValidator.getInstance().accept(policyIdOrPlaceholder, dittoHeaders);
+        }
         this.thingId = thingId;
         this.thing = thing;
         this.initialPolicy = initialPolicy;
