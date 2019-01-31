@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.model.things;
 
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FEATURES;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_ID;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES;
@@ -166,6 +167,38 @@ public final class ImmutableThingTest {
                 .hasNoLifecycle()
                 .hasRevision(REVISION)
                 .hasModified(MODIFIED);
+    }
+
+    @Test
+    public void createThingWithInvalidPolicyId() {
+        final String invalidPolicyId = "namespace:";
+        assertThatExceptionOfType(ThingPolicyIdInvalidException.class).isThrownBy(() -> {
+            ImmutableThing.of(
+                    THING_ID,
+                    invalidPolicyId,
+                    ATTRIBUTES,
+                    FEATURES,
+                    LIFECYCLE,
+                    REVISION,
+                    MODIFIED);
+        });
+    }
+
+    @Test
+    public void setInvalidPolicyId() {
+        final String validPolicyId = "namespace:name";
+        final String invalidPolicyId = "namespace:";
+
+        final Thing thing = ImmutableThing.of(
+                THING_ID,
+                validPolicyId,
+                ATTRIBUTES,
+                FEATURES,
+                LIFECYCLE,
+                REVISION,
+                MODIFIED);
+
+        assertThatExceptionOfType(ThingPolicyIdInvalidException.class).isThrownBy(() -> thing.setPolicyId(invalidPolicyId));
     }
 
     @Test
