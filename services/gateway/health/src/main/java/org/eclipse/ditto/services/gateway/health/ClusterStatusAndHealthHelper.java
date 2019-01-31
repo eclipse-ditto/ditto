@@ -51,7 +51,7 @@ final class ClusterStatusAndHealthHelper {
     private static final String STATUS_SUPPLIER_PATH = "/user/" + StatusSupplierActor.ACTOR_NAME;
 
     protected final ActorSystem actorSystem;
-    protected final Supplier<ClusterStatus> clusterStateSupplier;
+    private final Supplier<ClusterStatus> clusterStateSupplier;
 
     private ClusterStatusAndHealthHelper(final ActorSystem actorSystem,
             final Supplier<ClusterStatus> clusterStateSupplier) {
@@ -207,8 +207,8 @@ final class ClusterStatusAndHealthHelper {
                                     .thenApply(remoteStatuses -> {
                                         if (reachable.isEmpty()) {
                                             return StatusInfo.fromDetail(StatusDetailMessage.of(
-                                                    StatusDetailMessage.Level.ERROR, "Role is not available on any " +
-                                                            "remote address"));
+                                                    StatusDetailMessage.Level.ERROR,
+                                                    "Role is not available on any remote address"));
                                         } else {
                                             return StatusInfo.composite(remoteStatuses);
                                         }

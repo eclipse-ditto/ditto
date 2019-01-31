@@ -46,29 +46,29 @@ public final class ClusterStatusSupplier implements Supplier<ClusterStatus> {
     public ClusterStatus get() {
         final Function<Member, String> mapMemberToString = member -> member.address().toString();
 
-        final Set<Member> unreachable = cluster.state().getUnreachable(); //
+        final Set<Member> unreachable = cluster.state().getUnreachable();
         final Set<Member> all =
                 StreamSupport.stream(cluster.state().getMembers().spliterator(), false).collect(Collectors.toSet());
         final Set<Member> reachable = all.stream().filter(m -> !unreachable.contains(m)).collect(Collectors.toSet());
 
         final Set<ClusterRoleStatus> roles = new HashSet<>(cluster.state().getAllRoles().size());
-        cluster.state().getAllRoles().forEach(role -> { //
+        cluster.state().getAllRoles().forEach(role -> {
             final Predicate<Member> filterRole = member -> member.getRoles().contains(role);
-            roles.add(ClusterRoleStatus.of( //
-                    role, //
-                    reachable.stream().filter(filterRole).map(mapMemberToString).collect(Collectors.toSet()), //
-                    unreachable.stream().filter(filterRole).map(mapMemberToString).collect(Collectors.toSet()), //
-                    Optional.ofNullable(cluster.state().getRoleLeader(role)).map(Address::toString).orElse(null) //
+            roles.add(ClusterRoleStatus.of(
+                    role,
+                    reachable.stream().filter(filterRole).map(mapMemberToString).collect(Collectors.toSet()),
+                    unreachable.stream().filter(filterRole).map(mapMemberToString).collect(Collectors.toSet()),
+                    Optional.ofNullable(cluster.state().getRoleLeader(role)).map(Address::toString).orElse(null)
             ));
         });
 
-        return ClusterStatus.of( //
-                reachable.stream().map(mapMemberToString).collect(Collectors.toSet()), //
-                unreachable.stream().map(mapMemberToString).collect(Collectors.toSet()), //
-                cluster.state().getSeenBy().stream().map(Address::toString).collect(Collectors.toSet()), //
-                Optional.ofNullable(cluster.state().getLeader()).map(Address::toString).orElse(null), //
-                cluster.getSelfRoles(), //
-                roles //
+        return ClusterStatus.of(
+                reachable.stream().map(mapMemberToString).collect(Collectors.toSet()),
+                unreachable.stream().map(mapMemberToString).collect(Collectors.toSet()),
+                cluster.state().getSeenBy().stream().map(Address::toString).collect(Collectors.toSet()),
+                Optional.ofNullable(cluster.state().getLeader()).map(Address::toString).orElse(null),
+                cluster.getSelfRoles(),
+                roles
         );
     }
 
