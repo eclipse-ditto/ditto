@@ -12,9 +12,7 @@ package org.eclipse.ditto.signals.base;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import javax.annotation.concurrent.Immutable;
@@ -59,6 +57,11 @@ public final class GlobalErrorRegistry extends AbstractErrorRegistry<DittoRuntim
                         .build());
     }
 
+    /**
+     * Gets an instance of {@link GlobalErrorRegistry}.
+     *
+     * @return the instance of {@link GlobalErrorRegistry}.
+     */
     public static GlobalErrorRegistry getInstance() {
         return instance;
     }
@@ -133,7 +136,10 @@ public final class GlobalErrorRegistry extends AbstractErrorRegistry<DittoRuntim
                     appendMethodToParseStrategies(errorCode, method);
 
                 } catch (NoSuchMethodException e) {
-                    // TODO: Log warning or throw an exception?
+                    final String message = String.format("Could not create deserializing strategy for '%s'.",
+                            parsableException.getName());
+
+                    throw new Error(message, e);
                 }
             });
         }

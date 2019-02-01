@@ -17,11 +17,22 @@ import java.lang.annotation.Target;
 
 import org.atteo.classindex.IndexAnnotated;
 
+/**
+ * This annotated marks a class as deserializable from Json when calling the specified
+ * {@link JsonParsableException#method()} with {@link org.eclipse.ditto.json.JsonObject} as first
+ * and {@link org.eclipse.ditto.model.base.headers.DittoHeaders} as second argument.
+ * The {@link JsonParsableException#errorCode()} is used as identifier of this exception.
+ */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @IndexAnnotated
 public @interface JsonParsableException {
 
+    /**
+     * Used as identifier of the exception.
+     *
+     * @return the error code.
+     */
     String errorCode();
 
     /**
