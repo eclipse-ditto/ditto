@@ -10,17 +10,9 @@
  */
 package org.eclipse.ditto.services.thingsearch.starter;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import java.util.Arrays;
 
-import org.atteo.classindex.ClassIndex;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
-import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.messages.AuthorizationSubjectBlockedException;
 import org.eclipse.ditto.model.namespaces.NamespaceBlockedException;
 import org.eclipse.ditto.model.policies.PolicyEntryInvalidException;
@@ -33,7 +25,6 @@ import org.eclipse.ditto.signals.commands.batch.exceptions.BatchAlreadyExecuting
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyConflictException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInvalidException;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidNamespacesException;
-import org.junit.Test;
 
 public final class ThingsSearchServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
 
