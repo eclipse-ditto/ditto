@@ -12,45 +12,45 @@ package org.eclipse.ditto.services.thingsearch.starter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Arrays;
+
 import org.atteo.classindex.ClassIndex;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
+import org.eclipse.ditto.model.messages.AuthorizationSubjectBlockedException;
+import org.eclipse.ditto.model.namespaces.NamespaceBlockedException;
+import org.eclipse.ditto.model.policies.PolicyEntryInvalidException;
+import org.eclipse.ditto.model.things.AclEntryInvalidException;
+import org.eclipse.ditto.services.utils.test.GlobalErrorRegistryTestCases;
+import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
+import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
+import org.eclipse.ditto.signals.commands.batch.exceptions.BatchAlreadyExecutingException;
+import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyConflictException;
+import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInvalidException;
+import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidNamespacesException;
 import org.junit.Test;
 
-public final class ThingsSearchServiceGlobalErrorRegistryTest {
+public final class ThingsSearchServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
 
-    @Test
-    public void allExceptionsRegistered() {
-        final Iterable<Class<? extends DittoRuntimeException>> subclassesOfDRE =
-                ClassIndex.getSubclasses(DittoRuntimeException.class);
-
-        for (Class<? extends DittoRuntimeException> subclassOfDRE : subclassesOfDRE) {
-            if (DittoJsonException.class.isAssignableFrom(subclassOfDRE)) {
-                //DittoJsonException is another concept than the rest of DittoRuntimeExceptions
-                continue;
-            }
-            assertThat(subclassOfDRE.isAnnotationPresent(JsonParsableException.class))
-                    .as("Check that '%s' is annotated with JsonParsableException.", subclassOfDRE.getName())
-                    .isTrue();
-        }
-    }
-
-    @Test
-    public void allRegisteredExceptionsContainAMethodToParseFromJson() throws NoSuchMethodException {
-        final Iterable<Class<?>> jsonParsableExceptions = ClassIndex.getAnnotated(JsonParsableException.class);
-
-        for (Class<?> jsonParsableException : jsonParsableExceptions) {
-            final JsonParsableException annotation = jsonParsableException.getAnnotation(JsonParsableException.class);
-            assertAnnotationIsValid(annotation, jsonParsableException);
-        }
-    }
-
-    private void assertAnnotationIsValid(JsonParsableException annotation, Class<?> cls) throws NoSuchMethodException {
-        assertThat(cls.getMethod(annotation.method(), JsonObject.class, DittoHeaders.class))
-                .as("Check that JsonParsableException of '%s' has correct methodName.", cls.getName())
-                .isNotNull();
+    public ThingsSearchServiceGlobalErrorRegistryTest() {
+        super(Arrays.asList(
+                DittoHeaderInvalidException.class,
+                PolicyEntryInvalidException.class,
+                AclEntryInvalidException.class,
+                CommandNotSupportedException.class,
+                GatewayAuthenticationFailedException.class,
+                PolicyConflictException.class,
+                AclModificationInvalidException.class,
+                AuthorizationSubjectBlockedException.class,
+                JsonTypeNotParsableException.class,
+                BatchAlreadyExecutingException.class,
+                InvalidNamespacesException.class,
+                NamespaceBlockedException.class
+        ));
     }
 }
