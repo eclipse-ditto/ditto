@@ -18,7 +18,6 @@ import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -34,7 +33,6 @@ import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.message.facade.JmsMessageFacade;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsMessageFacade;
 import org.apache.qpid.proton.amqp.Symbol;
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -68,7 +66,6 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     static final String ACTOR_NAME_PREFIX = "amqpConsumerActor-";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-    private final String sourceAddress;
     private final MessageConsumer messageConsumer;
     private final EnforcementFilterFactory<Map<String, String>, String> headerEnforcementFilterFactory;
 
@@ -77,7 +74,6 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
             final ActorRef messageMappingProcessor, final Source source) {
         super(connectionId, sourceAddress, messageMappingProcessor, source.getAuthorizationContext(),
                 source.getHeaderMapping().orElse(null));
-        this.sourceAddress = checkNotNull(sourceAddress, "sourceAddress");
         this.messageConsumer = checkNotNull(messageConsumer);
         checkNotNull(source, "source");
 
