@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
+import java.util.function.Supplier;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -31,17 +32,24 @@ public final class DefaultContext implements CommandStrategy.Context {
     private final ThingSnapshotter<?, ?> thingSnapshotter;
     private final Runnable becomeCreatedRunnable;
     private final Runnable becomeDeletedRunnable;
+    private final Runnable stopThisActorRunnable;
+    private final Supplier<Boolean> isFirstMessageSupplier;
 
     private DefaultContext(final String theThingId,
             final DiagnosticLoggingAdapter theLog,
             final ThingSnapshotter<?, ?> theThingSnapshotter,
-            final Runnable becomeCreatedRunnable, final Runnable becomeDeletedRunnable) {
+            final Runnable becomeCreatedRunnable,
+            final Runnable becomeDeletedRunnable,
+            final Runnable stopThisActorRunnable,
+            final Supplier<Boolean> isFirstMessageSupplier) {
 
         thingId = checkNotNull(theThingId, "Thing ID");
         log = checkNotNull(theLog, "DiagnosticLoggingAdapter");
         thingSnapshotter = checkNotNull(theThingSnapshotter, "ThingSnapshotter");
         this.becomeCreatedRunnable = checkNotNull(becomeCreatedRunnable, "becomeCreatedRunnable");
         this.becomeDeletedRunnable = checkNotNull(becomeDeletedRunnable, "becomeDeletedRunnable");
+        this.stopThisActorRunnable = checkNotNull(stopThisActorRunnable, "stopThisActorRunnable");
+        this.isFirstMessageSupplier = checkNotNull(isFirstMessageSupplier, "isFirstMessageSupplier");
     }
 
     /**
@@ -52,15 +60,20 @@ public final class DefaultContext implements CommandStrategy.Context {
      * @param thingSnapshotter the snapshotter to be used.
      * @param becomeCreatedRunnable the runnable to be called in case a Thing is created.
      * @param becomeDeletedRunnable the runnable to be called in case a Thing is deleted.
+     * @param isFirstMessageSupplier whether this message is the first.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static DefaultContext getInstance(final String thingId,
             final DiagnosticLoggingAdapter log,
-            final ThingSnapshotter<?, ?> thingSnapshotter, final Runnable becomeCreatedRunnable,
-            final Runnable becomeDeletedRunnable) {
+            final ThingSnapshotter<?, ?> thingSnapshotter,
+            final Runnable becomeCreatedRunnable,
+            final Runnable becomeDeletedRunnable,
+            final Runnable stopThisActorRunnable,
+            final Supplier<Boolean> isFirstMessageSupplier) {
 
-        return new DefaultContext(thingId, log, thingSnapshotter, becomeCreatedRunnable, becomeDeletedRunnable);
+        return new DefaultContext(thingId, log, thingSnapshotter, becomeCreatedRunnable, becomeDeletedRunnable,
+                stopThisActorRunnable, isFirstMessageSupplier);
     }
 
     @Override
@@ -89,6 +102,16 @@ public final class DefaultContext implements CommandStrategy.Context {
     }
 
     @Override
+    public Runnable getStopThisActorRunnable() {
+        return stopThisActorRunnable;
+    }
+
+    @Override
+    public boolean isFirstMessage() {
+        return isFirstMessageSupplier.get();
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -101,12 +124,15 @@ public final class DefaultContext implements CommandStrategy.Context {
                 Objects.equals(log, that.log) &&
                 Objects.equals(thingSnapshotter, that.thingSnapshotter) &&
                 Objects.equals(becomeCreatedRunnable, that.becomeCreatedRunnable) &&
-                Objects.equals(becomeDeletedRunnable, that.becomeDeletedRunnable);
+                Objects.equals(becomeDeletedRunnable, that.becomeDeletedRunnable) &&
+                Objects.equals(stopThisActorRunnable, that.stopThisActorRunnable) &&
+                Objects.equals(isFirstMessageSupplier, that.isFirstMessageSupplier);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(thingId, log, thingSnapshotter, becomeCreatedRunnable, becomeDeletedRunnable);
+        return Objects.hash(thingId, log, thingSnapshotter, becomeCreatedRunnable, becomeDeletedRunnable,
+                stopThisActorRunnable, isFirstMessageSupplier);
     }
 
     @Override
@@ -117,6 +143,8 @@ public final class DefaultContext implements CommandStrategy.Context {
                 ", thingSnapshotter=" + thingSnapshotter +
                 ", becomeCreatedRunnable=" + becomeCreatedRunnable +
                 ", becomeDeletedRunnable=" + becomeDeletedRunnable +
+                ", stopThisActorRunnable=" + stopThisActorRunnable +
+                ", isFirstMessageSupplier=" + isFirstMessageSupplier +
                 "]";
     }
 

@@ -28,7 +28,7 @@ public class StreamConsumerSettingsTest {
     }
 
     @Test
-    public void equalsAndHashcode() throws Exception {
+    public void equalsAndHashcode() {
         EqualsVerifier.forClass(StreamConsumerSettings.class).verify();
     }
 

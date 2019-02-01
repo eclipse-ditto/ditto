@@ -50,17 +50,24 @@ public class MongoClientWrapper implements Closeable {
 
     private final MongoClient mongoClient;
     private final MongoDatabase mongoDatabase;
-    private static EventLoopGroup eventLoopGroup = null;
+
+    @Nullable
+    private final EventLoopGroup eventLoopGroup;
 
     /**
      * Initializes the persistence with a passed in {@code database} and {@code clientSettings}.
      *
      * @param database the host name of the mongoDB database.
      * @param mongoClientSettings the settings to use.
+     * @param eventLoopGroup the event loop group if it should shutdown when closing the client, or null otherwise
      */
-    private MongoClientWrapper(final String database, final MongoClientSettings mongoClientSettings) {
+    private MongoClientWrapper(final String database,
+            final MongoClientSettings mongoClientSettings,
+            @Nullable final EventLoopGroup eventLoopGroup) {
+
         mongoClient = MongoClients.create(mongoClientSettings);
         mongoDatabase = mongoClient.getDatabase(database);
+        this.eventLoopGroup = eventLoopGroup;
     }
 
     /**
@@ -82,20 +89,20 @@ public class MongoClientWrapper implements Closeable {
         final ConnectionString connectionString = new ConnectionString(uri);
         final String database = connectionString.getDatabase();
 
-        final MongoClientSettings.Builder builder =
-                MongoClientSettings.builder()
-                        .readPreference(ReadPreference.secondaryPreferred())
-                        .clusterSettings(ClusterSettings.builder().applyConnectionString(connectionString).build());
+        final MongoClientSettings.Builder builder = MongoClientSettings.builder()
+                .clusterSettings(ClusterSettings.builder().applyConnectionString(connectionString).build());
 
         if (connectionString.getCredential() != null) {
             builder.credential(connectionString.getCredential());
         }
 
+        final EventLoopGroup eventLoopGroup;
         if (MongoConfig.getSSLEnabled(config)) {
             eventLoopGroup = new NioEventLoopGroup();
             builder.streamFactoryFactory(NettyStreamFactoryFactory.builder().eventLoopGroup(eventLoopGroup).build())
                     .sslSettings(buildSSLSettings());
         } else {
+            eventLoopGroup = null;
             builder.sslSettings(SslSettings.builder()
                     .applyConnectionString(connectionString)
                     .build());
@@ -111,7 +118,7 @@ public class MongoClientWrapper implements Closeable {
         final MongoClientSettings mongoClientSettings = buildClientSettings(builder, maxPoolSize,
                 maxPoolWaitQueueSize, maxPoolWaitTime, jmxListenerEnabled, customConnectionPoolListener);
 
-        return new MongoClientWrapper(database, mongoClientSettings);
+        return new MongoClientWrapper(database, mongoClientSettings, eventLoopGroup);
     }
 
     /**
@@ -141,14 +148,13 @@ public class MongoClientWrapper implements Closeable {
             final int maxPoolSize, final int maxPoolWaitQueueSize, final long maxPoolWaitTimeSecs) {
 
         final MongoClientSettings.Builder builder = MongoClientSettings.builder()
-                .readPreference(ReadPreference.secondaryPreferred())
                 .clusterSettings(ClusterSettings.builder()
                         .hosts(Collections.singletonList(new ServerAddress(host, port)))
                         .build());
 
         final MongoClientSettings mongoClientSettings = buildClientSettings(builder, maxPoolSize,
                 maxPoolWaitQueueSize, Duration.of(maxPoolWaitTimeSecs, ChronoUnit.SECONDS), false, null);
-        return new MongoClientWrapper(dbName, mongoClientSettings);
+        return new MongoClientWrapper(dbName, mongoClientSettings, null);
     }
 
     private static MongoClientSettings buildClientSettings(final MongoClientSettings.Builder builder,
@@ -182,7 +188,7 @@ public class MongoClientWrapper implements Closeable {
             sslContext = SSLContext.getInstance("TLSv1.2");
             sslContext.init(null, null, null);
         } catch (NoSuchAlgorithmException e) {
-            throw new IllegalArgumentException("No such Algorithm is supported ",  e);
+            throw new IllegalArgumentException("No such Algorithm is supported ", e);
         } catch (KeyManagementException e) {
             throw new IllegalStateException("KeyManagementException ", e);
         }

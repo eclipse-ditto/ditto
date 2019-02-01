@@ -81,7 +81,6 @@ public class DefaultStreamSupervisorTest {
     @Mock
     private StreamMetadataPersistence searchSyncPersistence;
 
-    /** */
     @Before
     public void setUpBase() {
         final Config config = ConfigFactory.load("test");
@@ -91,12 +90,11 @@ public class DefaultStreamSupervisorTest {
         provider = TestProbe.apply(actorSystem);
 
         when(searchSyncPersistence.retrieveLastSuccessfulStreamEnd())
-                .thenAnswer(unused -> Optional.of(KNOWN_LAST_SYNC));
+                .thenAnswer(unused -> Source.single(Optional.of(KNOWN_LAST_SYNC)));
         when(searchSyncPersistence.updateLastSuccessfulStreamEnd(any(Instant.class)))
                 .thenReturn(Source.single(NotUsed.getInstance()));
     }
 
-    /** */
     @After
     public void tearDownBase() {
         if (actorSystem != null) {

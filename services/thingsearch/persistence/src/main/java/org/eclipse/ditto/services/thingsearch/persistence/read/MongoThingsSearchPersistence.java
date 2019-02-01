@@ -41,6 +41,7 @@ import org.eclipse.ditto.services.utils.persistence.mongo.indices.IndexInitializ
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayQueryTimeExceededException;
 
 import com.mongodb.MongoExecutionTimeoutException;
+import com.mongodb.ReadPreference;
 import com.mongodb.client.model.CountOptions;
 import com.mongodb.reactivestreams.client.AggregatePublisher;
 import com.mongodb.reactivestreams.client.MongoCollection;
@@ -73,7 +74,10 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
      * @param actorSystem the Akka ActorSystem.
      */
     public MongoThingsSearchPersistence(final MongoClientWrapper clientWrapper, final ActorSystem actorSystem) {
-        collection = clientWrapper.getDatabase().getCollection(PersistenceConstants.THINGS_COLLECTION_NAME);
+        collection = clientWrapper.getDatabase()
+                .getCollection(PersistenceConstants.THINGS_COLLECTION_NAME)
+                .withReadPreference(ReadPreference.secondaryPreferred());
+
         log = Logging.getLogger(actorSystem, getClass());
         materializer = ActorMaterializer.create(actorSystem);
         indexInitializer = IndexInitializer.of(clientWrapper.getDatabase(), materializer);

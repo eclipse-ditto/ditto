@@ -90,8 +90,7 @@ public final class AclEnforcer implements Enforcer {
     public EffectedSubjectIds getSubjectIdsWithPermission(final ResourceKey resourceKey,
             final Permissions permissions) {
         final Set<String> grantedSubjects = getSubjectIdsWithPartialPermission(resourceKey, permissions);
-        final Set<String> revokedSubjects = getComplementSet(grantedSubjects);
-        return ImmutableEffectedSubjectIds.of(grantedSubjects, revokedSubjects);
+        return ImmutableEffectedSubjectIds.ofGranted(grantedSubjects);
     }
 
     @Override
@@ -100,25 +99,6 @@ public final class AclEnforcer implements Enforcer {
         return acl.getAuthorizedSubjectsFor(mapPermissions(permissions))
                 .stream()
                 .map(AuthorizationSubject::getId)
-                .collect(Collectors.toSet());
-    }
-
-    /**
-     * Compute the complement set of a set of subject IDs with respect to subject IDs mentioned in the ACL.
-     *
-     * @param excludedSet a set of subject IDs.
-     * @return complement of {@code excludedSet}.
-     */
-    private Set<String> getComplementSet(final Set<String> excludedSet) {
-        return acl.stream()
-                .flatMap(aclEntry -> {
-                    final String subjectId = aclEntry.getAuthorizationSubject().getId();
-                    if (excludedSet.contains(subjectId)) {
-                        return Stream.empty();
-                    } else {
-                        return Stream.of(subjectId);
-                    }
-                })
                 .collect(Collectors.toSet());
     }
 
