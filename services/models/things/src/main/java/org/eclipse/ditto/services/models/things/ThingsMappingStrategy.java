@@ -43,6 +43,8 @@ public final class ThingsMappingStrategy implements MappingStrategy {
     public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy() {
         final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
 
+        builder.add(GlobalErrorRegistry.getInstance());
+
         addThingsStrategies(builder);
         addCommonStrategies(builder);
         addDevOpsStrategies(builder);
@@ -52,8 +54,7 @@ public final class ThingsMappingStrategy implements MappingStrategy {
     }
 
     private static void addThingsStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(GlobalErrorRegistry.getInstance())
-                .add(ThingCommandRegistry.newInstance())
+        builder.add(ThingCommandRegistry.newInstance())
                 .add(ThingCommandResponseRegistry.newInstance())
                 .add(ThingEventRegistry.newInstance())
                 .add(SudoCommandRegistry.newInstance())

@@ -44,6 +44,8 @@ public final class PoliciesMappingStrategy implements MappingStrategy {
     public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy() {
         final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
 
+        builder.add(GlobalErrorRegistry.getInstance());
+
         addPoliciesStrategies(builder);
         addCommonStrategies(builder);
         addDevOpsStrategies(builder);
@@ -53,8 +55,7 @@ public final class PoliciesMappingStrategy implements MappingStrategy {
     }
 
     private static void addPoliciesStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(GlobalErrorRegistry.getInstance())
-                .add(PolicyCommandRegistry.newInstance())
+        builder.add(PolicyCommandRegistry.newInstance())
                 .add(PolicyCommandResponseRegistry.newInstance())
                 .add(PolicyEventRegistry.newInstance())
                 .add(SudoCommandRegistry.newInstance())

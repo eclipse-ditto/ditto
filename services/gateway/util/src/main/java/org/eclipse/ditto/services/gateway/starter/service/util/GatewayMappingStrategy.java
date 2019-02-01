@@ -66,6 +66,8 @@ public final class GatewayMappingStrategy implements MappingStrategy {
         builder.add(StreamingAck.class,
                 jsonObject -> StreamingAck.fromJson(jsonObject)); // do not replace with lambda!
 
+        builder.add(GlobalErrorRegistry.getInstance());
+
         addMessagesStrategies(builder);
         addCommonStrategies(builder);
         addDevOpsStrategies(builder);
@@ -78,7 +80,6 @@ public final class GatewayMappingStrategy implements MappingStrategy {
     private static void addMessagesStrategies(final MappingStrategiesBuilder builder) {
         builder.add(MessageCommandRegistry.newInstance());
         builder.add(MessageCommandResponseRegistry.newInstance());
-        builder.add(GlobalErrorRegistry.getInstance());
     }
 
     private static void addCommonStrategies(final MappingStrategiesBuilder builder) {
@@ -93,7 +94,6 @@ public final class GatewayMappingStrategy implements MappingStrategy {
     private static void addNamespacesStrategies(final MappingStrategiesBuilder builder) {
         builder.add(NamespaceCommandRegistry.getInstance());
         builder.add(NamespaceCommandResponseRegistry.getInstance());
-        builder.add(GlobalErrorRegistry.getInstance());
     }
 
 }

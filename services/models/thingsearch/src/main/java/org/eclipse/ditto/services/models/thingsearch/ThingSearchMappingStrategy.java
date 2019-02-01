@@ -57,6 +57,8 @@ public final class ThingSearchMappingStrategy implements MappingStrategy {
 
         final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
 
+        builder.add(GlobalErrorRegistry.getInstance());
+
         addThingSearchStrategies(builder);
         addCommonStrategies(builder);
         addDevOpsStrategies(builder);
@@ -69,7 +71,6 @@ public final class ThingSearchMappingStrategy implements MappingStrategy {
     private static void addThingSearchStrategies(final MappingStrategiesBuilder builder) {
         builder.add(ThingSearchCommandRegistry.newInstance());
         builder.add(ThingSearchCommandResponseRegistry.newInstance());
-        builder.add(GlobalErrorRegistry.getInstance());
         builder.add(ThingSearchSudoCommandRegistry.newInstance());
         builder.add(ThingSearchSudoCommandResponseRegistry.newInstance());
         builder.add(StreamingRegistry.newInstance());

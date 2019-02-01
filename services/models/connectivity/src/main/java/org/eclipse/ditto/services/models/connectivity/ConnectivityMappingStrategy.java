@@ -82,7 +82,6 @@ public final class ConnectivityMappingStrategy implements MappingStrategy {
     private static void addMessagesStrategies(final MappingStrategiesBuilder builder) {
         builder.add(MessageCommandRegistry.newInstance());
         builder.add(MessageCommandResponseRegistry.newInstance());
-        builder.add(GlobalErrorRegistry.getInstance());
     }
 
     private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {
