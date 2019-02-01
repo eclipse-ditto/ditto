@@ -81,6 +81,9 @@
                 <configuration>
                     <parameter>
                         <excludes>
+                            <exclude>org.eclipse.ditto.model.policies.Policy#NAMESPACE_PREFIX_REGEX</exclude>
+                            <exclude>org.eclipse.ditto.model.policies.Policy#ID_NON_NAMESPACE_REGEX</exclude>
+                            <exclude>org.eclipse.ditto.model.policies.Policy#ID_REGEX</exclude>
                         </excludes>
                     </parameter>
                 </configuration>
@@ -93,7 +96,8 @@
                     <execution>
                         <id>produce-json-examples</id>
                         <configuration>
-                            <mainClass>org.eclipse.ditto.model.policies.examplejson.PolicyModelJsonExamplesProducer</mainClass>
+                            <mainClass>org.eclipse.ditto.model.policies.examplejson.PolicyModelJsonExamplesProducer
+                            </mainClass>
                         </configuration>
                     </execution>
                 </executions>
