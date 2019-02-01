@@ -191,6 +191,10 @@
         <release.scm.developerConnection>scm:git:https://github.com/eclipse/ditto.git</release.scm.developerConnection>
         <release.scm.url>https://github.com/eclipse/ditto.git</release.scm.url>
 
+        <ditto.it.report.path>${user.dir}/target/jacoco-it.exec</ditto.it.report.path>
+        <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
+        <sonar.jacoco.reportPaths>target/jacoco.exec, ${ditto.it.report.path}</sonar.jacoco.reportPaths>
+
         <argLine>-Dfile.encoding=${project.build.sourceEncoding}</argLine>
 
         <!-- globally set version for checking binary compatibility against -->
@@ -200,6 +204,10 @@
 
         <maven.skins.fluido.version>1.7</maven.skins.fluido.version>
         <doxia.markdown.version>1.8</doxia.markdown.version>
+
+        <ditto.thirdPartyLicences.excludedGroups>
+            (org\.eclipse\.ditto.*)|(com\.lihaoyi.*)
+        </ditto.thirdPartyLicences.excludedGroups>
     </properties>
 
     <build>
@@ -529,20 +537,6 @@
                             <outputDirectory>${project.build.outputDirectory}/META-INF</outputDirectory>
                         </configuration>
                     </execution>
-                    <execution>
-                        <id>copy-dependencies</id>
-                        <phase>install</phase>
-                        <goals>
-                            <goal>copy-dependencies</goal>
-                        </goals>
-                        <configuration>
-                            <includeScope>runtime</includeScope>
-                            <outputDirectory>${project.build.directory}/dependencies</outputDirectory>
-                            <overWriteReleases>false</overWriteReleases>
-                            <overWriteSnapshots>false</overWriteSnapshots>
-                            <overWriteIfNewer>true</overWriteIfNewer>
-                        </configuration>
-                    </execution>
                 </executions>
             </plugin>
             <!-- in order to gather all dependencies which are used in Ditto, execute following bash command:
@@ -586,16 +580,30 @@
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>pre-test</id>
+                        <id>prepare-agent-test</id>
                         <goals>
                             <goal>prepare-agent</goal>
                         </goals>
                     </execution>
                     <execution>
-                        <id>post-test</id>
-                        <phase>test</phase>
+                        <id>prepare-agent-it</id>
+                        <goals>
+                            <goal>prepare-agent-integration</goal>
+                        </goals>
+                        <configuration>
+                            <destFile>${ditto.it.report.path}</destFile>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>report-test</id>
                         <goals>
                             <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report-it</id>
+                        <goals>
+                            <goal>report-integration</goal>
                         </goals>
                     </execution>
                 </executions>
@@ -667,15 +675,14 @@
                                 </goals>
                                 <configuration>
                                     <outputDirectory>${project.build.outputDirectory}/META-INF</outputDirectory>
-                                    <excludedGroups>org.eclipse.ditto.*</excludedGroups>
+                                    <excludedGroups>${ditto.thirdPartyLicences.excludedGroups}</excludedGroups>
                                     <includedScopes>compile</includedScopes>
                                     <failOnMissing>true</failOnMissing>
                                     <fileTemplate>${maven.multiModuleProjectDirectory}/legal/templates/third-party-file.ftl
                                     </fileTemplate>
                                     <thirdPartyFilename>NOTICE-THIRD-PARTY.md</thirdPartyFilename>
-                                    <licenseMergesFile>${maven.multiModuleProjectDirectory}/legal/templates/licenses-merges-file
-                                    </licenseMergesFile>
-                                    <excludedGroups>com\.lihaoyi.*</excludedGroups>
+                                    <licenseMerges>${maven.multiModuleProjectDirectory}/legal/templates/licenses-merges-file
+                                    </licenseMerges>
                                 </configuration>
                             </execution>
                         </executions>
@@ -700,13 +707,12 @@
                                 </goals>
                                 <configuration>
                                     <outputDirectory>./legal</outputDirectory>
-                                    <excludedGroups>org.eclipse.ditto.*</excludedGroups>
+                                    <excludedGroups>${ditto.thirdPartyLicences.excludedGroups}</excludedGroups>
                                     <includedScopes>compile</includedScopes>
                                     <failOnMissing>true</failOnMissing>
                                     <fileTemplate>./legal/templates/third-party-file.ftl</fileTemplate>
                                     <thirdPartyFilename>NOTICE-THIRD-PARTY.md</thirdPartyFilename>
-                                    <licenseMergesFile>./legal/templates/licenses-merges-file</licenseMergesFile>
-                                    <excludedGroups>com\.lihaoyi.*</excludedGroups>
+                                    <licenseMerges>./legal/templates/licenses-merges-file</licenseMerges>
                                 </configuration>
                             </execution>
                         </executions>
