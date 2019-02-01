@@ -12,21 +12,26 @@ info:
   description: JSON-based, REST-like API for Eclipse Ditto
   version: "2"
 servers:
-- url: /api/2
+  - url: https://ditto.eclipse.org/api/2
+    description: "online Ditto Sandbox"
+  - url: /api/2
+    description: "local Ditto"
 tags:
-- name: Things
-  description: Manage every Thing
-- name: Features
-  description: Structure the Features of your Things
-- name: Policies
-  description: Control access to your Things
-- name: Search
-  description: Find every Thing
-- name: Messages
-  description: Talk with your Things
+  - name: Things
+    description: Manage every Thing
+  - name: Features
+    description: Structure the Features of your Things
+  - name: Policies
+    description: Control access to your Things
+  - name: Search
+    description: Find every Thing
+  - name: Messages
+    description: Talk with your Things
 security:
-- Google:
-  - openid
+  #  - Google:
+  #    - openid
+  - basicAuth: []
+  - bearerAuth: []
 paths:
   ###
   ### Things
@@ -4121,14 +4126,24 @@ components:
           * for an list, the JSON value is the list: `[ 1,2,3 ]`
       required: true
   securitySchemes:
-    Google:
-      type: oauth2
-      description: Allow Eclipse Ditto to access your Google-ID.
-      x-tokenName: id_token
-      flows:
-        authorizationCode:
-          authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth'
-          tokenUrl: /oauth2/google/token
-          scopes:
-            openid: Access your Google-ID
-
+#    Google:
+#      type: oauth2
+#      description: Allow Eclipse Ditto to access your Google-ID.
+#      x-tokenName: id_token # the authorization_code flow currently doesn't work as this field is not supported in swagger-ui 3 yet
+#      flows:
+#        authorizationCode:
+#          authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth'
+#          tokenUrl: /oauth2/google/token
+#          scopes:
+#            openid: Access your Google-ID
+    basicAuth:
+      type: http
+      description: >-
+        Eclipse Ditto sandbox demo user (demo1 ... demo9) + password (demo)
+      scheme: basic
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >-
+        A JSON Web Token issued by a supported OAuth 2.0 Identity Provider, e.g. a Google "id_token"
