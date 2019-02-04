@@ -15,7 +15,7 @@ spec:
       restartPolicy: Always
       containers:
       - name: concierge
-        image: docker.io/eclipse/ditto-concierge:0.8.0
+        image: docker.io/eclipse/ditto-concierge:{{.Chart.Version}}
         imagePullPolicy: IfNotPresent
         command: ["java"]
         args: ["-jar", "/opt/ditto/starter.jar"]
@@ -72,7 +72,7 @@ spec:
       restartPolicy: Always
       containers:
       - name: connectivity
-        image: docker.io/eclipse/ditto-connectivity:0.8.0
+        image: docker.io/eclipse/ditto-connectivity:{{.Chart.Version}}
         imagePullPolicy: IfNotPresent
         command: ["java"]
         args: ["-jar", "/opt/ditto/starter.jar"]
@@ -129,7 +129,7 @@ spec:
       restartPolicy: Always
       containers:
       - name: things
-        image: docker.io/eclipse/ditto-things:0.8.0
+        image: docker.io/eclipse/ditto-things:{{.Chart.Version}}
         imagePullPolicy: IfNotPresent
         command: ["java"]
         args: ["-jar", "/opt/ditto/starter.jar"]
@@ -185,7 +185,7 @@ spec:
     spec:
       containers:
       - name: things-search
-        image: docker.io/eclipse/ditto-things-search:0.8.0
+        image: docker.io/eclipse/ditto-things-search:{{.Chart.Version}}
         imagePullPolicy: IfNotPresent
         command: ["java"]
         args: ["-jar", "/opt/ditto/starter.jar"]
@@ -241,7 +241,7 @@ spec:
     spec:
       containers:
       - name: policies
-        image: docker.io/eclipse/ditto-policies:0.8.0
+        image: docker.io/eclipse/ditto-policies:{{.Chart.Version}}
         imagePullPolicy: IfNotPresent
         command: ["java"]
         args: ["-jar", "/opt/ditto/starter.jar"]
@@ -297,7 +297,7 @@ spec:
     spec:
       containers:
       - name: gateway
-        image: docker.io/eclipse/ditto-gateway:0.8.0
+        image: docker.io/eclipse/ditto-gateway:{{.Chart.Version}}
         imagePullPolicy: IfNotPresent
         command: ["java"]
         args: ["-jar", "/opt/ditto/starter.jar"]
