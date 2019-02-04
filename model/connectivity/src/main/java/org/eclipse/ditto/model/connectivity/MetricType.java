@@ -36,6 +36,10 @@ public enum MetricType {
      */
     MAPPED("mapped", MetricDirection.INBOUND, MetricDirection.OUTBOUND),
 
+    /**
+     * Counts enforcements for inbound messages.
+     */
+    ENFORCED("enforced", MetricDirection.INBOUND),
 
     /**
      * Counts messages that were dropped (not published by intention e.g. because no reply-to address was given).

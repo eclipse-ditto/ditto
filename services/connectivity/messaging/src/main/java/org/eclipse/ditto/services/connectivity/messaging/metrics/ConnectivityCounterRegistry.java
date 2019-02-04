@@ -220,6 +220,17 @@ public final class ConnectivityCounterRegistry {
     }
 
     /**
+     * Gets counter for {@link MetricDirection#INBOUND}/{@link MetricType#ENFORCED} messages.
+     *
+     * @param connectionId connection id
+     * @param source the source
+     * @return the inbound enforced counter
+     */
+    public static ConnectionMetricsCollector getInboundEnforcedCounter(String connectionId, String source) {
+        return getCounter(connectionId, MetricType.ENFORCED, MetricDirection.INBOUND, source);
+    }
+
+    /**
      * Gets counter for {@link MetricDirection#INBOUND}/{@link MetricType#DROPPED} messages.
      *
      * @param connectionId connection id

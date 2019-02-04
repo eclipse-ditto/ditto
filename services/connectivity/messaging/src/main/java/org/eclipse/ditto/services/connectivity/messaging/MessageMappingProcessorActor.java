@@ -174,9 +174,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
         log.debug("Handling ExternalMessage: {}", externalMessage);
         try {
-            ConnectivityCounterRegistry
-                    .getInboundMappedCounter(connectionId, externalMessage.getSourceAddress().orElse("unknown"))
-                    .record(() -> mapExternalMessageToSignalAndForwardToConcierge(externalMessage));
+            mapExternalMessageToSignalAndForwardToConcierge(externalMessage);
         } catch (final DittoRuntimeException e) {
             handleDittoRuntimeException(e, externalMessage.getHeaders());
         } catch (final Exception e) {
@@ -185,14 +183,22 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     }
 
     private void mapExternalMessageToSignalAndForwardToConcierge(final ExternalMessage externalMessage) {
+        final String source = externalMessage.getSourceAddress().orElse("unknown");
         final ExternalMessage messageWithAuthSubject = placeholderSubstitution.apply(externalMessage);
-        final Optional<InboundExternalMessage> inboundMessageOpt = processor.process(messageWithAuthSubject);
+
+        final Optional<InboundExternalMessage> inboundMessageOpt =
+                ConnectivityCounterRegistry.getInboundMappedCounter(connectionId, source).record(() ->
+                        processor.process(messageWithAuthSubject));
 
         if (inboundMessageOpt.isPresent()) {
             final InboundExternalMessage inboundMessage = inboundMessageOpt.get();
             final Signal<?> signal = inboundMessage.getSignal();
             enhanceLogUtil(signal);
-            applySignalIdEnforcement.accept(messageWithAuthSubject, signal);
+
+            ConnectivityCounterRegistry.getInboundEnforcedCounter(connectionId, source).record(() ->
+                    applySignalIdEnforcement.accept(messageWithAuthSubject, signal));
+            // the above throws an exception if signal id enforcement fails
+
             final Signal<?> adjustedSignal = mapHeaders
                     .andThen(mappedHeaders -> adjustHeaders.apply(messageWithAuthSubject, mappedHeaders))
                     .andThen(signal::setDittoHeaders)
@@ -206,8 +212,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             conciergeForwarder.tell(adjustedSignal, getSelf());
         } else {
             log.debug("Message mapping returned null, message is dropped.");
-            ConnectivityCounterRegistry.getInboundDroppedCounter(connectionId,
-                    externalMessage.getSourceAddress().orElse("unknown")).recordSuccess();
+            ConnectivityCounterRegistry.getInboundDroppedCounter(connectionId, source).recordSuccess();
         }
     }
 
