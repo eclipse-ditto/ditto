@@ -24,11 +24,8 @@ import javax.net.ssl.SSLContext;
 import org.eclipse.ditto.services.utils.config.MongoConfig;
 
 import com.mongodb.ConnectionString;
-import com.mongodb.ReadPreference;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.ServerAddress;
-import com.mongodb.async.client.MongoClientSettings;
-import com.mongodb.connection.ClusterSettings;
-import com.mongodb.connection.ConnectionPoolSettings;
 import com.mongodb.connection.SslSettings;
 import com.mongodb.connection.netty.NettyStreamFactoryFactory;
 import com.mongodb.event.CommandListener;
@@ -89,8 +86,8 @@ public class MongoClientWrapper implements Closeable {
         final ConnectionString connectionString = new ConnectionString(uri);
         final String database = connectionString.getDatabase();
 
-        final MongoClientSettings.Builder builder = MongoClientSettings.builder()
-                .clusterSettings(ClusterSettings.builder().applyConnectionString(connectionString).build());
+        final MongoClientSettings.Builder builder =
+                MongoClientSettings.builder().applyConnectionString(connectionString);
 
         if (connectionString.getCredential() != null) {
             builder.credential(connectionString.getCredential());
@@ -100,12 +97,10 @@ public class MongoClientWrapper implements Closeable {
         if (MongoConfig.getSSLEnabled(config)) {
             eventLoopGroup = new NioEventLoopGroup();
             builder.streamFactoryFactory(NettyStreamFactoryFactory.builder().eventLoopGroup(eventLoopGroup).build())
-                    .sslSettings(buildSSLSettings());
+                    .applyToSslSettings(MongoClientWrapper::buildSSLSettings);
         } else {
             eventLoopGroup = null;
-            builder.sslSettings(SslSettings.builder()
-                    .applyConnectionString(connectionString)
-                    .build());
+            builder.applyToSslSettings(sslBuilder -> sslBuilder.applyConnectionString(connectionString));
         }
 
         if (customCommandListener != null) {
@@ -147,10 +142,9 @@ public class MongoClientWrapper implements Closeable {
     public static MongoClientWrapper newInstance(final String host, final int port, final String dbName,
             final int maxPoolSize, final int maxPoolWaitQueueSize, final long maxPoolWaitTimeSecs) {
 
-        final MongoClientSettings.Builder builder = MongoClientSettings.builder()
-                .clusterSettings(ClusterSettings.builder()
-                        .hosts(Collections.singletonList(new ServerAddress(host, port)))
-                        .build());
+        final MongoClientSettings.Builder builder =
+                MongoClientSettings.builder().applyToClusterSettings(clusterBuilder ->
+                        clusterBuilder.hosts(Collections.singletonList(new ServerAddress(host, port))));
 
         final MongoClientSettings mongoClientSettings = buildClientSettings(builder, maxPoolSize,
                 maxPoolWaitQueueSize, Duration.of(maxPoolWaitTimeSecs, ChronoUnit.SECONDS), false, null);
@@ -164,24 +158,25 @@ public class MongoClientWrapper implements Closeable {
             final boolean jmxListenerEnabled,
             @Nullable final ConnectionPoolListener customConnectionPoolListener) {
 
-        final ConnectionPoolSettings.Builder connectionPoolSettingsBuilder =
-                ConnectionPoolSettings.builder().maxSize(maxPoolSize).maxWaitQueueSize(maxPoolWaitQueueSize)
-                        .maxWaitTime(maxPoolWaitTime.toMillis(), TimeUnit.MILLISECONDS);
+        builder.applyToConnectionPoolSettings(connectionPoolSettingsBuilder -> {
+            connectionPoolSettingsBuilder.maxSize(maxPoolSize)
+                    .maxWaitQueueSize(maxPoolWaitQueueSize)
+                    .maxWaitTime(maxPoolWaitTime.toMillis(), TimeUnit.MILLISECONDS);
 
-        if (jmxListenerEnabled) {
-            connectionPoolSettingsBuilder.addConnectionPoolListener(new JMXConnectionPoolListener());
-        }
+            if (jmxListenerEnabled) {
+                connectionPoolSettingsBuilder.addConnectionPoolListener(new JMXConnectionPoolListener());
+            }
 
-        if (customConnectionPoolListener != null) {
-            connectionPoolSettingsBuilder.addConnectionPoolListener(customConnectionPoolListener);
-        }
+            if (customConnectionPoolListener != null) {
+                connectionPoolSettingsBuilder.addConnectionPoolListener(customConnectionPoolListener);
+            }
 
-        builder.connectionPoolSettings(connectionPoolSettingsBuilder.build());
+        });
 
         return builder.build();
     }
 
-    private static SslSettings buildSSLSettings() {
+    private static void buildSSLSettings(final SslSettings.Builder builder) {
 
         final SSLContext sslContext;
         try {
@@ -193,10 +188,7 @@ public class MongoClientWrapper implements Closeable {
             throw new IllegalStateException("KeyManagementException ", e);
         }
 
-        return SslSettings.builder()
-                .context(sslContext)
-                .enabled(true)
-                .build();
+        builder.context(sslContext).enabled(true).build();
     }
 
     /**
