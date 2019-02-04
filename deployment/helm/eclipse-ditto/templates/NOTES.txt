@@ -1,0 +1,4 @@
+1. Access ditto in your browser by running one of these commands:
+- minikube service ditto (browser is automatically redirected)
+OR
+- kubectl port-forward svc/ditto 8080 (localhost:8080)

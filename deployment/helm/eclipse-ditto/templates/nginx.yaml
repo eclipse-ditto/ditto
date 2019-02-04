@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ditto
+spec:
+  ports:
+  - port: 8080
+    targetPort: 80
+    protocol: TCP
+  type: NodePort
+  selector:
+    app: nginx
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: nginx
+spec:
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: docker.io/nginx:1.15-alpine
+        volumeMounts:
+        - name: nginx-conf
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+        - name: nginx-htpasswd
+          mountPath: /etc/nginx/nginx.htpasswd
+          subPath: nginx.htpasswd
+        - name: nginx-cors
+          mountPath: /etc/nginx/nginx-cors.conf
+          subPath: nginx-cors.conf
+        - name: nginx-index
+          mountPath: /etc/nginx/html/index.html
+          subPath: index.html
+      volumes:
+      - name: nginx-conf
+        configMap:
+          name: nginx-conf
+      - name: nginx-htpasswd
+        configMap:
+          name: nginx-htpasswd
+      - name: nginx-cors
+        configMap:
+          name: nginx-cors
+      - name: nginx-index
+        configMap:
+          name: nginx-index
