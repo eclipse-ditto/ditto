@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
       - name: swagger-ui
-        image: docker.io/swaggerapi/swagger-ui:3.17.4  # old version v2.2.9
+        image: docker.io/swaggerapi/swagger-ui:3.17.4
         volumeMounts:
         - name: swagger-ui-api
           mountPath: /usr/share/nginx/html/openapi

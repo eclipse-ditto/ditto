@@ -23,9 +23,11 @@ spec:
     spec:
       containers:
       - name: mongodb
-        image: docker.io/mongo:3.4
+        image: docker.io/mongo:3.6
         command:
           - mongod
+          - --bind_ip
+          - 0.0.0.0
           - --storageEngine
           - wiredTiger
           - --noscripting
