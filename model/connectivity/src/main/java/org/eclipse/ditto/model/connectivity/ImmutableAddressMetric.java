@@ -65,13 +65,12 @@ final class ImmutableAddressMetric implements AddressMetric {
 
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
-        final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
-        jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
-
         if (measurements.isEmpty()) {
             return JsonFactory.nullObject();
         } else {
+            final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
+            final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
+            jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
             final List<Measurement> sortedMeasurements = new ArrayList<>(measurements);
             sortedMeasurements.sort(getMeasurementComparator());
             for (final Measurement measurement : sortedMeasurements) {
