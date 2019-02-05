@@ -14,6 +14,7 @@ import java.net.URI;
 import java.text.MessageFormat;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -21,8 +22,14 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.connectivity.ConnectivityException;
 
+/**
+ * Thrown for timeout errors on operations on Connections.
+ */
+@Immutable
+@JsonParsableException(errorCode = ConnectionTimeoutException.ERROR_CODE)
 public class ConnectionTimeoutException extends DittoRuntimeException implements ConnectivityException {
 
     /**
@@ -72,11 +79,11 @@ public class ConnectionTimeoutException extends DittoRuntimeException implements
      * Constructs a new {@code ConnectionTimeoutException} object with the exception message extracted from the
      * given JSON object.
      *
-     * @param jsonObject the JSON to read the {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
+     * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new ConnectionTimeoutException.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
-     * org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field.
+     * JsonFields#MESSAGE} field.
      */
     public static ConnectionTimeoutException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
