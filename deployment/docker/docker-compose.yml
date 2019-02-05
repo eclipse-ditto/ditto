@@ -118,13 +118,12 @@ services:
       - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
 
   swagger-ui:
-    image: docker.io/swaggerapi/swagger-ui:v2.2.9
+    image: docker.io/swaggerapi/swagger-ui:v3.20.5
     volumes:
        - ../../documentation/src/main/resources/openapi:/usr/share/nginx/html/openapi:ro
        - ../../documentation/src/main/resources/images:/usr/share/nginx/html/images:ro
-       - ./swagger-index.html:/usr/share/nginx/html/index.html:ro
-    environment:
-      - API_URL=/apidoc/openapi/ditto-api-1.yml
+       - ./swagger3-index.html:/usr/share/nginx/html/index.html:ro
+    command: nginx -g 'daemon off;'
 
   nginx:
     image: docker.io/nginx:1.13-alpine

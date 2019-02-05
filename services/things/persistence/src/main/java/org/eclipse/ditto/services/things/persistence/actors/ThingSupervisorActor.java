@@ -33,9 +33,11 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
 import akka.actor.OneForOneStrategy;
+import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
+import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.DeciderBuilder;
@@ -155,7 +157,14 @@ public final class ThingSupervisorActor extends AbstractActor {
         strategyAwareReceiveBuilder.matchEach(receiveStrategies);
         strategyAwareReceiveBuilder.matchAny(new MatchAnyStrategy());
 
-        return shutdownNamespaceBehavior.createReceive().build().orElse(strategyAwareReceiveBuilder.build());
+        return shutdownNamespaceBehavior.createReceive()
+                .matchEquals(Control.PASSIVATE, this::passivate)
+                .build()
+                .orElse(strategyAwareReceiveBuilder.build());
+    }
+
+    private void passivate(final Control passivationTrigger) {
+        getContext().getParent().tell(new ShardRegion.Passivate(PoisonPill.getInstance()), getSelf());
     }
 
     private void startChild() {
@@ -294,4 +303,7 @@ public final class ThingSupervisorActor extends AbstractActor {
 
     }
 
+    enum Control {
+        PASSIVATE
+    }
 }

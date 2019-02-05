@@ -88,7 +88,7 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
     private Cancellable activityCheck;
 
     protected AbstractStreamForwarder() {
-        log.info("Creating new StreamForwarder");
+        log.debug("Creating new StreamForwarder");
     }
 
     /**
@@ -255,7 +255,7 @@ public abstract class AbstractStreamForwarder<E> extends AbstractActor {
     }
 
     private void streamCompleted(final Object completionMessage) {
-        log.info("Stream successfully finished.");
+        log.debug("Stream successfully finished.");
         getCompletionRecipient().tell(completionMessage, getSelf());
         getContext().stop(getSelf());
     }

@@ -14,6 +14,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_ID;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
 import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.sudoRetrieveThingResponse;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -25,6 +29,8 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
+import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.junit.Before;
 import org.junit.Test;
@@ -86,9 +92,9 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
         final JsonObject expectedThingJson = THING_V2.toJson(command.getImplementedSchemaVersion(),
                 FieldType.regularOrSpecial());
         final SudoRetrieveThingResponse expectedResponse =
-                sudoRetrieveThingResponse(THING_V2, expectedThingJson, dittoHeaders);
+                sudoRetrieveThingResponse(expectedThingJson, dittoHeaders);
 
-        assertQueryResult(underTest, THING_V2, command, expectedResponse);
+        assertSudoRetrieveThingResult(underTest, command, expectedResponse);
     }
 
     @Test
@@ -99,9 +105,9 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
         final JsonObject expectedThingJson = THING_V2.toJson(THING_V2.getImplementedSchemaVersion(),
                 FieldType.regularOrSpecial());
         final SudoRetrieveThingResponse expectedResponse =
-                sudoRetrieveThingResponse(THING_V2, expectedThingJson, DittoHeaders.empty());
+                sudoRetrieveThingResponse(expectedThingJson, DittoHeaders.empty());
 
-        assertQueryResult(underTest, THING_V2, command, expectedResponse);
+        assertSudoRetrieveThingResult(underTest, command, expectedResponse);
     }
 
     @Test
@@ -116,9 +122,9 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
         final JsonObject expectedThingJson = THING_V2.toJson(command.getImplementedSchemaVersion(), fieldSelector,
                 FieldType.regularOrSpecial());
         final SudoRetrieveThingResponse expectedResponse =
-                sudoRetrieveThingResponse(THING_V2, expectedThingJson, dittoHeaders);
+                sudoRetrieveThingResponse(expectedThingJson, dittoHeaders);
 
-        assertQueryResult(underTest, THING_V2, command, expectedResponse);
+        assertSudoRetrieveThingResult(underTest, command, expectedResponse);
     }
 
     @Test
@@ -130,9 +136,9 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
         final JsonObject expectedThingJson = THING_V2.toJson(THING_V2.getImplementedSchemaVersion(), fieldSelector,
                 FieldType.regularOrSpecial());
         final SudoRetrieveThingResponse expectedResponse =
-                sudoRetrieveThingResponse(THING_V2, expectedThingJson, DittoHeaders.empty());
+                sudoRetrieveThingResponse(expectedThingJson, DittoHeaders.empty());
 
-        assertQueryResult(underTest, THING_V2, command, expectedResponse);
+        assertSudoRetrieveThingResult(underTest, command, expectedResponse);
     }
 
     @Test
@@ -143,6 +149,21 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
                 new ThingNotAccessibleException(context.getThingId(), command.getDittoHeaders());
 
         assertUnhandledResult(underTest, THING_V2, command, expectedException);
+    }
+
+    private void assertSudoRetrieveThingResult(final CommandStrategy underTest, final Command command,
+            final CommandResponse expectedCommandResponse) {
+
+        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Result result = applyStrategy(underTest, context, THING_V2, command);
+
+        final DummyCommandHandler mock = mock(DummyCommandHandler.class);
+
+        result.apply(context, mock::persist, mock::notify);
+
+        verify(mock).notify(expectedCommandResponse);
+        verify(mock, never()).persist(any(), any());
+        verify(context.getBecomeDeletedRunnable(), never()).run();
     }
 
 }

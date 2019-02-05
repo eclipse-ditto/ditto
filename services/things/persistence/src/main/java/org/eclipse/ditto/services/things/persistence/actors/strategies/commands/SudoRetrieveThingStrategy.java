@@ -59,8 +59,8 @@ final class SudoRetrieveThingStrategy
                 .map(selectedFields -> theThing.toJson(jsonSchemaVersion, selectedFields, FieldType.regularOrSpecial()))
                 .orElseGet(() -> theThing.toJson(jsonSchemaVersion, FieldType.regularOrSpecial()));
 
-        return ResultFactory.newQueryResult(command, thing,
-                SudoRetrieveThingResponse.of(thingJson, command.getDittoHeaders()), this);
+        return ResultFactory.newSudoRetrieveThingResult(
+                SudoRetrieveThingResponse.of(thingJson, command.getDittoHeaders()));
     }
 
     private static JsonSchemaVersion determineSchemaVersion(final SudoRetrieveThing command, final Thing thing) {
@@ -72,7 +72,7 @@ final class SudoRetrieveThingStrategy
     @Override
     protected Result unhandled(final Context context, @Nullable final Thing thing,
             final long nextRevision, final SudoRetrieveThing command) {
-        return ResultFactory.newErrorResult(
+        return ResultFactory.newSudoRetrieveThingResult(
                 new ThingNotAccessibleException(context.getThingId(), command.getDittoHeaders()));
     }
 

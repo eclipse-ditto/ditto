@@ -115,7 +115,11 @@
         <h2>Authentication</h2>
         <p>
             When using the <a href="/apidoc">HTTP API</a> you can authenticate with your Google account in order to use
-            an user ID belonging to only you.
+            an user ID belonging to only you.<br />
+            <strong>WARNING</strong>: This currently won't work due to a missing feature
+            in swagger-ui 3.x: <a href="https://github.com/swagger-api/swagger-ui/issues/4084">swagger-ui #4084</a> and
+            due to a missing feature in Ditto that Google 'accept_token' are not supported:
+            <a href="https://github.com/eclipse/ditto/issues/114">Ditto #114</a>.
         </p>
         <p>
             Alternatively (also in order to connect to the WebSocket API) you can use one of the pre-defined user/password

@@ -50,6 +50,13 @@ public final class SudoRetrieveThing extends AbstractCommand<SudoRetrieveThing> 
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
+    /**
+     * Header to tell the recipient to go back to sleep.
+     */
+    public static final String BACK_TO_SLEEP_HEADER = "x-ditto-back-to-sleep";
+
+    private static final String BACK_TO_SLEEP_VALUE = "true";
+
     static final JsonFieldDefinition<Boolean> JSON_USE_ORIGINAL_SCHEMA_VERSION =
             JsonFactory.newBooleanFieldDefinition("payload/useOriginalSchemaVersion", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
@@ -187,6 +194,22 @@ public final class SudoRetrieveThing extends AbstractCommand<SudoRetrieveThing> 
      */
     public Optional<JsonFieldSelector> getSelectedFields() {
         return Optional.ofNullable(selectedFields);
+    }
+
+    /**
+     * @return a copy of this command with an extra header telling the recipient to go back to sleep.
+     */
+    public SudoRetrieveThing goBackToSleep() {
+        final DittoHeaders newHeaders =
+                getDittoHeaders().toBuilder().putHeader(BACK_TO_SLEEP_HEADER, BACK_TO_SLEEP_VALUE).build();
+        return setDittoHeaders(newHeaders);
+    }
+
+    /**
+     * @return if the recipient should go back to sleep after handling this command.
+     */
+    public static boolean shouldGoBackToSleep(final DittoHeaders dittoHeaders) {
+        return BACK_TO_SLEEP_VALUE.equals(dittoHeaders.get(BACK_TO_SLEEP_HEADER));
     }
 
     @Override
