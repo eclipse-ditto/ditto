@@ -23,6 +23,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.atteo.classindex.IndexSubclasses;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -39,6 +40,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 /**
  * Parent RuntimeException for all RuntimeExceptions of Ditto.
  */
+@IndexSubclasses
 public class DittoRuntimeException extends RuntimeException implements
         Jsonifiable.WithPredicate<JsonObject, JsonField>, WithDittoHeaders<DittoRuntimeException>, WithManifest {
 

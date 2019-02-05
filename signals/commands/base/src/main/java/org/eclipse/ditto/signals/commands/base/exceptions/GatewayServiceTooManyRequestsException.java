@@ -21,11 +21,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * This exception indicates that a Solution or user has sent send too many requests in a defined timeframe.
  */
 @Immutable
+@JsonParsableException(errorCode = GatewayServiceTooManyRequestsException.ERROR_CODE)
 public class GatewayServiceTooManyRequestsException extends DittoRuntimeException implements GatewayException {
 
     /**

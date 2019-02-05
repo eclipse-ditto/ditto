@@ -24,11 +24,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * This exception indicates that a request contains a reference placeholder which references an unknown field on the referenced entity.
  */
 @Immutable
+@JsonParsableException(errorCode = GatewayPlaceholderReferenceUnknownFieldException.ERROR_CODE)
 public final class GatewayPlaceholderReferenceUnknownFieldException extends DittoRuntimeException
         implements GatewayException {
 

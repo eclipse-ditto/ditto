@@ -22,12 +22,14 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.things.ThingException;
 
 /**
  * Thrown if an event cannot be send because the affected thing does not exist or because of a missing permission.
  */
 @Immutable
+@JsonParsableException(errorCode = EventSendNotAllowedException.ERROR_CODE)
 public final class EventSendNotAllowedException extends DittoRuntimeException implements ThingException {
 
     /**

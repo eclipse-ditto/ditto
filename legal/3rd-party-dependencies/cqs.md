@@ -64,6 +64,7 @@
 |org.apache.geronimo.specs|geronimo-jms_2.0_spec|1.0-alpha-2| [16327](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16327) |
 |org.apache.qpid|proton-j|0.29.0| [17533](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17533) |
 |org.apache.qpid|qpid-jms-client|0.36.0| [17532](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17532) |
+|org.atteo.classindex|classindex|3.6| [18906](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18906) |
 |org.eclipse.paho|org.eclipse.paho.client.mqttv3|1.2.0| not required as Eclipse project |
 |org.hdrhistogram|HdrHistogram|2.1.9| [14471](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14471) |
 |org.lmdbjava|lmdbjava|0.6.1| [16336](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16336) |

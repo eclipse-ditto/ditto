@@ -120,6 +120,12 @@
             <artifactId>akka-testkit_${scala.version}</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-utils-test</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -178,6 +184,7 @@
                                 </filter>
                             </filters>
                             <transformers>
+                                <transformer implementation="org.atteo.classindex.ClassIndexTransformer"/>
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
                                     <resource>reference.conf</resource>
@@ -193,6 +200,13 @@
                         </configuration>
                     </execution>
                 </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.atteo.classindex</groupId>
+                        <artifactId>classindex-transformer</artifactId>
+                        <version>${classindex.version}</version>
+                    </dependency>
+                </dependencies>
             </plugin>
 
             <plugin>

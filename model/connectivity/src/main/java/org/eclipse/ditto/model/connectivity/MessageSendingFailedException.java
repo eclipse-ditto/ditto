@@ -22,11 +22,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown if sending of an {@code Signal} to an external system failed.
  */
 @Immutable
+@JsonParsableException(errorCode = MessageSendingFailedException.ERROR_CODE)
 public final class MessageSendingFailedException extends DittoRuntimeException implements ConnectivityException {
 
     /**

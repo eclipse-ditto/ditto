@@ -22,11 +22,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * This exception indicates the payload of a message is too large to be processed by a backend.
  */
 @Immutable
+@JsonParsableException(errorCode = MessagePayloadSizeTooLargeException.ERROR_CODE)
 public final class MessagePayloadSizeTooLargeException extends DittoRuntimeException implements MessageException {
 
     /**

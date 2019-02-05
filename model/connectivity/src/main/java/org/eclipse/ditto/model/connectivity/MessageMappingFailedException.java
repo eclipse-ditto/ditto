@@ -22,11 +22,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown if the mapping of an arbitrary {@code ExternalMessage} failed.
  */
 @Immutable
+@JsonParsableException(errorCode = MessageMappingFailedException.ERROR_CODE)
 public final class MessageMappingFailedException extends DittoRuntimeException implements ConnectivityException {
 
     /**
@@ -34,7 +36,8 @@ public final class MessageMappingFailedException extends DittoRuntimeException i
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "message.mapping.failed";
 
-    private static final String MESSAGE_TEMPLATE = "The external message with content-type ''{0}'' could not be mapped.";
+    private static final String MESSAGE_TEMPLATE =
+            "The external message with content-type ''{0}'' could not be mapped.";
 
     private static final String DEFAULT_DESCRIPTION =
             "Check if you are sending the correct content-type/payload combination an that you have registered a mapper " +

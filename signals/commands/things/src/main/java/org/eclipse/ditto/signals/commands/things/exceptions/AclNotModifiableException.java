@@ -22,6 +22,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.things.ThingException;
 
 /**
@@ -29,6 +30,7 @@ import org.eclipse.ditto.model.things.ThingException;
  * Permission.
  */
 @Immutable
+@JsonParsableException(errorCode = AclNotModifiableException.ERROR_CODE)
 public final class AclNotModifiableException extends DittoRuntimeException implements ThingException {
 
     /**

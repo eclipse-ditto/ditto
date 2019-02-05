@@ -25,15 +25,14 @@ import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.services.models.streaming.StreamingRegistry;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
+import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.common.CommonCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandRegistry;
 import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandResponseRegistry;
-import org.eclipse.ditto.signals.commands.namespaces.NamespaceErrorRegistry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandRegistry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponseRegistry;
-import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyErrorRegistry;
 import org.eclipse.ditto.signals.events.policies.PolicyEventRegistry;
 
 /**
@@ -45,6 +44,8 @@ public final class PoliciesMappingStrategy implements MappingStrategy {
     public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy() {
         final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
 
+        builder.add(GlobalErrorRegistry.getInstance());
+
         addPoliciesStrategies(builder);
         addCommonStrategies(builder);
         addDevOpsStrategies(builder);
@@ -54,8 +55,7 @@ public final class PoliciesMappingStrategy implements MappingStrategy {
     }
 
     private static void addPoliciesStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(PolicyErrorRegistry.newInstance())
-                .add(PolicyCommandRegistry.newInstance())
+        builder.add(PolicyCommandRegistry.newInstance())
                 .add(PolicyCommandResponseRegistry.newInstance())
                 .add(PolicyEventRegistry.newInstance())
                 .add(SudoCommandRegistry.newInstance())
@@ -81,7 +81,6 @@ public final class PoliciesMappingStrategy implements MappingStrategy {
     private static void addNamespacesStrategies(final MappingStrategiesBuilder builder) {
         builder.add(NamespaceCommandRegistry.getInstance());
         builder.add(NamespaceCommandResponseRegistry.getInstance());
-        builder.add(NamespaceErrorRegistry.getInstance());
     }
 
 }

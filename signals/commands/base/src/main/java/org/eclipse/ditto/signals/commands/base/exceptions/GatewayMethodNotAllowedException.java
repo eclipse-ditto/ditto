@@ -22,11 +22,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * This exception indicates a requested HTTP method was not allowed on a API Gateway resource.
  */
 @Immutable
+@JsonParsableException(errorCode = GatewayMethodNotAllowedException.ERROR_CODE)
 public final class GatewayMethodNotAllowedException extends DittoRuntimeException implements GatewayException {
 
     /**

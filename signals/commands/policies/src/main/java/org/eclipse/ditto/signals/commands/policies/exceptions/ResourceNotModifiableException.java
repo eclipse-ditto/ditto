@@ -23,12 +23,14 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyException;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown if a {@link org.eclipse.ditto.model.policies.Resource} could not be modified because the requester had
  * insufficient permissions.
  */
 @Immutable
+@JsonParsableException(errorCode = ResourceNotModifiableException.ERROR_CODE)
 public final class ResourceNotModifiableException extends DittoRuntimeException implements PolicyException {
 
     /**

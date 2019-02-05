@@ -22,11 +22,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown if the Thing's ID is not valid (for example if it does not comply to the Thing ID REGEX).
  */
 @Immutable
+@JsonParsableException(errorCode = ThingIdInvalidException.ERROR_CODE)
 public final class ThingIdInvalidException extends DittoRuntimeException implements ThingException {
 
     /**
@@ -103,7 +105,6 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
 
     /**
      * A mutable builder with a fluent API for a {@link ThingIdInvalidException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<ThingIdInvalidException> {

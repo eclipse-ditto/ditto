@@ -22,11 +22,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown if the the configuration of a Message Mapper failed.
  */
 @Immutable
+@JsonParsableException(errorCode = MessageMapperConfigurationFailedException.ERROR_CODE)
 public final class MessageMapperConfigurationFailedException extends DittoRuntimeException implements
         ConnectivityException {
 
@@ -66,7 +68,8 @@ public final class MessageMapperConfigurationFailedException extends DittoRuntim
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new MessageMapperConfigurationFailedException.
      */
-    public static MessageMapperConfigurationFailedException fromMessage(final String message, final DittoHeaders dittoHeaders) {
+    public static MessageMapperConfigurationFailedException fromMessage(final String message,
+            final DittoHeaders dittoHeaders) {
         return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(message)
@@ -83,7 +86,8 @@ public final class MessageMapperConfigurationFailedException extends DittoRuntim
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
      * JsonFields#MESSAGE} field.
      */
-    public static MessageMapperConfigurationFailedException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+    public static MessageMapperConfigurationFailedException fromJson(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
         return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(readMessage(jsonObject))

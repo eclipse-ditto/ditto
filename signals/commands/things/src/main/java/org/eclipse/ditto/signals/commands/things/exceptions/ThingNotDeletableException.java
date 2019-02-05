@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingException;
 
@@ -31,6 +32,7 @@ import org.eclipse.ditto.model.things.ThingException;
  * Thrown if the Thing could not be deleted because the requester had insufficient permissions to delete it.
  */
 @Immutable
+@JsonParsableException(errorCode = ThingNotDeletableException.ERROR_CODE)
 public final class ThingNotDeletableException extends DittoRuntimeException implements ThingException {
 
     /**
@@ -103,7 +105,6 @@ public final class ThingNotDeletableException extends DittoRuntimeException impl
 
     /**
      * A mutable builder with a fluent API for a {@link ThingNotDeletableException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<ThingNotDeletableException> {

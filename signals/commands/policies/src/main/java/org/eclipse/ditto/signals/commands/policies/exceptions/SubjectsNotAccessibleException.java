@@ -23,11 +23,13 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyException;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown if {@link org.eclipse.ditto.model.policies.Subjects} could not be loaded due to missing authorization.
  */
 @Immutable
+@JsonParsableException(errorCode = SubjectsNotAccessibleException.ERROR_CODE)
 public class SubjectsNotAccessibleException extends DittoRuntimeException implements PolicyException {
 
     /**

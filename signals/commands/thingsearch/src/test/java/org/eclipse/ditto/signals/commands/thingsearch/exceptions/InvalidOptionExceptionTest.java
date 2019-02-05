@@ -21,6 +21,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.thingsearch.query.TestConstants;
 import org.junit.Test;
 
@@ -71,7 +72,7 @@ public class InvalidOptionExceptionTest {
     @Test
     public void checkErrorCodeWorks() {
         final DittoRuntimeException actual =
-                ThingSearchErrorRegistry.newInstance().parse(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
+                GlobalErrorRegistry.getInstance().parse(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(actual).isEqualTo(TestConstants.Search.INVALID_OPTION_EXCEPTION);
     }

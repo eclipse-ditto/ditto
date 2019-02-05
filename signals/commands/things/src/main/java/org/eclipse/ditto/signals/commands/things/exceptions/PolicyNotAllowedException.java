@@ -21,11 +21,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.things.ThingException;
 
 /**
  * Thrown if a Thing cannot be modified because it contained a Policy.
  */
+@JsonParsableException(errorCode = PolicyNotAllowedException.ERROR_CODE)
 public class PolicyNotAllowedException extends DittoRuntimeException implements ThingException {
 
     /**

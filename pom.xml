@@ -397,6 +397,23 @@
                             <ignoreMissingClasses>false</ignoreMissingClasses>
                             <skipPomModules>true</skipPomModules>
                             <htmlTitle>${project.name} :: Binary Compatibility Report</htmlTitle>
+                            <excludes>
+                                <exclude>org.eclipse.ditto.signals.commands.base.CommonErrorRegistry</exclude>
+                                <exclude>org.eclipse.ditto.signals.commands.policies.exceptions.PolicyErrorRegistry</exclude>
+                                <exclude>org.eclipse.ditto.signals.commands.things.exceptions.ThingErrorRegistry</exclude>
+                                <exclude>org.eclipse.ditto.signals.commands.things.ThingErrorResponse#fromJson(org.eclipse.ditto.signals.commands.things.exceptions.ThingErrorRegistry,org.eclipse.ditto.json.JsonObject,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
+                                <exclude>org.eclipse.ditto.signals.commands.things.ThingErrorResponse#fromJson(org.eclipse.ditto.signals.commands.things.exceptions.ThingErrorRegistry,java.lang.String,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
+                                <exclude>org.eclipse.ditto.signals.commands.batch.exceptions.BatchErrorRegistry</exclude>
+                                <exclude>org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorRegistry</exclude>
+                                <exclude>org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorResponse#fromJson(org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorRegistry,org.eclipse.ditto.json.JsonObject,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
+                                <exclude>org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorResponse#fromJson(org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorRegistry,java.lang.String,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
+                                <exclude>org.eclipse.ditto.signals.commands.messages.MessageErrorRegistry</exclude>
+                                <exclude>org.eclipse.ditto.signals.commands.namespaces.NamespaceErrorRegistry</exclude>
+                                <exclude>org.eclipse.ditto.signals.commands.thingsearch.exceptions.ThingSearchErrorRegistry</exclude>
+                                <exclude>org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse#fromJson(org.eclipse.ditto.signals.commands.thingsearch.exceptions.ThingSearchErrorRegistry,org.eclipse.ditto.json.JsonObject,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
+                                <exclude>org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse#fromJson(org.eclipse.ditto.signals.commands.thingsearch.exceptions.ThingSearchErrorRegistry,java.lang.String,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
+                                <exclude>org.eclipse.ditto.protocoladapter.DittoProtocolAdapter$ProtocolAdapterErrorRegistry</exclude>
+                            </excludes>
                         </parameter>
                     </configuration>
                     <executions>
@@ -664,8 +681,8 @@
                                     <fileTemplate>${maven.multiModuleProjectDirectory}/legal/templates/third-party-file.ftl
                                     </fileTemplate>
                                     <thirdPartyFilename>NOTICE-THIRD-PARTY.md</thirdPartyFilename>
-                                    <licenseMerges>${maven.multiModuleProjectDirectory}/legal/templates/licenses-merges-file
-                                    </licenseMerges>
+                                    <licenseMergesFile>${maven.multiModuleProjectDirectory}/legal/templates/licenses-merges-file
+                                    </licenseMergesFile>
                                 </configuration>
                             </execution>
                         </executions>
@@ -695,7 +712,7 @@
                                     <failOnMissing>true</failOnMissing>
                                     <fileTemplate>./legal/templates/third-party-file.ftl</fileTemplate>
                                     <thirdPartyFilename>NOTICE-THIRD-PARTY.md</thirdPartyFilename>
-                                    <licenseMerges>./legal/templates/licenses-merges-file</licenseMerges>
+                                    <licenseMergesFile>./legal/templates/licenses-merges-file</licenseMergesFile>
                                 </configuration>
                             </execution>
                         </executions>

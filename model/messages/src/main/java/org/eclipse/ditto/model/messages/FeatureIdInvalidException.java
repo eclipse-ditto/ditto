@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
- *  
+ *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -21,11 +21,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown if the a Feature ID was missing when it was expected or did not match an expected feature ID.
  */
 @Immutable
+@JsonParsableException(errorCode = FeatureIdInvalidException.ERROR_CODE)
 public final class FeatureIdInvalidException extends DittoRuntimeException implements MessageException {
 
     /**
