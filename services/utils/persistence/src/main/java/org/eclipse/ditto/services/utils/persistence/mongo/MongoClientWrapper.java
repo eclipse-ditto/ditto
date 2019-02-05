@@ -188,7 +188,7 @@ public class MongoClientWrapper implements Closeable {
             throw new IllegalStateException("KeyManagementException ", e);
         }
 
-        builder.context(sslContext).enabled(true).build();
+        builder.context(sslContext).enabled(true);
     }
 
     /**
