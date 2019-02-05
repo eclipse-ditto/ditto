@@ -58,6 +58,7 @@
    org.apache.geronimo.specs:geronimo-jms_2.0_spec:jar:1.0-alpha-2:compile
    org.apache.qpid:proton-j:jar:0.31.0:compile
    org.apache.qpid:qpid-jms-client:jar:0.39.0:compile
+   org.atteo.classindex:classindex:jar:3.6:compile
    org.eclipse.paho:org.eclipse.paho.client.mqttv3:jar:1.2.0:compile
    org.hdrhistogram:HdrHistogram:jar:2.1.9:compile
    org.lmdbjava:lmdbjava:jar:0.6.1:compile

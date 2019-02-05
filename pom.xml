@@ -681,8 +681,8 @@
                                     <fileTemplate>${maven.multiModuleProjectDirectory}/legal/templates/third-party-file.ftl
                                     </fileTemplate>
                                     <thirdPartyFilename>NOTICE-THIRD-PARTY.md</thirdPartyFilename>
-                                    <licenseMerges>${maven.multiModuleProjectDirectory}/legal/templates/licenses-merges-file
-                                    </licenseMerges>
+                                    <licenseMergesFile>${maven.multiModuleProjectDirectory}/legal/templates/licenses-merges-file
+                                    </licenseMergesFile>
                                 </configuration>
                             </execution>
                         </executions>
@@ -712,7 +712,7 @@
                                     <failOnMissing>true</failOnMissing>
                                     <fileTemplate>./legal/templates/third-party-file.ftl</fileTemplate>
                                     <thirdPartyFilename>NOTICE-THIRD-PARTY.md</thirdPartyFilename>
-                                    <licenseMerges>./legal/templates/licenses-merges-file</licenseMerges>
+                                    <licenseMergesFile>./legal/templates/licenses-merges-file</licenseMergesFile>
                                 </configuration>
                             </execution>
                         </executions>
