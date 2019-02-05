@@ -116,8 +116,8 @@ public final class MqttConsumerActor extends BaseConsumerActor {
                     .withEnforcement(getEnforcementFilter(message.topic()))
                     .withSourceAddress(sourceAddress)
                     .build();
-            messageMappingProcessor.tell(externalMessage, getSelf());
             inboundCounter.recordSuccess();
+            messageMappingProcessor.tell(externalMessage, getSelf());
             replyStreamAck();
         } catch (final Exception e) {
             inboundCounter.recordFailure();

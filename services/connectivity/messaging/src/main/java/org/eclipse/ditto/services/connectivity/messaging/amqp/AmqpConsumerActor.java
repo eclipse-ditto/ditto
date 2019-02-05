@@ -152,13 +152,14 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                         .withEnforcement(headerEnforcementFilterFactory.getFilter(headers)).withHeaderMapping(headerMapping)
                         .withSourceAddress(sourceAddress)
                         .build();
+            inboundCounter.recordSuccess();
+
             LogUtil.enhanceLogWithCorrelationId(log, externalMessage.findHeader(DittoHeaderDefinition.CORRELATION_ID.getKey()));
             if (log.isDebugEnabled()) {
                 log.debug("Received message from AMQP 1.0 ({}): {}", externalMessage.getHeaders(),
                         externalMessage.getTextPayload().orElse("binary"));
             }
             messageMappingProcessor.forward(externalMessage, getContext());
-            inboundCounter.recordSuccess();
         } catch (final DittoRuntimeException e) {
             inboundCounter.recordFailure();
             log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());

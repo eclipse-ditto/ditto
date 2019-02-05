@@ -147,8 +147,8 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
             externalMessageBuilder.withHeaderMapping(headerMapping);
             externalMessageBuilder.withSourceAddress(sourceAddress);
             final ExternalMessage externalMessage = externalMessageBuilder.build();
-            messageMappingProcessor.forward(externalMessage, getContext());
             inboundCounter.recordSuccess();
+            messageMappingProcessor.forward(externalMessage, getContext());
         } catch (final DittoRuntimeException e) {
             log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage(), e);
             inboundCounter.recordFailure();
