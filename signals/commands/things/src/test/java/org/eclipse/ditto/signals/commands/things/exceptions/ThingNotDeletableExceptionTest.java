@@ -22,6 +22,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.junit.Test;
 
@@ -53,7 +54,7 @@ public final class ThingNotDeletableExceptionTest {
     @Test
     public void checkThingErrorCodeWorks() {
         final DittoRuntimeException actual =
-                ThingErrorRegistry.newInstance().parse(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
+                GlobalErrorRegistry.getInstance().parse(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(actual).isEqualTo(TestConstants.Thing.THING_NOT_DELETABLE_EXCEPTION);
     }

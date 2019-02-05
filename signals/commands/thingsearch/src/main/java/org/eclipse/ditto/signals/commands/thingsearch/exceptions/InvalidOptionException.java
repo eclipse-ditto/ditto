@@ -20,11 +20,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.thingsearch.ThingSearchException;
 
 /**
  * Thrown if an option for a search is invalid.
  */
+@JsonParsableException(errorCode = InvalidOptionException.ERROR_CODE)
 public class InvalidOptionException extends DittoRuntimeException implements ThingSearchException {
 
     /**
@@ -94,7 +96,6 @@ public class InvalidOptionException extends DittoRuntimeException implements Thi
 
     /**
      * A mutable builder with a fluent API for a {@link InvalidOptionException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<InvalidOptionException> {

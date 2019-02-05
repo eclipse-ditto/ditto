@@ -27,9 +27,9 @@ import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
-import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyErrorRegistry;
 
 /**
  * Response to a {@link PolicyCommand} which wraps the exception thrown while processing the command.
@@ -43,7 +43,7 @@ public final class PolicyErrorResponse extends AbstractCommandResponse<PolicyErr
      */
     public static final String TYPE = TYPE_PREFIX + "errorResponse";
 
-    private static final PolicyErrorRegistry POLICY_ERROR_REGISTRY = PolicyErrorRegistry.newInstance();
+    private static final GlobalErrorRegistry GLOBAL_ERROR_REGISTRY = GlobalErrorRegistry.getInstance();
 
     private final String policyId;
     private final DittoRuntimeException dittoRuntimeException;
@@ -118,7 +118,7 @@ public final class PolicyErrorResponse extends AbstractCommandResponse<PolicyErr
     public static PolicyErrorResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         final String policyId = jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID);
         final JsonObject payload = jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.PAYLOAD).asObject();
-        final DittoRuntimeException exception = POLICY_ERROR_REGISTRY.parse(payload, dittoHeaders);
+        final DittoRuntimeException exception = GLOBAL_ERROR_REGISTRY.parse(payload, dittoHeaders);
 
         return of(policyId, exception, dittoHeaders);
     }

@@ -21,11 +21,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * This exception indicates that an unexpected internal error occurred in the API Gateway.
  */
 @Immutable
+@JsonParsableException(errorCode = GatewayInternalErrorException.ERROR_CODE)
 public final class GatewayInternalErrorException extends DittoRuntimeException implements GatewayException {
 
     /**

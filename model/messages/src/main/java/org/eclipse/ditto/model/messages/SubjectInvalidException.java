@@ -22,11 +22,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown if the Subject is not valid (for example if it does not comply to the Subject REGEX).
  */
 @Immutable
+@JsonParsableException(errorCode = SubjectInvalidException.ERROR_CODE)
 public final class SubjectInvalidException extends DittoRuntimeException implements MessageException {
 
     /**

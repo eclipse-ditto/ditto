@@ -5,7 +5,7 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- *  
+ *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.things.exceptions;
@@ -22,12 +22,14 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.things.ThingException;
 
 /**
  * This exception indicates, that the requested Definition does not exist or the request has insufficient rights.
  */
 @Immutable
+@JsonParsableException(errorCode = FeatureDefinitionNotAccessibleException.ERROR_CODE)
 public final class FeatureDefinitionNotAccessibleException extends DittoRuntimeException implements ThingException {
 
     /**

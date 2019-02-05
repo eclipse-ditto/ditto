@@ -21,10 +21,12 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * This exception is thrown if an Identifier of a Feature Definition has an invalid structure.
  */
+@JsonParsableException(errorCode = FeatureDefinitionIdentifierInvalidException.ERROR_CODE)
 public final class FeatureDefinitionIdentifierInvalidException extends DittoRuntimeException implements ThingException {
 
     /**

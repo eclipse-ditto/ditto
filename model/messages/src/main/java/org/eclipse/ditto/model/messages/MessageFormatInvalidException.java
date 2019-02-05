@@ -29,11 +29,13 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
  * Indicates that the performed validation on this message failed.
  */
+@JsonParsableException(errorCode = MessageFormatInvalidException.ERROR_CODE)
 public final class MessageFormatInvalidException extends DittoRuntimeException implements MessageException {
 
     /**

@@ -22,12 +22,14 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.things.ThingException;
 
 /**
  * This exception indicates, that the requested Features do not exist or the request has insufficient rights.
  */
 @Immutable
+@JsonParsableException(errorCode = FeaturesNotAccessibleException.ERROR_CODE)
 public final class FeaturesNotAccessibleException extends DittoRuntimeException implements ThingException {
 
     /**
@@ -98,7 +100,6 @@ public final class FeaturesNotAccessibleException extends DittoRuntimeException 
 
     /**
      * A mutable builder with a fluent API for a {@link FeaturesNotAccessibleException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<FeaturesNotAccessibleException> {

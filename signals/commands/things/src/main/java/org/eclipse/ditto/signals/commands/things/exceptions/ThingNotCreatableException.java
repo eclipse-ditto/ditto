@@ -22,12 +22,14 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.things.ThingException;
 
 /**
  * Thrown if a Thing could not be created because a linked Policy ID was not existing for example.
  */
 @Immutable
+@JsonParsableException(errorCode = ThingNotCreatableException.ERROR_CODE)
 public final class ThingNotCreatableException extends DittoRuntimeException implements ThingException {
 
     /**

@@ -21,11 +21,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * This exception indicates that the HTTP request could not be authenticated correctly.
  */
 @Immutable
+@JsonParsableException(errorCode = GatewayAuthenticationFailedException.ERROR_CODE)
 public final class GatewayAuthenticationFailedException extends DittoRuntimeException implements GatewayException {
 
     /**
@@ -80,7 +82,8 @@ public final class GatewayAuthenticationFailedException extends DittoRuntimeExce
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
      * JsonFields#MESSAGE} field.
      */
-    public static GatewayAuthenticationFailedException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+    public static GatewayAuthenticationFailedException fromJson(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
         return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(readMessage(jsonObject))

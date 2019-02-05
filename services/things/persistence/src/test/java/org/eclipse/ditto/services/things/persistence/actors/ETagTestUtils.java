@@ -80,10 +80,12 @@ public abstract class ETagTestUtils {
         return ModifyThingResponse.modified(modifiedThing.getId().get(), dittoHeadersWithETag);
     }
 
-    public static SudoRetrieveThingResponse sudoRetrieveThingResponse(final Thing expectedThing,
-            final JsonObject expectedJsonRepresentation, final DittoHeaders dittoHeaders) {
-        final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedThing, dittoHeaders);
-        return SudoRetrieveThingResponse.of(expectedJsonRepresentation, dittoHeadersWithETag);
+    /*
+     * SudoRetrieveThingResponse does not include ETag handling.
+     */
+    public static SudoRetrieveThingResponse sudoRetrieveThingResponse(final JsonObject expectedJsonRepresentation,
+            final DittoHeaders dittoHeaders) {
+        return SudoRetrieveThingResponse.of(expectedJsonRepresentation, dittoHeaders);
     }
 
     // Features

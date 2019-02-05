@@ -20,10 +20,12 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * This exception is thrown if a Feature Definition was set to an empty array.
  */
+@JsonParsableException(errorCode = FeatureDefinitionEmptyException.ERROR_CODE)
 public final class FeatureDefinitionEmptyException extends DittoRuntimeException implements ThingException {
 
     /**
@@ -33,8 +35,9 @@ public final class FeatureDefinitionEmptyException extends DittoRuntimeException
 
     private static final String MESSAGE_TEMPLATE = "Feature Definition must not be empty!";
 
-    private static final String DEFAULT_DESCRIPTION = "A Feature Definition must contain at least one element. It can " +
-            "however also be set to null or deleted completely.";
+    private static final String DEFAULT_DESCRIPTION =
+            "A Feature Definition must contain at least one element. It can " +
+                    "however also be set to null or deleted completely.";
 
     private static final long serialVersionUID = -3812521480675928569L;
 
@@ -56,7 +59,7 @@ public final class FeatureDefinitionEmptyException extends DittoRuntimeException
     /**
      * Returns a mutable builder with a fluent API for an immutable {@code FeatureDefinitionEmptyException}.
      *
-     *  @return the builder.
+     * @return the builder.
      */
     public static Builder newBuilder() {
         return new Builder();

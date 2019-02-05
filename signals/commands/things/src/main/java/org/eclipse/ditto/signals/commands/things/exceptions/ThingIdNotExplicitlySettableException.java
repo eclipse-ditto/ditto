@@ -21,6 +21,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.things.ThingException;
 
 /**
@@ -28,6 +29,7 @@ import org.eclipse.ditto.model.things.ThingException;
  * in the JSON body.
  */
 @Immutable
+@JsonParsableException(errorCode = ThingIdNotExplicitlySettableException.ERROR_CODE)
 public final class ThingIdNotExplicitlySettableException extends DittoRuntimeException implements ThingException {
 
     /**
@@ -104,8 +106,7 @@ public final class ThingIdNotExplicitlySettableException extends DittoRuntimeExc
                     .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION_POST))
                     .href(readHRef(jsonObject).orElse(null))
                     .build();
-        }
-        else {
+        } else {
             return new Builder(false)
                     .dittoHeaders(dittoHeaders)
                     .message(message)
@@ -117,7 +118,6 @@ public final class ThingIdNotExplicitlySettableException extends DittoRuntimeExc
 
     /**
      * A mutable builder with a fluent API for a {@link ThingIdNotExplicitlySettableException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<ThingIdNotExplicitlySettableException> {

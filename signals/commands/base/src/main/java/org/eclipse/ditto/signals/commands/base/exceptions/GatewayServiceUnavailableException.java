@@ -21,11 +21,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * This exception indicates that a service the API Gateway proxies was not available.
  */
 @Immutable
+@JsonParsableException(errorCode = GatewayServiceUnavailableException.ERROR_CODE)
 public final class GatewayServiceUnavailableException extends DittoRuntimeException implements GatewayException {
 
     /**

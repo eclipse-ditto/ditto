@@ -22,12 +22,14 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.signals.base.WithId;
 
 /**
  * Thrown if a batch is already being executed by the coordinator.
  */
 @Immutable
+@JsonParsableException(errorCode = BatchAlreadyExecutingException.ERROR_CODE)
 public final class BatchAlreadyExecutingException extends DittoRuntimeException implements BatchException, WithId {
 
     /**
@@ -92,7 +94,7 @@ public final class BatchAlreadyExecutingException extends DittoRuntimeException 
      */
     public static BatchAlreadyExecutingException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return  new Builder()
+        return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(readMessage(jsonObject))
                 .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
@@ -102,7 +104,6 @@ public final class BatchAlreadyExecutingException extends DittoRuntimeException 
 
     /**
      * A mutable builder with a fluent API for a {@link BatchAlreadyExecutingException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<BatchAlreadyExecutingException> {

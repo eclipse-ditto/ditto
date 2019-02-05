@@ -21,12 +21,14 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.connectivity.ConnectivityException;
 
 /**
  * Thrown if a {@link org.eclipse.ditto.model.connectivity.Connection} ID is present.
  */
 @Immutable
+@JsonParsableException(errorCode = ConnectionIdNotExplicitlySettableException.ERROR_CODE)
 public final class ConnectionIdNotExplicitlySettableException extends DittoRuntimeException
         implements ConnectivityException {
 

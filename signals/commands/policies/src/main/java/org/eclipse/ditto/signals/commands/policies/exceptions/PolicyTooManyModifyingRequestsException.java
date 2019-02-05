@@ -23,12 +23,14 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyException;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown if to a single Policy too many requests were done in a short time so that persisting those requests could no
  * longer catch up with the amount of requests.
  */
 @Immutable
+@JsonParsableException(errorCode = PolicyTooManyModifyingRequestsException.ERROR_CODE)
 public final class PolicyTooManyModifyingRequestsException extends DittoRuntimeException implements PolicyException {
 
     /**

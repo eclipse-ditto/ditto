@@ -22,10 +22,12 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown if a path does not correspond to any known command, response or event.
  */
+@JsonParsableException(errorCode = UnknownPathException.ERROR_CODE)
 public final class UnknownPathException extends DittoRuntimeException {
 
     /**

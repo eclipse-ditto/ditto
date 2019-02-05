@@ -107,7 +107,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                         ConfigValueFactory.fromAnyRef(DEFAULT_TEST_EVENTS_DELETE_OLD))
                 .withValue(ConfigKeys.Thing.SNAPSHOT_INTERVAL, ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION));
     }
-    
+
     private ThingMongoEventAdapter eventAdapter;
     private ThingsJournalTestHelper<ThingEvent> journalTestHelper;
     private ThingsSnapshotTestHelper<Thing> snapshotTestHelper;
@@ -220,7 +220,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
      * the activity-check-handler, the latest snapshot was deleted.
      */
     @Test
-    public void snapshotOfDeletedThingIsNotDeletedWhenAlreadySnapshotAndTheActivityIntervalPassed() {
+    public void snapshotOfDeletedThingIsNotDeletedWhenAlreadySnapshot() {
         final int activityCheckDeletedIntervalSecs = 2;
         final Config customConfig = createNewDefaultTestConfig().
                 withValue(ConfigKeys.Thing.ACTIVITY_CHECK_DELETED_INTERVAL, ConfigValueFactory.fromAnyRef(Duration
@@ -258,12 +258,6 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 final Event expectedDeletedEvent = toEvent(deleteThing, 2);
                 // created-event has been deleted due to snapshot
                 assertJournal(thingId, Collections.singletonList(expectedDeletedEvent));
-
-                // wait for the actor to be terminated due to the end of the activity interval
-                expectTerminated(FiniteDuration.apply(activityCheckDeletedIntervalSecs + 5, TimeUnit.SECONDS),
-                        underTest);
-
-                underTest = Retry.untilSuccess(() -> createSupervisorActorFor(thingId));
 
                 final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, dittoHeadersV2)
                         .withSelectedFields(FIELD_SELECTOR)
@@ -333,7 +327,8 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 final ModifyThingResponse modifyThingResponse = expectMsgClass(ModifyThingResponse.class);
                 ThingCommandAssertions.assertThat(modifyThingResponse).hasStatus(HttpStatusCode.NO_CONTENT);
 
-                LOGGER.info("Expecting Event made it to Journal, CreateEvent was deleted and snapshots contain Thing..");
+                LOGGER.info(
+                        "Expecting Event made it to Journal, CreateEvent was deleted and snapshots contain Thing..");
 
                 final Event expectedModifiedEvent = toEvent(modifyThing, 2);
                 // created-event has been deleted due to snapshot
@@ -568,7 +563,6 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
         };
     }
 
-    /** */
     @Test
     public void snapshotsAreNotCreatedTwiceIfSnapshotHasBeenAlreadyBeenCreatedDueToThresholdAndSnapshotIntervalHasPassed() {
         final int snapshotIntervalMillisecs = 3;
@@ -657,7 +651,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
 
                 underTest.tell(TagThing.of(thingId, dittoHeadersV2), getRef());
                 final TagThingResponse tagThingResponse = expectMsgClass(TagThingResponse.class);
-                assertThat(tagThingResponse).isEqualTo(TagThingResponse.of(thingId,2, dittoHeadersV2));
+                assertThat(tagThingResponse).isEqualTo(TagThingResponse.of(thingId, 2, dittoHeadersV2));
                 assertSnapshots(thingId, Collections.singletonList(thingForModify));
 
                 final Thing thingForModify2 = ThingsModelFactory.newThingBuilder(thing)
@@ -764,7 +758,6 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
         };
     }
 
-    /** */
     @Test
     public void actorCannotBeStartedWithNegativeSnapshotThreshold() {
         final Config customConfig = createNewDefaultTestConfig().withValue(ConfigKeys.Thing.SNAPSHOT_THRESHOLD,
