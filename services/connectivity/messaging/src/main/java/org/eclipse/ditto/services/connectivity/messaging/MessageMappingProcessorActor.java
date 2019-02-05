@@ -122,7 +122,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         mapHeaders = new ApplyHeaderMapping(log);
         applySignalIdEnforcement = new ApplySignalIdEnforcement(log);
         replaceTargetAddressPlaceholders = new PlaceholderInTargetAddressSubstitution(log);
-        responseConsumedCounter = ConnectivityCounterRegistry.getResponseConsumedCounter(connectionId);
+        responseConsumedCounter = ConnectivityCounterRegistry.getResponseDispatchedCounter(connectionId);
         responseDroppedCounter = ConnectivityCounterRegistry.getResponseDroppedCounter(connectionId);
         responseMappedCounter = ConnectivityCounterRegistry.getResponseMappedCounter(connectionId);
     }

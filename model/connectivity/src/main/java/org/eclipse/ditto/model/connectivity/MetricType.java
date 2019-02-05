@@ -22,9 +22,14 @@ import java.util.Optional;
 public enum MetricType {
 
     /**
-     * Counts messages that were consumed.
+     * Counts inbound messages that were consumed.
      */
-    CONSUMED("consumed", MetricDirection.INBOUND, MetricDirection.OUTBOUND),
+    CONSUMED("consumed", MetricDirection.INBOUND),
+
+    /**
+     * Counts outbound messages that were dispatched.
+     */
+    DISPATCHED("dispatched", MetricDirection.OUTBOUND),
 
     /**
      * Counts messages to external systems that passed the configured filter.
@@ -37,14 +42,14 @@ public enum MetricType {
     MAPPED("mapped", MetricDirection.INBOUND, MetricDirection.OUTBOUND),
 
     /**
-     * Counts enforcements for inbound messages.
-     */
-    ENFORCED("enforced", MetricDirection.INBOUND),
-
-    /**
      * Counts messages that were dropped (not published by intention e.g. because no reply-to address was given).
      */
     DROPPED("dropped", MetricDirection.INBOUND, MetricDirection.OUTBOUND),
+
+    /**
+     * Counts enforcements for inbound messages.
+     */
+    ENFORCED("enforced", MetricDirection.INBOUND),
 
     /**
      * Counts messages published to external systems.

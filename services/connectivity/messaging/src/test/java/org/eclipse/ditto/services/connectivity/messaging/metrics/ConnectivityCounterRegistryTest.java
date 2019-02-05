@@ -15,6 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.connectivity.MetricDirection.INBOUND;
 import static org.eclipse.ditto.model.connectivity.MetricDirection.OUTBOUND;
 import static org.eclipse.ditto.model.connectivity.MetricType.CONSUMED;
+import static org.eclipse.ditto.model.connectivity.MetricType.DISPATCHED;
 import static org.eclipse.ditto.model.connectivity.MetricType.FILTERED;
 import static org.eclipse.ditto.model.connectivity.MetricType.MAPPED;
 import static org.eclipse.ditto.model.connectivity.MetricType.PUBLISHED;
@@ -59,7 +60,7 @@ public class ConnectivityCounterRegistryTest {
         Stream.of(
                 ConnectivityCounterRegistry.getCounter(FIXED_CLOCK, CONNECTION_ID, CONSUMED, INBOUND, SOURCE),
                 ConnectivityCounterRegistry.getCounter(FIXED_CLOCK, CONNECTION_ID, MAPPED, INBOUND, SOURCE),
-                ConnectivityCounterRegistry.getCounter(FIXED_CLOCK, CONNECTION_ID, CONSUMED, OUTBOUND, TARGET),
+                ConnectivityCounterRegistry.getCounter(FIXED_CLOCK, CONNECTION_ID, DISPATCHED, OUTBOUND, TARGET),
                 ConnectivityCounterRegistry.getCounter(FIXED_CLOCK, CONNECTION_ID, FILTERED, OUTBOUND, TARGET),
                 ConnectivityCounterRegistry.getCounter(FIXED_CLOCK, CONNECTION_ID, MAPPED, OUTBOUND, TARGET),
                 ConnectivityCounterRegistry.getCounter(FIXED_CLOCK, CONNECTION_ID, PUBLISHED, OUTBOUND, TARGET)
@@ -95,8 +96,8 @@ public class ConnectivityCounterRegistryTest {
         final Measurement[] expected = {
                 getMeasurement(MAPPED, true),
                 getMeasurement(MAPPED, false),
-                getMeasurement(CONSUMED, true),
-                getMeasurement(CONSUMED, false),
+                getMeasurement(DISPATCHED, true),
+                getMeasurement(DISPATCHED, false),
                 getMeasurement(FILTERED, true),
                 getMeasurement(FILTERED, false),
                 getMeasurement(PUBLISHED, true),

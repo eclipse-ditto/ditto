@@ -154,14 +154,14 @@ public final class ConnectivityCounterRegistry {
     }
 
     /**
-     * Gets counter for {@link MetricDirection#OUTBOUND}/{@link MetricType#CONSUMED} messages.
+     * Gets counter for {@link MetricDirection#OUTBOUND}/{@link MetricType#DISPATCHED} messages.
      *
      * @param connectionId connection id
      * @param target the target address
      * @return the counter
      */
-    public static ConnectionMetricsCollector getOutboundCounter(String connectionId, String target) {
-        return getCounter(connectionId, MetricType.CONSUMED, MetricDirection.OUTBOUND, target);
+    public static ConnectionMetricsCollector getOutboundDispatchedCounter(String connectionId, String target) {
+        return getCounter(connectionId, MetricType.DISPATCHED, MetricDirection.OUTBOUND, target);
     }
 
     /**
@@ -204,7 +204,7 @@ public final class ConnectivityCounterRegistry {
      * @param source the source
      * @return the inbound counter
      */
-    public static ConnectionMetricsCollector getInboundCounter(String connectionId, String source) {
+    public static ConnectionMetricsCollector getInboundConsumedCounter(String connectionId, String source) {
         return getCounter(connectionId, MetricType.CONSUMED, MetricDirection.INBOUND, source);
     }
 
@@ -242,13 +242,13 @@ public final class ConnectivityCounterRegistry {
     }
 
     /**
-     * Gets counter for {@link MetricDirection#OUTBOUND}/{@link MetricType#CONSUMED} messages for responses.
+     * Gets counter for {@link MetricDirection#OUTBOUND}/{@link MetricType#DISPATCHED} messages for responses.
      *
      * @param connectionId connection id
      * @return the response consumed counter
      */
-    public static ConnectionMetricsCollector getResponseConsumedCounter(String connectionId) {
-        return getCounter(connectionId, MetricType.CONSUMED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
+    public static ConnectionMetricsCollector getResponseDispatchedCounter(String connectionId) {
+        return getCounter(connectionId, MetricType.DISPATCHED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
     }
 
     /**

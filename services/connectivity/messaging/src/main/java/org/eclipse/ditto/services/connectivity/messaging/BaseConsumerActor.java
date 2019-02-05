@@ -52,7 +52,7 @@ public abstract class BaseConsumerActor extends AbstractActor {
         resourceStatus = ConnectivityModelFactory.newSourceStatus(ConfigUtil.instanceIdentifier(),
                 ConnectivityStatus.OPEN, sourceAddress,"Started at " + Instant.now());
 
-        inboundCounter = ConnectivityCounterRegistry.getInboundCounter(connectionId, sourceAddress);
+        inboundCounter = ConnectivityCounterRegistry.getInboundConsumedCounter(connectionId, sourceAddress);
     }
 
     protected ResourceStatus getCurrentSourceStatus() {

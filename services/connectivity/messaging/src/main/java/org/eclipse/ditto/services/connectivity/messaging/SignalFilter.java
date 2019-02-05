@@ -85,7 +85,7 @@ final class SignalFilter {
         return connection.getTargets().stream()
                 .filter(t -> isTargetAuthorized(t, signal)) // this is cheaper, so check this first
                 // count authorized targets
-                .peek(authorizedTarget -> ConnectivityCounterRegistry.getOutboundCounter(connection.getId(),
+                .peek(authorizedTarget -> ConnectivityCounterRegistry.getOutboundDispatchedCounter(connection.getId(),
                         authorizedTarget.getAddress()).recordSuccess())
                 .filter(t -> isTargetSubscribedForTopic(t, signal))
                 // count authorized + filtered targets
