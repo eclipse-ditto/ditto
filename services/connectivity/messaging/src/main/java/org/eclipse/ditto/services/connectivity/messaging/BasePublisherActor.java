@@ -103,7 +103,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                         publishMessage(null, replyTarget, response, responsePublishedCounter);
                     } else {
                         log().info("Response dropped, missing replyTo address: {}", response);
-                        responseDroppedCounter.recordSuccess();
+                        responseDroppedCounter.recordFailure();
                     }
                 })
                 .match(OutboundSignal.WithExternalMessage.class, outbound -> {
