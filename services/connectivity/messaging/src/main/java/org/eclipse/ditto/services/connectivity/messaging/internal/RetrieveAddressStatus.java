@@ -11,19 +11,19 @@
 package org.eclipse.ditto.services.connectivity.messaging.internal;
 
 /**
- * Actor message marking that address metrics should be retrieved.
+ * Actor message marking that address status should be retrieved.
  */
-public final class RetrieveAddressMetric {
+public final class RetrieveAddressStatus {
 
-    private static final RetrieveAddressMetric INSTANCE = new RetrieveAddressMetric();
+    private static final RetrieveAddressStatus INSTANCE = new RetrieveAddressStatus();
 
-    private RetrieveAddressMetric() {
+    private RetrieveAddressStatus() {
     }
 
     /**
      * @return the singleton instance of this class.
      */
-    public static RetrieveAddressMetric getInstance() {
+    public static RetrieveAddressStatus getInstance() {
         return INSTANCE;
     }
 }

@@ -56,7 +56,7 @@ public class BasePublisherActorTest {
         final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(singletonList(""));
         final Target target =
                 ConnectivityModelFactory.newTarget("target", TestConstants.Authorization.AUTHORIZATION_CONTEXT,
-                        HEADER_MAPPING,
+                        HEADER_MAPPING, null,
                         Topic.TWIN_EVENTS);
         final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(thingModifiedEvent,
                 singleton(target));

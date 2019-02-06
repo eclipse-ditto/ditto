@@ -10,6 +10,9 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
+import static org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory.newThingPlaceholder;
+import static org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory.newTopicPathPlaceholder;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -48,17 +51,18 @@ public final class RabbitMQValidator extends AbstractProtocolValidator {
             final Supplier<String> sourceDescription) {
 
         source.getEnforcement().ifPresent(enforcement -> {
-            validateTemplate(enforcement.getInput(), PlaceholderFactory.newHeadersPlaceholder(), dittoHeaders);
-            enforcement.getFilters().forEach(filterTemplate -> validateTemplate(filterTemplate,
-                    PlaceholderFactory.newThingPlaceholder(), dittoHeaders));
+            validateTemplate(enforcement.getInput(), dittoHeaders, PlaceholderFactory.newHeadersPlaceholder());
+            enforcement.getFilters().forEach(filterTemplate ->
+                    validateTemplate(filterTemplate, dittoHeaders, PlaceholderFactory.newThingPlaceholder()));
         });
         source.getHeaderMapping().ifPresent(mapping -> validateHeaderMapping(mapping, dittoHeaders));
     }
 
     @Override
     protected void validateTarget(final Target target, final DittoHeaders dittoHeaders,
-            final Supplier<String> sourceDescription) {
+            final Supplier<String> targetDescription) {
         target.getHeaderMapping().ifPresent(mapping -> validateHeaderMapping(mapping, dittoHeaders));
+        validateTemplate(target.getAddress(), dittoHeaders, newThingPlaceholder(), newTopicPathPlaceholder());
     }
 
     @Override

@@ -107,8 +107,13 @@ curl -X POST -i -u devops:devopsPw1! \
                    ],
                    "headerMapping": {
                      "correlation-id": "{%raw%}{{ header:correlation-id }}{%endraw%}",
-                     "status": "{%raw%}{{ header:status }}{%endraw%}"
+                     "status": "{%raw%}{{ header:status }}{%endraw%}",
+                     "content-type": "{%raw%}{{ header:content-type }}{%endraw%}"
                    }
+                 },
+                 {
+                   "addresses": ["telemetry/org.eclipse.ditto", "event/org.eclipse.ditto"],
+                   "authorizationContext": ["nginx:demo5"]
                  }
                ],
                "targets": [{
@@ -116,9 +121,11 @@ curl -X POST -i -u devops:devopsPw1! \
                    "authorizationContext": [
                      "nginx:demo5"
                    ],
+                   "topics":["_/_/things/live/messages"],
                    "headerMapping": {
-                     "correlation-id": "{%raw%}{{ header:correlation-id }}{%endraw%}",
+                     "message-id": "{%raw%}{{ header:correlation-id }}{%endraw%}",
                      "subject": "{%raw%}{{ topic:subject }}{%endraw%}",
+                     "content-type": "application/vnd.eclipse.ditto+json",
                      "reply-to": "control/org.eclipse.ditto/replies"
                    }
                  }

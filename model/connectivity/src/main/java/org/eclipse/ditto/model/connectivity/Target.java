@@ -37,6 +37,12 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
      */
     String getAddress();
 
+
+    /**
+     * @return the original address (before placeholders were resolved)
+     */
+    String getOriginalAddress();
+
     /**
      * Create a copy of this object with the target address replaced.
      *
@@ -49,6 +55,11 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
      * @return set of topics that should be published via this target
      */
     Set<FilteredTopic> getTopics();
+
+    /**
+     * @return the optional qos value of this target - only applicable for certain {@link ConnectionType}s.
+     */
+    Optional<Integer> getQos();
 
     /**
      * Returns the Authorization Context of this {@code Target}. If an authorization context is set on a {@link Target}
@@ -107,6 +118,13 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
          */
         public static final JsonFieldDefinition<JsonArray> TOPICS =
                 JsonFactory.newJsonArrayFieldDefinition("topics", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code Target} qos.
+         */
+        public static final JsonFieldDefinition<Integer> QOS =
+                JsonFactory.newIntFieldDefinition("qos", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**

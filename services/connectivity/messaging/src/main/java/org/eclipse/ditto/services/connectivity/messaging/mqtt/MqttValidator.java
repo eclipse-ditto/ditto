@@ -10,11 +10,15 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
+import static org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory.newThingPlaceholder;
+import static org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory.newTopicPathPlaceholder;
+
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -28,8 +32,6 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.Enforcement;
-import org.eclipse.ditto.model.connectivity.MqttSource;
-import org.eclipse.ditto.model.connectivity.MqttTarget;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
@@ -84,9 +86,10 @@ public final class MqttValidator extends AbstractProtocolValidator {
     @Override
     protected void validateSource(final Source source, final DittoHeaders dittoHeaders,
             final Supplier<String> sourceDescription) {
-        if (!(source instanceof MqttSource)) {
+        final Optional<Integer> qos = source.getQos();
+        if (!(qos.isPresent())) {
             final String message =
-                    MessageFormat.format("Source {0} must be of type MqttSource.", sourceDescription.get());
+                    MessageFormat.format("MQTT Source {0} must contain QoS value.", sourceDescription.get());
             throw ConnectionConfigurationInvalidException.newBuilder(message)
                     .dittoHeaders(dittoHeaders)
                     .build();
@@ -97,17 +100,17 @@ public final class MqttValidator extends AbstractProtocolValidator {
                     "sources.").dittoHeaders(dittoHeaders).build();
         }
 
-        final MqttSource mqttSource = (MqttSource) source;
-        validateSourceQoS(mqttSource.getQos(), dittoHeaders, sourceDescription);
-        validateSourceEnforcement(mqttSource.getEnforcement().orElse(null), dittoHeaders, sourceDescription);
+        validateSourceQoS(qos.get(), dittoHeaders, sourceDescription);
+        validateSourceEnforcement(source.getEnforcement().orElse(null), dittoHeaders, sourceDescription);
     }
 
     @Override
     protected void validateTarget(final Target target, final DittoHeaders dittoHeaders,
             final Supplier<String> targetDescription) {
-        if (!(target instanceof MqttTarget)) {
+        final Optional<Integer> qos = target.getQos();
+        if (!(qos.isPresent())) {
             final String message =
-                    MessageFormat.format("Target {0} must be of type MqttTarget.", targetDescription.get());
+                    MessageFormat.format("MQTT Target {0} must contain QoS value.", targetDescription.get());
             throw ConnectionConfigurationInvalidException.newBuilder(message)
                     .dittoHeaders(dittoHeaders)
                     .build();
@@ -118,8 +121,8 @@ public final class MqttValidator extends AbstractProtocolValidator {
                     "targets.").dittoHeaders(dittoHeaders).build();
         }
 
-        final MqttTarget mqttTarget = (MqttTarget) target;
-        validateTargetQoS(mqttTarget.getQos(), dittoHeaders, targetDescription);
+        validateTargetQoS(qos.get(), dittoHeaders, targetDescription);
+        validateTemplate(target.getAddress(), dittoHeaders, newThingPlaceholder(), newTopicPathPlaceholder());
     }
 
     /**
@@ -146,7 +149,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
             validateEnforcementInput(enforcement, sourceDescription, dittoHeaders);
 
             final String dummyThingId = "namespace:name";
-            final Map<String, String> filtersMap = PlaceholderFilter.filterAddressesAsMap(enforcement.getFilters(),
+            final Map<String, String> filtersMap = PlaceholderFilter.applyThingPlaceholderToAddresses(enforcement.getFilters(),
                     dummyThingId, filter -> {
                         throw invalidValueForConfig(filter, "filters", sourceDescription.get())
                                 .description("Placeholder substitution failed. " +

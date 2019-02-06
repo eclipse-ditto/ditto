@@ -12,7 +12,9 @@ package org.eclipse.ditto.services.models.connectivity;
 
 import java.util.Set;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.signals.base.Signal;
 
 /**
@@ -36,8 +38,8 @@ public final class OutboundSignalFactory {
     }
 
     /**
-     * Creates a OutboundSignal wrapping an existing {@code outboundSignal} which also is aware of the
-     * {@link ExternalMessage} that was mapped from the outbound signal.
+     * Creates a OutboundSignal wrapping an existing {@code outboundSignal} which also is aware of the {@link
+     * ExternalMessage} that was mapped from the outbound signal.
      *
      * @param outboundSignal the OutboundSignal to wrap.
      * @param externalMessage the mapped ExternalMessage.
@@ -46,5 +48,21 @@ public final class OutboundSignalFactory {
     public static OutboundSignal.WithExternalMessage newMappedOutboundSignal(final OutboundSignal outboundSignal,
             final ExternalMessage externalMessage) {
         return new MappedOutboundSignal(outboundSignal, externalMessage);
+    }
+
+    /**
+     * Returns an immutable {@link OutboundSignal} based on the given JSON object.
+     *
+     * @param jsonObject a JSON object which provides the data for the OutboundSignal to be created.
+     * @param mappingStrategy the {@link MappingStrategy} to use in order to parse the in the JSON included
+     * {@code source} Signal
+     * @return a new OutboundSignal which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if {@code mappingStrategy} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
+     */
+    public static OutboundSignal outboundSignalFromJson(final JsonObject jsonObject,
+            final MappingStrategy mappingStrategy) {
+        return UnmappedOutboundSignal.fromJson(jsonObject, mappingStrategy);
     }
 }

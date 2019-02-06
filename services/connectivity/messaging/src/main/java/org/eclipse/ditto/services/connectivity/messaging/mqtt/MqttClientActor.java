@@ -11,7 +11,6 @@
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -21,18 +20,14 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Source;
-import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
@@ -48,7 +43,6 @@ import akka.actor.ActorRef;
 import akka.actor.FSM;
 import akka.actor.Props;
 import akka.actor.Status;
-import akka.japi.Pair;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.stream.ActorMaterializer;
 import akka.stream.Graph;
@@ -81,14 +75,14 @@ public final class MqttClientActor extends BaseClientActor {
 
     @SuppressWarnings("unused") // used by `props` via reflection
     private MqttClientActor(final Connection connection,
-            final ConnectionStatus desiredConnectionStatus,
+            final ConnectivityStatus desiredConnectionStatus,
             final ActorRef conciergeForwarder) {
 
         this(connection, desiredConnectionStatus, conciergeForwarder, MqttConnectionFactory::of);
     }
 
     MqttClientActor(final Connection connection,
-            final ConnectionStatus desiredConnectionStatus,
+            final ConnectivityStatus desiredConnectionStatus,
             final ActorRef conciergeForwarder,
             final BiFunction<Connection, DittoHeaders, MqttConnectionFactory> connectionFactoryCreator) {
         super(connection, desiredConnectionStatus, conciergeForwarder);
@@ -141,19 +135,6 @@ public final class MqttClientActor extends BaseClientActor {
     }
 
     @Override
-    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inAnyState() {
-        return super.inAnyState()
-                .event(CountPublishedMqttMessage.class, (message, data) -> {
-                    incrementPublishedMessageCounter();
-                    return stay();
-                })
-                .event(CountConsumedMqttMessage.class, (message, data) -> {
-                    incrementConsumedMessageCounter();
-                    return stay();
-                });
-    }
-
-    @Override
     protected CompletionStage<Status.Status> doTestConnection(final Connection connection) {
         if (testConnectionFuture != null) {
             final Exception error = new IllegalStateException("test future exists");
@@ -182,29 +163,6 @@ public final class MqttClientActor extends BaseClientActor {
     @Override
     protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin) {
         self().tell((ClientDisconnected) () -> null, origin);
-    }
-
-    @Override
-    protected CompletionStage<Map<String, AddressMetric>> getSourceConnectionStatus(final Source source) {
-        return collectAsList(IntStream.range(0, source.getConsumerCount())
-                .mapToObj(idx -> {
-                    final String topics = String.join(",", source.getAddresses());
-                    final String actorLabel =
-                            MqttConsumerActor.ACTOR_NAME_PREFIX + getUniqueSourceSuffix(source.getIndex(), idx);
-                    final ActorRef consumer = consumerByActorNameWithIndex.get(actorLabel);
-                    return retrieveAddressMetric(topics, actorLabel, consumer);
-                }))
-                .thenApply(entries -> entries.stream().collect(Collectors.toMap(Pair::first, Pair::second)));
-    }
-
-    @Override
-    protected CompletionStage<Map<String, AddressMetric>> getTargetConnectionStatus(final Target target) {
-        final CompletionStage<Pair<String, AddressMetric>> targetEntryFuture =
-                retrieveAddressMetric(target.getAddress(), MqttPublisherActor.ACTOR_NAME,
-                        getPublisherActor().orElse(null));
-
-        return targetEntryFuture.thenApply(targetEntry ->
-                Collections.singletonMap(targetEntry.first(), targetEntry.second()));
     }
 
     /**
@@ -245,7 +203,7 @@ public final class MqttClientActor extends BaseClientActor {
         // ensure no previous publisher stays in memory
         stopMqttPublisher();
         mqttPublisherActor = startChildActorConflictFree(MqttPublisherActor.ACTOR_NAME,
-                MqttPublisherActor.props(factory, getSelf(), dryRun));
+                MqttPublisherActor.props(connectionId(), getTargetsOrEmptySet(), factory, getSelf(), dryRun));
         pendingStatusReportsFromStreams.add(mqttPublisherActor);
     }
 
@@ -259,14 +217,6 @@ public final class MqttClientActor extends BaseClientActor {
             return;
         }
 
-        if (!(source instanceof org.eclipse.ditto.model.connectivity.MqttSource)) {
-            log.warning("Source is not an MqttSource: {}", source);
-            return;
-        }
-
-        final org.eclipse.ditto.model.connectivity.MqttSource mqttSource =
-                (org.eclipse.ditto.model.connectivity.MqttSource) source;
-
         for (int i = 0; i < source.getConsumerCount(); i++) {
 
             log.debug("Starting {}. consumer actor for source <{}> on connection <{}>.", i, source.getIndex(),
@@ -276,9 +226,10 @@ public final class MqttClientActor extends BaseClientActor {
             final String actorNamePrefix = MqttConsumerActor.ACTOR_NAME_PREFIX + uniqueSuffix;
 
             final Props mqttConsumerActorProps =
-                    MqttConsumerActor.props(messageMappingProcessorActor, source.getAuthorizationContext(),
+                    MqttConsumerActor.props(connectionId(), messageMappingProcessorActor,
+                            source.getAuthorizationContext(),
                             source.getEnforcement().orElse(null),
-                            dryRun);
+                            dryRun, String.join(";", source.getAddresses()));
             final ActorRef mqttConsumerActor = startChildActorConflictFree(actorNamePrefix, mqttConsumerActorProps);
 
             consumerByActorNameWithIndex.put(actorNamePrefix, mqttConsumerActor);
@@ -286,14 +237,13 @@ public final class MqttClientActor extends BaseClientActor {
 
         // failover implemented by factory
         final akka.stream.javadsl.Source<MqttMessage, CompletionStage<Done>> mqttStreamSource =
-                factory.newSource(mqttSource, sourceBufferSize);
+                factory.newSource(source, sourceBufferSize);
 
         final Graph<SinkShape<MqttMessage>, NotUsed> consumerLoadBalancer =
                 createConsumerLoadBalancer(consumerByActorNameWithIndex.values());
 
         final CompletionStage<Done> subscriptionInitialized =
                 mqttStreamSource.viaMat(consumerKillSwitch.flow(), Keep.left())
-                        .map(this::countConsumedMessage)
                         .toMat(consumerLoadBalancer, Keep.left())
                         .run(ActorMaterializer.create(getContext()));
 
@@ -313,11 +263,6 @@ public final class MqttClientActor extends BaseClientActor {
             }
             return done;
         });
-    }
-
-    private <T> T countConsumedMessage(final T mqttMessage) {
-        getSelf().tell(new CountConsumedMqttMessage(), ActorRef.noSender());
-        return mqttMessage;
     }
 
     private String getUniqueSourceSuffix(final int sourceIndex, final int consumerIndex) {
@@ -401,16 +346,6 @@ public final class MqttClientActor extends BaseClientActor {
             return SinkShape.of(loadBalancer.in());
         });
     }
-
-    /**
-     * Self message to increment published message counter.
-     */
-    static final class CountPublishedMqttMessage {}
-
-    /**
-     * Self message to increment consumed message counter.
-     */
-    private static final class CountConsumedMqttMessage {}
 
     enum ConsumerStreamMessage {
 

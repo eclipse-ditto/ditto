@@ -23,7 +23,6 @@ import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
-import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.mapping.DefaultMessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
@@ -161,7 +160,10 @@ public final class MessageMappingProcessor {
             enhanceLogFromAdaptable(adaptable);
 
             return withTimer(overAllProcessingTimer.startNewSegment(PAYLOAD_SEGMENT_NAME),
-                    () -> getMapper(adaptable).map(adaptable));
+                    () -> getMapper(adaptable)
+                            .map(adaptable)
+                            .map(em -> em.withTopicPath(adaptable.getTopicPath()))
+            );
         } catch (final DittoRuntimeException e) {
             throw e;
         } catch (final Exception e) {

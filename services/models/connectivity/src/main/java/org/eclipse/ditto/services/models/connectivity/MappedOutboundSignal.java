@@ -12,7 +12,11 @@ package org.eclipse.ditto.services.models.connectivity;
 
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
 
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.signals.base.Signal;
 
@@ -43,6 +47,12 @@ final class MappedOutboundSignal implements OutboundSignal.WithExternalMessage {
     @Override
     public Set<Target> getTargets() {
         return delegate.getTargets();
+    }
+
+    @Override
+    public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
+        // the externalMessage is omitted as this should not be required to go over the wire
+        return delegate.toJson(schemaVersion, thePredicate);
     }
 
     @Override

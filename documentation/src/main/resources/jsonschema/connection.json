@@ -12,6 +12,15 @@
         "myConnection"
       ]
     },
+    "name": {
+      "$id": "/properties/name",
+      "type": "string",
+      "title": "Connection name",
+      "description": "A name describing the connection",
+      "examples": [
+        "My first Connection"
+      ]
+    },
     "connectionType": {
       "$id": "/properties/connectionType",
       "type": "string",

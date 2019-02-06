@@ -413,7 +413,7 @@ public interface ThingBuilder {
          * @param modified the modified to be set.
          * @return this builder to allow method chaining.
          */
-        FromScratch setModified(Instant modified);
+        FromScratch setModified(@Nullable Instant modified);
 
         /**
          * Sets the given Thing ID to this builder. The ID is required to include the Thing's namespace.

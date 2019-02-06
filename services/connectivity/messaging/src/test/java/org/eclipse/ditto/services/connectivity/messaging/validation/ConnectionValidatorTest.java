@@ -25,9 +25,9 @@ import java.util.Collections;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.connectivity.credentials.ClientCertificateCredentials;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
@@ -63,7 +63,7 @@ public class ConnectionValidatorTest {
     @Test
     public void rejectConnectionWithSourceWithoutAddresses() {
         final Connection connection =
-                ConnectivityModelFactory.newConnectionBuilder("id", ConnectionType.AMQP_10, ConnectionStatus.OPEN,
+                ConnectivityModelFactory.newConnectionBuilder("id", ConnectionType.AMQP_10, ConnectivityStatus.OPEN,
                         "amqp://localhost:5671")
                         .sources(singletonList(
                                 ConnectivityModelFactory.newSourceBuilder()
@@ -81,7 +81,7 @@ public class ConnectionValidatorTest {
     @Test
     public void rejectConnectionWithEmptySourceAddress() {
         final Connection connection =
-                ConnectivityModelFactory.newConnectionBuilder("id", ConnectionType.AMQP_10, ConnectionStatus.OPEN,
+                ConnectivityModelFactory.newConnectionBuilder("id", ConnectionType.AMQP_10, ConnectivityStatus.OPEN,
                         "amqp://localhost:5671")
                         .sources(singletonList(
                                 ConnectivityModelFactory.newSourceBuilder()
@@ -100,12 +100,12 @@ public class ConnectionValidatorTest {
     @Test
     public void rejectConnectionWithEmptyTargetAddress() {
         final Connection connection =
-                ConnectivityModelFactory.newConnectionBuilder("id", ConnectionType.AMQP_10, ConnectionStatus.OPEN,
+                ConnectivityModelFactory.newConnectionBuilder("id", ConnectionType.AMQP_10, ConnectivityStatus.OPEN,
                         "amqp://localhost:5671")
                         .targets(Collections.singleton(
                                 ConnectivityModelFactory.newTarget("",
                                         Authorization.AUTHORIZATION_CONTEXT,
-                                        null,
+                                        null, null,
                                         Topic.LIVE_MESSAGES)))
                         .build();
 

@@ -76,6 +76,7 @@ public abstract class AbstractPublisherActorTest<T> {
             final Target target =
                     ConnectivityModelFactory.newTargetBuilder()
                             .address(getOutboundAddress())
+                            .originalAddress(getOutboundAddress())
                             .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
                             .headerMapping(TestConstants.HEADER_MAPPING)
                             .topics(Topic.TWIN_EVENTS)

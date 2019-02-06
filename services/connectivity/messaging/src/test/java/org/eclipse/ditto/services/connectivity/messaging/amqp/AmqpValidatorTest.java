@@ -10,6 +10,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
+import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTargetBuilder;
+import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -22,6 +24,8 @@ import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidExcept
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceBuilder;
+import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.junit.Test;
@@ -94,10 +98,35 @@ public final class AmqpValidatorTest {
                 .withCauseInstanceOf(UnresolvedPlaceholderException.class);
     }
 
+    @Test
+    public void testInvalidPlaceholderInTargetAddressThrowsException() {
+
+        final Target target = newTargetBuilder()
+                .address("some.address.{{ header:target }}")
+                .authorizationContext(AUTHORIZATION_CONTEXT)
+                .topics(Topic.LIVE_COMMANDS)
+                .build();
+
+        Assertions.assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> UNDER_TEST.validateTarget(target, DittoHeaders.empty(), () -> "testTarget"))
+                .withCauseInstanceOf(UnresolvedPlaceholderException.class);
+    }
+
+    @Test
+    public void testValidPlaceholdersInTargetAddress() {
+        final Target target = newTargetBuilder()
+                .address("some.address.{{ topic:action|subject }}.{{ thing:id }}")
+                .authorizationContext(AUTHORIZATION_CONTEXT)
+                .topics(Topic.LIVE_COMMANDS)
+                .build();
+
+         UNDER_TEST.validateTarget(target, DittoHeaders.empty(), () -> "testTarget");
+    }
+
     private static SourceBuilder newSourceBuilder() {
         return ConnectivityModelFactory.newSourceBuilder()
                 .address("telemetry/device")
                 .authorizationContext(
-                        TestConstants.Authorization.AUTHORIZATION_CONTEXT);
+                        AUTHORIZATION_CONTEXT);
     }
 }

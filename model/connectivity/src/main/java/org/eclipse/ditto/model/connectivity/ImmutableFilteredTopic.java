@@ -30,7 +30,7 @@ import javax.annotation.concurrent.Immutable;
  * Immutable implementation of {@link FilteredTopic}.
  */
 @Immutable
-public final class ImmutableFilteredTopic implements FilteredTopic {
+final class ImmutableFilteredTopic implements FilteredTopic {
 
     private static final String QUERY_DELIMITER = "?";
     private static final String QUERY_ARG_DELIMITER = "&";
