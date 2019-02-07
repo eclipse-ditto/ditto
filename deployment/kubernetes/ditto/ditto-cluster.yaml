@@ -53,7 +53,7 @@ spec:
           value: "kubernetes-api"
         - name: TZ
           value: "Europe/Berlin"
-        - name: IBM_JAVA_OPTIONS
+        - name: OPENJ9_JAVA_OPTIONS
           value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
 ---
 apiVersion: extensions/v1beta1
@@ -110,7 +110,7 @@ spec:
           value: "kubernetes-api"
         - name: TZ
           value: "Europe/Berlin"
-        - name: IBM_JAVA_OPTIONS
+        - name: OPENJ9_JAVA_OPTIONS
           value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
 ---
 apiVersion: extensions/v1beta1
@@ -167,7 +167,7 @@ spec:
           value: "kubernetes-api"
         - name: TZ
           value: "Europe/Berlin"
-        - name: IBM_JAVA_OPTIONS
+        - name: OPENJ9_JAVA_OPTIONS
           value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
 ---
 apiVersion: extensions/v1beta1
@@ -223,7 +223,7 @@ spec:
           value: "kubernetes-api"
         - name: TZ
           value: "Europe/Berlin"
-        - name: IBM_JAVA_OPTIONS
+        - name: OPENJ9_JAVA_OPTIONS
           value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
 ---
 apiVersion: extensions/v1beta1
@@ -279,7 +279,7 @@ spec:
           value: "kubernetes-api"
         - name: TZ
           value: "Europe/Berlin"
-        - name: IBM_JAVA_OPTIONS
+        - name: OPENJ9_JAVA_OPTIONS
           value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
 ---
 apiVersion: extensions/v1beta1
@@ -337,7 +337,7 @@ spec:
           value: "kubernetes-api"
         - name: TZ
           value: "Europe/Berlin"
-        - name: IBM_JAVA_OPTIONS
+        - name: OPENJ9_JAVA_OPTIONS
           value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
 ---
 apiVersion: v1

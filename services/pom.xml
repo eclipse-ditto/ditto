@@ -48,7 +48,7 @@
         <docker.registry>docker.io</docker.registry>
         <docker.repository>${docker.registry}/eclipse</docker.repository>
         <docker.image.additional.tag/>
-        <docker.image.jdk>docker.io/adoptopenjdk/openjdk8-openj9:x86_64-alpine-jdk8u192-b12_openj9-0.11.0-slim</docker.image.jdk>
+        <docker.image.jdk>docker.io/adoptopenjdk/openjdk8-openj9:x86_64-alpine-jdk8u202-b08_openj9-0.12.1-slim</docker.image.jdk>
         <docker.image.port>8080</docker.image.port>
 
         <policies.docker.image.name>ditto-policies</policies.docker.image.name>
