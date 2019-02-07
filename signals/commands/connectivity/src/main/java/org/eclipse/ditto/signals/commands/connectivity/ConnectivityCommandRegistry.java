@@ -22,6 +22,7 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
+import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionMetrics;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnection;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
@@ -51,6 +52,7 @@ public final class ConnectivityCommandRegistry extends AbstractCommandRegistry<C
         parseStrategies.put(DeleteConnection.TYPE, DeleteConnection::fromJson);
         parseStrategies.put(OpenConnection.TYPE, OpenConnection::fromJson);
         parseStrategies.put(CloseConnection.TYPE, CloseConnection::fromJson);
+        parseStrategies.put(ResetConnectionMetrics.TYPE, ResetConnectionMetrics::fromJson);
 
         parseStrategies.put(RetrieveConnection.TYPE, RetrieveConnection::fromJson);
         parseStrategies.put(RetrieveConnectionStatus.TYPE, RetrieveConnectionStatus::fromJson);

@@ -22,11 +22,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown if a message cannot be send because the affected thing does not exist or because of a missing permission.
  */
 @Immutable
+@JsonParsableException(errorCode = MessageSendNotAllowedException.ERROR_CODE)
 public final class MessageSendNotAllowedException extends DittoRuntimeException implements MessageException {
 
     /**

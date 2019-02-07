@@ -12,19 +12,24 @@ info:
   description: JSON-based, REST-like API for Eclipse Ditto
   version: "1"
 servers:
-- url: /api/1
+  - url: https://ditto.eclipse.org/api/1
+    description: "online Ditto Sandbox"
+  - url: /api/1
+    description: "local Ditto"
 tags:
-- name: Things
-  description: Manage every Thing
-- name: Features
-  description: Structure the Features of your Things
-- name: Search
-  description: Find every Thing
-- name: Messages
-  description: Talk with your Things
+  - name: Things
+    description: Manage every Thing
+  - name: Features
+    description: Structure the Features of your Things
+  - name: Search
+    description: Find every Thing
+  - name: Messages
+    description: Talk with your Things
 security:
-- Google:
-  - openid
+#  - Google:
+#    - openid
+  - basicAuth: []
+  - bearerAuth: []
 paths:
   ###
   ### Things
@@ -119,6 +124,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
+        '413':
+          $ref: '#/components/responses/entityTooLarge'
       requestBody:
         content:
           application/json:
@@ -336,6 +343,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
+        '413':
+          $ref: '#/components/responses/entityTooLarge'
       requestBody:
         content:
           application/json:
@@ -506,6 +515,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
+        '413':
+          $ref: '#/components/responses/entityTooLarge'
       requestBody:
         content:
           application/json:
@@ -658,6 +669,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
+        '413':
+          $ref: '#/components/responses/entityTooLarge'
       requestBody:
         content:
           application/json:
@@ -855,6 +868,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
+        '413':
+          $ref: '#/components/responses/entityTooLarge'
       requestBody:
         content:
           application/json:
@@ -1042,6 +1057,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
+        '413':
+          $ref: '#/components/responses/entityTooLarge'
       requestBody:
         $ref: '#/components/requestBodies/Value'
     delete:
@@ -1230,6 +1247,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
+        '413':
+          $ref: '#/components/responses/entityTooLarge'
       requestBody:
         content:
           application/json:
@@ -1421,6 +1440,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
+        '413':
+          $ref: '#/components/responses/entityTooLarge'
       requestBody:
         content:
           application/json:
@@ -1611,6 +1632,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
+        '413':
+          $ref: '#/components/responses/entityTooLarge'
       requestBody:
         content:
           application/json:
@@ -1791,6 +1814,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
+        '413':
+          $ref: '#/components/responses/entityTooLarge'
       requestBody:
         content:
           application/json:
@@ -1977,6 +2002,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
+        '413':
+          $ref: '#/components/responses/entityTooLarge'
       requestBody:
         $ref: '#/components/requestBodies/Value'
     delete:
@@ -2075,6 +2102,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
+        '413':
+          $ref: '#/components/responses/messageTooLarge'
         '429':
           description: >-
             The user has sent too many requests in a given amount of time ("rate
@@ -2137,6 +2166,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
+        '413':
+          $ref: '#/components/responses/messageTooLarge'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
   '/things/{thingId}/outbox/messages/{messageSubject}':
@@ -2188,6 +2219,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
+        '413':
+          $ref: '#/components/responses/messageTooLarge'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
   '/things/{thingId}/features/{featureId}/inbox/messages/{messageSubject}':
@@ -2243,6 +2276,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
+        '413':
+          $ref: '#/components/responses/messageTooLarge'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
   '/things/{thingId}/features/{featureId}/outbox/messages/{messageSubject}':
@@ -2295,6 +2330,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
+        '413':
+          $ref: '#/components/responses/messageTooLarge'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
   ###
@@ -2640,6 +2677,20 @@ components:
         featureIdN:
           $ref: '#/components/schemas/Feature'
   responses:
+    entityTooLarge:
+      description: >-
+        The created or modified entity is larger than the accepted limit of 100 kB.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvancedError'
+    messageTooLarge:
+      description: >-
+        The size of the send message is larger than the accepted limit of 250 kB.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvancedError'
     notModified:
       description: >-
         The (sub-)resource has not been modified. This happens when you specified a If-None-Match header which
@@ -3047,14 +3098,24 @@ components:
           * for an list, the JSON value is the list: `[ 1,2,3 ]`
       required: true
   securitySchemes:
-    Google:
-      type: oauth2
-      description: Allow Eclipse Ditto to access your Google-ID.
-      x-tokenName: id_token
-      flows:
-        authorizationCode:
-          authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth'
-          tokenUrl: /oauth2/google/token
-          scopes:
-            openid: Access your Google-ID
-
+#    Google:
+#      type: oauth2
+#      description: Allow Eclipse Ditto to access your Google-ID.
+#      x-tokenName: id_token # the authorization_code flow currently doesn't work as this field is not supported in swagger-ui 3 yet
+#      flows:
+#        authorizationCode:
+#          authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth'
+#          tokenUrl: /oauth2/google/token
+#          scopes:
+#            openid: Access your Google-ID
+  basicAuth:
+    type: http
+    description: >-
+      Eclipse Ditto sandbox demo user (demo1 ... demo9) + password (demo)
+    scheme: basic
+  bearerAuth:
+    type: http
+    scheme: bearer
+    bearerFormat: JWT
+    description: >-
+      A JSON Web Token issued by a supported OAuth 2.0 Identity Provider, e.g. a Google "id_token"

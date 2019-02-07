@@ -55,7 +55,7 @@ final class ImmutableConnection implements Connection {
     private final String id;
     @Nullable private final String name;
     private final ConnectionType connectionType;
-    private final ConnectionStatus connectionStatus;
+    private final ConnectivityStatus connectionStatus;
     private final ConnectionUri uri;
     @Nullable private final Credentials credentials;
     @Nullable private final String trustedCertificates;
@@ -101,7 +101,7 @@ final class ImmutableConnection implements Connection {
      */
     public static ConnectionBuilder getBuilder(final String id,
             final ConnectionType connectionType,
-            final ConnectionStatus connectionStatus,
+            final ConnectivityStatus connectionStatus,
             final String uri) {
 
         return new Builder(connectionType)
@@ -152,8 +152,8 @@ final class ImmutableConnection implements Connection {
                 .id(jsonObject.getValueOrThrow(JsonFields.ID))
                 .connectionStatus(getConnectionStatusOrThrow(jsonObject))
                 .uri(jsonObject.getValueOrThrow(JsonFields.URI))
-                .sources(getSources(jsonObject, type))
-                .targets(getTargets(jsonObject, type))
+                .sources(getSources(jsonObject))
+                .targets(getTargets(jsonObject))
                 .name(jsonObject.getValue(JsonFields.NAME).orElse(null))
                 .mappingContext(jsonObject.getValue(JsonFields.MAPPING_CONTEXT)
                         .map(ConnectivityModelFactory::mappingContextFromJson)
@@ -179,15 +179,15 @@ final class ImmutableConnection implements Connection {
                         .build());
     }
 
-    private static ConnectionStatus getConnectionStatusOrThrow(final JsonObject jsonObject) {
+    private static ConnectivityStatus getConnectionStatusOrThrow(final JsonObject jsonObject) {
         final String readConnectionStatus = jsonObject.getValueOrThrow(JsonFields.CONNECTION_STATUS);
-        return ConnectionStatus.forName(readConnectionStatus)
+        return ConnectivityStatus.forName(readConnectionStatus)
                 .orElseThrow(() -> JsonParseException.newBuilder()
                         .message(MessageFormat.format("Connection status <{0}> is invalid!", readConnectionStatus))
                         .build());
     }
 
-    private static List<Source> getSources(final JsonObject jsonObject, final ConnectionType type) {
+    private static List<Source> getSources(final JsonObject jsonObject) {
         final Optional<JsonArray> sourcesArray = jsonObject.getValue(JsonFields.SOURCES);
         if (sourcesArray.isPresent()) {
             final JsonArray values = sourcesArray.get();
@@ -195,7 +195,7 @@ final class ImmutableConnection implements Connection {
                     .mapToObj(index -> values.get(index)
                             .filter(JsonValue::isObject)
                             .map(JsonValue::asObject)
-                            .map(valueAsObject -> ConnectivityModelFactory.sourceFromJson(valueAsObject, index, type)))
+                            .map(valueAsObject -> ConnectivityModelFactory.sourceFromJson(valueAsObject, index)))
                     .filter(Optional::isPresent)
                     .map(Optional::get)
                     .collect(Collectors.toList());
@@ -204,12 +204,12 @@ final class ImmutableConnection implements Connection {
         }
     }
 
-    private static Set<Target> getTargets(final JsonObject jsonObject, final ConnectionType type) {
+    private static Set<Target> getTargets(final JsonObject jsonObject) {
         return jsonObject.getValue(JsonFields.TARGETS)
                 .map(array -> array.stream()
                         .filter(JsonValue::isObject)
                         .map(JsonValue::asObject)
-                        .map(valueAsObject -> ConnectivityModelFactory.targetFromJson(valueAsObject, type))
+                        .map(ConnectivityModelFactory::targetFromJson)
                         .collect(Collectors.toSet()))
                 .orElse(Collections.emptySet());
     }
@@ -249,7 +249,7 @@ final class ImmutableConnection implements Connection {
     }
 
     @Override
-    public ConnectionStatus getConnectionStatus() {
+    public ConnectivityStatus getConnectionStatus() {
         return connectionStatus;
     }
 
@@ -454,7 +454,7 @@ final class ImmutableConnection implements Connection {
 
         // required but changeable:
         @Nullable private String id;
-        @Nullable private ConnectionStatus connectionStatus;
+        @Nullable private ConnectivityStatus connectionStatus;
         @Nullable private String uri;
 
         // optional:
@@ -508,7 +508,7 @@ final class ImmutableConnection implements Connection {
         }
 
         @Override
-        public ConnectionBuilder connectionStatus(final ConnectionStatus connectionStatus) {
+        public ConnectionBuilder connectionStatus(final ConnectivityStatus connectionStatus) {
             this.connectionStatus = checkNotNull(connectionStatus, "ConnectionStatus");
             return this;
         }

@@ -12,8 +12,8 @@ package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
 import java.net.URI;
 import java.text.MessageFormat;
+import java.time.Duration;
 import java.time.Instant;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -22,8 +22,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.jms.ExceptionListener;
@@ -36,13 +34,10 @@ import org.apache.qpid.jms.JmsConnection;
 import org.apache.qpid.jms.JmsConnectionListener;
 import org.apache.qpid.jms.message.JmsInboundMessageDispatch;
 import org.apache.qpid.jms.provider.ProviderFactory;
-import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.Source;
-import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
@@ -54,6 +49,7 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFail
 import org.eclipse.ditto.services.connectivity.messaging.internal.DisconnectClient;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 
 import akka.actor.ActorRef;
@@ -61,10 +57,8 @@ import akka.actor.FSM;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Pair;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.pattern.PatternsCS;
-import akka.util.Timeout;
 
 /**
  * Actor which manages a connection to an AMQP 1.0 server using the Qpid JMS client.
@@ -91,7 +85,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      * This constructor is called via reflection by the static method propsForTest.
      */
     @SuppressWarnings("unused")
-    private AmqpClientActor(final Connection connection, final ConnectionStatus connectionStatus,
+    private AmqpClientActor(final Connection connection, final ConnectivityStatus connectionStatus,
             final JmsConnectionFactory jmsConnectionFactory, final ActorRef conciergeForwarder) {
         super(connection, connectionStatus, conciergeForwarder);
         this.jmsConnectionFactory = jmsConnectionFactory;
@@ -104,7 +98,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      * This constructor is called via reflection by the static method props(Connection, ActorRef).
      */
     @SuppressWarnings("unused")
-    private AmqpClientActor(final Connection connection, final ConnectionStatus connectionStatus,
+    private AmqpClientActor(final Connection connection, final ConnectivityStatus connectionStatus,
             final ActorRef conciergeForwarder) {
         this(connection, connectionStatus, ConnectionBasedJmsConnectionFactory.getInstance(), conciergeForwarder);
     }
@@ -130,7 +124,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      * @param jmsConnectionFactory the JMS connection factory.
      * @return the Akka configuration Props object.
      */
-    static Props propsForTests(final Connection connection, final ConnectionStatus connectionStatus,
+    static Props propsForTests(final Connection connection, final ConnectivityStatus connectionStatus,
             final ActorRef conciergeForwarder, final JmsConnectionFactory jmsConnectionFactory) {
         return Props.create(AmqpClientActor.class, validateConnection(connection), connectionStatus,
                 jmsConnectionFactory, conciergeForwarder);
@@ -170,7 +164,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     protected CompletionStage<Status.Status> doTestConnection(final Connection connection) {
         // delegate to child actor because the QPID JMS client is blocking until connection is opened/closed
         return PatternsCS.ask(getTestConnectionHandler(connection),
-                new JmsConnect(getSender()), Timeout.apply(TEST_CONNECTION_TIMEOUT, TimeUnit.SECONDS))
+                new JmsConnect(getSender()), Duration.ofSeconds(TEST_CONNECTION_TIMEOUT))
                 .handle((response, throwable) -> {
                     if (throwable != null || response instanceof Status.Failure || response instanceof Throwable) {
                         final Throwable ex =
@@ -201,42 +195,6 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         // delegate to child actor because the QPID JMS client is blocking until connection is opened/closed
         getDisconnectConnectionHandler(connection)
                 .tell(new JmsDisconnect(origin, jmsConnection), getSelf());
-    }
-
-    @Override
-    protected CompletionStage<Map<String, AddressMetric>> getSourceConnectionStatus(final Source source) {
-        return collectAsList(consumers.stream()
-                .map(consumerData -> {
-                    final String namePrefix = consumerData.getActorNamePrefix();
-                    final ActorRef child = consumerByNamePrefix.get(namePrefix);
-                    return retrieveAddressMetric(consumerData.getAddressWithIndex(), namePrefix, child);
-                }))
-                .thenApply(entries -> entries.stream().collect(Collectors.toMap(Pair::first, Pair::second)))
-                .handle((result, error) -> {
-                    if (error == null) {
-                        return result;
-                    } else {
-                        log.error(error, "Error while aggregating sources ConnectionStatus: {}", error.getMessage());
-                        return Collections.emptyMap();
-                    }
-                });
-    }
-
-    @Override
-    protected CompletionStage<Map<String, AddressMetric>> getTargetConnectionStatus(final Target target) {
-
-        final CompletionStage<Pair<String, AddressMetric>> targetEntryFuture =
-                retrieveAddressMetric(target.getAddress(), AmqpPublisherActor.ACTOR_NAME, amqpPublisherActor);
-        return targetEntryFuture
-                .thenApply(targetEntry -> Collections.singletonMap(targetEntry.first(), targetEntry.second()))
-                .handle((result, error) -> {
-                    if (error == null) {
-                        return result;
-                    } else {
-                        log.error(error, "Error while aggregating target ConnectionStatus: {}", error.getMessage());
-                        return Collections.emptyMap();
-                    }
-                });
     }
 
     @Override
@@ -330,7 +288,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
     private void startCommandConsumer(final ConsumerData consumer, final ActorRef messageMappingProcessor) {
         final String namePrefix = consumer.getActorNamePrefix();
-        final Props props = AmqpConsumerActor.props(consumer.getAddress(), consumer.getMessageConsumer(),
+        final Props props = AmqpConsumerActor.props(connectionId(), consumer.getAddress(),
+                consumer.getMessageConsumer(),
                 messageMappingProcessor, consumer.getSource());
 
         final ActorRef child = startChildActorConflictFree(namePrefix, props);
@@ -342,7 +301,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             stopCommandProducer();
             final String namePrefix = AmqpPublisherActor.ACTOR_NAME;
             if (jmsSession != null) {
-                final Props props = AmqpPublisherActor.props(jmsSession);
+                final Props props = AmqpPublisherActor.props(connectionId(), getTargetsOrEmptySet(), jmsSession);
                 amqpPublisherActor = startChildActorConflictFree(namePrefix, props);
             } else {
                 throw new IllegalStateException(
@@ -434,12 +393,9 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private FSM.State<BaseClientState, BaseClientData> handleStatusReport(final StatusReport statusReport,
             final BaseClientData currentData) {
         BaseClientData data = currentData;
-        if (statusReport.hasConsumedMessage()) {
-            incrementConsumedMessageCounter();
-        }
         if (statusReport.isConnectionRestored()) {
-            data = data.setConnectionStatus(ConnectionStatus.OPEN)
-                    .setConnectionStatusDetails("Connection restored at " + Instant.now());
+            data = data.setConnectionStatus(ConnectivityStatus.OPEN)
+                    .setConnectionStatusDetails("Connection restored");
         }
 
         final Optional<ConnectionFailure> possibleFailure = statusReport.getFailure();
@@ -449,7 +405,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             final ConnectionFailure failure = possibleFailure.get();
             final String message = MessageFormat.format("Failure: {0}, Description: {1}",
                     failure.getFailure().cause(), failure.getFailureDescription());
-            data = data.setConnectionStatus(ConnectionStatus.FAILED)
+            data = data.setConnectionStatus(ConnectivityStatus.FAILED)
                     .setConnectionStatusDetails(message);
         }
         if (possibleClosedConsumer.isPresent()) {
@@ -461,19 +417,14 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                     .ifPresent(c -> {
                         final ActorRef consumerActor = consumerByNamePrefix.get(c.getActorNamePrefix());
                         if (consumerActor != null) {
-                            final Object message = ConnectivityModelFactory.newAddressMetric(ConnectionStatus.FAILED,
-                                    "Consumer closed at " + Instant.now(),
-                                    0, null);
+                            final Object message = ConnectivityModelFactory.newStatusUpdate(
+                                    ConfigUtil.instanceIdentifier(),
+                                    ConnectivityStatus.FAILED,
+                                    c.getAddress(),
+                                    "Consumer closed", Instant.now());
                             consumerActor.tell(message, ActorRef.noSender());
                         }
                     });
-        }
-        if (statusReport.getClosedProducer().isPresent()) {
-            if (amqpPublisherActor != null) {
-                final Object message = ConnectivityModelFactory.newAddressMetric(ConnectionStatus.FAILED,
-                        "Producer closed at " + Instant.now(), 0, null);
-                amqpPublisherActor.tell(message, ActorRef.noSender());
-            }
         }
         return stay().using(data);
     }

@@ -23,12 +23,14 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyException;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown if a {@link org.eclipse.ditto.model.policies.PolicyEntry} was either not present or the requester had
  * insufficient permissions to access it.
  */
 @Immutable
+@JsonParsableException(errorCode = PolicyEntryNotAccessibleException.ERROR_CODE)
 public final class PolicyEntryNotAccessibleException extends DittoRuntimeException implements PolicyException {
 
     /**

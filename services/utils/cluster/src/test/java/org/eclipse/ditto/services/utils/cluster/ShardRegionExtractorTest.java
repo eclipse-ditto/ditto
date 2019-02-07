@@ -22,11 +22,11 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.commands.things.ThingCommandRegistry;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingErrorRegistry;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
@@ -57,8 +57,8 @@ public final class ShardRegionExtractorTest {
     public void setUp() throws Exception {
         final Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> mappingStrategies = new HashMap<>();
 
-        final ThingErrorRegistry thingErrorRegistry = ThingErrorRegistry.newInstance();
-        thingErrorRegistry.getTypes().forEach(type -> mappingStrategies.put(type, thingErrorRegistry::parse));
+        final GlobalErrorRegistry globalErrorRegistry = GlobalErrorRegistry.getInstance();
+        globalErrorRegistry.getTypes().forEach(type -> mappingStrategies.put(type, globalErrorRegistry::parse));
 
         final ThingCommandRegistry thingCommandRegistry = ThingCommandRegistry.newInstance();
         thingCommandRegistry.getTypes().forEach(type -> mappingStrategies.put(type, thingCommandRegistry::parse));
@@ -120,7 +120,8 @@ public final class ShardRegionExtractorTest {
                         .dittoHeaders(DITTO_HEADERS) //
                         .build();
 
-        final ThingErrorResponse errorResponse = ThingErrorResponse.of(THING_ID, thingNotAccessibleException, DITTO_HEADERS);
+        final ThingErrorResponse errorResponse =
+                ThingErrorResponse.of(THING_ID, thingNotAccessibleException, DITTO_HEADERS);
 
         final JsonObject messageEnvelope = ShardedMessageEnvelope.of(THING_ID, errorResponse.getType(),
                 errorResponse.toJson(JsonSchemaVersion.V_2, FieldType.regularOrSpecial()),

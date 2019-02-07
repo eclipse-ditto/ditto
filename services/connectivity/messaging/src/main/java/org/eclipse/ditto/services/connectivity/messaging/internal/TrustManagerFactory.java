@@ -39,6 +39,10 @@ final class TrustManagerFactory {
 
     private static final CertificateFactory X509_CERTIFICATE_FACTORY;
 
+    private TrustManagerFactory() {
+        throw new AssertionError();
+    }
+
     static {
         try {
             X509_CERTIFICATE_FACTORY = CertificateFactory.getInstance("X.509");
@@ -63,7 +67,6 @@ final class TrustManagerFactory {
                 keystore.setCertificateEntry("ca-" + cnt++, caCert);
             }
             trustManagerFactory.init(keystore);
-            // TODO: consider adding cert revocation checker if AWS-IoT has OSCP/CRL.
         } else {
             // standard CAs; add revocation check
             final PKIXRevocationChecker revocationChecker =

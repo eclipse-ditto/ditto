@@ -21,12 +21,14 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * This exception indicates that Authentication provider (e.g. IM3) was not available at the time of the
  * authentication.
  */
 @Immutable
+@JsonParsableException(errorCode = GatewayAuthenticationProviderUnavailableException.ERROR_CODE)
 public final class GatewayAuthenticationProviderUnavailableException extends DittoRuntimeException
         implements GatewayException {
 

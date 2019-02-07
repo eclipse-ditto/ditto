@@ -15,6 +15,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.common.ConditionChecker;
 
 /**
  * Abstract class that delegates to an existing {@link Target}. Used to extend the default fields of a {@link Target}
@@ -24,13 +25,18 @@ abstract class DelegateTarget implements Target {
 
     protected final Target delegate;
 
-    protected DelegateTarget(final Target delegate) {
-        this.delegate = delegate;
+    DelegateTarget(final Target delegate) {
+        this.delegate = ConditionChecker.checkNotNull(delegate, "delegate");
     }
 
     @Override
     public String getAddress() {
         return delegate.getAddress();
+    }
+
+    @Override
+    public String getOriginalAddress() {
+        return delegate.getOriginalAddress();
     }
 
     @Override

@@ -14,7 +14,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newMqttTarget;
+import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 import static org.mockito.Mockito.when;
@@ -27,8 +27,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
@@ -38,18 +36,13 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.MqttSource;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Source;
-import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.model.connectivity.TargetMetrics;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
@@ -93,11 +86,10 @@ public class MqttClientActorTest {
 
     private static final Status.Success CONNECTED_SUCCESS = new Status.Success(BaseClientState.CONNECTED);
     private static final Status.Success DISCONNECTED_SUCCESS = new Status.Success(BaseClientState.DISCONNECTED);
-    private static final Target TARGET = newMqttTarget("target", AUTHORIZATION_CONTEXT, 1, Topic.TWIN_EVENTS);
-    private static final Source SOURCE = newMqttSource(1, 1, "foo");
+    private static final Target TARGET = newTarget("target", AUTHORIZATION_CONTEXT, null, 1, Topic.TWIN_EVENTS);
     private static final String SOURCE_ADDRESS = "source";
-    private static final MqttSource MQTT_SOURCE = ConnectivityModelFactory
-            .newMqttSourceBuilder()
+    private static final Source MQTT_SOURCE = ConnectivityModelFactory
+            .newSourceBuilder()
             .authorizationContext(AUTHORIZATION_CONTEXT)
             .index(1)
             .consumerCount(1)
@@ -129,7 +121,7 @@ public class MqttClientActorTest {
         connectionId = TestConstants.createRandomConnectionId();
         serverHost = "tcp://localhost:" + freePort.getPort();
         connection =
-                ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT, ConnectionStatus.OPEN,
+                ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT, ConnectivityStatus.OPEN,
                         serverHost)
                         .sources(singletonList(MQTT_SOURCE))
                         .targets(singleton(TARGET))
@@ -159,12 +151,12 @@ public class MqttClientActorTest {
 
     @Test
     public void testConsumeFromTopicWithIdEnforcement() {
-        final MqttSource mqttSource = newFilteredMqttSource(
+        final Source mqttSource = newFilteredMqttSource(
                 "eclipse/{{ thing:namespace }}/{{ thing:name }}",
                 "eclipse/+/+");
         final Connection connectionWithEnforcement =
                 ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT,
-                        ConnectionStatus.OPEN,
+                        ConnectivityStatus.OPEN,
                         serverHost)
                         .sources(singletonList(mqttSource))
                         .build();
@@ -176,14 +168,14 @@ public class MqttClientActorTest {
     public void testConsumeFromTopicWithIdEnforcementExpectErrorResponse() {
         disableLogging(actorSystem);
 
-        final MqttSource mqttSource = newFilteredMqttSource(
+        final Source mqttSource = newFilteredMqttSource(
                 "eclipse/{{ thing:namespace }}/{{ thing:name }}", // enforcement filter
                 "eclipse/+/+" // subscribed topic
         );
 
         final Connection connectionWithEnforcement =
                 ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT,
-                        ConnectionStatus.OPEN,
+                        ConnectivityStatus.OPEN,
                         serverHost)
                         .sources(singletonList(mqttSource))
                         .build();
@@ -251,7 +243,7 @@ public class MqttClientActorTest {
 
             final Connection multipleSources =
                     ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT,
-                            ConnectionStatus.OPEN, serverHost)
+                            ConnectivityStatus.OPEN, serverHost)
                             .sources(Arrays.asList(
                                     newMqttSource(3, 1, "A1"),
                                     newMqttSource(2, 2, "B1", "B2"),
@@ -282,17 +274,19 @@ public class MqttClientActorTest {
         }};
     }
 
-    private static MqttSource newMqttSource(final int consumerCount, final int index, final String... sources) {
+    private static Source newMqttSource(final int consumerCount, final int index, final String... sources) {
         return ConnectivityModelFactory
-                .newMqttSourceBuilder()
+                .newSourceBuilder()
                 .authorizationContext(AUTHORIZATION_CONTEXT)
                 .index(index)
                 .consumerCount(consumerCount)
-                .addresses(TestConstants.asSet(sources)).qos(1).build();
+                .addresses(TestConstants.asSet(sources))
+                .qos(1)
+                .build();
     }
 
-    private static MqttSource newFilteredMqttSource(final String filter, final String... sources) {
-        return ConnectivityModelFactory.newMqttSourceBuilder()
+    private static Source newFilteredMqttSource(final String filter, final String... sources) {
+        return ConnectivityModelFactory.newSourceBuilder()
                 .authorizationContext(AUTHORIZATION_CONTEXT)
                 .index(1)
                 .consumerCount(1)
@@ -364,7 +358,7 @@ public class MqttClientActorTest {
     public void testRetrieveConnectionMetrics() {
         new TestKit(actorSystem) {
             {
-                final MqttSource mqttSource = ConnectivityModelFactory.newMqttSourceBuilder()
+                final Source mqttSource = ConnectivityModelFactory.newSourceBuilder()
                         .authorizationContext(AUTHORIZATION_CONTEXT)
                         .index(2)
                         .consumerCount(1)
@@ -391,44 +385,6 @@ public class MqttClientActorTest {
 
                 final RetrieveConnectionMetricsResponse retrieveConnectionMetricsResponse =
                         expectMsgClass(RetrieveConnectionMetricsResponse.class);
-
-                final ConnectionMetrics connectionMetrics = retrieveConnectionMetricsResponse.getConnectionMetrics();
-                assertThat((Object) connectionMetrics.getConnectionStatus()).isEqualTo(ConnectionStatus.OPEN);
-                assertThat(connectionMetrics.getClientState()).isEqualTo(BaseClientState.CONNECTED.name());
-                assertThat(findSourceAddressMetricForTopic(connectionMetrics, SOURCE_ADDRESS))
-                        .hasValueSatisfying(m -> assertThat(m.getMessageCount()).isEqualTo(1L));
-                assertThat(findSourceMetricsForTopic(connectionMetrics, SOURCE_ADDRESS))
-                        .hasValueSatisfying(m -> assertThat(m.getConsumedMessages()).isEqualTo(1L));
-                assertThat(findSourceAddressMetricForTopic(connectionMetrics, "topic1")).isNotEmpty();
-                assertThat(findSourceAddressMetricForTopic(connectionMetrics, "topic2")).isNotEmpty();
-                assertThat(findTargetMetricsForTopic(connectionMetrics, TARGET.getAddress())).isNotEmpty();
-            }
-
-            private Optional<AddressMetric> findSourceAddressMetricForTopic(final ConnectionMetrics connectionMetrics,
-                    final String address) {
-
-                System.out.println(connectionMetrics.toJsonString());
-
-                return connectionMetrics.getSourcesMetrics().stream()
-                        .flatMap(metric -> metric.getAddressMetrics()
-                                .entrySet()
-                                .stream()
-                                .filter(e -> e.getKey().contains(address))
-                                .map(Map.Entry::getValue))
-                        .findFirst();
-            }
-
-            private Optional<SourceMetrics> findSourceMetricsForTopic(final ConnectionMetrics connectionMetrics,
-                    final String address) {
-                return connectionMetrics.getSourcesMetrics().stream()
-                        .filter(metric -> metric.getAddressMetrics().containsKey(address)).findFirst();
-            }
-
-            private Optional<TargetMetrics> findTargetMetricsForTopic(final ConnectionMetrics connectionMetrics,
-                    final String address) {
-                return connectionMetrics.getTargetsMetrics().stream()
-                        .filter(metric -> metric.getAddressMetrics().keySet().contains(address))
-                        .findFirst();
             }
         };
     }

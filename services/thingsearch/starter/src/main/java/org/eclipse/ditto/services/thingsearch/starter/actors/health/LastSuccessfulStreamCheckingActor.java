@@ -16,16 +16,20 @@ import static java.util.Objects.requireNonNull;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
-import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.services.utils.health.AbstractHealthCheckingActor;
 import org.eclipse.ditto.services.utils.health.StatusDetailMessage;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
 
-import akka.actor.AbstractActor;
 import akka.actor.Props;
 import akka.japi.Creator;
+import akka.japi.pf.ReceiveBuilder;
+import akka.pattern.PatternsCS;
+import akka.stream.ActorMaterializer;
+import akka.stream.javadsl.Sink;
 
 /**
  * Actor for checking if the duration since the last synchronization is acceptable low.
@@ -63,6 +67,8 @@ public class LastSuccessfulStreamCheckingActor extends AbstractHealthCheckingAct
     static final String NO_SUCCESSFUL_STREAM_YET_MESSAGE = "No successful stream, yet.";
 
     static final String SYNC_DISABLED_MESSAGE = "Sync is currently disabled. No status will be retrieved";
+
+    private final ActorMaterializer materializer = ActorMaterializer.create(getContext());
 
     /**
      * Constructs a {@code HealthCheckingActor}.
@@ -124,55 +130,61 @@ public class LastSuccessfulStreamCheckingActor extends AbstractHealthCheckingAct
 
     @Override
     protected Receive matchCustomMessages() {
-        return AbstractActor.emptyBehavior();
+        return ReceiveBuilder.create()
+                .match(StatusInfo.class, this::updateHealth)
+                .build();
     }
 
     @Override
     protected void triggerHealthRetrieval() {
-        StatusInfo statusInfo;
-
-        try {
-            if (this.syncEnabled) {
-                statusInfo = this.getStatusInfo();
-            } else {
-                statusInfo = createStatusInfo(StatusInfo.Status.UNKNOWN, StatusDetailMessage.Level.WARN,
-                        SYNC_DISABLED_MESSAGE);
-            }
-        } catch (final RuntimeException e) {
-            final String message = buildRetrievalErrorMessage(e);
-            log.error(e, message);
-
-            statusInfo = createStatusInfo(StatusDetailMessage.Level.ERROR, message);
+        final CompletionStage<StatusInfo> statusInfoFuture;
+        if (this.syncEnabled) {
+            statusInfoFuture = getStatusInfo();
+        } else {
+            statusInfoFuture = CompletableFuture.completedFuture(
+                    createStatusInfo(StatusInfo.Status.UNKNOWN, StatusDetailMessage.Level.WARN, SYNC_DISABLED_MESSAGE));
         }
+        final CompletionStage<StatusInfo> statusInfoFutureWithErrorHandling =
+                statusInfoFuture.handle((result, error) -> {
+                    if (error == null) {
+                        return result;
+                    } else {
+                        final String message = buildRetrievalErrorMessage(error);
+                        log.error(error, message);
+                        return createStatusInfo(StatusDetailMessage.Level.ERROR, message);
+                    }
+                });
 
-        updateHealth(statusInfo);
+        PatternsCS.pipe(statusInfoFutureWithErrorHandling, getContext().dispatcher()).to(getSelf());
     }
 
-    private StatusInfo getStatusInfo() {
-        final Optional<Instant> instantOfLastSuccessfulStreamOptional =
-                this.streamMetadataPersistence.getTimestamp();
+    private CompletionStage<StatusInfo> getStatusInfo() {
+        return this.streamMetadataPersistence.getTimestampAsync()
+                .map(instantOfLastSuccessfulStreamOptional -> {
+                    final StatusInfo statusInfo;
+                    if (instantOfLastSuccessfulStreamOptional.isPresent()) {
+                        final Duration durationSinceLastSuccessfulStream =
+                                calculateDurationSinceLastSuccessfulStream(instantOfLastSuccessfulStreamOptional.get());
 
-        final StatusInfo statusInfo;
-
-        if (instantOfLastSuccessfulStreamOptional.isPresent()) {
-            final Duration durationSinceLastSuccessfulStream =
-                    calculateDurationSinceLastSuccessfulStream(instantOfLastSuccessfulStreamOptional.get());
-
-            if (syncErrorOffsetExceeded(durationSinceLastSuccessfulStream)) {
-                final String message = buildSyncErrorOffsetExceededErrorMessage(durationSinceLastSuccessfulStream);
-                statusInfo = createStatusInfo(StatusDetailMessage.Level.ERROR, message);
-            } else if (syncWarningOffsetExceeded(durationSinceLastSuccessfulStream)) {
-                final String message = buildSyncWarningOffsetExceededErrorMessage(durationSinceLastSuccessfulStream);
-                statusInfo = createStatusInfo(StatusDetailMessage.Level.WARN, message);
-            } else {
-                final String message =
-                        buildInformationAboutLastSuccessfulStreamMessage(durationSinceLastSuccessfulStream);
-                statusInfo = createStatusInfo(StatusDetailMessage.Level.INFO, message);
-            }
-        } else {
-            statusInfo = createStatusInfo(StatusDetailMessage.Level.WARN, NO_SUCCESSFUL_STREAM_YET_MESSAGE);
-        }
-        return statusInfo;
+                        if (syncErrorOffsetExceeded(durationSinceLastSuccessfulStream)) {
+                            final String message =
+                                    buildSyncErrorOffsetExceededErrorMessage(durationSinceLastSuccessfulStream);
+                            statusInfo = createStatusInfo(StatusDetailMessage.Level.ERROR, message);
+                        } else if (syncWarningOffsetExceeded(durationSinceLastSuccessfulStream)) {
+                            final String message =
+                                    buildSyncWarningOffsetExceededErrorMessage(durationSinceLastSuccessfulStream);
+                            statusInfo = createStatusInfo(StatusDetailMessage.Level.WARN, message);
+                        } else {
+                            final String message =
+                                    buildInformationAboutLastSuccessfulStreamMessage(durationSinceLastSuccessfulStream);
+                            statusInfo = createStatusInfo(StatusDetailMessage.Level.INFO, message);
+                        }
+                    } else {
+                        statusInfo = createStatusInfo(StatusDetailMessage.Level.WARN, NO_SUCCESSFUL_STREAM_YET_MESSAGE);
+                    }
+                    return statusInfo;
+                })
+                .runWith(Sink.head(), materializer);
     }
 
     private StatusInfo createStatusInfo(final StatusDetailMessage.Level level, final String message) {

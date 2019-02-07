@@ -16,9 +16,7 @@ import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -31,7 +29,6 @@ import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.Placeholders;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 
 /**
@@ -50,7 +47,7 @@ public final class PlaceholderFilter {
      * @param headers the headers to apply HeadersPlaceholder substitution with.
      * @return AuthorizationContext as result of placeholder substitution.
      */
-    public static AuthorizationContext filterAuthorizationContext(final AuthorizationContext authorizationContext,
+    public static AuthorizationContext applyHeadersPlaceholderToAuthContext(final AuthorizationContext authorizationContext,
             final Map<String, String> headers) {
 
         // check if we have to replace anything at all
@@ -70,31 +67,6 @@ public final class PlaceholderFilter {
     }
 
     /**
-     * Apply {@link ThingPlaceholder}s to the passed {@code targets} with the passed {@code thingId}.
-     *
-     * @param targets {@link Target}s to apply placeholder substitution in.
-     * @param thingId the thing ID.
-     * @param unresolvedPlaceholderListener callback to call with unresolved placeholders.
-     * @return Targets as result of placeholder substitution.
-     */
-    public static Set<Target> filterTargets(final Set<Target> targets, final String thingId,
-            final Consumer<String> unresolvedPlaceholderListener) {
-        // check if we have to replace anything at all
-        if (targets.stream().map(Target::getAddress).noneMatch(Placeholders::containsAnyPlaceholder)) {
-            return targets;
-        }
-
-        return targets.stream()
-                .map(target -> {
-                    final String filtered =
-                            applyThingPlaceholder(target.getAddress(), thingId, unresolvedPlaceholderListener);
-                    return filtered != null ? target.withAddress(filtered) : null;
-                })
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-    }
-
-    /**
      * Apply {@link ThingPlaceholder}s to addresses and collect the result as a map.
      *
      * @param addresses addresses to apply placeholder substitution.
@@ -102,7 +74,7 @@ public final class PlaceholderFilter {
      * @param unresolvedPlaceholderListener what to do if placeholder substitution fails.
      * @return map from successfully filtered addresses to the result of placeholder substitution.
      */
-    public static Map<String, String> filterAddressesAsMap(final Collection<String> addresses, final String thingId,
+    public static Map<String, String> applyThingPlaceholderToAddresses(final Collection<String> addresses, final String thingId,
             final Consumer<String> unresolvedPlaceholderListener) {
 
         return addresses.stream()
@@ -186,9 +158,25 @@ public final class PlaceholderFilter {
                 UNRESOLVED_INPUT_HANDLER, allowUnresolved);
     }
 
-    public static <T> String validate(final String template, final Placeholder<T> thePlaceholder,
-            final boolean allowUnresolved) {
-        return doApply(template, thePlaceholder, allowUnresolved, placeholder -> Optional.of("dummy"));
+    /**
+     * Validates that the passed {@code template} is both valid and depending on the {@code allowUnresolved} boolean
+     * that the placeholders in the passed {@code template} are completely replaceable by the provided
+     * {@code placeholders}.
+     *
+     * @param template a string potentially containing placeholders to replace
+     * @param allowUnresolved whether to allow if there could be placeholders in the template left unreplaced
+     * @param placeholders the {@link Placeholder}s to use for replacement
+     * @throws UnresolvedPlaceholderException in case the template's placeholders could not completely be resolved
+     */
+    public static void validate(final String template, final boolean allowUnresolved,
+            final Placeholder<?>... placeholders) {
+        String replaced = template;
+        for (int i = 0; i < placeholders.length; i++) {
+            boolean isNotLastPlaceholder = i < placeholders.length - 1;
+            final Placeholder<?> thePlaceholder = placeholders[i];
+            replaced = doApply(replaced, thePlaceholder, allowUnresolved || isNotLastPlaceholder,
+                    placeholder -> Optional.of("validated-" + thePlaceholder.getPrefix()));
+        }
     }
 
     static String checkAllPlaceholdersResolved(final String input) {

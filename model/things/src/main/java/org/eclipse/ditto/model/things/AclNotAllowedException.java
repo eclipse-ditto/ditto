@@ -22,12 +22,14 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
  * This exception indicates that a {@link Thing}'s {@link JsonSchemaVersion} does not allow {@link AccessControlList}.
  */
 @Immutable
+@JsonParsableException(errorCode = AclNotAllowedException.ERROR_CODE)
 public final class AclNotAllowedException extends DittoRuntimeException implements ThingException {
 
     /**
@@ -100,7 +102,6 @@ public final class AclNotAllowedException extends DittoRuntimeException implemen
 
     /**
      * A mutable builder with a fluent API for a {@link AclNotAllowedException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<AclNotAllowedException> {

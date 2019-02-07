@@ -239,10 +239,75 @@ public class JavaScriptMessageMapperRhinoTest {
             "    );" +
             "}";
 
+
+    private static final String MAPPING_INCOMING_DEFAULT = "function mapToDittoProtocolMsg(\n" +
+            "  headers,\n" +
+            "  textPayload,\n" +
+            "  bytePayload,\n" +
+            "  contentType\n" +
+            ") {\n" +
+            "\n" +
+            "  // ###\n" +
+            "  // Insert your mapping logic here:\n" +
+            "  if (contentType === 'application/vnd.eclipse.ditto+json') {\n" +
+            "    let dittoProtocolMsg = JSON.parse(textPayload);\n" +
+            "    Object.assign(dittoProtocolMsg.headers, headers);\n" +
+            "    return dittoProtocolMsg;\n" +
+            "  }\n" +
+            "  if (headers) {\n" +
+            "    return null; // returning 'null' means that the message will be dropped\n" +
+            "    // TODO replace with something useful\n" +
+            "  }\n" +
+            "  // ###\n" +
+            "\n" +
+            "  return Ditto.buildDittoProtocolMsg(\n" +
+            "    namespace, // The namespace of the entity in java package notation, e.g.: \"org.eclipse.ditto\"\n" +
+            "    id, // The ID of the entity\n" +
+            "    group, // The affected group/entity, one of: \"things\"\n" +
+            "    channel, // The channel for the signal, one of: \"twin\"|\"live\"\n" +
+            "    criterion, // The criterion to apply, one of: \"commands\"|\"events\"|\"search\"|\"messages\"|\"errors\"\n" +
+            "    action, // The action to perform, one of: \"create\"|\"retrieve\"|\"modify\"|\"delete\"\n" +
+            "    path, // The path which is affected by the message, e.g.: \"/attributes\"\n" +
+            "    dittoHeaders, // The headers Object containing all Ditto Protocol header values\n" +
+            "    value // The value to apply / which was applied (e.g. in a \"modify\" action)\n" +
+            "  );\n" +
+            "}\n";
+
+    private static final String MAPPING_OUTGOING_DEFAULT = "function mapFromDittoProtocolMsg(\n" +
+            "  namespace,\n" +
+            "  id,\n" +
+            "  group,\n" +
+            "  channel,\n" +
+            "  criterion,\n" +
+            "  action,\n" +
+            "  path,\n" +
+            "  dittoHeaders,\n" +
+            "  value\n" +
+            ") {\n" +
+            "\n" +
+            "  // ###\n" +
+            "  // Insert your mapping logic here:\n" +
+            "  let headers = dittoHeaders;\n" +
+            "  let textPayload = JSON.stringify(Ditto.buildDittoProtocolMsg(namespace, id, group, channel, criterion, action, path, dittoHeaders, value));\n" +
+            "  // TODO replace with something useful, this will publish the message in Ditto Protocol JSON\n" +
+            "  let bytePayload = null;\n" +
+            "  let contentType = 'application/vnd.eclipse.ditto+json';\n" +
+            "  // ###\n" +
+            "\n" +
+            "  return Ditto.buildExternalMsg(\n" +
+            "    headers, // The external headers Object containing header values\n" +
+            "    textPayload, // The external mapped String\n" +
+            "    bytePayload, // The external mapped byte[]\n" +
+            "    contentType // The returned Content-Type\n" +
+            "  );\n" +
+            "}\n";
+
+
     private static MessageMapper javaScriptRhinoMapperNoop;
     private static MessageMapper javaScriptRhinoMapperPlain;
     private static MessageMapper javaScriptRhinoMapperEmpty;
     private static MessageMapper javaScriptRhinoMapperBinary;
+    private static MessageMapper javaScriptRhinoMapperDefault;
 
     @BeforeClass
     public static void setup() {
@@ -282,6 +347,16 @@ public class JavaScriptMessageMapperRhinoTest {
                         .contentType(CONTENT_TYPE_BINARY)
                         .incomingScript(MAPPING_INCOMING_BINARY)
                         .outgoingScript(MAPPING_OUTGOING_BINARY)
+                        .build()
+        );
+
+        javaScriptRhinoMapperDefault = MessageMappers.createJavaScriptMessageMapper();
+        javaScriptRhinoMapperDefault.configure(MAPPING_CONFIG,
+                JavaScriptMessageMapperFactory
+                        .createJavaScriptMessageMapperConfigurationBuilder(Collections.emptyMap())
+                        .contentType(CONTENT_TYPE_BINARY)
+                        .incomingScript(MAPPING_INCOMING_DEFAULT)
+                        .outgoingScript(MAPPING_OUTGOING_DEFAULT)
                         .build()
         );
     }
@@ -326,7 +401,9 @@ public class JavaScriptMessageMapperRhinoTest {
                 .setAttributes(Attributes.newBuilder().set("foo", "bar").build())
                 .build();
         final CreateThing createThing =
-                CreateThing.of(newThing, null, DittoHeaders.newBuilder().correlationId(correlationId).build());
+                CreateThing.of(newThing, null,
+                        DittoHeaders.newBuilder().correlationId(correlationId).putHeader("subject",
+                                "{{topic:action|subject}}").build());
         final Adaptable inputAdaptable = DittoProtocolAdapter.newInstance().toAdaptable(createThing);
         final JsonifiableAdaptable jsonifiableInputAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(inputAdaptable);
 
@@ -334,6 +411,52 @@ public class JavaScriptMessageMapperRhinoTest {
 
         final Optional<ExternalMessage> rawMessageOpt = javaScriptRhinoMapperNoop.map(inputAdaptable);
         final ExternalMessage rawMessage = rawMessageOpt.get();
+
+        System.out.println(rawMessage.getHeaders());
+
+        System.out.println(rawMessage);
+        System.out.println(
+                "testNoopJavascriptOutgoingMapping Duration: " + (System.nanoTime() - startTs) / 1000000.0 + "ms");
+
+        assertThat(rawMessage.findContentType()).contains(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+        assertThat(rawMessage.findHeader(HEADER_CORRELATION_ID)).contains(correlationId);
+        assertThat(rawMessage.isTextMessage()).isTrue();
+        final String textPayload = rawMessage.getTextPayload().get();
+        DittoJsonAssertions.assertThat(JsonFactory.readFrom(textPayload).asObject())
+                .isEqualToIgnoringFieldDefinitions(jsonifiableInputAdaptable.toJson());
+    }
+
+    @Test
+    public void testDefaultJavascriptOutgoingMapping() {
+        final String thingId = "org.eclipse.ditto:foo-bar-plain";
+        final String correlationId = UUID.randomUUID().toString();
+        final Thing newThing = Thing.newBuilder()
+                .setId(thingId)
+                .setAttributes(Attributes.newBuilder().set("foo", "bar").build())
+                .build();
+        final CreateThing createThing =
+                CreateThing.of(newThing, null,
+                        DittoHeaders.newBuilder().correlationId(correlationId).putHeader("subject",
+                                "{{topic:action|subject}}").build());
+
+
+        System.out.println("HEADERS: " + ProtocolFactory.newHeadersWithDittoContentType(createThing.getDittoHeaders()));
+
+        System.out.println("CREATE THING :" + createThing);
+
+        final Adaptable inputAdaptable = DittoProtocolAdapter.newInstance().toAdaptable(createThing);
+        final JsonifiableAdaptable jsonifiableInputAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(inputAdaptable);
+
+        final long startTs = System.nanoTime();
+
+        System.out.println("ADAPTABLE: " + jsonifiableInputAdaptable);
+        System.out.println("ADAPTABLE TO JSON: " + jsonifiableInputAdaptable.toJsonString());
+
+        final Optional<ExternalMessage> rawMessageOpt = javaScriptRhinoMapperDefault.map(inputAdaptable);
+        final ExternalMessage rawMessage = rawMessageOpt.get();
+
+        System.out.println(rawMessage.getHeaders());
+
         System.out.println(rawMessage);
         System.out.println(
                 "testNoopJavascriptOutgoingMapping Duration: " + (System.nanoTime() - startTs) / 1000000.0 + "ms");

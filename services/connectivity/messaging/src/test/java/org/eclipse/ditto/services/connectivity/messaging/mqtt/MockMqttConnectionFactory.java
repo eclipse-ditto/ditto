@@ -22,7 +22,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.MqttSource;
+import org.eclipse.ditto.model.connectivity.Source;
 
 import akka.Done;
 import akka.actor.ActorRef;
@@ -30,7 +30,6 @@ import akka.japi.function.Predicate;
 import akka.stream.alpakka.mqtt.MqttMessage;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
 
 /**
  * Mocks an MQTT connection by pre-created streams.
@@ -74,12 +73,12 @@ final class MockMqttConnectionFactory implements MqttConnectionFactory {
     }
 
     @Override
-    public Source<MqttMessage, CompletionStage<Done>> newSource(final MqttSource mqttSource,
+    public akka.stream.javadsl.Source<MqttMessage, CompletionStage<Done>> newSource(final Source mqttSource,
             final int bufferSize) {
         if (error != null) {
-            return Source.<MqttMessage>failed(error).mapMaterializedValue(this::failedFuture);
+            return akka.stream.javadsl.Source.<MqttMessage>failed(error).mapMaterializedValue(this::failedFuture);
         } else {
-            return Source.from(messages)
+            return akka.stream.javadsl.Source.from(messages)
                     .filter(MockMqttConnectionFactory.topicMatches(mqttSource.getAddresses()))
                     .mapMaterializedValue(whatever -> CompletableFuture.completedFuture(Done.getInstance()));
         }

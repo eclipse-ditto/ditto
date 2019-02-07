@@ -22,11 +22,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * This exception indicates the content of a Policy is too large to be processed by a backend.
  */
 @Immutable
+@JsonParsableException(errorCode = PolicyTooLargeException.ERROR_CODE)
 public final class PolicyTooLargeException extends DittoRuntimeException implements PolicyException {
 
     /**

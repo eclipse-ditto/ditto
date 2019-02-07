@@ -60,7 +60,7 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
      *
      * @return the persisted ConnectionStatus
      */
-    ConnectionStatus getConnectionStatus();
+    ConnectivityStatus getConnectionStatus();
 
     /**
      * Returns a list of the sources of this {@code Connection}.

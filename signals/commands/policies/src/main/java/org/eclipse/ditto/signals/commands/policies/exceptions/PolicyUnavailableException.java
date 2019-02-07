@@ -23,11 +23,13 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyException;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown if the Policy exists but is not available at the moment.
  */
 @Immutable
+@JsonParsableException(errorCode = PolicyUnavailableException.ERROR_CODE)
 public final class PolicyUnavailableException extends DittoRuntimeException implements PolicyException {
 
     /**

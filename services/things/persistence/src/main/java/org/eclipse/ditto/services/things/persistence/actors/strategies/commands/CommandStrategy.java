@@ -118,6 +118,16 @@ public interface CommandStrategy<T extends Command> {
          * @return the runnable to be called in case a Thing is deleted.
          */
         Runnable getBecomeDeletedRunnable();
+
+        /**
+         * @return the runnable to stop this actor.
+         */
+        Runnable getStopThisActorRunnable();
+
+        /**
+         * @return if this is the first message.
+         */
+        boolean isFirstMessage();
     }
 
 }

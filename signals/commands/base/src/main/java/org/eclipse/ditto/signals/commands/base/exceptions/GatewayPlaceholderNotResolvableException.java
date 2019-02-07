@@ -26,11 +26,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * This exception indicates that a request contains a placeholder which cannot be resolved.
  */
 @Immutable
+@JsonParsableException(errorCode = GatewayPlaceholderNotResolvableException.ERROR_CODE)
 public final class GatewayPlaceholderNotResolvableException extends DittoRuntimeException implements GatewayException {
 
     /**

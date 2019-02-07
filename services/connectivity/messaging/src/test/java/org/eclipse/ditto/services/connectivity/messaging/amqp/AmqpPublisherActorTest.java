@@ -62,7 +62,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest<JmsMessag
 
     @Override
     protected Props getPublisherActorProps() {
-        return AmqpPublisherActor.props(session);
+        return AmqpPublisherActor.props("theConnection", Collections.emptySet(), session);
     }
 
     @Override

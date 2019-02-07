@@ -29,9 +29,9 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.things.Thing;
@@ -55,21 +55,21 @@ public class SignalFilterWithFilterTest {
 
         // targetA does filter for namespaces "org.eclipse.ditto" and "foo"
         final List<String> namespacesA = Arrays.asList("org.eclipse.ditto", "foo");
-        final Target targetA = newTarget("twin/a", newAuthContext(AUTHORIZED), HEADER_MAPPING,
+        final Target targetA = newTarget("twin/a", newAuthContext(AUTHORIZED), HEADER_MAPPING, null,
                 newFilteredTopic(TWIN_EVENTS, namespacesA));
 
         // targetB does filter for namespaces "org.example"
         final List<String> namespacesB = Arrays.asList("org.example");
-        final Target targetB = newTarget("twin/b", newAuthContext(AUTHORIZED), HEADER_MAPPING,
+        final Target targetB = newTarget("twin/b", newAuthContext(AUTHORIZED), HEADER_MAPPING, null,
                 newFilteredTopic(TWIN_EVENTS, namespacesB));
 
         // targetC does filter for namespaces "foo", but uses the "UNAUTHORIZED" subjects
         final List<String> namespacesC = Arrays.asList("foo");
-        final Target targetC = newTarget("twin/c", newAuthContext(UNAUTHORIZED), HEADER_MAPPING,
+        final Target targetC = newTarget("twin/c", newAuthContext(UNAUTHORIZED), HEADER_MAPPING, null,
                 newFilteredTopic(TWIN_EVENTS, namespacesC));
 
         final Connection connection = ConnectivityModelFactory
-                .newConnectionBuilder(CONNECTION, ConnectionType.AMQP_10, ConnectionStatus.OPEN, URI)
+                .newConnectionBuilder(CONNECTION, ConnectionType.AMQP_10, ConnectivityStatus.OPEN, URI)
                 .targets(new HashSet<>(Arrays.asList(targetA, targetB, targetC)))
                 .build();
 
@@ -95,21 +95,21 @@ public class SignalFilterWithFilterTest {
 
         // targetA does filter for all namespaces and filters that attribute "test" > 23
         final String filterA = "gt(attributes/test,23)";
-        final Target targetA = newTarget("twin/a", newAuthContext(AUTHORIZED), HEADER_MAPPING,
+        final Target targetA = newTarget("twin/a", newAuthContext(AUTHORIZED), HEADER_MAPPING, null,
                 newFilteredTopic(LIVE_EVENTS, allNamespaces, filterA));
 
         // targetB does filter for all namespaces and filters that attribute "test" > 50
         final String filterB = "gt(attributes/test,50)";
-        final Target targetB = newTarget("twin/b", newAuthContext(AUTHORIZED), HEADER_MAPPING,
+        final Target targetB = newTarget("twin/b", newAuthContext(AUTHORIZED), HEADER_MAPPING, null,
                 newFilteredTopic(LIVE_EVENTS, allNamespaces, filterB));
 
         // targetC does filter for all namespaces and filters that attribute "test" > 23, but uses the "UNAUTHORIZED" subjects
         final String filterC = "gt(attributes/test,50)";
-        final Target targetC = newTarget("twin/c", newAuthContext(UNAUTHORIZED), HEADER_MAPPING,
+        final Target targetC = newTarget("twin/c", newAuthContext(UNAUTHORIZED), HEADER_MAPPING, null,
                 newFilteredTopic(LIVE_EVENTS, allNamespaces, filterC));
 
         final Connection connection = ConnectivityModelFactory
-                .newConnectionBuilder(CONNECTION, ConnectionType.AMQP_10, ConnectionStatus.OPEN, URI)
+                .newConnectionBuilder(CONNECTION, ConnectionType.AMQP_10, ConnectivityStatus.OPEN, URI)
                 .targets(new HashSet<>(Arrays.asList(targetA, targetB, targetC)))
                 .build();
 
@@ -135,29 +135,29 @@ public class SignalFilterWithFilterTest {
         // targetA does filter for namespaces "org.eclipse.ditto" and "foo" and filters that attribute "test" > 23
         final List<String> namespacesA = Arrays.asList("org.eclipse.ditto", "foo");
         final String filterA = "gt(attributes/test,23)";
-        final Target targetA = newTarget("twin/a", newAuthContext(AUTHORIZED), HEADER_MAPPING,
+        final Target targetA = newTarget("twin/a", newAuthContext(AUTHORIZED), HEADER_MAPPING, null,
                 newFilteredTopic(TWIN_EVENTS, namespacesA, filterA));
 
         // targetB does filter for namespaces "org.example" and filters that attribute "test" < 50
         final List<String> namespacesB = Arrays.asList("org.example");
         final String filterB = "lt(attributes/test,50)";
-        final Target targetB = newTarget("twin/b", newAuthContext(AUTHORIZED), HEADER_MAPPING,
+        final Target targetB = newTarget("twin/b", newAuthContext(AUTHORIZED), HEADER_MAPPING, null,
                 newFilteredTopic(TWIN_EVENTS, namespacesB, filterB));
 
         // targetC does filter for namespaces "foo" and filters that attribute "test" ==  42, but uses the "UNAUTHORIZED" subjects
         final List<String> namespacesC = Arrays.asList("foo");
         final String filterC = "eq(attributes/test,42)";
-        final Target targetC = newTarget("twin/c", newAuthContext(UNAUTHORIZED), HEADER_MAPPING,
+        final Target targetC = newTarget("twin/c", newAuthContext(UNAUTHORIZED), HEADER_MAPPING, null,
                 newFilteredTopic(TWIN_EVENTS, namespacesC, filterC));
 
         // targetD does filter for namespaces "foo" and filters that attribute "test" ==  42
         final List<String> namespacesD = Arrays.asList("foo");
         final String filterD = "eq(attributes/test,42)";
-        final Target targetD = newTarget("twin/d", newAuthContext(AUTHORIZED), HEADER_MAPPING,
+        final Target targetD = newTarget("twin/d", newAuthContext(AUTHORIZED), HEADER_MAPPING, null,
                 newFilteredTopic(TWIN_EVENTS, namespacesD, filterD));
 
         final Connection connection = ConnectivityModelFactory
-                .newConnectionBuilder(CONNECTION, ConnectionType.AMQP_10, ConnectionStatus.OPEN, URI)
+                .newConnectionBuilder(CONNECTION, ConnectionType.AMQP_10, ConnectivityStatus.OPEN, URI)
                 .targets(new HashSet<>(Arrays.asList(targetA, targetB, targetC, targetD)))
                 .build();
 

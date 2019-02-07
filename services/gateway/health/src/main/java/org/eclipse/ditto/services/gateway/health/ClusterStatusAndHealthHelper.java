@@ -14,14 +14,18 @@ import static java.util.Objects.requireNonNull;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -45,13 +49,14 @@ import akka.pattern.PatternsCS;
 final class ClusterStatusAndHealthHelper {
 
     private static final String JSON_KEY_ROLES = "roles";
-    private static final String JSON_KEY_MISSING_ROLES = "missing-roles";
     private static final String JSON_KEY_EXPECTED_ROLES = "expected-roles";
+    private static final String JSON_KEY_MISSING_ROLES = "missing-roles";
+    private static final String JSON_KEY_EXTRA_ROLES = "extra-roles";
 
     private static final String STATUS_SUPPLIER_PATH = "/user/" + StatusSupplierActor.ACTOR_NAME;
 
     protected final ActorSystem actorSystem;
-    protected final Supplier<ClusterStatus> clusterStateSupplier;
+    private final Supplier<ClusterStatus> clusterStateSupplier;
 
     private ClusterStatusAndHealthHelper(final ActorSystem actorSystem,
             final Supplier<ClusterStatus> clusterStateSupplier) {
@@ -85,59 +90,53 @@ final class ClusterStatusAndHealthHelper {
     CompletionStage<JsonObject> retrieveOverallRolesStatus() {
         final SimpleCommand command = SimpleCommand.of(StatusSupplierActor.SIMPLE_COMMAND_RETRIEVE_STATUS, null, null);
 
-        final List<CompletableFuture<JsonObject>> statuses = clusterStateSupplier.get().getRoles().stream()
-                .map(clusterRoleStatus -> {
-                            final String role = clusterRoleStatus.getRole();
-                            final List<CompletableFuture<JsonObject>> statusList =
-                                    sendCommandToRemoteAddresses(
-                                            actorSystem, command, clusterRoleStatus.getReachable(),
-                                            (o, throwable, addressString) ->
-                                            {
-                                                if (throwable != null) {
-                                                    return JsonObject.newBuilder()
-                                                            .set(addressString, throwable.getMessage()).build();
-                                                } else {
-                                                    return ((SimpleCommandResponse) o).getPayload()
-                                                            .map(JsonValue::asObject)
-                                                            .orElse(JsonObject.newBuilder().build());
-                                                }
-                                            }
-                                    );
-
-                    final CompletableFuture<JsonObject> roleStatusFuture = CompletableFutureUtils.collectAsList(statusList)
-                                    .thenApply(statusObjects -> {
-                                        final JsonObjectBuilder roleStatusBuilder = JsonFactory.newObjectBuilder();
-                                        statusObjects.forEach(
-                                                subStatusObj -> {
-                                                    String key = subStatusObj.getValue("instance")
-                                                                    .map(JsonValue::asString)
-                                                            .orElse("?");
-                                                    final JsonObjectBuilder subBuilder = JsonObject.newBuilder();
-                                                    subStatusObj.forEach(subBuilder::set);
-                                                    if (roleStatusBuilder.build().contains(key)) {
-                                                        key = key + "_" + UUID.randomUUID().toString().hashCode();
-                                                    }
-                                                    roleStatusBuilder.set(key, subBuilder.build());
-                                                });
-                                        return roleStatusBuilder.build();
+        final List<CompletableFuture<JsonObject>> statuses =
+                clusterStateSupplier.get().getRoles().stream().map(clusterRoleStatus -> {
+                    final String role = clusterRoleStatus.getRole();
+                    final List<CompletableFuture<JsonObject>> statusList =
+                            sendCommandToRemoteAddresses(actorSystem, command, clusterRoleStatus.getReachable(),
+                                    (o, throwable, addressString) -> {
+                                        if (throwable != null) {
+                                            return JsonObject.newBuilder()
+                                                    .set(addressString, throwable.getMessage()).build();
+                                        } else {
+                                            return ((SimpleCommandResponse) o).getPayload()
+                                                    .map(JsonValue::asObject)
+                                                    .orElse(JsonObject.newBuilder().build());
+                                        }
                                     });
 
-                            return roleStatusFuture.thenApply(rolesStatus ->
-                                    JsonObject.newBuilder().set(role, rolesStatus).build());
-                        }
-                )
-                .collect(Collectors.toList());
+                    final CompletableFuture<JsonObject> roleStatusFuture =
+                            CompletableFutureUtils.collectAsList(statusList).thenApply(statusObjects -> {
+                                final JsonObjectBuilder roleStatusBuilder = JsonFactory.newObjectBuilder();
+                                statusObjects.forEach(subStatusObj -> {
+                                    String key = subStatusObj.getValue("instance")
+                                            .map(JsonValue::asString)
+                                            .orElse("?");
+                                    final JsonObjectBuilder subBuilder = JsonObject.newBuilder();
+                                    subStatusObj.forEach(subBuilder::set);
+                                    if (roleStatusBuilder.build().contains(key)) {
+                                        key = key + "_" + UUID.randomUUID().toString().hashCode();
+                                    }
+                                    roleStatusBuilder.set(key, subBuilder.build());
+                                });
+                                return roleStatusBuilder.build();
+                            });
 
-        return CompletableFutureUtils.collectAsList(statuses)
-                .thenApply(roleStatuses -> {
-                    final JsonObjectBuilder rolesStatusBuilder = JsonFactory.newObjectBuilder();
-                    roleStatuses.forEach(subStatusObj -> subStatusObj.forEach(rolesStatusBuilder::set));
+                    return roleStatusFuture.thenApply(rolesStatus ->
+                            JsonObject.newBuilder().set(role, rolesStatus).build());
 
-                    final JsonObjectBuilder rolesStatusWrapperBuilder = JsonFactory.newObjectBuilder();
-                    rolesStatusWrapperBuilder.set(JSON_KEY_ROLES, rolesStatusBuilder.build());
+                }).collect(Collectors.toList());
 
-                    return rolesStatusWrapperBuilder.build();
-                });
+        return CompletableFutureUtils.collectAsList(statuses).thenApply(roleStatuses -> {
+            final JsonObjectBuilder rolesStatusBuilder = JsonFactory.newObjectBuilder();
+            roleStatuses.forEach(subStatusObj -> subStatusObj.forEach(rolesStatusBuilder::set));
+
+            final JsonObjectBuilder rolesStatusWrapperBuilder = JsonFactory.newObjectBuilder();
+            rolesStatusWrapperBuilder.set(JSON_KEY_ROLES, rolesStatusBuilder.build());
+
+            return rolesStatusWrapperBuilder.build();
+        });
     }
 
     /**
@@ -154,68 +153,79 @@ final class ClusterStatusAndHealthHelper {
                 actorSystem.settings().config().getBoolean(ConfigKeys.HEALTH_CHECK_CLUSTER_ROLES_ENABLED);
 
         if (healthClusterRolesEnabled) {
-            final List<String> healthClusterRolesExpected =
-                    actorSystem.settings().config().getStringList(ConfigKeys.HEALTH_CHECK_CLUSTER_ROLES_EXPECTED);
+            final JsonArray expectedRoles = actorSystem.settings()
+                    .config()
+                    .getStringList(ConfigKeys.HEALTH_CHECK_CLUSTER_ROLES_EXPECTED)
+                    .stream()
+                    .sorted(Comparator.comparing(Function.identity()))
+                    .map(JsonValue::of)
+                    .collect(JsonCollectors.valuesToArray());
 
-            healths.add(CompletableFuture.supplyAsync(() -> {
-                final List<String> existingClusterRoles = clusterStatus
-                        .getRoles()
-                        .stream()
-                        .map(ClusterRoleStatus::getRole)
-                        .collect(Collectors.toList());
-                healthClusterRolesExpected.removeAll(existingClusterRoles);
-                final boolean expectedRolesAreAvailable = healthClusterRolesExpected.isEmpty();
-                if (expectedRolesAreAvailable) {
-                    return StatusInfo.fromStatus(StatusInfo.Status.UP);
-                } else {
-                    final JsonObject missingRolesJson = JsonObject.newBuilder()
-                            .set(JSON_KEY_MISSING_ROLES, healthClusterRolesExpected.stream()
-                                    .map(JsonValue::of)
-                                    .collect(JsonCollectors.valuesToArray())
-                            )
-                            .build();
-                    final StatusDetailMessage missingRolesMessage =
-                            StatusDetailMessage.of(StatusDetailMessage.Level.ERROR, missingRolesJson);
-                    return StatusInfo.fromDetail(missingRolesMessage).label(JSON_KEY_EXPECTED_ROLES);
-                }
-            }));
+            final JsonArray actualRoles = clusterStatus.getRoles()
+                    .stream()
+                    .map(ClusterRoleStatus::getRole)
+                    .sorted(Comparator.comparing(Function.identity()))
+                    .map(JsonValue::of)
+                    .collect(JsonCollectors.valuesToArray());
+
+            final JsonArray missingRoles = expectedRoles.stream()
+                    .filter(role -> !actualRoles.contains(role))
+                    .collect(JsonCollectors.valuesToArray());
+
+            final JsonArray extraRoles = actualRoles.stream()
+                    .filter(role -> !expectedRoles.contains(role))
+                    .collect(JsonCollectors.valuesToArray());
+
+            final boolean allExpectedRolesPresent = missingRoles.isEmpty();
+            final StatusInfo.Status status = allExpectedRolesPresent ? StatusInfo.Status.UP : StatusInfo.Status.DOWN;
+            final StatusDetailMessage.Level level =
+                    allExpectedRolesPresent ? StatusDetailMessage.Level.INFO : StatusDetailMessage.Level.ERROR;
+            final StatusDetailMessage statusDetailMessage = StatusDetailMessage.of(level, JsonObject.newBuilder()
+                    .set(JSON_KEY_MISSING_ROLES, missingRoles)
+                    .set(JSON_KEY_EXTRA_ROLES, extraRoles)
+                    .build());
+            final StatusInfo statusInfo =
+                    StatusInfo.fromStatus(status, Collections.singletonList(statusDetailMessage))
+                            .label(JSON_KEY_EXPECTED_ROLES);
+
+            healths.add(CompletableFuture.completedFuture(statusInfo));
         }
 
         final SimpleCommand command = SimpleCommand.of(StatusSupplierActor.SIMPLE_COMMAND_RETRIEVE_HEALTH, null, null);
-        healths.addAll(clusterStatus.getRoles().stream()
+        healths.addAll(clusterStatus.getRoles()
+                .stream()
                 .map(clusterRoleStatus -> {
-                            final String roleLabel = clusterRoleStatus.getRole();
+                    final String roleLabel = clusterRoleStatus.getRole();
 
-                            final Set<String> reachable = clusterRoleStatus.getReachable();
-                            final List<CompletableFuture<StatusInfo>> remoteStatusFutures =
-                                    sendCommandToRemoteAddresses(
-                                            actorSystem, command, reachable,
-                                            (o, throwable, addressString) -> {
-                                                final StatusInfo statusInfo;
-                                                if (throwable != null) {
-                                                    statusInfo =
-                                                            StatusInfo.fromDetail(StatusDetailMessage.of(
-                                                                    StatusDetailMessage.Level.ERROR, "Exception: " +
-                                                                            throwable.getMessage()));
-                                                } else {
-                                                    statusInfo = (StatusInfo) o;
-                                                }
-                                                return statusInfo.label(addressString);
-                                            });
+                    final Set<String> reachable = clusterRoleStatus.getReachable();
+                    final List<CompletableFuture<StatusInfo>> remoteStatusFutures =
+                            sendCommandToRemoteAddresses(
+                                    actorSystem, command, reachable,
+                                    (o, throwable, addressString) -> {
+                                        final StatusInfo statusInfo;
+                                        if (throwable != null) {
+                                            statusInfo =
+                                                    StatusInfo.fromDetail(StatusDetailMessage.of(
+                                                            StatusDetailMessage.Level.ERROR, "Exception: " +
+                                                                    throwable.getMessage()));
+                                        } else {
+                                            statusInfo = (StatusInfo) o;
+                                        }
+                                        return statusInfo.label(addressString);
+                                    });
 
                     return CompletableFutureUtils.collectAsList(remoteStatusFutures)
-                                    .thenApply(remoteStatuses -> {
-                                        if (reachable.isEmpty()) {
-                                            return StatusInfo.fromDetail(StatusDetailMessage.of(
-                                                    StatusDetailMessage.Level.ERROR, "Role is not available on any " +
-                                                            "remote address"));
-                                        } else {
-                                            return StatusInfo.composite(remoteStatuses);
-                                        }
-                                    })
-                                    .thenApply(roleStatus -> roleStatus.label(roleLabel));
-                        }
-                )
+                            .thenApply(remoteStatuses -> {
+                                if (reachable.isEmpty()) {
+                                    return StatusInfo.fromDetail(StatusDetailMessage.of(
+                                            StatusDetailMessage.Level.ERROR,
+                                            "Role is not available on any remote address"));
+                                } else {
+                                    return StatusInfo.composite(remoteStatuses);
+                                }
+                            })
+                            .thenApply(roleStatus -> roleStatus.label(roleLabel));
+                })
                 .collect(Collectors.toList()));
 
         return CompletableFutureUtils.collectAsList(healths)

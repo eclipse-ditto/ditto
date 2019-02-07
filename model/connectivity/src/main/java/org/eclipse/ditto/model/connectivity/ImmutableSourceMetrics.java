@@ -33,23 +33,19 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 final class ImmutableSourceMetrics implements SourceMetrics {
 
     private final Map<String, AddressMetric> addressMetrics;
-    private final long consumedMessages;
 
-    private ImmutableSourceMetrics(final Map<String, AddressMetric> addressMetrics, final long consumedMessages) {
+    private ImmutableSourceMetrics(final Map<String, AddressMetric> addressMetrics) {
         this.addressMetrics = Collections.unmodifiableMap(new HashMap<>(addressMetrics));
-        this.consumedMessages = consumedMessages;
     }
 
     /**
      * Creates a new {@code ImmutableSourceMetrics} instance.
      *
      * @param addressMetrics the AddressMetrics for each source
-     * @param consumedMessages the total count of consumed messages on this source
      * @return a new instance of ImmutableSourceMetrics
      */
-    public static ImmutableSourceMetrics of(final Map<String, AddressMetric> addressMetrics,
-            final long consumedMessages) {
-        return new ImmutableSourceMetrics(addressMetrics, consumedMessages);
+    public static ImmutableSourceMetrics of(final Map<String, AddressMetric> addressMetrics) {
+        return new ImmutableSourceMetrics(addressMetrics);
     }
 
     @Override
@@ -58,21 +54,20 @@ final class ImmutableSourceMetrics implements SourceMetrics {
     }
 
     @Override
-    public long getConsumedMessages() {
-        return consumedMessages;
-    }
-
-    @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
 
         jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
-        jsonObjectBuilder.set(JsonFields.ADDRESS_METRICS, addressMetrics.entrySet().stream()
-                .map(e -> ImmutableAddressMetric.toJsonField(e.getKey(), e.getValue()))
-                .collect(JsonCollectors.fieldsToObject()), predicate);
-        jsonObjectBuilder.set(JsonFields.CONSUMED_MESSAGES, consumedMessages, predicate);
+        jsonObjectBuilder.set(JsonFields.ADDRESS_METRICS, addressMetrics.isEmpty() ? JsonFactory.nullObject() :
+                addressMetricsToJson(), predicate);
         return jsonObjectBuilder.build();
+    }
+
+    private JsonObject addressMetricsToJson() {
+        return addressMetrics.entrySet().stream()
+                .map(e -> ImmutableAddressMetric.toJsonField(e.getKey(), e.getValue()))
+                .collect(JsonCollectors.fieldsToObject());
     }
 
     /**
@@ -90,29 +85,30 @@ final class ImmutableSourceMetrics implements SourceMetrics {
                                 f -> f.getKey().toString(),
                                 f -> ConnectivityModelFactory.addressMetricFromJson(f.getValue().asObject()))))
                 .orElse(Collections.emptyMap());
-        final long readConsumedMessages = jsonObject.getValueOrThrow(JsonFields.CONSUMED_MESSAGES);
-        return ImmutableSourceMetrics.of(readAddressMetrics, readConsumedMessages);
+        return ImmutableSourceMetrics.of(readAddressMetrics);
     }
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) {return true;}
-        if (!(o instanceof ImmutableSourceMetrics)) {return false;}
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof ImmutableSourceMetrics)) {
+            return false;
+        }
         final ImmutableSourceMetrics that = (ImmutableSourceMetrics) o;
-        return consumedMessages == that.consumedMessages &&
-                Objects.equals(addressMetrics, that.addressMetrics);
+        return Objects.equals(addressMetrics, that.addressMetrics);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(addressMetrics, consumedMessages);
+        return Objects.hash(addressMetrics);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "addressMetrics=" + addressMetrics +
-                ", consumedMessages=" + consumedMessages +
                 "]";
     }
 }

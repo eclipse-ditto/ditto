@@ -65,7 +65,7 @@ public abstract class AbstractCommandStrategyTest {
         final Runnable becomeCreatedRunnable = mock(Runnable.class);
         final Runnable becomeDeletedRunnable = mock(Runnable.class);
         return DefaultContext.getInstance(THING_ID, logger, thingSnapshotter, becomeCreatedRunnable,
-                becomeDeletedRunnable);
+                becomeDeletedRunnable, () -> {}, () -> false);
     }
 
     protected static void assertModificationResult(final CommandStrategy underTest, @Nullable final Thing thing,
@@ -120,8 +120,8 @@ public abstract class AbstractCommandStrategyTest {
             final WithDittoHeaders expectedResponse) {
 
         final CommandStrategy.Context context = getDefaultContext();
-        @SuppressWarnings("unchecked")
-        final CommandStrategy.Result result = underTest.unhandled(context, thing, NEXT_REVISION, command);
+        @SuppressWarnings("unchecked") final CommandStrategy.Result result =
+                underTest.unhandled(context, thing, NEXT_REVISION, command);
 
         assertInfoResult(result, expectedResponse);
     }
@@ -136,8 +136,8 @@ public abstract class AbstractCommandStrategyTest {
 
         result.apply(context, mock::persist, mock::notify);
 
-        @SuppressWarnings("unchecked")
-        final ArgumentCaptor<BiConsumer<ThingModifiedEvent, Thing>> consumer = ArgumentCaptor.forClass(BiConsumer.class);
+        @SuppressWarnings("unchecked") final ArgumentCaptor<BiConsumer<ThingModifiedEvent, Thing>> consumer =
+                ArgumentCaptor.forClass(BiConsumer.class);
 
         verify(mock).persist(event.capture(), consumer.capture());
         assertThat(event.getValue()).isInstanceOf(eventClazz);
@@ -173,13 +173,13 @@ public abstract class AbstractCommandStrategyTest {
         verify(context.getBecomeDeletedRunnable(), never()).run();
     }
 
-    private static CommandStrategy.Result applyStrategy(final CommandStrategy underTest,
+    static CommandStrategy.Result applyStrategy(final CommandStrategy underTest,
             final CommandStrategy.Context context,
             final @Nullable Thing thing,
             final Command command) {
 
-        @SuppressWarnings("unchecked")
-        final CommandStrategy.Result result = underTest.apply(context, thing, NEXT_REVISION, command);
+        @SuppressWarnings("unchecked") final CommandStrategy.Result result =
+                underTest.apply(context, thing, NEXT_REVISION, command);
         return result;
     }
 

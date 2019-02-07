@@ -23,12 +23,14 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyException;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown if a {@link org.eclipse.ditto.model.policies.Policy} could not be modified as the resulting {@link
  * org.eclipse.ditto.model.policies.Policy} would be invalid. The cause of this exception is documented in the message.
  */
 @Immutable
+@JsonParsableException(errorCode = PolicyModificationInvalidException.ERROR_CODE)
 public final class PolicyModificationInvalidException extends DittoRuntimeException implements PolicyException {
 
     /**

@@ -30,14 +30,11 @@ import org.reactivestreams.Publisher;
 
 import com.mongodb.ClientSessionOptions;
 import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoCredential;
 import com.mongodb.ReadPreference;
 import com.mongodb.ServerAddress;
 import com.mongodb.WriteConcern;
-import com.mongodb.async.client.MongoClientSettings;
-import com.mongodb.connection.ClusterSettings;
-import com.mongodb.connection.ConnectionPoolSettings;
-import com.mongodb.connection.SslSettings;
 import com.mongodb.connection.netty.NettyStreamFactoryFactory;
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;
@@ -118,7 +115,7 @@ public final class MongoClientWrapper implements DittoMongoClient {
 
     @Override
     public DittoMongoClientSettings getDittoSettings() {
-       return dittoMongoClientSettings;
+        return dittoMongoClientSettings;
     }
 
     @Override
@@ -127,7 +124,8 @@ public final class MongoClientWrapper implements DittoMongoClient {
     }
 
     @Override
-    public MongoClientSettings getSettings() {
+    @Deprecated
+    public com.mongodb.async.client.MongoClientSettings getSettings() {
         return mongoClient.getSettings();
     }
 
@@ -237,7 +235,6 @@ public final class MongoClientWrapper implements DittoMongoClient {
             DittoMongoClientBuilder.GeneralPropertiesStep {
 
         private final MongoClientSettings.Builder mongoClientSettingsBuilder;
-        private final ConnectionPoolSettings.Builder connectionPoolSettingsBuilder;
         private final DittoMongoClientSettings.Builder dittoMongoClientSettingsBuilder;
 
         @Nullable private ConnectionString connectionString;
@@ -248,7 +245,6 @@ public final class MongoClientWrapper implements DittoMongoClient {
         private MongoClientWrapperBuilder() {
             mongoClientSettingsBuilder = MongoClientSettings.builder();
             mongoClientSettingsBuilder.readPreference(ReadPreference.secondaryPreferred());
-            connectionPoolSettingsBuilder = ConnectionPoolSettings.builder();
             dittoMongoClientSettingsBuilder = DittoMongoClientSettings.getBuilder();
             connectionString = null;
             defaultDatabaseName = null;
@@ -291,9 +287,7 @@ public final class MongoClientWrapper implements DittoMongoClient {
         public GeneralPropertiesStep connectionString(final String string) {
             connectionString = new ConnectionString(checkNotNull(string, "connection string"));
 
-            mongoClientSettingsBuilder.clusterSettings(ClusterSettings.builder()
-                    .applyConnectionString(connectionString)
-                    .build());
+            mongoClientSettingsBuilder.applyConnectionString(connectionString);
 
             final MongoCredential credential = connectionString.getCredential();
             if (null != credential) {
@@ -325,7 +319,7 @@ public final class MongoClientWrapper implements DittoMongoClient {
         @Override
         public DatabaseNameStep hostnameAndPort(final CharSequence hostname, final int portNumber) {
             checkNotNull(hostname, "hostname");
-            mongoClientSettingsBuilder.clusterSettings(ClusterSettings.builder()
+            mongoClientSettingsBuilder.applyToClusterSettings(builder -> builder
                     .hosts(Collections.singletonList(new ServerAddress(hostname.toString(), portNumber)))
                     .build());
             return this;
@@ -339,20 +333,21 @@ public final class MongoClientWrapper implements DittoMongoClient {
 
         @Override
         public MongoClientWrapperBuilder connectionPoolMaxSize(final int maxSize) {
-            connectionPoolSettingsBuilder.maxSize(maxSize);
+            mongoClientSettingsBuilder.applyToConnectionPoolSettings(builder -> builder.maxSize(maxSize));
             return this;
         }
 
         @Override
         public MongoClientWrapperBuilder connectionPoolMaxWaitQueueSize(final int maxQueueSize) {
-            connectionPoolSettingsBuilder.maxWaitQueueSize(maxQueueSize);
+            mongoClientSettingsBuilder.applyToConnectionPoolSettings(builder -> builder.maxWaitQueueSize(maxQueueSize));
             return this;
         }
 
         @Override
         public MongoClientWrapperBuilder connectionPoolMaxWaitTime(final Duration maxPoolWaitTime) {
             checkNotNull(maxPoolWaitTime, "maxPoolWaitTime");
-            connectionPoolSettingsBuilder.maxWaitTime(maxPoolWaitTime.toMillis(), TimeUnit.MILLISECONDS);
+            mongoClientSettingsBuilder.applyToConnectionPoolSettings(
+                    builder -> builder.maxWaitTime(maxPoolWaitTime.toMillis(), TimeUnit.MILLISECONDS));
             return this;
         }
 
@@ -367,7 +362,8 @@ public final class MongoClientWrapper implements DittoMongoClient {
         @Override
         public MongoClientWrapperBuilder enableJmxListener(final boolean enabled) {
             if (enabled) {
-                connectionPoolSettingsBuilder.addConnectionPoolListener(new JMXConnectionPoolListener());
+                mongoClientSettingsBuilder.applyToConnectionPoolSettings(
+                        builder -> builder.addConnectionPoolListener(new JMXConnectionPoolListener()));
             }
             return this;
         }
@@ -377,14 +373,14 @@ public final class MongoClientWrapper implements DittoMongoClient {
                 @Nullable final ConnectionPoolListener connectionPoolListener) {
 
             if (null != connectionPoolListener) {
-                connectionPoolSettingsBuilder.addConnectionPoolListener(connectionPoolListener);
+                mongoClientSettingsBuilder.applyToConnectionPoolSettings(
+                        builder -> builder.addConnectionPoolListener(connectionPoolListener));
             }
             return this;
         }
 
         @Override
         public MongoClientWrapper build() {
-            mongoClientSettingsBuilder.connectionPoolSettings(connectionPoolSettingsBuilder.build());
             buildAndApplySslSettings();
 
             return new MongoClientWrapper(MongoClients.create(mongoClientSettingsBuilder.build()), defaultDatabaseName,
@@ -395,15 +391,14 @@ public final class MongoClientWrapper implements DittoMongoClient {
             if (sslEnabled) {
                 eventLoopGroup = new NioEventLoopGroup();
                 mongoClientSettingsBuilder.streamFactoryFactory(NettyStreamFactoryFactory.builder()
-                        .eventLoopGroup(eventLoopGroup)
-                        .build())
-                        .sslSettings(SslSettings.builder()
+                        .eventLoopGroup(eventLoopGroup).build())
+                        .applyToSslSettings(builder -> builder
                                 .context(tryToCreateAndInitSslContext())
                                 .enabled(true)
                                 .build());
             } else if (null != connectionString) {
                 eventLoopGroup = null;
-                mongoClientSettingsBuilder.sslSettings(SslSettings.builder()
+                mongoClientSettingsBuilder.applyToSslSettings(builder -> builder
                         .applyConnectionString(connectionString)
                         .build());
             }
@@ -413,7 +408,7 @@ public final class MongoClientWrapper implements DittoMongoClient {
             try {
                 return createAndInitSslContext();
             } catch (final NoSuchAlgorithmException e) {
-                throw new IllegalArgumentException("No such Algorithm is supported!",  e);
+                throw new IllegalArgumentException("No such Algorithm is supported!", e);
             } catch (final KeyManagementException e) {
                 throw new IllegalStateException("KeyManagementException!", e);
             }

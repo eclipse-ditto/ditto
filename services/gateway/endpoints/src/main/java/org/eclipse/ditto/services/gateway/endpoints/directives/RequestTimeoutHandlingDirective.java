@@ -40,6 +40,9 @@ import akka.http.javadsl.server.Directives;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 import akka.util.ByteString;
+import kamon.Kamon;
+import kamon.MetricReporter;
+import kamon.metric.PeriodSnapshot;
 
 /**
  * Custom Akka Http directive which handles a request timeout.
@@ -63,7 +66,6 @@ public final class RequestTimeoutHandlingDirective {
      * @return the new Route wrapping {@code inner} with the response headers
      */
     public static Route handleRequestTimeout(final String correlationId, final Supplier<Route> inner) {
-
         return Directives.extractActorSystem(actorSystem -> {
             final Config config = actorSystem.settings().config();
 

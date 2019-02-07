@@ -23,11 +23,13 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyException;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown when validating a precondition header fails on a Policy or one of its sub-entities.
  */
 @Immutable
+@JsonParsableException(errorCode = PolicyPreconditionFailedException.ERROR_CODE)
 public final class PolicyPreconditionFailedException extends DittoRuntimeException implements PolicyException {
 
     /**

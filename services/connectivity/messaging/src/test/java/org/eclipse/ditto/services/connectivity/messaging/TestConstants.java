@@ -21,28 +21,39 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
+import org.eclipse.ditto.model.connectivity.Measurement;
+import org.eclipse.ditto.model.connectivity.MetricType;
 import org.eclipse.ditto.model.connectivity.Source;
+import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.connectivity.TargetMetrics;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageDirection;
@@ -53,9 +64,11 @@ import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
@@ -81,7 +94,7 @@ public class TestConstants {
 
     public static final Config CONFIG = ConfigFactory.load("test");
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
-    private static final ConnectionStatus STATUS = ConnectionStatus.OPEN;
+    private static final ConnectivityStatus STATUS = ConnectivityStatus.OPEN;
     private static final String URI_TEMPLATE = "amqps://username:password@%s:%s";
 
     public static final String CORRELATION_ID = "cid";
@@ -104,6 +117,8 @@ public class TestConstants {
         map.put("suffixed_thing_id", "{{ header:device_id }}.some.suffix");
         HEADER_MAPPING = ConnectivityModelFactory.newHeaderMapping(map);
     }
+
+    public static Instant INSTANT = Instant.now();
 
     public static class Things {
 
@@ -155,16 +170,16 @@ public class TestConstants {
 
         private static final HeaderMapping HEADER_MAPPING = null;
 
-        static final Target TARGET_WITH_PLACEHOLDER =
-                newTarget("target:{{ thing:namespace }}/{{thing:name}}", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING,
-                        Topic.TWIN_EVENTS);
+        public static final Target TARGET_WITH_PLACEHOLDER =
+                newTarget("target:{{ thing:namespace }}/{{thing:name}}@{{ topic:channel }}", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING,
+                        null, Topic.TWIN_EVENTS);
         static final Target TWIN_TARGET =
                 newTarget("twinEventExchange/twinEventRoutingKey", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING,
-                        Topic.TWIN_EVENTS);
+                        null, Topic.TWIN_EVENTS);
         private static final Target TWIN_TARGET_UNAUTHORIZED =
-                newTarget("twin/key", Authorization.UNAUTHORIZED_AUTHORIZATION_CONTEXT, HEADER_MAPPING, Topic.TWIN_EVENTS);
+                newTarget("twin/key", Authorization.UNAUTHORIZED_AUTHORIZATION_CONTEXT, HEADER_MAPPING, null, Topic.TWIN_EVENTS);
         private static final Target LIVE_TARGET =
-                newTarget("live/key", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING, Topic.LIVE_EVENTS);
+                newTarget("live/key", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING, null, Topic.LIVE_EVENTS);
         private static final Set<Target> TARGETS = asSet(TWIN_TARGET, TWIN_TARGET_UNAUTHORIZED, LIVE_TARGET);
     }
 
@@ -208,6 +223,90 @@ public class TestConstants {
                 throw new IllegalStateException(e);
             }
         }
+    }
+
+    public static class Metrics {
+
+        private static Instant LAST_MESSAGE_AT = Instant.now();
+
+        public static String ID = "myConnectionId";
+
+        public static final Duration ONE_MINUTE = Duration.ofMinutes(1);
+        public static final Duration ONE_HOUR = Duration.ofHours(1);
+        public static final Duration ONE_DAY = Duration.ofDays(1);
+        public static final Duration[] DEFAULT_INTERVALS = {ONE_MINUTE, ONE_HOUR, ONE_DAY};
+
+        public static final Map<Duration, Long> SOURCE_COUNTERS = asMap(
+                entry(ONE_MINUTE, ONE_MINUTE.getSeconds()),
+                entry(ONE_HOUR, ONE_HOUR.getSeconds()),
+                entry(ONE_DAY, ONE_DAY.getSeconds()));
+        public static final Measurement INBOUND =
+                ConnectivityModelFactory.newMeasurement(MetricType.CONSUMED, true, SOURCE_COUNTERS, LAST_MESSAGE_AT);
+        public static final Measurement FAILED_INBOUND =
+                ConnectivityModelFactory.newMeasurement(MetricType.CONSUMED, true, SOURCE_COUNTERS, LAST_MESSAGE_AT);
+        public static final Map<Duration, Long> TARGET_COUNTERS = asMap(
+                entry(ONE_MINUTE, ONE_MINUTE.toMillis()),
+                entry(ONE_HOUR, ONE_HOUR.toMillis()),
+                entry(ONE_DAY, ONE_DAY.toMillis()));
+        public static final Measurement OUTBOUND =
+                ConnectivityModelFactory.newMeasurement(MetricType.PUBLISHED, true, TARGET_COUNTERS, LAST_MESSAGE_AT);
+        public static final Map<Duration, Long> MAPPING_COUNTERS = asMap(
+                entry(ONE_MINUTE, ONE_MINUTE.toMinutes()),
+                entry(ONE_HOUR, ONE_HOUR.toMinutes()),
+                entry(ONE_DAY, ONE_DAY.toMinutes()));
+        public static final Measurement MAPPING =
+                ConnectivityModelFactory.newMeasurement(MetricType.MAPPED, true, MAPPING_COUNTERS, LAST_MESSAGE_AT);
+        public static final Measurement FAILED_MAPPING =
+                ConnectivityModelFactory.newMeasurement(MetricType.MAPPED, false, MAPPING_COUNTERS, LAST_MESSAGE_AT);
+
+        public static final AddressMetric
+                INBOUND_METRIC = ConnectivityModelFactory.newAddressMetric(asSet(INBOUND, MAPPING));
+        public static final AddressMetric OUTBOUND_METRIC = ConnectivityModelFactory.newAddressMetric(asSet(MAPPING, OUTBOUND));
+
+        public static final SourceMetrics SOURCE_METRICS1 = ConnectivityModelFactory.newSourceMetrics(
+                asMap(entry("source1", INBOUND_METRIC), entry("source2", INBOUND_METRIC)));
+        public static final TargetMetrics TARGET_METRICS1 = ConnectivityModelFactory.newTargetMetrics(
+                asMap(entry("target1", OUTBOUND_METRIC), entry("target2", OUTBOUND_METRIC)));
+        public static final ConnectionMetrics CONNECTION_METRICS1 = ConnectivityCounterRegistry
+                .aggregateConnectionMetrics(SOURCE_METRICS1, TARGET_METRICS1);
+
+        public static final RetrieveConnectionMetricsResponse METRICS_RESPONSE1 = RetrieveConnectionMetricsResponse
+                .of(ID, CONNECTION_METRICS1, SOURCE_METRICS1, TARGET_METRICS1, DittoHeaders.empty());
+
+        public static final SourceMetrics SOURCE_METRICS2 = ConnectivityModelFactory.newSourceMetrics(
+                asMap(entry("source2", INBOUND_METRIC), entry("source3", INBOUND_METRIC)));
+        public static final TargetMetrics TARGET_METRICS2 = ConnectivityModelFactory.newTargetMetrics(
+                asMap(entry("target2", OUTBOUND_METRIC), entry("target3", OUTBOUND_METRIC)));
+        public static final ConnectionMetrics CONNECTION_METRICS2 = ConnectivityCounterRegistry
+                .aggregateConnectionMetrics(SOURCE_METRICS2, TARGET_METRICS2);
+
+        public static final RetrieveConnectionMetricsResponse METRICS_RESPONSE2 = RetrieveConnectionMetricsResponse
+                .of(ID, CONNECTION_METRICS2, SOURCE_METRICS2, TARGET_METRICS2, DittoHeaders.empty());
+
+        public static Measurement mergeMeasurements(final MetricType type, final boolean success,
+                final Measurement measurements, int times) {
+            final Map<Duration, Long> result = new HashMap<>();
+            for (Duration interval : DEFAULT_INTERVALS) {
+                result.put(interval,
+                        Optional.of(measurements)
+                                .filter(m -> Objects.equals(type, m.getMetricType()))
+                                .filter(m -> Objects.equals(success, m.isSuccess()))
+                                .map(Measurement::getCounts)
+                                .map(m -> m.getOrDefault(interval, 0L))
+                                .orElse(0L) * times
+                );
+            }
+            return ConnectivityModelFactory.newMeasurement(type, success, result, Metrics.LAST_MESSAGE_AT);
+        }
+    }
+
+    private static <K, V> Map.Entry<K, V> entry(K interval, V count) {
+        return new AbstractMap.SimpleImmutableEntry<>(interval, count);
+    }
+
+    @SafeVarargs
+    private static <K, V> Map<K, V> asMap(Map.Entry<K, V>... entries) {
+        return Stream.of(entries).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     public static String createRandomConnectionId() {
@@ -286,7 +385,7 @@ public class TestConstants {
     }
 
     public static Connection createConnection(final String connectionId, final ActorSystem actorSystem,
-            final ConnectionStatus status, final List<Source> sources) {
+            final ConnectivityStatus status, final List<Source> sources) {
         return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, status, getUriOfNewMockServer())
                 .sources(sources)
                 .targets(Targets.TARGETS)

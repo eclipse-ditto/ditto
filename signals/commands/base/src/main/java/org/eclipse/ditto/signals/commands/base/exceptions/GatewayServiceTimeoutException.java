@@ -21,11 +21,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * This exception indicates that a service the API Gateway proxies did timeout.
  */
 @Immutable
+@JsonParsableException(errorCode = GatewayServiceTimeoutException.ERROR_CODE)
 public final class GatewayServiceTimeoutException extends DittoRuntimeException implements GatewayException {
 
     /**

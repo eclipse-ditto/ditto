@@ -117,31 +117,17 @@ public final class ConfigKeys {
 
     private static final String SYNC_PREFIX = SEARCH_UPDATER_PREFIX + "sync.";
 
-    private static final String SYNC_THINGS_PREFIX = SYNC_PREFIX + "things.";
+    /**
+     * Things-Sync: Path to the stream consumer config.
+     */
+    public static final String SYNC_THINGS = SYNC_PREFIX + "things";
+
+    private static final String SYNC_THINGS_PREFIX = SYNC_THINGS + ".";
 
     /**
      * Things-Sync: Controls whether the sync should be active or not.
      */
     public static final String THINGS_SYNCER_ACTIVE = SYNC_THINGS_PREFIX + "active";
-
-    /**
-     * Things-Sync: The syncer makes sure that all requested stream elements have at least an age of this offset, e.g by
-     * triggering a stream at a later time.
-     */
-    public static final String THINGS_SYNCER_START_OFFSET = SYNC_THINGS_PREFIX + "start-offset";
-
-    /**
-     * Things-Sync: The duration from now to somewhere in the past for which stream elements are requested if sync
-     * has never been run before - otherwise sync is started where the last run finished.
-     */
-    public static final String THINGS_SYNCER_INITIAL_START_OFFSET = SYNC_THINGS_PREFIX + "initial-start-offset";
-
-    /**
-     * Things-Sync: The interval for the query restricting the stream (i.e. the difference between query-start and
-     * query-end). This query-interval is used for <strong>all</strong> queries, but the interval of stream-starts
-     * varies depending on the stream load.
-     */
-    public static final String THINGS_SYNCER_STREAM_INTERVAL = SYNC_THINGS_PREFIX + "stream-interval";
 
     /**
      * Things-Sync: if a query-start is more than this offset in the past, a warning will be logged.
@@ -155,46 +141,16 @@ public final class ConfigKeys {
     public static final String THINGS_SYNCER_OUTDATED_ERROR_OFFSET = SYNC_THINGS_PREFIX + "outdated-error-offset";
 
     /**
-     * Things-Sync: The maximum idle time of the syncer (as a Duration).
+     * Policies-Sync: Path to the stream consumer config.
      */
-    public static final String THINGS_SYNCER_MAX_IDLE_TIME = SYNC_THINGS_PREFIX + "max-idle-time";
+    public static final String SYNC_POLICIES = SYNC_PREFIX + "policies";
 
-    /**
-     * Things-Sync: Timeout at streaming actor (server) side.
-     */
-    public static final String THINGS_SYNCER_STREAMING_ACTOR_TIMEOUT = SYNC_THINGS_PREFIX + "streaming-actor-timeout";
-
-    /**
-     * Things-Sync: The elements to be streamed per batch by the sync process.
-     */
-    public static final String THINGS_SYNCER_ELEMENTS_STREAMED_PER_BATCH = SYNC_THINGS_PREFIX +
-            "elements-streamed-per-batch";
-
-    private static final String SYNC_POLICIES_PREFIX = SYNC_PREFIX + "policies.";
+    private static final String SYNC_POLICIES_PREFIX = SYNC_POLICIES + ".";
 
     /**
      * Policies-Sync: Controls whether the sync should be active or not.
      */
     public static final String POLICIES_SYNCER_ACTIVE = SYNC_POLICIES_PREFIX + "active";
-
-    /**
-     * Policies-Sync: The syncer makes sure that all requested stream elements have at least an age of this offset,
-     * e.g by triggering a stream at a later time.
-     */
-    public static final String POLICIES_SYNCER_START_OFFSET = SYNC_POLICIES_PREFIX + "start-offset";
-
-    /**
-     * Policies-Sync: The duration from now to somewhere in the past for which stream elements are requested if sync
-     * has never been run before - otherwise sync is started where the last run finished.
-     */
-    public static final String POLICIES_SYNCER_INITIAL_START_OFFSET = SYNC_POLICIES_PREFIX + "initial-start-offset";
-
-    /**
-     * Policies-Sync: The interval for the query restricting the stream (i.e. the difference between query-start and
-     * query-end). This query-interval is used for <strong>all</strong> queries, but the interval of stream-starts
-     * varies depending on the stream load.
-     */
-    public static final String POLICIES_SYNCER_STREAM_INTERVAL = SYNC_POLICIES_PREFIX + "stream-interval";
 
     /**
      * Policies-Sync: if a query-start is more than this offset in the past, a warning will be logged.
@@ -209,22 +165,6 @@ public final class ConfigKeys {
     public static final String POLICIES_SYNCER_OUTDATED_ERROR_OFFSET =
             SYNC_POLICIES_PREFIX + "outdated-error-offset";
 
-    /**
-     * Policies-Sync: The maximum idle time of the syncer (as a Duration).
-     */
-    public static final String POLICIES_SYNCER_MAX_IDLE_TIME = SYNC_POLICIES_PREFIX + "max-idle-time";
-
-    /**
-     * Policies-Sync: Timeout at streaming actor (server) side.
-     */
-    public static final String POLICIES_SYNCER_STREAMING_ACTOR_TIMEOUT =
-            SYNC_POLICIES_PREFIX + "streaming-actor-timeout";
-
-    /**
-     * Policies-Sync: The elements to be streamed per batch by the sync process.
-     */
-    public static final String POLICIES_SYNCER_ELEMENTS_STREAMED_PER_BATCH = SYNC_POLICIES_PREFIX +
-            "elements-streamed-per-batch";
 
     /*
      * This class is not designed for instantiation.

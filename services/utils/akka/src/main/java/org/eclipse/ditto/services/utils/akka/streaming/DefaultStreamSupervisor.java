@@ -18,7 +18,7 @@ import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.ST
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
-import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -40,7 +40,9 @@ import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
+import akka.pattern.PatternsCS;
 import akka.stream.Materializer;
+import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import scala.Option;
 import scala.concurrent.duration.FiniteDuration;
@@ -177,8 +179,8 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
         activityCheck = scheduleActivityCheck(streamConsumerSettings);
         lastStreamStartOrStop = Instant.now();
 
-        final StreamTrigger nextStreamTrigger = computeNextStreamTrigger(null);
-        scheduleStream(nextStreamTrigger);
+        // schedule first stream after delay
+        computeAndScheduleNextStreamTrigger(null);
     }
 
     /**
@@ -251,6 +253,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
+                .match(StreamTrigger.class, this::scheduleStream)
                 .matchEquals(TryToStartStream.INSTANCE, tryToStartStream -> {
                     log.debug("Switching to supervisingBehaviour has been triggered by message: {}",
                             tryToStartStream);
@@ -272,6 +275,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
                 .matchEquals(STREAM_COMPLETED, msg -> streamCompleted())
                 .matchEquals(STREAM_FAILED, msg -> streamFailed())
                 .matchEquals(FORWARDER_EXCEEDED_MAX_IDLE_TIME_MSG, msg -> streamTimedOut())
+                .match(StreamTrigger.class, this::scheduleStream)
                 .matchEquals(TryToStartStream.INSTANCE, msg -> tryToStartStream())
                 .match(Terminated.class, this::terminated)
                 .matchEquals(CheckForActivity.INSTANCE, this::checkForActivity)
@@ -307,48 +311,60 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
             final Instant lastSuccessfulQueryEnd = activeStream.getQueryEnd();
             streamMetadataPersistence.setTimestamp(lastSuccessfulQueryEnd)
                     .runWith(akka.stream.javadsl.Sink.last(), materializer)
-                    .thenRun(() -> log.info("Updated last sync timestamp to value: <{}>.", lastSuccessfulQueryEnd))
+                    .thenRun(() -> log.debug("Updated last sync timestamp to value: <{}>.", lastSuccessfulQueryEnd))
                     .exceptionally(error -> {
                         log.error(error, "Failed to update last sync timestamp to value: <{}>.",
                                 lastSuccessfulQueryEnd);
                         return null;
                     });
 
-            final StreamTrigger nextStreamTrigger = computeNextStreamTrigger(lastSuccessfulQueryEnd);
-            scheduleStream(nextStreamTrigger);
+            computeAndScheduleNextStreamTrigger(lastSuccessfulQueryEnd);
         } else {
             rescheduleActiveStream();
         }
     }
 
-    private StreamTrigger computeNextStreamTrigger(@Nullable final Instant lastSuccessfulQueryEnd) {
+    private void computeAndScheduleNextStreamTrigger(@Nullable final Instant lastSuccessfulQueryEnd) {
+        PatternsCS.pipe(computeNextStreamTrigger(lastSuccessfulQueryEnd), getContext().dispatcher()).to(getSelf());
+    }
+
+    private CompletionStage<StreamTrigger> computeNextStreamTrigger(@Nullable final Instant lastSuccessfulQueryEnd) {
+        return computeNextStreamTriggerSource(lastSuccessfulQueryEnd).runWith(Sink.head(), materializer);
+    }
+
+    private Source<StreamTrigger, NotUsed> computeNextStreamTriggerSource(
+            @Nullable final Instant lastSuccessfulQueryEnd) {
         final Instant now = Instant.now();
 
-        final Instant queryStart;
+        final Source<Instant, NotUsed> queryStartSource;
         // short-cut: we do not need to access the database if last synch has been completed
         if (lastSuccessfulQueryEnd != null) {
-            queryStart = lastSuccessfulQueryEnd;
+            queryStartSource = Source.single(lastSuccessfulQueryEnd);
         } else {
             // the initial start ts is only used when no sync has been run yet (i.e. no timestamp has been persisted)
             final Instant initialStartTsWithoutStandardOffset =
                     now.minus(streamConsumerSettings.getInitialStartOffset());
-            final Optional<Instant> instant = streamMetadataPersistence.getTimestamp();
-            queryStart = instant.orElse
-                    (initialStartTsWithoutStandardOffset);
+            queryStartSource = streamMetadataPersistence.getTimestampAsync()
+                    .map(instant -> instant.orElse(initialStartTsWithoutStandardOffset));
         }
 
-        final Duration offsetFromNow = Duration.between(queryStart, now);
-        // check if the queryStart is very long in the past to be able to log a warning
-        final Duration warnOffset = streamConsumerSettings.getOutdatedWarningOffset();
-        if (!offsetFromNow.isNegative() && offsetFromNow.compareTo(warnOffset) > 0) {
-            log.warning("The next Query-Start <{}> is older than the configured warn-offset <{}>. Please verify that" +
-                            " this does not happen frequently, otherwise won't get \"up-to-date\" anymore.",
-                    queryStart, warnOffset);
-        }
+        return queryStartSource.map(queryStart -> {
+            final Duration offsetFromNow = Duration.between(queryStart, now);
+            // check if the queryStart is very long in the past to be able to log a warning
+            final Duration warnOffset = streamConsumerSettings.getOutdatedWarningOffset();
+            if (!offsetFromNow.isNegative() && offsetFromNow.compareTo(warnOffset) > 0) {
+                log.debug("The next Query-Start <{}> is older than the configured warn-offset <{}>. " +
+                                "Please verify that this does not happen frequently, " +
+                                "otherwise won't get \"up-to-date\" anymore.",
+                        queryStart, warnOffset);
+            }
 
-        final Duration startOffset = streamConsumerSettings.getStartOffset();
-        final Duration streamInterval = streamConsumerSettings.getStreamInterval();
-        return StreamTrigger.calculateStreamTrigger(now, queryStart, startOffset, streamInterval);
+            final Duration startOffset = streamConsumerSettings.getStartOffset();
+            final Duration streamInterval = streamConsumerSettings.getStreamInterval();
+            final Duration minimalDelayBetweenStreams = streamConsumerSettings.getMinimalDelayBetweenStreams();
+            return StreamTrigger.calculateStreamTrigger(now, queryStart, startOffset, streamInterval,
+                    minimalDelayBetweenStreams, lastSuccessfulQueryEnd == null);
+        });
     }
 
     private void scheduleStream(final StreamTrigger streamTrigger) {
@@ -366,12 +382,16 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
         } else {
             duration = Duration.between(now, when);
         }
+        final Duration nextStreamDelay =
+                duration.minus(streamConsumerSettings.getMinimalDelayBetweenStreams()).isNegative()
+                        ? streamConsumerSettings.getMinimalDelayBetweenStreams()
+                        : duration;
 
-        scheduleStream(duration);
+        scheduleStream(nextStreamDelay);
     }
 
     private void scheduleStream(final Duration duration) {
-        log.info("Schedule Stream in: {}", duration);
+        log.debug("Schedule Stream in: {}", duration);
         if (scheduledStreamStart != null) {
             scheduledStreamStart.cancel();
         }
@@ -383,12 +403,11 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
     }
 
     private Cancellable scheduleActivityCheck(final StreamConsumerSettings streamConsumerSettings) {
-        final FiniteDuration initialDelay = fromDuration(streamConsumerSettings.getOutdatedWarningOffset());
         final FiniteDuration interval = fromDuration(streamConsumerSettings.getStreamInterval());
         final CheckForActivity message = CheckForActivity.INSTANCE;
         return getContext().getSystem()
                 .scheduler()
-                .schedule(initialDelay, interval, getSelf(), message, getContext().dispatcher(), ActorRef.noSender());
+                .schedule(interval, interval, getSelf(), message, getContext().dispatcher(), ActorRef.noSender());
     }
 
     private void tryToStartStream() {
@@ -400,7 +419,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
 
             forwarder = createOrGetForwarder();
 
-            log.info("Requesting stream from <{}> on behalf of <{}> by <{}>", provider, forwarder,
+            log.debug("Requesting stream from <{}> on behalf of <{}> by <{}>", provider, forwarder,
                     startStreamCommand);
             provider.tell(startStreamCommand, forwarder);
             activeStream = nextStream;

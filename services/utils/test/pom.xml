@@ -23,6 +23,13 @@
     <name>Eclipse Ditto :: Services :: Utils :: Test Utils</name>
 
     <dependencies>
+        <!-- Required for GlobalErrorRegistryTestCases -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-model-base</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>de.flapdoodle.embed</groupId>
             <artifactId>de.flapdoodle.embed.mongo</artifactId>

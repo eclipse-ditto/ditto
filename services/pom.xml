@@ -34,6 +34,7 @@
         <module>things</module>
         <module>thingsearch</module>
         <module>utils</module>
+        <module>legal</module>
     </modules>
 
     <properties>

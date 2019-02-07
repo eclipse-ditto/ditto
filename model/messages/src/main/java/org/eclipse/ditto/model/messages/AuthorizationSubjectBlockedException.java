@@ -14,10 +14,12 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown if a claim message was sent too many times for a single authorization subject.
  */
+@JsonParsableException(errorCode = AuthorizationSubjectBlockedException.ERROR_CODE)
 public final class AuthorizationSubjectBlockedException extends DittoRuntimeException implements MessageException {
 
     private static final long serialVersionUID = -5816231062202863122L;

@@ -12,24 +12,24 @@ sidebar: false
     window.onload = function() {
 
         // Build a system
-        const ui = SwaggerUIBundle({
+      window.ui = SwaggerUIBundle({
            urls: [
-               {url: "openapi/ditto-api-1.yml", name:"api1"},
-               {url: "openapi/ditto-api-2.yml", name:"api2"}
+             {url: "openapi/ditto-api-1.yml", name:"Ditto API v1"},
+             {url: "openapi/ditto-api-2.yml", name:"Ditto API v2"}
            ],
-           "urls.primaryName": "api1",
+           "urls.primaryName": "Ditto API v2",
            validatorUrl: null,
            docExpansion: "none",
            dom_id: '#swagger-ui',
            deepLinking: true,
            presets: [
-               SwaggerUIBundle.presets.apis,
-               SwaggerUIStandalonePreset
+             SwaggerUIBundle.presets.apis,
+             SwaggerUIStandalonePreset
            ],
            plugins: [
+             SwaggerUIBundle.plugins.DownloadUrl
            ],
            layout: "StandaloneLayout"
-       })
-        window.ui = ui
+       });
     }
 </script>

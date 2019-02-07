@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.MqttSource;
+import org.eclipse.ditto.model.connectivity.Source;
 
 import akka.Done;
 import akka.japi.Pair;
@@ -26,7 +26,6 @@ import akka.stream.alpakka.mqtt.MqttQoS;
 import akka.stream.alpakka.mqtt.MqttSourceSettings;
 import akka.stream.alpakka.mqtt.javadsl.MqttSink;
 import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
 import scala.collection.JavaConverters;
 import scala.collection.Seq;
 
@@ -34,6 +33,9 @@ import scala.collection.Seq;
  * Create MQTT sources and sinks.
  */
 final class DefaultMqttConnectionFactory implements MqttConnectionFactory {
+
+    // user should set qos for sources. the default is qos=2 for convenience
+    private static final Integer DEFAULT_SOURCE_QOS = 2;
 
     private final Connection connection;
     private final MqttConnectionSettings settings;
@@ -49,7 +51,8 @@ final class DefaultMqttConnectionFactory implements MqttConnectionFactory {
     }
 
     @Override
-    public Source<MqttMessage, CompletionStage<Done>> newSource(final MqttSource mqttSource, final int bufferSize) {
+    public akka.stream.javadsl.Source<MqttMessage, CompletionStage<Done>> newSource(final Source mqttSource,
+            final int bufferSize) {
         final String clientId = connectionId() + "-source" + mqttSource.getIndex();
         final MqttSourceSettings sourceSettings =
                 MqttSourceSettings.create(settings.withClientId(clientId))
@@ -63,8 +66,8 @@ final class DefaultMqttConnectionFactory implements MqttConnectionFactory {
         return MqttSink.create(settings.withClientId(clientId), MqttQoS.atMostOnce());
     }
 
-    private static Seq<Pair<String, MqttQoS>> getSubscriptions(final MqttSource mqttSource) {
-        final int qos = mqttSource.getQos();
+    private static Seq<Pair<String, MqttQoS>> getSubscriptions(final Source mqttSource) {
+        final int qos = mqttSource.getQos().orElse(DEFAULT_SOURCE_QOS);
         final MqttQoS mqttQos = MqttValidator.getQoS(qos);
         final List<Pair<String, MqttQoS>> subscriptions =
                 mqttSource.getAddresses()

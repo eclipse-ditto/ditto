@@ -35,11 +35,13 @@ import org.eclipse.ditto.services.thingsearch.persistence.Indices;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQuery;
+import org.eclipse.ditto.services.utils.config.MongoConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.services.utils.persistence.mongo.indices.IndexInitializer;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayQueryTimeExceededException;
 
 import com.mongodb.MongoExecutionTimeoutException;
+import com.mongodb.ReadPreference;
 import com.mongodb.client.model.CountOptions;
 import com.mongodb.reactivestreams.client.AggregatePublisher;
 import com.mongodb.reactivestreams.client.MongoCollection;
@@ -72,7 +74,8 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
      */
     public MongoThingsSearchPersistence(final DittoMongoClient mongoClient, final ActorSystem actorSystem) {
         final MongoDatabase database = mongoClient.getDefaultDatabase();
-        collection = database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME);
+        collection = database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME).withReadPreference(
+                ReadPreference.secondaryPreferred());;
         indexInitializer = IndexInitializer.of(database, ActorMaterializer.create(actorSystem));
         maxQueryTime = mongoClient.getDittoSettings().getMaxQueryTime();
         log = Logging.getLogger(actorSystem, getClass());

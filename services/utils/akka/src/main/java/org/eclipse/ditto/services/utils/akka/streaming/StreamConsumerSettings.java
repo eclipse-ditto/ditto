@@ -17,6 +17,8 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
+import com.typesafe.config.Config;
+
 /**
  * Settings for stream consumption.
  */
@@ -30,29 +32,47 @@ public final class StreamConsumerSettings {
     private final Duration streamingActorTimeout;
     private final int elementsStreamedPerBatch;
     private final Duration outdatedWarningOffset;
+    private final Duration minimalDelayBetweenStreams;
+
+    private StreamConsumerSettings(final Config config) {
+        startOffset = config.getDuration("start-offset");
+        streamInterval = config.getDuration("stream-interval");
+        initialStartOffset = config.getDuration("initial-start-offset");
+        maxIdleTime = config.getDuration("max-idle-time");
+        streamingActorTimeout = config.getDuration("streaming-actor-timeout");
+        elementsStreamedPerBatch = config.getInt("elements-streamed-per-batch");
+        outdatedWarningOffset = config.getDuration("outdated-warning-offset");
+
+        final String minimalDelay = "minimal-delay-between-streams";
+        minimalDelayBetweenStreams = config.hasPath(minimalDelay) ? config.getDuration(minimalDelay) : Duration.ZERO;
+
+        validateSelf();
+    }
 
     private StreamConsumerSettings(final Duration startOffset,
             final Duration streamInterval, final Duration initialStartOffset,
             final Duration maxIdleTime, final Duration streamingActorTimeout,
-            final int elementsStreamedPerBatch, final Duration outdatedWarningOffset) {
-        this.startOffset = requireNonNull(checkNonNegative(startOffset));
-        this.streamInterval = requireNonNull(checkNonNegative(streamInterval));
-        this.initialStartOffset = requireNonNull(checkNonNegative(initialStartOffset));
-        this.maxIdleTime = requireNonNull(checkNonNegative(maxIdleTime));
+            final int elementsStreamedPerBatch, final Duration outdatedWarningOffset,
+            final Duration minimalDelayBetweenStreams) {
+        this.startOffset = requireNonNull(startOffset);
+        this.streamInterval = requireNonNull(streamInterval);
+        this.initialStartOffset = requireNonNull(initialStartOffset);
+        this.maxIdleTime = requireNonNull(maxIdleTime);
         this.streamingActorTimeout = requireNonNull(streamingActorTimeout);
-        if (elementsStreamedPerBatch <= 0) {
-            throw new IllegalArgumentException("elementsStreamedPerBatch should be positive, but is: " +
-                    elementsStreamedPerBatch);
-        }
         this.elementsStreamedPerBatch = elementsStreamedPerBatch;
-        this.outdatedWarningOffset = requireNonNull(checkNonNegative(outdatedWarningOffset));
+        this.outdatedWarningOffset = requireNonNull(outdatedWarningOffset);
+        this.minimalDelayBetweenStreams = requireNonNull(minimalDelayBetweenStreams);
+        validateSelf();
     }
 
-    private static Duration checkNonNegative(final Duration duration) {
-        if (duration.isNegative()) {
-            throw new IllegalArgumentException("Negative duration: " + duration);
-        }
-        return duration;
+    /**
+     * Create settings based on a relative config object.
+     *
+     * @param config the config object containing all settings.
+     * @return the created settings.
+     */
+    public static StreamConsumerSettings fromRelativeConfig(final Config config) {
+        return new StreamConsumerSettings(config);
     }
 
     /**
@@ -76,7 +96,7 @@ public final class StreamConsumerSettings {
             final Duration maxIdleTime, final Duration streamingActorTimeout,
             final int elementsStreamedPerBatch, final Duration outdatedWarningOffset) {
         return new StreamConsumerSettings(startOffset, streamInterval, initialStartOffset, maxIdleTime,
-                streamingActorTimeout, elementsStreamedPerBatch, outdatedWarningOffset);
+                streamingActorTimeout, elementsStreamedPerBatch, outdatedWarningOffset, Duration.ZERO);
     }
 
     /**
@@ -147,6 +167,15 @@ public final class StreamConsumerSettings {
         return outdatedWarningOffset;
     }
 
+    /**
+     * Returns the minimal delay between streams.
+     *
+     * @return the minimal delay between streams.
+     */
+    public Duration getMinimalDelayBetweenStreams() {
+        return minimalDelayBetweenStreams;
+    }
+
     @Override
     public boolean equals(final Object o) {
         if (this == o) {
@@ -162,13 +191,14 @@ public final class StreamConsumerSettings {
                 Objects.equals(initialStartOffset, that.initialStartOffset) &&
                 Objects.equals(maxIdleTime, that.maxIdleTime) &&
                 Objects.equals(streamingActorTimeout, that.streamingActorTimeout) &&
-                Objects.equals(outdatedWarningOffset, that.outdatedWarningOffset);
+                Objects.equals(outdatedWarningOffset, that.outdatedWarningOffset) &&
+                Objects.equals(minimalDelayBetweenStreams, that.minimalDelayBetweenStreams);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(startOffset, streamInterval, initialStartOffset, maxIdleTime, streamingActorTimeout,
-                elementsStreamedPerBatch, outdatedWarningOffset);
+                elementsStreamedPerBatch, outdatedWarningOffset, minimalDelayBetweenStreams);
     }
 
     @Override
@@ -181,6 +211,28 @@ public final class StreamConsumerSettings {
                 ", streamingActorTimeout" + streamingActorTimeout +
                 ", elementsStreamedPerBatch=" + elementsStreamedPerBatch +
                 ", outdatedWarningOffset=" + outdatedWarningOffset +
+                ", minimalDelayBetweenStreams" + minimalDelayBetweenStreams +
                 ']';
+    }
+
+    private void validateSelf() {
+        if (elementsStreamedPerBatch <= 0) {
+            throw new IllegalArgumentException("elementsStreamedPerBatch should be positive, but is: " +
+                    elementsStreamedPerBatch);
+        }
+        checkNonNegative(startOffset);
+        checkNonNegative(streamInterval);
+        checkNonNegative(initialStartOffset);
+        checkNonNegative(maxIdleTime);
+        checkNonNegative(streamingActorTimeout);
+        checkNonNegative(minimalDelayBetweenStreams);
+        checkNonNegative(outdatedWarningOffset);
+    }
+
+    private static Duration checkNonNegative(final Duration duration) {
+        if (duration.isNegative()) {
+            throw new IllegalArgumentException("Negative duration: " + duration);
+        }
+        return duration;
     }
 }

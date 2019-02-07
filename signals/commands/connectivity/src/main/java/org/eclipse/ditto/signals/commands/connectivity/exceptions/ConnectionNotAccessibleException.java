@@ -22,6 +22,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityException;
 
@@ -29,6 +30,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityException;
  * Thrown if a {@link Connection} is not present.
  */
 @Immutable
+@JsonParsableException(errorCode = ConnectionNotAccessibleException.ERROR_CODE)
 public final class ConnectionNotAccessibleException extends DittoRuntimeException implements ConnectivityException {
 
     /**

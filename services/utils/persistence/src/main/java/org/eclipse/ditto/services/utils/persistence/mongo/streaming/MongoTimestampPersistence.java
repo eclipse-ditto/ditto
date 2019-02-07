@@ -10,20 +10,14 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.streaming;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 import java.util.Optional;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
-import javax.annotation.Nullable;
 
 import org.bson.Document;
 import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
-import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,8 +28,11 @@ import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.mongodb.reactivestreams.client.Success;
 
 import akka.NotUsed;
-import akka.stream.Materializer;
-import akka.stream.javadsl.Sink;
+import akka.japi.pf.PFBuilder;
+import akka.stream.ActorMaterializer;
+import akka.stream.Attributes;
+import akka.stream.javadsl.BroadcastHub;
+import akka.stream.javadsl.RestartSource;
 import akka.stream.javadsl.Source;
 
 /**
@@ -43,12 +40,16 @@ import akka.stream.javadsl.Source;
  */
 public final class MongoTimestampPersistence implements TimestampPersistence {
 
+    private static final Duration BACKOFF_MIN = Duration.ofSeconds(1L);
+
+    private static final Duration BACKOFF_MAX = Duration.ofMinutes(2L);
+
+    private static final Document SORT_BY_ID_DESC = new Document().append("_id", -1);
+
     /**
      * The minimum size a capped collection claims in MongoDB.
      */
     private static final long MIN_CAPPED_COLLECTION_SIZE_IN_BYTES = 4096;
-
-    private static final long BLOCKING_TIMEOUT_SECS = 20;
 
     private static final String FIELD_TIMESTAMP = "ts";
     /**
@@ -60,19 +61,16 @@ public final class MongoTimestampPersistence implements TimestampPersistence {
      * The logger.
      */
     private static final Logger LOGGER = LoggerFactory.getLogger(MongoTimestampPersistence.class);
-    private final Materializer mat;
-    private final MongoCollection<Document> lastSuccessfulSearchSyncCollection;
+    private final Source<MongoCollection, NotUsed> lastSuccessfulSearchSyncCollection;
 
     /**
      * Constructor.
      *
      * @param lastSuccessfulSearchSyncCollection the collection in which the last successful sync timestamps can be
      * stored.
-     * @param mat the {@link Materializer} to be used for stream
      */
-    private MongoTimestampPersistence(final MongoCollection<Document> lastSuccessfulSearchSyncCollection,
-            final Materializer mat) {
-        this.mat = mat;
+    private MongoTimestampPersistence(final Source<MongoCollection, NotUsed> lastSuccessfulSearchSyncCollection) {
+
         this.lastSuccessfulSearchSyncCollection = lastSuccessfulSearchSyncCollection;
     }
 
@@ -81,54 +79,45 @@ public final class MongoTimestampPersistence implements TimestampPersistence {
      *
      * @param collectionName The name of the collection.
      * @param mongoClient the client wrapper holding the connection information.
-     * @param materializer the {@link Materializer} to be used for stream
+     * @param materializer an actor materializer to materialize the restart-source of the sync timestamp collection.
      * @return a new initialized instance.
      */
     public static MongoTimestampPersistence initializedInstance(final String collectionName,
-            final DittoMongoClient mongoClient, final Materializer materializer) {
+            final DittoMongoClient mongoClient, final ActorMaterializer materializer) {
+        final Source<MongoCollection, NotUsed> lastSuccessfulSearchSyncCollection =
+                createOrGetCappedCollection(mongoClient.getDefaultDatabase(), collectionName,
+                        MIN_CAPPED_COLLECTION_SIZE_IN_BYTES, materializer);
 
-        final MongoCollection<Document> lastSuccessfulSearchSyncCollection = createOrGetCappedCollection(
-                mongoClient,
-                collectionName,
-                MIN_CAPPED_COLLECTION_SIZE_IN_BYTES,
-                BLOCKING_TIMEOUT_SECS,
-                materializer);
-        return new MongoTimestampPersistence(lastSuccessfulSearchSyncCollection, materializer);
+        return new MongoTimestampPersistence(lastSuccessfulSearchSyncCollection);
     }
-
 
     @Override
     public Source<NotUsed, NotUsed> setTimestamp(final Instant timestamp) {
         final Date mongoStorableDate = Date.from(timestamp);
 
-        final Document toStore = new Document()
-                .append(FIELD_TIMESTAMP, mongoStorableDate);
+        final Document toStore = new Document().append(FIELD_TIMESTAMP, mongoStorableDate);
 
-        return Source.fromPublisher(lastSuccessfulSearchSyncCollection.insertOne(toStore))
+        return getCollection()
+                .flatMapConcat(collection -> Source.fromPublisher(collection.insertOne(toStore)))
                 .map(success -> {
                     LOGGER.debug("Successfully inserted timestamp for search synchronization: <{}>.", timestamp);
                     return NotUsed.getInstance();
                 });
     }
 
-    @Override
-    public Optional<Instant> getTimestamp() {
-        final Source<Optional<Instant>, NotUsed> source = getTimestampAsync();
-        final CompletionStage<Optional<Instant>> done = source.runWith(Sink.head(), mat);
-        try {
-            return done.toCompletableFuture().get(BLOCKING_TIMEOUT_SECS, TimeUnit.SECONDS);
-        } catch (final InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException(e);
-        } catch (final ExecutionException | TimeoutException e) {
-            throw new IllegalStateException(e);
-        }
+    /**
+     * @return the underlying collection in a future for tests
+     */
+    @SuppressWarnings("unchecked")
+    Source<MongoCollection<Document>, NotUsed> getCollection() {
+        return lastSuccessfulSearchSyncCollection.take(1)
+                .map(document -> (MongoCollection<Document>) document);
     }
 
     @Override
     public Source<Optional<Instant>, NotUsed> getTimestampAsync() {
-        return Source.fromPublisher(lastSuccessfulSearchSyncCollection.find())
-                .limit(1)
+        return getCollection()
+                .flatMapConcat(collection -> Source.fromPublisher(collection.find().sort(SORT_BY_ID_DESC).limit(1)))
                 .flatMapConcat(doc -> {
                     final Date date = doc.getDate(FIELD_TIMESTAMP);
                     final Instant timestamp = date.toInstant();
@@ -141,61 +130,56 @@ public final class MongoTimestampPersistence implements TimestampPersistence {
     /**
      * Creates the capped collection {@code collectionName} using {@code clientWrapper} if it doesn't exists yet.
      *
-     * @param clientWrapper The client to use.
+     * @param database The database to use.
      * @param collectionName The name of the capped collection that should be created.
      * @param cappedCollectionSizeInBytes The size in bytes of the collection that should be created.
-     * @param createTimeoutSeconds How long to wait for success of the create operation.
-     * @param materializer The {@link akka.stream.Materializer} to be used for streams
+     * @param materializer The actor materializer to pre-materialize the restart source.
      * @return Returns the created or retrieved collection.
      */
-    private static MongoCollection<Document> createOrGetCappedCollection(
-            final DittoMongoClient clientWrapper,
+    private static Source<MongoCollection, NotUsed> createOrGetCappedCollection(
+            final MongoDatabase database,
             final String collectionName,
             final long cappedCollectionSizeInBytes,
-            final long createTimeoutSeconds,
-            final Materializer materializer) {
+            final ActorMaterializer materializer) {
 
-        createCappedCollectionIfItDoesNotExist(clientWrapper.getDefaultDatabase(), collectionName,
-                cappedCollectionSizeInBytes, createTimeoutSeconds, materializer);
+        final Source<Success, NotUsed> createCollectionSource =
+                repeatableCreateCappedCollectionSource(database, collectionName, cappedCollectionSizeInBytes);
 
-        return clientWrapper.getCollection(collectionName);
+        final Source<MongoCollection, NotUsed> infiniteCollectionSource =
+                createCollectionSource.map(success -> database.getCollection(collectionName))
+                        .flatMapConcat(Source::repeat);
+
+        final Source<MongoCollection, NotUsed> restartSource =
+                RestartSource.withBackoff(BACKOFF_MIN, BACKOFF_MAX, 1.0, () -> infiniteCollectionSource);
+
+        return restartSource.runWith(BroadcastHub.of(MongoCollection.class, 1), materializer);
     }
 
-    private static void createCappedCollectionIfItDoesNotExist(final MongoDatabase database,
+    private static Source<Success, NotUsed> repeatableCreateCappedCollectionSource(
+            final MongoDatabase database,
             final String collectionName,
-            final long cappedCollectionSizeInBytes,
-            final long createTimeoutSeconds,
-            final Materializer materializer) {
-        try {
-            final CreateCollectionOptions collectionOptions = new CreateCollectionOptions()
-                    .capped(true)
-                    .sizeInBytes(cappedCollectionSizeInBytes)
-                    .maxDocuments(1);
-            final Publisher<Success> publisher = database.createCollection(collectionName, collectionOptions);
-            final Source<Success, NotUsed> source = Source.fromPublisher(publisher);
-            final CompletionStage<Success> done = source.runWith(Sink.head(), materializer);
-            done.toCompletableFuture().get(createTimeoutSeconds, TimeUnit.SECONDS);
-            LOGGER.debug("Successfully created collection: <{}>.", collectionName);
-        } catch (final InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException(e);
-        } catch (final TimeoutException e) {
-            throw new IllegalStateException(e);
-        } catch (final ExecutionException e) {
-            if (isCollectionAlreadyExistsError(e.getCause())) {
-                LOGGER.debug("Collection already exists: <{}>.", collectionName);
-            } else {
-                throw new IllegalStateException(e);
-            }
-        }
+            final long cappedCollectionSizeInBytes) {
+
+        final CreateCollectionOptions collectionOptions = new CreateCollectionOptions()
+                .capped(true)
+                .sizeInBytes(cappedCollectionSizeInBytes)
+                .maxDocuments(1);
+
+        return Source.lazily(() ->
+                Source.fromPublisher(
+                        database.createCollection(collectionName, collectionOptions)))
+                .mapMaterializedValue(whatever -> NotUsed.getInstance())
+                .withAttributes(Attributes.inputBuffer(1, 1))
+                .recoverWithRetries(1, new PFBuilder<Throwable, Source<Success, NotUsed>>()
+                        .match(MongoCommandException.class,
+                                MongoTimestampPersistence::isCollectionAlreadyExistsError,
+                                error -> Source.single(Success.SUCCESS))
+                        .build());
+
     }
 
-    private static boolean isCollectionAlreadyExistsError(@Nullable final Throwable t) {
-        if (t instanceof MongoCommandException) {
-            final MongoCommandException commandException = (MongoCommandException) t;
-            return commandException.getErrorCode() == COLLECTION_ALREADY_EXISTS_ERROR_CODE;
-        }
-        return false;
+    private static boolean isCollectionAlreadyExistsError(final MongoCommandException error) {
+        return error.getErrorCode() == COLLECTION_ALREADY_EXISTS_ERROR_CODE;
     }
 
 }

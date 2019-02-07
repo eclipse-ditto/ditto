@@ -81,7 +81,6 @@ public class DefaultStreamSupervisorTest {
     @Mock
     private TimestampPersistence searchSyncPersistence;
 
-    /** */
     @Before
     public void setUpBase() {
         final Config config = ConfigFactory.load("test");
@@ -90,13 +89,12 @@ public class DefaultStreamSupervisorTest {
         forwardTo = TestProbe.apply(actorSystem);
         provider = TestProbe.apply(actorSystem);
 
-        when(searchSyncPersistence.getTimestamp())
-                .thenAnswer(unused -> Optional.of(KNOWN_LAST_SYNC));
+        when(searchSyncPersistence.getTimestampAsync())
+                .thenAnswer(unused -> Source.single(Optional.of(KNOWN_LAST_SYNC)));
         when(searchSyncPersistence.setTimestamp(any(Instant.class)))
                 .thenReturn(Source.single(NotUsed.getInstance()));
     }
 
-    /** */
     @After
     public void tearDownBase() {
         if (actorSystem != null) {
@@ -120,7 +118,7 @@ public class DefaultStreamSupervisorTest {
             expectStreamTriggerMsg(expectedQueryEnd);
 
             // verify that last query end has been retrieved from persistence
-            verify(searchSyncPersistence).getTimestamp();
+            verify(searchSyncPersistence).getTimestampAsync();
 
             getForwarderActor(streamSupervisor).tell(STREAM_STARTED, ActorRef.noSender());
             sendMessageToForwarderAndExpectTerminated(this, streamSupervisor, STREAM_COMPLETED);
@@ -145,7 +143,7 @@ public class DefaultStreamSupervisorTest {
             expectStreamTriggerMsg(expectedQueryEnd);
 
             // verify that last query end has been retrieved from persistence
-            verify(searchSyncPersistence).getTimestamp();
+            verify(searchSyncPersistence).getTimestampAsync();
 
             when(searchSyncPersistence.setTimestamp(any(Instant.class)))
                     .thenReturn(Source.failed(new IllegalStateException("mocked stream-metadata-persistence error")));

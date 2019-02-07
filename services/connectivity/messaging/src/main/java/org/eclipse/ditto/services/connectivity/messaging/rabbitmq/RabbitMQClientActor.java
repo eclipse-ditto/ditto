@@ -15,7 +15,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -23,19 +22,15 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
-import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
@@ -44,6 +39,7 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnecte
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 
 import com.newmotion.akka.rabbitmq.ChannelActor;
@@ -62,7 +58,6 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Scheduler;
 import akka.actor.Status;
-import akka.japi.Pair;
 import akka.japi.pf.FI;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.pattern.PatternsCS;
@@ -92,7 +87,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
      */
     @SuppressWarnings("unused")
     private RabbitMQClientActor(final Connection connection,
-            final ConnectionStatus connectionStatus,
+            final ConnectivityStatus connectionStatus,
             final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory,
             final ActorRef conciergeForwarder) {
 
@@ -107,7 +102,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
      * This constructor is called via reflection by the static method props(Connection, ActorRef).
      */
     @SuppressWarnings("unused")
-    private RabbitMQClientActor(final Connection connection, final ConnectionStatus connectionStatus,
+    private RabbitMQClientActor(final Connection connection, final ConnectivityStatus connectionStatus,
             final ActorRef conciergeForwarder) {
 
         this(connection, connectionStatus, ConnectionBasedRabbitConnectionFactoryFactory.getInstance(),
@@ -135,8 +130,8 @@ public final class RabbitMQClientActor extends BaseClientActor {
      * @param rabbitConnectionFactoryFactory the ConnectionFactory Factory to use.
      * @return the Akka configuration Props object.
      */
-    public static Props propsForTests(final Connection connection,
-            final ConnectionStatus connectionStatus,
+    static Props propsForTests(final Connection connection,
+            final ConnectivityStatus connectionStatus,
             final ActorRef conciergeForwarder,
             final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
 
@@ -211,29 +206,6 @@ public final class RabbitMQClientActor extends BaseClientActor {
     @Override
     protected Optional<ActorRef> getPublisherActor() {
         return Optional.ofNullable(rmqPublisherActor);
-    }
-
-    @Override
-    protected CompletionStage<Map<String, AddressMetric>> getSourceConnectionStatus(final Source source) {
-        return collectAsList(source.getAddresses().stream()
-                .flatMap(address -> IntStream.range(0, source.getConsumerCount())
-                        .mapToObj(idx -> {
-                            final String addressWithIndex = address + "-" + idx;
-                            final String actorLabel = CONSUMER_ACTOR_PREFIX + addressWithIndex;
-                            final ActorRef consumer = consumerByAddressWithIndex.get(addressWithIndex);
-                            return retrieveAddressMetric(addressWithIndex, actorLabel, consumer);
-                        })
-                ))
-                .thenApply(entries -> entries.stream().collect(Collectors.toMap(Pair::first, Pair::second)));
-    }
-
-    @Override
-    protected CompletionStage<Map<String, AddressMetric>> getTargetConnectionStatus(final Target target) {
-        final CompletionStage<Pair<String, AddressMetric>> targetEntryFuture =
-                retrieveAddressMetric(target.getAddress(), RabbitMQPublisherActor.ACTOR_NAME, rmqPublisherActor);
-
-        return targetEntryFuture.thenApply(targetEntry ->
-                Collections.singletonMap(targetEntry.first(), targetEntry.second()));
     }
 
     private static Optional<ConnectionFactory> tryToCreateConnectionFactory(
@@ -343,7 +315,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     private Optional<ActorRef> startRmqPublisherActor() {
         if (isPublishing()) {
             return Optional.of(getContext().findChild(RabbitMQPublisherActor.ACTOR_NAME).orElseGet(() -> {
-                final Props publisherProps = RabbitMQPublisherActor.props(getTargetsOrEmptySet());
+                final Props publisherProps = RabbitMQPublisherActor.props(connectionId(), getTargetsOrEmptySet());
                 return startChildActorConflictFree(RabbitMQPublisherActor.ACTOR_NAME, publisherProps);
             }));
         } else {
@@ -380,12 +352,12 @@ public final class RabbitMQClientActor extends BaseClientActor {
                             final HeaderMapping headerMapping = source.getHeaderMapping().orElse(null);
                             final ActorRef consumer = startChildActorConflictFree(
                                     CONSUMER_ACTOR_PREFIX + addressWithIndex,
-                                    RabbitMQConsumerActor.props(messageMappingProcessor.get(), authorizationContext,
-                                            enforcement, headerMapping));
+                                    RabbitMQConsumerActor.props(sourceAddress, messageMappingProcessor.get(),
+                                            authorizationContext, enforcement, headerMapping, connectionId()));
                             consumerByAddressWithIndex.put(addressWithIndex, consumer);
                             try {
                                 final String consumerTag = channel.basicConsume(sourceAddress, false,
-                                        new RabbitMQMessageConsumer(consumer, channel));
+                                        new RabbitMQMessageConsumer(consumer, channel, sourceAddress));
                                 log.debug("Consuming queue <{}>, consumer tag is <{}>.", addressWithIndex, consumerTag);
                                 consumedTagsToAddresses.put(consumerTag, addressWithIndex);
                             } catch (final IOException e) {
@@ -492,17 +464,21 @@ public final class RabbitMQClientActor extends BaseClientActor {
     private final class RabbitMQMessageConsumer extends DefaultConsumer {
 
         private final ActorRef consumerActor;
+        private final String address;
 
         /**
          * Constructs a new instance and records its association to the passed-in channel.
          *
+         * @param consumerActor the ActorRef to the consumer actor
          * @param channel the channel to which this consumer is attached
+         * @param address the address of the consumer
          */
-        private RabbitMQMessageConsumer(final ActorRef consumerActor, final Channel channel) {
+        private RabbitMQMessageConsumer(final ActorRef consumerActor,
+                final Channel channel, final String address) {
             super(channel);
             this.consumerActor = consumerActor;
-            consumerActor.tell(ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN,
-                    "Consumer initialized at " + Instant.now(), 0, null), null);
+            this.address = address;
+            updateSourceStatus(ConnectivityStatus.OPEN, "Consumer initialized at " + Instant.now());
         }
 
         @Override
@@ -515,7 +491,6 @@ public final class RabbitMQClientActor extends BaseClientActor {
             } catch (final Exception e) {
                 log.info("Failed to process delivery <{}>: {}", envelope.getDeliveryTag(), e.getMessage());
             } finally {
-                incrementConsumedMessageCounter();
                 try {
                     getChannel().basicAck(envelope.getDeliveryTag(), false);
                 } catch (final IOException e) {
@@ -534,8 +509,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                 log.info("Consume OK for consumer queue <{}> on connection <{}>.", consumingQueueByTag, connectionId());
             }
 
-            consumerActor.tell(ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN,
-                    "Consumer started at " + Instant.now(), 0, null), null);
+            updateSourceStatus(ConnectivityStatus.OPEN, "Consumer started at " + Instant.now());
         }
 
         @Override
@@ -549,8 +523,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         "example when the queue was deleted.", consumingQueueByTag, connectionId());
             }
 
-            consumerActor.tell(ConnectivityModelFactory.newAddressMetric(ConnectionStatus.FAILED,
-                    "Consumer for queue cancelled at " + Instant.now(), 0, null), null);
+            updateSourceStatus(ConnectivityStatus.FAILED, "Consumer for queue cancelled at " + Instant.now());
         }
 
         @Override
@@ -564,8 +537,8 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         "been shut down on connection <{}>.", consumingQueueByTag, connectionId());
             }
 
-            consumerActor.tell(ConnectivityModelFactory.newAddressMetric(ConnectionStatus.FAILED,
-                    "Channel or the underlying connection has been shut down at " + Instant.now(), 0, null), null);
+            updateSourceStatus(ConnectivityStatus.FAILED,
+                    "Channel or the underlying connection has been shut down at " + Instant.now());
         }
 
         @Override
@@ -576,6 +549,11 @@ public final class RabbitMQClientActor extends BaseClientActor {
             log.info("recovered OK for consumer with tag <{}> " + "on connection <{}>", consumerTag, connectionId());
 
             getSelf().tell((ClientConnected) Optional::empty, getSelf());
+        }
+
+        private void updateSourceStatus(final ConnectivityStatus connectionStatus, final String statusDetails) {
+            consumerActor.tell(ConnectivityModelFactory.newStatusUpdate(ConfigUtil.instanceIdentifier(),
+                    connectionStatus, address, statusDetails, Instant.now()), ActorRef.noSender());
         }
 
     }

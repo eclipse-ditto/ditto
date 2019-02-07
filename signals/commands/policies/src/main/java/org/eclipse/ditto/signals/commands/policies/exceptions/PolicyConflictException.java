@@ -23,11 +23,13 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyException;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
  * Thrown if the Policy with its ID is already present in Ditto.
  */
 @Immutable
+@JsonParsableException(errorCode = PolicyConflictException.ERROR_CODE)
 public final class PolicyConflictException extends DittoRuntimeException implements PolicyException {
 
     /**

@@ -41,7 +41,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ImmutableConnectionTest {
 
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
-    private static final ConnectionStatus STATUS = ConnectionStatus.OPEN;
+    private static final ConnectivityStatus STATUS = ConnectivityStatus.OPEN;
 
     private static final String ID = "myConnectionId";
     private static final String NAME = "myConnection";
@@ -57,14 +57,14 @@ public final class ImmutableConnectionTest {
     private static final List<Source> SOURCES = Arrays.asList(SOURCE1, SOURCE2);
     private static final HeaderMapping HEADER_MAPPING = null;
     private static final Target TARGET1 =
-            ConnectivityModelFactory.newTarget("amqp/target1", AUTHORIZATION_CONTEXT, HEADER_MAPPING, Topic.TWIN_EVENTS,
+            ConnectivityModelFactory.newTarget("amqp/target1", AUTHORIZATION_CONTEXT, HEADER_MAPPING, null, Topic.TWIN_EVENTS,
                     Topic.LIVE_EVENTS);
     private static final Target TARGET2 =
-            ConnectivityModelFactory.newTarget("amqp/target2", AUTHORIZATION_CONTEXT, HEADER_MAPPING, Topic.LIVE_MESSAGES,
+            ConnectivityModelFactory.newTarget("amqp/target2", AUTHORIZATION_CONTEXT, HEADER_MAPPING, null, Topic.LIVE_MESSAGES,
                     Topic.LIVE_MESSAGES,
                     Topic.LIVE_EVENTS);
     private static final Target TARGET3 =
-            ConnectivityModelFactory.newTarget("amqp/target3", AUTHORIZATION_CONTEXT, HEADER_MAPPING, Topic.LIVE_MESSAGES,
+            ConnectivityModelFactory.newTarget("amqp/target3", AUTHORIZATION_CONTEXT, HEADER_MAPPING, null, Topic.LIVE_MESSAGES,
                     Topic.LIVE_MESSAGES, Topic.LIVE_COMMANDS);
     private static final Set<Target> TARGETS = new HashSet<>(Arrays.asList(TARGET1, TARGET2, TARGET3));
 
@@ -131,15 +131,6 @@ public final class ImmutableConnectionTest {
             .build();
 
     @Test
-    public void test() {
-        final String uri = "amqps://messaging%40tst_suite_broker_e15794b408ad43ba8905ee1ba604eb14_hub" +
-                ":We5w8dMuSHRooVJZ3p8s@35.158.186.142:5671/";
-
-        System.out.println(ConnectionUri.of(uri).toString());
-
-    }
-
-    @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ImmutableConnection.class)
                 .usingGetClass()
@@ -188,7 +179,7 @@ public final class ImmutableConnectionTest {
         final Connection connection = ImmutableConnection.getBuilder(ID, TYPE, STATUS, URI)
                 .sources(SOURCES)
                 .targets(TARGETS)
-                .connectionStatus(ConnectionStatus.OPEN)
+                .connectionStatus(ConnectivityStatus.OPEN)
                 .name("connection")
                 .clientCount(5)
                 .tag("AAA")

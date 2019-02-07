@@ -20,11 +20,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.thingsearch.ThingSearchException;
 
 /**
  * Thrown if a filter string for a search is invalid.
  */
+@JsonParsableException(errorCode = InvalidNamespacesException.ERROR_CODE)
 public class InvalidNamespacesException extends DittoRuntimeException implements ThingSearchException {
 
     /**
@@ -95,7 +97,6 @@ public class InvalidNamespacesException extends DittoRuntimeException implements
 
     /**
      * A mutable builder with a fluent API for a {@link InvalidNamespacesException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<InvalidNamespacesException> {

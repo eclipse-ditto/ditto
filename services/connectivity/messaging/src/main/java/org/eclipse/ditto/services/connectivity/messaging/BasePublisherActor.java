@@ -10,24 +10,30 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELATION_ID;
 
 import java.time.Instant;
 import java.util.AbstractMap;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.model.connectivity.AddressMetric;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
+import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
+import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
+import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectionMetricsCollector;
+import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
@@ -38,6 +44,7 @@ import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFil
 import org.eclipse.ditto.services.models.connectivity.placeholder.ThingPlaceholder;
 import org.eclipse.ditto.services.models.connectivity.placeholder.TopicPathPlaceholder;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.signals.base.Signal;
 
 import akka.actor.AbstractActor;
@@ -55,14 +62,24 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     private static final ThingPlaceholder THING_PLACEHOLDER = PlaceholderFactory.newThingPlaceholder();
     private static final TopicPathPlaceholder TOPIC_PLACEHOLDER = PlaceholderFactory.newTopicPathPlaceholder();
 
-    protected long publishedMessages = 0L;
-    protected Instant lastMessagePublishedAt;
-    protected AddressMetric addressMetric;
+    protected final String connectionId;
+    protected final Set<Target> targets;
+    protected final Map<Target, ResourceStatus> resourceStatusMap;
 
-    protected BasePublisherActor() {
-        addressMetric =
-                ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN, "Started at " + Instant.now(),
-                        0, null);
+    private ConnectionMetricsCollector responseDroppedCounter;
+    private ConnectionMetricsCollector responsePublishedCounter;
+
+
+    protected BasePublisherActor(final String connectionId, final Set<Target> targets) {
+        this.connectionId = checkNotNull(connectionId, "connectionId");
+        this.targets = checkNotNull(targets, "targets");
+        resourceStatusMap = new HashMap<>();
+        final Instant now = Instant.now();
+        targets.forEach(target ->
+                resourceStatusMap.put(target, ConnectivityModelFactory.newTargetStatus(ConfigUtil.instanceIdentifier(),
+                        ConnectivityStatus.OPEN, target.getAddress(), "Started at " + now)));
+        responseDroppedCounter = ConnectivityCounterRegistry.getResponseDroppedCounter(this.connectionId);
+        responsePublishedCounter = ConnectivityCounterRegistry.getResponsePublishedCounter(connectionId);
     }
 
     @Override
@@ -83,10 +100,10 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                                 outbound.getSource().getType(), replyTarget);
                         log().debug("Publishing mapped response/error message of type <{}> to reply target <{}>: {}",
                                 outbound.getSource().getType(), replyTarget, response);
-
-                        publishMessage(null, replyTarget, response);
+                        publishMessage(null, replyTarget, response, responsePublishedCounter);
                     } else {
                         log().info("Response dropped, missing replyTo address: {}", response);
+                        responseDroppedCounter.recordFailure();
                     }
                 })
                 .match(OutboundSignal.WithExternalMessage.class, outbound -> {
@@ -100,23 +117,24 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     outbound.getTargets().forEach(target -> {
                         log().info("Publishing mapped message of type <{}> to target address <{}>",
                                 outboundSource.getType(), target.getAddress());
+                        final ConnectionMetricsCollector publishedCounter =
+                                ConnectivityCounterRegistry.getOutboundPublishedCounter(connectionId,
+                                        target.getOriginalAddress());
                         try {
                             final T publishTarget = toPublishTarget(target.getAddress());
-                            final ExternalMessage messageWithMappedHeaders = applyHeaderMapping(outbound, target, log());
-                            publishMessage(target, publishTarget, messageWithMappedHeaders);
+                            final ExternalMessage messageWithMappedHeaders =
+                                    applyHeaderMapping(outbound, target, log());
+                            publishMessage(target, publishTarget, messageWithMappedHeaders, publishedCounter);
                         } catch (final DittoRuntimeException e) {
+                            publishedCounter.recordFailure();
                             log().warning("Got unexpected DittoRuntimeException when applying header mapping - " +
                                             "thus NOT publishing the message: {} {}",
                                     e.getClass().getSimpleName(), e.getMessage());
                         }
                     });
                 })
-                .match(AddressMetric.class, this::handleAddressMetric)
-                .match(RetrieveAddressMetric.class, ram -> getSender().tell(ConnectivityModelFactory.newAddressMetric(
-                        addressMetric != null ? addressMetric.getStatus() : ConnectionStatus.UNKNOWN,
-                        addressMetric != null ? addressMetric.getStatusDetails().orElse(null) : null,
-                        publishedMessages, lastMessagePublishedAt), getSelf())
-                )
+                .match(RetrieveAddressStatus.class, ram -> getCurrentTargetStatus().forEach(rs ->
+                        getSender().tell(rs, getSelf())))
                 .matchAny(m -> {
                     log().warning("Unknown message: {}", m);
                     unhandled(m);
@@ -124,6 +142,16 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
         postEnhancement(receiveBuilder);
         return receiveBuilder.build();
+    }
+
+    private Collection<ResourceStatus> getCurrentTargetStatus() {
+        if (resourceStatusMap.isEmpty()) {
+            return Collections.singletonList(
+                    ConnectivityModelFactory.newTargetStatus(ConfigUtil.instanceIdentifier(), ConnectivityStatus.UNKNOWN,
+                            null, null));
+        } else {
+            return resourceStatusMap.values();
+        }
     }
 
     /**
@@ -163,8 +191,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * @param publishTarget the {@link PublishTarget} to publish to.
      * @param message the {@link ExternalMessage} to publish.
      */
-    protected abstract void publishMessage(@Nullable final Target target,
-            final T publishTarget, final ExternalMessage message);
+    protected abstract void publishMessage(@Nullable final Target target, final T publishTarget,
+            final ExternalMessage message, final ConnectionMetricsCollector publishedConnector);
 
     /**
      * @return the logger to use.
@@ -241,7 +269,4 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         }).orElseGet(messageBuilder::build);
     }
 
-    private void handleAddressMetric(final AddressMetric addressMetric) {
-        this.addressMetric = addressMetric;
-    }
 }
