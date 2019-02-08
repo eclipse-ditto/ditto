@@ -42,7 +42,7 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Tests {@link MongoTimestampPersistence}.
  */
-public final class MongoSearchSyncPersistenceIT {
+public final class MongoTimestampPersistenceIT {
 
     private static MongoDbResource mongoResource;
     private static DittoMongoClient mongoClient;
