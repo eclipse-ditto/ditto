@@ -48,6 +48,12 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MetricDirection;
 import org.eclipse.ditto.model.connectivity.MetricType;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.placeholders.EnforcementFilter;
+import org.eclipse.ditto.model.placeholders.HeadersPlaceholder;
+import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.model.placeholders.ThingPlaceholder;
+import org.eclipse.ditto.model.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectionMetricsCollector;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry;
@@ -55,11 +61,6 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.InboundExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
-import org.eclipse.ditto.services.models.connectivity.placeholder.HeadersPlaceholder;
-import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory;
-import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFilter;
-import org.eclipse.ditto.services.models.connectivity.placeholder.ThingPlaceholder;
-import org.eclipse.ditto.services.models.connectivity.placeholder.TopicPathPlaceholder;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
@@ -490,7 +491,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     }
 
     /**
-     * Helper class applying the {@link org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilter} of
+     * Helper class applying the {@link EnforcementFilter} of
      * the passed in {@link ExternalMessage} by throwing a {@link ConnectionSignalIdEnforcementFailedException} if the
      * enforcement failed.
      */

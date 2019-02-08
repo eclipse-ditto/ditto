@@ -9,21 +9,23 @@
   ~
   ~ SPDX-License-Identifier: EPL-2.0
   -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>org.eclipse.ditto</groupId>
-        <artifactId>ditto-services-models</artifactId>
+        <artifactId>ditto-model</artifactId>
         <version>${revision}</version>
     </parent>
 
-    <artifactId>ditto-services-models-connectivity</artifactId>
-    <name>Eclipse Ditto :: Services :: Models :: Connectivity</name>
+    <artifactId>ditto-model-placeholders</artifactId>
+    <packaging>bundle</packaging>
+    <name>Eclipse Ditto :: Model :: Placeholders</name>
 
     <properties>
-        <!-- deactivate binary comp check for this module only for now -->
+        <!-- deactivate binary comp check for this module until first milestone release -->
         <binary-compatibility-check.version>${revision}</binary-compatibility-check.version>
     </properties>
 
@@ -31,54 +33,28 @@
         <!-- ### Compile ### -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-model-placeholders</artifactId>
+            <artifactId>ditto-model-base</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-model-things</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-model-connectivity</artifactId>
         </dependency>
 
+        <!-- ### Testing ### -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-commands-messages</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-commands-devops</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-models-things</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-cluster</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-commands-connectivity</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-events-connectivity</artifactId>
+            <artifactId>ditto-model-base</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>test-jar</goal>
-                        </goals>
-                        <configuration>
-                            <includes>
-                                <include>org/eclipse/ditto/services/models/connectivity/**</include>
-                            </includes>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
@@ -90,15 +66,17 @@
                             org.eclipse.ditto.*
                         </Import-Package>
                         <Export-Package>
-                            org.eclipse.ditto.services.models.connectivity.*
+                            org.eclipse.ditto.model.placeholders.*
                         </Export-Package>
                     </instructions>
                 </configuration>
             </plugin>
+
             <plugin>
                 <groupId>com.github.siom79.japicmp</groupId>
                 <artifactId>japicmp-maven-plugin</artifactId>
             </plugin>
         </plugins>
     </build>
+
 </project>

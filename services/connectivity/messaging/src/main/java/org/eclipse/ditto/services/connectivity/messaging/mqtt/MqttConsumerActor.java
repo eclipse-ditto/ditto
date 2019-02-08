@@ -19,14 +19,14 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.connectivity.Enforcement;
+import org.eclipse.ditto.model.placeholders.EnforcementFactoryFactory;
+import org.eclipse.ditto.model.placeholders.EnforcementFilter;
+import org.eclipse.ditto.model.placeholders.EnforcementFilterFactory;
+import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.BaseConsumerActor;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
-import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFactoryFactory;
-import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilter;
-import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilterFactory;
-import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.actor.ActorRef;

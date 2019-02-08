@@ -11,8 +11,8 @@
 package org.eclipse.ditto.services.connectivity.messaging.validation;
 
 import static java.util.stream.Collectors.joining;
-import static org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory.newHeadersPlaceholder;
-import static org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory.newThingPlaceholder;
+import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newHeadersPlaceholder;
+import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newThingPlaceholder;
 
 import java.text.MessageFormat;
 import java.util.Collection;
@@ -28,8 +28,8 @@ import org.eclipse.ditto.model.connectivity.ConnectionUriInvalidException;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.services.models.connectivity.placeholder.Placeholder;
-import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFilter;
+import org.eclipse.ditto.model.placeholders.Placeholder;
+import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
 
 /**
  * Protocol-specific specification for {@link org.eclipse.ditto.model.connectivity.Connection} objects.
