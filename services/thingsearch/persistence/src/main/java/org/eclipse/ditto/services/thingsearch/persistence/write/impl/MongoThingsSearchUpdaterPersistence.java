@@ -179,7 +179,8 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
                         log.debug(msgTemplate + " a duplicate key: {}", thingId, throwable.getMessage());
                         return Source.single(Boolean.FALSE);
                     } else if (isErrorOfType(MONGO_INDEX_VALUE_ERROR_CODE, throwable)) {
-                        log.error(throwable, msgTemplate + " a too large value which cannot be indexed!", thingId);
+                        log.info(msgTemplate + " a too large value which cannot be indexed: {}",
+                                thingId, throwable.getMessage());
                         return Source.single(Boolean.TRUE);
                     } else {
                         log.error(throwable, msgTemplate + " an unexpected error: {}", thingId, throwable.getMessage());
