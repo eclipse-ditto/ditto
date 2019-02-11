@@ -28,6 +28,8 @@ package org.eclipse.ditto.model.placeholders;
  * <li>{@code {{ header:unknown | fn:default('fallback') }} }</li>
  * </ul>
  * </p>
+ *
+ * TODO TJ docs
  */
 public interface ExpressionResolver {
 
@@ -45,13 +47,6 @@ public interface ExpressionResolver {
      */
     String resolve(String expressionTemplate, boolean allowUnresolved);
 
-    /**
-     *
-     * @param placeholder
-     * @param allowUnresolved
-     * @return
-     * @throws org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException TODO TJ ..
-     */
     String resolveSinglePlaceholder(String placeholder, boolean allowUnresolved);
 
 }
