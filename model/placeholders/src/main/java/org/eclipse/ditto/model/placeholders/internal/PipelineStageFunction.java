@@ -48,22 +48,10 @@ interface PipelineStageFunction {
      */
     interface ParameterDefinition<T> {
 
-        /**
-         *
-         * @return
-         */
         String getName();
 
-        /**
-         *
-         * @return
-         */
         Class<T> getType();
 
-        /**
-         *
-         * @return
-         */
         String getDescription();
 
     }
@@ -74,16 +62,8 @@ interface PipelineStageFunction {
      */
     interface ResolvedFunctionParameter<T> {
 
-        /**
-         *
-         * @return
-         */
         PipelineStageFunction.ParameterDefinition<T> getSignature();
 
-        /**
-         *
-         * @return
-         */
         T getValue();
 
     }

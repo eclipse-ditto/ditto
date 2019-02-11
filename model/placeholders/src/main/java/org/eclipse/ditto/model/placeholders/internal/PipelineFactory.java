@@ -19,28 +19,19 @@ import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.placeholders.PlaceholderResolver;
 
 /**
- * Factory that creates .. TODO TJ doc
+ * Factory that creates .. TODO TJ docs
  */
 public final class PipelineFactory {
 
-    /**
-     * @return TODO TJ doc
-     */
     public static <T> PlaceholderResolver<T> newPlaceholderResolver(final Placeholder<T> placeholder,
             @Nullable final T value) {
         return new ImmutablePlaceholderResolver<>(placeholder, value, false);
     }
 
-    /**
-     * @return TODO TJ doc
-     */
     public static <T> PlaceholderResolver<T> newPlaceholderResolverForValidation(final Placeholder<T> placeholder) {
         return new ImmutablePlaceholderResolver<>(placeholder, null, true);
     }
 
-    /**
-     * @return TODO TJ doc
-     */
     public static ExpressionResolver newExpressionResolver(final List<PlaceholderResolver<?>> placeholderResolvers) {
         return new ImmutableExpressionResolver(placeholderResolvers);
     }

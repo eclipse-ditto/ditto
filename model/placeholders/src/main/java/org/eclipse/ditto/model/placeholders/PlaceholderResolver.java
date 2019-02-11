@@ -13,27 +13,14 @@ package org.eclipse.ditto.model.placeholders;
 import java.util.Optional;
 
 /**
- * TODO TJ doc
+ * TODO TJ docs
  */
 public interface PlaceholderResolver<T> extends Placeholder<T> {
 
-    /**
-     *
-     * @return
-     */
     boolean isForValidation();
 
-    /**
-     *
-     * @return
-     */
     Optional<T> getValueToResolveFrom();
 
-    /**
-     *
-     * @param name
-     * @return
-     */
     default Optional<String> resolve(final String name) {
         if (isForValidation()) {
             return Optional.of("valid");
