@@ -79,8 +79,9 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
 
         final Enforcement enforcement = source.getEnforcement().orElse(null);
 
-        headerEnforcementFilterFactory = enforcement != null ? EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement,
-                PlaceholderFactory.newHeadersPlaceholder()) : input -> null;
+        headerEnforcementFilterFactory = enforcement != null ? EnforcementFactoryFactory
+                .newEnforcementFilterFactory(enforcement, PlaceholderFactory.newHeadersPlaceholder()) :
+                input -> null;
     }
 
     /**

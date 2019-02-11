@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.HeadersPlaceholder;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
@@ -245,17 +246,16 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 return messageBuilder.build();
             }
             final Signal<?> sourceSignal = outboundSignal.getSource();
+
+            final ExpressionResolver expressionResolver = PlaceholderFactory.newExpressionResolver(
+                    PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, originalHeaders),
+                    PlaceholderFactory.newPlaceholderResolver(THING_PLACEHOLDER, sourceSignal.getId()),
+                    PlaceholderFactory.newPlaceholderResolver(TOPIC_PLACEHOLDER, originalMessage.getTopicPath().orElse(null))
+            );
+
             final Map<String, String> mappedHeaders = mapping.getMapping().entrySet().stream()
                     .map(e -> new AbstractMap.SimpleEntry<>(e.getKey(),
-                            PlaceholderFilter.apply(e.getValue(), originalHeaders, HEADERS_PLACEHOLDER, true))
-                    )
-                    .map(e -> new AbstractMap.SimpleEntry<>(e.getKey(),
-                            PlaceholderFilter.apply(e.getValue(), sourceSignal.getId(), THING_PLACEHOLDER, true))
-                    )
-                    .map(e -> originalMessage.getTopicPath()
-                            .map(topicPath -> new AbstractMap.SimpleEntry<>(e.getKey(),
-                                    PlaceholderFilter.apply(e.getValue(), topicPath, TOPIC_PLACEHOLDER, true))
-                            ).orElse(e)
+                            PlaceholderFilter.apply(e.getValue(), expressionResolver, true))
                     )
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 

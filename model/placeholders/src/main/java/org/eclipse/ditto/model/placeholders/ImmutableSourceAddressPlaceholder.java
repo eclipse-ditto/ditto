@@ -50,7 +50,7 @@ final class ImmutableSourceAddressPlaceholder implements SourceAddressPlaceholde
     }
 
     @Override
-    public Optional<String> apply(final String input, final String name) {
+    public Optional<String> resolve(final String input, final String name) {
         return supports(name) ? Optional.of(input) : Optional.empty();
     }
 

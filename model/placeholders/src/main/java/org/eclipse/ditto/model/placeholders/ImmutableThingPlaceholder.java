@@ -63,7 +63,7 @@ final class ImmutableThingPlaceholder implements ThingPlaceholder {
     }
 
     @Override
-    public Optional<String> apply(final String thingId, final String placeholder) {
+    public Optional<String> resolve(final String thingId, final String placeholder) {
         ConditionChecker.argumentNotEmpty(placeholder, "placeholder");
         switch (placeholder) {
             case NAMESPACE_PLACEHOLDER:

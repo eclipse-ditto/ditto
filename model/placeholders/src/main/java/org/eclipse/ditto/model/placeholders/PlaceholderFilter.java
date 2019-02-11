@@ -10,15 +10,11 @@
  */
 package org.eclipse.ditto.model.placeholders;
 
-import static org.eclipse.ditto.model.placeholders.Placeholder.SEPARATOR;
-
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -28,16 +24,12 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.Placeholders;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 
 /**
  * A filter implementation to replace defined placeholders with their values.
  */
 public final class PlaceholderFilter {
-
-    private static final Function<String, DittoRuntimeException> UNRESOLVED_INPUT_HANDLER = unresolvedInput ->
-            UnresolvedPlaceholderException.newBuilder(unresolvedInput).build();
 
     /**
      * Apply {@link HeadersPlaceholder}s to the passed {@code authorizationContext} and return an
@@ -60,7 +52,7 @@ public final class PlaceholderFilter {
         final HeadersPlaceholder headersPlaceholder = PlaceholderFactory.newHeadersPlaceholder();
         final List<AuthorizationSubject> subjects = authorizationContext.stream()
                 .map(AuthorizationSubject::getId)
-                .map(id -> apply(id, headers, headersPlaceholder))
+                .map(id -> apply(id, PlaceholderFactory.newExpressionResolver(headersPlaceholder, headers)))
                 .map(AuthorizationModelFactory::newAuthSubject)
                 .collect(Collectors.toList());
         return AuthorizationModelFactory.newAuthContext(subjects);
@@ -92,7 +84,8 @@ public final class PlaceholderFilter {
     private static String applyThingPlaceholder(final String address, final String thingId,
             final Consumer<String> unresolvedPlaceholderListener) {
         try {
-            return apply(address, thingId, PlaceholderFactory.newThingPlaceholder());
+            return apply(address, PlaceholderFactory.newExpressionResolver(
+                    PlaceholderFactory.newThingPlaceholder(), thingId));
         } catch (final UnresolvedPlaceholderException e) {
             unresolvedPlaceholderListener.accept(address);
             return null;
@@ -101,61 +94,62 @@ public final class PlaceholderFilter {
 
     /**
      * Finds all placeholders ({@code {{ ... }}}) defined in the given {@code template} and tries to replace them
-     * by applying the given {@code placeholder}
+     * by applying the given {@code placeholder}.
      *
-     * @param template the template string
-     * @param value the value containing the source of the replacement that is passed to the placeholder
-     * @param thePlaceholder the placeholder to apply to given template
-     * @param <T> the input type of the placeholder
-     * @return the template string with the resolved values
-     * @throws UnresolvedPlaceholderException if {@code verifyAllPlaceholdersResolved} is true and not all
-     * placeholders were resolved
+     * @param template
+     * @param value
+     * @param placeholder
+     * @param <T>
      */
-    public static <T> String apply(final String template, final T value, final Placeholder<T> thePlaceholder) {
-        return apply(template, value, thePlaceholder, false);
+    static <T> String apply(final String template, final T value, final Placeholder<T> placeholder) {
+        return apply(template, PlaceholderFactory.newExpressionResolver(placeholder, value));
     }
 
     /**
      * Finds all placeholders ({@code {{ ... }}}) defined in the given {@code template} and tries to replace them
-     * by applying the given {@code placeholder}
+     * by applying the given {@code placeholder}.
+     *
+     * @param template
+     * @param value
+     * @param placeholder
+     * @param allowUnresolved
+     * @param <T>
+     */
+    static <T> String apply(final String template, final T value, final Placeholder<T> placeholder,
+            boolean allowUnresolved) {
+        return apply(template, PlaceholderFactory.newExpressionResolver(placeholder, value), allowUnresolved);
+    }
+
+    /**
+     * Finds all placeholders ({@code {{ ... }}}) defined in the given {@code template} and tries to replace them
+     * by applying the given {@code expressionResolver}.
      *
      * @param template the template string
-     * @param value the value containing the source of the replacement that is passed to the placeholder
-     * @param thePlaceholder the placeholder to apply to given template
+     * @param expressionResolver TODO TJ doc
+     * @return the template string with the resolved values
+     * @throws UnresolvedPlaceholderException if {@code verifyAllPlaceholdersResolved} is true and not all
+     * placeholders were resolved
+     */
+    public static String apply(final String template, final ExpressionResolver expressionResolver) {
+        return apply(template, expressionResolver, false);
+    }
+
+    /**
+     * Finds all placeholders ({@code {{ ... }}}) defined in the given {@code template} and tries to replace them
+     * by applying the given {@code expressionResolver}.
+     *
+     * @param template the template string
+     * @param expressionResolver TODO TJ doc
      * @param allowUnresolved if {@code false} this method throws an exception if there are any
-     * unresolved placeholders after applying the given placeholder
-     * @param <T> the input type of the placeholder
+     * unresolved placeholders after applying the given placeholders
      * @return the template string with the resolved values
      * @throws UnresolvedPlaceholderException if {@code allowUnresolved} is true and not all
      * placeholders were resolved
      */
-    public static <T> String apply(final String template, final T value, final Placeholder<T> thePlaceholder,
+    public static String apply(final String template, final ExpressionResolver expressionResolver,
             final boolean allowUnresolved) {
-        return doApply(template, thePlaceholder, allowUnresolved,
-                placeholder -> thePlaceholder.apply(value, placeholder));
-    }
 
-    private static <T> String doApply(final String template,
-            final Placeholder<T> thePlaceholder,
-            final boolean allowUnresolved,
-            final Function<String, Optional<String>> mapper) {
-
-        final Function<String, Optional<String>> placeholderReplacerFunction = placeholder -> {
-            final int separatorIndex = placeholder.indexOf(SEPARATOR);
-            if (separatorIndex == -1) {
-                throw UnresolvedPlaceholderException.newBuilder(placeholder).build();
-            }
-            final String prefix = placeholder.substring(0, separatorIndex);
-            final String placeholderWithoutPrefix = placeholder.substring(separatorIndex + 1);
-
-            return Optional.of(thePlaceholder)
-                    .filter(p -> prefix.equals(p.getPrefix()))
-                    .filter(p -> p.supports(placeholderWithoutPrefix))
-                    .flatMap(p -> mapper.apply(placeholderWithoutPrefix));
-        };
-
-        return Placeholders.substitute(template, placeholderReplacerFunction,
-                UNRESOLVED_INPUT_HANDLER, allowUnresolved);
+        return doApply(template, expressionResolver, allowUnresolved);
     }
 
     /**
@@ -173,10 +167,21 @@ public final class PlaceholderFilter {
         String replaced = template;
         for (int i = 0; i < placeholders.length; i++) {
             boolean isNotLastPlaceholder = i < placeholders.length - 1;
-            final Placeholder<?> thePlaceholder = placeholders[i];
-            replaced = doApply(replaced, thePlaceholder, allowUnresolved || isNotLastPlaceholder,
-                    placeholder -> Optional.of("validated-" + thePlaceholder.getPrefix()));
+            final Placeholder thePlaceholder = placeholders[i];
+            final ExpressionResolver expressionResolver = PlaceholderFactory
+                    .newExpressionResolverForValidation(thePlaceholder);
+
+            replaced = doApply(replaced, expressionResolver, allowUnresolved || isNotLastPlaceholder);
         }
+    }
+
+    private static String doApply(final String template,
+            final ExpressionResolver expressionResolver,
+            final boolean allowUnresolved) {
+
+        String templateInWork = template;
+        templateInWork = expressionResolver.resolve(templateInWork, allowUnresolved);
+        return templateInWork;
     }
 
     static String checkAllPlaceholdersResolved(final String input) {

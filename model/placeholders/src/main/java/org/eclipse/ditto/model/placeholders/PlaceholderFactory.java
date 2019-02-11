@@ -10,8 +10,16 @@
  */
 package org.eclipse.ditto.model.placeholders;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.model.placeholders.internal.PipelineFactory;
+
 /**
- * Factory that creates instances of {@link Placeholder}s.
+ * Factory that creates instances of {@link Placeholder}, {@link PlaceholderResolver}s and {@link ExpressionResolver}s.
  */
 public final class PlaceholderFactory {
 
@@ -41,6 +49,52 @@ public final class PlaceholderFactory {
      */
     public static TopicPathPlaceholder newTopicPathPlaceholder() {
         return ImmutableTopicPathPlaceholder.INSTANCE;
+    }
+
+    /**
+     * @return TODO TJ doc
+     */
+    public static <T> PlaceholderResolver<T> newPlaceholderResolver(final Placeholder<T> placeholder,
+            @Nullable final T value) {
+        return PipelineFactory.newPlaceholderResolver(placeholder, value);
+    }
+
+    /**
+     * @return TODO TJ doc
+     */
+    public static <T> PlaceholderResolver<T> newPlaceholderResolverForValidation(final Placeholder<T> placeholder) {
+        return PipelineFactory.newPlaceholderResolverForValidation(placeholder);
+    }
+
+    /**
+     * @return TODO TJ doc
+     */
+    public static <T> ExpressionResolver newExpressionResolver(final Placeholder<T> placeholder,
+            @Nullable final T value) {
+        return newExpressionResolver(Collections.singletonList(newPlaceholderResolver(placeholder, value)));
+    }
+
+    /**
+     * @return TODO TJ doc
+     */
+    public static ExpressionResolver newExpressionResolverForValidation(final Placeholder<?> placeholder) {
+        return newExpressionResolver(Collections.singletonList(newPlaceholderResolverForValidation(placeholder)));
+    }
+
+    /**
+     * @return TODO TJ doc
+     */
+    public static ExpressionResolver newExpressionResolver(
+            final PlaceholderResolver<?>... placeholderResolvers) {
+        return newExpressionResolver(Arrays.asList(placeholderResolvers));
+    }
+
+    /**
+     * @return TODO TJ doc
+     */
+    public static ExpressionResolver newExpressionResolver(
+            final List<PlaceholderResolver<?>> placeholderResolvers) {
+        return PipelineFactory.newExpressionResolver(placeholderResolvers);
     }
 
     private PlaceholderFactory() {

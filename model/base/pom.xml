@@ -63,6 +63,15 @@
             <plugin>
                 <groupId>com.github.siom79.japicmp</groupId>
                 <artifactId>japicmp-maven-plugin</artifactId>
+                <configuration>
+                    <parameter>
+                        <excludes>
+                            <!-- reduced visibility from public to private: -->
+                            <exclude>org.eclipse.ditto.model.base.common.Placeholders#ANY_NUMBER_OF_SPACES</exclude>
+                            <exclude>org.eclipse.ditto.model.base.common.Placeholders#PLACEHOLDER_GROUP</exclude>
+                        </excludes>
+                    </parameter>
+                </configuration>
             </plugin>
         </plugins>
     </build>

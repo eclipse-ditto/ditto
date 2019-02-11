@@ -107,7 +107,7 @@ public class ImmutableEnforcementFilterTest {
         final EnforcementFilterFactory<Map<String, String>, String> enforcementFilterFactory =
                 EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement,
                         PlaceholderFactory.newHeadersPlaceholder());
-        final EnforcementFilter<String> enforcementFilter = enforcementFilterFactory.getFilter(map);
+        final EnforcementFilter enforcementFilter = enforcementFilterFactory.getFilter(map);
         enforcementFilter.match("eclipse:ditto", DittoHeaders.empty());
     }
 
@@ -116,7 +116,7 @@ public class ImmutableEnforcementFilterTest {
         final Enforcement enforcement = ConnectivityModelFactory.newEnforcement(inputTemplate, filterTemplate);
         final EnforcementFilterFactory<String, String> enforcementFilterFactory =
                 EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement, SimplePlaceholder.INSTANCE);
-        final EnforcementFilter<String> enforcementFilter = enforcementFilterFactory.getFilter(inputValue);
+        final EnforcementFilter enforcementFilter = enforcementFilterFactory.getFilter(inputValue);
         enforcementFilter.match(filterValue, DittoHeaders.empty());
     }
 

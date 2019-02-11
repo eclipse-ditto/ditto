@@ -23,14 +23,13 @@ public final class EnforcementFactoryFactory {
      *
      * @param enforcement the enforcement options containing the filter templates
      * @param inputFilter the input placeholder used to resolve the input value
-     * @param filterPlaceholder the filter placeholder used to resolve filter values
+     * @param filterPlaceholderResolver the filter placeholder used to resolve filter values
      * @param <I> the type from which the input values are resolved
-     * @param <M> the type from which the filter values are resolved
      * @return the new {@link EnforcementFactoryFactory}
      */
-    public static <I, M> EnforcementFilterFactory<I, M> newEnforcementFactory(final Enforcement enforcement,
-            final Placeholder<I> inputFilter, final Placeholder<M> filterPlaceholder) {
-        return new ImmutableEnforcementFilterFactory<>(enforcement, inputFilter, filterPlaceholder);
+    public static <I> EnforcementFilterFactory<I, String> newEnforcementFilterFactory(final Enforcement enforcement,
+            final Placeholder<I> inputFilter, final Placeholder<String> filterPlaceholderResolver) {
+        return new ImmutableEnforcementFilterFactory<>(enforcement, inputFilter, filterPlaceholderResolver);
     }
 
     /**

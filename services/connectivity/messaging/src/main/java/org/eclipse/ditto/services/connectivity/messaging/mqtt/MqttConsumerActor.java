@@ -126,7 +126,7 @@ public final class MqttConsumerActor extends BaseConsumerActor {
     }
 
     @Nullable
-    private EnforcementFilter<String> getEnforcementFilter(final String topic) {
+    private EnforcementFilter getEnforcementFilter(final String topic) {
         if (topicEnforcementFilterFactory != null) {
             return topicEnforcementFilterFactory.getFilter(topic);
         } else {

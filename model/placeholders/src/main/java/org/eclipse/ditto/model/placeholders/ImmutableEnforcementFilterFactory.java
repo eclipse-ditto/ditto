@@ -44,8 +44,12 @@ final class ImmutableEnforcementFilterFactory<I, M> implements EnforcementFilter
 
     @Override
     public EnforcementFilter<M> getFilter(final I input) {
-        final String inputResolved = PlaceholderFilter.apply(enforcement.getInput(), input, inputPlaceholder);
-        return new ImmutableEnforcementFilter<>(enforcement, filterPlaceholder, inputResolved);
+        final String inputResolved = PlaceholderFilter.apply(enforcement.getInput(),
+                PlaceholderFactory.newExpressionResolver(inputPlaceholder, input));
+        return new ImmutableEnforcementFilter<>(
+                enforcement,
+                filterPlaceholder,
+                inputResolved);
     }
 
 }

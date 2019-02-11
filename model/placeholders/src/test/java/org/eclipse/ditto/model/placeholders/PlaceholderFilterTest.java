@@ -59,9 +59,9 @@ public class PlaceholderFilterTest {
 
     @Test
     public void testHeadersPlaceholder() {
-        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> headersPlaceholder.apply(HEADERS, null));
+        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> headersPlaceholder.resolve(HEADERS, null));
         assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(
-                () -> headersPlaceholder.apply(HEADERS, ""));
+                () -> headersPlaceholder.resolve(HEADERS, ""));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
                 () -> PlaceholderFilter.apply("{{ header:unknown }}", HEADERS, headersPlaceholder));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
@@ -74,9 +74,9 @@ public class PlaceholderFilterTest {
 
     @Test
     public void testThingPlaceholder() {
-        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> thingPlaceholder.apply(THING_ID, null));
+        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> thingPlaceholder.resolve(THING_ID, null));
         assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(
-                () -> thingPlaceholder.apply(THING_ID, ""));
+                () -> thingPlaceholder.resolve(THING_ID, ""));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
                 () -> PlaceholderFilter.apply("{{ header:unknown }}", THING_ID, thingPlaceholder));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
@@ -94,9 +94,9 @@ public class PlaceholderFilterTest {
 
     @Test
     public void testTopicPlaceholder() {
-        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> topicPlaceholder.apply(KNOWN_TOPIC_PATH, null));
+        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> topicPlaceholder.resolve(KNOWN_TOPIC_PATH, null));
         assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(
-                () -> topicPlaceholder.apply(KNOWN_TOPIC_PATH, ""));
+                () -> topicPlaceholder.resolve(KNOWN_TOPIC_PATH, ""));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
                 () -> PlaceholderFilter.apply("{{ topic:unknown }}", KNOWN_TOPIC_PATH, topicPlaceholder));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(

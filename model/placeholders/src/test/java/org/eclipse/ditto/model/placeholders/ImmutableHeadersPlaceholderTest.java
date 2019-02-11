@@ -58,11 +58,11 @@ public class ImmutableHeadersPlaceholderTest {
 
     @Test
     public void testReplaceDeviceIdHeader() {
-        assertThat(UNDER_TEST.apply(HEADERS, "device_id")).contains(DEVICE_ID);
+        assertThat(UNDER_TEST.resolve(HEADERS, "device_id")).contains(DEVICE_ID);
     }
 
     @Test
     public void testUnresolvableHeaderReturnsEmpty() {
-        assertThat(UNDER_TEST.apply(HEADERS, "thing_id")).isEmpty();
+        assertThat(UNDER_TEST.resolve(HEADERS, "thing_id")).isEmpty();
     }
 }

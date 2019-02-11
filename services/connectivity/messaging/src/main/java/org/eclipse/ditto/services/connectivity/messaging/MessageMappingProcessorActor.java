@@ -49,6 +49,7 @@ import org.eclipse.ditto.model.connectivity.MetricDirection;
 import org.eclipse.ditto.model.connectivity.MetricType;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.placeholders.EnforcementFilter;
+import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.HeadersPlaceholder;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
@@ -383,6 +384,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     static final class PlaceholderInTargetAddressSubstitution
             implements BiFunction<OutboundSignal, ExternalMessage, OutboundSignal.WithExternalMessage> {
 
+        private static final HeadersPlaceholder HEADER_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
         private static final ThingPlaceholder THING_PLACEHOLDER = PlaceholderFactory.newThingPlaceholder();
         private static final TopicPathPlaceholder TOPIC_PLACEHOLDER = PlaceholderFactory.newTopicPathPlaceholder();
 
@@ -400,16 +402,16 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                     .getTargets()
                     .stream()
                     .anyMatch(t -> Placeholders.containsAnyPlaceholder(t.getAddress()))) {
+
+                final ExpressionResolver expressionResolver = PlaceholderFactory.newExpressionResolver(
+                        PlaceholderFactory.newPlaceholderResolver(HEADER_PLACEHOLDER, externalMessage.getHeaders()),
+                        PlaceholderFactory.newPlaceholderResolver(THING_PLACEHOLDER, outboundSignal.getSource().getId()),
+                        PlaceholderFactory.newPlaceholderResolver(TOPIC_PLACEHOLDER, topicPathOpt.orElse(null))
+                );
+
                 final Set<Target> targets = outboundSignal.getTargets().stream().map(t -> {
-                    String address =
-                            PlaceholderFilter.apply(t.getAddress(), outboundSignal.getSource().getId(), THING_PLACEHOLDER, true);
-                    if (topicPathOpt.isPresent()) {
-                        address =
-                                PlaceholderFilter.apply(address, topicPathOpt.get(), TOPIC_PLACEHOLDER, true);
-                    } else {
-                        log.warning("TopicPath for ExternalMessage was absent when trying to replace placeholders, " +
-                                "remaining address: <{}>", address);
-                    }
+                    final String address =
+                            PlaceholderFilter.apply(t.getAddress(), expressionResolver, true);
                     return ConnectivityModelFactory.newTarget(t, address, t.getQos().orElse(null));
                 }).collect(Collectors.toSet());
                 final OutboundSignal modifiedOutboundSignal =
@@ -536,18 +538,16 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 final DittoHeaders dittoHeaders = signal.getDittoHeaders();
                 final String thingId = signal.getId();
 
+                final ExpressionResolver expressionResolver = PlaceholderFactory.newExpressionResolver(
+                        PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, dittoHeaders),
+                        PlaceholderFactory.newPlaceholderResolver(THING_PLACEHOLDER, thingId),
+                        PlaceholderFactory.newPlaceholderResolver(TOPIC_PLACEHOLDER, inboundExternalMessage.getTopicPath())
+                );
+
                 final DittoHeadersBuilder dittoHeadersBuilder = dittoHeaders.toBuilder();
                 mapping.getMapping().entrySet().stream()
                         .map(e -> newEntry(e.getKey(),
-                                PlaceholderFilter.apply(e.getValue(), dittoHeaders, HEADERS_PLACEHOLDER, true))
-                        )
-                        .map(e -> newEntry(e.getKey(),
-                                PlaceholderFilter.apply(e.getValue(), thingId, THING_PLACEHOLDER, true))
-                        )
-                        .map(e -> newEntry(e.getKey(),
-                                PlaceholderFilter.apply(e.getValue(),
-                                        inboundExternalMessage.getTopicPath(),
-                                        TOPIC_PLACEHOLDER, true))
+                                PlaceholderFilter.apply(e.getValue(), expressionResolver, true))
                         )
                         .forEach(e -> dittoHeadersBuilder.putHeader(e.getKey(), e.getValue()));
 

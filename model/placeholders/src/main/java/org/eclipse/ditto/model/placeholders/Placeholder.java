@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.model.placeholders;
 
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -18,41 +17,14 @@ import java.util.Optional;
  *
  * @param <T> the type which is required to resolve a placeholder
  */
-public interface Placeholder<T> {
+public interface Placeholder<T> extends ExpressionStage {
 
     /**
-     * The constant SEPARATOR.
-     */
-    String SEPARATOR = ":";
-
-    /**
-     * The part of the placeholder variable before ':'.
-     *
-     * @return the prefix.
-     */
-    String getPrefix();
-
-    /**
-     * Retrieves the supported names this placeholder can substitute.
-     *
-     * @return the supported names this placeholder can substitute.
-     */
-    List<String> getSupportedNames();
-
-    /**
-     * Test whether a placeholder name (i. e., the part after ':') is supported.
-     *
-     * @param name the placeholder name.
-     * @return whether the placeholder name is supported.
-     */
-    boolean supports(String name);
-
-    /**
-     * Evaluate the placeholder variable by name.
+     * Resolves the placeholder variable by name.
      *
      * @param source the source from which to the placeholder is resolved
      * @param name the placeholder variable name (i. e., the part after ':').
      * @return value of the placeholder variable if the placeholder name is supported, or an empty optional otherwise.
      */
-    Optional<String> apply(T source, String name);
+    Optional<String> resolve(T source, String name);
 }

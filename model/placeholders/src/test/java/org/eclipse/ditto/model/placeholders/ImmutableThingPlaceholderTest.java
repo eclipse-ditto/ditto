@@ -51,27 +51,27 @@ public class ImmutableThingPlaceholderTest {
 
     @Test
     public void testReplaceThingId() {
-        assertThat(UNDER_TEST.apply(THING_ID, "id")).contains(THING_ID);
+        assertThat(UNDER_TEST.resolve(THING_ID, "id")).contains(THING_ID);
     }
 
     @Test
     public void testReplaceThingName() {
-        assertThat(UNDER_TEST.apply(THING_ID, "name")).contains(NAME);
+        assertThat(UNDER_TEST.resolve(THING_ID, "name")).contains(NAME);
     }
 
     @Test
     public void testReplaceThingNamespace() {
-        assertThat(UNDER_TEST.apply(THING_ID, "namespace")).contains(NAMESPACE);
+        assertThat(UNDER_TEST.resolve(THING_ID, "namespace")).contains(NAMESPACE);
     }
 
     @Test(expected = ThingIdInvalidException.class)
     public void testInvalidThingIdThrowsException() {
-        UNDER_TEST.apply("ditto", "id");
+        UNDER_TEST.resolve("ditto", "id");
     }
 
     @Test
     public void testUnknownPlaceholderReturnsEmpty() {
-        assertThat(UNDER_TEST.apply(THING_ID, "thing_id")).isEmpty();
+        assertThat(UNDER_TEST.resolve(THING_ID, "thing_id")).isEmpty();
     }
 
 }

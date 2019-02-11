@@ -30,11 +30,11 @@ public class ImmutableSourceAddressPlaceholderTest {
 
     @Test
     public void testReplaceTopic() {
-        assertThat(ImmutableSourceAddressPlaceholder.INSTANCE.apply(SOME_MQTT_TOPIC, "address")).contains(SOME_MQTT_TOPIC);
+        assertThat(ImmutableSourceAddressPlaceholder.INSTANCE.resolve(SOME_MQTT_TOPIC, "address")).contains(SOME_MQTT_TOPIC);
     }
 
     @Test
     public void testResultIsEmptyForUnknownPlaceholder() {
-        assertThat(ImmutableSourceAddressPlaceholder.INSTANCE.apply(SOME_MQTT_TOPIC, "invalid")).isEmpty();
+        assertThat(ImmutableSourceAddressPlaceholder.INSTANCE.resolve(SOME_MQTT_TOPIC, "invalid")).isEmpty();
     }
 }

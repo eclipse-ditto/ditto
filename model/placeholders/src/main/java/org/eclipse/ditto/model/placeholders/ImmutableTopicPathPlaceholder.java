@@ -77,7 +77,7 @@ final class ImmutableTopicPathPlaceholder implements TopicPathPlaceholder {
     }
 
     @Override
-    public Optional<String> apply(final TopicPath topicPath, final String placeholder) {
+    public Optional<String> resolve(final TopicPath topicPath, final String placeholder) {
         ConditionChecker.argumentNotEmpty(placeholder, "placeholder");
         switch (placeholder) {
             case NAMESPACE_PLACEHOLDER:
