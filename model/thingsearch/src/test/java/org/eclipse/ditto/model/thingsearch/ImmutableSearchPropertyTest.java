@@ -16,6 +16,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -77,13 +78,16 @@ public final class ImmutableSearchPropertyTest {
                 .hasStringRepresentation("eq(" + PROPERTY_PATH + "," + value + ")");
     }
 
-    @Test(expected = NullPointerException.class)
-    public void tryToCallEqWithNullString() {
-        underTest.eq(null);
+    @Test
+    public void eqForStringReturnsExpected() {
+        assertThat(underTest.eq(null))
+                .hasType(SearchFilter.Type.EQ)
+                .hasOnlyValue(JsonValue.nullLiteral())
+                .hasStringRepresentation("eq(" + PROPERTY_PATH + ",null)");
     }
 
     @Test
-    public void eqForStringReturnsExpected() {
+    public void eqForNullStringReturnsExpected() {
         assertThat(underTest.eq(BOSCH))
                 .hasType(SearchFilter.Type.EQ)
                 .hasOnlyValue(BOSCH)
@@ -100,17 +104,20 @@ public final class ImmutableSearchPropertyTest {
                 .hasStringRepresentation("ne(" + PROPERTY_PATH + "," + value + ")");
     }
 
-    @Test(expected = NullPointerException.class)
-    public void tryToCallNeWithNullString() {
-        underTest.ne(null);
-    }
-
     @Test
     public void neForStringReturnsExpected() {
         assertThat(underTest.ne(ACME))
                 .hasType(SearchFilter.Type.NE)
                 .hasOnlyValue(ACME)
                 .hasStringRepresentation("ne(" + PROPERTY_PATH + ",\"" + ACME + "\")");
+    }
+
+    @Test
+    public void neForNullStringReturnsExpected() {
+        assertThat(underTest.ne(null))
+                .hasType(SearchFilter.Type.NE)
+                .hasOnlyValue(JsonValue.nullLiteral())
+                .hasStringRepresentation("ne(" + PROPERTY_PATH + ",null)");
     }
 
     @Test
