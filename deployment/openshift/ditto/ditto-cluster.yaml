@@ -1,4 +1,8 @@
 ---
+# Note:
+# The K8S_NAMESPACE env variable relates to the namespace in which the Ditto service is running.
+# According to this the pod-reader-role have to be created in the same namespace.
+
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
@@ -16,7 +20,7 @@ spec:
       restartPolicy: Always
       containers:
       - name: concierge
-        image: docker-registry.default.svc:5000/ci-x-digitaltwins/eclipse-ditto-concierge:0.8.0
+        image: docker.io/eclipse/ditto-concierge:0.8.0
         imagePullPolicy: IfNotPresent
         command: ["java"]
         args: ["-jar", "/opt/ditto/starter.jar"]
@@ -64,7 +68,7 @@ spec:
           value: "default"
         - name: TZ
           value: "Europe/Berlin"
-        - name: IBM_JAVA_OPTIONS
+        - name: OPENJ9_JAVA_OPTIONS
           value: "-Xtune:virtualized -XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
         - name: MONGO_DB_URI
           valueFrom:
@@ -89,7 +93,7 @@ spec:
       restartPolicy: Always
       containers:
       - name: connectivity
-        image: docker-registry.default.svc:5000/ci-x-digitaltwins/eclipse-ditto-connectivity:0.8.0
+        image: docker.io/eclipse/ditto-connectivity:0.8.0
         imagePullPolicy: IfNotPresent
         command: ["java"]
         args: ["-jar", "/opt/ditto/starter.jar"]
@@ -137,7 +141,7 @@ spec:
           value: "default"
         - name: TZ
           value: "Europe/Berlin"
-        - name: IBM_JAVA_OPTIONS
+        - name: OPENJ9_JAVA_OPTIONS
           value: "-Xtune:virtualized -XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
         - name: MONGO_DB_URI
           valueFrom:
@@ -162,7 +166,7 @@ spec:
       restartPolicy: Always
       containers:
       - name: things
-        image: docker-registry.default.svc:5000/ci-x-digitaltwins/eclipse-ditto-things:0.8.0
+        image: docker.io/eclipse/ditto-things:0.8.0
         imagePullPolicy: IfNotPresent
         command: ["java"]
         args: ["-jar", "/opt/ditto/starter.jar"]
@@ -210,7 +214,7 @@ spec:
           value: "default"
         - name: TZ
           value: "Europe/Berlin"
-        - name: IBM_JAVA_OPTIONS
+        - name: OPENJ9_JAVA_OPTIONS
           value: "-Xtune:virtualized -XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
         - name: MONGO_DB_URI
           valueFrom:
@@ -234,7 +238,7 @@ spec:
     spec:
       containers:
       - name: things-search
-        image: docker-registry.default.svc:5000/ci-x-digitaltwins/eclipse-ditto-things-search:0.8.0
+        image: docker.io/eclipse/ditto-things-search:0.8.0
         imagePullPolicy: IfNotPresent
         command: ["java"]
         args: ["-jar", "/opt/ditto/starter.jar"]
@@ -277,12 +281,11 @@ spec:
               fieldPath: status.podIP
         - name: DISCOVERY_METHOD
           value: "kubernetes-api"
-        # namespace in which the Ditto service is running according to this the pod-reader-role have to be created in the same namespace
         - name: K8S_NAMESPACE
           value: "default"
         - name: TZ
           value: "Europe/Berlin"
-        - name: IBM_JAVA_OPTIONS
+        - name: OPENJ9_JAVA_OPTIONS
           value: "-Xtune:virtualized -XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
         - name: MONGO_DB_URI
           valueFrom:
@@ -306,7 +309,7 @@ spec:
     spec:
       containers:
       - name: policies
-        image: docker-registry.default.svc:5000/ci-x-digitaltwins/eclipse-ditto-policies:0.8.0
+        image: docker.io/eclipse//eclipse-ditto-policies:0.8.0
         imagePullPolicy: IfNotPresent
         command: ["java"]
         args: ["-jar", "/opt/ditto/starter.jar"]
@@ -354,7 +357,7 @@ spec:
           value: "default"
         - name: TZ
           value: "Europe/Berlin"
-        - name: IBM_JAVA_OPTIONS
+        - name: OPENJ9_JAVA_OPTIONS
           value: "-Xtune:virtualized -XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
         - name: MONGO_DB_URI
           valueFrom:
@@ -378,7 +381,7 @@ spec:
     spec:
       containers:
       - name: gateway
-        image: docker-registry.default.svc:5000/ci-x-digitaltwins/eclipse-ditto-gateway:0.8.0
+        image: docker.io/eclipse/ditto-gateway:0.8.0
         imagePullPolicy: IfNotPresent
         command: ["java"]
         args: ["-jar", "/opt/ditto/starter.jar"]
@@ -430,7 +433,7 @@ spec:
           value: 0.0.0.0
         - name: TZ
           value: "Europe/Berlin"
-        - name: IBM_JAVA_OPTIONS
+        - name: OPENJ9_JAVA_OPTIONS
           value: "-Xtune:virtualized -XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
         - name: DEVOPS_PASSWORD
           value: "dittoPW1!"

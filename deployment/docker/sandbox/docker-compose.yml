@@ -2,7 +2,7 @@ version: '2.4'
 
 services:
   mongodb:
-    image: docker.io/mongo:3.4
+    image: docker.io/mongo:3.6
     networks:
       default:
         aliases:
@@ -26,7 +26,7 @@ services:
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
       - REMOTING_IDLE_CPU_LEVEL=1
-      - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s
+      - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s
       - MONGO_COLLECTION_NAME_SUFFIX_CLASS=
 
   things:
@@ -44,7 +44,7 @@ services:
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
       - REMOTING_IDLE_CPU_LEVEL=1
-      - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s
+      - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s
       - MONGO_COLLECTION_NAME_SUFFIX_CLASS=
 
   things-search:
@@ -62,7 +62,7 @@ services:
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
       - REMOTING_IDLE_CPU_LEVEL=1
-      - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s
+      - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s
 
   concierge:
     init: true
@@ -79,7 +79,7 @@ services:
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
       - REMOTING_IDLE_CPU_LEVEL=1
-      - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s
+      - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s
 
   connectivity:
     init: true
@@ -97,7 +97,7 @@ services:
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
       - REMOTING_IDLE_CPU_LEVEL=1
-      - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s
+      - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s
 
   gateway:
     init: true
@@ -117,7 +117,7 @@ services:
       - REMOTING_IDLE_CPU_LEVEL=1
       - ENABLE_DUMMY_AUTH=true
       - DEVOPS_SECURE_STATUS=false
-      - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s
+      - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s
 
   swagger-ui:
     image: docker.io/swaggerapi/swagger-ui:v3.20.5

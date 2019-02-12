@@ -2,7 +2,7 @@ version: '2.4'
 
 services:
   mongodb:
-    image: docker.io/mongo:3.4
+    image: docker.io/mongo:3.6
     networks:
       default:
         aliases:
@@ -24,7 +24,7 @@ services:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
+      - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
       - REMOTING_IDLE_CPU_LEVEL=1
 
   things:
@@ -41,7 +41,7 @@ services:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
+      - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
       - REMOTING_IDLE_CPU_LEVEL=1
 
   things-search:
@@ -58,7 +58,7 @@ services:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
+      - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
       - REMOTING_IDLE_CPU_LEVEL=1
 
   concierge:
@@ -75,7 +75,7 @@ services:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
+      - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
       - REMOTING_IDLE_CPU_LEVEL=1
 
   connectivity:
@@ -93,7 +93,7 @@ services:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
+      - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
       - REMOTING_IDLE_CPU_LEVEL=1
 
   gateway:
@@ -115,7 +115,7 @@ services:
       - BIND_HOSTNAME=0.0.0.0
       - REMOTING_IDLE_CPU_LEVEL=1
       - ENABLE_DUMMY_AUTH=true
-      - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
+      - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
 
   swagger-ui:
     image: docker.io/swaggerapi/swagger-ui:v3.20.5
