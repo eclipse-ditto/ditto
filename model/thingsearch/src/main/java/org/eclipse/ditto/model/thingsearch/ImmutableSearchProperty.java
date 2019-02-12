@@ -64,8 +64,8 @@ final class ImmutableSearchProperty implements SearchProperty {
         return result;
     }
 
-    private static String checkStringValue(final String value) {
-        return checkNotNull(value, "string value");
+    private static void checkStringValue(final String value) {
+        checkNotNull(value, "string value");
     }
 
     @Override

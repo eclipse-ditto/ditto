@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.model.thingsearch;
 
+import static org.eclipse.ditto.model.thingsearch.PropertyPathUtil.stripLeadingSlash;
 import static org.eclipse.ditto.model.thingsearch.assertions.DittoSearchAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -65,7 +66,7 @@ public final class ImmutableSearchPropertyTest {
         assertThat(underTest.exists())
                 .hasType(SearchFilter.Type.EXISTS)
                 .hasNoValue()
-                .hasStringRepresentation("exists(" + PROPERTY_PATH + ")");
+                .hasStringRepresentation("exists(" + stripLeadingSlash(PROPERTY_PATH) + ")");
     }
 
     @Test
@@ -75,7 +76,7 @@ public final class ImmutableSearchPropertyTest {
         assertThat(underTest.eq(value))
                 .hasType(SearchFilter.Type.EQ)
                 .hasOnlyValue(value)
-                .hasStringRepresentation("eq(" + PROPERTY_PATH + "," + value + ")");
+                .hasStringRepresentation("eq(" + stripLeadingSlash(PROPERTY_PATH) + "," + value + ")");
     }
 
     @Test
@@ -83,7 +84,7 @@ public final class ImmutableSearchPropertyTest {
         assertThat(underTest.eq(null))
                 .hasType(SearchFilter.Type.EQ)
                 .hasOnlyValue(JsonValue.nullLiteral())
-                .hasStringRepresentation("eq(" + PROPERTY_PATH + ",null)");
+                .hasStringRepresentation("eq(" + stripLeadingSlash(PROPERTY_PATH) + ",null)");
     }
 
     @Test
@@ -91,7 +92,7 @@ public final class ImmutableSearchPropertyTest {
         assertThat(underTest.eq(BOSCH))
                 .hasType(SearchFilter.Type.EQ)
                 .hasOnlyValue(BOSCH)
-                .hasStringRepresentation("eq(" + PROPERTY_PATH + ",\"" + BOSCH + "\")");
+                .hasStringRepresentation("eq(" + stripLeadingSlash(PROPERTY_PATH) + ",\"" + BOSCH + "\")");
     }
 
     @Test
@@ -101,7 +102,7 @@ public final class ImmutableSearchPropertyTest {
         assertThat(underTest.ne(value))
                 .hasType(SearchFilter.Type.NE)
                 .hasOnlyValue(value)
-                .hasStringRepresentation("ne(" + PROPERTY_PATH + "," + value + ")");
+                .hasStringRepresentation("ne(" + stripLeadingSlash(PROPERTY_PATH) + "," + value + ")");
     }
 
     @Test
@@ -109,7 +110,7 @@ public final class ImmutableSearchPropertyTest {
         assertThat(underTest.ne(ACME))
                 .hasType(SearchFilter.Type.NE)
                 .hasOnlyValue(ACME)
-                .hasStringRepresentation("ne(" + PROPERTY_PATH + ",\"" + ACME + "\")");
+                .hasStringRepresentation("ne(" + stripLeadingSlash(PROPERTY_PATH) + ",\"" + ACME + "\")");
     }
 
     @Test
@@ -117,7 +118,7 @@ public final class ImmutableSearchPropertyTest {
         assertThat(underTest.ne(null))
                 .hasType(SearchFilter.Type.NE)
                 .hasOnlyValue(JsonValue.nullLiteral())
-                .hasStringRepresentation("ne(" + PROPERTY_PATH + ",null)");
+                .hasStringRepresentation("ne(" + stripLeadingSlash(PROPERTY_PATH) + ",null)");
     }
 
     @Test
@@ -127,7 +128,7 @@ public final class ImmutableSearchPropertyTest {
         assertThat(underTest.ge(value))
                 .hasType(SearchFilter.Type.GE)
                 .hasOnlyValue(value)
-                .hasStringRepresentation("ge(" + PROPERTY_PATH + "," + value + ")");
+                .hasStringRepresentation("ge(" + stripLeadingSlash(PROPERTY_PATH) + "," + value + ")");
     }
 
     @Test(expected = NullPointerException.class)
@@ -140,7 +141,7 @@ public final class ImmutableSearchPropertyTest {
         assertThat(underTest.ge(ACME))
                 .hasType(SearchFilter.Type.GE)
                 .hasOnlyValue(ACME)
-                .hasStringRepresentation("ge(" + PROPERTY_PATH + ",\"" + ACME + "\")");
+                .hasStringRepresentation("ge(" + stripLeadingSlash(PROPERTY_PATH) + ",\"" + ACME + "\")");
     }
 
     @Test
@@ -150,7 +151,7 @@ public final class ImmutableSearchPropertyTest {
         assertThat(underTest.gt(value))
                 .hasType(SearchFilter.Type.GT)
                 .hasOnlyValue(value)
-                .hasStringRepresentation("gt(" + PROPERTY_PATH + "," + value + ")");
+                .hasStringRepresentation("gt(" + stripLeadingSlash(PROPERTY_PATH) + "," + value + ")");
     }
 
     @Test(expected = NullPointerException.class)
@@ -163,7 +164,7 @@ public final class ImmutableSearchPropertyTest {
         assertThat(underTest.gt(ACME))
                 .hasType(SearchFilter.Type.GT)
                 .hasOnlyValue(ACME)
-                .hasStringRepresentation("gt(" + PROPERTY_PATH + ",\"" + ACME + "\")");
+                .hasStringRepresentation("gt(" + stripLeadingSlash(PROPERTY_PATH) + ",\"" + ACME + "\")");
     }
 
     @Test(expected = NullPointerException.class)
@@ -176,7 +177,7 @@ public final class ImmutableSearchPropertyTest {
         assertThat(underTest.le(BOSCH))
                 .hasType(SearchFilter.Type.LE)
                 .hasOnlyValue(BOSCH)
-                .hasStringRepresentation("le(" + PROPERTY_PATH + ",\"" + BOSCH + "\")");
+                .hasStringRepresentation("le(" + stripLeadingSlash(PROPERTY_PATH) + ",\"" + BOSCH + "\")");
     }
 
     @Test(expected = NullPointerException.class)
@@ -189,7 +190,7 @@ public final class ImmutableSearchPropertyTest {
         assertThat(underTest.lt(BOSCH))
                 .hasType(SearchFilter.Type.LT)
                 .hasOnlyValue(BOSCH)
-                .hasStringRepresentation("lt(" + PROPERTY_PATH + ",\"" + BOSCH + "\")");
+                .hasStringRepresentation("lt(" + stripLeadingSlash(PROPERTY_PATH) + ",\"" + BOSCH + "\")");
     }
 
     @Test(expected = NullPointerException.class)
@@ -202,7 +203,7 @@ public final class ImmutableSearchPropertyTest {
         assertThat(underTest.like(BOSCH))
                 .hasType(SearchFilter.Type.LIKE)
                 .hasOnlyValue(BOSCH)
-                .hasStringRepresentation("like(" + PROPERTY_PATH + ",\"" + BOSCH + "\")");
+                .hasStringRepresentation("like(" + stripLeadingSlash(PROPERTY_PATH) + ",\"" + BOSCH + "\")");
     }
 
     @Test(expected = NullPointerException.class)
@@ -240,7 +241,8 @@ public final class ImmutableSearchPropertyTest {
         assertThat(underTest.in(one, two, three))
                 .hasType(SearchFilter.Type.IN)
                 .hasOnlyValue(one, two, three)
-                .hasStringRepresentation("in(" + PROPERTY_PATH + "," + one + "," + two + "," + three + ")");
+                .hasStringRepresentation(
+                        "in(" + stripLeadingSlash(PROPERTY_PATH) + "," + one + "," + two + "," + three + ")");
     }
 
 }

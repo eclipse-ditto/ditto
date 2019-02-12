@@ -12,6 +12,7 @@ package org.eclipse.ditto.model.thingsearch;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.json.JsonFactory.newValue;
+import static org.eclipse.ditto.model.thingsearch.PropertyPathUtil.stripLeadingSlash;
 import static org.eclipse.ditto.model.thingsearch.assertions.DittoSearchAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -116,7 +117,9 @@ public final class ImmutablePropertyFilterTest {
         final ImmutablePropertyFilter underTest = ImmutablePropertyFilter.of(SearchFilter.Type.IN,
                 THING_ID_PATH, Arrays.asList(valueFoo, valueBar, valueBaz));
 
-        assertThat(underTest).hasStringRepresentation("in(/thingId,\"foo\",\"bar\",\"baz\")");
+        assertThat(underTest)
+                .hasStringRepresentation(
+                        "in(" + stripLeadingSlash(THING_ID_PATH) + ",\"foo\",\"bar\",\"baz\")");
     }
 
     @Test
@@ -124,7 +127,9 @@ public final class ImmutablePropertyFilterTest {
         final ImmutablePropertyFilter underTest =
                 ImmutablePropertyFilter.of(SearchFilter.Type.EXISTS, THING_ID_PATH, Collections.emptySet());
 
-        assertThat(underTest).hasStringRepresentation("exists(/thingId)");
+        assertThat(underTest)
+                .hasStringRepresentation(
+                        "exists(" + stripLeadingSlash(THING_ID_PATH) + ")");
     }
 
 }
