@@ -8,35 +8,35 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.placeholders.internal;
+package org.eclipse.ditto.model.placeholders;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
-
-import org.eclipse.ditto.model.placeholders.Placeholder;
-import org.eclipse.ditto.model.placeholders.PlaceholderResolver;
+import javax.annotation.concurrent.Immutable;
 
 /**
- *
+ * Immutable implementation of {@link PlaceholderResolver}.
  */
+@Immutable
 final class ImmutablePlaceholderResolver<T> implements PlaceholderResolver<T> {
 
     private final Placeholder<T> placeholder;
-    @Nullable private final T value;
+    @Nullable private final T placeholderSource;
     private final boolean forValidation;
 
-    ImmutablePlaceholderResolver(final Placeholder<T> placeholder, @Nullable final T value, boolean forValidation) {
+    ImmutablePlaceholderResolver(final Placeholder<T> placeholder, @Nullable final T placeholderSource,
+            boolean forValidation) {
         this.placeholder = placeholder;
-        this.value = value;
+        this.placeholderSource = placeholderSource;
         this.forValidation = forValidation;
     }
 
     @Override
-    public Optional<T> getValueToResolveFrom() {
-        return Optional.ofNullable(value);
+    public Optional<T> getPlaceholderSource() {
+        return Optional.ofNullable(placeholderSource);
     }
 
     @Override
@@ -75,12 +75,12 @@ final class ImmutablePlaceholderResolver<T> implements PlaceholderResolver<T> {
         final ImmutablePlaceholderResolver<?> that = (ImmutablePlaceholderResolver<?>) o;
         return forValidation == that.forValidation &&
                 Objects.equals(placeholder, that.placeholder) &&
-                Objects.equals(value, that.value);
+                Objects.equals(placeholderSource, that.placeholderSource);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(placeholder, value, forValidation);
+        return Objects.hash(placeholder, placeholderSource, forValidation);
     }
 
 
@@ -88,7 +88,7 @@ final class ImmutablePlaceholderResolver<T> implements PlaceholderResolver<T> {
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "placeholder=" + placeholder +
-                ", value=" + value +
+                ", value=" + placeholderSource +
                 ", forValidation=" + forValidation +
                 "]";
     }

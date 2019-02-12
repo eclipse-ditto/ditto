@@ -38,6 +38,7 @@ public final class PlaceholderFilter {
      * @param authorizationContext authorizationContext to apply placeholder substitution in.
      * @param headers the headers to apply HeadersPlaceholder substitution with.
      * @return AuthorizationContext as result of placeholder substitution.
+     * @throws UnresolvedPlaceholderException if not all placeholders could be resolved
      */
     public static AuthorizationContext applyHeadersPlaceholderToAuthContext(final AuthorizationContext authorizationContext,
             final Map<String, String> headers) {
@@ -65,6 +66,7 @@ public final class PlaceholderFilter {
      * @param thingId the thing ID.
      * @param unresolvedPlaceholderListener what to do if placeholder substitution fails.
      * @return map from successfully filtered addresses to the result of placeholder substitution.
+     * @throws UnresolvedPlaceholderException if not all placeholders could be resolved
      */
     public static Map<String, String> applyThingPlaceholderToAddresses(final Collection<String> addresses, final String thingId,
             final Consumer<String> unresolvedPlaceholderListener) {
@@ -96,39 +98,43 @@ public final class PlaceholderFilter {
      * Finds all placeholders ({@code {{ ... }}}) defined in the given {@code template} and tries to replace them
      * by applying the given {@code placeholder}.
      *
-     * @param template
-     * @param value
-     * @param placeholder
-     * @param <T>
+     * @param template the template to replace placeholders and optionally apply pipeline stages (functions) in.
+     * @param placeholderSource the source to resolve {@code placeholder} names from.
+     * @param placeholder the placeholder used to resolve placeholders.
+     * @param <T> the type of the placeholderSource
+     * @throws UnresolvedPlaceholderException if not all placeholders could be resolved
      */
-    static <T> String apply(final String template, final T value, final Placeholder<T> placeholder) {
-        return apply(template, PlaceholderFactory.newExpressionResolver(placeholder, value));
+    static <T> String apply(final String template, final T placeholderSource, final Placeholder<T> placeholder) {
+        return apply(template, PlaceholderFactory.newExpressionResolver(placeholder, placeholderSource));
     }
 
     /**
      * Finds all placeholders ({@code {{ ... }}}) defined in the given {@code template} and tries to replace them
      * by applying the given {@code placeholder}.
      *
-     * @param template
-     * @param value
-     * @param placeholder
-     * @param allowUnresolved
-     * @param <T>
+     * @param template the template to replace placeholders and optionally apply pipeline stages (functions) in.
+     * @param placeholderSource the source to resolve {@code placeholder} names from.
+     * @param placeholder the placeholder used to resolve placeholders.
+     * @param allowUnresolved if {@code false} this method throws an exception if there are any
+     * unresolved placeholders after applying the given placeholders.
+     * @param <T> the type of the placeholderSource
+     * @throws UnresolvedPlaceholderException if {@code allowUnresolved} was @{code false} and not all placeholders
+     * could be resolved
      */
-    static <T> String apply(final String template, final T value, final Placeholder<T> placeholder,
+    static <T> String apply(final String template, final T placeholderSource, final Placeholder<T> placeholder,
             boolean allowUnresolved) {
-        return apply(template, PlaceholderFactory.newExpressionResolver(placeholder, value), allowUnresolved);
+        return apply(template, PlaceholderFactory.newExpressionResolver(placeholder, placeholderSource), allowUnresolved);
     }
 
     /**
      * Finds all placeholders ({@code {{ ... }}}) defined in the given {@code template} and tries to replace them
      * by applying the given {@code expressionResolver}.
      *
-     * @param template the template string
-     * @param expressionResolver TODO TJ doc
+     * @param template the template string.
+     * @param expressionResolver the expressionResolver used to resolve placeholders and optionally pipeline stages
+     * (functions).
      * @return the template string with the resolved values
-     * @throws UnresolvedPlaceholderException if {@code verifyAllPlaceholdersResolved} is true and not all
-     * placeholders were resolved
+     * @throws UnresolvedPlaceholderException if not all placeholders could be resolved
      */
     public static String apply(final String template, final ExpressionResolver expressionResolver) {
         return apply(template, expressionResolver, false);
@@ -138,10 +144,11 @@ public final class PlaceholderFilter {
      * Finds all placeholders ({@code {{ ... }}}) defined in the given {@code template} and tries to replace them
      * by applying the given {@code expressionResolver}.
      *
-     * @param template the template string
-     * @param expressionResolver TODO TJ doc
+     * @param template the template string.
+     * @param expressionResolver the expressionResolver used to resolve placeholders and optionally pipeline stages
+     * (functions).
      * @param allowUnresolved if {@code false} this method throws an exception if there are any
-     * unresolved placeholders after applying the given placeholders
+     * unresolved placeholders after applying the given placeholders.
      * @return the template string with the resolved values
      * @throws UnresolvedPlaceholderException if {@code allowUnresolved} is true and not all
      * placeholders were resolved

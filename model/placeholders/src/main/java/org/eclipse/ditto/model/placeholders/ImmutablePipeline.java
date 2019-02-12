@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.placeholders.internal;
+package org.eclipse.ditto.model.placeholders;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -18,10 +18,8 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.placeholders.ExpressionResolver;
-
 /**
- * Immutable implementation of {@link Pipeline}.
+ * Immutable implementation of {@link Pipeline} able to execute its {@link PipelineStage}s.
  */
 @Immutable
 final class ImmutablePipeline implements Pipeline {

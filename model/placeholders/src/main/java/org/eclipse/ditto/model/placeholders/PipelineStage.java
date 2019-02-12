@@ -8,16 +8,14 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.placeholders.internal;
+package org.eclipse.ditto.model.placeholders;
 
 import java.util.Optional;
 
-import org.eclipse.ditto.model.placeholders.ExpressionResolver;
-import org.eclipse.ditto.model.placeholders.ExpressionStage;
-
 /**
- * Defines a stage used in a Pipeline after the "input" stage of a
- * {@link org.eclipse.ditto.model.placeholders.Placeholder}:
+ * Defines a stage used in a Pipeline after the "input" stage of a {@link org.eclipse.ditto.model.placeholders.Placeholder},
+ * e.g. pipeline stages are functions like {@code fn:starts-with(':')} or {@code fn:default('fallback')}. Used in a
+ * pipeline expression like in the following example:
  * <pre>
  * {@code
  * thing:name | fn:substring-before(':') | fn:default(thing:name)
@@ -35,8 +33,9 @@ interface PipelineStage extends ExpressionStage {
      * Executes the Stage by passing in a value and returning a processed result.
      *
      * @param value the input value to process.
-     * @param expressionResolver
-     * @return processed output value, or an empty optional otherwise.
+     * @param expressionResolver the expressionResolver to use in order to resolve placeholders occurring in the
+     * pipeline expression.
+     * @return processed output value, or an empty optional if this stage resolved to an empty Optional.
      */
     Optional<String> apply(Optional<String> value, ExpressionResolver expressionResolver);
 }

@@ -11,14 +11,15 @@
 package org.eclipse.ditto.model.placeholders;
 
 
+import java.util.Optional;
+
 /**
  * The ExpressionResolver is able to:
  * <ul>
- * <li>resolve {@link Placeholder}s in a passed {@code template}</li>
+ * <li>resolve {@link Placeholder}s in a passed {@code template} (based on {@link PlaceholderResolver}</li>
  * <li>execute optional pipeline stages in a passed {@code template}</li>
  * </ul>
  * As a result, a resolved String is returned.
- * <p>
  * For example, following expressions can be resolved:
  * <ul>
  * <li>{@code {{ thing:id }} }</li>
@@ -27,17 +28,14 @@ package org.eclipse.ditto.model.placeholders;
  * <li>{@code {{ thing:name | fn:substring-before(':') | fn:default(thing:name) }} }</li>
  * <li>{@code {{ header:unknown | fn:default('fallback') }} }</li>
  * </ul>
- * </p>
- *
- * TODO TJ docs
  */
 public interface ExpressionResolver {
 
     /**
-     * Resolves {@link Placeholder}s and executes optional pipeline stages in the passed String {@code
-     * expressionTemplate}.
+     * Resolves a complete expression template starting with a {@link Placeholder}s followed by optional pipeline stages
+     * (e.g. functions).
      *
-     * @param expressionTemplate the String expressionTemplate to resolve {@link Placeholder}s and and execute optional
+     * @param expressionTemplate the expressionTemplate to resolve {@link Placeholder}s and and execute optional
      * pipeline stages
      * @param allowUnresolved whether it should be allowed that unresolved placeholder may be present after processing
      * @return the resolved String or the original {@code expressionTemplate} if {@code allowUnresolved} was set to
@@ -47,6 +45,13 @@ public interface ExpressionResolver {
      */
     String resolve(String expressionTemplate, boolean allowUnresolved);
 
-    String resolveSinglePlaceholder(String placeholder, boolean allowUnresolved);
+    /**
+     * Resolves a single {@link Placeholder} with the passed full {@code placeholder} name (e.g.: {@code thing:id} or
+     * {@code header:correlation-id}.
+     *
+     * @param placeholder the placeholder to resolve.
+     * @return the resolved placeholder if it could be resolved, empty Optional otherwise.
+     */
+    Optional<String> resolveSinglePlaceholder(String placeholder);
 
 }

@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.placeholders.internal;
+package org.eclipse.ditto.model.placeholders;
 
 import static org.eclipse.ditto.model.placeholders.ExpressionStage.SEPARATOR;
 
@@ -26,26 +26,15 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.common.Placeholders;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
-import org.eclipse.ditto.model.placeholders.ExpressionResolver;
-import org.eclipse.ditto.model.placeholders.PlaceholderResolver;
 
 /**
- *
+ * Immutable implementation of {@link ExpressionResolver} containing the logic of how an expression is resolved.
  */
 @Immutable
 final class ImmutableExpressionResolver implements ExpressionResolver {
 
     private static final String PIPE_PATTERN_STR = "(\\s+\\|\\s+)";
     private static final Pattern PIPE_PATTERN = Pattern.compile(PIPE_PATTERN_STR);
-
-//    private static final String SINGLE_EXPRESSION_PATTERN = "(\\w+:(\\w|\\|)+(\\((\"([^\"]*)\"|'([^']*)'|\\w+:.+)\\))?)";
-//    private static final String ANY_WHITESPACES_STR = "\\s*";
-//    private static final String OVERALL_PATTERN_STR =
-//                    ANY_WHITESPACES_STR +
-//                    "(" + SINGLE_EXPRESSION_PATTERN + PIPE_PATTERN_STR + ")*" +
-//                    SINGLE_EXPRESSION_PATTERN +
-//                    ANY_WHITESPACES_STR;
-//    private static final Pattern OVERALL_PATTERN = Pattern.compile(OVERALL_PATTERN_STR);
 
     private static final Function<String, DittoRuntimeException> UNRESOLVED_INPUT_HANDLER = unresolvedInput ->
             UnresolvedPlaceholderException.newBuilder(unresolvedInput).build();
@@ -77,20 +66,17 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
     }
 
     @Override
-    public String resolveSinglePlaceholder(final String placeholder, final boolean allowUnresolved) {
+    public Optional<String> resolveSinglePlaceholder(final String placeholder) {
 
         for (final PlaceholderResolver<?> resolver : placeholderResolvers) {
+
             final Optional<String> resolvedOpt = makePlaceholderReplacerFunction(resolver).apply(placeholder);
             if (resolvedOpt.isPresent()) {
-                return resolvedOpt.get();
+                return resolvedOpt;
             }
         }
 
-        if (!allowUnresolved) {
-            throw UNRESOLVED_INPUT_HANDLER.apply(placeholder);
-        } else {
-            return placeholder;
-        }
+        return Optional.empty();
     }
 
     private Function<String, Optional<String>> makePlaceholderReplacerFunction(

@@ -105,12 +105,18 @@ public final class Placeholders {
     }
 
     /**
-     * TODO TJ doc
+     * Substitutes any placeholder contained in the input not allowing unresolved placeholders.
      *
-     * @param input
-     * @param placeholderReplacerFunction
-     * @param unresolvedInputHandler
-     * @return
+     * @param input the input.
+     * @param placeholderReplacerFunction a function defining how a placeholder will be replaced. It must not return
+     * null, instead it should throw a specific exception if a placeholder cannot be replaced.
+     * @param unresolvedInputHandler exception handler providing a exception which is thrown when placeholders
+     * remain unresolved, e.g. when brackets have the wrong order.
+     * the replaced input, if the input contains placeholders; the (same) input object, if no placeholders were
+     * contained in the input.
+     * @throws IllegalStateException if {@code placeholderReplacerFunction} returns null
+     * @throws DittoRuntimeException the passed in {@code unresolvedInputHandler} will be used in order to throw the
+     * DittoRuntimeException which was defined by the caller
      */
     public static String substitute(final String input,
             final Function<String, Optional<String>> placeholderReplacerFunction,
@@ -131,6 +137,9 @@ public final class Placeholders {
      * @return the replaced input, if the input contains placeholders; the (same) input object, if no placeholders were
      * contained in the input.
      * @throws IllegalStateException if {@code placeholderReplacerFunction} returns null
+     * @throws DittoRuntimeException if {@code allowUnresolved} is set to {@code false}, the passed in
+     * {@code unresolvedInputHandler} will be used in order to throw the DittoRuntimeException which was defined by the
+     * caller
      */
     public static String substitute(final String input,
             final Function<String, Optional<String>> placeholderReplacerFunction,

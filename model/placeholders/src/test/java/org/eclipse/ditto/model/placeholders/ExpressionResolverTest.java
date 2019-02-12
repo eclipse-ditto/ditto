@@ -88,4 +88,14 @@ public class ExpressionResolverTest {
                         true)
         ).isEqualTo(THING_ID);
     }
+
+    @Test
+    public void testPlaceholderFunctionSubstringAfterWithUpper() {
+
+        assertThat(
+                expressionResolver.resolve("{{ thing:name | fn:substring-after(':') | fn:upper() }}",
+                        true)
+        ).isEqualTo("the-rest".toUpperCase());
+    }
+
 }

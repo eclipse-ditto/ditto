@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.placeholders.internal;
+package org.eclipse.ditto.model.placeholders;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,25 +16,30 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.model.placeholders.ExpressionResolver;
+import javax.annotation.concurrent.Immutable;
 
 /**
- *
+ * Immutable implementation of {@link PipelineStage} defining which {@link PipelineStageFunction}s are supported.
  */
+@Immutable
 final class ImmutablePipelineStage implements PipelineStage {
 
     private static final List<PipelineStageFunction> SUPPORTED;
 
     static {
-
         SUPPORTED = new ArrayList<>();
         SUPPORTED.add(new PipelineStageFunctionDefault()); // fn:default('fallback value')
         SUPPORTED.add(new PipelineStageFunctionSubstringBefore()); // fn:substring-before(':')
+        SUPPORTED.add(new PipelineStageFunctionSubstringAfter()); // fn:substring-after(':')
+        SUPPORTED.add(new PipelineStageFunctionLower()); // fn:lower()
+        SUPPORTED.add(new PipelineStageFunctionUpper()); // fn:upper()
     }
 
-    private String expression;
+    private final String expression;
 
     /**
+     * Constructs a new instance of ImmutablePipelineStage.
+     *
      * @param expression e.g.: {@code default('fallback value')}
      */
     ImmutablePipelineStage(final String expression) {
@@ -61,7 +66,7 @@ final class ImmutablePipelineStage implements PipelineStage {
         // the function validates itself whether the remaining part is valid
         return SUPPORTED.stream()
                 .map(PipelineStageFunction::getName)
-                .anyMatch(name::startsWith);
+                .anyMatch(psfName -> psfName.startsWith(name + "("));
     }
 
     @Override
@@ -73,8 +78,10 @@ final class ImmutablePipelineStage implements PipelineStage {
     public Optional<String> apply(final Optional<String> value, final ExpressionResolver expressionResolver) {
 
         return SUPPORTED.stream()
-                .filter(pf -> expression.startsWith(getPrefix() + ":" + pf.getName()))
-                .map(pf -> pf.apply(value, expression.replaceFirst(getPrefix() + ":" + pf.getName(), ""), expressionResolver))
+                .filter(pf -> expression.startsWith(getPrefix() + ":" + pf.getName() + "("))
+                .map(pf -> pf.apply(value, expression.replaceFirst(getPrefix() + ":" + pf.getName(), "").trim(),
+                        expressionResolver)
+                )
                 .findFirst()
                 .flatMap(o -> o);
     }

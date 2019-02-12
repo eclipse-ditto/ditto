@@ -16,12 +16,8 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.placeholders.internal.PipelineFactory;
-
 /**
  * Factory that creates instances of {@link Placeholder}, {@link PlaceholderResolver}s and {@link ExpressionResolver}s.
- *
- * TODO TJ JavaDocs
  */
 public final class PlaceholderFactory {
 
@@ -53,32 +49,76 @@ public final class PlaceholderFactory {
         return ImmutableTopicPathPlaceholder.INSTANCE;
     }
 
+    /**
+     * Creates a new PlaceholderResolver instance based on the given {@link Placeholder} and a placeholder source for
+     * looking up placeholder names in.
+     *
+     * @param placeholder the placeholder.
+     * @param placeholderSource the placeholder source for looking up placeholder names in.
+     * @param <T> the type of the placeholder source
+     * @return the created PlaceholderResolver instance
+     */
     public static <T> PlaceholderResolver<T> newPlaceholderResolver(final Placeholder<T> placeholder,
-            @Nullable final T value) {
-        return PipelineFactory.newPlaceholderResolver(placeholder, value);
+            @Nullable final T placeholderSource) {
+        return new ImmutablePlaceholderResolver<>(placeholder, placeholderSource, false);
     }
 
+    /**
+     * Creates a new PlaceholderResolver instance for validation based on the given {@link Placeholder}. As for
+     * validation no lookup in a placeholder source has to be made, the source must not be provided.
+     *
+     * @param placeholder the placeholder.
+     * @param <T> the type of the placeholder source
+     * @return the created PlaceholderResolver instance
+     */
     public static <T> PlaceholderResolver<T> newPlaceholderResolverForValidation(final Placeholder<T> placeholder) {
-        return PipelineFactory.newPlaceholderResolverForValidation(placeholder);
+        return new ImmutablePlaceholderResolver<>(placeholder, null, true);
     }
 
-    public static <T> ExpressionResolver newExpressionResolver(final Placeholder<T> placeholder,
-            @Nullable final T value) {
-        return newExpressionResolver(Collections.singletonList(newPlaceholderResolver(placeholder, value)));
-    }
-
-    public static ExpressionResolver newExpressionResolverForValidation(final Placeholder<?> placeholder) {
-        return newExpressionResolver(Collections.singletonList(newPlaceholderResolverForValidation(placeholder)));
-    }
-
+    /**
+     * Creates a new ExpressionResolver instance initialized with the passed in {@code placeholderResolvers} for looking
+     * up {@link Placeholder}s.
+     *
+     * @param placeholderResolvers the PlaceholderResolvers to use in order to lookup placeholders in expressions.
+     * @return the created ExpressionResolver instance
+     */
     public static ExpressionResolver newExpressionResolver(
             final PlaceholderResolver<?>... placeholderResolvers) {
         return newExpressionResolver(Arrays.asList(placeholderResolvers));
     }
 
-    public static ExpressionResolver newExpressionResolver(
-            final List<PlaceholderResolver<?>> placeholderResolvers) {
-        return PipelineFactory.newExpressionResolver(placeholderResolvers);
+    /**
+     * Creates a new ExpressionResolver instance initialized with the passed in {@code placeholderResolvers} for looking
+     * up {@link Placeholder}s.
+     *
+     * @param placeholderResolvers the PlaceholderResolvers to use in order to lookup placeholders in expressions.
+     * @return the created ExpressionResolver instance
+     */
+    public static ExpressionResolver newExpressionResolver(final List<PlaceholderResolver<?>> placeholderResolvers) {
+        return new ImmutableExpressionResolver(placeholderResolvers);
+    }
+
+    /**
+     * Creates a new ExpressionResolver instance initialized with a single {@code placeholder} and
+     * {@code placeholderSource} for looking up {@link Placeholder}s.
+     *
+     * @param placeholder the placeholder.
+     * @param placeholderSource the placeholder source for looking up placeholder names in.
+     * @return the created ExpressionResolver instance
+     */
+    public static <T> ExpressionResolver newExpressionResolver(final Placeholder<T> placeholder,
+            @Nullable final T placeholderSource) {
+        return newExpressionResolver(Collections.singletonList(newPlaceholderResolver(placeholder, placeholderSource)));
+    }
+
+    /**
+     * Creates a new ExpressionResolver instance for validation initialized with a single {@code placeholder}.
+     *
+     * @param placeholder the placeholder.
+     * @return the created ExpressionResolver instance
+     */
+    public static ExpressionResolver newExpressionResolverForValidation(final Placeholder<?> placeholder) {
+        return newExpressionResolver(Collections.singletonList(newPlaceholderResolverForValidation(placeholder)));
     }
 
     private PlaceholderFactory() {
