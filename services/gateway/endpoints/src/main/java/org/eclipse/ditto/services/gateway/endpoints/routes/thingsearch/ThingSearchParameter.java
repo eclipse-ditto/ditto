@@ -33,7 +33,9 @@ public enum ThingSearchParameter {
     /**
      * Request parameter for namespaces to apply.
      */
-    NAMESPACES("namespaces");
+    NAMESPACES("namespaces"),
+
+    NEXT_PAGE_KEY("nextPageKey");
 
     private final String parameterValue;
 

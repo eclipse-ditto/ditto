@@ -14,8 +14,13 @@ import static akka.http.javadsl.server.Directives.get;
 import static akka.http.javadsl.server.Directives.parameterOptional;
 import static akka.http.javadsl.server.Directives.path;
 import static akka.http.javadsl.server.Directives.pathEndOrSingleSlash;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchParameter.FIELDS;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchParameter.FILTER;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchParameter.NAMESPACES;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchParameter.OPTION;
 
 import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -81,8 +86,8 @@ public final class ThingSearchRoute extends AbstractRoute {
      */
     private Route countThings(final RequestContext ctx, final DittoHeaders dittoHeaders) {
         return get(() -> // GET things/count?filter=<filterString>&namespaces=<namespacesString>
-                parameterOptional(ThingSearchParameter.FILTER.toString(), filterString ->
-                        parameterOptional(ThingSearchParameter.NAMESPACES.toString(), namespacesString ->
+                parameterOptional(FILTER.toString(), filterString ->
+                        parameterOptional(NAMESPACES.toString(), namespacesString ->
                                 handlePerRequest(ctx, CountThings.of(calculateFilter(filterString),
                                         calculateNamespaces(namespacesString), dittoHeaders))
                         )
@@ -96,25 +101,42 @@ public final class ThingSearchRoute extends AbstractRoute {
      * @return {@code /search/things} route.
      */
     private Route searchThings(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-        return get(
-                () -> // GET things?filter=<filterString>&options=<optionsString>&fields=<fieldsString>&namespaces=<namespacesString>
-                        parameterOptional(ThingSearchParameter.FILTER.toString(), filterString ->
-                                parameterOptional(ThingSearchParameter.NAMESPACES.toString(), namespacesString ->
-                                        parameterOptional(ThingSearchParameter.OPTION.toString(), optionsString ->
-                                                parameterOptional(ThingSearchParameter.FIELDS.toString(),
-                                                        fieldsString -> handlePerRequest(ctx,
-                                                                QueryThings.of(calculateFilter(filterString),
-                                                                        calculateOptions(optionsString),
-                                                                        AbstractRoute.calculateSelectedFields(
-                                                                                fieldsString)
-                                                                                .orElse(null),
-                                                                        calculateNamespaces(namespacesString),
-                                                                        dittoHeaders))
-                                                )
-                                        )
-                                )
-                        )
-        );
+        // GET things?filter=<filterString>
+        //           &options=<optionsString>
+        //           &fields=<fieldsString>
+        //           &namespaces=<namespacesString>
+        //           &nextPageKey=<nextPageKey>
+        return get(() -> thingSearchParameterOptional(params ->
+                handlePerRequest(ctx, QueryThings.of(
+                        calculateFilter(params.get(FILTER)),
+                        calculateOptions(params.get(OPTION)),
+                        AbstractRoute.calculateSelectedFields(params.get(FIELDS))
+                                .orElse(null),
+                        calculateNamespaces(params.get(NAMESPACES)),
+                        params.get(ThingSearchParameter.NEXT_PAGE_KEY).orElse(null),
+                        dittoHeaders))));
+    }
+
+    private static Route thingSearchParameterOptional(
+            final Function<EnumMap<ThingSearchParameter, Optional<String>>, Route> inner) {
+
+        return thingSearchParameterOptionalImpl(ThingSearchParameter.values(),
+                new EnumMap<>(ThingSearchParameter.class), inner);
+    }
+
+    private static Route thingSearchParameterOptionalImpl(final ThingSearchParameter[] values,
+            final EnumMap<ThingSearchParameter, Optional<String>> accumulator,
+            final Function<EnumMap<ThingSearchParameter, Optional<String>>, Route> inner) {
+
+        if (accumulator.size() >= values.length) {
+            return inner.apply(accumulator);
+        } else {
+            final ThingSearchParameter parameter = values[accumulator.size()];
+            return parameterOptional(parameter.toString(), parameterValueOptional -> {
+                accumulator.put(parameter, parameterValueOptional);
+                return thingSearchParameterOptionalImpl(values, accumulator, inner);
+            });
+        }
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
