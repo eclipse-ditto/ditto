@@ -30,7 +30,7 @@ import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.write.EventToPersistenceStrategyFactory;
-import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
+import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.signals.events.things.AttributeCreated;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.junit.After;
@@ -69,13 +69,13 @@ public final class MongoDBMockSearchUpdaterPersistenceTest {
         actorMaterializer = ActorMaterializer.create(actorSystem);
 
         final LoggingAdapter loggingAdapter = mock(LoggingAdapter.class);
-        final MongoClientWrapper clientWrapper = mock(MongoClientWrapper.class);
+        final DittoMongoClient mongoClient = mock(DittoMongoClient.class);
         final MongoDatabase db = mock(MongoDatabase.class);
 
         thingsCollection = createMockCollection();
         final MongoCollection<Document> policiesCollection = createMockCollection();
 
-        when(clientWrapper.getDatabase())
+        when(mongoClient.getDefaultDatabase())
                 .thenReturn(db);
         when(db.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME))
                 .thenReturn(thingsCollection);
@@ -83,7 +83,7 @@ public final class MongoDBMockSearchUpdaterPersistenceTest {
                 .thenReturn(policiesCollection);
 
         persistence =
-                new MongoThingsSearchUpdaterPersistence(clientWrapper, loggingAdapter,
+                new MongoThingsSearchUpdaterPersistence(mongoClient, loggingAdapter,
                         eventToPersistenceStrategyFactory, actorMaterializer);
     }
 

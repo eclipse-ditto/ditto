@@ -17,7 +17,7 @@ import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.streaming.DefaultStreamSupervisor;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamConsumerSettings;
-import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
+import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -46,14 +46,14 @@ public final class PoliciesStreamSupervisorCreator {
      *
      * @param thingsUpdater the things updater actor
      * @param pubSubMediator the PubSub mediator Actor.
-     * @param streamMetadataPersistence the {@link StreamMetadataPersistence} used to read and write stream metadata (is
+     * @param streamMetadataPersistence the {@link TimestampPersistence} used to read and write stream metadata (is
      * used to remember the end time of the last stream after a re-start).
      * @param materializer the materializer for the akka actor system.
      * @param streamConsumerSettings The settings for stream consumption.
      * @return the props
      */
     public static Props props(final ActorRef thingsUpdater, final ActorRef pubSubMediator,
-            final StreamMetadataPersistence streamMetadataPersistence, final Materializer materializer,
+            final TimestampPersistence streamMetadataPersistence, final Materializer materializer,
             final StreamConsumerSettings streamConsumerSettings,
             final ThingsSearchUpdaterPersistence searchUpdaterPersistence) {
 

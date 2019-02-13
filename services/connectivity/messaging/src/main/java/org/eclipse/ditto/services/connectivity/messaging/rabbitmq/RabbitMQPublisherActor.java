@@ -19,12 +19,12 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.common.CharsetDeterminer;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectionMetricsCollector;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
@@ -161,14 +161,16 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
             return;
         }
 
-        final String contentType = message.getHeaders().get(ExternalMessage.CONTENT_TYPE_HEADER);
-        final String correlationId = message.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
+        final Map<String, String> messageHeaders = message.getHeaders();
+        final String contentType = messageHeaders.get(ExternalMessage.CONTENT_TYPE_HEADER);
+        final String correlationId = messageHeaders.get(DittoHeaderDefinition.CORRELATION_ID.getKey());
 
-        final Map<String, Object> stringObjectMap =
-                message.getHeaders().entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey,
-                        (e -> (Object) e.getValue())));
+        final Map<String, Object> stringObjectMap = messageHeaders.entrySet()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> (Object) e.getValue()));
 
-        final AMQP.BasicProperties basicProperties = new AMQP.BasicProperties.Builder().contentType(contentType)
+        final AMQP.BasicProperties basicProperties = new AMQP.BasicProperties.Builder()
+                .contentType(contentType)
                 .correlationId(correlationId)
                 .headers(stringObjectMap)
                 .build();
@@ -176,7 +178,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
         final byte[] body;
         if (message.isTextMessage()) {
             body = message.getTextPayload()
-                    .map(text -> text.getBytes(MessageMappers.determineCharset(contentType)))
+                    .map(text -> text.getBytes(CharsetDeterminer.getInstance().apply(contentType)))
                     .orElseThrow(() -> new IllegalArgumentException("Failed to convert text to bytes."));
         } else {
             body = message.getBytePayload()
@@ -200,4 +202,5 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
 
         channelActor.tell(channelMessage, getSelf());
     }
+
 }

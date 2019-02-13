@@ -12,7 +12,6 @@ package org.eclipse.ditto.services.connectivity.mapping;
 
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -20,6 +19,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.model.base.common.CharsetDeterminer;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -94,10 +94,7 @@ public final class DittoMessageMapper implements MessageMapper {
         if (message.isTextMessage()) {
             payload = message.getTextPayload();
         } else if (message.isBytesMessage()) {
-            final Charset charset = Optional.ofNullable(message.getHeaders()
-                    .get(ExternalMessage.CONTENT_TYPE_HEADER))
-                    .map(MessageMappers::determineCharset)
-                    .orElse(StandardCharsets.UTF_8);
+            final Charset charset = determineCharset(message.getHeaders());
             payload = message.getBytePayload().map(charset::decode).map(CharBuffer::toString);
         } else {
             payload = Optional.empty();
@@ -107,8 +104,12 @@ public final class DittoMessageMapper implements MessageMapper {
                 MessageMappingFailedException.newBuilder(message.findContentType().orElse(""))
                         .description(
                                 "As payload was absent or empty, please make sure to send payload in your messages.")
-                        .dittoHeaders(DittoHeaders.of((message.getHeaders())))
+                        .dittoHeaders(DittoHeaders.of(message.getHeaders()))
                         .build());
+    }
+
+    private static Charset determineCharset(final Map<String, String> messageHeaders) {
+        return CharsetDeterminer.getInstance().apply(messageHeaders.get(ExternalMessage.CONTENT_TYPE_HEADER));
     }
 
     /**

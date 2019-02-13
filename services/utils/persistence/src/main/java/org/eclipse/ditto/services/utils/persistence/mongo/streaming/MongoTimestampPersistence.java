@@ -15,17 +15,16 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.Optional;
 
-import javax.annotation.Nullable;
-
 import org.bson.Document;
-import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
-import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
+import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
+import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mongodb.MongoCommandException;
 import com.mongodb.client.model.CreateCollectionOptions;
 import com.mongodb.reactivestreams.client.MongoCollection;
+import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.mongodb.reactivestreams.client.Success;
 
 import akka.NotUsed;
@@ -37,9 +36,9 @@ import akka.stream.javadsl.RestartSource;
 import akka.stream.javadsl.Source;
 
 /**
- * MongoDB implementation of {@link StreamMetadataPersistence}.
+ * MongoDB implementation of {@link TimestampPersistence}.
  */
-public final class MongoSearchSyncPersistence implements StreamMetadataPersistence {
+public final class MongoTimestampPersistence implements TimestampPersistence {
 
     private static final Duration BACKOFF_MIN = Duration.ofSeconds(1L);
 
@@ -61,7 +60,7 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
     /**
      * The logger.
      */
-    private static final Logger LOGGER = LoggerFactory.getLogger(MongoSearchSyncPersistence.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(MongoTimestampPersistence.class);
     private final Source<MongoCollection, NotUsed> lastSuccessfulSearchSyncCollection;
 
     /**
@@ -70,7 +69,7 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
      * @param lastSuccessfulSearchSyncCollection the collection in which the last successful sync timestamps can be
      * stored.
      */
-    private MongoSearchSyncPersistence(final Source<MongoCollection, NotUsed> lastSuccessfulSearchSyncCollection) {
+    private MongoTimestampPersistence(final Source<MongoCollection, NotUsed> lastSuccessfulSearchSyncCollection) {
 
         this.lastSuccessfulSearchSyncCollection = lastSuccessfulSearchSyncCollection;
     }
@@ -79,22 +78,21 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
      * Creates a new initialized instance.
      *
      * @param collectionName The name of the collection.
-     * @param clientWrapper the client wrapper holding the connection information.
-     * @param mat an actor materializer to materialize the restart-source of the sync timestamp collection.
+     * @param mongoClient the client wrapper holding the connection information.
+     * @param materializer an actor materializer to materialize the restart-source of the sync timestamp collection.
      * @return a new initialized instance.
      */
-    public static MongoSearchSyncPersistence initializedInstance(final String collectionName,
-            final MongoClientWrapper clientWrapper,
-            final ActorMaterializer mat) {
-
+    public static MongoTimestampPersistence initializedInstance(final String collectionName,
+            final DittoMongoClient mongoClient, final ActorMaterializer materializer) {
         final Source<MongoCollection, NotUsed> lastSuccessfulSearchSyncCollection =
-                createOrGetCappedCollection(clientWrapper, collectionName, MIN_CAPPED_COLLECTION_SIZE_IN_BYTES, mat);
+                createOrGetCappedCollection(mongoClient.getDefaultDatabase(), collectionName,
+                        MIN_CAPPED_COLLECTION_SIZE_IN_BYTES, materializer);
 
-        return new MongoSearchSyncPersistence(lastSuccessfulSearchSyncCollection);
+        return new MongoTimestampPersistence(lastSuccessfulSearchSyncCollection);
     }
 
     @Override
-    public Source<NotUsed, NotUsed> updateLastSuccessfulStreamEnd(final Instant timestamp) {
+    public Source<NotUsed, NotUsed> setTimestamp(final Instant timestamp) {
         final Date mongoStorableDate = Date.from(timestamp);
 
         final Document toStore = new Document().append(FIELD_TIMESTAMP, mongoStorableDate);
@@ -107,11 +105,6 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
                 });
     }
 
-    @Override
-    public Source<Optional<Instant>, NotUsed> retrieveLastSuccessfulStreamEnd() {
-        return retrieveLastSuccessfulStreamEndAsync();
-    }
-
     /**
      * @return the underlying collection in a future for tests
      */
@@ -121,7 +114,8 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
                 .map(document -> (MongoCollection<Document>) document);
     }
 
-    private Source<Optional<Instant>, NotUsed> retrieveLastSuccessfulStreamEndAsync() {
+    @Override
+    public Source<Optional<Instant>, NotUsed> getTimestampAsync() {
         return getCollection()
                 .flatMapConcat(collection -> Source.fromPublisher(collection.find().sort(SORT_BY_ID_DESC).limit(1)))
                 .flatMapConcat(doc -> {
@@ -136,23 +130,23 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
     /**
      * Creates the capped collection {@code collectionName} using {@code clientWrapper} if it doesn't exists yet.
      *
-     * @param clientWrapper The client to use.
+     * @param database The database to use.
      * @param collectionName The name of the capped collection that should be created.
      * @param cappedCollectionSizeInBytes The size in bytes of the collection that should be created.
      * @param materializer The actor materializer to pre-materialize the restart source.
      * @return Returns the created or retrieved collection.
      */
     private static Source<MongoCollection, NotUsed> createOrGetCappedCollection(
-            final MongoClientWrapper clientWrapper,
+            final MongoDatabase database,
             final String collectionName,
             final long cappedCollectionSizeInBytes,
             final ActorMaterializer materializer) {
 
         final Source<Success, NotUsed> createCollectionSource =
-                repeatableCreateCappedCollectionSource(clientWrapper, collectionName, cappedCollectionSizeInBytes);
+                repeatableCreateCappedCollectionSource(database, collectionName, cappedCollectionSizeInBytes);
 
         final Source<MongoCollection, NotUsed> infiniteCollectionSource =
-                createCollectionSource.map(success -> clientWrapper.getDatabase().getCollection(collectionName))
+                createCollectionSource.map(success -> database.getCollection(collectionName))
                         .flatMapConcat(Source::repeat);
 
         final Source<MongoCollection, NotUsed> restartSource =
@@ -162,7 +156,7 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
     }
 
     private static Source<Success, NotUsed> repeatableCreateCappedCollectionSource(
-            final MongoClientWrapper clientWrapper,
+            final MongoDatabase database,
             final String collectionName,
             final long cappedCollectionSizeInBytes) {
 
@@ -173,12 +167,12 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
 
         return Source.lazily(() ->
                 Source.fromPublisher(
-                        clientWrapper.getDatabase().createCollection(collectionName, collectionOptions)))
+                        database.createCollection(collectionName, collectionOptions)))
                 .mapMaterializedValue(whatever -> NotUsed.getInstance())
                 .withAttributes(Attributes.inputBuffer(1, 1))
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<Success, NotUsed>>()
                         .match(MongoCommandException.class,
-                                MongoSearchSyncPersistence::isCollectionAlreadyExistsError,
+                                MongoTimestampPersistence::isCollectionAlreadyExistsError,
                                 error -> Source.single(Success.SUCCESS))
                         .build());
 
@@ -187,4 +181,5 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
     private static boolean isCollectionAlreadyExistsError(final MongoCommandException error) {
         return error.getErrorCode() == COLLECTION_ALREADY_EXISTS_ERROR_CODE;
     }
+
 }

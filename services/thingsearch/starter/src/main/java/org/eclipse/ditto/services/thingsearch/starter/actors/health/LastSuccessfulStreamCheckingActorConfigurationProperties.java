@@ -15,7 +15,7 @@ import static java.util.Objects.requireNonNull;
 import java.time.Duration;
 
 import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
-import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
+import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
 
 import com.typesafe.config.Config;
 
@@ -28,11 +28,11 @@ final class LastSuccessfulStreamCheckingActorConfigurationProperties {
     private final boolean syncEnabled;
     private final Duration warningOffset;
     private final Duration errorOffset;
-    private final StreamMetadataPersistence streamMetadataPersistence;
+    private final TimestampPersistence streamMetadataPersistence;
 
     LastSuccessfulStreamCheckingActorConfigurationProperties(final boolean syncEnabled,
             final Duration warningOffset,
-            final Duration errorOffset, final StreamMetadataPersistence streamMetadataPersistence) {
+            final Duration errorOffset, final TimestampPersistence streamMetadataPersistence) {
 
         if (errorOffset.compareTo(warningOffset) <= 0) {
             throw new IllegalArgumentException("Warning offset must be shorter than error offset.");
@@ -54,7 +54,7 @@ final class LastSuccessfulStreamCheckingActorConfigurationProperties {
      * @return The properties.
      */
     public static LastSuccessfulStreamCheckingActorConfigurationProperties policiesSync(final Config config,
-            final StreamMetadataPersistence policiesSyncPersistence) {
+            final TimestampPersistence policiesSyncPersistence) {
         final boolean policiesSynchronizationActive = config.getBoolean(ConfigKeys.POLICIES_SYNCER_ACTIVE);
         final Duration policiesSyncerOutdatedWarningOffset =
                 config.getDuration(ConfigKeys.POLICIES_SYNCER_OUTDATED_WARNING_OFFSET);
@@ -75,7 +75,7 @@ final class LastSuccessfulStreamCheckingActorConfigurationProperties {
      * @return The properties.
      */
     public static LastSuccessfulStreamCheckingActorConfigurationProperties thingsSync(final Config config,
-            final StreamMetadataPersistence thingsSyncPersistence) {
+            final TimestampPersistence thingsSyncPersistence) {
         final boolean policiesSynchronizationActive = config.getBoolean(ConfigKeys.THINGS_SYNCER_ACTIVE);
         final Duration policiesSyncerOutdatedWarningOffset =
                 config.getDuration(ConfigKeys.THINGS_SYNCER_OUTDATED_WARNING_OFFSET);
@@ -119,7 +119,7 @@ final class LastSuccessfulStreamCheckingActorConfigurationProperties {
      *
      * @return The persistence if {@link #isSyncEnabled()} is true. Null if not.
      */
-    public StreamMetadataPersistence getStreamMetadataPersistence() {
+    public TimestampPersistence getStreamMetadataPersistence() {
         return streamMetadataPersistence;
     }
 }

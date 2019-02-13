@@ -19,21 +19,20 @@ import akka.stream.javadsl.Source;
 /**
  * Defines operations for managing metadata of streams.
  */
-public interface StreamMetadataPersistence {
+public interface TimestampPersistence {
 
     /**
-     * Updates the end timestamp of the last successful stream.
+     * Updates the timestamp in the persistence..
      *
      * @param timestamp The timestamp.
      * @return a {@link Source} holding the publisher to execute the operation.
      */
-    Source<NotUsed, NotUsed> updateLastSuccessfulStreamEnd(Instant timestamp);
+    Source<NotUsed, NotUsed> setTimestamp(Instant timestamp);
 
     /**
-     * Retrieves the end timestamp of the last successful stream.
+     * Retrieve the timestamp in the persistence.
      *
-     * @return Source of an {@link java.util.Optional} of the {@link Instant} of the last successful stream.
-     * Optional will be empty if a timestamp has not yet been persisted.
+     * @return a {@link Source} of the {@link Instant} stored in the persistence.
      */
-    Source<Optional<Instant>, NotUsed> retrieveLastSuccessfulStreamEnd();
+    Source<Optional<Instant>, NotUsed> getTimestampAsync();
 }

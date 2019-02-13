@@ -172,8 +172,7 @@ public final class ConfigUtil {
                     .withFallback(configFromVcap)
                     .withFallback(configFromSecrets);
         } else {
-            return initialConfig
-                    .withFallback(transformSecretsToConfig());
+            return initialConfig.withFallback(transformSecretsToConfig());
         }
     }
 
@@ -340,9 +339,10 @@ public final class ConfigUtil {
      * @return Config with akka persistence MongoDB URI set according to the options in the config.
      */
     private static Config setAkkaPersistenceMongoUri(final Config config) {
-        if (MongoConfig.isUriDefined(config)) {
+        final MongoConfig mongoConfig = MongoConfig.of(config);
+        if (mongoConfig.isUriDefined()) {
             final Map<String, String> akkaPersistenceMongoUri = new HashMap<>();
-            akkaPersistenceMongoUri.put(AKKA_PERSISTENCE_MONGO_URI, MongoConfig.getMongoUri(config));
+            akkaPersistenceMongoUri.put(AKKA_PERSISTENCE_MONGO_URI, mongoConfig.getMongoUri());
             return ConfigFactory.parseMap(akkaPersistenceMongoUri).withFallback(config);
         } else {
             return config;

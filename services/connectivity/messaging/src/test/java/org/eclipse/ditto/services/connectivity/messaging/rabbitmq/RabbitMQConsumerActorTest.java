@@ -26,9 +26,9 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 
 /**
- * Tests {@link RabbitMQConsumerActor}.
+ * Unit test for {@link RabbitMQConsumerActor}.
  */
-public class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<Delivery> {
+public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<Delivery> {
 
     private static final String CONNECTION_ID = "theConnection";
     private static final Envelope ENVELOPE = new Envelope(1, false, "inbound", "ditto");
