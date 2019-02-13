@@ -17,7 +17,7 @@ import java.util.Optional;
  * Describes a pipeline function with {@code name}, {@code signature}, signature validation capability and
  * function parameter parsing.
  */
-interface PipelineStageFunction {
+interface PipelineFunction {
 
     /**
      * @return the function name
@@ -48,9 +48,9 @@ interface PipelineStageFunction {
     interface Signature {
 
         /**
-         * @return the function's signature as a List of {@link PipelineStageFunction.ParameterDefinition}s.
+         * @return the function's signature as a List of {@link PipelineFunction.ParameterDefinition}s.
          */
-        List<PipelineStageFunction.ParameterDefinition> getParameterDefinitions();
+        List<PipelineFunction.ParameterDefinition> getParameterDefinitions();
 
         /**
          * Determines the parameter definition at the passed {@code index} providing the requeste type {@code <T>}.
@@ -59,7 +59,7 @@ interface PipelineStageFunction {
          * @param <T> the type of the parameter.
          * @return the requested typed parameter definition
          */
-        <T> PipelineStageFunction.ParameterDefinition<T> getParameterDefinition(int index);
+        <T> PipelineFunction.ParameterDefinition<T> getParameterDefinition(int index);
 
         /**
          * @return renders a nice String description of the complete signature
@@ -119,7 +119,7 @@ interface PipelineStageFunction {
         /**
          * @return the definition of the parameter
          */
-        PipelineStageFunction.ParameterDefinition<T> getDefinition();
+        PipelineFunction.ParameterDefinition<T> getDefinition();
 
         /**
          * @return the resolved value of the parameter

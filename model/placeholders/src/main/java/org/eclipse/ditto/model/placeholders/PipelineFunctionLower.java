@@ -22,9 +22,9 @@ import javax.annotation.concurrent.Immutable;
  * Provides the {@code fn:lower()} function implementation.
  */
 @Immutable
-final class PipelineStageFunctionLower implements PipelineStageFunction {
+final class PipelineFunctionLower implements PipelineFunction {
 
-    private static final String FUNCTION_NAME = "lower";
+    static final String FUNCTION_NAME = "lower";
 
     private static final String EMPTY_PARENTHESES_PATTERN = "\\(\\)";
     private static final Pattern OVERALL_PATTERN = Pattern.compile(EMPTY_PARENTHESES_PATTERN);

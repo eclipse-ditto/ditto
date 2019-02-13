@@ -13,8 +13,8 @@ package org.eclipse.ditto.model.placeholders;
 import java.util.Optional;
 
 /**
- * Defines a stage used in a Pipeline after the "input" stage of a {@link org.eclipse.ditto.model.placeholders.Placeholder},
- * e.g. pipeline stages are functions like {@code fn:starts-with(':')} or {@code fn:default('fallback')}. Used in a
+ * Defines a function expression used in a Pipeline after the "input" stage of a resolved {@link Placeholder}, e.g.
+ * function expressions are expressions like {@code fn:starts-with(':')} or {@code fn:default('fallback')}. Used in a
  * pipeline expression like in the following example:
  * <pre>
  * {@code
@@ -22,20 +22,17 @@ import java.util.Optional;
  * }
  * </pre>
  */
-interface PipelineStage extends ExpressionStage {
+interface FunctionExpression extends Expression {
 
     /**
-     * @return the expression string of this stage including prefix, e.g.: {@code fn:substring-before(':')}.
-     */
-    String getExpression();
-
-    /**
-     * Executes the Stage by passing in a value and returning a processed result.
+     * Executes the Stage by passing in a value and returning a resolved result.
      *
-     * @param value the input value to process.
+     * @param expression the expression string of this stage including prefix, e.g.: {@code fn:substring-before(':')}.
+     * @param resolvedInputValue the resolved input value (e.g. via {@link Placeholder} to process.
      * @param expressionResolver the expressionResolver to use in order to resolve placeholders occurring in the
      * pipeline expression.
      * @return processed output value, or an empty optional if this stage resolved to an empty Optional.
      */
-    Optional<String> apply(Optional<String> value, ExpressionResolver expressionResolver);
+    Optional<String> resolve(String expression, Optional<String> resolvedInputValue,
+            ExpressionResolver expressionResolver);
 }

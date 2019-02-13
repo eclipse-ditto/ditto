@@ -22,9 +22,9 @@ import javax.annotation.concurrent.Immutable;
  * Provides the {@code fn:upper()} function implementation.
  */
 @Immutable
-final class PipelineStageFunctionUpper implements PipelineStageFunction {
+final class PipelineFunctionUpper implements PipelineFunction {
 
-    private static final String FUNCTION_NAME = "upper";
+    static final String FUNCTION_NAME = "upper";
 
     private static final String EMPTY_PARENTHESES_PATTERN = "\\(\\)";
     private static final Pattern OVERALL_PATTERN = Pattern.compile(EMPTY_PARENTHESES_PATTERN);

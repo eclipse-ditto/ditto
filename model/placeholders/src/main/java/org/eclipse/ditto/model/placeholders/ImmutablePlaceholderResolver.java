@@ -45,8 +45,8 @@ final class ImmutablePlaceholderResolver<T> implements PlaceholderResolver<T> {
     }
 
     @Override
-    public Optional<String> resolve(final T source, final String name) {
-        return placeholder.resolve(source, name);
+    public Optional<String> resolve(final T placeholderSource, final String name) {
+        return placeholder.resolve(placeholderSource, name);
     }
 
     @Override

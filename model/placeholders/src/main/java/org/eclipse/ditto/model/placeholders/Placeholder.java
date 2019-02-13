@@ -13,18 +13,18 @@ package org.eclipse.ditto.model.placeholders;
 import java.util.Optional;
 
 /**
- * Definition of a placeholder variable.
+ * Definition of a placeholder expression in the format {@code prefix:name}.
  *
  * @param <T> the type which is required to resolve a placeholder
  */
-public interface Placeholder<T> extends ExpressionStage {
+public interface Placeholder<T> extends Expression {
 
     /**
      * Resolves the placeholder variable by name.
      *
-     * @param source the source from which to the placeholder is resolved
+     * @param placeholderSource the source from which to the placeholder is resolved
      * @param name the placeholder variable name (i. e., the part after ':').
      * @return value of the placeholder variable if the placeholder name is supported, or an empty optional otherwise.
      */
-    Optional<String> resolve(T source, String name);
+    Optional<String> resolve(T placeholderSource, String name);
 }

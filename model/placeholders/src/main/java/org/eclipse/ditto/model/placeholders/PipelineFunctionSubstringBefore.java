@@ -19,12 +19,12 @@ import java.util.regex.Pattern;
 import javax.annotation.concurrent.Immutable;
 
 /**
- * Provides the {@code fn:substring-after('...')} function implementation.
+ * Provides the {@code fn:substring-before('...')} function implementation.
  */
 @Immutable
-final class PipelineStageFunctionSubstringAfter implements PipelineStageFunction {
+final class PipelineFunctionSubstringBefore implements PipelineFunction {
 
-    private static final String FUNCTION_NAME = "substring-after";
+    static final String FUNCTION_NAME = "substring-before";
 
     private static final String CONSTANT_PATTERN =
             "\\((('(?<singleQuotedConstant>.*)')|(\"(?<doubleQuotedConstant>.*)\"))\\)";
@@ -38,7 +38,7 @@ final class PipelineStageFunctionSubstringAfter implements PipelineStageFunction
 
     @Override
     public Signature getSignature() {
-        return SubstringAfterFunctionSignature.INSTANCE;
+        return SubstringBeforeFunctionSignature.INSTANCE;
     }
 
     @Override
@@ -51,7 +51,7 @@ final class PipelineStageFunctionSubstringAfter implements PipelineStageFunction
 
         return value.map(previousStage -> {
             if (previousStage.contains(splitValue)) {
-                return previousStage.substring(previousStage.indexOf(splitValue) + 1);
+                return previousStage.substring(0, previousStage.indexOf(splitValue));
             } else {
                 return null;
             }
@@ -76,15 +76,15 @@ final class PipelineStageFunctionSubstringAfter implements PipelineStageFunction
     }
 
     /**
-     * Describes the signature of the {@code substring-after('givenString')} function.
+     * Describes the signature of the {@code substring-before('givenString')} function.
      */
-    private static final class SubstringAfterFunctionSignature implements Signature {
+    private static final class SubstringBeforeFunctionSignature implements PipelineFunction.Signature {
 
-        private static final SubstringAfterFunctionSignature INSTANCE = new SubstringAfterFunctionSignature();
+        private static final SubstringBeforeFunctionSignature INSTANCE = new SubstringBeforeFunctionSignature();
 
-        private ParameterDefinition<String> givenStringDescription;
+        private PipelineFunction.ParameterDefinition<String> givenStringDescription;
 
-        private SubstringAfterFunctionSignature() {
+        private SubstringBeforeFunctionSignature() {
             givenStringDescription = new GivenStringParam();
         }
 
@@ -108,7 +108,7 @@ final class PipelineStageFunctionSubstringAfter implements PipelineStageFunction
     }
 
     /**
-     * Describes the only param of the {@code substring-after('givenString')} function.
+     * Describes the only param of the {@code substring-before('givenString')} function.
      */
     private static final class GivenStringParam implements ParameterDefinition<String> {
 
@@ -127,7 +127,7 @@ final class PipelineStageFunctionSubstringAfter implements PipelineStageFunction
 
         @Override
         public String getDescription() {
-            return "Specifies the string to use in order to determine the substring after the first occurrence of that given string";
+            return "Specifies the string to use in order to determine the substring before the first occurrence of that given string";
         }
     }
 

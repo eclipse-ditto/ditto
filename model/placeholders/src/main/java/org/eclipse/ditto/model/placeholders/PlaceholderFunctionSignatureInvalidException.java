@@ -25,7 +25,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
- * Thrown when a {@link PipelineStageFunction}s signature was invalid (e.g. too many, to few parameters, wrong type,
+ * Thrown when a {@link PipelineFunction}s signature was invalid (e.g. too many, to few parameters, wrong type,
  * etc.).
  */
 @Immutable
@@ -56,16 +56,16 @@ public final class PlaceholderFunctionSignatureInvalidException extends DittoRun
      * Create a builder of this exception.
      *
      * @param invokedParameters the parameters (incl parentheses) with which the function was invoked.
-     * @param pipelineStageFunction the function whose signature did not match.
+     * @param pipelineFunction the function whose signature did not match.
      * @return a builder of this exception with default message.
      */
     public static DittoRuntimeExceptionBuilder<PlaceholderFunctionSignatureInvalidException> newBuilder(
             final String invokedParameters,
-            final PipelineStageFunction pipelineStageFunction) {
+            final PipelineFunction pipelineFunction) {
         return new Builder()
-                .message(MessageFormat.format(MESSAGE_TEMPLATE, pipelineStageFunction.getName(), invokedParameters))
-                .description(MessageFormat.format(DESCRIPTION_TEMPLATE, pipelineStageFunction.getName(),
-                        pipelineStageFunction.getSignature()));
+                .message(MessageFormat.format(MESSAGE_TEMPLATE, pipelineFunction.getName(), invokedParameters))
+                .description(MessageFormat.format(DESCRIPTION_TEMPLATE, pipelineFunction.getName(),
+                        pipelineFunction.getSignature()));
     }
 
     /**

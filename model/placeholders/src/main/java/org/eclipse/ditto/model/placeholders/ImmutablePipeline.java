@@ -19,24 +19,26 @@ import java.util.Optional;
 import javax.annotation.concurrent.Immutable;
 
 /**
- * Immutable implementation of {@link Pipeline} able to execute its {@link PipelineStage}s.
+ * Immutable implementation of {@link Pipeline} able to execute its {@link FunctionExpression}s.
  */
 @Immutable
 final class ImmutablePipeline implements Pipeline {
 
-    private final List<PipelineStage> stages;
+    private final FunctionExpression functionExpression;
+    private final List<String> stageExpressions;
 
-    ImmutablePipeline(final List<PipelineStage> stages) {
-        this.stages = Collections.unmodifiableList(new ArrayList<>(stages));
+    ImmutablePipeline(final FunctionExpression functionExpression, final List<String> stageExpressions) {
+        this.functionExpression = functionExpression;
+        this.stageExpressions = Collections.unmodifiableList(new ArrayList<>(stageExpressions));
     }
 
     @Override
-    public Optional<String> executeStages(final Optional<String> pipelineInput,
+    public Optional<String> execute(final Optional<String> pipelineInput,
             final ExpressionResolver expressionResolver) {
 
         Optional<String> stageValue = pipelineInput;
-        for (final PipelineStage stage : stages) {
-            stageValue = stage.apply(stageValue, expressionResolver);
+        for (final String expression : stageExpressions) {
+            stageValue = functionExpression.resolve(expression, stageValue, expressionResolver);
         }
         return stageValue;
     }
@@ -50,19 +52,21 @@ final class ImmutablePipeline implements Pipeline {
             return false;
         }
         final ImmutablePipeline that = (ImmutablePipeline) o;
-        return Objects.equals(stages, that.stages);
+        return Objects.equals(functionExpression, that.functionExpression) &&
+                Objects.equals(stageExpressions, that.stageExpressions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(stages);
+        return Objects.hash(functionExpression, stageExpressions);
     }
 
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "stages=" + stages +
+                "functionExpression=" + functionExpression +
+                ", stageExpressions=" + stageExpressions +
                 "]";
     }
 }

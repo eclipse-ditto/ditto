@@ -13,9 +13,9 @@ package org.eclipse.ditto.model.placeholders;
 import java.util.List;
 
 /**
- * An expression stage containing a {@code prefix} and a {@code name}, separated by a {@value #SEPARATOR}.
+ * An expression containing a {@code prefix} and a {@code name}, separated by a {@value #SEPARATOR}.
  */
-public interface ExpressionStage {
+public interface Expression {
 
     /**
      * The constant SEPARATOR.

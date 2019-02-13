@@ -364,8 +364,8 @@ public class MessageMappingProcessorActorTest {
         }
 
         @Override
-        public Optional<String> resolve(final String source, final String name) {
-            return Optional.of(source);
+        public Optional<String> resolve(final String placeholderSource, final String name) {
+            return Optional.of(placeholderSource);
         }
     }
 }

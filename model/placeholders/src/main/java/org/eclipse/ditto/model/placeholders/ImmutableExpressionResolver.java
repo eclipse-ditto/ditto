@@ -10,7 +10,7 @@
  */
 package org.eclipse.ditto.model.placeholders;
 
-import static org.eclipse.ditto.model.placeholders.ExpressionStage.SEPARATOR;
+import static org.eclipse.ditto.model.placeholders.Expression.SEPARATOR;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -91,15 +91,14 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
             final String placeholderTemplate =
                     pipelineStagesExpressions.get(0); // the first pipeline stage has to start with a placeholder
 
-            final List<PipelineStage> pipelineStages =
+            final List<String> pipelineStages =
                     pipelineStagesExpressions.subList(1, pipelineStagesExpressions.size()).stream()
                             .map(String::trim)
-                            .map(ImmutablePipelineStage::new)
                             .collect(Collectors.toList());
-            final Pipeline pipeline = new ImmutablePipeline(pipelineStages);
+            final Pipeline pipeline = new ImmutablePipeline(ImmutableFunctionExpression.INSTANCE, pipelineStages);
 
             final Optional<String> pipelineInput = resolvePlaceholder(placeholderResolver, placeholderTemplate);
-            return pipeline.executeStages(pipelineInput, this);
+            return pipeline.execute(pipelineInput, this);
         };
     }
 

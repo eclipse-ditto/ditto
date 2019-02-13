@@ -43,6 +43,6 @@ public interface PlaceholderResolver<T> extends Placeholder<T> {
             return Optional.of("valid");
         }
         return getPlaceholderSource()
-                .flatMap(value -> resolve(value, name));
+                .flatMap(placeholderSource -> resolve(placeholderSource, name));
     }
 }

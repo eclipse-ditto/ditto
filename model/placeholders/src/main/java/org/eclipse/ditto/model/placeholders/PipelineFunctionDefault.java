@@ -22,9 +22,9 @@ import javax.annotation.concurrent.Immutable;
  * Provides the {@code fn:default('...')} function implementation.
  */
 @Immutable
-final class PipelineStageFunctionDefault implements PipelineStageFunction {
+final class PipelineFunctionDefault implements PipelineFunction {
 
-    private static final String FUNCTION_NAME = "default";
+    static final String FUNCTION_NAME = "default";
 
     private static final String CONSTANT_PATTERN =
             "\\((('(?<singleQuotedConstant>.*)')|(\"(?<doubleQuotedConstant>.*)\"))\\)";
@@ -87,11 +87,11 @@ final class PipelineStageFunctionDefault implements PipelineStageFunction {
     /**
      * Describes the signature of the {@code default('defaultValue')} function.
      */
-    private static final class DefaultFunctionSignature implements PipelineStageFunction.Signature {
+    private static final class DefaultFunctionSignature implements PipelineFunction.Signature {
 
         private static final DefaultFunctionSignature INSTANCE = new DefaultFunctionSignature();
 
-        private PipelineStageFunction.ParameterDefinition<String> defaultValueDescription;
+        private PipelineFunction.ParameterDefinition<String> defaultValueDescription;
 
         private DefaultFunctionSignature() {
             defaultValueDescription = new DefaultValueParam();
@@ -119,7 +119,7 @@ final class PipelineStageFunctionDefault implements PipelineStageFunction {
     /**
      * Describes the only param of the {@code default('defaultValue')} function.
      */
-    private static final class DefaultValueParam implements PipelineStageFunction.ParameterDefinition<String> {
+    private static final class DefaultValueParam implements PipelineFunction.ParameterDefinition<String> {
 
         @Override
         public String getName() {
@@ -141,20 +141,20 @@ final class PipelineStageFunctionDefault implements PipelineStageFunction {
      * Resolved {@link DefaultValueParam} including the 'defaultValue' value.
      */
     private static final class ResolvedDefaultValueParam
-            implements PipelineStageFunction.ResolvedFunctionParameter<String> {
+            implements PipelineFunction.ResolvedFunctionParameter<String> {
 
-        private final PipelineStageFunction.ParameterDefinition<String> definition;
+        private final PipelineFunction.ParameterDefinition<String> definition;
         private String value;
 
         private ResolvedDefaultValueParam(
-                final PipelineStageFunction.ParameterDefinition<String> definition,
+                final PipelineFunction.ParameterDefinition<String> definition,
                 final String value) {
             this.definition = definition;
             this.value = value;
         }
 
         @Override
-        public PipelineStageFunction.ParameterDefinition<String> getDefinition() {
+        public PipelineFunction.ParameterDefinition<String> getDefinition() {
             return definition;
         }
 
