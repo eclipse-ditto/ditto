@@ -27,6 +27,7 @@ final class ImmutableSearchResultBuilder implements SearchResultBuilder {
 
     private final JsonArrayBuilder jsonArrayBuilder;
     private long offset;
+    private String nextPageKey;
 
     private ImmutableSearchResultBuilder(final JsonArrayBuilder theJsonArrayBuilder, final long theOffset) {
         jsonArrayBuilder = theJsonArrayBuilder;
@@ -65,6 +66,12 @@ final class ImmutableSearchResultBuilder implements SearchResultBuilder {
     }
 
     @Override
+    public SearchResultBuilder nextPageKey(final String nextPageKey) {
+        this.nextPageKey = nextPageKey;
+        return this;
+    }
+
+    @Override
     public SearchResultBuilder add(final JsonValue value, final JsonValue... furtherValues) {
         jsonArrayBuilder.add(value, furtherValues);
         return this;
@@ -85,7 +92,7 @@ final class ImmutableSearchResultBuilder implements SearchResultBuilder {
     @Override
     public SearchResult build() {
         final JsonArray searchResultsJsonArray = jsonArrayBuilder.build();
-        return ImmutableSearchResult.of(searchResultsJsonArray, offset);
+        return new ImmutableSearchResult(searchResultsJsonArray, offset, nextPageKey);
     }
 
 }

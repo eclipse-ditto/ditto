@@ -14,9 +14,11 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Iterator;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -35,9 +37,16 @@ final class ImmutableSearchResult implements SearchResult {
     private final JsonArray items;
     private final long nextPageOffset;
 
-    private ImmutableSearchResult(final JsonArray items, final long nextPageOffset) {
+    @Nullable
+    private final String nextPageKey;
+
+    ImmutableSearchResult(final JsonArray items,
+            final long nextPageOffset,
+            @Nullable final String nextPageKey) {
+
         this.items = checkNotNull(items, "items");
         this.nextPageOffset = nextPageOffset;
+        this.nextPageKey = nextPageKey;
     }
 
     /**
@@ -59,7 +68,7 @@ final class ImmutableSearchResult implements SearchResult {
      * @throws NullPointerException if {@code items} is {@code null}.
      */
     public static ImmutableSearchResult of(final JsonArray items, final long nextPageOffset) {
-        return new ImmutableSearchResult(items, nextPageOffset);
+        return new ImmutableSearchResult(items, nextPageOffset, null);
     }
 
     /**
@@ -74,8 +83,9 @@ final class ImmutableSearchResult implements SearchResult {
     public static ImmutableSearchResult fromJson(final JsonObject jsonObject) {
         final JsonArray extractedItems = jsonObject.getValueOrThrow(JsonFields.ITEMS);
         final long extractedNextPageOffset = jsonObject.getValueOrThrow(JsonFields.NEXT_PAGE_OFFSET);
+        final String nextPageKey = jsonObject.getValue(JsonFields.NEXT_PAGE_KEY).orElse(null);
 
-        return of(extractedItems, extractedNextPageOffset);
+        return new ImmutableSearchResult(extractedItems, extractedNextPageOffset, nextPageKey);
     }
 
     @Override
@@ -86,6 +96,11 @@ final class ImmutableSearchResult implements SearchResult {
     @Override
     public long getNextPageOffset() {
         return nextPageOffset;
+    }
+
+    @Override
+    public Optional<String> getNextPageKey() {
+        return Optional.ofNullable(nextPageKey);
     }
 
     @Override
@@ -120,6 +135,7 @@ final class ImmutableSearchResult implements SearchResult {
                 .set(SearchResult.JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate)
                 .set(JsonFields.ITEMS, items, predicate)
                 .set(JsonFields.NEXT_PAGE_OFFSET, nextPageOffset, predicate)
+                .set(JsonFields.NEXT_PAGE_KEY, nextPageKey, predicate.and(field -> !field.getValue().isNull()))
                 .build();
     }
 
@@ -132,17 +148,23 @@ final class ImmutableSearchResult implements SearchResult {
             return false;
         }
         final ImmutableSearchResult that = (ImmutableSearchResult) o;
-        return nextPageOffset == that.nextPageOffset && Objects.equals(items, that.items);
+        return nextPageOffset == that.nextPageOffset &&
+                Objects.equals(nextPageKey, that.nextPageKey) &&
+                Objects.equals(items, that.items);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(items, nextPageOffset);
+        return Objects.hash(items, nextPageOffset, nextPageKey);
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [items=" + items + ", nextPageOffset=" + nextPageOffset + "]";
+        return getClass().getSimpleName() +
+                " [items=" + items +
+                ", nextPageOffset=" + nextPageOffset +
+                ", nextPageKey=" + nextPageKey +
+                "]";
     }
 
 }

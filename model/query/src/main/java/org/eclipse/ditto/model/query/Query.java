@@ -11,6 +11,7 @@
 package org.eclipse.ditto.model.query;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.eclipse.ditto.model.query.criteria.Criteria;
 
@@ -39,4 +40,8 @@ public interface Query {
      */
     int getSkip();
 
+    /**
+     * @return key to the next page.
+     */
+    Optional<String> getNextPageKey();
 }

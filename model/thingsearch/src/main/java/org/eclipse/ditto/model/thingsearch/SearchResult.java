@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.model.thingsearch;
 
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
@@ -70,6 +71,13 @@ public interface SearchResult extends Iterable<JsonValue>, Jsonifiable.WithField
      * @return the offset of the next page or {@link #NO_NEXT_PAGE}, if there is no next page.
      */
     long getNextPageOffset();
+
+    /**
+     * Get the key to scroll to the next page without skipping results.
+     *
+     * @return the key to the next page.
+     */
+    Optional<String> getNextPageKey();
 
     /**
      * Returns {@code true} if there is a next page and thus {@link #getNextPageOffset()} does not equal
@@ -140,6 +148,13 @@ public interface SearchResult extends Iterable<JsonValue>, Jsonifiable.WithField
          */
         public static final JsonFieldDefinition<Long> NEXT_PAGE_OFFSET =
                 JsonFactory.newLongFieldDefinition("nextPageOffset", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing key of the next page for range-based paging.
+         */
+        public static final JsonFieldDefinition<String> NEXT_PAGE_KEY =
+                JsonFactory.newStringFieldDefinition("nextPageKey", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

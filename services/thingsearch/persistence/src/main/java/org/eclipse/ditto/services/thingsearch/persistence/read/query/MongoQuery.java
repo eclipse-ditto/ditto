@@ -16,7 +16,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.bson.conversions.Bson;
@@ -40,6 +42,31 @@ public final class MongoQuery implements Query {
     private final int limit;
     private final int skip;
 
+    @Nullable
+    private final String nextPageKey;
+
+    /**
+     * Constructor.
+     *
+     * @param criteria the criteria
+     * @param sortOptions the SortOptions
+     * @param limit the limit param
+     * @param skip the skip param
+     */
+    public MongoQuery(final Criteria criteria,
+            final List<SortOption> sortOptions,
+            final int limit,
+            final int skip,
+            @Nullable final String nextPageKey) {
+
+
+        this.criteria = checkNotNull(criteria, "criterion");
+        this.sortOptions = Collections.unmodifiableList(new ArrayList<>(sortOptions));
+        this.limit = limit;
+        this.skip = skip;
+        this.nextPageKey = nextPageKey;
+    }
+
     /**
      * Constructor.
      *
@@ -53,10 +80,7 @@ public final class MongoQuery implements Query {
             final int limit,
             final int skip) {
 
-        this.criteria = checkNotNull(criteria, "criterion");
-        this.sortOptions = Collections.unmodifiableList(new ArrayList<>(sortOptions));
-        this.limit = limit;
-        this.skip = skip;
+        this(criteria, sortOptions, limit, skip, null);
     }
 
     @Override
@@ -77,6 +101,11 @@ public final class MongoQuery implements Query {
     @Override
     public int getSkip() {
         return skip;
+    }
+
+    @Override
+    public Optional<String> getNextPageKey() {
+        return Optional.ofNullable(nextPageKey);
     }
 
     /**
@@ -111,12 +140,13 @@ public final class MongoQuery implements Query {
         return limit == that.limit &&
                 skip == that.skip &&
                 Objects.equals(criteria, that.criteria) &&
-                Objects.equals(sortOptions, that.sortOptions);
+                Objects.equals(sortOptions, that.sortOptions) &&
+                Objects.equals(nextPageKey, that.nextPageKey);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(criteria, sortOptions, limit, skip);
+        return Objects.hash(criteria, sortOptions, limit, skip, nextPageKey);
     }
 
     @Override
@@ -126,6 +156,7 @@ public final class MongoQuery implements Query {
                 ", sortOptions=" + sortOptions +
                 ", limit=" + limit +
                 ", skip=" + skip +
+                ", nextPageKey=" + nextPageKey +
                 "]";
     }
 

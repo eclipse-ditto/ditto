@@ -30,6 +30,14 @@ public interface SearchResultBuilder {
     SearchResultBuilder nextPageOffset(long nextPageOffset);
 
     /**
+     * Set the key to the next page.
+     *
+     * @param nextPageKey the offset of the next page.
+     * @return this builder to allow method chaining.
+     */
+    SearchResultBuilder nextPageKey(String nextPageKey);
+
+    /**
      * Adds at least one {@link JsonValue} to the {@code SearchResult} to be built.
      *
      * @param item the item to add to the results.
