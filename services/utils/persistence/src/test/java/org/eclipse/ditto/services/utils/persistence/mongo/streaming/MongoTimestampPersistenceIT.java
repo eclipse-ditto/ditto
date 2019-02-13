@@ -12,6 +12,7 @@ package org.eclipse.ditto.services.utils.persistence.mongo.streaming;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -19,6 +20,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import org.bson.Document;
+import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.test.mongo.MongoDbResource;
 import org.junit.After;
@@ -27,7 +29,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -39,34 +40,40 @@ import akka.stream.javadsl.Source;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests {@link MongoSearchSyncPersistence}.
+ * Tests {@link MongoTimestampPersistence}.
  */
-public final class MongoSearchSyncPersistenceIT {
+public final class MongoTimestampPersistenceIT {
 
     private static MongoDbResource mongoResource;
-    private static MongoClientWrapper mongoClient;
+    private static DittoMongoClient mongoClient;
     private static final String KNOWN_COLLECTION = "knownCollection";
 
     private ActorSystem actorSystem;
     private ActorMaterializer materializer;
-    private MongoSearchSyncPersistence syncPersistence;
+    private MongoTimestampPersistence syncPersistence;
 
     @BeforeClass
     public static void startMongoResource() {
         mongoResource = new MongoDbResource("localhost");
         mongoResource.start();
-        mongoClient = MongoClientWrapper.newInstance(mongoResource.getBindIp(), mongoResource.getPort(), "testSearchDB",
-                100, 500000, 30);
+        mongoClient = MongoClientWrapper.getBuilder()
+                .hostnameAndPort(mongoResource.getBindIp(), mongoResource.getPort())
+                .defaultDatabaseName("testSearchDB")
+                .connectionPoolMaxSize(100)
+                .connectionPoolMaxWaitQueueSize(500_000)
+                .connectionPoolMaxWaitTime(Duration.ofSeconds(30))
+                .build();
     }
 
     @AfterClass
     public static void stopMongoResource() {
         try {
-            Optional.ofNullable(mongoClient)
-                    .map(MongoClientWrapper::getMongoClient)
-                    .ifPresent(MongoClient::close);
-            Optional.ofNullable(mongoResource)
-                    .ifPresent(MongoDbResource::stop);
+            if (null != mongoClient) {
+                mongoClient.close();
+            }
+            if (null != mongoResource) {
+                mongoResource.stop();
+            }
         } catch (final IllegalStateException e) {
             System.err.println("IllegalStateException during shutdown of MongoDB: " + e.getMessage());
         }
@@ -78,17 +85,13 @@ public final class MongoSearchSyncPersistenceIT {
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
         actorSystem = ActorSystem.create("actors");
         materializer = ActorMaterializer.create(actorSystem);
-        syncPersistence = MongoSearchSyncPersistence.initializedInstance(KNOWN_COLLECTION, mongoClient, materializer);
+        syncPersistence = MongoTimestampPersistence.initializedInstance(KNOWN_COLLECTION, mongoClient, materializer);
     }
 
-
-    /**
-     *
-     */
     @After
     public void after() {
         if (null != mongoClient) {
-            runBlocking(Source.fromPublisher(mongoClient.getDatabase().getCollection(KNOWN_COLLECTION).drop()));
+            runBlocking(Source.fromPublisher(mongoClient.getCollection(KNOWN_COLLECTION).drop()));
         }
         if (null != actorSystem) {
             TestKit.shutdownActorSystem(actorSystem);
@@ -100,7 +103,7 @@ public final class MongoSearchSyncPersistenceIT {
      */
     @Test
     public void retrieveFallbackForLastSuccessfulSyncTimestamp() {
-        final Optional<Instant> actualTs = getResult(syncPersistence.retrieveLastSuccessfulStreamEnd());
+        final Optional<Instant> actualTs = getResult(syncPersistence.getTimestampAsync());
 
         assertThat(actualTs).isEmpty();
     }
@@ -112,9 +115,9 @@ public final class MongoSearchSyncPersistenceIT {
     public void updateAndRetrieveLastSuccessfulSyncTimestamp() {
         final Instant ts = Instant.now();
 
-        runBlocking(syncPersistence.updateLastSuccessfulStreamEnd(ts));
+        runBlocking(syncPersistence.setTimestamp(ts));
 
-        final Optional<Instant> persistedTs = getResult(syncPersistence.retrieveLastSuccessfulStreamEnd());
+        final Optional<Instant> persistedTs = getResult(syncPersistence.getTimestampAsync());
         assertThat(persistedTs).hasValue(ts);
     }
 
@@ -123,18 +126,18 @@ public final class MongoSearchSyncPersistenceIT {
         final MongoCollection<Document> collection =
                 syncPersistence.getCollection().runWith(Sink.head(), materializer).toCompletableFuture().get();
 
-        runBlocking(syncPersistence.updateLastSuccessfulStreamEnd(Instant.now()));
-        runBlocking(syncPersistence.updateLastSuccessfulStreamEnd(Instant.now()));
+        runBlocking(syncPersistence.setTimestamp(Instant.now()));
+        runBlocking(syncPersistence.setTimestamp(Instant.now()));
 
         assertThat(runBlocking(Source.fromPublisher(collection.count()))).containsExactly(1L);
     }
 
     @Test
     public void createCollectionMultipleTimesWithoutError() {
-        final MongoSearchSyncPersistence persistence1 =
-                MongoSearchSyncPersistence.initializedInstance(KNOWN_COLLECTION, mongoClient, materializer);
-        final MongoSearchSyncPersistence persistence2 =
-                MongoSearchSyncPersistence.initializedInstance(KNOWN_COLLECTION, mongoClient, materializer);
+        final MongoTimestampPersistence persistence1 =
+                MongoTimestampPersistence.initializedInstance(KNOWN_COLLECTION, mongoClient, materializer);
+        final MongoTimestampPersistence persistence2 =
+                MongoTimestampPersistence.initializedInstance(KNOWN_COLLECTION, mongoClient, materializer);
 
         runBlocking(syncPersistence.getCollection()
                 .flatMapConcat(d -> persistence1.getCollection())

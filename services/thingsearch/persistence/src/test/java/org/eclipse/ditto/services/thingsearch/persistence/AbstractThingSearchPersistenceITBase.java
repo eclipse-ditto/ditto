@@ -14,13 +14,15 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.THINGS_COLLECTION_NAME;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.THINGS_SYNC_STATE_COLLECTION_NAME;
 
+import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import org.bson.Document;
 import org.eclipse.ditto.model.query.Query;
@@ -39,6 +41,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoAggreg
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQueryBuilderFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoEventToPersistenceStrategyFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
+import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.test.mongo.MongoDbResource;
 import org.junit.After;
@@ -59,7 +62,6 @@ import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.testkit.javadsl.TestKit;
 
-
 /**
  * Abstract base class for search persistence tests.
  */
@@ -77,27 +79,26 @@ public abstract class AbstractThingSearchPersistenceITBase {
     protected static final AggregationBuilderFactory abf = new MongoAggregationBuilderFactory
             (DittoLimitsConfigReader.fromRawConfig(ConfigFactory.load("test")));
     private static MongoDbResource mongoResource;
-    private static MongoClientWrapper mongoClient;
-    /** */
+    private static DittoMongoClient mongoClient;
+
+    protected MongoThingsSearchUpdaterPersistence writePersistence;
+    protected LoggingAdapter log;
+
     private MongoThingsSearchPersistence readPersistence;
     private MongoCollection<Document> thingsCollection;
     private MongoCollection<Document> policiesCollection;
     private MongoCollection<Document> syncCollection;
-    protected MongoThingsSearchUpdaterPersistence writePersistence;
-
 
     private ActorSystem actorSystem;
     private ActorMaterializer actorMaterializer;
-    protected LoggingAdapter log;
 
     @BeforeClass
     public static void startMongoResource() {
         mongoResource = new MongoDbResource("localhost");
         mongoResource.start();
-        mongoClient = provideClientWrapper();
+        mongoClient = createMongoClient();
     }
 
-    /** */
     @Before
     public void before() {
         final Config config = ConfigFactory.load("test");
@@ -106,21 +107,30 @@ public abstract class AbstractThingSearchPersistenceITBase {
         actorMaterializer = ActorMaterializer.create(actorSystem);
         readPersistence = provideReadPersistence();
         writePersistence = provideWritePersistence();
-        thingsCollection = mongoClient.getDatabase().getCollection(THINGS_COLLECTION_NAME);
-        policiesCollection = mongoClient.getDatabase().getCollection(POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME);
-        syncCollection = mongoClient.getDatabase().getCollection(THINGS_SYNC_STATE_COLLECTION_NAME);
+        thingsCollection = mongoClient.getCollection(THINGS_COLLECTION_NAME);
+        policiesCollection = mongoClient.getCollection(POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME);
+        syncCollection = mongoClient.getCollection(THINGS_SYNC_STATE_COLLECTION_NAME);
     }
 
     private MongoThingsSearchPersistence provideReadPersistence() {
-        final MongoThingsSearchPersistence mongoThingsSearchPersistence =
-                new MongoThingsSearchPersistence(provideClientWrapper(), actorSystem);
+        final MongoThingsSearchPersistence result = new MongoThingsSearchPersistence(mongoClient, actorSystem);
         try {
             // explicitly trigger CompletableFuture to make sure that indices are created before test runs
-            mongoThingsSearchPersistence.initializeIndices().toCompletableFuture().get();
+            result.initializeIndices().toCompletableFuture().get();
         } catch (final InterruptedException | ExecutionException e) {
             throw new IllegalStateException(e);
         }
-        return mongoThingsSearchPersistence;
+        return result;
+    }
+
+    private static DittoMongoClient createMongoClient() {
+        return MongoClientWrapper.getBuilder()
+                .hostnameAndPort(mongoResource.getBindIp(), mongoResource.getPort())
+                .defaultDatabaseName("testSearchDB")
+                .connectionPoolMaxSize(100)
+                .connectionPoolMaxWaitQueueSize(500_000)
+                .connectionPoolMaxWaitTime(Duration.ofSeconds(30))
+                .build();
     }
 
     private MongoThingsSearchUpdaterPersistence provideWritePersistence() {
@@ -136,18 +146,12 @@ public abstract class AbstractThingSearchPersistenceITBase {
         return mongoThingsSearchUpdaterPersistence;
     }
 
-    private static MongoClientWrapper provideClientWrapper() {
-        return MongoClientWrapper.newInstance(mongoResource.getBindIp(), mongoResource.getPort(), "testSearchDB",
-                100, 500000, 30);
-    }
-
-    /** */
     @After
     public void after() {
-        if (mongoClient != null) {
+        if (null != mongoClient) {
             dropCollections(Arrays.asList(thingsCollection, policiesCollection, syncCollection));
         }
-        if (actorSystem != null) {
+        if (null != actorSystem) {
             TestKit.shutdownActorSystem(actorSystem);
             actorSystem = null;
             log = null;
@@ -155,7 +159,7 @@ public abstract class AbstractThingSearchPersistenceITBase {
         }
     }
 
-    private void dropCollections(final List<MongoCollection<Document>> collections) {
+    private void dropCollections(final Collection<MongoCollection<Document>> collections) {
         collections.stream()
                 .filter(Objects::nonNull)
                 .forEach(this::dropCollectionWithBackoff);
@@ -178,10 +182,10 @@ public abstract class AbstractThingSearchPersistenceITBase {
     @AfterClass
     public static void stopMongoResource() {
         try {
-            if (mongoClient != null) {
-                mongoClient.getMongoClient().close();
+            if (null != mongoClient) {
+                mongoClient.close();
             }
-            if (mongoResource != null) {
+            if (null != mongoResource) {
                 mongoResource.stop();
             }
         } catch (final IllegalStateException e) {
@@ -191,11 +195,11 @@ public abstract class AbstractThingSearchPersistenceITBase {
 
     protected Long count(final Query query) {
         try {
-            return readPersistence.count(query) //
-                    .limit(1) //
-                    .runWith(Sink.seq(), actorMaterializer) //
-                    .toCompletableFuture() //
-                    .get() //
+            return readPersistence.count(query)
+                    .limit(1)
+                    .runWith(Sink.seq(), actorMaterializer)
+                    .toCompletableFuture()
+                    .get()
                     .get(0);
         } catch (final InterruptedException | ExecutionException e) {
             throw mapAsRuntimeException(e);
@@ -204,10 +208,10 @@ public abstract class AbstractThingSearchPersistenceITBase {
 
     protected long aggregateCount(final PolicyRestrictedSearchAggregation policyRestrictedSearchAggregation) {
         try {
-            return readPersistence.count(policyRestrictedSearchAggregation) //
-                    .runWith(Sink.seq(), actorMaterializer) //
-                    .toCompletableFuture() //
-                    .get() //
+            return readPersistence.count(policyRestrictedSearchAggregation)
+                    .runWith(Sink.seq(), actorMaterializer)
+                    .toCompletableFuture()
+                    .get()
                     .get(0);
         } catch (final InterruptedException | ExecutionException e) {
             throw mapAsRuntimeException(e);
@@ -220,11 +224,11 @@ public abstract class AbstractThingSearchPersistenceITBase {
 
     protected ResultList<String> findAll(final Query query) {
         try {
-            return readPersistence.findAll(query) //
-                    .limit(1) //
-                    .runWith(Sink.seq(), actorMaterializer) //
-                    .toCompletableFuture() //
-                    .get() //
+            return readPersistence.findAll(query)
+                    .limit(1)
+                    .runWith(Sink.seq(), actorMaterializer)
+                    .toCompletableFuture()
+                    .get()
                     .get(0);
         } catch (final InterruptedException | ExecutionException e) {
             throw mapAsRuntimeException(e);
@@ -237,14 +241,14 @@ public abstract class AbstractThingSearchPersistenceITBase {
         runBlocking(publishers);
     }
 
-    protected void runBlocking(final List<Source<?, NotUsed>> publishers) {
+    protected void runBlocking(final Collection<Source<?, NotUsed>> publishers) {
         publishers.stream()
                 .map(p -> p.runWith(Sink.ignore(), actorMaterializer))
                 .map(CompletionStage::toCompletableFuture)
-                .forEach(this::finishCompletableFuture);
+                .forEach(AbstractThingSearchPersistenceITBase::finishCompletableFuture);
     }
 
-    private void finishCompletableFuture(final CompletableFuture future) {
+    private static void finishCompletableFuture(final Future future) {
         try {
             future.get();
         } catch (final InterruptedException | ExecutionException e) {
@@ -284,7 +288,7 @@ public abstract class AbstractThingSearchPersistenceITBase {
         runBlocking(writePersistence.delete(thingId, revision));
     }
 
-    protected final MongoClientWrapper getClient() {
+    protected final DittoMongoClient getMongoClient() {
         return mongoClient;
     }
 
@@ -294,12 +298,10 @@ public abstract class AbstractThingSearchPersistenceITBase {
 
     private <T> List<T> waitFor(final Source<T, ?> source) {
         try {
-            return source
-                    .limit(1) //
-                    .runWith(Sink.seq(), actorMaterializer) //
-                    .toCompletableFuture() //
+            return source.limit(1)
+                    .runWith(Sink.seq(), actorMaterializer)
+                    .toCompletableFuture()
                     .get();
-
         } catch (final InterruptedException | ExecutionException e) {
             throw mapAsRuntimeException(e);
         }

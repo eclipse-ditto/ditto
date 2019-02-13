@@ -14,7 +14,7 @@ import java.util.LinkedHashMap;
 
 import org.eclipse.ditto.services.base.config.HealthConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
-import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
+import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.services.utils.health.AbstractHealthCheckingActor;
 import org.eclipse.ditto.services.utils.health.CompositeCachingHealthCheckingActor;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
@@ -50,8 +50,8 @@ public class SearchHealthCheckingActorFactory {
      * @return the Akka configuration Props object.
      */
     public static Props props(final ServiceConfigReader configReader,
-            final StreamMetadataPersistence thingsSyncPersistence,
-            final StreamMetadataPersistence policiesSyncPersistence) {
+            final TimestampPersistence thingsSyncPersistence,
+            final TimestampPersistence policiesSyncPersistence) {
 
         final LinkedHashMap<String, Props> childActorProps = new LinkedHashMap<>();
 

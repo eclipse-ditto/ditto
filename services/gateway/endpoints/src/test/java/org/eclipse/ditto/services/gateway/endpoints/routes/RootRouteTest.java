@@ -12,30 +12,30 @@ package org.eclipse.ditto.services.gateway.endpoints.routes;
 
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.KNOWN_DOMAIN;
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.UNKNOWN_PATH;
-import static org.mockito.Mockito.mock;
-
-import java.util.function.Supplier;
 
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
 import org.eclipse.ditto.services.gateway.endpoints.directives.HttpsEnsuringDirective;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DittoGatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.services.gateway.endpoints.routes.health.CachingHealthRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.status.OverallStatusRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsParameter;
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
+import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
 import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
-import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import org.junit.Before;
 import org.junit.Test;
 
-import akka.actor.ActorRef;
+import com.typesafe.config.Config;
+
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.model.headers.Location;
 import akka.http.javadsl.model.headers.RawHeader;
+import akka.http.javadsl.server.Route;
 import akka.http.javadsl.testkit.TestRoute;
 import akka.http.javadsl.testkit.TestRouteResult;
 
@@ -75,16 +75,36 @@ public final class RootRouteTest extends EndpointTestBase {
 
     @Before
     public void setUp() {
-        final ActorRef proxyActor = createDummyResponseActor();
-        final ActorRef streamingActor = createDummyResponseActor();
-        final ActorRef healthCheckingActor =
-                createHealthCheckingActorMock();
-        final Supplier<ClusterStatus> clusterStateSupplier = createClusterStatusSupplierMock();
-        final HttpClientFacade httpClient = mock(HttpClientFacade.class);
-        final RootRoute rootRoute =
-                new RootRoute(system(), getConfig(), proxyActor, streamingActor,
-                        healthCheckingActor, clusterStateSupplier, httpClient);
-        rootTestRoute = testRoute(rootRoute.buildRoute());
+        final Config config = system().settings().config();
+        final HttpClientFacade httpClient = HttpClientFacade.getInstance(system());
+        final DittoGatewayAuthenticationDirectiveFactory authenticationDirectiveFactory =
+                new DittoGatewayAuthenticationDirectiveFactory(config, httpClient);
+        final RouteFactory routeFactory = RouteFactory.newInstance(system(),
+                createDummyResponseActor(),
+                createDummyResponseActor(),
+                createHealthCheckingActorMock(),
+                createClusterStatusSupplierMock(),
+                authenticationDirectiveFactory);
+
+        final Route rootRoute = RootRoute.getBuilder()
+                .statsRoute(routeFactory.newStatsRoute())
+                .statusRoute(routeFactory.newStatusRoute())
+                .overallStatusRoute(routeFactory.newOverallStatusRoute())
+                .cachingHealthRoute(routeFactory.newCachingHealthRoute())
+                .devopsRoute(routeFactory.newDevopsRoute())
+                .policiesRoute(routeFactory.newPoliciesRoute())
+                .sseThingsRoute(routeFactory.newSseThingsRoute())
+                .thingsRoute(routeFactory.newThingsRoute())
+                .thingSearchRoute(routeFactory.newThingSearchRoute())
+                .websocketRoute(routeFactory.newWebSocketRoute())
+                .supportedSchemaVersions(config.getIntList(ConfigKeys.SCHEMA_VERSIONS))
+                .protocolAdapterProvider(routeFactory.getProtocolAdapterProvider())
+                .headerTranslator(routeFactory.getHeaderTranslator())
+                .httpAuthenticationDirective(routeFactory.newHttpAuthenticationDirective())
+                .wsAuthenticationDirective(routeFactory.newWsAuthenticationDirective())
+                .build();
+
+        rootTestRoute = testRoute(rootRoute);
     }
 
     @Test

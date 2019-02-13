@@ -55,10 +55,10 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.EventToPersisten
 import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
-import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
+import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
+import org.eclipse.ditto.services.utils.persistence.mongo.indices.IndexInitializer;
 import org.eclipse.ditto.services.utils.persistence.mongo.namespace.MongoNamespaceOps;
 import org.eclipse.ditto.services.utils.persistence.mongo.namespace.MongoNamespaceSelection;
-import org.eclipse.ditto.services.utils.persistence.mongo.indices.IndexInitializer;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.reactivestreams.Publisher;
 
@@ -105,15 +105,16 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
      * @param log the logger to use for logging.
      * @param persistenceStrategyFactory The persistence strategy factory to use.
      */
-    public MongoThingsSearchUpdaterPersistence(final MongoClientWrapper clientWrapper,
+    public MongoThingsSearchUpdaterPersistence(final DittoMongoClient clientWrapper,
             final LoggingAdapter log,
             final EventToPersistenceStrategyFactory<Bson, PolicyUpdate> persistenceStrategyFactory,
             final Materializer materializer) {
+
         super(log);
-        database = clientWrapper.getDatabase();
+        database = clientWrapper.getDefaultDatabase();
         collection = database.getCollection(THINGS_COLLECTION_NAME);
         policiesCollection = database.getCollection(POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME);
-        indexInitializer = IndexInitializer.of(clientWrapper.getDatabase(), materializer);
+        indexInitializer = IndexInitializer.of(database, materializer);
 
         this.persistenceStrategyFactory = persistenceStrategyFactory;
     }
@@ -178,7 +179,8 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
                         log.debug(msgTemplate + " a duplicate key: {}", thingId, throwable.getMessage());
                         return Source.single(Boolean.FALSE);
                     } else if (isErrorOfType(MONGO_INDEX_VALUE_ERROR_CODE, throwable)) {
-                        log.error(throwable, msgTemplate + " a too large value which cannot be indexed!", thingId);
+                        log.info(msgTemplate + " a too large value which cannot be indexed: {}",
+                                thingId, throwable.getMessage());
                         return Source.single(Boolean.TRUE);
                     } else {
                         log.error(throwable, msgTemplate + " an unexpected error: {}", thingId, throwable.getMessage());

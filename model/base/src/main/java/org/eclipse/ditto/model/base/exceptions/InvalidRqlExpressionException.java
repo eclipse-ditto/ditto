@@ -23,21 +23,25 @@ import org.eclipse.ditto.model.base.json.JsonParsableException;
  * Thrown if an RQL expression is invalid.
  */
 @JsonParsableException(errorCode = InvalidRqlExpressionException.ERROR_CODE)
-public class InvalidRqlExpressionException extends DittoRuntimeException {
+public final class InvalidRqlExpressionException extends DittoRuntimeException {
 
     /**
      * Error code of this exception.
      */
     public static final String ERROR_CODE = "rql.expression.invalid";
 
-    static final String DEFAULT_DESCRIPTION = "Ensure that all opening parentheses have also closing ones and that the " +
-            "RQL expression is valid.";
+    static final String DEFAULT_DESCRIPTION = "Ensure that all opening parentheses have also closing ones and that " +
+            "the RQL expression is valid.";
     static final HttpStatusCode STATUS_CODE = HttpStatusCode.BAD_REQUEST;
 
     private static final long serialVersionUID = 8900314242209005665L;
 
-    private InvalidRqlExpressionException(final DittoHeaders dittoHeaders, final String message, final String description,
-            final Throwable cause, final URI href) {
+    private InvalidRqlExpressionException(final DittoHeaders dittoHeaders,
+            final String message,
+            final String description,
+            final Throwable cause,
+            final URI href) {
+
         super(ERROR_CODE, STATUS_CODE, dittoHeaders, message, description, cause, href);
     }
 
@@ -90,7 +94,6 @@ public class InvalidRqlExpressionException extends DittoRuntimeException {
 
     /**
      * A mutable builder with a fluent API for a {@link InvalidRqlExpressionException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<InvalidRqlExpressionException> {
@@ -100,9 +103,15 @@ public class InvalidRqlExpressionException extends DittoRuntimeException {
         }
 
         @Override
-        protected InvalidRqlExpressionException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected InvalidRqlExpressionException doBuild(final DittoHeaders dittoHeaders,
+                final String message,
+                final String description,
+                final Throwable cause,
+                final URI href) {
+
             return new InvalidRqlExpressionException(dittoHeaders, message, description, cause, href);
         }
+
     }
+
 }

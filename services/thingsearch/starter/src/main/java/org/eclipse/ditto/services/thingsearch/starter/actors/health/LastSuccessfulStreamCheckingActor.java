@@ -19,7 +19,7 @@ import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
+import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.services.utils.health.AbstractHealthCheckingActor;
 import org.eclipse.ditto.services.utils.health.StatusDetailMessage;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
@@ -44,7 +44,7 @@ public class LastSuccessfulStreamCheckingActor extends AbstractHealthCheckingAct
     /**
      * Used to determine the time stamp of the last successful stream.
      */
-    private final StreamMetadataPersistence streamMetadataPersistence;
+    private final TimestampPersistence streamMetadataPersistence;
 
     /**
      * Defines the maximum duration that is allowed without a successful stream. If this duration is exceeded, the
@@ -83,7 +83,7 @@ public class LastSuccessfulStreamCheckingActor extends AbstractHealthCheckingAct
      * {@link org.eclipse.ditto.services.utils.health.StatusInfo.Status#DOWN}.
      */
     private LastSuccessfulStreamCheckingActor(final boolean syncEnabled,
-            final StreamMetadataPersistence streamMetadataPersistence, final Duration syncOutdatedWarningOffset,
+            final TimestampPersistence streamMetadataPersistence, final Duration syncOutdatedWarningOffset,
             final Duration syncOutdatedErrorOffset,
             final Instant startUpInstant) {
         this.syncEnabled = syncEnabled;
@@ -159,7 +159,7 @@ public class LastSuccessfulStreamCheckingActor extends AbstractHealthCheckingAct
     }
 
     private CompletionStage<StatusInfo> getStatusInfo() {
-        return this.streamMetadataPersistence.retrieveLastSuccessfulStreamEnd()
+        return this.streamMetadataPersistence.getTimestampAsync()
                 .map(instantOfLastSuccessfulStreamOptional -> {
                     final StatusInfo statusInfo;
                     if (instantOfLastSuccessfulStreamOptional.isPresent()) {

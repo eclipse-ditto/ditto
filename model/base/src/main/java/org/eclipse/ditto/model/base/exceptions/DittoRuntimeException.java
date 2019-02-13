@@ -41,8 +41,9 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
  * Parent RuntimeException for all RuntimeExceptions of Ditto.
  */
 @IndexSubclasses
-public class DittoRuntimeException extends RuntimeException implements
-        Jsonifiable.WithPredicate<JsonObject, JsonField>, WithDittoHeaders<DittoRuntimeException>, WithManifest {
+public class DittoRuntimeException extends RuntimeException
+        implements Jsonifiable.WithPredicate<JsonObject, JsonField>, WithDittoHeaders<DittoRuntimeException>,
+        WithManifest {
 
     private static final long serialVersionUID = -7010323324132561106L;
 

@@ -19,9 +19,11 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpda
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoEventToPersistenceStrategyFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamConsumerSettings;
-import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
+import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
+import org.eclipse.ditto.services.utils.config.MongoConfig;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
+import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonCommandListener;
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonConnectionPoolListener;
@@ -62,13 +64,13 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     private final SupervisorStrategy supervisorStrategy = RootSupervisorStrategyFactory.createStrategy(log);
 
     private final ActorRef thingsUpdaterActor;
-    private final MongoClientWrapper mongoDbClientWrapper;
+    private final DittoMongoClient mongoClient;
 
     private SearchUpdaterRootActor(final ServiceConfigReader configReader,
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer,
-            final StreamMetadataPersistence thingsSyncPersistence,
-            final StreamMetadataPersistence policiesSyncPersistence) {
+            final TimestampPersistence thingsSyncPersistence,
+            final TimestampPersistence policiesSyncPersistence) {
 
         final int numberOfShards = configReader.cluster().numberOfShards();
 
@@ -81,11 +83,13 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                 config.getBoolean(ConfigKeys.MONITORING_CONNECTION_POOL_ENABLED) ?
                         new KamonConnectionPoolListener(KAMON_METRICS_PREFIX) : null;
 
-        mongoDbClientWrapper =
-                MongoClientWrapper.newInstance(config, kamonCommandListener, kamonConnectionPoolListener);
+        mongoClient = MongoClientWrapper.getBuilder(MongoConfig.of(config))
+                .addCommandListener(kamonCommandListener)
+                .addConnectionPoolListener(kamonConnectionPoolListener)
+                .build();
 
         final ThingsSearchUpdaterPersistence searchUpdaterPersistence =
-                inizializeThingsSearchUpdaterPersistence(mongoDbClientWrapper, materializer, config);
+                inizializeThingsSearchUpdaterPersistence(mongoClient, materializer, config);
 
         final int maxFailures = config.getInt(ConfigKeys.MONGO_CIRCUIT_BREAKER_FAILURES);
         final Duration callTimeout = config.getDuration(ConfigKeys.MONGO_CIRCUIT_BREAKER_TIMEOUT_CALL);
@@ -148,16 +152,17 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final boolean deletionEnabled = config.getBoolean(ConfigKeys.DELETION_ENABLED);
         if (deletionEnabled) {
             startClusterSingletonActor(ThingsSearchIndexDeletionActor.ACTOR_NAME,
-                    ThingsSearchIndexDeletionActor.props(mongoDbClientWrapper));
+                    ThingsSearchIndexDeletionActor.props(mongoClient));
         } else {
             log.warning("Deletion of marked as deleted Things from search index is not enabled");
         }
     }
 
-    private ThingsSearchUpdaterPersistence inizializeThingsSearchUpdaterPersistence(
-            final MongoClientWrapper mongoClientWrapper, final ActorMaterializer materializer, final Config rawConfig) {
+    private ThingsSearchUpdaterPersistence inizializeThingsSearchUpdaterPersistence(final DittoMongoClient mongoClient,
+            final ActorMaterializer materializer, final Config rawConfig) {
+
         final ThingsSearchUpdaterPersistence searchUpdaterPersistence =
-                new MongoThingsSearchUpdaterPersistence(mongoClientWrapper, log,
+                new MongoThingsSearchUpdaterPersistence(mongoClient, log,
                         MongoEventToPersistenceStrategyFactory.getInstance(), materializer);
 
         final boolean indexInitializationEnabled = rawConfig.getBoolean(ConfigKeys.INDEX_INITIALIZATION_ENABLED);
@@ -191,8 +196,8 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     public static Props props(final ServiceConfigReader configReader,
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer,
-            final StreamMetadataPersistence thingsSyncPersistence,
-            final StreamMetadataPersistence policiesSyncPersistence) {
+            final TimestampPersistence thingsSyncPersistence,
+            final TimestampPersistence policiesSyncPersistence) {
 
         return Props.create(SearchUpdaterRootActor.class, new Creator<SearchUpdaterRootActor>() {
             private static final long serialVersionUID = 1L;
@@ -207,7 +212,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
 
     @Override
     public void postStop() throws Exception {
-        mongoDbClientWrapper.close();
+        mongoClient.close();
         super.postStop();
     }
 

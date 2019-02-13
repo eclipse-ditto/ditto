@@ -25,7 +25,7 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
-import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
+import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 
 import com.mongodb.client.model.Filters;
 import com.mongodb.reactivestreams.client.MongoCollection;
@@ -65,29 +65,28 @@ public final class ThingsSearchIndexDeletionActor extends AbstractActor {
 
     @Nullable private Cancellable scheduler = null;
 
-    private ThingsSearchIndexDeletionActor(final MongoClientWrapper mongoClientWrapper) {
+    private ThingsSearchIndexDeletionActor(final DittoMongoClient mongoClient) {
         final Config config = getContext().getSystem().settings().config();
         age = config.getDuration(ConfigKeys.DELETION_AGE);
         runInterval = config.getDuration(ConfigKeys.DELETION_RUN_INTERVAL);
         firstIntervalHour = config.getInt(ConfigKeys.DELETION_FIRST_INTERVAL_HOUR);
         if (firstIntervalHour < 0 || firstIntervalHour > 23) {
             throw new ConfigurationException(
-                    "The configured <" + ConfigKeys.DELETION_FIRST_INTERVAL_HOUR + "> must be" +
-                            "between 0 and 23");
+                    "The configured <" + ConfigKeys.DELETION_FIRST_INTERVAL_HOUR + "> must bebetween 0 and 23");
         }
 
         actorMaterializer = ActorMaterializer.create(getContext());
-        collection = mongoClientWrapper.getDatabase().getCollection(THINGS_COLLECTION_NAME);
+        collection = mongoClient.getCollection(THINGS_COLLECTION_NAME);
     }
 
     /**
      * Creates Akka configuration object Props for this Actor.
      *
-     * @param mongoClientWrapper the MongoDB client wrapper to use for deletion.
+     * @param mongoClient the MongoDB client wrapper to use for deletion.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final MongoClientWrapper mongoClientWrapper) {
-        return Props.create(ThingsSearchIndexDeletionActor.class, mongoClientWrapper);
+    public static Props props(final DittoMongoClient mongoClient) {
+        return Props.create(ThingsSearchIndexDeletionActor.class, mongoClient);
     }
 
     @Override

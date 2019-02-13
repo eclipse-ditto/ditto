@@ -21,7 +21,6 @@ import com.typesafe.config.Config;
 
 import akka.actor.Props;
 
-
 /**
  * Configurable default implementation of {@link AbstractPersistenceStreamingActor}.
  */
@@ -30,17 +29,17 @@ public final class DefaultPersistenceStreamingActor<T extends EntityIdWithRevisi
         extends AbstractPersistenceStreamingActor<T> {
 
     private final Class<T> elementClass;
-    private final MongoClientWrapper mongoClientWrapper;
+    private final DittoMongoClient mongoClient;
 
     DefaultPersistenceStreamingActor(final Class<T> elementClass,
             final int streamingCacheSize,
             final Function<PidWithSeqNr, T> entityMapper,
             final MongoReadJournal readJournal,
-            final MongoClientWrapper mongoClientWrapper) {
+            final DittoMongoClient mongoClient) {
 
         super(streamingCacheSize, entityMapper, readJournal);
         this.elementClass = elementClass;
-        this.mongoClientWrapper = mongoClientWrapper;
+        this.mongoClient = mongoClient;
     }
 
     /**
@@ -60,16 +59,16 @@ public final class DefaultPersistenceStreamingActor<T extends EntityIdWithRevisi
             final Function<PidWithSeqNr, T> entityMapper) {
 
         return Props.create(DefaultPersistenceStreamingActor.class, () -> {
-            final MongoClientWrapper mongoClient = MongoClientWrapper.newInstance(config);
+            final DittoMongoClient mongoClient = MongoClientWrapper.newInstance(config);
             final MongoReadJournal readJournal = MongoReadJournal.newInstance(config, mongoClient);
-            return new DefaultPersistenceStreamingActor<>(elementClass,
-                    streamingCacheSize, entityMapper, readJournal, mongoClient);
+            return new DefaultPersistenceStreamingActor<>(elementClass, streamingCacheSize, entityMapper, readJournal,
+                    mongoClient);
         });
     }
 
     @Override
     public void postStop() throws Exception {
-        mongoClientWrapper.close();
+        mongoClient.close();
         super.postStop();
     }
 
@@ -77,4 +76,5 @@ public final class DefaultPersistenceStreamingActor<T extends EntityIdWithRevisi
     protected Class<T> getElementClass() {
         return elementClass;
     }
+
 }

@@ -20,7 +20,7 @@ import java.util.regex.Pattern;
 
 import org.bson.Document;
 import org.bson.types.ObjectId;
-import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
+import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,26 +80,25 @@ public class MongoReadJournal {
      */
     private static final int CONCURRENT_JOURNAL_READS = 5;
 
+    private final Pattern journalCollectionPrefix;
+    private final DittoMongoClient mongoClient;
     private final Logger log;
 
-    private final Pattern journalCollectionPrefix;
-    private final MongoClientWrapper clientWrapper;
-
-    private MongoReadJournal(final Pattern journalCollectionPrefix, final MongoClientWrapper clientWrapper) {
+    private MongoReadJournal(final Pattern journalCollectionPrefix, final DittoMongoClient mongoClient) {
         this.journalCollectionPrefix = journalCollectionPrefix;
-        this.clientWrapper = clientWrapper;
-        log = LoggerFactory.getLogger(MongoSearchSyncPersistence.class);
+        this.mongoClient = mongoClient;
+        log = LoggerFactory.getLogger(MongoTimestampPersistence.class);
     }
 
     /**
      * Creates a new {@code MongoReadJournal}.
      *
      * @param config The Akka system configuration.
-     * @param clientWrapper The Mongo client wrapper.
+     * @param mongoClient The Mongo client wrapper.
      * @return A {@code MongoReadJournal} object.
      */
-    public static MongoReadJournal newInstance(final Config config, final MongoClientWrapper clientWrapper) {
-        return new MongoReadJournal(resolveJournalCollectionPrefix(config), clientWrapper);
+    public static MongoReadJournal newInstance(final Config config, final DittoMongoClient mongoClient) {
+        return new MongoReadJournal(resolveJournalCollectionPrefix(config), mongoClient);
     }
 
     /**
@@ -111,7 +110,7 @@ public class MongoReadJournal {
      * @return source of persistence IDs and sequence numbers written within the given time window.
      */
     public Source<PidWithSeqNr, NotUsed> getPidWithSeqNrsByInterval(final Instant start, final Instant end) {
-        final MongoDatabase database = clientWrapper.getDatabase();
+        final MongoDatabase database = mongoClient.getDefaultDatabase();
         final Document filterDocument = createFilterObject(start, end);
 
         return resolveJournalCollectionNames(journalCollectionPrefix, database)

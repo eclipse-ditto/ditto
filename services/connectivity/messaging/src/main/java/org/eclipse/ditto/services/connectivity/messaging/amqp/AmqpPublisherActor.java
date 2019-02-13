@@ -204,7 +204,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                             try {
                                 amqpJmsMessageFacade.setApplicationProperty(entry.getKey(), entry.getValue());
                             } catch (final JMSException ex) {
-                                log.warning("Could not set application-property <{}>", entry.getKey());
+                                log.warning("Could not set application-property <{}>: {}",
+                                        entry.getKey(), jmsExceptionToString(ex));
                             }
                         });
             }
@@ -225,7 +226,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         try {
             return session.createProducer(destination);
         } catch (final JMSException e) {
-            log.warning("Could not create producer for {}.", destination);
+            log.warning("Could not create producer for destination '{}': {}.",
+                    destination, jmsExceptionToString(e));
             return null;
         }
     }
@@ -239,7 +241,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                 producer.close();
             } catch (final JMSException jmsException) {
                 log.debug("Closing consumer failed (can be ignored if connection was closed already): {}",
-                        jmsException.getMessage());
+                        jmsExceptionToString(jmsException));
             }
         });
     }
@@ -247,5 +249,9 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     @Override
     protected DiagnosticLoggingAdapter log() {
         return log;
+    }
+
+    private static String jmsExceptionToString(final JMSException jmsException) {
+        return String.format("[%s] %s", jmsException.getErrorCode(), jmsException.getMessage());
     }
 }

@@ -17,8 +17,8 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.common.CharsetDeterminer;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectionMetricsCollector;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
@@ -38,7 +38,6 @@ import akka.stream.OverflowStrategy;
 import akka.stream.alpakka.mqtt.MqttMessage;
 import akka.stream.alpakka.mqtt.MqttQoS;
 import akka.stream.javadsl.Keep;
-import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.util.ByteString;
 
@@ -67,11 +66,9 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
         this.mqttClientActor = mqttClientActor;
         this.dryRun = dryRun;
 
-        final Sink<MqttMessage, CompletionStage<Done>> mqttSink = factory.newSink();
-
         final Pair<ActorRef, CompletionStage<Done>> materializedValues =
                 Source.<MqttMessage>actorRef(100, OverflowStrategy.dropHead())
-                        .toMat(mqttSink, Keep.both())
+                        .toMat(factory.newSink(), Keep.both())
                         .run(ActorMaterializer.create(getContext()));
 
         materializedValues.second().handle(this::reportReadiness);
@@ -104,10 +101,8 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
 
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
-        receiveBuilder
-                .match(OutboundSignal.WithExternalMessage.class, this::isDryRun, outbound ->
-                        log.info("Message dropped in dryrun mode: {}", outbound)
-                );
+        receiveBuilder.match(OutboundSignal.WithExternalMessage.class, this::isDryRun,
+                outbound -> log.info("Message dropped in dry run mode: {}", outbound));
     }
 
     @Override
@@ -151,14 +146,13 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
         return dryRun;
     }
 
-    private MqttMessage mapExternalMessageToMqttMessage(
-            final MqttPublishTarget mqttTarget,
-            final MqttQoS qos,
+    private static MqttMessage mapExternalMessageToMqttMessage(final MqttPublishTarget mqttTarget, final MqttQoS qos,
             final ExternalMessage externalMessage) {
+
         final ByteString payload;
         if (externalMessage.isTextMessage()) {
             final Charset charset = externalMessage.findContentType()
-                    .map(MessageMappers::determineCharset)
+                    .map(MqttPublisherActor::determineCharset)
                     .orElse(StandardCharsets.UTF_8);
             payload = externalMessage
                     .getTextPayload()
@@ -172,6 +166,10 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
             payload = ByteString.empty();
         }
         return MqttMessage.create(mqttTarget.getTopic(), payload, qos);
+    }
+
+    private static Charset determineCharset(final CharSequence contentType) {
+        return CharsetDeterminer.getInstance().apply(contentType);
     }
 
     /*
@@ -193,4 +191,5 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
     protected DiagnosticLoggingAdapter log() {
         return log;
     }
+
 }

@@ -10,8 +10,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.persistence;
 
-import javax.annotation.Nonnull;
-
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.utils.persistence.mongo.AbstractMongoSnapshotAdapter;
@@ -28,8 +26,7 @@ public final class ConnectionMongoSnapshotAdapter extends AbstractMongoSnapshotA
     }
 
     @Override
-    protected Connection createJsonifiableFrom(@Nonnull final JsonObject jsonObject) {
-
+    protected Connection createJsonifiableFrom(final JsonObject jsonObject) {
         return ConnectionMigrationUtil.connectionFromJsonWithMigration(jsonObject);
     }
 

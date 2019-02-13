@@ -11,12 +11,10 @@
 package org.eclipse.ditto.services.utils.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.Test;
@@ -25,9 +23,9 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 /**
- * Tests {@link MongoConfig}.
+ * Unit test for {@link MongoConfig}.
  */
-public class MongoConfigTest {
+public final class MongoConfigTest {
 
     private static final String SOURCE_URI = "mongodb://user-name-1234-5678-abcdefg:password12345@" +
             "first.hostname.com:10000,second.hostname.com:20000,third.hostname.com:30000,fourth.hostname" +
@@ -35,13 +33,16 @@ public class MongoConfigTest {
             "/database-name?replicaSet=streched-0003&maxIdleTimeMS=240000&w=majority" +
             "&readPreference=primaryPreferred&ssl=true&sslInvalidHostNameAllowed=true";
 
+    private static final String KEY_OPTIONS = MongoConfig.CONFIG_PATH + ".options";
+    private static final String KEY_URI = MongoConfig.CONFIG_PATH + ".uri";
+
     @Test
     public void preservesSourceMongoUriWithoutConfiguration() {
         // GIVEN
-        final Config config = ConfigFactory.parseString(String.format("%s=\"%s\"", MongoConfig.URI, SOURCE_URI));
+        final Config config = ConfigFactory.parseString(String.format("%s=\"%s\"", KEY_URI, SOURCE_URI));
 
         // WHEN
-        final String targetUri = MongoConfig.getMongoUri(config);
+        final String targetUri = getMongoUri(config);
 
         // THEN
         assertThat(targetUri).isEqualTo(SOURCE_URI);
@@ -51,44 +52,38 @@ public class MongoConfigTest {
     public void parsesQueryParameters() throws URISyntaxException {
         // WHEN
         final String query = new URI(SOURCE_URI).getQuery();
-        final Map<String, String> params = MongoConfig.parseQuery(query);
+        final Map<String, String> params = MongoConfig.QueryComponentParser.getInstance().apply(query);
 
         // THEN
-        final Map<String, String> expectedParams = new HashMap<>();
-        expectedParams.put("replicaSet", "streched-0003");
-        expectedParams.put("maxIdleTimeMS", "240000");
-        expectedParams.put("w", "majority");
-        expectedParams.put("readPreference", "primaryPreferred");
-        expectedParams.put("ssl", "true");
-        expectedParams.put("sslInvalidHostNameAllowed", "true");
-        assertThat(params).isEqualTo(expectedParams);
+        assertThat(params).containsOnly(entry("replicaSet", "streched-0003"), entry("maxIdleTimeMS", "240000"),
+                entry("w", "majority"), entry("readPreference", "primaryPreferred"), entry("ssl", "true"),
+                entry("sslInvalidHostNameAllowed", "true"));
     }
 
     @Test
     public void preservesQueryParameterOrder() throws URISyntaxException {
         // GIVEN
         final String query = new URI(SOURCE_URI).getQuery();
-        final Map<String, String> params = MongoConfig.parseQuery(query);
+        final Map<String, String> params = MongoConfig.QueryComponentParser.getInstance().apply(query);
 
         // WHEN
         params.put("ssl", "false");
         params.put("w", "hello world");
 
         // THEN
-        assertThat(new ArrayList<>(params.keySet())).isEqualTo(
-                Arrays.asList("replicaSet", "maxIdleTimeMS", "w", "readPreference", "ssl",
-                        "sslInvalidHostNameAllowed"));
+        assertThat(params).containsOnlyKeys("replicaSet", "maxIdleTimeMS", "w", "readPreference", "ssl",
+                "sslInvalidHostNameAllowed");
     }
 
     @Test
     public void turnOffSsl() {
         // GIVEN
         final Config options = ConfigFactory.parseString("ssl=false");
-        final Config config = ConfigFactory.parseString(String.format("%s=\"%s\"\n%s=%s",
-                MongoConfig.URI, SOURCE_URI, MongoConfig.OPTIONS, options.root().render()));
+        final Config config = ConfigFactory.parseString(
+                String.format("%s=\"%s\"\n%s=%s", KEY_URI, SOURCE_URI, KEY_OPTIONS, options.root().render()));
 
         // WHEN
-        final String targetUri = MongoConfig.getMongoUri(config);
+        final String targetUri = getMongoUri(config);
 
         // THEN
         assertThat(targetUri).isEqualTo(SOURCE_URI.replaceAll("ssl=true", "ssl=false"));
@@ -98,11 +93,11 @@ public class MongoConfigTest {
     public void secondaryPreferred() {
         // GIVEN
         final Config options = ConfigFactory.parseString("readPreference=secondaryPreferred");
-        final Config config = ConfigFactory.parseString(String.format("%s=\"%s\"\n%s=%s",
-                MongoConfig.URI, SOURCE_URI, MongoConfig.OPTIONS, options.root().render()));
+        final Config config = ConfigFactory.parseString(
+                String.format("%s=\"%s\"\n%s=%s", KEY_URI, SOURCE_URI, KEY_OPTIONS, options.root().render()));
 
         // WHEN
-        final String targetUri = MongoConfig.getMongoUri(config);
+        final String targetUri = getMongoUri(config);
 
         // THEN
         assertThat(targetUri).isEqualTo(SOURCE_URI.replaceAll("primary", "secondary"));
@@ -112,11 +107,11 @@ public class MongoConfigTest {
     public void acknowledgedWriteConcern() {
         // GIVEN
         final Config options = ConfigFactory.parseString("w=1");
-        final Config config = ConfigFactory.parseString(String.format("%s=\"%s\"\n%s=%s",
-                MongoConfig.URI, SOURCE_URI, MongoConfig.OPTIONS, options.root().render()));
+        final Config config = ConfigFactory.parseString(
+                String.format("%s=\"%s\"\n%s=%s", KEY_URI, SOURCE_URI, KEY_OPTIONS, options.root().render()));
 
         // WHEN
-        final String targetUri = MongoConfig.getMongoUri(config);
+        final String targetUri = getMongoUri(config);
 
         // THEN
         assertThat(targetUri).isEqualTo(SOURCE_URI.replaceAll("w=majority", "w=1"));
@@ -126,11 +121,11 @@ public class MongoConfigTest {
     public void nullValuesAreNotSet() {
         // GIVEN
         final Config options = ConfigFactory.parseString("readPreference=null");
-        final Config config = ConfigFactory.parseString(String.format("%s=\"%s\"\n%s=%s",
-                MongoConfig.URI, SOURCE_URI, MongoConfig.OPTIONS, options.root().render()));
+        final Config config = ConfigFactory.parseString(
+                String.format("%s=\"%s\"\n%s=%s", KEY_URI, SOURCE_URI, KEY_OPTIONS, options.root().render()));
 
         // WHEN
-        final String targetUri = MongoConfig.getMongoUri(config);
+        final String targetUri = getMongoUri(config);
 
         // THEN
         assertThat(targetUri).isEqualTo(SOURCE_URI);
@@ -140,11 +135,11 @@ public class MongoConfigTest {
     public void extraParametersAreAppended() {
         // GIVEN
         final Config options = ConfigFactory.parseString("hello=world");
-        final Config config = ConfigFactory.parseString(String.format("%s=\"%s\"\n%s=%s",
-                MongoConfig.URI, SOURCE_URI, MongoConfig.OPTIONS, options.root().render()));
+        final Config config = ConfigFactory.parseString(
+                String.format("%s=\"%s\"\n%s=%s", KEY_URI, SOURCE_URI, KEY_OPTIONS, options.root().render()));
 
         // WHEN
-        final String targetUri = MongoConfig.getMongoUri(config);
+        final String targetUri = getMongoUri(config);
 
         // THEN
         assertThat(targetUri).isEqualTo(SOURCE_URI + "&hello=world");
@@ -154,10 +149,10 @@ public class MongoConfigTest {
     public void uriWithoutPathOrQueryIsOkay() {
         // GIVEN
         final String sourceUri = "mongodb://username:password@localhost:12345";
-        final Config config = ConfigFactory.parseString(String.format("%s=\"%s\"", MongoConfig.URI, sourceUri));
+        final Config config = ConfigFactory.parseString(String.format("%s=\"%s\"", KEY_URI, sourceUri));
 
         // WHEN
-        final String targetUri = MongoConfig.getMongoUri(config);
+        final String targetUri = getMongoUri(config);
 
         // THEN
         assertThat(targetUri).isEqualTo(sourceUri);
@@ -168,13 +163,23 @@ public class MongoConfigTest {
         // GIVEN
         final String sourceUri = "mongodb://username:password@localhost:12345";
         final Config options = ConfigFactory.parseString("ssl=false");
-        final Config config = ConfigFactory.parseString(String.format("%s=\"%s\"\n%s=%s",
-                MongoConfig.URI, sourceUri, MongoConfig.OPTIONS, options.root().render()));
+        final Config config = ConfigFactory.parseString(
+                String.format("%s=\"%s\"\n%s=%s", KEY_URI, sourceUri, KEY_OPTIONS, options.root().render()));
 
         // WHEN
-        final String targetUri = MongoConfig.getMongoUri(config);
+        final String targetUri = getMongoUri(config);
 
         // THEN
         assertThat(targetUri).isEqualTo(sourceUri + "?ssl=false");
     }
+
+    private static String getMongoUri(final Config config) {
+        final MongoConfig mongoConfig = getMongoConfig(config);
+        return mongoConfig.getMongoUri();
+    }
+
+    private static MongoConfig getMongoConfig(final Config config) {
+        return MongoConfig.of(config);
+    }
+
 }

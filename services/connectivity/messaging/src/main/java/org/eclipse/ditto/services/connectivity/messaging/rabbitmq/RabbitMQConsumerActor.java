@@ -11,26 +11,24 @@
 package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.common.CharsetDeterminer;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
-import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.connectivity.messaging.BaseConsumerActor;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
@@ -58,15 +56,13 @@ import akka.japi.pf.ReceiveBuilder;
 public final class RabbitMQConsumerActor extends BaseConsumerActor {
 
     private static final String MESSAGE_ID_HEADER = "messageId";
+    private static final Set<String> CONTENT_TYPES_INTERPRETED_AS_TEXT;
 
-    private static final Set<String> CONTENT_TYPES_INTERPRETED_AS_TEXT = Collections.unmodifiableSet(new HashSet<>(
-            Arrays.asList(
-                    "text/plain",
-                    "text/html",
-                    "text/yaml",
-                    "application/json",
-                    "application/xml"
-            )));
+    static {
+        final Set<String> contentTypes = new HashSet<>(5);
+        Collections.addAll(contentTypes, "text/plain", "text/html", "text/yaml", "application/json", "application/xml");
+        CONTENT_TYPES_INTERPRETED_AS_TEXT = Collections.unmodifiableSet(contentTypes);
+    }
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -74,7 +70,7 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
 
     private RabbitMQConsumerActor(final String connectionId, final String sourceAddress,
             final ActorRef messageMappingProcessor, final AuthorizationContext authorizationContext,
-            @Nullable Enforcement enforcement, @Nullable final HeaderMapping headerMapping) {
+            @Nullable final Enforcement enforcement, @Nullable final HeaderMapping headerMapping) {
         super(connectionId, sourceAddress, messageMappingProcessor, authorizationContext, headerMapping);
         headerEnforcementFilterFactory =
                 enforcement != null ? EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement,
@@ -137,7 +133,7 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
                     ExternalMessageFactory.newExternalMessageBuilder(headers);
             final String contentType = properties.getContentType();
             if (shouldBeInterpretedAsText(contentType)) {
-                final String text = new String(body, MessageMappers.determineCharset(contentType));
+                final String text = new String(body, CharsetDeterminer.getInstance().apply(contentType));
                 externalMessageBuilder.withText(text);
             } else {
                 externalMessageBuilder.withBytes(body);
@@ -166,11 +162,10 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
         return contentType != null && CONTENT_TYPES_INTERPRETED_AS_TEXT.stream().anyMatch(contentType::startsWith);
     }
 
-    private Map<String, String> extractHeadersFromMessage(final BasicProperties properties, final Envelope envelope) {
-        final Map<String, String> headersFromProperties =
-                Optional.ofNullable(properties.getHeaders())
-                        .map(Map::entrySet)
-                        .map(this::setToStringStringMap).orElseGet(HashMap::new);
+    private static Map<String, String> extractHeadersFromMessage(final BasicProperties properties,
+            final Envelope envelope) {
+
+        final Map<String, String> headersFromProperties = getHeadersFromProperties(properties.getHeaders());
 
         // set headers specific to rmq messages
         if (properties.getReplyTo() != null) {
@@ -183,13 +178,19 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
             headersFromProperties.put(ExternalMessage.CONTENT_TYPE_HEADER, properties.getContentType());
         }
         headersFromProperties.put(MESSAGE_ID_HEADER, Long.toString(envelope.getDeliveryTag()));
+
         return headersFromProperties;
     }
 
-    private Map<String, String> setToStringStringMap(final Set<Map.Entry<String, Object>> entries) {
-        return entries.stream()
-                .filter(entry -> Objects.nonNull(entry.getValue()))
-                .collect(Collectors.toMap(Map.Entry::getKey, entry -> String.valueOf(entry.getValue())));
+    private static Map<String, String> getHeadersFromProperties(@Nullable final Map<String, Object> originalProps) {
+        if (null != originalProps) {
+            return originalProps.entrySet()
+                    .stream()
+                    .filter(entry -> Objects.nonNull(entry.getValue()))
+                    .collect(Collectors.toMap(Map.Entry::getKey, entry -> String.valueOf(entry.getValue())));
+        }
+
+        return new HashMap<>();
     }
 
 }
