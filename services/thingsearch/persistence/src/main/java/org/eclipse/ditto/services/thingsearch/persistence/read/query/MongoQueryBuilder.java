@@ -45,6 +45,7 @@ final class MongoQueryBuilder implements QueryBuilder {
     private int limit;
     private int skip;
     private List<SortOption> sortOptions;
+    private String nextPageKey;
 
     private MongoQueryBuilder(final Criteria criteria, final int maxLimit, final int defaultLimit) {
         this.criteria = checkNotNull(criteria, "criteria");
@@ -52,6 +53,7 @@ final class MongoQueryBuilder implements QueryBuilder {
         limit = defaultLimit;
         skip = DEFAULT_SKIP;
         sortOptions = new ArrayList<>();
+        nextPageKey = null;
     }
 
     /**
@@ -95,8 +97,14 @@ final class MongoQueryBuilder implements QueryBuilder {
     }
 
     @Override
+    public QueryBuilder nextPageKey(final String nextPageKey) {
+        this.nextPageKey = nextPageKey;
+        return this;
+    }
+
+    @Override
     public Query build() {
-        return new MongoQuery(criteria, sortOptions, limit, skip);
+        return new MongoQuery(criteria, sortOptions, limit, skip, nextPageKey);
     }
 
 }

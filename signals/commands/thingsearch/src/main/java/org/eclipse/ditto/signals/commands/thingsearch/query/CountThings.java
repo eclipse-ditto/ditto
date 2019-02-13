@@ -145,6 +145,11 @@ public final class CountThings extends AbstractCommand<CountThings> implements T
     }
 
     @Override
+    public Optional<String> getNextPageKey() {
+        return Optional.empty();
+    }
+
+    @Override
     public Optional<Set<String>> getNamespaces() {
         return Optional.ofNullable(namespaces);
     }

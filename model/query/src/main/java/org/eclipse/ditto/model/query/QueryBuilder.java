@@ -43,6 +43,14 @@ public interface QueryBuilder {
     QueryBuilder skip(long n);
 
     /**
+     * Set the key to the next page.
+     *
+     * @param nextPageKey key to the next page.
+     * @return this builder.
+     */
+    QueryBuilder nextPageKey(String nextPageKey);
+
+    /**
      * Builds the Query.
      *
      * @return the Query

@@ -34,6 +34,7 @@ public interface ThingSearchQueryCommand<T extends ThingSearchQueryCommand> exte
 
     /**
      * Sets the given namespaces on a copy of this command and returns it.
+     *
      * @param namespaces the namespaces.
      * @return the created command.
      */
@@ -45,6 +46,13 @@ public interface ThingSearchQueryCommand<T extends ThingSearchQueryCommand> exte
      * @return the optional filter string.
      */
     Optional<String> getFilter();
+
+    /**
+     * Get the optional key to the next page.
+     *
+     * @return the optional key to the next page.
+     */
+    Optional<String> getNextPageKey();
 
     @Override
     default Category getCategory() {
