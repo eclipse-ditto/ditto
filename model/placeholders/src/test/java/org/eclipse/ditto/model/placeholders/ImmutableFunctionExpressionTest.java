@@ -17,7 +17,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 import org.mutabilitydetector.unittesting.MutabilityMatchers;
@@ -71,6 +70,12 @@ public class ImmutableFunctionExpressionTest {
     }
 
     @Test
+    public void testUnknownFunction() {
+        assertThatExceptionOfType(PlaceholderFunctionUnknownException.class).isThrownBy(() ->
+                UNDER_TEST.resolve("fn:unknown", Optional.of(THING_ID), EXPRESSION_RESOLVER));
+    }
+
+    @Test
     public void testFunctionUpper() {
         assertThat(UNDER_TEST.resolve("fn:upper()", Optional.of(THING_ID), EXPRESSION_RESOLVER))
                 .contains(THING_ID.toUpperCase());
@@ -89,9 +94,8 @@ public class ImmutableFunctionExpressionTest {
     }
 
     @Test
-    @Ignore("TODO TJ WIP")
     public void testFunctionLowerWrongSignature() {
-        assertThatExceptionOfType(PlaceholderFunctionSignatureInvalidException.class).isThrownBy(() ->
+        assertThatExceptionOfType(PlaceholderFunctionUnknownException.class).isThrownBy(() ->
                 UNDER_TEST.resolve("fn:lower", Optional.of(THING_ID), EXPRESSION_RESOLVER));
     }
 
@@ -117,6 +121,12 @@ public class ImmutableFunctionExpressionTest {
     public void testFunctionDefaultWhenInputEmptyWithPlaceholder() {
         assertThat(UNDER_TEST.resolve("fn:default(thing:id)", Optional.empty(), EXPRESSION_RESOLVER))
                 .contains(THING_ID);
+    }
+
+    @Test
+    public void testFunctionDefaultWithWrongSignature() {
+        assertThatExceptionOfType(PlaceholderFunctionSignatureInvalidException.class).isThrownBy(() ->
+                UNDER_TEST.resolve("fn:default('constant',2)", Optional.of(THING_ID), EXPRESSION_RESOLVER));
     }
 
     @Test

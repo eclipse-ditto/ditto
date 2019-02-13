@@ -68,7 +68,7 @@ final class ImmutableFunctionExpression implements FunctionExpression {
             final ExpressionResolver expressionResolver) {
 
         if (!supports(expression.replaceFirst(getPrefix() + ":", ""))) {
-            throw new IllegalArgumentException("Expression '" + expression + "' is not supported");
+            throw PlaceholderFunctionUnknownException.newBuilder(expression).build();
         }
 
         return SUPPORTED.stream()

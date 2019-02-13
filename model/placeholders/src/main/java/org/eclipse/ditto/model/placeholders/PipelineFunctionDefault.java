@@ -47,13 +47,14 @@ final class PipelineFunctionDefault implements PipelineFunction {
     public Optional<String> apply(final Optional<String> value, final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
 
+        // parse + resolve the specified default value:
+        final ResolvedFunctionParameter<String> resolvedDefaultParam =
+                parseAndResolve(paramsIncludingParentheses, expressionResolver).get(0);
+
         if (value.isPresent()) {
             // if previous stage was non-empty: proceed with that
             return value;
         } else {
-            // if previous pipeline stage was empty: parse + resolve the specified default value
-            final ResolvedFunctionParameter<String> resolvedDefaultParam =
-                    parseAndResolve(paramsIncludingParentheses, expressionResolver).get(0);
             return Optional.of(resolvedDefaultParam.getValue());
         }
     }
