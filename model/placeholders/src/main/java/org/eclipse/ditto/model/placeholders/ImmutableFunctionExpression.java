@@ -59,14 +59,15 @@ final class ImmutableFunctionExpression implements FunctionExpression {
         // the function validates itself whether the remaining part is valid
         return SUPPORTED.stream()
                 .map(PipelineFunction::getName)
-                .anyMatch(psfName -> psfName.startsWith(expression));
+                .map(psfName -> psfName.replaceFirst(getPrefix() + ":", ""))
+                .anyMatch(psfName -> expression.startsWith(psfName + "("));
     }
 
     @Override
     public Optional<String> resolve(final String expression, final Optional<String> resolvedInputValue,
             final ExpressionResolver expressionResolver) {
 
-        if (!supports(expression)) {
+        if (!supports(expression.replaceFirst(getPrefix() + ":", ""))) {
             throw new IllegalArgumentException("Expression '" + expression + "' is not supported");
         }
 
