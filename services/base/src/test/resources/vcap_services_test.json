@@ -1,0 +1,65 @@
+{
+  "MongoDB-Service": [
+    {
+      "name": "ditto-mongodb-staging",
+      "instance_name": "ditto-mongodb-staging",
+      "binding_name": null,
+      "credentials": {
+        "readonly": false,
+        "replicaset": "stretched-0815"
+      },
+      "syslog_drain_url": null,
+      "volume_mounts": [],
+      "label": "MongoDB-Service",
+      "provider": null,
+      "plan": "Database on Dedicated Replica Set - Stretched",
+      "tags": [
+        "mongodb",
+        "mongo",
+        "database",
+        "db",
+        "mongoose"
+      ]
+    }
+  ],
+  "permissions-service": [
+    {
+      "name": "ditto-permissions-staging",
+      "instance_name": "ditto-permissions-staging",
+      "binding_name": null,
+      "credentials": {
+        "imTenantId": "Floob",
+        "imServerUrl": "https://permissions.example.com/",
+        "imLoginUrl": "https://permissions.example.com/self-service/login",
+        "imClientId": "Grumbo"
+      },
+      "syslog_drain_url": null,
+      "volume_mounts": [],
+      "label": "Krimkram",
+      "provider": null,
+      "plan": "Fleeb",
+      "tags": [
+        "Grumbles"
+      ]
+    }
+  ],
+  "usage-server": [
+    {
+      "name": "ditto-usage-staging",
+      "instance_name": "ditto-usage-staging",
+      "binding_name": null,
+      "credentials": {
+        "hostname": "usage-server.example.com"
+      },
+      "syslog_drain_url": null,
+      "volume_mounts": [],
+      "label": "usage-server-staging",
+      "provider": null,
+      "plan": "default-staging",
+      "tags": [
+        "chumble",
+        "grodus"
+      ]
+    }
+  ]
+}

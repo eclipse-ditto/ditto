@@ -95,6 +95,7 @@
 
         <scalatest.version>3.0.0</scalatest.version>
         <flapdoodle.version>2.0.0</flapdoodle.version>
+        <system-rules.version>1.19.0</system-rules.version>
     </properties>
 
     <dependencyManagement>
@@ -887,6 +888,13 @@
                 <groupId>org.openjdk.jmh</groupId>
                 <artifactId>jmh-generator-annprocess</artifactId>
                 <version>${jmh.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.github.stefanbirkner</groupId>
+                <artifactId>system-rules</artifactId>
+                <version>${system-rules.version}</version>
                 <scope>test</scope>
             </dependency>
 
