@@ -107,7 +107,7 @@ public class PlaceholderFilterTest {
 
         assertThat(PlaceholderFilter.apply("{{topic:subject}}", KNOWN_TOPIC_PATH_SUBJECT1,
                 topicPlaceholder)).isEqualTo(KNOWN_SUBJECT);
-        assertThat(PlaceholderFilter.apply("{{  topic:action|subject}}", KNOWN_TOPIC_PATH_SUBJECT2,
+        assertThat(PlaceholderFilter.apply("{{  topic:action-subject}}", KNOWN_TOPIC_PATH_SUBJECT2,
                 topicPlaceholder)).isEqualTo(KNOWN_SUBJECT2);
     }
 

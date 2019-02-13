@@ -23,7 +23,7 @@ import org.eclipse.ditto.protocoladapter.TopicPath;
 /**
  * Placeholder implementation that replaces:
  * <ul>
- * <li>{@code topic:full} -> {@code {namespace}/{entityId}/{group}/{channel}/{criterion}/{action|subject}}</li>
+ * <li>{@code topic:full} -> {@code {namespace}/{entityId}/{group}/{channel}/{criterion}/{action-subject}}</li>
  * <li>{@code topic:namespace}</li>
  * <li>{@code topic:entityId}</li>
  * <li>{@code topic:group}</li>
@@ -31,7 +31,7 @@ import org.eclipse.ditto.protocoladapter.TopicPath;
  * <li>{@code topic:criterion}</li>
  * <li>{@code topic:action}</li>
  * <li>{@code topic:subject}</li>
- * <li>{@code topic:action|subject}</li>
+ * <li>{@code topic:action-subject}</li>
  * </ul>
  * The input value is a TopicPath.
  */
@@ -51,7 +51,7 @@ final class ImmutableTopicPathPlaceholder implements TopicPathPlaceholder {
     private static final String CRITERION_PLACEHOLDER = "criterion";
     private static final String ACTION_PLACEHOLDER = "action";
     private static final String SUBJECT_PLACEHOLDER = "subject";
-    private static final String ACTION_OR_SUBJECT_PLACEHOLDER = "action|subject";
+    private static final String ACTION_OR_SUBJECT_PLACEHOLDER = "action-subject";
 
     private static final List<String> SUPPORTED = Collections.unmodifiableList(
             Arrays.asList(FULL_PLACEHOLDER, NAMESPACE_PLACEHOLDER, ENTITYID_PLACEHOLDER, GROUP_PLACEHOLDER,
@@ -95,7 +95,7 @@ final class ImmutableTopicPathPlaceholder implements TopicPathPlaceholder {
             case SUBJECT_PLACEHOLDER:
                 return topicPath.getSubject();
             case ACTION_OR_SUBJECT_PLACEHOLDER:
-                // treat action|subject as synonyms:
+                // treat action-subject as synonyms:
                 return Optional.ofNullable(
                         topicPath.getSubject()
                                 .orElseGet(() ->

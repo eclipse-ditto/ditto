@@ -116,17 +116,17 @@ public class ImmutableTopicPathPlaceholderTest {
 
     @Test
     public void testReplaceActionOrSubject() {
-        assertThat(UNDER_TEST.resolve(KNOWN_TOPIC_PATH, "action|subject")).contains(KNOWN_ACTION.getName());
+        assertThat(UNDER_TEST.resolve(KNOWN_TOPIC_PATH, "action-subject")).contains(KNOWN_ACTION.getName());
     }
 
     @Test
     public void testReplaceActionOrSubjectWithSubject() {
-        assertThat(UNDER_TEST.resolve(KNOWN_TOPIC_PATH_SUBJECT1, "action|subject")).contains(KNOWN_SUBJECT);
+        assertThat(UNDER_TEST.resolve(KNOWN_TOPIC_PATH_SUBJECT1, "action-subject")).contains(KNOWN_SUBJECT);
     }
 
     @Test
     public void testReplaceActionOrSubjectWithWeirdSubject() {
-        assertThat(UNDER_TEST.resolve(KNOWN_TOPIC_PATH_SUBJECT2, "action|subject")).contains(KNOWN_SUBJECT2);
+        assertThat(UNDER_TEST.resolve(KNOWN_TOPIC_PATH_SUBJECT2, "action-subject")).contains(KNOWN_SUBJECT2);
     }
 
     @Test

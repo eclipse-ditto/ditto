@@ -106,7 +106,7 @@ public class MessageMappingProcessorActorTest {
         new TestKit(actorSystem) {{
             final String prefix = "some/topic/";
             final String subject = "some-subject";
-            final String addressWithTopicPlaceholder = prefix + "{{ topic:action|subject }}";
+            final String addressWithTopicPlaceholder = prefix + "{{ topic:action-subject }}";
             final String addressWithSomeOtherPlaceholder = prefix + "{{ eclipse:ditto }}";
             final String expectedTargetAddress = prefix + subject;
             final String fixedAddress = "fixedAddress";
