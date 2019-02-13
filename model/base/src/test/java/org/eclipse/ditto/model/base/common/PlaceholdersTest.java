@@ -22,7 +22,6 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -183,13 +182,12 @@ public class PlaceholdersTest {
     }
 
     @Test
-    @Ignore("TODO TJ check if we must support this test case")
     public void substituteThrowsWhenUnresolvedPlaceholdersRemain() {
         final String nestedPlaceholder = "{{ " + REPLACER_1 + " }}";
 
         assertThatExceptionOfType(DittoRuntimeException.class)
                 .isThrownBy(() -> Placeholders.substitute(nestedPlaceholder, replacerFunction, unresolvedInputHandler))
-                .withMessageContaining("{{ " + REPLACED_1 + " }}");
+                .withMessageContaining("{{ " + REPLACER_1 + " }}");
     }
 
     /**
