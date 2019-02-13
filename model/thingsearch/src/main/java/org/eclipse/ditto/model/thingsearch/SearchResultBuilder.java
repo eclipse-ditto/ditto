@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.model.thingsearch;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonValue;
@@ -35,7 +36,7 @@ public interface SearchResultBuilder {
      * @param nextPageKey the offset of the next page.
      * @return this builder to allow method chaining.
      */
-    SearchResultBuilder nextPageKey(String nextPageKey);
+    SearchResultBuilder nextPageKey(@Nullable String nextPageKey);
 
     /**
      * Adds at least one {@link JsonValue} to the {@code SearchResult} to be built.

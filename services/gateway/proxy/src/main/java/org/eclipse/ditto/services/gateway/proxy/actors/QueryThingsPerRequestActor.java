@@ -121,6 +121,8 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                                 QueryThingsResponse.of(SearchResult.newBuilder()
                                                 .addAll(rtr.getEntity(rtr.getImplementedSchemaVersion()).asArray())
                                                 .nextPageOffset(queryThingsResponse.getSearchResult().getNextPageOffset())
+                                                .nextPageKey(
+                                                        queryThingsResponse.getSearchResult().getNextPageKey().orElse(null))
                                                 .build(),
                                         rtr.getDittoHeaders()
                                 );

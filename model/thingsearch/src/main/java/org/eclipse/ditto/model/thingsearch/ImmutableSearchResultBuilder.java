@@ -12,6 +12,7 @@ package org.eclipse.ditto.model.thingsearch;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -66,7 +67,7 @@ final class ImmutableSearchResultBuilder implements SearchResultBuilder {
     }
 
     @Override
-    public SearchResultBuilder nextPageKey(final String nextPageKey) {
+    public SearchResultBuilder nextPageKey(@Nullable final String nextPageKey) {
         this.nextPageKey = nextPageKey;
         return this;
     }
