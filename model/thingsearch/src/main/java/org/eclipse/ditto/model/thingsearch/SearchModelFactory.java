@@ -10,8 +10,10 @@
  */
 package org.eclipse.ditto.model.thingsearch;
 
+import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
+import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.concurrent.Immutable;
@@ -219,6 +221,21 @@ public final class SearchModelFactory {
      */
     public static SortOption newSortOption(final List<SortOptionEntry> sortOptionEntries) {
         return ImmutableSortOption.of(sortOptionEntries);
+    }
+
+    /**
+     * Creates a new {@link SortOption} with a single entry for the provided {@code order} and {@code propertyPath}.
+     *
+     * @param sortOrder the {@code order} of the SortOptionEntry to create
+     * @param propertyPath the {@code propertyPath} of the SortOptionEntry to create
+     * @return the created SortOption.
+     */
+    public static SortOption newSortOption(final SortOptionEntry.SortOrder sortOrder, final CharSequence propertyPath) {
+        requireNonNull(sortOrder);
+        requireNonNull(propertyPath);
+
+        final SortOptionEntry entry = ImmutableSortOptionEntry.of(sortOrder, propertyPath);
+        return ImmutableSortOption.of(Collections.singletonList(entry));
     }
 
     /**

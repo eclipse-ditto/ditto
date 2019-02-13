@@ -16,6 +16,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Collection;
+import java.util.Collections;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
@@ -202,4 +203,16 @@ public final class SearchModelFactoryTest {
         assertThat(searchQuery).isNotNull();
     }
 
+    @Test
+    public void newSortOptionFromSingleEntry() {
+        final SortOptionEntry.SortOrder sortOrder = SortOptionEntry.SortOrder.DESC;
+        final String propertyPath = THING_ID_KEY;
+
+        final SortOption actual = SearchModelFactory.newSortOption(sortOrder, propertyPath);
+
+        final SortOptionEntry expectedEntry = SearchModelFactory.newSortOptionEntry(sortOrder, propertyPath);
+        final SortOption expected =
+                SearchModelFactory.newSortOption(Collections.singletonList(expectedEntry));
+        assertThat(actual).isEqualTo(expected);
+    }
 }
