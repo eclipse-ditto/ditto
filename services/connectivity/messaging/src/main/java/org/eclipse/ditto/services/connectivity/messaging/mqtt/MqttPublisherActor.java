@@ -165,7 +165,7 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
         } else {
             payload = ByteString.empty();
         }
-        return MqttMessage.create(mqttTarget.getTopic(), payload, qos);
+        return MqttMessage.create(mqttTarget.getTopic(), payload).withQos(qos);
     }
 
     private static Charset determineCharset(final CharSequence contentType) {
