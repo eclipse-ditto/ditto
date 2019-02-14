@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -33,7 +34,8 @@ import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 @Immutable
 final class ImmutableExpressionResolver implements ExpressionResolver {
 
-    private static final String PIPE_PATTERN_STR = "(\\s+\\|\\s+)";
+    private static final String PIPE_PATTERN_STR = "\\s*[\\w\\:\\-]+(\\((((\\'|\\\")[^\\'^\\\"]+(\\'|\\\"))|" +
+            "([\\w\\:\\-]+)|\\s*)\\))*\\s*";
     private static final Pattern PIPE_PATTERN = Pattern.compile(PIPE_PATTERN_STR);
 
     private static final Function<String, DittoRuntimeException> UNRESOLVED_INPUT_HANDLER = unresolvedInput ->
@@ -84,9 +86,17 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
 
         return template -> {
 
-            final List<String> pipelineStagesExpressions = PIPE_PATTERN.splitAsStream(template)
-                    .map(String::trim)
-                    .collect(Collectors.toList());
+            Matcher matcher = PIPE_PATTERN.matcher(template);
+
+            final List<String> pipelineStagesExpressions = new ArrayList<>();
+
+            while(matcher.find()) {
+                pipelineStagesExpressions.add(matcher.group().trim());
+            }
+
+//            final List<String> pipelineStagesExpressions = PIPE_PATTERN.splitAsStream(template)
+//                    .map(String::trim)
+//                    .collect(Collectors.toList());
 
             final String placeholderTemplate =
                     pipelineStagesExpressions.get(0); // the first pipeline stage has to start with a placeholder
