@@ -126,22 +126,12 @@ final class ImmutablePropertyFilter implements PropertySearchFilter {
         final String suffix = ")";
 
         final StringJoiner stringJoiner = new StringJoiner(delimiter, prefix, suffix);
-        // currently search does not allow leading slash, thus remove it
-        final String propertyPathWithoutLeadingSlash = stripLeadingSlash(propertyPath.toString());
-        stringJoiner.add(propertyPathWithoutLeadingSlash);
+        stringJoiner.add(propertyPath.toString());
         values.stream()
                 .map(JsonValue::toString)
                 .forEach(stringJoiner::add);
 
         return stringJoiner.toString();
-    }
-
-    private static String stripLeadingSlash(final String input) {
-        if (input.startsWith("/")) {
-            return input.substring(1);
-        } else {
-            return input;
-        }
     }
 
 }

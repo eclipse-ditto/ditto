@@ -11,7 +11,6 @@
 package org.eclipse.ditto.model.thingsearch;
 
 
-import static org.eclipse.ditto.model.thingsearch.PropertyPathUtil.stripLeadingSlash;
 import static org.eclipse.ditto.model.thingsearch.assertions.DittoSearchAssertions.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -224,8 +223,8 @@ public final class ImmutableSearchQueryBuilderTest {
 
         assertThat(searchQuery)
                 .hasFilter(searchFilter)
-                .hasFilterString("and(eq(" + stripLeadingSlash(test) + ",false)," +
-                        "gt(" + stripLeadingSlash(test1) + ",42.23))")
+                .hasFilterString("and(eq(" + test + ",false)," +
+                        "gt(" + test1 + ",42.23))")
                 .hasOptionsString("limit(0,25),sort(+/attributes/test,-/attributes/test1)");
     }
 

@@ -88,8 +88,7 @@ public final class ParameterOptionVisitor implements OptionVisitor {
     }
 
     private SortFieldExpression determineSortField(final JsonPointer key) {
-        final String name = key.toString().replaceFirst("/", "");
-        return fieldExpressionFactory.sortBy(name);
+        return fieldExpressionFactory.sortBy(key.toString());
     }
 
     private static SortDirection determineSortDirection(final SortOptionEntry.SortOrder order) {
