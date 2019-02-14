@@ -65,9 +65,9 @@ public final class DefaultHealthCheckConfig implements HealthCheckConfig {
      *
      * @param config is supposed to provide the settings of the health check config at {@value #CONFIG_PATH}.
      * @return the instance.
-     * @throws NullPointerException if {@code config} is {@code null}.
-     * @throws com.typesafe.config.ConfigException.WrongType if {@code config} did not contain a nested {@code Config}
-     * for {@value #CONFIG_PATH}.
+     * @throws org.eclipse.ditto.services.base.config.DittoConfigError if {@code config} is {@code null} if the
+     * value of {@code config} at {@code configPath} is not of type
+     * {@link com.typesafe.config.ConfigValueType#OBJECT}.
      */
     public static DefaultHealthCheckConfig of(final Config config) {
         return new DefaultHealthCheckConfig(

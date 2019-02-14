@@ -12,6 +12,7 @@ package org.eclipse.ditto.services.base.config;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Period;
 import java.time.temporal.TemporalAmount;
@@ -25,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.concurrent.Immutable;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigList;
 import com.typesafe.config.ConfigMemorySize;
@@ -52,32 +54,52 @@ public final class ConfigWithFallback implements Config {
      *
      * @param originalConfig the original Config which is supposed to provide a nested Config at {@code configPath} and
      * which will be extended by the fall back config based on {@code fallBackValues}.
-     * @param configPath the path which points to the scope of the returned Config.
+     * @param configPath the path which points to the nested Config to be returned as result of this method.
      * @param fallBackValues base for the fall back which is applied to the original Config within
      * {@code originalConfig} at {@code configPath}.
      * @return the instance.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws com.typesafe.config.ConfigException.WrongType if the value of {@code originalConfig} {@code configPath}
-     * is not of type {@code Config}.
+     * @throws org.eclipse.ditto.services.base.config.DittoConfigError if any argument is {@code null} of if the value
+     * of {@code originalConfig} at {@code configPath} is not of type
+     * {@link com.typesafe.config.ConfigValueType#OBJECT}.
      */
     public static ConfigWithFallback newInstance(final Config originalConfig, final String configPath,
             final KnownConfigValue[] fallBackValues) {
 
-        checkNotNull(originalConfig, "original Config");
-        checkNotNull(configPath, "config path");
+        validateArgument(originalConfig, "original Config");
+        validateArgument(configPath, "config path");
+        validateArgument(fallBackValues, "fall-back values");
 
-        final Config fallbackConfig = arrayToConfig(fallBackValues);
-        Config baseConfig = fallbackConfig;
+        Config baseConfig;
         if (originalConfig.hasPath(configPath)) {
-            baseConfig = originalConfig.getConfig(configPath);
-            baseConfig = baseConfig.withFallback(fallbackConfig);
+            baseConfig = tryToGetAsConfig(originalConfig, configPath);
+        } else {
+            baseConfig = ConfigFactory.empty();
+        }
+        if (0 < fallBackValues.length) {
+            baseConfig = baseConfig.withFallback(arrayToConfig(fallBackValues));
         }
 
         return new ConfigWithFallback(baseConfig);
     }
 
+    private static void validateArgument(final Object argument, final String argumentDescription) {
+        try {
+            checkNotNull(argument, argumentDescription);
+        } catch (final NullPointerException e) {
+            throw new DittoConfigError(e);
+        }
+    }
+
+    private static Config tryToGetAsConfig(final Config originalConfig, final String configPath) {
+        try {
+            return originalConfig.getConfig(configPath);
+        } catch (final ConfigException.WrongType e) {
+            final String msgPattern = "Failed to get nested Config at <{0}>!";
+            throw new DittoConfigError(MessageFormat.format(msgPattern, configPath), e);
+        }
+    }
+
     private static Config arrayToConfig(final KnownConfigValue[] knownConfigValues) {
-        checkNotNull(knownConfigValues, "dittoConfigValues");
         final Map<String, Object> fallbackValues = new HashMap<>(knownConfigValues.length);
         for (final KnownConfigValue knownConfigValue : knownConfigValues) {
             fallbackValues.put(knownConfigValue.getPath(), knownConfigValue.getDefaultValue());
