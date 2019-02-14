@@ -42,13 +42,17 @@ public class PlaceholderFilterTest {
     private static final TopicPath KNOWN_TOPIC_PATH_SUBJECT2 = TopicPath.newBuilder(KNOWN_NAMESPACE + ":" + KNOWN_ID)
             .live().things().messages().subject(KNOWN_SUBJECT2).build();
 
-    private final HeadersPlaceholder headersPlaceholder = PlaceholderFactory.newHeadersPlaceholder();
-    private final ThingPlaceholder thingPlaceholder = PlaceholderFactory.newThingPlaceholder();
-    private final TopicPathPlaceholder topicPlaceholder = PlaceholderFactory.newTopicPathPlaceholder();
+    private static final HeadersPlaceholder headersPlaceholder = PlaceholderFactory.newHeadersPlaceholder();
+    private static final ThingPlaceholder thingPlaceholder = PlaceholderFactory.newThingPlaceholder();
+    private static final TopicPathPlaceholder topicPlaceholder = PlaceholderFactory.newTopicPathPlaceholder();
 
-    private final FilterTuple[] filterChain = new FilterTuple[]{
+    private static final FilterTuple[] filterChain = new FilterTuple[]{
             FilterTuple.of(HEADERS, headersPlaceholder),
             FilterTuple.of(THING_ID, thingPlaceholder)
+    };
+    private static final Placeholder[] placeholders = new Placeholder[]{
+            headersPlaceholder,
+            thingPlaceholder
     };
 
     static {
@@ -66,7 +70,7 @@ public class PlaceholderFilterTest {
                 () -> PlaceholderFilter.apply("{{ header:unknown }}", HEADERS, headersPlaceholder));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
                 () -> PlaceholderFilter.apply("{{ {{  header:device-id  }} }}", HEADERS, headersPlaceholder));
-        assertThat(PlaceholderFilter.apply("eclipse:ditto", HEADERS, headersPlaceholder)).isEqualTo("eclipse:ditto");
+        assertThat(PlaceholderFilter.apply(THING_ID, HEADERS, headersPlaceholder)).isEqualTo(THING_ID);
         assertThat(
                 PlaceholderFilter.apply("eclipse:ditto:{{ header:device-id }}", HEADERS, headersPlaceholder)).isEqualTo(
                 "eclipse:ditto:device-12345");
@@ -81,7 +85,7 @@ public class PlaceholderFilterTest {
                 () -> PlaceholderFilter.apply("{{ header:unknown }}", THING_ID, thingPlaceholder));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
                 () -> PlaceholderFilter.apply("{{ {{  thing:name  }} }}", THING_ID, thingPlaceholder));
-        assertThat(PlaceholderFilter.apply("eclipse:ditto", THING_ID, thingPlaceholder)).isEqualTo("eclipse:ditto");
+        assertThat(PlaceholderFilter.apply(THING_ID, THING_ID, thingPlaceholder)).isEqualTo(THING_ID);
         assertThat(PlaceholderFilter.apply("prefix:{{ thing:namespace }}:{{ thing:name }}:suffix", THING_ID,
                 thingPlaceholder)).isEqualTo("prefix:eclipse:ditto:suffix");
         assertThat(PlaceholderFilter.apply("testTargetAmqpCon4_{{thing:namespace}}:{{thing:name}}", THING_ID,
@@ -173,6 +177,49 @@ public class PlaceholderFilterTest {
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
                 () -> filterChain("{{thing:nam}}espace }}{{  thing:name }}{{header:device-id }}",
                         filterChain));
+    }
+
+    @Test
+    public void testValidate() {
+        // no whitespace
+        PlaceholderFilter.validate("{{thing:namespace}}/{{thing:name}}:{{header:device-id}}", placeholders);
+
+        // multi whitespace
+        PlaceholderFilter.validate("{{  thing:namespace  }}/{{  thing:name  }}:{{  header:device-id  }}", placeholders);
+
+        // mixed whitespace
+        PlaceholderFilter.validate("{{thing:namespace }}/{{  thing:name }}:{{header:device-id }}", placeholders);
+
+        // no separators
+        PlaceholderFilter.validate("{{thing:namespace }}{{  thing:name }}{{header:device-id }}", placeholders);
+
+        // whitespace separators
+        PlaceholderFilter.validate("{{thing:namespace }}  {{  thing:name }}  {{header:device-id }}", placeholders);
+
+        // pre/postfix whitespace
+        PlaceholderFilter.validate("  {{thing:namespace }}{{  thing:name }}{{header:device-id }}  ", placeholders);
+
+        // pre/postfix
+        PlaceholderFilter.validate("-----{{thing:namespace }}{{  thing:name }}{{header:device-id }}-----", placeholders);
+
+        // pre/postfix and separators
+        PlaceholderFilter.validate("-----{{thing:namespace }}///{{  thing:name }}///{{header:device-id }}-----", placeholders);
+    }
+
+    @Test
+    public void testValidateFails() {
+        // illegal braces combinations
+        assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
+                () -> PlaceholderFilter.validate("{{th{{ing:namespace }}{{  thing:name }}{{header:device-id }}", placeholders));
+
+        assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
+                () -> PlaceholderFilter.validate("{{th}}ing:namespace }}{{  thing:name }}{{header:device-id }}", placeholders));
+
+        assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
+                () -> PlaceholderFilter.validate("{{thing:nam{{espace }}{{  thing:name }}{{header:device-id }}", placeholders));
+
+        assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
+                () -> PlaceholderFilter.validate("{{thing:nam}}espace }}{{  thing:name }}{{header:device-id }}", placeholders));
     }
 
     private static String filterChain(final String template, final FilterTuple... tuples) {

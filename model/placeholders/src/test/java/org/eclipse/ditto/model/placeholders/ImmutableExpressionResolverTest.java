@@ -14,9 +14,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
@@ -36,6 +36,11 @@ public class ImmutableExpressionResolverTest {
     private static final String THING_NAME = "foobar199";
     private static final String THING_ID = "org.eclipse.ditto:" + THING_NAME;
     private static final String KNOWN_TOPIC = "org.eclipse.ditto/" + THING_NAME + "/things/twin/commands/modify";
+    private static final Map<String, String> KNOWN_HEADERS =
+            DittoHeaders.newBuilder().putHeader("one", "1").putHeader("two", "2").build();
+    public static final String UNKNOWN_HEADER_EXPRESSION = "{{ header:missing }}";
+    public static final String UNKNOWN_THING_EXPRESSION = "{{ thing:missing }}";
+    public static final String UNKNOWN_TOPIC_EXPRESSION = "{{ topic:missing }}";
 
     private static ImmutableExpressionResolver underTest;
 
@@ -55,70 +60,82 @@ public class ImmutableExpressionResolverTest {
 
     @BeforeClass
     public static void setupClass() {
-        final Map<String, String> inputMap = new HashMap<>();
-        inputMap.put("one", "1");
-        inputMap.put("two", "2");
-
         final TopicPath topic = ProtocolFactory.newTopicPath(KNOWN_TOPIC);
 
-        final ImmutablePlaceholderResolver<Map<String, String>> placeholderResolver1 =
-                new ImmutablePlaceholderResolver<>(
-                        PlaceholderFactory.newHeadersPlaceholder(), inputMap, false);
-        final ImmutablePlaceholderResolver<String> placeholderResolver2 = new ImmutablePlaceholderResolver<>(
+        final ImmutablePlaceholderResolver<Map<String, String>> headersResolver =
+                new ImmutablePlaceholderResolver<>(PlaceholderFactory.newHeadersPlaceholder(), KNOWN_HEADERS, false);
+        final ImmutablePlaceholderResolver<String> thingResolver = new ImmutablePlaceholderResolver<>(
                 PlaceholderFactory.newThingPlaceholder(), THING_ID, false);
-        final ImmutablePlaceholderResolver<TopicPath> placeholderResolver3 = new ImmutablePlaceholderResolver<>(
+        final ImmutablePlaceholderResolver<TopicPath> topicPathResolver = new ImmutablePlaceholderResolver<>(
                 PlaceholderFactory.newTopicPathPlaceholder(), topic, false);
 
-        underTest = new ImmutableExpressionResolver(
-                Arrays.asList(placeholderResolver1, placeholderResolver2, placeholderResolver3));
+        underTest = new ImmutableExpressionResolver(Arrays.asList(headersResolver, thingResolver, topicPathResolver));
     }
 
     @Test
     public void testSuccessfulPlaceholderResolvement() {
 
         assertThat(underTest.resolve("{{ header:one }}", false))
-                .contains("1");
+                .isEqualTo(KNOWN_HEADERS.get("one"));
         assertThat(underTest.resolve("{{ header:two }}", false))
-                .contains("2");
+                .isEqualTo(KNOWN_HEADERS.get("two"));
         assertThat(underTest.resolve("{{ thing:id }}", false))
-                .contains(THING_ID);
+                .isEqualTo(THING_ID);
         assertThat(underTest.resolve("{{ thing:name }}", false))
-                .contains(THING_NAME);
+                .isEqualTo(THING_NAME);
         assertThat(underTest.resolve("{{ topic:full }}", false))
-                .contains(KNOWN_TOPIC);
+                .isEqualTo(KNOWN_TOPIC);
         assertThat(underTest.resolve("{{ topic:entityId }}", false))
-                .contains(THING_NAME);
+                .isEqualTo(THING_NAME);
+
+        // verify different whitespacing
+        assertThat(underTest.resolve("{{topic:entityId }}", false))
+                .isEqualTo(THING_NAME);
+        assertThat(underTest.resolve("{{topic:entityId}}", false))
+                .isEqualTo(THING_NAME);
+        assertThat(underTest.resolve("{{        topic:entityId}}", false))
+                .isEqualTo(THING_NAME);
     }
 
     @Test
     public void testPlaceholderResolvementAllowingUnresolvedPlaceholders() {
 
-        assertThat(underTest.resolve("{{ header:missing }}", true))
-                .contains("{{ header:missing }}");
-        assertThat(underTest.resolve("{{ thing:missing }}", true))
-                .contains("{{ thing:missing }}");
-        assertThat(underTest.resolve("{{ topic:missing }}", true))
-                .contains("{{ topic:missing }}");
+        assertThat(underTest.resolve(UNKNOWN_HEADER_EXPRESSION, true))
+                .isEqualTo(UNKNOWN_HEADER_EXPRESSION);
+        assertThat(underTest.resolve(UNKNOWN_THING_EXPRESSION, true))
+                .isEqualTo(UNKNOWN_THING_EXPRESSION);
+        assertThat(underTest.resolve(UNKNOWN_TOPIC_EXPRESSION, true))
+                .isEqualTo(UNKNOWN_TOPIC_EXPRESSION);
     }
 
     @Test
     public void testUnsuccessfulPlaceholderResolvement() {
 
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(() ->
-                underTest.resolve("{{ header:missing }}", false));
+                underTest.resolve(UNKNOWN_HEADER_EXPRESSION, false));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(() ->
-                underTest.resolve("{{ thing:missing }}", false));
+                underTest.resolve(UNKNOWN_THING_EXPRESSION, false));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(() ->
-                underTest.resolve("{{ topic:missing }}", false));
+                underTest.resolve(UNKNOWN_TOPIC_EXPRESSION, false));
     }
 
     @Test
     public void testSuccessfulFunctionBasedOnPlaceholderInput() {
 
         assertThat(underTest.resolve("{{ header:unknown | fn:default('fallback') }}", false))
-                .contains("fallback");
+                .isEqualTo("fallback");
         assertThat(underTest.resolve("{{ thing:bar | fn:default('bar') | fn:upper() }}", false))
-                .contains("BAR");
+                .isEqualTo("BAR");
+
+        // verify different whitespacing
+        assertThat(underTest.resolve("{{thing:bar |fn:default('bar')| fn:upper() }}", false))
+                .isEqualTo("BAR");
+        assertThat(underTest.resolve("{{    thing:bar |     fn:default('bar')    |fn:upper()}}", false))
+                .isEqualTo("BAR");
+        assertThat(underTest.resolve("{{ thing:bar | fn:default(  'bar'  ) |fn:upper(  ) }}", false))
+                .isEqualTo("BAR");
+        assertThat(underTest.resolve("{{ thing:id | fn:substring-before(\"|\") | fn:default('bAz') | fn:lower() }}", false))
+                .isEqualTo("baz");
     }
 
     @Test
@@ -128,6 +145,24 @@ public class ImmutableExpressionResolverTest {
                 underTest.resolve("{{ header:unknown }}", false));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(() ->
                 underTest.resolve("{{ thing:bar | fn:upper() }}", false));
+    }
+
+    @Test
+    public void testSuccessfulSinglePlaceholderResolvement() {
+        assertThat(underTest.resolveSinglePlaceholder("header:one"))
+                .contains(KNOWN_HEADERS.get("one"));
+        assertThat(underTest.resolveSinglePlaceholder("thing:id"))
+                .contains(THING_ID);
+    }
+
+    @Test
+    public void testUnsuccessfulSinglePlaceholderResolvement() {
+        assertThat(underTest.resolveSinglePlaceholder("header:unknown"))
+                .isEmpty();
+        assertThat(underTest.resolveSinglePlaceholder("fn:default('fallback')"))
+                .isEmpty();
+        assertThat(underTest.resolveSinglePlaceholder("fn:substring-before()"))
+                .isEmpty();
     }
 
 }

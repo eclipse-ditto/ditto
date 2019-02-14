@@ -177,25 +177,8 @@ public abstract class AbstractProtocolValidator {
      */
     protected void validateTemplate(final String template, final DittoHeaders headers,
             final Placeholder<?>... placeholders) {
-        validateTemplate(template, false, headers, placeholders);
-    }
-
-    /**
-     * Validates that the passed {@code template} is both valid and depending on the {@code allowUnresolved} boolean
-     * that the placeholders in the passed {@code template} are completely replaceable by the provided
-     * {@code placeholders}.
-     *
-     * @param template a string potentially containing placeholders to replace
-     * @param allowUnresolved whether to allow if there could be placeholders in the template left unreplaced
-     * @param headers the DittoHeaders to use in order for e.g. building DittoRuntimeExceptions
-     * @param placeholders the {@link Placeholder}s to use for replacement
-     * @throws ConnectionConfigurationInvalidException in case the template's placeholders could not completely be
-     * resolved
-     */
-    protected void validateTemplate(final String template, final boolean allowUnresolved, final DittoHeaders headers,
-            final Placeholder<?>... placeholders) {
         try {
-            PlaceholderFilter.validate(template, allowUnresolved, placeholders);
+            PlaceholderFilter.validate(template, placeholders);
         } catch (final DittoRuntimeException exception) {
             throw ConnectionConfigurationInvalidException
                     .newBuilder(MessageFormat.format(ENFORCEMENT_ERROR_MESSAGE, template,

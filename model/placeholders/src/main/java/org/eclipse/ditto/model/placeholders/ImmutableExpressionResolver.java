@@ -41,8 +41,7 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
 
     private final List<PlaceholderResolver<?>> placeholderResolvers;
 
-    ImmutableExpressionResolver(
-            final List<PlaceholderResolver<?>> placeholderResolvers) {
+    ImmutableExpressionResolver(final List<PlaceholderResolver<?>> placeholderResolvers) {
         this.placeholderResolvers = Collections.unmodifiableList(new ArrayList<>(placeholderResolvers));
     }
 
@@ -58,8 +57,9 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
                     makePlaceholderReplacerFunction(placeholderResolver);
 
             placeholdersIdx++;
+            final boolean isLastPlaceholderResolver = placeholdersIdx == placeholderResolvers.size();
             templateInWork = Placeholders.substitute(templateInWork, placeholderReplacerFunction,
-                    UNRESOLVED_INPUT_HANDLER, placeholdersIdx < placeholderResolvers.size() || allowUnresolved);
+                    UNRESOLVED_INPUT_HANDLER, !isLastPlaceholderResolver || allowUnresolved);
         }
 
         return templateInWork;
@@ -91,10 +91,10 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
             final String placeholderTemplate =
                     pipelineStagesExpressions.get(0); // the first pipeline stage has to start with a placeholder
 
-            final List<String> pipelineStages =
-                    pipelineStagesExpressions.subList(1, pipelineStagesExpressions.size()).stream()
-                            .map(String::trim)
-                            .collect(Collectors.toList());
+            final List<String> pipelineStages = pipelineStagesExpressions.stream()
+                    .skip(1)
+                    .map(String::trim)
+                    .collect(Collectors.toList());
             final Pipeline pipeline = new ImmutablePipeline(ImmutableFunctionExpression.INSTANCE, pipelineStages);
 
             final Optional<String> pipelineInput = resolvePlaceholder(placeholderResolver, placeholderTemplate);
@@ -141,4 +141,5 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
                 "placeholderResolvers=" + placeholderResolvers +
                 "]";
     }
+
 }

@@ -112,7 +112,7 @@ public final class Placeholders {
      * null, instead it should throw a specific exception if a placeholder cannot be replaced.
      * @param unresolvedInputHandler exception handler providing a exception which is thrown when placeholders
      * remain unresolved, e.g. when brackets have the wrong order.
-     * the replaced input, if the input contains placeholders; the (same) input object, if no placeholders were
+     * @return the replaced input, if the input contains placeholders; the (same) input object, if no placeholders were
      * contained in the input.
      * @throws IllegalStateException if {@code placeholderReplacerFunction} returns null
      * @throws DittoRuntimeException the passed in {@code unresolvedInputHandler} will be used in order to throw the

@@ -45,8 +45,7 @@ final class PipelineFunctionSubstringAfter implements PipelineFunction {
     public Optional<String> apply(final Optional<String> value, final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
 
-        final ResolvedFunctionParameter<String> resolvedSubstringBeforeParam =
-                parseAndResolve(paramsIncludingParentheses).get(0);
+        final ResolvedFunctionParameter<String> resolvedSubstringBeforeParam = parseAndResolve(paramsIncludingParentheses);
         final String splitValue = resolvedSubstringBeforeParam.getValue();
 
         return value.map(previousStage -> {
@@ -58,7 +57,7 @@ final class PipelineFunctionSubstringAfter implements PipelineFunction {
         });
     }
 
-    private List<ResolvedFunctionParameter> parseAndResolve(final String paramsIncludingParentheses) {
+    private ResolvedFunctionParameter<String> parseAndResolve(final String paramsIncludingParentheses) {
 
         final ParameterDefinition<String> givenStringParam = getSignature().getParameterDefinition(0);
         final Matcher matcher = OVERALL_PATTERN.matcher(paramsIncludingParentheses);
@@ -67,7 +66,7 @@ final class PipelineFunctionSubstringAfter implements PipelineFunction {
             String constant = matcher.group("singleQuotedConstant");
             constant = constant != null ? constant : matcher.group("doubleQuotedConstant");
             if (constant != null) {
-                return Collections.singletonList(new ResolvedGivenStringParam(givenStringParam, constant));
+                return new ResolvedGivenStringParam(givenStringParam, constant);
             }
         }
 

@@ -47,19 +47,18 @@ final class PipelineFunctionDefault implements PipelineFunction {
     public Optional<String> apply(final Optional<String> value, final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
 
-        // parse + resolve the specified default value:
-        final ResolvedFunctionParameter<String> resolvedDefaultParam =
-                parseAndResolve(paramsIncludingParentheses, expressionResolver).get(0);
-
         if (value.isPresent()) {
             // if previous stage was non-empty: proceed with that
             return value;
         } else {
+            // parse + resolve the specified default value:
+            final ResolvedFunctionParameter<String> resolvedDefaultParam =
+                    parseAndResolve(paramsIncludingParentheses, expressionResolver);
             return Optional.of(resolvedDefaultParam.getValue());
         }
     }
 
-    private List<ResolvedFunctionParameter> parseAndResolve(final String paramsIncludingParentheses,
+    private ResolvedFunctionParameter<String> parseAndResolve(final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
 
         final ParameterDefinition<String> defaultValueParam = getSignature().getParameterDefinition(0);
@@ -69,15 +68,13 @@ final class PipelineFunctionDefault implements PipelineFunction {
             String constant = matcher.group("singleQuotedConstant");
             constant = constant != null ? constant : matcher.group("doubleQuotedConstant");
             if (constant != null) {
-                return Collections.singletonList(
-                        new ResolvedDefaultValueParam(defaultValueParam, constant));
+                return new ResolvedDefaultValueParam(defaultValueParam, constant);
             }
 
             final String placeholder = matcher.group("placeholder");
             if (placeholder != null) {
                 final Optional<String> resolved = expressionResolver.resolveSinglePlaceholder(placeholder);
-                return Collections.singletonList(
-                        new ResolvedDefaultValueParam(defaultValueParam, resolved.orElse(placeholder)));
+                return new ResolvedDefaultValueParam(defaultValueParam, resolved.orElse(placeholder));
             }
         }
 

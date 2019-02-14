@@ -13,9 +13,12 @@ package org.eclipse.ditto.model.placeholders;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
@@ -29,6 +32,13 @@ import nl.jqno.equalsverifier.Warning;
  */
 public class ImmutableFunctionExpressionTest {
 
+    private static final Set<String> EXPECTED_FUNCTION_NAMES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            "default",
+            "substring-before",
+            "substring-after",
+            "lower",
+            "upper"
+    )));
     private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
     private static final ThingPlaceholder THING_PLACEHOLDER = PlaceholderFactory.newThingPlaceholder();
 
@@ -60,13 +70,16 @@ public class ImmutableFunctionExpressionTest {
     }
 
     @Test
-    public void testCompletenessOfRegisteredFunctions() {
+    public void testSupportedNames() {
+        assertThat(UNDER_TEST.getSupportedNames()).containsExactlyInAnyOrder(
+                EXPECTED_FUNCTION_NAMES.toArray(new String[0]));
+    }
 
-        assertThat(UNDER_TEST.supports(PipelineFunctionDefault.FUNCTION_NAME + "(")).isTrue();
-        assertThat(UNDER_TEST.supports(PipelineFunctionSubstringBefore.FUNCTION_NAME + "(")).isTrue();
-        assertThat(UNDER_TEST.supports(PipelineFunctionSubstringAfter.FUNCTION_NAME + "(")).isTrue();
-        assertThat(UNDER_TEST.supports(PipelineFunctionLower.FUNCTION_NAME + "(")).isTrue();
-        assertThat(UNDER_TEST.supports(PipelineFunctionUpper.FUNCTION_NAME + "(")).isTrue();
+    @Test
+    public void testCompletenessOfRegisteredFunctions() {
+        EXPECTED_FUNCTION_NAMES.stream()
+                .map(name -> name + "(")
+                .forEach(fn -> assertThat(UNDER_TEST.supports(fn)).isTrue());
     }
 
     @Test

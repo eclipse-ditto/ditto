@@ -44,20 +44,17 @@ final class PipelineFunctionUpper implements PipelineFunction {
             final ExpressionResolver expressionResolver) {
 
         // check if signature matches (empty params!)
-        parseAndResolve(paramsIncludingParentheses);
+        validateOrThrow(paramsIncludingParentheses);
         return value.map(String::toUpperCase);
     }
 
-    private List<ResolvedFunctionParameter> parseAndResolve(final String paramsIncludingParentheses) {
+    private void validateOrThrow(final String paramsIncludingParentheses) {
 
         final Matcher matcher = OVERALL_PATTERN.matcher(paramsIncludingParentheses);
-        if (matcher.matches()) {
-
-            return Collections.emptyList();
+        if (!matcher.matches()) {
+            throw PlaceholderFunctionSignatureInvalidException.newBuilder(paramsIncludingParentheses, this)
+                    .build();
         }
-
-        throw PlaceholderFunctionSignatureInvalidException.newBuilder(paramsIncludingParentheses, this)
-                .build();
     }
 
     /**

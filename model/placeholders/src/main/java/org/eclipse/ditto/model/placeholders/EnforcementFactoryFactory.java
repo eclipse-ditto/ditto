@@ -43,8 +43,7 @@ public final class EnforcementFactoryFactory {
      */
     public static <O> EnforcementFilterFactory<O, String> newEnforcementFilterFactory(final Enforcement enforcement,
             final Placeholder<O> inputFilter) {
-        return new ImmutableEnforcementFilterFactory<>(enforcement, inputFilter,
-                PlaceholderFactory.newThingPlaceholder());
+        return newEnforcementFilterFactory(enforcement, inputFilter, PlaceholderFactory.newThingPlaceholder());
     }
 
     private EnforcementFactoryFactory() {

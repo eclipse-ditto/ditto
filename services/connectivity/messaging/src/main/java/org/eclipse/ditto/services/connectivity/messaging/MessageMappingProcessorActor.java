@@ -384,7 +384,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     static final class PlaceholderInTargetAddressSubstitution
             implements BiFunction<OutboundSignal, ExternalMessage, OutboundSignal.WithExternalMessage> {
 
-        private static final HeadersPlaceholder HEADER_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
+        private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
         private static final ThingPlaceholder THING_PLACEHOLDER = PlaceholderFactory.newThingPlaceholder();
         private static final TopicPathPlaceholder TOPIC_PLACEHOLDER = PlaceholderFactory.newTopicPathPlaceholder();
 
@@ -404,7 +404,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                     .anyMatch(t -> Placeholders.containsAnyPlaceholder(t.getAddress()))) {
 
                 final ExpressionResolver expressionResolver = PlaceholderFactory.newExpressionResolver(
-                        PlaceholderFactory.newPlaceholderResolver(HEADER_PLACEHOLDER, externalMessage.getHeaders()),
+                        PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, externalMessage.getHeaders()),
                         PlaceholderFactory.newPlaceholderResolver(THING_PLACEHOLDER, outboundSignal.getSource().getId()),
                         PlaceholderFactory.newPlaceholderResolver(TOPIC_PLACEHOLDER, topicPathOpt.orElse(null))
                 );

@@ -22,7 +22,7 @@ public interface Placeholder<T> extends Expression {
     /**
      * Resolves the placeholder variable by name.
      *
-     * @param placeholderSource the source from which to the placeholder is resolved
+     * @param placeholderSource the source from which to the placeholder is resolved, e.g. a Thing id.
      * @param name the placeholder variable name (i. e., the part after ':').
      * @return value of the placeholder variable if the placeholder name is supported, or an empty optional otherwise.
      */

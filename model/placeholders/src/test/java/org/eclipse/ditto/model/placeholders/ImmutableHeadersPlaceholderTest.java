@@ -15,6 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 import org.mutabilitydetector.unittesting.MutabilityMatchers;
@@ -32,7 +33,8 @@ public class ImmutableHeadersPlaceholderTest {
 
     private static final String DEVICE_ID = "eclipse:ditto:device1234";
 
-    static {
+    @BeforeClass
+    public static void setUp() {
         HEADERS.put("device_id", DEVICE_ID);
         HEADERS.put("correlation_id", "4205833931151659498");
     }

@@ -160,17 +160,14 @@ public final class PlaceholderFilter {
     }
 
     /**
-     * Validates that the passed {@code template} is both valid and depending on the {@code allowUnresolved} boolean
-     * that the placeholders in the passed {@code template} are completely replaceable by the provided
-     * {@code placeholders}.
+     * Validates that the passed {@code template} is valid and that the placeholders in the passed {@code template}
+     * are completely replaceable by the provided {@code placeholders}.
      *
      * @param template a string potentially containing placeholders to replace
-     * @param allowUnresolved whether to allow if there could be placeholders in the template left unreplaced
      * @param placeholders the {@link Placeholder}s to use for replacement
      * @throws UnresolvedPlaceholderException in case the template's placeholders could not completely be resolved
      */
-    public static void validate(final String template, final boolean allowUnresolved,
-            final Placeholder<?>... placeholders) {
+    public static void validate(final String template, final Placeholder<?>... placeholders) {
         String replaced = template;
         for (int i = 0; i < placeholders.length; i++) {
             boolean isNotLastPlaceholder = i < placeholders.length - 1;
@@ -178,7 +175,7 @@ public final class PlaceholderFilter {
             final ExpressionResolver expressionResolver = PlaceholderFactory
                     .newExpressionResolverForValidation(thePlaceholder);
 
-            replaced = doApply(replaced, expressionResolver, allowUnresolved || isNotLastPlaceholder);
+            replaced = doApply(replaced, expressionResolver, isNotLastPlaceholder);
         }
     }
 
@@ -186,9 +183,7 @@ public final class PlaceholderFilter {
             final ExpressionResolver expressionResolver,
             final boolean allowUnresolved) {
 
-        String templateInWork = template;
-        templateInWork = expressionResolver.resolve(templateInWork, allowUnresolved);
-        return templateInWork;
+        return expressionResolver.resolve(template, allowUnresolved);
     }
 
     static String checkAllPlaceholdersResolved(final String input) {

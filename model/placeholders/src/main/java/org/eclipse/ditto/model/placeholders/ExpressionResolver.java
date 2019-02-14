@@ -32,7 +32,7 @@ import java.util.Optional;
 public interface ExpressionResolver {
 
     /**
-     * Resolves a complete expression template starting with a {@link Placeholder}s followed by optional pipeline stages
+     * Resolves a complete expression template starting with a {@link Placeholder} followed by optional pipeline stages
      * (e.g. functions).
      *
      * @param expressionTemplate the expressionTemplate to resolve {@link Placeholder}s and and execute optional
