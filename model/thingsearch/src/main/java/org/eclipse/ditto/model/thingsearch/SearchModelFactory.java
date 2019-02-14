@@ -226,15 +226,15 @@ public final class SearchModelFactory {
     /**
      * Creates a new {@link SortOption} with a single entry for the provided {@code order} and {@code propertyPath}.
      *
-     * @param sortOrder the {@code order} of the SortOptionEntry to create
      * @param propertyPath the {@code propertyPath} of the SortOptionEntry to create
+     * @param sortOrder the {@code order} of the SortOptionEntry to create
      * @return the created SortOption.
      */
-    public static SortOption newSortOption(final SortOptionEntry.SortOrder sortOrder, final CharSequence propertyPath) {
+    public static SortOption newSortOption(final CharSequence propertyPath, final SortOptionEntry.SortOrder sortOrder) {
         requireNonNull(sortOrder);
         requireNonNull(propertyPath);
 
-        final SortOptionEntry entry = ImmutableSortOptionEntry.of(sortOrder, propertyPath);
+        final SortOptionEntry entry = ImmutableSortOptionEntry.of(propertyPath, sortOrder);
         return ImmutableSortOption.of(Collections.singletonList(entry));
     }
 
@@ -244,10 +244,25 @@ public final class SearchModelFactory {
      * @param sortOrder the {@code order} of the SortOptionEntry to create
      * @param propertyPath the {@code propertyPath} of the SortOptionEntry to create
      * @return the created SortOption.
+     * @deprecated Please use {@link #newSortOptionEntry(CharSequence, SortOptionEntry.SortOrder)} instead.
      */
+    @Deprecated
     public static SortOptionEntry newSortOptionEntry(final SortOptionEntry.SortOrder sortOrder,
             final CharSequence propertyPath) {
-        return ImmutableSortOptionEntry.of(sortOrder, propertyPath);
+        return newSortOptionEntry(propertyPath, sortOrder);
+    }
+
+    /**
+     * Creates a new {@link SortOptionEntry} for the provided {@code order} and {@code propertyPath}.
+     *
+     * @param propertyPath the {@code propertyPath} of the SortOptionEntry to create
+     * @param sortOrder the {@code order} of the SortOptionEntry to create
+     * @return the created SortOption.
+     */
+    public static SortOptionEntry newSortOptionEntry(final CharSequence propertyPath,
+            final SortOptionEntry.SortOrder sortOrder) {
+
+        return ImmutableSortOptionEntry.of(propertyPath, sortOrder);
     }
 
     /**

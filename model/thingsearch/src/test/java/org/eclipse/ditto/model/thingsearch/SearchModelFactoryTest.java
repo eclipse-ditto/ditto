@@ -208,9 +208,9 @@ public final class SearchModelFactoryTest {
         final SortOptionEntry.SortOrder sortOrder = SortOptionEntry.SortOrder.DESC;
         final String propertyPath = THING_ID_KEY;
 
-        final SortOption actual = SearchModelFactory.newSortOption(sortOrder, propertyPath);
+        final SortOption actual = SearchModelFactory.newSortOption(propertyPath, sortOrder);
 
-        final SortOptionEntry expectedEntry = SearchModelFactory.newSortOptionEntry(sortOrder, propertyPath);
+        final SortOptionEntry expectedEntry = SearchModelFactory.newSortOptionEntry(propertyPath, sortOrder);
         final SortOption expected =
                 SearchModelFactory.newSortOption(Collections.singletonList(expectedEntry));
         assertThat(actual).isEqualTo(expected);

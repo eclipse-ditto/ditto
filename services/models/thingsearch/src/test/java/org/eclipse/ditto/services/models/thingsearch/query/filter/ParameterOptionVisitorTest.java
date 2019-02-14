@@ -88,7 +88,7 @@ public final class ParameterOptionVisitorTest {
     @Test
     public void visitSortOptionWithSingleSortOption() {
         // prepare
-        final SortOption sortOption = SearchModelFactory.newSortOption(SortOptionEntry.SortOrder.ASC, POINTER_1);
+        final SortOption sortOption = SearchModelFactory.newSortOption(POINTER_1, SortOptionEntry.SortOrder.ASC);
 
         // test
         visitor.visitAll(Collections.singletonList(sortOption));
@@ -105,7 +105,8 @@ public final class ParameterOptionVisitorTest {
     public void visitUnsupportedSortExpression() {
         // prepare
         final JsonPointer unsupportedProperty = JsonPointer.of("unsupportedExpr");
-        final SortOption sortOption = SearchModelFactory.newSortOption(SortOptionEntry.SortOrder.ASC, unsupportedProperty);
+        final SortOption sortOption = SearchModelFactory.newSortOption(unsupportedProperty,
+                SortOptionEntry.SortOrder.ASC);
 
         when(exprFactoryMock.sortBy(unsupportedProperty.toString()))
                 .thenThrow(new IllegalArgumentException("Unsupported expr"));

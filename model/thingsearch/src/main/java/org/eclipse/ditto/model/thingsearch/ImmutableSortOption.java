@@ -65,7 +65,7 @@ final class ImmutableSortOption implements SortOption {
 
     @Override
     public SortOption add(final CharSequence propertyPath, final SortOptionEntry.SortOrder order) {
-        return add(new ImmutableSortOptionEntry(order, propertyPath));
+        return add(new ImmutableSortOptionEntry(propertyPath, order));
     }
 
     @Override
