@@ -28,6 +28,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.services.base.config.LimitsConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
+import org.eclipse.ditto.services.base.config.SuffixBuilderConfig;
 import org.eclipse.ditto.services.base.config.SuffixBuilderConfigReader;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
@@ -158,7 +159,9 @@ public abstract class DittoService<C extends ServiceConfigReader> {
 
     private void configureMongoDbSuffixBuilder() {
         final SuffixBuilderConfigReader suffixBuilderConfigReader = configReader.mongoCollectionNameSuffix();
-        suffixBuilderConfigReader.getSuffixBuilderConfig().ifPresent(NamespaceSuffixCollectionNames::setConfig);
+        suffixBuilderConfigReader.getSuffixBuilderConfig()
+                .map(SuffixBuilderConfig::getSupportedPrefixes)
+                .ifPresent(NamespaceSuffixCollectionNames::setSupportedPrefixes);
     }
 
     private void startKamon() {

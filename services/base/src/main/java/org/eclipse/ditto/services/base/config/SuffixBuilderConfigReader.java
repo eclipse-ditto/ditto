@@ -17,7 +17,6 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.utils.config.AbstractConfigReader;
-import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.SuffixBuilderConfig;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -31,7 +30,7 @@ public final class SuffixBuilderConfigReader extends AbstractConfigReader {
 
     private static final String PATH = "akka.contrib.persistence.mongodb.mongo.suffix-builder";
 
-    @Nullable private final SuffixBuilderConfig suffixBuilderConfig;
+    @Nullable private final DefaultSuffixBuilderConfig suffixBuilderConfig;
 
     /**
      * Creates a AbstractConfigReader.
@@ -50,7 +49,7 @@ public final class SuffixBuilderConfigReader extends AbstractConfigReader {
 
         if (enabled) {
             verifyClassIsAvailableInClasspath(extractorClass);
-            this.suffixBuilderConfig = new SuffixBuilderConfig(supportedPrefixes);
+            suffixBuilderConfig = DefaultSuffixBuilderConfig.of(supportedPrefixes);
         } else {
             suffixBuilderConfig = null;
         }
@@ -70,9 +69,9 @@ public final class SuffixBuilderConfigReader extends AbstractConfigReader {
     }
 
     /**
-     * @return the {@link SuffixBuilderConfig} which is used in this reader.
+     * @return the {@link DefaultSuffixBuilderConfig} which is used in this reader.
      */
-    public Optional<SuffixBuilderConfig> getSuffixBuilderConfig() {
+    public Optional<DefaultSuffixBuilderConfig> getSuffixBuilderConfig() {
         if (suffixBuilderConfig == null) {
             return Optional.empty();
         } else {
@@ -80,10 +79,10 @@ public final class SuffixBuilderConfigReader extends AbstractConfigReader {
         }
     }
 
-    private void verifyClassIsAvailableInClasspath(String className) {
+    private static void verifyClassIsAvailableInClasspath(final String className) {
         try {
             Class.forName(className);
-        } catch (ClassNotFoundException | NoClassDefFoundError e) {
+        } catch (final ClassNotFoundException | NoClassDefFoundError e) {
             final String fullQualifiedPropertyName = PATH + "." + "class";
             final String message = String.format(
                     "The configured class to extract namespace suffixes <%s> is not available in the classpath." +
@@ -94,4 +93,5 @@ public final class SuffixBuilderConfigReader extends AbstractConfigReader {
             throw new ConfigurationException(message);
         }
     }
+
 }
