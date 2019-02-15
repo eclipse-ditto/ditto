@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
@@ -15,18 +15,44 @@ import java.time.Duration;
 import javax.annotation.concurrent.Immutable;
 
 /**
- * TODO Javadoc
+ * Provides the common configuration settings of each Ditto service.
+ * This interface is the base of all service specific configuration settings.
  */
 public interface ServiceSpecificConfig {
 
+    /**
+     * Returns the cluster config.
+     *
+     * @return the cluster config.
+     */
     ClusterConfig getClusterConfig();
 
+    /**
+     * Returns the health check config.
+     *
+     * @return the health check config.
+     */
     HealthCheckConfig getHealthCheckConfig();
 
+    /**
+     * Returns the limits config.
+     *
+     * @return the limits config.
+     */
     LimitsConfig getLimitsConfig();
 
+    /**
+     * Returns the HTTP config.
+     *
+     * @return the HTTP config.
+     */
     HttpConfig getHttpConfig();
 
+    /**
+     * Returns the metrics config.
+     *
+     * @return the metrics config.
+     */
     MetricsConfig getMetricsConfig();
 
     /**
