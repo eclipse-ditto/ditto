@@ -5,9 +5,9 @@ metadata:
 spec:
   clusterIP: None
   ports:
-  - port: 27017
-    targetPort: 27017
-    protocol: TCP
+    - port: 27017
+      targetPort: 27017
+      protocol: TCP
   selector:
     app: mongodb
 ---
@@ -22,15 +22,17 @@ spec:
         app: mongodb
     spec:
       containers:
-      - name: mongodb
-        image: docker.io/mongo:3.6
-        command:
-          - mongod
-          - --storageEngine
-          - wiredTiger
-          - --noscripting
-        ports:
-          - containerPort: 27017
-        env:
-        - name: TZ
-          value: Europe/Berlin
+        - name: mongodb
+          image: docker.io/mongo:3.6
+          command:
+            - mongod
+            - --storageEngine
+            - wiredTiger
+            - --noscripting
+            - --bind_ip
+            - "0.0.0.0"
+          ports:
+            - containerPort: 27017
+          env:
+            - name: TZ
+              value: Europe/Berlin
