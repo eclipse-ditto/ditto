@@ -23,6 +23,9 @@ import com.typesafe.config.Config;
 @Immutable
 public final class DefaultMongoDbConfig implements MongoDbConfig {
 
+    /**
+     * An enumeration of known value paths and associated default values of the MongoDbConfig.
+     */
     enum MongoDbConfigValue implements KnownConfigValue {
 
         MAX_QUERY_TIME("maxQueryTime", "60s");
