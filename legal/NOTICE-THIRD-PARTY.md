@@ -144,14 +144,6 @@
  * Source: https://github.com/rabbitmq/rabbitmq-java-client
 
 
-## config (1.3.1)
-
- * Maven coordinates: `com.typesafe:config:1.3.1`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/typesafehub/config
- * Source: https://github.com/typesafehub/config
-
-
 ## config (1.3.3)
 
  * Maven coordinates: `com.typesafe:config:1.3.3`
@@ -267,6 +259,14 @@
 ## akka-persistence-query (2.5.21)
 
  * Maven coordinates: `com.typesafe.akka:akka-persistence-query_2.12:2.5.21`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: http://akka.io/
+ * Source: https://github.com/akka/akka
+
+
+## akka-persistence (2.5.1)
+
+ * Maven coordinates: `com.typesafe.akka:akka-persistence_2.12:2.5.1`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: http://akka.io/
  * Source: https://github.com/akka/akka
@@ -440,129 +440,81 @@
  * Source: https://github.com/netty/netty
 
 
-## Netty/Buffer (4.1.27.Final)
+## Netty/Buffer (4.1.32.Final)
 
- * Maven coordinates: `io.netty:netty-buffer:4.1.27.Final`
+ * Maven coordinates: `io.netty:netty-buffer:4.1.32.Final`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: http://netty.io/netty-buffer/
  * Source: https://github.com/netty/netty/netty-buffer
 
 
-## Netty/Buffer (4.1.31.Final)
+## Netty/Codec (4.1.32.Final)
 
- * Maven coordinates: `io.netty:netty-buffer:4.1.31.Final`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://netty.io/netty-buffer/
- * Source: https://github.com/netty/netty/netty-buffer
-
-
-## Netty/Codec (4.1.27.Final)
-
- * Maven coordinates: `io.netty:netty-codec:4.1.27.Final`
+ * Maven coordinates: `io.netty:netty-codec:4.1.32.Final`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: http://netty.io/netty-codec/
  * Source: https://github.com/netty/netty/netty-codec
 
 
-## Netty/Codec (4.1.31.Final)
+## Netty/Codec/HTTP (4.1.32.Final)
 
- * Maven coordinates: `io.netty:netty-codec:4.1.31.Final`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://netty.io/netty-codec/
- * Source: https://github.com/netty/netty/netty-codec
-
-
-## Netty/Codec/HTTP (4.1.31.Final)
-
- * Maven coordinates: `io.netty:netty-codec-http:4.1.31.Final`
+ * Maven coordinates: `io.netty:netty-codec-http:4.1.32.Final`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: http://netty.io/netty-codec-http/
  * Source: https://github.com/netty/netty/netty-codec-http
 
 
-## Netty/Common (4.1.27.Final)
+## Netty/Common (4.1.32.Final)
 
- * Maven coordinates: `io.netty:netty-common:4.1.27.Final`
+ * Maven coordinates: `io.netty:netty-common:4.1.32.Final`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: http://netty.io/netty-common/
  * Source: https://github.com/netty/netty/netty-common
 
 
-## Netty/Common (4.1.31.Final)
+## Netty/Handler (4.1.32.Final)
 
- * Maven coordinates: `io.netty:netty-common:4.1.31.Final`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://netty.io/netty-common/
- * Source: https://github.com/netty/netty/netty-common
-
-
-## Netty/Handler (4.1.27.Final)
-
- * Maven coordinates: `io.netty:netty-handler:4.1.27.Final`
+ * Maven coordinates: `io.netty:netty-handler:4.1.32.Final`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: http://netty.io/netty-handler/
  * Source: https://github.com/netty/netty/netty-handler
 
 
-## Netty/Handler (4.1.31.Final)
+## Netty/Resolver (4.1.32.Final)
 
- * Maven coordinates: `io.netty:netty-handler:4.1.31.Final`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://netty.io/netty-handler/
- * Source: https://github.com/netty/netty/netty-handler
-
-
-## Netty/Resolver (4.1.27.Final)
-
- * Maven coordinates: `io.netty:netty-resolver:4.1.27.Final`
+ * Maven coordinates: `io.netty:netty-resolver:4.1.32.Final`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: http://netty.io/netty-resolver/
  * Source: https://github.com/netty/netty/netty-resolver
 
 
-## Netty/Resolver (4.1.31.Final)
+## Netty/Transport (4.1.32.Final)
 
- * Maven coordinates: `io.netty:netty-resolver:4.1.31.Final`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://netty.io/netty-resolver/
- * Source: https://github.com/netty/netty/netty-resolver
-
-
-## Netty/Transport (4.1.27.Final)
-
- * Maven coordinates: `io.netty:netty-transport:4.1.27.Final`
+ * Maven coordinates: `io.netty:netty-transport:4.1.32.Final`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: http://netty.io/netty-transport/
  * Source: https://github.com/netty/netty/netty-transport
 
 
-## Netty/Transport (4.1.31.Final)
+## Netty/Transport/Native/Epoll (4.1.32.Final)
 
- * Maven coordinates: `io.netty:netty-transport:4.1.31.Final`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://netty.io/netty-transport/
- * Source: https://github.com/netty/netty/netty-transport
-
-
-## Netty/Transport/Native/Epoll (4.1.31.Final)
-
- * Maven coordinates: `io.netty:netty-transport-native-epoll:4.1.31.Final`
+ * Maven coordinates: `io.netty:netty-transport-native-epoll:4.1.32.Final`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: http://netty.io/netty-transport-native-epoll/
  * Source: https://github.com/netty/netty/netty-transport-native-epoll
 
 
-## Netty/Transport/Native/KQueue (4.1.31.Final)
+## Netty/Transport/Native/KQueue (4.1.32.Final)
 
- * Maven coordinates: `io.netty:netty-transport-native-kqueue:4.1.31.Final`
+ * Maven coordinates: `io.netty:netty-transport-native-kqueue:4.1.32.Final`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: http://netty.io/netty-transport-native-kqueue/
  * Source: https://github.com/netty/netty/netty-transport-native-kqueue
 
 
-## Netty/Transport/Native/Unix/Common (4.1.31.Final)
+## Netty/Transport/Native/Unix/Common (4.1.32.Final)
 
- * Maven coordinates: `io.netty:netty-transport-native-unix-common:4.1.31.Final`
+ * Maven coordinates: `io.netty:netty-transport-native-unix-common:4.1.32.Final`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: http://netty.io/netty-transport-native-unix-common/
  * Source: https://github.com/netty/netty/netty-transport-native-unix-common
@@ -616,12 +568,12 @@
  * Source: https://git-wip-us.apache.org/repos/asf?p=qpid-proton-j/proton-j
 
 
-## QpidJMS Client (0.39.0)
+## QpidJMS Client (0.40.0)
 
- * Maven coordinates: `org.apache.qpid:qpid-jms-client:0.39.0`
+ * Maven coordinates: `org.apache.qpid:qpid-jms-client:0.40.0`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://qpid.apache.org/qpid-jms-client
- * Source: https://git-wip-us.apache.org/repos/asf?p=qpid-jms/qpid-jms-client
+ * Source: https://gitbox.apache.org/repos/asf?p=qpid-jms/qpid-jms-client
 
 
 ## Atteo Class Index (3.6)
@@ -830,6 +782,14 @@
  * License: [BSD-3-Clause](licenses/BSD-3-Clause.txt)
  * Project: http://www.scala-lang.org/
  * Source: https://github.com/scala/scala-parser-combinators
+
+
+## SLF4J API Module (1.7.10)
+
+ * Maven coordinates: `org.slf4j:slf4j-api:1.7.10`
+ * License: [MIT](licenses/MIT.txt)
+ * Project: http://www.slf4j.org
+ * Source: https://github.com/ceki/slf4j/slf4j-api
 
 
 ## SLF4J API Module (1.7.25)

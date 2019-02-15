@@ -41,22 +41,22 @@
    io.kamon:kamon-core_2.12:jar:1.1.2:compile
    io.kamon:kamon-prometheus_2.12:jar:1.1.1:compile
    io.kamon:kamon-system-metrics_2.12:jar:1.0.0:compile
-   io.netty:netty-buffer:jar:4.1.27.Final:compile
-   io.netty:netty-codec-http:jar:4.1.27.Final:compile
-   io.netty:netty-codec:jar:4.1.27.Final:compile
-   io.netty:netty-common:jar:4.1.27.Final:compile
-   io.netty:netty-handler:jar:4.1.27.Final:compile
-   io.netty:netty-resolver:jar:4.1.27.Final:compile
-   io.netty:netty-transport:jar:4.1.27.Final:compile
-   io.netty:netty-transport-native-epoll:jar:linux-x86_64:4.1.27.Final:compile
-   io.netty:netty-transport-native-kqueue:jar:osx-x86_64:4.1.27.Final:compile
-   io.netty:netty-transport-native-unix-common:jar:4.1.27.Final:compile
+   io.netty:netty-buffer:jar:4.1.32.Final:compile
+   io.netty:netty-codec-http:jar:4.1.32.Final:compile
+   io.netty:netty-codec:jar:4.1.32.Final:compile
+   io.netty:netty-common:jar:4.1.32.Final:compile
+   io.netty:netty-handler:jar:4.1.32.Final:compile
+   io.netty:netty-resolver:jar:4.1.32.Final:compile
+   io.netty:netty-transport:jar:4.1.32.Final:compile
+   io.netty:netty-transport-native-epoll:jar:linux-x86_64:4.1.32.Final:compile
+   io.netty:netty-transport-native-kqueue:jar:osx-x86_64:4.1.32.Final:compile
+   io.netty:netty-transport-native-unix-common:jar:4.1.32.Final:compile
    io.spray:spray-json_2.12:jar:1.3.3:compile
    nl.grons:metrics-scala_2.12:jar:3.5.5_a2.4:compile
    org.agrona:agrona:jar:0.9.31:compile
    org.apache.geronimo.specs:geronimo-jms_2.0_spec:jar:1.0-alpha-2:compile
    org.apache.qpid:proton-j:jar:0.31.0:compile
-   org.apache.qpid:qpid-jms-client:jar:0.39.0:compile
+   org.apache.qpid:qpid-jms-client:jar:0.40.0:compile
    org.atteo.classindex:classindex:jar:3.6:compile
    org.eclipse.paho:org.eclipse.paho.client.mqttv3:jar:1.2.0:compile
    org.hdrhistogram:HdrHistogram:jar:2.1.9:compile
