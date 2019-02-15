@@ -10,27 +10,23 @@
  */
 package org.eclipse.ditto.services.concierge.starter;
 
-import java.util.function.Function;
-
-import org.eclipse.ditto.services.base.DittoService;
+import org.eclipse.ditto.services.base.DittoServiceTng;
 import org.eclipse.ditto.services.concierge.starter.actors.ConciergeRootActor;
-import org.eclipse.ditto.services.concierge.util.config.AbstractConciergeConfigReader;
+import org.eclipse.ditto.services.concierge.util.config.ConciergeConfig;
 import org.slf4j.Logger;
-
-import com.typesafe.config.Config;
 
 /**
  * Abstract base implementation for starting a concierge service with configurable actors.
  */
-public abstract class AbstractConciergeService<C extends AbstractConciergeConfigReader> extends DittoService<C> {
+public abstract class AbstractConciergeService<C extends ConciergeConfig> extends DittoServiceTng<C> {
 
     /**
      * Name for the Akka actor system.
      */
     protected static final String SERVICE_NAME = "concierge";
 
-    protected AbstractConciergeService(final Logger logger, final Function<Config, C> configReaderCreator) {
-        super(logger, SERVICE_NAME, ConciergeRootActor.ACTOR_NAME, configReaderCreator);
+    protected AbstractConciergeService(final Logger logger) {
+        super(logger, SERVICE_NAME, ConciergeRootActor.ACTOR_NAME);
     }
 
 }

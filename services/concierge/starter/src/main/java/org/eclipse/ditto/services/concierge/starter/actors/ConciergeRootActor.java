@@ -12,7 +12,7 @@ package org.eclipse.ditto.services.concierge.starter.actors;
 
 import static akka.http.javadsl.server.Directives.logRequest;
 import static akka.http.javadsl.server.Directives.logResult;
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.net.ConnectException;
 import java.time.Duration;
@@ -20,11 +20,11 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.services.base.config.HealthConfigReader;
-import org.eclipse.ditto.services.base.config.HttpConfigReader;
+import org.eclipse.ditto.services.base.config.ServiceSpecificConfig;
 import org.eclipse.ditto.services.concierge.batch.actors.BatchSupervisorActor;
 import org.eclipse.ditto.services.concierge.starter.proxy.AbstractEnforcerActorFactory;
-import org.eclipse.ditto.services.concierge.util.config.AbstractConciergeConfigReader;
+import org.eclipse.ditto.services.concierge.starter.proxy.AbstractEnforcerActorFactoryTng;
+import org.eclipse.ditto.services.concierge.util.config.ConciergeConfig;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -52,9 +52,6 @@ import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.cluster.sharding.ShardRegion;
-import akka.cluster.singleton.ClusterSingletonManager;
-import akka.cluster.singleton.ClusterSingletonManagerSettings;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
@@ -128,20 +125,15 @@ public final class ConciergeRootActor extends AbstractActor {
 
     private final RetrieveStatisticsDetailsResponseSupplier retrieveStatisticsDetailsResponseSupplier;
 
-    private <C extends AbstractConciergeConfigReader> ConciergeRootActor(final C configReader,
+    private <C extends ConciergeConfig> ConciergeRootActor(final C conciergeConfig,
             final ActorRef pubSubMediator,
-            final AbstractEnforcerActorFactory<C> authorizationProxyPropsFactory,
+            final AbstractEnforcerActorFactoryTng<C> authorizationProxyPropsFactory,
             final ActorMaterializer materializer) {
-
-        requireNonNull(configReader);
-        requireNonNull(pubSubMediator);
-        requireNonNull(authorizationProxyPropsFactory);
-        requireNonNull(materializer);
 
         final ActorContext context = getContext();
 
         final ActorRef conciergeShardRegion =
-                authorizationProxyPropsFactory.startEnforcerActor(context, configReader, pubSubMediator);
+                authorizationProxyPropsFactory.startEnforcerActor(context, conciergeConfig, pubSubMediator);
 
         retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(conciergeShardRegion,
                 ConciergeMessagingConstants.SHARD_REGION, log);
@@ -155,29 +147,33 @@ public final class ConciergeRootActor extends AbstractActor {
         startClusterSingletonActor(context, BatchSupervisorActor.ACTOR_NAME,
                 BatchSupervisorActor.props(pubSubMediator, conciergeForwarder));
 
-        final ActorRef healthCheckingActor = startHealthCheckingActor(context, configReader);
+        final ActorRef healthCheckingActor = startHealthCheckingActor(context, conciergeConfig.getHealthCheckConfig());
 
-        final HttpConfigReader httpConfig = configReader.http();
-
-        bindHttpStatusRoute(healthCheckingActor, httpConfig, materializer);
+        bindHttpStatusRoute(healthCheckingActor, conciergeConfig.getHttpConfig(), materializer);
     }
 
     /**
      * Creates Akka configuration object Props for this actor.
      *
-     * @param configReader the config reader.
+     * @param conciergeConfig the config of Concierge.
      * @param pubSubMediator the PubSub mediator Actor.
      * @param authorizationProxyPropsFactory the {@link AbstractEnforcerActorFactory}.
      * @param materializer the materializer for the Akka actor system.
      * @return the Akka configuration Props object.
+     * @throws NullPointerException if any argument is {@code null}.
      */
-    public static <C extends AbstractConciergeConfigReader> Props props(final C configReader,
+    public static <C extends ConciergeConfig> Props props(final C conciergeConfig,
             final ActorRef pubSubMediator,
-            final AbstractEnforcerActorFactory<C> authorizationProxyPropsFactory,
+            final AbstractEnforcerActorFactoryTng<C> authorizationProxyPropsFactory,
             final ActorMaterializer materializer) {
 
+        checkNotNull(conciergeConfig, "config of Concierge");
+        checkNotNull(pubSubMediator, "pub-sub mediator");
+        checkNotNull(authorizationProxyPropsFactory, "EnforcerActor factory");
+        checkNotNull(materializer, "ActorMaterializer");
+
         return Props.create(ConciergeRootActor.class,
-                () -> new ConciergeRootActor(configReader, pubSubMediator, authorizationProxyPropsFactory,
+                () -> new ConciergeRootActor(conciergeConfig, pubSubMediator, authorizationProxyPropsFactory,
                         materializer));
     }
 
@@ -189,17 +185,16 @@ public final class ConciergeRootActor extends AbstractActor {
     }
 
     private static ActorRef startHealthCheckingActor(final ActorContext context,
-            final AbstractConciergeConfigReader configReader) {
+            final ServiceSpecificConfig.HealthCheckConfig healthCheckConfig) {
 
-        final HealthConfigReader healthConfig = configReader.health();
-        final HealthCheckingActorOptions.Builder hcBuilder = HealthCheckingActorOptions
-                .getBuilder(healthConfig.enabled(), healthConfig.getInterval());
+        final HealthCheckingActorOptions.Builder hcBuilder =
+                HealthCheckingActorOptions.getBuilder(healthCheckConfig.isEnabled(), healthCheckConfig.getInterval());
 
-        if (healthConfig.persistenceEnabled()) {
+        if (healthCheckConfig.isPersistenceEnabled()) {
             hcBuilder.enablePersistenceCheck();
         }
-
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
+
         return startChildActor(context, DefaultHealthCheckingActorFactory.ACTOR_NAME,
                 DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, MongoHealthChecker.props()));
     }
@@ -240,8 +235,9 @@ public final class ConciergeRootActor extends AbstractActor {
                 .apply(command.getDittoHeaders()), getContext().dispatcher()).to(getSender());
     }
 
-    private void bindHttpStatusRoute(final ActorRef healthCheckingActor, final HttpConfigReader httpConfig,
-            final ActorMaterializer materializer) {
+    private void bindHttpStatusRoute(final ActorRef healthCheckingActor,
+            final ServiceSpecificConfig.HttpConfig httpConfig, final ActorMaterializer materializer) {
+
         String hostname = httpConfig.getHostname();
         if (hostname.isEmpty()) {
             hostname = ConfigUtil.getLocalHostAddress();

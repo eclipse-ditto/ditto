@@ -87,17 +87,17 @@ public final class DefaultLimitsConfig implements LimitsConfig {
 
     @Override
     public long getThingsMaxSize() {
-        return config.getLong(LimitsConfigValue.THINGS_MAX_SIZE.getPath());
+        return config.getBytes(LimitsConfigValue.THINGS_MAX_SIZE.getPath());
     }
 
     @Override
     public long getPoliciesMaxSize() {
-        return config.getLong(LimitsConfigValue.POLICIES_MAX_SIZE.getPath());
+        return config.getBytes(LimitsConfigValue.POLICIES_MAX_SIZE.getPath());
     }
 
     @Override
     public long getMessagesMaxSize() {
-        return config.getLong(LimitsConfigValue.MESSAGES_MAX_SIZE.getPath());
+        return config.getBytes(LimitsConfigValue.MESSAGES_MAX_SIZE.getPath());
     }
 
     @Override
