@@ -71,7 +71,7 @@ public abstract class AbstractRoute {
 
     protected final ActorRef proxyActor;
     protected final ActorMaterializer materializer;
-    private final ActorSystem actorSystem;
+    protected final ActorSystem actorSystem;
     private final HeaderTranslator headerTranslator;
 
     /**

@@ -17,7 +17,6 @@ import static org.eclipse.ditto.model.messages.MessageHeaderDefinition.SUBJECT;
 import static org.eclipse.ditto.model.messages.MessageHeaderDefinition.THING_ID;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
@@ -127,7 +126,6 @@ final class MessageAdaptableHelper {
 
         final String contentType = String.valueOf(messageHeaders.get(DittoHeaderDefinition.CONTENT_TYPE.getKey()));
         final boolean shouldBeInterpretedAsText = shouldBeInterpretedAsText(contentType);
-        final Charset charset = shouldBeInterpretedAsText ? determineCharset(contentType) : StandardCharsets.UTF_8;
 
         final MessageBuilder<T> messageBuilder = MessagesModelFactory.newMessageBuilder(messageHeaders);
         final Optional<JsonValue> value = adaptable.getPayload().getValue();
@@ -139,7 +137,7 @@ final class MessageAdaptableHelper {
             }
         } else {
             value.map(jsonValue -> jsonValue.isString() ? jsonValue.asString() : jsonValue.toString())
-                    .map(payloadString -> payloadString.getBytes(charset))
+                    .map(payloadString -> payloadString.getBytes(StandardCharsets.UTF_8))
                     .ifPresent(bytes -> messageBuilder.rawPayload(ByteBuffer.wrap(tryToDecode(bytes))));
         }
         return messageBuilder.build();
@@ -199,14 +197,6 @@ final class MessageAdaptableHelper {
 
     private static boolean isAnyText(final String contentType) {
         return contentType.toLowerCase().startsWith(TEXT_PREFIX);
-    }
-
-    private static Charset determineCharset(final CharSequence contentType) {
-        final String[] withCharset = CHARSET_PATTERN.split(contentType, 2);
-        if (2 == withCharset.length && Charset.isSupported(withCharset[1])) {
-            return Charset.forName(withCharset[1]);
-        }
-        return StandardCharsets.UTF_8;
     }
 
 }

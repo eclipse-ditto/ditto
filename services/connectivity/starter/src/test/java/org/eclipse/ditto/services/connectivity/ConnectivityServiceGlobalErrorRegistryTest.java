@@ -25,6 +25,7 @@ import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.signals.commands.batch.exceptions.BatchAlreadyExecutingException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionConflictException;
+import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionTimeoutException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyConflictException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInvalidException;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidNamespacesException;
@@ -41,6 +42,7 @@ public final class ConnectivityServiceGlobalErrorRegistryTest extends GlobalErro
                 GatewayAuthenticationFailedException.class,
                 ConnectionConflictException.class,
                 ConnectionConfigurationInvalidException.class,
+                ConnectionTimeoutException.class,
                 PolicyConflictException.class,
                 AclModificationInvalidException.class,
                 AuthorizationSubjectBlockedException.class,

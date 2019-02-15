@@ -29,7 +29,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  * Immutable implementation of a {@link HeaderMapping}.
  */
 @Immutable
-public final class ImmutableHeaderMapping implements HeaderMapping {
+final class ImmutableHeaderMapping implements HeaderMapping {
 
     private final Map<String, String> mapping;
 

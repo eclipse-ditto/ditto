@@ -19,7 +19,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 
 import akka.actor.ActorRef;
 
@@ -36,8 +36,8 @@ public final class BaseClientData {
 
     private final String connectionId;
     private final Connection connection;
-    private final ConnectionStatus connectionStatus;
-    private final ConnectionStatus desiredConnectionStatus;
+    private final ConnectivityStatus connectionStatus;
+    private final ConnectivityStatus desiredConnectionStatus;
     @Nullable private final String connectionStatusDetails;
     private final Instant inConnectionStatusSince;
     @Nullable private final ActorRef sessionSender;
@@ -48,15 +48,15 @@ public final class BaseClientData {
      *
      * @param connectionId the ID of the {@link Connection}.
      * @param connection the optional {@link Connection}.
-     * @param connectionStatus the current {@link ConnectionStatus} of the Connection.
-     * @param desiredConnectionStatus the desired {@link ConnectionStatus} of the Connection.
+     * @param connectionStatus the current {@link ConnectivityStatus} of the Connection.
+     * @param desiredConnectionStatus the desired {@link ConnectivityStatus} of the Connection.
      * @param connectionStatusDetails the optional details about the ConnectionStatus.
      * @param inConnectionStatusSince the instant since when the Client is in its current ConnectionStatus.
      * @param sessionSender the ActorRef which caused the latest state data change.
      */
     BaseClientData(final String connectionId, final Connection connection,
-            final ConnectionStatus connectionStatus,
-            final ConnectionStatus desiredConnectionStatus,
+            final ConnectivityStatus connectionStatus,
+            final ConnectivityStatus desiredConnectionStatus,
             @Nullable final String connectionStatusDetails,
             final Instant inConnectionStatusSince,
             @Nullable final ActorRef sessionSender,
@@ -79,11 +79,11 @@ public final class BaseClientData {
         return connection;
     }
 
-    public ConnectionStatus getConnectionStatus() {
+    public ConnectivityStatus getConnectionStatus() {
         return connectionStatus;
     }
 
-    public ConnectionStatus getDesiredConnectionStatus() {
+    public ConnectivityStatus getDesiredConnectionStatus() {
         return desiredConnectionStatus;
     }
 
@@ -108,12 +108,12 @@ public final class BaseClientData {
                 connectionStatusDetails, inConnectionStatusSince, sessionSender, sessionHeaders);
     }
 
-    public BaseClientData setConnectionStatus(final ConnectionStatus connectionStatus) {
+    public BaseClientData setConnectionStatus(final ConnectivityStatus connectionStatus) {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
                 connectionStatusDetails, Instant.now(), sessionSender, sessionHeaders);
     }
 
-    public BaseClientData setDesiredConnectionStatus(final ConnectionStatus desiredConnectionStatus) {
+    public BaseClientData setDesiredConnectionStatus(final ConnectivityStatus desiredConnectionStatus) {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
                 connectionStatusDetails, inConnectionStatusSince, sessionSender, sessionHeaders);
     }

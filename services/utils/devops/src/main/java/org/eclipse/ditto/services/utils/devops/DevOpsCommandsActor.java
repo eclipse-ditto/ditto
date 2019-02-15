@@ -378,8 +378,6 @@ public final class DevOpsCommandsActor extends AbstractActor {
         private static final Duration DEFAULT_RECEIVE_TIMEOUT = Duration.ofMillis(5000);
         private static final boolean DEFAULT_AGGREGATE = true;
 
-        private final Boolean aggregateResults;
-
         /**
          * @return the Akka configuration Props object.
          */
@@ -394,6 +392,8 @@ public final class DevOpsCommandsActor extends AbstractActor {
         private final ActorRef devOpsCommandSender;
         private final DevOpsCommand<?> devOpsCommand;
         private final List<CommandResponse<?>> commandResponses = new ArrayList<>();
+
+        private final Boolean aggregateResults;
 
         private DevOpsCommandResponseCorrelationActor(final ActorRef devOpsCommandSender,
                 final DevOpsCommand<?> devOpsCommand) {

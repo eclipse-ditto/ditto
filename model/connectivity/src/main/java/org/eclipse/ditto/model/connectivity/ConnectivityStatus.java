@@ -16,9 +16,9 @@ import java.util.Arrays;
 import java.util.Optional;
 
 /**
- * An enumeration of status of a {@link Connection}.
+ * An enumeration of status of connectivity resource.
  */
-public enum ConnectionStatus implements CharSequence {
+public enum ConnectivityStatus implements CharSequence {
 
     /**
      * Indicates an open {@code Connection}.
@@ -42,17 +42,17 @@ public enum ConnectionStatus implements CharSequence {
 
     private final String name;
 
-    ConnectionStatus(final String name) {
+    ConnectivityStatus(final String name) {
         this.name = checkNotNull(name);
     }
 
     /**
-     * Returns the {@code ConnectionStatus} for the given {@code name} if it exists.
+     * Returns the {@code ConnectivityStatus} for the given {@code name} if it exists.
      *
      * @param name the name.
-     * @return the ConnectionStatus or an empty optional.
+     * @return the ConnectivityStatus or an empty optional.
      */
-    public static Optional<ConnectionStatus> forName(final CharSequence name) {
+    public static Optional<ConnectivityStatus> forName(final CharSequence name) {
         checkNotNull(name, "Name");
         return Arrays.stream(values())
                 .filter(c -> c.name.contentEquals(name))
@@ -60,7 +60,7 @@ public enum ConnectionStatus implements CharSequence {
     }
 
     /**
-     * Returns the name of this {@code ConnectionStatus}.
+     * Returns the name of this {@code ConnectivityStatus}.
      *
      * @return the name.
      */

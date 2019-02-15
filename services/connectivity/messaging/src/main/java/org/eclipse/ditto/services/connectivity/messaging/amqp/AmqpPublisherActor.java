@@ -14,10 +14,10 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.connectivity.messaging.amqp.JmsExceptionThrowingBiConsumer.wrap;
 
 import java.nio.ByteBuffer;
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.BiConsumer;
 
 import javax.annotation.Nullable;
@@ -39,6 +39,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
+import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectionMetricsCollector;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
@@ -80,7 +81,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     private final Session session;
     private final Map<Destination, MessageProducer> producerMap;
 
-    private AmqpPublisherActor(final Session session) {
+    private AmqpPublisherActor(final String connectionId, final Set<Target> targets, final Session session) {
+        super(connectionId, targets);
         this.session = checkNotNull(session, "session");
         this.producerMap = new HashMap<>();
     }
@@ -88,16 +90,18 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     /**
      * Creates Akka configuration object {@link Props} for this {@code AmqpPublisherActor}.
      *
+     * @param connectionId the id of the connection this publisher belongs to
+     * @param targets
      * @param session the jms session
      * @return the Akka configuration Props object.
      */
-    static Props props(final Session session) {
+    static Props props(final String connectionId, final Set<Target> targets, final Session session) {
         return Props.create(AmqpPublisherActor.class, new Creator<AmqpPublisherActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public AmqpPublisherActor create() {
-                return new AmqpPublisherActor(session);
+                return new AmqpPublisherActor(connectionId, targets, session);
             }
         });
     }
@@ -124,7 +128,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
     @Override
     protected void publishMessage(@Nullable final Target target, final AmqpTarget publishTarget,
-            final ExternalMessage message) {
+            final ExternalMessage message, ConnectionMetricsCollector publishedCounter) {
         try {
             final MessageProducer producer = getProducer(publishTarget.getJmsDestination());
             if (producer != null) {
@@ -134,17 +138,17 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                 producer.send(jmsMessage, new CompletionListener() {
                     @Override
                     public void onCompletion(final Message message) {
-                        publishedMessages++;
-                        lastMessagePublishedAt = Instant.now();
+                        publishedCounter.recordSuccess();
                         log.debug("Message {} sent successfully.", message);
                     }
 
                     @Override
                     public void onException(final Message messageFailedToSend, final Exception exception) {
-                        handleSendException(message, exception, origin);
+                        handleSendException(message, exception, origin, publishedCounter);
                     }
                 });
             } else {
+                publishedCounter.recordFailure();
                 log.warning("No producer for destination {} available.", publishTarget);
                 final MessageSendingFailedException sendFailedException = MessageSendingFailedException.newBuilder()
                         .message("Failed to send message, no producer available.")
@@ -153,16 +157,18 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                 getSender().tell(sendFailedException, getSelf());
             }
         } catch (final JMSException e) {
-            handleSendException(message, e, getSender());
+            handleSendException(message, e, getSender(), publishedCounter);
         }
     }
 
-    private void handleSendException(final ExternalMessage message, final Exception e, final ActorRef sender) {
+    private void handleSendException(final ExternalMessage message, final Exception e, final ActorRef sender,
+            final ConnectionMetricsCollector publishedCounter) {
         log.info("Failed to send JMS message: [{}] {}", e.getClass().getSimpleName(), e.getMessage());
         final MessageSendingFailedException sendFailedException = MessageSendingFailedException.newBuilder()
                 .cause(e)
                 .dittoHeaders(DittoHeaders.of(message.getHeaders()))
                 .build();
+        publishedCounter.recordFailure();
         sender.tell(sendFailedException, getSelf());
     }
 
@@ -198,7 +204,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                             try {
                                 amqpJmsMessageFacade.setApplicationProperty(entry.getKey(), entry.getValue());
                             } catch (final JMSException ex) {
-                                log.warning("Could not set application-property <{}>", entry.getKey());
+                                log.warning("Could not set application-property <{}>: {}",
+                                        entry.getKey(), jmsExceptionToString(ex));
                             }
                         });
             }
@@ -219,7 +226,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         try {
             return session.createProducer(destination);
         } catch (final JMSException e) {
-            log.warning("Could not create producer for {}.", destination);
+            log.warning("Could not create producer for destination '{}': {}.",
+                    destination, jmsExceptionToString(e));
             return null;
         }
     }
@@ -233,7 +241,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                 producer.close();
             } catch (final JMSException jmsException) {
                 log.debug("Closing consumer failed (can be ignored if connection was closed already): {}",
-                        jmsException.getMessage());
+                        jmsExceptionToString(jmsException));
             }
         });
     }
@@ -241,5 +249,9 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     @Override
     protected DiagnosticLoggingAdapter log() {
         return log;
+    }
+
+    private static String jmsExceptionToString(final JMSException jmsException) {
+        return String.format("[%s] %s", jmsException.getErrorCode(), jmsException.getMessage());
     }
 }

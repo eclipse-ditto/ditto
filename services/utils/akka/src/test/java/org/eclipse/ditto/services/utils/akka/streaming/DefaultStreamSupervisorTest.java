@@ -79,7 +79,7 @@ public class DefaultStreamSupervisorTest {
     private TestProbe forwardTo;
     private TestProbe provider;
     @Mock
-    private StreamMetadataPersistence searchSyncPersistence;
+    private TimestampPersistence searchSyncPersistence;
 
     @Before
     public void setUpBase() {
@@ -89,9 +89,9 @@ public class DefaultStreamSupervisorTest {
         forwardTo = TestProbe.apply(actorSystem);
         provider = TestProbe.apply(actorSystem);
 
-        when(searchSyncPersistence.retrieveLastSuccessfulStreamEnd())
+        when(searchSyncPersistence.getTimestampAsync())
                 .thenAnswer(unused -> Source.single(Optional.of(KNOWN_LAST_SYNC)));
-        when(searchSyncPersistence.updateLastSuccessfulStreamEnd(any(Instant.class)))
+        when(searchSyncPersistence.setTimestamp(any(Instant.class)))
                 .thenReturn(Source.single(NotUsed.getInstance()));
     }
 
@@ -118,13 +118,13 @@ public class DefaultStreamSupervisorTest {
             expectStreamTriggerMsg(expectedQueryEnd);
 
             // verify that last query end has been retrieved from persistence
-            verify(searchSyncPersistence).retrieveLastSuccessfulStreamEnd();
+            verify(searchSyncPersistence).getTimestampAsync();
 
             getForwarderActor(streamSupervisor).tell(STREAM_STARTED, ActorRef.noSender());
             sendMessageToForwarderAndExpectTerminated(this, streamSupervisor, STREAM_COMPLETED);
 
             // verify the db has been updated with the queryEnd of the completed stream
-            verify(searchSyncPersistence, SHORT_MOCKITO_TIMEOUT).updateLastSuccessfulStreamEnd(eq(expectedQueryEnd));
+            verify(searchSyncPersistence, SHORT_MOCKITO_TIMEOUT).setTimestamp(eq(expectedQueryEnd));
         }};
     }
 
@@ -143,16 +143,16 @@ public class DefaultStreamSupervisorTest {
             expectStreamTriggerMsg(expectedQueryEnd);
 
             // verify that last query end has been retrieved from persistence
-            verify(searchSyncPersistence).retrieveLastSuccessfulStreamEnd();
+            verify(searchSyncPersistence).getTimestampAsync();
 
-            when(searchSyncPersistence.updateLastSuccessfulStreamEnd(any(Instant.class)))
+            when(searchSyncPersistence.setTimestamp(any(Instant.class)))
                     .thenReturn(Source.failed(new IllegalStateException("mocked stream-metadata-persistence error")));
 
             getForwarderActor(streamSupervisor).tell(STREAM_STARTED, ActorRef.noSender());
             sendMessageToForwarderAndExpectTerminated(this, streamSupervisor, STREAM_COMPLETED);
 
             // verify the db has been updated with the queryEnd of the completed stream
-            verify(searchSyncPersistence, SHORT_MOCKITO_TIMEOUT).updateLastSuccessfulStreamEnd(eq(expectedQueryEnd));
+            verify(searchSyncPersistence, SHORT_MOCKITO_TIMEOUT).setTimestamp(eq(expectedQueryEnd));
             // verify the actor is not terminated
             expectNotTerminated(this, streamSupervisor, Duration.ofSeconds(1));
         }};
@@ -176,7 +176,7 @@ public class DefaultStreamSupervisorTest {
             expectStreamTriggerMsg(expectedQueryEnd, smallMaxIdleTime);
 
             // verify the db has NOT been updated with the queryEnd, cause we never got a success-message
-            verify(searchSyncPersistence, never()).updateLastSuccessfulStreamEnd(eq(expectedQueryEnd));
+            verify(searchSyncPersistence, never()).setTimestamp(eq(expectedQueryEnd));
         }};
     }
 

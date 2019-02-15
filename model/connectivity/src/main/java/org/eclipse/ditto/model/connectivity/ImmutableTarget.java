@@ -46,13 +46,29 @@ final class ImmutableTarget implements Target {
 
     private final String address;
     private final Set<FilteredTopic> topics;
+    @Nullable private final Integer qos;
     private final AuthorizationContext authorizationContext;
+    private final String originalAddress;
     @Nullable private final HeaderMapping headerMapping;
 
-    private ImmutableTarget(final String address, final Set<FilteredTopic> topics,
-            final AuthorizationContext authorizationContext, @Nullable final HeaderMapping headerMapping) {
+    private ImmutableTarget(final String address, final Set<FilteredTopic> topics, @Nullable final Integer qos,
+            final AuthorizationContext authorizationContext,
+            @Nullable final HeaderMapping headerMapping) {
         this.address = checkNotNull(address, "address");
+        this.originalAddress = this.address;
         this.topics = Collections.unmodifiableSet(new HashSet<>(checkNotNull(topics, "topics")));
+        this.qos = qos;
+        this.authorizationContext = checkNotNull(authorizationContext, "authorizationContext");
+        this.headerMapping = headerMapping;
+    }
+
+    private ImmutableTarget(final String address, final Set<FilteredTopic> topics, @Nullable final Integer qos,
+            final AuthorizationContext authorizationContext,
+            @Nullable final HeaderMapping headerMapping, final String originalAddress) {
+        this.address = checkNotNull(address, "address");
+        this.originalAddress = checkNotNull(originalAddress, "originalAddress");
+        this.topics = Collections.unmodifiableSet(new HashSet<>(checkNotNull(topics, "topics")));
+        this.qos = qos;
         this.authorizationContext = checkNotNull(authorizationContext, "authorizationContext");
         this.headerMapping = headerMapping;
     }
@@ -63,13 +79,23 @@ final class ImmutableTarget implements Target {
     }
 
     @Override
+    public String getOriginalAddress() {
+        return originalAddress;
+    }
+
+    @Override
     public Target withAddress(final String newAddress) {
-        return new ImmutableTarget(newAddress, topics, authorizationContext, headerMapping);
+        return new ImmutableTarget(newAddress, topics, qos, authorizationContext, headerMapping, address);
     }
 
     @Override
     public Set<FilteredTopic> getTopics() {
         return topics;
+    }
+
+    @Override
+    public Optional<Integer> getQos() {
+        return Optional.ofNullable(qos);
     }
 
     @Override
@@ -93,6 +119,9 @@ final class ImmutableTarget implements Target {
                 .map(FilteredTopic::toString)
                 .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
+        if (qos != null) {
+            jsonObjectBuilder.set(Target.JsonFields.QOS, qos, predicate);
+        }
         if (!authorizationContext.isEmpty()) {
             jsonObjectBuilder.set(JsonFields.AUTHORIZATION_CONTEXT, authorizationContext.stream()
                     .map(AuthorizationSubject::getId)
@@ -125,6 +154,8 @@ final class ImmutableTarget implements Target {
                         .collect(Collectors.toSet()))
                 .orElse(Collections.emptySet());
 
+        final Integer readQos = jsonObject.getValue(JsonFields.QOS).orElse(null);
+
         final JsonArray authContext = jsonObject.getValue(JsonFields.AUTHORIZATION_CONTEXT)
                 .orElseGet(() -> JsonArray.newBuilder().build());
         final List<AuthorizationSubject> authorizationSubjects = authContext.stream()
@@ -140,7 +171,7 @@ final class ImmutableTarget implements Target {
                         .map(ImmutableHeaderMapping::fromJson)
                         .orElse(null);
 
-        return new ImmutableTarget(readAddress, readTopics, readAuthorizationContext, readHeaderMapping);
+        return new ImmutableTarget(readAddress, readTopics, readQos, readAuthorizationContext, readHeaderMapping);
     }
 
     @Override
@@ -150,20 +181,24 @@ final class ImmutableTarget implements Target {
         final ImmutableTarget that = (ImmutableTarget) o;
         return Objects.equals(address, that.address) &&
                 Objects.equals(topics, that.topics) &&
+                Objects.equals(qos, that.qos) &&
                 Objects.equals(headerMapping, that.headerMapping) &&
+                Objects.equals(originalAddress, that.originalAddress) &&
                 Objects.equals(authorizationContext, that.authorizationContext);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(address, topics, authorizationContext, headerMapping);
+        return Objects.hash(address, topics, qos, authorizationContext, headerMapping, originalAddress);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "address=" + address +
+                ", originalAddress=" + originalAddress +
                 ", topics=" + topics +
+                ", qos=" + qos +
                 ", authorizationContext=" + authorizationContext +
                 ", headerMapping=" + headerMapping +
                 "]";
@@ -176,13 +211,30 @@ final class ImmutableTarget implements Target {
     static final class Builder implements TargetBuilder {
 
         @Nullable private String address;
+        @Nullable private String originalAddress;
         @Nullable private Set<FilteredTopic> topics;
+        @Nullable private Integer qos;
         @Nullable private AuthorizationContext authorizationContext;
         @Nullable private HeaderMapping headerMapping;
 
         @Override
         public TargetBuilder address(final String address) {
             this.address = address;
+            if (originalAddress == null) {
+                originalAddress = address;
+            }
+            return this;
+        }
+
+        @Override
+        public TargetBuilder originalAddress(final String originalAddress) {
+            this.originalAddress = originalAddress;
+            return this;
+        }
+
+        @Override
+        public TargetBuilder qos(@Nullable final Integer qos) {
+            this.qos = qos;
             return this;
         }
 
@@ -200,16 +252,16 @@ final class ImmutableTarget implements Target {
 
         @Override
         public TargetBuilder topics(final FilteredTopic requiredTopic, final FilteredTopic... additionalTopics) {
-            final Set<FilteredTopic> topics = new HashSet<>(Collections.singleton(requiredTopic));
-            topics.addAll(Arrays.asList(additionalTopics));
-            return topics(topics);
+            final Set<FilteredTopic> theTopics = new HashSet<>(Collections.singleton(requiredTopic));
+            theTopics.addAll(Arrays.asList(additionalTopics));
+            return topics(theTopics);
         }
 
         @Override
         public TargetBuilder topics(final Topic requiredTopic, final Topic... additionalTopics) {
-            final Set<Topic> topics = new HashSet<>(Collections.singleton(requiredTopic));
-            topics.addAll(Arrays.asList(additionalTopics));
-            return topics(topics.stream().map(ConnectivityModelFactory::newFilteredTopic).collect(Collectors.toSet()));
+            final Set<Topic> theTopics = new HashSet<>(Collections.singleton(requiredTopic));
+            theTopics.addAll(Arrays.asList(additionalTopics));
+            return topics(theTopics.stream().map(ConnectivityModelFactory::newFilteredTopic).collect(Collectors.toSet()));
         }
 
         @Override
@@ -223,7 +275,8 @@ final class ImmutableTarget implements Target {
             checkNotNull(address, "address");
             checkNotNull(topics, "topics");
             checkNotNull(authorizationContext, "authorizationContext");
-            return new ImmutableTarget(address, topics, authorizationContext, headerMapping);
+            checkNotNull(originalAddress, "originalAddress");
+            return new ImmutableTarget(address, topics, qos, authorizationContext, headerMapping, originalAddress);
         }
     }
 }

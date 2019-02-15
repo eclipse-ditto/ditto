@@ -42,7 +42,7 @@
             <artifactId>ditto-services-utils-config</artifactId>
             <version>${project.version}</version>
             <scope>provided</scope>
-            <!-- StatusRoute needs config-utils -->
+            <!-- Status needs config-utils -->
         </dependency>
 
         <dependency>

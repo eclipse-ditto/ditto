@@ -19,6 +19,10 @@ public final class NamespaceReader {
 
     private static final char NAMESPACE_SEPARATOR = ':';
 
+    private NamespaceReader() {
+        throw new AssertionError();
+    }
+
     /**
      * Reads the namespace from the identifier of an entity.
      *

@@ -30,6 +30,22 @@ public interface TargetBuilder {
     TargetBuilder address(String address);
 
     /**
+     * Sets the originalAddress.
+     *
+     * @param address the originalAddress
+     * @return this builder
+     */
+    TargetBuilder originalAddress(String address);
+
+    /**
+     * Sets the qos of the target inside a connection.
+     *
+     * @param qos the qos
+     * @return this builder
+     */
+    TargetBuilder qos(@Nullable Integer qos);
+
+    /**
      * Sets the {@link AuthorizationContext}.
      *
      * @param authorizationContext the authorization context

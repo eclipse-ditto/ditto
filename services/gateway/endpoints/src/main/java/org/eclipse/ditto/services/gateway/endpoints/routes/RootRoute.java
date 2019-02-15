@@ -17,7 +17,6 @@ import static akka.http.javadsl.server.Directives.handleRejections;
 import static akka.http.javadsl.server.Directives.parameterOptional;
 import static akka.http.javadsl.server.Directives.rawPathPrefix;
 import static akka.http.javadsl.server.Directives.route;
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CorrelationIdEnsuringDirective.ensureCorrelationId;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.RequestResultLoggingDirective.logRequestResult;
@@ -29,13 +28,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -53,9 +51,7 @@ import org.eclipse.ditto.services.gateway.endpoints.directives.EncodingEnsuringD
 import org.eclipse.ditto.services.gateway.endpoints.directives.HttpsEnsuringDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.RequestTimeoutHandlingDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.SecurityResponseHeadersDirective;
-import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DittoGatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthenticationDirective;
-import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.services.gateway.endpoints.routes.devops.DevOpsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.health.CachingHealthRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.policies.PoliciesRoute;
@@ -66,22 +62,12 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebsocketRoute;
 import org.eclipse.ditto.services.gateway.endpoints.utils.DittoRejectionHandlerFactory;
-import org.eclipse.ditto.services.gateway.health.DittoStatusAndHealthProviderFactory;
-import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
-import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
-import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
-import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
-import org.eclipse.ditto.services.utils.protocol.ProtocolConfigReader;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.typesafe.config.Config;
-
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpMessage;
@@ -100,10 +86,10 @@ import akka.util.ByteString;
  */
 public final class RootRoute {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(RootRoute.class);
+
     static final String HTTP_PATH_API_PREFIX = "api";
     static final String WS_PATH_PREFIX = "ws";
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(RootRoute.class);
 
     private final StatusRoute ownStatusRoute;
     private final OverallStatusRoute overallStatusRoute;
@@ -115,108 +101,49 @@ public final class RootRoute {
     private final ThingsRoute thingsRoute;
     private final ThingSearchRoute thingSearchRoute;
     private final WebsocketRoute websocketRoute;
+    private final StatsRoute statsRoute;
+
     private final CustomApiRoutesProvider customApiRoutesProvider;
     private final GatewayAuthenticationDirective apiAuthenticationDirective;
     private final GatewayAuthenticationDirective wsAuthenticationDirective;
-    private final StatsRoute statsRoute;
     private final ExceptionHandler exceptionHandler;
     private final List<Integer> supportedSchemaVersions;
-    private final RejectionHandler rejectionHandler = DittoRejectionHandlerFactory.createInstance();
     private final ProtocolAdapterProvider protocolAdapterProvider;
     private final HeaderTranslator headerTranslator;
     private final CustomHeadersHandler customHeadersHandler;
+    private final RejectionHandler rejectionHandler;
 
-    /**
-     * Constructs the {@code /} route builder.
-     *
-     * @param actorSystem the Actor System.
-     * @param config the configuration of the service.
-     * @param proxyActor the proxy actor delegating commands.
-     * @param streamingActor the {@link org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor} reference.
-     * @param healthCheckingActor the health-checking actor to use.
-     * @param clusterStateSupplier the supplier to get the cluster state.
-     * @param httpClient the Http Client to use.
-     */
-    public RootRoute(final ActorSystem actorSystem, final Config config,
-            final ActorRef proxyActor,
-            final ActorRef streamingActor,
-            final ActorRef healthCheckingActor,
-            final Supplier<ClusterStatus> clusterStateSupplier,
-            final HttpClientFacade httpClient) {
-        this(actorSystem, config, proxyActor, streamingActor, healthCheckingActor, clusterStateSupplier,
-                new DittoGatewayAuthenticationDirectiveFactory(config, httpClient),
-                NoopCustomApiRoutesProvider.getInstance(), NoopCustomHeadersHandler.getInstance());
+    private RootRoute(final Builder builder) {
+        ownStatusRoute = builder.statusRoute;
+        overallStatusRoute = builder.overallStatusRoute;
+        cachingHealthRoute = builder.cachingHealthRoute;
+        devopsRoute = builder.devopsRoute;
+        policiesRoute = builder.policiesRoute;
+        sseThingsRoute = builder.sseThingsRoute;
+        thingsRoute = builder.thingsRoute;
+        thingSearchRoute = builder.thingSearchRoute;
+        websocketRoute = builder.websocketRoute;
+        statsRoute = builder.statsRoute;
+        customApiRoutesProvider = builder.customApiRoutesProvider;
+        apiAuthenticationDirective = builder.httpAuthenticationDirective;
+        wsAuthenticationDirective = builder.wsAuthenticationDirective;
+        exceptionHandler = builder.exceptionHandler;
+        supportedSchemaVersions = builder.supportedSchemaVersions;
+        protocolAdapterProvider = builder.protocolAdapterProvider;
+        headerTranslator = builder.headerTranslator;
+        customHeadersHandler = builder.customHeadersHandler;
+        rejectionHandler = builder.rejectionHandler;
     }
 
-    /**
-     * Constructs the {@code /} route builder.
-     *
-     * @param actorSystem the Actor System.
-     * @param config the configuration of the service.
-     * @param proxyActor the proxy actor delegating commands.
-     * @param streamingActor the {@link org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor} reference.
-     * @param healthCheckingActor the health-checking actor to use.
-     * @param clusterStateSupplier the supplier to get the cluster state.
-     */
-    public RootRoute(final ActorSystem actorSystem, final Config config,
-            final ActorRef proxyActor,
-            final ActorRef streamingActor,
-            final ActorRef healthCheckingActor,
-            final Supplier<ClusterStatus> clusterStateSupplier,
-            final GatewayAuthenticationDirectiveFactory gatewayAuthenticationDirectiveFactory,
-            final CustomApiRoutesProvider customApiRoutesProvider,
-            final CustomHeadersHandler customHeadersHandler) {
-        checkNotNull(actorSystem, "Actor System");
-        checkNotNull(proxyActor, "proxyActor");
-
-        final StatusAndHealthProvider
-                statusHealthProvider = DittoStatusAndHealthProviderFactory.of(actorSystem, clusterStateSupplier);
-
-        statsRoute = new StatsRoute(proxyActor, actorSystem);
-        ownStatusRoute = new StatusRoute(clusterStateSupplier, healthCheckingActor, actorSystem);
-        overallStatusRoute = new OverallStatusRoute(clusterStateSupplier, statusHealthProvider);
-        cachingHealthRoute = new CachingHealthRoute(statusHealthProvider,
-                config.getDuration(ConfigKeys.STATUS_HEALTH_EXTERNAL_CACHE_TIMEOUT));
-        devopsRoute = new DevOpsRoute(proxyActor, actorSystem);
-
-        policiesRoute = new PoliciesRoute(proxyActor, actorSystem);
-        sseThingsRoute = new SseThingsRoute(proxyActor, actorSystem, streamingActor);
-        thingsRoute = new ThingsRoute(proxyActor, actorSystem,
-                config.getDuration(ConfigKeys.MESSAGE_DEFAULT_TIMEOUT),
-                config.getDuration(ConfigKeys.MESSAGE_MAX_TIMEOUT),
-                config.getDuration(ConfigKeys.CLAIMMESSAGE_DEFAULT_TIMEOUT),
-                config.getDuration(ConfigKeys.CLAIMMESSAGE_MAX_TIMEOUT));
-        thingSearchRoute = new ThingSearchRoute(proxyActor, actorSystem);
-
-        websocketRoute = new WebsocketRoute(streamingActor,
-                config.getInt(ConfigKeys.WEBSOCKET_SUBSCRIBER_BACKPRESSURE),
-                config.getInt(ConfigKeys.WEBSOCKET_PUBLISHER_BACKPRESSURE),
-                actorSystem.eventStream());
-
-        supportedSchemaVersions = config.getIntList(ConfigKeys.SCHEMA_VERSIONS);
-
-        apiAuthenticationDirective = gatewayAuthenticationDirectiveFactory.buildRestApiAuthentication();
-        wsAuthenticationDirective = gatewayAuthenticationDirectiveFactory.buildWsAuthentication();
-
-        exceptionHandler = createExceptionHandler();
-
-        final ProtocolConfigReader protocolConfig = ProtocolConfigReader.fromRawConfig(config);
-        protocolAdapterProvider = protocolConfig.loadProtocolAdapterProvider(actorSystem);
-
-        headerTranslator = protocolAdapterProvider.getHttpHeaderTranslator();
-        LOGGER.debug("Using headerTranslator <{}>.", headerTranslator);
-
-        this.customApiRoutesProvider = customApiRoutesProvider;
-        this.customHeadersHandler = customHeadersHandler;
+    public static RootRouteBuilder getBuilder() {
+        return new Builder()
+                .customApiRoutesProvider(NoopCustomApiRoutesProvider.getInstance())
+                .customHeadersHandler(NoopCustomHeadersHandler.getInstance())
+                .exceptionHandler(createExceptionHandler())
+                .rejectionHandler(DittoRejectionHandlerFactory.createInstance());
     }
 
-
-    /**
-     * Builds the {@code /} route.
-     *
-     * @return the {@code /} route.
-     */
-    public Route buildRoute() {
+    private Route buildRoute() {
         return wrapWithRootDirectives(correlationId ->
                 extractRequestContext(ctx ->
                         route(
@@ -346,8 +273,7 @@ public final class RootRoute {
                 policiesRoute.buildPoliciesRoute(ctx, dittoHeaders),
                 // /api/{apiVersion}/things SSE support
                 sseThingsRoute.buildThingsSseRoute(ctx, () ->
-                        overwriteDittoHeaders(ctx, dittoHeaders, CustomHeadersHandler.RequestType.SSE,
-                                authorizationContext)),
+                        overwriteDittoHeaders(ctx, dittoHeaders, authorizationContext)),
                 // /api/{apiVersion}/things
                 thingsRoute.buildThingsRoute(ctx, dittoHeaders),
                 // /api/{apiVersion}/search/things
@@ -393,9 +319,13 @@ public final class RootRoute {
                 .findAny();
     }
 
-    private Route withDittoHeaders(final AuthorizationContext authorizationContext, final Integer version,
-            final String correlationId, final RequestContext ctx, @Nullable final String liveParam,
-            final CustomHeadersHandler.RequestType requestType, final Function<DittoHeaders, Route> inner) {
+    private Route withDittoHeaders(final AuthorizationContext authorizationContext,
+            final Integer version,
+            final String correlationId,
+            final RequestContext ctx,
+            @Nullable final String liveParam,
+            final CustomHeadersHandler.RequestType requestType,
+            final Function<DittoHeaders, Route> inner) {
 
         final DittoHeaders dittoHeaders =
                 buildDittoHeaders(authorizationContext, version, correlationId, ctx, liveParam, requestType);
@@ -403,15 +333,19 @@ public final class RootRoute {
     }
 
     private DittoHeaders overwriteDittoHeaders(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final CustomHeadersHandler.RequestType requestType, final AuthorizationContext authorizationContext) {
+            final AuthorizationContext authorizationContext) {
 
         final String correlationId = dittoHeaders.getCorrelationId().orElseGet(() -> UUID.randomUUID().toString());
 
-        return handleCustomHeaders(correlationId, ctx, requestType, authorizationContext, dittoHeaders);
+        return handleCustomHeaders(correlationId, ctx, CustomHeadersHandler.RequestType.SSE, authorizationContext,
+                dittoHeaders);
     }
 
-    private DittoHeaders buildDittoHeaders(final AuthorizationContext authorizationContext, final Integer version,
-            final String correlationId, final RequestContext ctx, @Nullable final String liveParam,
+    private DittoHeaders buildDittoHeaders(final AuthorizationContext authorizationContext,
+            final Integer version,
+            final String correlationId,
+            final RequestContext ctx,
+            @Nullable final String liveParam,
             final CustomHeadersHandler.RequestType requestType) {
 
         final DittoHeadersBuilder builder = DittoHeaders.newBuilder();
@@ -428,8 +362,8 @@ public final class RootRoute {
 
         authorizationContext.getFirstAuthorizationSubject().map(AuthorizationSubject::getId).ifPresent(builder::source);
 
-        if (liveParam != null) { // once the "live" query param was set - no matter what the value was - use live
-            // channel
+        // if the "live" query param was set - no matter what the value was - use live channel
+        if (liveParam != null) {
             builder.channel(TopicPath.Channel.LIVE.getName());
         }
 
@@ -446,21 +380,28 @@ public final class RootRoute {
                 authorizationContext, dittoDefaultHeaders);
     }
 
+    private Map<String, String> getFilteredExternalHeaders(final HttpMessage httpRequest) {
+        final Map<String, String> externalHeaders =
+                StreamSupport.stream(httpRequest.getHeaders().spliterator(), false)
+                        .collect(Collectors.toMap(HttpHeader::name, HttpHeader::value));
+        return headerTranslator.fromExternalHeaders(externalHeaders);
+    }
 
     private static ExceptionHandler createExceptionHandler() {
-        return ExceptionHandler.newBuilder().match(DittoRuntimeException.class, cre -> {
-            final Optional<String> correlationIdOpt = Optional.ofNullable(cre.getDittoHeaders())
-                    .flatMap(DittoHeaders::getCorrelationId);
-            if (!correlationIdOpt.isPresent()) {
-                LOGGER.warn("DittoHeaders / correlation-id was missing in DittoRuntimeException <{}>: {}",
-                        cre.getClass().getSimpleName(), cre.getMessage());
-            }
-            enhanceLogWithCorrelationId(correlationIdOpt, () ->
-                    LOGGER.info("DittoRuntimeException in gateway RootRoute: {}", cre.getMessage())
-            );
-            return complete(HttpResponse.create().withStatus(cre.getStatusCode().toInt())
-                    .withEntity(ContentTypes.APPLICATION_JSON, ByteString.fromString(cre.toJsonString())));
-        })
+        return ExceptionHandler.newBuilder()
+                .match(DittoRuntimeException.class, cre -> {
+                    final DittoHeaders dittoHeaders = cre.getDittoHeaders();
+                    final Optional<String> correlationIdOpt = dittoHeaders.getCorrelationId();
+                    if (!correlationIdOpt.isPresent()) {
+                        LOGGER.warn("DittoHeaders / correlation-id was missing in DittoRuntimeException <{}>: {}",
+                                cre.getClass().getSimpleName(), cre.getMessage());
+                    }
+                    enhanceLogWithCorrelationId(correlationIdOpt, () ->
+                            LOGGER.info("DittoRuntimeException in gateway RootRoute: {}", cre.getMessage())
+                    );
+                    return complete(HttpResponse.create().withStatus(cre.getStatusCode().toInt())
+                            .withEntity(ContentTypes.APPLICATION_JSON, ByteString.fromString(cre.toJsonString())));
+                })
                 .match(JsonRuntimeException.class, jre -> {
                     final DittoJsonException dittoJsonException = new DittoJsonException(jre);
                     final DittoHeaders dittoHeaders = dittoJsonException.getDittoHeaders();
@@ -479,11 +420,153 @@ public final class RootRoute {
                 .build();
     }
 
-    private Map<String, String> getFilteredExternalHeaders(final HttpMessage httpRequest) {
-        final Map<String, String> externalHeaders =
-                StreamSupport.stream(httpRequest.getHeaders().spliterator(), false)
-                        .collect(Collectors.toMap(HttpHeader::name, HttpHeader::value));
-        return headerTranslator.fromExternalHeaders(externalHeaders);
-    }
-}
+    @NotThreadSafe
+    private static final class Builder implements RootRouteBuilder {
 
+        private StatusRoute statusRoute;
+        private OverallStatusRoute overallStatusRoute;
+        private CachingHealthRoute cachingHealthRoute;
+        private DevOpsRoute devopsRoute;
+
+        private PoliciesRoute policiesRoute;
+        private SseThingsRoute sseThingsRoute;
+        private ThingsRoute thingsRoute;
+        private ThingSearchRoute thingSearchRoute;
+        private WebsocketRoute websocketRoute;
+        private StatsRoute statsRoute;
+
+        private CustomApiRoutesProvider customApiRoutesProvider;
+        private GatewayAuthenticationDirective httpAuthenticationDirective;
+        private GatewayAuthenticationDirective wsAuthenticationDirective;
+        private ExceptionHandler exceptionHandler;
+        private List<Integer> supportedSchemaVersions;
+        private ProtocolAdapterProvider protocolAdapterProvider;
+        private HeaderTranslator headerTranslator;
+        private CustomHeadersHandler customHeadersHandler;
+        private RejectionHandler rejectionHandler;
+
+        private Builder() {
+        }
+
+        @Override
+        public RootRouteBuilder statusRoute(final StatusRoute route) {
+            statusRoute = route;
+            return this;
+        }
+
+        @Override
+        public RootRouteBuilder overallStatusRoute(final OverallStatusRoute route) {
+            this.overallStatusRoute = route;
+            return this;
+        }
+
+        @Override
+        public RootRouteBuilder cachingHealthRoute(final CachingHealthRoute route) {
+            cachingHealthRoute = route;
+            return this;
+        }
+
+        @Override
+        public RootRouteBuilder devopsRoute(final DevOpsRoute route) {
+            devopsRoute = route;
+            return this;
+        }
+
+        @Override
+        public RootRouteBuilder policiesRoute(final PoliciesRoute route) {
+            policiesRoute = route;
+            return this;
+        }
+
+        @Override
+        public RootRouteBuilder sseThingsRoute(final SseThingsRoute route) {
+            sseThingsRoute = route;
+            return this;
+        }
+
+        @Override
+        public RootRouteBuilder thingsRoute(final ThingsRoute route) {
+            thingsRoute = route;
+            return this;
+        }
+
+        @Override
+        public RootRouteBuilder thingSearchRoute(final ThingSearchRoute route) {
+            thingSearchRoute = route;
+            return this;
+        }
+
+        @Override
+        public RootRouteBuilder websocketRoute(final WebsocketRoute route) {
+            websocketRoute = route;
+            return this;
+        }
+
+        @Override
+        public RootRouteBuilder statsRoute(final StatsRoute route) {
+            statsRoute = route;
+            return this;
+        }
+
+        @Override
+        public RootRouteBuilder customApiRoutesProvider(final CustomApiRoutesProvider provider) {
+            customApiRoutesProvider = provider;
+            return this;
+        }
+
+        @Override
+        public RootRouteBuilder httpAuthenticationDirective(final GatewayAuthenticationDirective directive) {
+            httpAuthenticationDirective = directive;
+            return this;
+        }
+
+        @Override
+        public RootRouteBuilder wsAuthenticationDirective(final GatewayAuthenticationDirective directive) {
+            wsAuthenticationDirective = directive;
+            return this;
+        }
+
+        @Override
+        public RootRouteBuilder exceptionHandler(final ExceptionHandler handler) {
+            exceptionHandler = handler;
+            return this;
+        }
+
+        @Override
+        public RootRouteBuilder supportedSchemaVersions(final List<Integer> versions) {
+            supportedSchemaVersions = versions;
+            return this;
+        }
+
+        @Override
+        public RootRouteBuilder protocolAdapterProvider(final ProtocolAdapterProvider provider) {
+            protocolAdapterProvider = provider;
+            return this;
+        }
+
+        @Override
+        public RootRouteBuilder headerTranslator(final HeaderTranslator translator) {
+            headerTranslator = translator;
+            return this;
+        }
+
+        @Override
+        public RootRouteBuilder customHeadersHandler(final CustomHeadersHandler handler) {
+            customHeadersHandler = handler;
+            return this;
+        }
+
+        @Override
+        public RootRouteBuilder rejectionHandler(final RejectionHandler handler) {
+            rejectionHandler = handler;
+            return this;
+        }
+
+        @Override
+        public Route build() {
+            return new RootRoute(this).buildRoute();
+        }
+
+    }
+
+}

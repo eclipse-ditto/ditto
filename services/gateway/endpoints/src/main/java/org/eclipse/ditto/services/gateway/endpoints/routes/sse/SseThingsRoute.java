@@ -11,6 +11,7 @@
 package org.eclipse.ditto.services.gateway.endpoints.routes.sse;
 
 import static akka.http.javadsl.server.Directives.completeOK;
+import static akka.http.javadsl.server.Directives.extractRequest;
 import static akka.http.javadsl.server.Directives.get;
 import static akka.http.javadsl.server.Directives.headerValuePF;
 import static akka.http.javadsl.server.Directives.parameterOptional;
@@ -35,14 +36,13 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
-import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsParameter;
+import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
@@ -56,12 +56,14 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.http.javadsl.marshalling.sse.EventStreamMarshalling;
 import akka.http.javadsl.model.HttpHeader;
+import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.MediaTypes;
 import akka.http.javadsl.model.headers.Accept;
 import akka.http.javadsl.model.sse.ServerSentEvent;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 import akka.japi.JavaPartialFunction;
+import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Source;
 
 /**
@@ -78,7 +80,8 @@ public class SseThingsRoute extends AbstractRoute {
 
     private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
 
-    private ActorRef streamingActor;
+    private final ActorRef streamingActor;
+    private final EventSniffer<ServerSentEvent> eventSniffer;
 
     /**
      * Constructs the SSE - ServerSentEvents supporting {@code /things} route builder.
@@ -88,13 +91,32 @@ public class SseThingsRoute extends AbstractRoute {
      * @throws NullPointerException if any argument is {@code null}.
      */
     public SseThingsRoute(final ActorRef proxyActor, final ActorSystem actorSystem, final ActorRef streamingActor) {
+        this(proxyActor, actorSystem, streamingActor,
+                EventSniffer.noOp(),
+                new QueryFilterCriteriaFactory(new CriteriaFactoryImpl(),
+                        new ModelBasedThingsFieldExpressionFactory()));
+    }
+
+    private SseThingsRoute(final ActorRef proxyActor,
+            final ActorSystem actorSystem,
+            final ActorRef streamingActor,
+            final EventSniffer<ServerSentEvent> eventSniffer,
+            final QueryFilterCriteriaFactory queryFilterCriteriaFactory) {
+
         super(proxyActor, actorSystem);
         this.streamingActor = streamingActor;
+        this.eventSniffer = eventSniffer;
+        this.queryFilterCriteriaFactory = queryFilterCriteriaFactory;
+    }
 
-        final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
-        final ThingsFieldExpressionFactory fieldExpressionFactory =
-                new ModelBasedThingsFieldExpressionFactory();
-        queryFilterCriteriaFactory = new QueryFilterCriteriaFactory(criteriaFactory, fieldExpressionFactory);
+    /**
+     * Create a copy of this object with a different event sniffer.
+     *
+     * @param eventSniffer the new event sniffer.
+     * @return a copy of this object with a new event sniffer.
+     */
+    public SseThingsRoute withEventSniffer(final EventSniffer<ServerSentEvent> eventSniffer) {
+        return new SseThingsRoute(proxyActor, actorSystem, streamingActor, eventSniffer, queryFilterCriteriaFactory);
     }
 
     /**
@@ -151,6 +173,18 @@ public class SseThingsRoute extends AbstractRoute {
             final List<String> namespaces,
             @Nullable final String filterString) {
 
+        return extractRequest(request ->
+                createSseRoute(request, dittoHeaders, fieldSelector, targetThingIds, namespaces, filterString));
+    }
+
+
+    private Route createSseRoute(final HttpRequest request,
+            final DittoHeaders dittoHeaders,
+            final JsonFieldSelector fieldSelector,
+            final List<String> targetThingIds,
+            final List<String> namespaces,
+            @Nullable final String filterString) {
+
         final String connectionCorrelationId = dittoHeaders.getCorrelationId()
                 .orElseGet(() -> UUID.randomUUID().toString());
         final JsonSchemaVersion jsonSchemaVersion =
@@ -190,6 +224,7 @@ public class SseThingsRoute extends AbstractRoute {
                                         thingJson::contains)) // check if the resulting JSON did contain ANY of the requested fields
                         .filter(thingJson -> !thingJson.isEmpty()) // avoid sending back empty jsonValues
                         .map(jsonValue -> ServerSentEvent.create(jsonValue.toString()))
+                        .viaMat(eventSniffer.toAsyncFlow(request), Keep.left()) // sniffer shouldn't sniff heartbeats
                         .keepAlive(Duration.ofSeconds(1), ServerSentEvent::heartbeat);
 
         return completeOK(sseSource, EventStreamMarshalling.toEventStream());

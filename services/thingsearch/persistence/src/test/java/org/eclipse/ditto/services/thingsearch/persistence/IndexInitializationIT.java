@@ -16,11 +16,12 @@ import org.junit.Test;
 /**
  * Checks the initialization of Mongo indices.
  */
-public class IndexInitializationIT extends AbstractThingSearchPersistenceITBase {
+public final class IndexInitializationIT extends AbstractThingSearchPersistenceITBase {
 
     @Test
     public void indicesAreCorrectlyInitialized() {
-        MongoIndexAssertions.assertIndices(getClient().getDatabase(),
+        MongoIndexAssertions.assertIndices(getMongoClient().getDefaultDatabase(),
                 PersistenceConstants.THINGS_COLLECTION_NAME, getMaterializer(), Indices.Things.all());
     }
+
 }

@@ -20,8 +20,11 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.base.config.HealthConfigReader;
 import org.eclipse.ditto.services.base.config.HttpConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DittoGatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.services.gateway.endpoints.routes.RootRoute;
+import org.eclipse.ditto.services.gateway.endpoints.routes.RouteFactory;
 import org.eclipse.ditto.services.gateway.proxy.actors.ProxyActor;
+import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
 import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
@@ -240,9 +243,29 @@ final class GatewayRootActor extends AbstractActor {
             final ActorRef streamingActor,
             final ActorRef healthCheckingActor) {
         final HttpClientFacade httpClient = HttpClientFacade.getInstance(actorSystem);
-        final RootRoute rootRoute = new RootRoute(actorSystem, config, proxyActor, streamingActor,
-                healthCheckingActor, new ClusterStatusSupplier(Cluster.get(actorSystem)), httpClient);
-        return rootRoute.buildRoute();
+        final ClusterStatusSupplier clusterStateSupplier = new ClusterStatusSupplier(Cluster.get(actorSystem));
+        final DittoGatewayAuthenticationDirectiveFactory authenticationDirectiveFactory =
+                new DittoGatewayAuthenticationDirectiveFactory(config, httpClient);
+        final RouteFactory routeFactory = RouteFactory.newInstance(actorSystem, proxyActor, streamingActor,
+                healthCheckingActor, clusterStateSupplier, authenticationDirectiveFactory);
+
+        return RootRoute.getBuilder()
+                .statsRoute(routeFactory.newStatsRoute())
+                .statusRoute(routeFactory.newStatusRoute())
+                .overallStatusRoute(routeFactory.newOverallStatusRoute())
+                .cachingHealthRoute(routeFactory.newCachingHealthRoute())
+                .devopsRoute(routeFactory.newDevopsRoute())
+                .policiesRoute(routeFactory.newPoliciesRoute())
+                .sseThingsRoute(routeFactory.newSseThingsRoute())
+                .thingsRoute(routeFactory.newThingsRoute())
+                .thingSearchRoute(routeFactory.newThingSearchRoute())
+                .websocketRoute(routeFactory.newWebSocketRoute())
+                .supportedSchemaVersions(config.getIntList(ConfigKeys.SCHEMA_VERSIONS))
+                .protocolAdapterProvider(routeFactory.getProtocolAdapterProvider())
+                .headerTranslator(routeFactory.getHeaderTranslator())
+                .httpAuthenticationDirective(routeFactory.newHttpAuthenticationDirective())
+                .wsAuthenticationDirective(routeFactory.newWsAuthenticationDirective())
+                .build();
     }
 
     private ActorRef createHealthCheckActor(final HealthConfigReader healthConfig) {

@@ -23,12 +23,10 @@ import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
-import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.mapping.DefaultMessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperRegistry;
-import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.InboundExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
@@ -83,8 +81,9 @@ public final class MessageMappingProcessor {
      */
     public static MessageMappingProcessor of(final String connectionId, @Nullable final MappingContext mappingContext,
             final ActorSystem actorSystem, final DiagnosticLoggingAdapter log) {
-        final MessageMapperRegistry registry = DefaultMessageMapperFactory.of(actorSystem, MessageMappers.class, log)
-                .registryOf(DittoMessageMapper.CONTEXT, mappingContext);
+        final MessageMapperRegistry registry =
+                DefaultMessageMapperFactory.of(connectionId, actorSystem, log)
+                        .registryOf(DittoMessageMapper.CONTEXT, mappingContext);
         final ProtocolConfigReader protocolConfigReader =
                 ProtocolConfigReader.fromRawConfig(actorSystem.settings().config());
         final ProtocolAdapter protocolAdapter =
@@ -161,7 +160,10 @@ public final class MessageMappingProcessor {
             enhanceLogFromAdaptable(adaptable);
 
             return withTimer(overAllProcessingTimer.startNewSegment(PAYLOAD_SEGMENT_NAME),
-                    () -> getMapper(adaptable).map(adaptable));
+                    () -> getMapper(adaptable)
+                            .map(adaptable)
+                            .map(em -> em.withTopicPath(adaptable.getTopicPath()))
+            );
         } catch (final DittoRuntimeException e) {
             throw e;
         } catch (final Exception e) {

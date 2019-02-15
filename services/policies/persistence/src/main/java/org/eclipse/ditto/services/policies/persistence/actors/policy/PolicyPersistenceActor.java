@@ -1862,7 +1862,8 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                     .flatMap(EntityTag::fromEntity)
                     .orElse(null);
 
-            log.debug("Validating conditional headers with currentETagValue <{}> on command <{}>.");
+            log.debug("Validating conditional headers with currentETagValue <{}> on command <{}>.", currentETagValue,
+                    command);
             try {
                 validator.checkConditionalHeaders(command, currentETagValue);
                 log.debug("Validating conditional headers succeeded.");

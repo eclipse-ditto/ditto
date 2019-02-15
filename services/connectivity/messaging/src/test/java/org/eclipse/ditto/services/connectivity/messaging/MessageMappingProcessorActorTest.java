@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELATION_ID;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
+import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.asSet;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 
 import java.util.Collections;
@@ -36,17 +37,26 @@ import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedE
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.MappingContext;
+import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
+import org.eclipse.ditto.model.messages.Message;
+import org.eclipse.ditto.model.messages.MessageDirection;
+import org.eclipse.ditto.model.messages.MessageHeaders;
+import org.eclipse.ditto.model.messages.MessageHeadersBuilder;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFactoryFactory;
 import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilter;
 import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilterFactory;
 import org.eclipse.ditto.services.models.connectivity.placeholder.Placeholder;
+import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
@@ -89,6 +99,46 @@ public class MessageMappingProcessorActorTest {
     @Test
     public void testExternalMessageInDittoProtocolIsProcessed() {
         testExternalMessageInDittoProtocolIsProcessed(null, true);
+    }
+
+    @Test
+    public void testTopicPlaceholderInTargetIsResolved() {
+        new TestKit(actorSystem) {{
+            final String prefix = "some/topic/";
+            final String subject = "some-subject";
+            final String addressWithTopicPlaceholder = prefix + "{{ topic:action|subject }}";
+            final String addressWithSomeOtherPlaceholder = prefix + "{{ eclipse:ditto }}";
+            final String expectedTargetAddress = prefix + subject;
+            final String fixedAddress = "fixedAddress";
+            final Command command = createSendMessageCommand(subject);
+
+            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(getRef());
+            final OutboundSignal outboundSignal =
+                    OutboundSignalFactory.newOutboundSignal(command, asSet(
+                            newTarget(addressWithTopicPlaceholder, addressWithTopicPlaceholder),
+                            newTarget(addressWithSomeOtherPlaceholder, addressWithSomeOtherPlaceholder),
+                            newTarget(fixedAddress, fixedAddress)));
+
+            messageMappingProcessorActor.tell(outboundSignal, getRef());
+
+            final OutboundSignal.WithExternalMessage externalMessage =
+                    expectMsgClass(OutboundSignal.WithExternalMessage.class);
+
+            assertThat(externalMessage.getTargets()).containsExactlyInAnyOrder(
+                    newTarget(fixedAddress, fixedAddress),
+                    newTarget(addressWithSomeOtherPlaceholder, addressWithSomeOtherPlaceholder),
+                    newTarget(expectedTargetAddress, addressWithTopicPlaceholder));
+        }};
+    }
+
+    private Target newTarget(final String address, final String originalAddress) {
+        return ConnectivityModelFactory
+                .newTargetBuilder()
+                .address(address)
+                .originalAddress(originalAddress)
+                .authorizationContext(AUTHORIZATION_CONTEXT)
+                .topics(Topic.TWIN_EVENTS)
+                .build();
     }
 
     @Test
@@ -280,6 +330,20 @@ public class MessageMappingProcessorActorTest {
         headers.put("correlation-id", correlationId);
         headers.put("content-type", "application/json");
         return ModifyAttribute.of("my:thing", JsonPointer.of("foo"), JsonValue.of(42), DittoHeaders.of(headers));
+    }
+
+    private SendThingMessage<Object> createSendMessageCommand(final String subject) {
+        final Map<String, String> headers = new HashMap<>();
+        final String correlationId = UUID.randomUUID().toString();
+        headers.put("correlation-id", correlationId);
+        headers.put("content-type", "application/json");
+
+        final MessageHeaders messageHeaders =
+                MessageHeadersBuilder.newInstance(MessageDirection.TO, TestConstants.Things.THING_ID, subject)
+                        .build();
+
+        return SendThingMessage.of(TestConstants.Things.THING_ID,
+                Message.newBuilder(messageHeaders).payload("payload").build(), DittoHeaders.empty());
     }
 
     private static class TestPlaceholder implements Placeholder<String> {

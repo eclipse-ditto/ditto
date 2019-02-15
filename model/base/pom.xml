@@ -63,6 +63,13 @@
             <plugin>
                 <groupId>com.github.siom79.japicmp</groupId>
                 <artifactId>japicmp-maven-plugin</artifactId>
+                <configuration>
+                    <parameter>
+                        <excludes>
+                            <exclude>org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException</exclude>
+                        </excludes>
+                    </parameter>
+                </configuration>
             </plugin>
         </plugins>
     </build>

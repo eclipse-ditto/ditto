@@ -43,4 +43,5 @@ public @interface JsonParsableException {
      * @return the name of this method.
      */
     String method() default "fromJson";
+
 }

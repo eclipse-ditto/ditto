@@ -22,8 +22,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
@@ -163,13 +163,24 @@ public class JsonExamplesProducer {
         writeJson(commandsDir.resolve(Paths.get("retrieveConnection.json")), retrieveConnectionResponse);
 
         final RetrieveConnectionStatusResponse retrieveConnectionStatusResponse =
-                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectionStatus.OPEN, DittoHeaders.empty());
+                RetrieveConnectionStatusResponse.of(TestConstants.ID,
+                        ConnectivityStatus.OPEN,
+                        ConnectivityStatus.CLOSED,
+                        Instant.now(),
+                        Collections.emptyList(),
+                        Collections.emptyList(),
+                        Collections.emptyList(),
+                        DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("retrieveConnectionStatus.json")), retrieveConnectionStatusResponse);
 
         final RetrieveConnectionMetricsResponse retrieveConnectionMetricsResponse =
                 RetrieveConnectionMetricsResponse.of(TestConstants.ID,
-                        ConnectivityModelFactory.newConnectionMetrics(ConnectionStatus.OPEN, "some status",
-                                Instant.now(), "CONNECTED",  Collections.emptyList(), Collections.emptyList()),
+                        ConnectivityModelFactory.newConnectionMetrics(
+                                ConnectivityModelFactory.newAddressMetric(Collections.emptySet()),
+                                ConnectivityModelFactory.newAddressMetric(Collections.emptySet())
+                        ),
+                        ConnectivityModelFactory.newSourceMetrics(Collections.emptyMap()),
+                        ConnectivityModelFactory.newTargetMetrics(Collections.emptyMap()),
                         DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("retrieveConnectionMetrics.json")), retrieveConnectionMetricsResponse);
     }

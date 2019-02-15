@@ -114,8 +114,7 @@ The Attributes will be replaced by the JSON in the `value`.
 |------------|--------|--------------------------|
 | **topic**  |        | `<namespace>/<thingId>/things/<channel>/commands/modify` |
 | **path**   |        | `/attributes`                      |
-| **value**  |        | The created attributes as JSON, see property `attributes` of Things JSON schema. See [Ditto 
-protocol payload (JSON).](protocol-specification.html#dittoProtocolPayload). This field is not available, if the thing already contained attributes. |
+| **value**  |        | The created attributes as JSON, see property `attributes` of Things JSON schema. See [Ditto protocol payload (JSON).](protocol-specification.html#dittoProtocolPayload). This field is not available, if the thing already contained attributes. |
 | **status** | _code_ |                          | 
 |            | `201`  | Success - Attributes were created successfully.       |
 |            | `204`  | Success - Attributes were modified successfully.       |

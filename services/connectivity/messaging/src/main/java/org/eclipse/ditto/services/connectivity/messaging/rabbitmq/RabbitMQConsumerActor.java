@@ -10,33 +10,27 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.common.CharsetDeterminer;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.connectivity.AddressMetric;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
-import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
-import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
-import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
+import org.eclipse.ditto.model.connectivity.ResourceStatus;
+import org.eclipse.ditto.services.connectivity.messaging.BaseConsumerActor;
+import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
@@ -49,56 +43,44 @@ import com.rabbitmq.client.BasicProperties;
 import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Envelope;
 
-import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 
+
 /**
  * Actor which receives message from an RabbitMQ source and forwards them to a {@code MessageMappingProcessorActor}.
  */
-public final class RabbitMQConsumerActor extends AbstractActor {
+public final class RabbitMQConsumerActor extends BaseConsumerActor {
 
     private static final String MESSAGE_ID_HEADER = "messageId";
+    private static final Set<String> CONTENT_TYPES_INTERPRETED_AS_TEXT;
 
-    private static final Set<String> CONTENT_TYPES_INTERPRETED_AS_TEXT = Collections.unmodifiableSet(new HashSet<>(
-            Arrays.asList(
-                    "text/plain",
-                    "text/html",
-                    "text/yaml",
-                    "application/json",
-                    "application/xml"
-            )));
+    static {
+        final Set<String> contentTypes = new HashSet<>(5);
+        Collections.addAll(contentTypes, "text/plain", "text/html", "text/yaml", "application/json", "application/xml");
+        CONTENT_TYPES_INTERPRETED_AS_TEXT = Collections.unmodifiableSet(contentTypes);
+    }
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final String sourceAddress;
-    private final ActorRef messageMappingProcessor;
-    private final AuthorizationContext authorizationContext;
     private final EnforcementFilterFactory<Map<String, String>, String> headerEnforcementFilterFactory;
-    @Nullable private final HeaderMapping headerMapping;
 
-    private long consumedMessages = 0L;
-    private Instant lastMessageConsumedAt;
-    @Nullable private AddressMetric addressMetric = null;
-
-    private RabbitMQConsumerActor(final String sourceAddress, final ActorRef messageMappingProcessor, final
-    AuthorizationContext authorizationContext, @Nullable Enforcement enforcement,
-            @Nullable final HeaderMapping headerMapping) {
-        this.sourceAddress = checkNotNull(sourceAddress, "source");
-        this.messageMappingProcessor = checkNotNull(messageMappingProcessor, "messageMappingProcessor");
-        this.authorizationContext = authorizationContext;
+    private RabbitMQConsumerActor(final String connectionId, final String sourceAddress,
+            final ActorRef messageMappingProcessor, final AuthorizationContext authorizationContext,
+            @Nullable final Enforcement enforcement, @Nullable final HeaderMapping headerMapping) {
+        super(connectionId, sourceAddress, messageMappingProcessor, authorizationContext, headerMapping);
         headerEnforcementFilterFactory =
                 enforcement != null ? EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement,
-                PlaceholderFactory.newHeadersPlaceholder()) : input -> null;
-        this.headerMapping = headerMapping;
+                        PlaceholderFactory.newHeadersPlaceholder()) : input -> null;
     }
 
     /**
      * Creates Akka configuration object {@link Props} for this {@code RabbitMQConsumerActor}.
      *
+     * @param connectionId ID of the connection
      * @param source the source of messages
      * @param messageMappingProcessor the message mapping processor where received messages are forwarded to
      * @param authorizationContext the authorization context of this source
@@ -108,15 +90,15 @@ public final class RabbitMQConsumerActor extends AbstractActor {
      */
     static Props props(final String source, final ActorRef messageMappingProcessor, final
     AuthorizationContext authorizationContext, @Nullable final Enforcement enforcement,
-            @Nullable final HeaderMapping headerMapping) {
+            @Nullable final HeaderMapping headerMapping, final String connectionId) {
         return Props.create(
                 RabbitMQConsumerActor.class, new Creator<RabbitMQConsumerActor>() {
                     private static final long serialVersionUID = 1L;
 
                     @Override
                     public RabbitMQConsumerActor create() {
-                        return new RabbitMQConsumerActor(source, messageMappingProcessor, authorizationContext,
-                                enforcement, headerMapping);
+                        return new RabbitMQConsumerActor(connectionId, source, messageMappingProcessor,
+                                authorizationContext, enforcement, headerMapping);
                     }
                 });
     }
@@ -125,45 +107,33 @@ public final class RabbitMQConsumerActor extends AbstractActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(Delivery.class, this::handleDelivery)
-                .match(AddressMetric.class, this::handleAddressMetric)
-                .match(RetrieveAddressMetric.class, ram -> {
-                    getSender().tell(ConnectivityModelFactory.newAddressMetric(
-                            addressMetric != null ? addressMetric.getStatus() : ConnectionStatus.UNKNOWN,
-                            addressMetric != null ? addressMetric.getStatusDetails().orElse(null) : null,
-                            consumedMessages, lastMessageConsumedAt), getSelf());
-                })
+                .match(ResourceStatus.class, this::handleAddressStatus)
+                .match(RetrieveAddressStatus.class, ram -> getSender().tell(getCurrentSourceStatus(), getSelf()))
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
                 }).build();
     }
 
-    private void handleAddressMetric(final AddressMetric addressMetric) {
-        this.addressMetric = addressMetric;
-    }
-
     private void handleDelivery(final Delivery delivery) {
-        consumedMessages++;
-        lastMessageConsumedAt = Instant.now();
         final BasicProperties properties = delivery.getProperties();
         final Envelope envelope = delivery.getEnvelope();
         final byte[] body = delivery.getBody();
 
-        final String correlationId = properties.getCorrelationId();
-        LogUtil.enhanceLogWithCorrelationId(log, correlationId);
-        if (log.isDebugEnabled()) {
-            log.debug("Received message from RabbitMQ ({}//{}): {}", envelope, properties,
-                    new String(body, StandardCharsets.UTF_8));
-        }
-
         Map<String, String> headers = null;
         try {
+            final String correlationId = properties.getCorrelationId();
+            LogUtil.enhanceLogWithCorrelationId(log, correlationId);
+            if (log.isDebugEnabled()) {
+                log.debug("Received message from RabbitMQ ({}//{}): {}", envelope, properties,
+                        new String(body, StandardCharsets.UTF_8));
+            }
             headers = extractHeadersFromMessage(properties, envelope);
             final ExternalMessageBuilder externalMessageBuilder =
                     ExternalMessageFactory.newExternalMessageBuilder(headers);
             final String contentType = properties.getContentType();
             if (shouldBeInterpretedAsText(contentType)) {
-                final String text = new String(body, MessageMappers.determineCharset(contentType));
+                final String text = new String(body, CharsetDeterminer.getInstance().apply(contentType));
                 externalMessageBuilder.withText(text);
             } else {
                 externalMessageBuilder.withBytes(body);
@@ -171,16 +141,20 @@ public final class RabbitMQConsumerActor extends AbstractActor {
             externalMessageBuilder.withAuthorizationContext(authorizationContext);
             externalMessageBuilder.withEnforcement(headerEnforcementFilterFactory.getFilter(headers));
             externalMessageBuilder.withHeaderMapping(headerMapping);
+            externalMessageBuilder.withSourceAddress(sourceAddress);
             final ExternalMessage externalMessage = externalMessageBuilder.build();
+            inboundCounter.recordSuccess();
             messageMappingProcessor.forward(externalMessage, getContext());
         } catch (final DittoRuntimeException e) {
             log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage(), e);
+            inboundCounter.recordFailure();
             if (headers != null) {
                 // send response if headers were extracted successfully
                 messageMappingProcessor.forward(e.setDittoHeaders(DittoHeaders.of(headers)), getContext());
             }
         } catch (final Exception e) {
             log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage(), e);
+            inboundCounter.recordFailure();
         }
     }
 
@@ -188,11 +162,10 @@ public final class RabbitMQConsumerActor extends AbstractActor {
         return contentType != null && CONTENT_TYPES_INTERPRETED_AS_TEXT.stream().anyMatch(contentType::startsWith);
     }
 
-    private Map<String, String> extractHeadersFromMessage(final BasicProperties properties, final Envelope envelope) {
-        final Map<String, String> headersFromProperties =
-                Optional.ofNullable(properties.getHeaders())
-                        .map(Map::entrySet)
-                        .map(this::setToStringStringMap).orElseGet(HashMap::new);
+    private static Map<String, String> extractHeadersFromMessage(final BasicProperties properties,
+            final Envelope envelope) {
+
+        final Map<String, String> headersFromProperties = getHeadersFromProperties(properties.getHeaders());
 
         // set headers specific to rmq messages
         if (properties.getReplyTo() != null) {
@@ -205,13 +178,19 @@ public final class RabbitMQConsumerActor extends AbstractActor {
             headersFromProperties.put(ExternalMessage.CONTENT_TYPE_HEADER, properties.getContentType());
         }
         headersFromProperties.put(MESSAGE_ID_HEADER, Long.toString(envelope.getDeliveryTag()));
+
         return headersFromProperties;
     }
 
-    private Map<String, String> setToStringStringMap(final Set<Map.Entry<String, Object>> entries) {
-        return entries.stream()
-                .filter(entry -> Objects.nonNull(entry.getValue()))
-                .collect(Collectors.toMap(Map.Entry::getKey, entry -> String.valueOf(entry.getValue())));
+    private static Map<String, String> getHeadersFromProperties(@Nullable final Map<String, Object> originalProps) {
+        if (null != originalProps) {
+            return originalProps.entrySet()
+                    .stream()
+                    .filter(entry -> Objects.nonNull(entry.getValue()))
+                    .collect(Collectors.toMap(Map.Entry::getKey, entry -> String.valueOf(entry.getValue())));
+        }
+
+        return new HashMap<>();
     }
 
 }

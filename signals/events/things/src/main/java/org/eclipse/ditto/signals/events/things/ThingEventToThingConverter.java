@@ -37,13 +37,14 @@ public final class ThingEventToThingConverter {
      * @param thingEvent the ThingEvent to extract the correlating Thing from
      * @return the Thing represented by the passed in ThingEvent
      */
-    public static Optional<Thing> thingEventToThing(final ThingEvent thingEvent) {
+    public static Optional<Thing> thingEventToThing(final ThingEvent<?> thingEvent) {
 
         return Optional.ofNullable(EVENT_TO_THING_MAPPERS.get(thingEvent.getClass()))
                 .map(eventToThingMapper -> {
                     final ThingBuilder.FromScratch thingBuilder = Thing.newBuilder()
                             .setId(thingEvent.getThingId())
-                            .setRevision(thingEvent.getRevision());
+                            .setRevision(thingEvent.getRevision())
+                            .setModified(thingEvent.getTimestamp().orElse(null));
                     return eventToThingMapper.apply(thingEvent, thingBuilder);
                 });
     }

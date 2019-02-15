@@ -38,6 +38,7 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     @Nullable private TopicPath topicPath;
     @Nullable private EnforcementFilter<String> enforcementFilter;
     @Nullable private HeaderMapping headerMapping;
+    @Nullable private String sourceAddress;
 
     /**
      * Constructs a new MutableExternalMessageBuilder initialized with the passed {@code message}.
@@ -55,6 +56,7 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
         this.topicPath = message.getTopicPath().orElse(null);
         this.enforcementFilter = message.getEnforcementFilter().orElse(null);
         this.headerMapping = message.getHeaderMapping().orElse(null);
+        this.sourceAddress = message.getSourceAddress().orElse(null);
     }
 
     /**
@@ -142,6 +144,12 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     }
 
     @Override
+    public ExternalMessageBuilder withSourceAddress(@Nullable final String sourceAddress) {
+        this.sourceAddress = sourceAddress;
+        return this;
+    }
+
+    @Override
     public ExternalMessageBuilder asResponse(final boolean response) {
         this.response = response;
         return this;
@@ -156,7 +164,7 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     @Override
     public ExternalMessage build() {
         return new UnmodifiableExternalMessage(headers, response, error, payloadType, textPayload, bytePayload,
-                authorizationContext, topicPath, enforcementFilter, headerMapping);
+                authorizationContext, topicPath, enforcementFilter, headerMapping, sourceAddress);
     }
 
 }

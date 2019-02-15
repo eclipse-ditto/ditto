@@ -19,6 +19,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.services.models.things.ThingsMappingStrategy;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
@@ -32,8 +33,8 @@ import org.eclipse.ditto.signals.commands.messages.MessageCommandResponseRegistr
 import org.eclipse.ditto.signals.events.connectivity.ConnectivityEventRegistry;
 
 /**
- * {@link org.eclipse.ditto.services.utils.cluster.MappingStrategy} for the Connectivity service containing all {@link
- * org.eclipse.ditto.model.base.json.Jsonifiable} types known to this service.
+ * {@link MappingStrategy} for the Connectivity service containing all
+ * {@link org.eclipse.ditto.model.base.json.Jsonifiable} types known to this service.
  */
 public final class ConnectivityMappingStrategy implements MappingStrategy {
 
@@ -64,11 +65,19 @@ public final class ConnectivityMappingStrategy implements MappingStrategy {
                 .add(ConnectivityCommandResponseRegistry.newInstance())
                 .add(ConnectivityEventRegistry.newInstance())
                 .add(GlobalErrorRegistry.getInstance())
-                .add(Connection.class, (jsonObject) ->
+                .add(Connection.class, jsonObject ->
                         ConnectivityModelFactory.connectionFromJson(jsonObject)) // do not replace with lambda!
-                .add("ImmutableConnection", (jsonObject) ->
+                .add("ImmutableConnection", jsonObject ->
                         ConnectivityModelFactory.connectionFromJson(jsonObject)) // do not replace with lambda!
-                ;
+                .add(OutboundSignal.class, jsonObject ->
+                        OutboundSignalFactory.outboundSignalFromJson(jsonObject, this)) // do not replace with lambda!
+                .add("UnmappedOutboundSignal", jsonObject ->
+                        OutboundSignalFactory.outboundSignalFromJson(jsonObject, this)) // do not replace with lambda!
+                .add(ResourceStatus.class, jsonObject ->
+                        ConnectivityModelFactory.resourceStatusFromJson(jsonObject)) // do not replace with lambda!
+                .add("ImmutableResourceStatus", jsonObject ->
+                        ConnectivityModelFactory.resourceStatusFromJson(jsonObject)) // do not replace with lambda!
+        ;
 
         addMessagesStrategies(strategiesBuilder);
         addDevOpsStrategies(strategiesBuilder);

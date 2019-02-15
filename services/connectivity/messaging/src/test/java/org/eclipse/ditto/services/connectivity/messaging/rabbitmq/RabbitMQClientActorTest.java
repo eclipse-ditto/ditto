@@ -24,9 +24,9 @@ import org.assertj.core.api.ThrowableAssert;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
@@ -65,7 +65,7 @@ public class RabbitMQClientActorTest {
     @SuppressWarnings("NullableProblems") private static ActorSystem actorSystem;
 
     private static final String connectionId = TestConstants.createRandomConnectionId();
-    private static final ConnectionStatus connectionStatus = ConnectionStatus.OPEN;
+    private static final ConnectivityStatus connectionStatus = ConnectivityStatus.OPEN;
     private static Connection connection;
 
     @Mock
@@ -98,9 +98,9 @@ public class RabbitMQClientActorTest {
     @Test
     public void invalidTargetFormatThrowsConnectionConfigurationInvalidException() {
         final Connection connection = ConnectivityModelFactory.newConnectionBuilder("ditto", ConnectionType.AMQP_091,
-                ConnectionStatus.OPEN, TestConstants.getUriOfNewMockServer())
+                ConnectivityStatus.OPEN, TestConstants.getUriOfNewMockServer())
                 .targets(Collections.singleton(ConnectivityModelFactory.newTarget("exchangeOnly",
-                        TestConstants.Authorization.AUTHORIZATION_CONTEXT, null, Topic.TWIN_EVENTS)))
+                        TestConstants.Authorization.AUTHORIZATION_CONTEXT, null, null, Topic.TWIN_EVENTS)))
                 .build();
 
         final ThrowableAssert.ThrowingCallable props1 =

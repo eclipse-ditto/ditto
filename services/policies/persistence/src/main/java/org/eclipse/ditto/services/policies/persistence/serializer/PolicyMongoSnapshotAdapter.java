@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.policies.persistence.serializer;
 
-import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -34,7 +33,7 @@ public final class PolicyMongoSnapshotAdapter extends AbstractMongoSnapshotAdapt
     }
 
     @Override
-    protected Policy createJsonifiableFrom(@Nonnull final JsonObject jsonObject) {
+    protected Policy createJsonifiableFrom(final JsonObject jsonObject) {
         return PoliciesModelFactory.newPolicy(jsonObject);
     }
 

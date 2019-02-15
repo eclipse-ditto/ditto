@@ -139,7 +139,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
     private final Class<E> elementClass;
     private final Function<E, Source<Object, NotUsed>> mapEntityFunction;
     private final Function<SudoStreamModifiedEntities, ?> streamTriggerMessageMapper;
-    private final StreamMetadataPersistence streamMetadataPersistence;
+    private final TimestampPersistence streamMetadataPersistence;
     private final Materializer materializer;
     private final StreamConsumerSettings streamConsumerSettings;
     private @Nullable ActorRef forwarder;
@@ -164,7 +164,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
             final Class<E> elementClass,
             final Function<E, Source<Object, NotUsed>> mapEntityFunction,
             final Function<SudoStreamModifiedEntities, ?> streamTriggerMessageMapper,
-            final StreamMetadataPersistence streamMetadataPersistence,
+            final TimestampPersistence streamMetadataPersistence,
             final Materializer materializer,
             final StreamConsumerSettings streamConsumerSettings) {
         this.forwardTo = requireNonNull(forwardTo);
@@ -193,7 +193,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
      * @param mapEntityFunction the function to create a source of messages from each streamed element.
      * @param streamTriggerMessageMapper a mapping function to convert a {@link SudoStreamModifiedEntities} message to a
      * message understood by the stream provider. Can be used to send messages via Akka PubSub.
-     * @param streamMetadataPersistence the {@link StreamMetadataPersistence} used to read and write stream metadata (is
+     * @param streamMetadataPersistence the {@link TimestampPersistence} used to read and write stream metadata (is
      * used to remember the end time of the last stream after a re-start).
      * @param materializer the materializer to run Akka streams with.
      * @param streamConsumerSettings The settings for stream consumption.
@@ -203,7 +203,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
             final Class<E> elementClass,
             final Function<E, Source<Object, NotUsed>> mapEntityFunction,
             final Function<SudoStreamModifiedEntities, ?> streamTriggerMessageMapper,
-            final StreamMetadataPersistence streamMetadataPersistence,
+            final TimestampPersistence streamMetadataPersistence,
             final Materializer materializer,
             final StreamConsumerSettings streamConsumerSettings) {
 
@@ -309,7 +309,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
 
         if (activeStreamSuccess) {
             final Instant lastSuccessfulQueryEnd = activeStream.getQueryEnd();
-            streamMetadataPersistence.updateLastSuccessfulStreamEnd(lastSuccessfulQueryEnd)
+            streamMetadataPersistence.setTimestamp(lastSuccessfulQueryEnd)
                     .runWith(akka.stream.javadsl.Sink.last(), materializer)
                     .thenRun(() -> log.debug("Updated last sync timestamp to value: <{}>.", lastSuccessfulQueryEnd))
                     .exceptionally(error -> {
@@ -344,30 +344,27 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
             // the initial start ts is only used when no sync has been run yet (i.e. no timestamp has been persisted)
             final Instant initialStartTsWithoutStandardOffset =
                     now.minus(streamConsumerSettings.getInitialStartOffset());
-            queryStartSource = streamMetadataPersistence.retrieveLastSuccessfulStreamEnd()
+            queryStartSource = streamMetadataPersistence.getTimestampAsync()
                     .map(instant -> instant.orElse(initialStartTsWithoutStandardOffset));
         }
 
-        final Source<StreamTrigger, NotUsed> triggerSource =
-                queryStartSource.map(queryStart -> {
-                    final Duration offsetFromNow = Duration.between(queryStart, now);
-                    // check if the queryStart is very long in the past to be able to log a warning
-                    final Duration warnOffset = streamConsumerSettings.getOutdatedWarningOffset();
-                    if (!offsetFromNow.isNegative() && offsetFromNow.compareTo(warnOffset) > 0) {
-                        log.debug("The next Query-Start <{}> is older than the configured warn-offset <{}>. " +
-                                        "Please verify that this does not happen frequently, " +
-                                        "otherwise won't get \"up-to-date\" anymore.",
-                                queryStart, warnOffset);
-                    }
+        return queryStartSource.map(queryStart -> {
+            final Duration offsetFromNow = Duration.between(queryStart, now);
+            // check if the queryStart is very long in the past to be able to log a warning
+            final Duration warnOffset = streamConsumerSettings.getOutdatedWarningOffset();
+            if (!offsetFromNow.isNegative() && offsetFromNow.compareTo(warnOffset) > 0) {
+                log.debug("The next Query-Start <{}> is older than the configured warn-offset <{}>. " +
+                                "Please verify that this does not happen frequently, " +
+                                "otherwise won't get \"up-to-date\" anymore.",
+                        queryStart, warnOffset);
+            }
 
-                    final Duration startOffset = streamConsumerSettings.getStartOffset();
-                    final Duration streamInterval = streamConsumerSettings.getStreamInterval();
-                    final Duration minimalDelayBetweenStreams = streamConsumerSettings.getMinimalDelayBetweenStreams();
-                    return StreamTrigger.calculateStreamTrigger(now, queryStart, startOffset, streamInterval,
-                            minimalDelayBetweenStreams, lastSuccessfulQueryEnd == null);
-                });
-
-        return triggerSource;
+            final Duration startOffset = streamConsumerSettings.getStartOffset();
+            final Duration streamInterval = streamConsumerSettings.getStreamInterval();
+            final Duration minimalDelayBetweenStreams = streamConsumerSettings.getMinimalDelayBetweenStreams();
+            return StreamTrigger.calculateStreamTrigger(now, queryStart, startOffset, streamInterval,
+                    minimalDelayBetweenStreams, lastSuccessfulQueryEnd == null);
+        });
     }
 
     private void scheduleStream(final StreamTrigger streamTrigger) {

@@ -99,7 +99,7 @@ public final class DefaultPersistenceStreamingActorTest {
         }};
     }
 
-    private Command<?> createStreamingRequest() {
+    private static Command<?> createStreamingRequest() {
         final Instant endTs = Instant.now().minusSeconds(5);
         final Instant startTs = endTs.minusSeconds(10);
 
@@ -108,7 +108,7 @@ public final class DefaultPersistenceStreamingActorTest {
     }
 
     private static ActorRef createPersistenceQueriesActor(final Source<PidWithSeqNr, NotUsed> mockedSource) {
-        final MongoClientWrapper mockClient = mock(MongoClientWrapper.class);
+        final DittoMongoClient mockClient = mock(DittoMongoClient.class);
         final MongoReadJournal mockJournal = mock(MongoReadJournal.class);
         when(mockJournal.getPidWithSeqNrsByInterval(any(), any())).thenReturn(mockedSource);
         final Props props = Props.create(DefaultPersistenceStreamingActor.class, () ->
@@ -126,9 +126,9 @@ public final class DefaultPersistenceStreamingActorTest {
     }
 
     private static final class SimpleEntityIdWithRevision extends AbstractEntityIdWithRevision {
-
         private SimpleEntityIdWithRevision(final String id, final long revision) {
             super(id, revision);
         }
     }
+
 }

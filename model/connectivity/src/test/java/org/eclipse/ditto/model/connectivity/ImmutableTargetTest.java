@@ -45,7 +45,7 @@ public class ImmutableTargetTest {
     }
 
     private static final Target TARGET_WITH_AUTH_CONTEXT =
-            ConnectivityModelFactory.newTarget(ADDRESS, ctx, HEADER_MAPPING, TWIN_EVENTS);
+            ConnectivityModelFactory.newTarget(ADDRESS, ctx, HEADER_MAPPING, null, TWIN_EVENTS);
     private static final JsonObject TARGET_JSON_WITH_EMPTY_AUTH_CONTEXT = JsonObject
             .newBuilder()
             .set(Target.JsonFields.TOPICS, JsonFactory.newArrayBuilder().add(TWIN_EVENTS.getName()).build())
@@ -53,6 +53,18 @@ public class ImmutableTargetTest {
             .build();
 
     private static final JsonObject TARGET_JSON_WITH_AUTH_CONTEXT = TARGET_JSON_WITH_EMPTY_AUTH_CONTEXT.toBuilder()
+            .set(Source.JsonFields.AUTHORIZATION_CONTEXT, JsonFactory.newArrayBuilder().add("eclipse", "ditto").build())
+            .build();
+
+    private static final String MQTT_ADDRESS = "mqtt/target1";
+
+    private static final Target MQTT_TARGET =
+            ConnectivityModelFactory.newTarget(MQTT_ADDRESS, ctx, null, 1, TWIN_EVENTS);
+    private static final JsonObject MQTT_TARGET_JSON = JsonObject
+            .newBuilder()
+            .set(Target.JsonFields.TOPICS, JsonFactory.newArrayBuilder().add(TWIN_EVENTS.getName()).build())
+            .set(Target.JsonFields.ADDRESS, MQTT_ADDRESS)
+            .set(Target.JsonFields.QOS, 1)
             .set(Source.JsonFields.AUTHORIZATION_CONTEXT, JsonFactory.newArrayBuilder().add("eclipse", "ditto").build())
             .build();
 
@@ -79,6 +91,18 @@ public class ImmutableTargetTest {
     public void fromJsonReturnsExpected() {
         final Target actual = ImmutableTarget.fromJson(TARGET_JSON_WITH_AUTH_CONTEXT);
         assertThat(actual).isEqualTo(TARGET_WITH_AUTH_CONTEXT);
+    }
+
+    @Test
+    public void mqttToJsonReturnsExpected() {
+        final JsonObject actual = MQTT_TARGET.toJson();
+        assertThat(actual).isEqualTo(MQTT_TARGET_JSON);
+    }
+
+    @Test
+    public void mqttFromJsonReturnsExpected() {
+        final Target actual = ImmutableTarget.fromJson(MQTT_TARGET_JSON);
+        assertThat(actual).isEqualTo(MQTT_TARGET);
     }
 
 }

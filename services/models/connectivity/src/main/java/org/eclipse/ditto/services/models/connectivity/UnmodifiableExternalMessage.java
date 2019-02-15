@@ -41,6 +41,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
     @Nullable private final TopicPath topicPath;
     @Nullable private final EnforcementFilter<String> enforcementFilter;
     @Nullable private final HeaderMapping headerMapping;
+    @Nullable private final String sourceAddress;
 
     UnmodifiableExternalMessage(final Map<String, String> headers,
             final boolean response,
@@ -51,7 +52,8 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
             @Nullable final AuthorizationContext authorizationContext,
             @Nullable final TopicPath topicPath,
             @Nullable final EnforcementFilter<String> enforcementFilter,
-            @Nullable final HeaderMapping headerMapping) {
+            @Nullable final HeaderMapping headerMapping,
+            @Nullable final String sourceAddress) {
 
         this.headers = Collections.unmodifiableMap(new HashMap<>(headers));
         this.response = response;
@@ -63,6 +65,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
         this.topicPath = topicPath;
         this.enforcementFilter = enforcementFilter;
         this.headerMapping = headerMapping;
+        this.sourceAddress = sourceAddress;
     }
 
     @Override
@@ -80,6 +83,11 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
         return new UnmodifiableExternalMessageBuilder(this)
                 .withAdditionalHeaders(additionalHeaders)
                 .build();
+    }
+
+    @Override
+    public ExternalMessage withTopicPath(final TopicPath topicPath) {
+        return new UnmodifiableExternalMessageBuilder(this).withTopicPath(topicPath).build();
     }
 
     @Override
@@ -149,6 +157,11 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
     }
 
     @Override
+    public Optional<String> getSourceAddress() {
+        return Optional.ofNullable(sourceAddress);
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -164,6 +177,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
                 Objects.equals(topicPath, that.topicPath) &&
                 Objects.equals(enforcementFilter, that.enforcementFilter) &&
                 Objects.equals(headerMapping, that.headerMapping) &&
+                Objects.equals(sourceAddress, that.sourceAddress) &&
                 Objects.equals(response, that.response) &&
                 Objects.equals(error, that.error) &&
                 payloadType == that.payloadType;
@@ -172,7 +186,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
     @Override
     public int hashCode() {
         return Objects.hash(headers, textPayload, bytePayload, payloadType, response, error, authorizationContext,
-                topicPath, enforcementFilter, headerMapping);
+                topicPath, enforcementFilter, headerMapping, sourceAddress);
     }
 
     @Override
@@ -185,6 +199,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
                 ", topicPath=" + topicPath +
                 ", enforcement=" + enforcementFilter +
                 ", headerMapping=" + headerMapping +
+                ", sourceAddress=" + sourceAddress +
                 ", payloadType=" + payloadType +
                 ", textPayload=" + textPayload +
                 ", bytePayload=" +

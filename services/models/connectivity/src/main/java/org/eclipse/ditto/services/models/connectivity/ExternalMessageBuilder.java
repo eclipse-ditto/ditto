@@ -119,6 +119,14 @@ public interface ExternalMessageBuilder {
     ExternalMessageBuilder withHeaderMapping(@Nullable HeaderMapping headerMapping);
 
     /**
+     * Adds the source address to this message, where this messages was received.
+     *
+     * @param sourceAddress the source address
+     * @return this builder in order to enable method chaining
+     */
+    ExternalMessageBuilder withSourceAddress(@Nullable String sourceAddress);
+
+    /**
      * Marks the message as a response message.
      *
      * @param response whether the message is a response
