@@ -33,24 +33,25 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.concierge.cache.AclEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.ThingEnforcementIdCacheLoader;
-import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
+import org.eclipse.ditto.services.concierge.util.config.ConciergeConfig;
+import org.eclipse.ditto.services.concierge.util.config.DittoConciergeConfig;
 import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.models.concierge.cache.Entry;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.testkit.TestProbe;
 
-public class TestSetup {
+public final class TestSetup {
 
     public static final String THING = "thing";
     public static final String THING_SUDO = "thing-sudo";
@@ -59,9 +60,7 @@ public class TestSetup {
     public static final String THING_ID = "thing:id";
     public static final AuthorizationSubject SUBJECT = AuthorizationSubject.newInstance("dummy:subject");
 
-    public static final ConciergeConfigReader CONFIG =
-            ConciergeConfigReader.from("concierge")
-                    .apply(ConfigUtil.determineConfig("test"));
+    public static final ConciergeConfig CONFIG = DittoConciergeConfig.of(ConfigFactory.load("test"));
 
     public static ActorRef newEnforcerActor(final ActorSystem system, final ActorRef testActorRef,
             final ActorRef mockEntitiesActor) {
@@ -82,7 +81,8 @@ public class TestSetup {
 
         final ActorRef conciergeForwarder =
                 new TestProbe(system, createUniqueName("conciergeForwarder-")).ref();
-        final Duration askTimeout = CONFIG.caches().askTimeout();
+        final ConciergeConfig.CachesConfig cachesConfig = CONFIG.getCachesConfig();
+        final Duration askTimeout = cachesConfig.getAskTimeout();
 
         final PolicyEnforcerCacheLoader policyEnforcerCacheLoader =
                 new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegion);
