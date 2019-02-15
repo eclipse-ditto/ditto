@@ -13,6 +13,8 @@ package org.eclipse.ditto.services.base.config;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.base.config.ServiceSpecificConfig.MetricsConfig;
+import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 import com.typesafe.config.Config;
 
@@ -65,7 +67,7 @@ public final class DefaultMetricsConfig implements MetricsConfig {
      *
      * @param config is supposed to provide the settings of the metrics config at {@value #CONFIG_PATH}.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.base.config.DittoConfigError if {@code config} is {@code null} if the
+     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is {@code null} if the
      * value of {@code config} at {@code configPath} is not of type
      * {@link com.typesafe.config.ConfigValueType#OBJECT}.
      */

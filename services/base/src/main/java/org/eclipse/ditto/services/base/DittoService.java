@@ -28,13 +28,13 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.services.base.config.LimitsConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
-import org.eclipse.ditto.services.base.config.SuffixBuilderConfig;
 import org.eclipse.ditto.services.base.config.SuffixBuilderConfigReader;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
 import org.eclipse.ditto.services.utils.devops.LogbackLoggingFacade;
 import org.eclipse.ditto.services.utils.health.status.StatusSupplierActor;
 import org.eclipse.ditto.services.utils.metrics.prometheus.PrometheusReporterRoute;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.SuffixBuilderConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.NamespaceSuffixCollectionNames;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;

@@ -24,7 +24,7 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import org.eclipse.ditto.services.base.config.DittoConfigError;
+import org.eclipse.ditto.services.utils.config.DittoConfigError;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.base.config;
+package org.eclipse.ditto.services.utils.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -28,7 +28,7 @@ import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.base.config.ConfigWithFallback}.
+ * Unit test for {@link org.eclipse.ditto.services.utils.config.ConfigWithFallback}.
  */
 public final class ConfigWithFallbackTest {
 

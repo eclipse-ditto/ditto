@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
@@ -14,6 +14,8 @@ import java.time.Duration;
 import java.util.Objects;
 
 import org.eclipse.ditto.services.base.config.ServiceSpecificConfig.HealthCheckConfig;
+import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 import com.typesafe.config.Config;
 
@@ -65,7 +67,7 @@ public final class DefaultHealthCheckConfig implements HealthCheckConfig {
      *
      * @param config is supposed to provide the settings of the health check config at {@value #CONFIG_PATH}.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.base.config.DittoConfigError if {@code config} is {@code null} if the
+     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is {@code null} if the
      * value of {@code config} at {@code configPath} is not of type
      * {@link com.typesafe.config.ConfigValueType#OBJECT}.
      */

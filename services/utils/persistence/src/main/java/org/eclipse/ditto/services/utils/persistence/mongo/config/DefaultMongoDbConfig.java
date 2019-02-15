@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
@@ -8,12 +8,15 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.base.config;
+package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
 import java.time.Duration;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 import com.typesafe.config.Config;
 
@@ -76,7 +79,7 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
      *
      * @param config the Config which contains nested MongoDB settings at path {@value #CONFIG_PATH}.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.base.config.DittoConfigError if {@code config} is {@code null} the value of
+     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is {@code null} the value of
      * {@code config} at {@code configPath} is not of type {@link com.typesafe.config.ConfigValueType#OBJECT}.
      */
     public static DefaultMongoDbConfig of(final Config config) {
@@ -208,7 +211,7 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
          *
          * @param config is supposed to provide the settings of the options config at {@value #CONFIG_PATH}.
          * @return the instance.
-         * @throws org.eclipse.ditto.services.base.config.DittoConfigError if {@code config} is {@code null} if the
+         * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is {@code null} if the
          * value of {@code config} at {@code configPath} is not of type
          * {@link com.typesafe.config.ConfigValueType#OBJECT}.
          */
@@ -297,7 +300,7 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
          *
          * @param config is supposed to provide the settings of the connection pool config at {@value #CONFIG_PATH}.
          * @return the instance.
-         * @throws org.eclipse.ditto.services.base.config.DittoConfigError if {@code config} is {@code null} if the
+         * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is {@code null} if the
          * value of {@code config} at {@code configPath} is not of type
          * {@link com.typesafe.config.ConfigValueType#OBJECT}.
          */
@@ -397,7 +400,7 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
          *
          * @param config is supposed to provide the settings of the circuit breaker config at {@value #CONFIG_PATH}.
          * @return the instance.
-         * @throws org.eclipse.ditto.services.base.config.DittoConfigError if {@code config} is {@code null} if the
+         * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is {@code null} if the
          * value of {@code config} at {@code configPath} is not of type
          * {@link com.typesafe.config.ConfigValueType#OBJECT}.
          */
@@ -486,7 +489,7 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
              *
              * @param config is supposed to provide the settings of the timeout config at {@value #CONFIG_PATH}.
              * @return the instance.
-             * @throws org.eclipse.ditto.services.base.config.DittoConfigError if {@code config} is {@code null} if the
+             * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is {@code null} if the
              * value of {@code config} at {@code configPath} is not of type
              * {@link com.typesafe.config.ConfigValueType#OBJECT}.
              */
@@ -578,7 +581,7 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
          *
          * @param config is supposed to provide the settings of the monitoring config at {@value #CONFIG_PATH}.
          * @return the instance.
-         * @throws org.eclipse.ditto.services.base.config.DittoConfigError if {@code config} is {@code null} if the
+         * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is {@code null} if the
          * value of {@code config} at {@code configPath} is not of type
          * {@link com.typesafe.config.ConfigValueType#OBJECT}.
          */

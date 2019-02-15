@@ -15,7 +15,7 @@ import java.time.Duration;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.base.config.ServiceSpecificConfig;
-import org.eclipse.ditto.services.base.config.WithMongoDbConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.WithMongoDbConfig;
 
 /**
  * Provides the configuration settings of the Concierge service.

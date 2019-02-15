@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.base.config;
+package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
@@ -20,6 +20,9 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.services.utils.config.DittoConfigError;
+import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,7 +97,7 @@ public final class DefaultSuffixBuilderConfig implements SuffixBuilderConfig {
      *
      * @param config the config which is supposed to contain path {@value #CONFIG_PATH}.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.base.config.DittoConfigError if
+     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if
      * <ul>
      *     <li>{@code config} is {@code null},</li>
      *     <li>the value of {@code config} at {@value CONFIG_PATH} is not of type

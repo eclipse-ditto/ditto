@@ -18,7 +18,7 @@ import java.util.function.Supplier;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.base.config.DittoConfigError;
+import org.eclipse.ditto.services.utils.config.DittoConfigError;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -45,7 +45,7 @@ final class FileBasedConfigSupplier implements Supplier<Config> {
      * on the file denoted by system environment variable {@value #HOSTING_ENV_FILE_LOCATION_ENV_VARIABLE_NAME}.
      *
      * @return the instance.
-     * @throws org.eclipse.ditto.services.base.config.DittoConfigError if the value of the system environment variable
+     * @throws DittoConfigError if the value of the system environment variable
      * {@value #HOSTING_ENV_FILE_LOCATION_ENV_VARIABLE_NAME} was either not set at all or did not denote an existing
      * file.
      */

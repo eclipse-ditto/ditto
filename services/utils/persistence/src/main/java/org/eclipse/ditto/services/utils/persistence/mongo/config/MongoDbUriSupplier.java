@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.base.config;
+package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
@@ -26,7 +26,8 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.base.config.DefaultMongoDbConfig.DefaultOptionsConfig;
+import org.eclipse.ditto.services.utils.config.DittoConfigError;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig.DefaultOptionsConfig;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;

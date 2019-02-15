@@ -18,16 +18,16 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.base.config.ConfigWithFallback;
 import org.eclipse.ditto.services.base.config.DefaultClusterConfig;
 import org.eclipse.ditto.services.base.config.DefaultHealthCheckConfig;
 import org.eclipse.ditto.services.base.config.DefaultHttpConfig;
 import org.eclipse.ditto.services.base.config.DefaultLimitsConfig;
 import org.eclipse.ditto.services.base.config.DefaultMetricsConfig;
-import org.eclipse.ditto.services.base.config.DefaultMongoDbConfig;
-import org.eclipse.ditto.services.base.config.DittoConfigError;
-import org.eclipse.ditto.services.base.config.KnownConfigValue;
-import org.eclipse.ditto.services.base.config.MongoDbConfig;
+import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.services.utils.config.DittoConfigError;
+import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
@@ -67,7 +67,7 @@ public final class DittoConciergeConfig implements ConciergeConfig {
      * @param config is supposed to provide the settings of the Concierge service config at {@value #CONFIG_PATH}.
      * @return the instance.
      * @throws NullPointerException if {@code config} is {@code null}.
-     * @throws org.eclipse.ditto.services.base.config.DittoConfigError if {@code config} did not contain a nested Config
+     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} did not contain a nested Config
      * at path {@value #CONFIG_PATH}.
      */
     public static DittoConciergeConfig of(final Config config) {

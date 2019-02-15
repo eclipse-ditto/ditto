@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.base.config;
+package org.eclipse.ditto.services.utils.config;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
@@ -58,8 +58,8 @@ public final class ConfigWithFallback implements Config {
      * @param fallBackValues base for the fall back which is applied to the original Config within
      * {@code originalConfig} at {@code configPath}.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.base.config.DittoConfigError if any argument is {@code null} of if the value
-     * of {@code originalConfig} at {@code configPath} is not of type
+     * @throws DittoConfigError if any argument is {@code null} of if the value of {@code originalConfig} at
+     * {@code configPath} is not of type
      * {@link com.typesafe.config.ConfigValueType#OBJECT}.
      */
     public static ConfigWithFallback newInstance(final Config originalConfig, final String configPath,

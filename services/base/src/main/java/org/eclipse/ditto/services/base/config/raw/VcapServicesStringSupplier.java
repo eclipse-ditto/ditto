@@ -24,7 +24,7 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.base.config.DittoConfigError;
+import org.eclipse.ditto.services.utils.config.DittoConfigError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,8 +35,7 @@ import org.slf4j.LoggerFactory;
  * The content of the file is read as one String.
  * If the file is empty {@link #get()} returns an empty Optional.
  * If the variable denotes a non-existing file or a file that is not readable for some reason, {@link #get()} throws a
- * {@link org.eclipse.ditto.services.base.config.DittoConfigError} containing the cause and indicating the path of the
- * invalid config file.
+ * {@link DittoConfigError} containing the cause and indicating the path of the invalid config file.
  */
 @Immutable
 final class VcapServicesStringSupplier implements Supplier<Optional<String>> {
@@ -60,7 +59,7 @@ final class VcapServicesStringSupplier implements Supplier<Optional<String>> {
      * variable {@value #VCAP_LOCATION_ENV_VARIABLE_NAME}.
      *
      * @return the instance.
-     * @throws org.eclipse.ditto.services.base.config.DittoConfigError if the system environment variable
+     * @throws DittoConfigError if the system environment variable
      * {@value #VCAP_LOCATION_ENV_VARIABLE_NAME} was either not set or is not a valid {@link java.nio.file.Path}.
      */
     static VcapServicesStringSupplier getInstance() {

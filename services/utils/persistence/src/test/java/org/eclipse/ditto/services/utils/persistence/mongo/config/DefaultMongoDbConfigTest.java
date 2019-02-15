@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.base.config;
+package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
@@ -25,9 +25,10 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
+import nl.jqno.equalsverifier.Warning;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.base.config.DefaultMongoDbConfig}.
+ * Unit test for {@link org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig}.
  */
 public final class DefaultMongoDbConfigTest {
 
@@ -54,6 +55,7 @@ public final class DefaultMongoDbConfigTest {
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(DefaultMongoDbConfig.class)
+                .suppress(Warning.NULL_FIELDS)
                 .usingGetClass()
                 .verify();
     }
