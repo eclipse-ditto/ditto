@@ -33,8 +33,7 @@ final class ImmutablePipeline implements Pipeline {
     }
 
     @Override
-    public Optional<String> execute(final Optional<String> pipelineInput,
-            final ExpressionResolver expressionResolver) {
+    public Optional<String> execute(final Optional<String> pipelineInput, final ExpressionResolver expressionResolver) {
 
         Optional<String> stageValue = pipelineInput;
         for (final String expression : stageExpressions) {

@@ -51,14 +51,13 @@ final class ImmutableFunctionExpression implements FunctionExpression {
     }
 
     @Override
-    public boolean supports(final String expression) {
+    public boolean supports(final String expressionName) {
 
         // it is sufficient that the passed in name starts with the function name and an opening parentheses,
         // e.g.: default('foo'). the function validates itself whether the remaining part is valid.
         return SUPPORTED.stream()
                 .map(PipelineFunction::getName)
-                .map(psfName -> psfName.replaceFirst(getPrefix() + ":", ""))
-                .anyMatch(psfName -> expression.startsWith(psfName + "("));
+                .anyMatch(psfName -> expressionName.startsWith(psfName + "("));
     }
 
     @Override

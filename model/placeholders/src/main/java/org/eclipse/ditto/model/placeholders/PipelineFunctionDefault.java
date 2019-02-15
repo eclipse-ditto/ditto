@@ -47,6 +47,8 @@ final class PipelineFunctionDefault implements PipelineFunction {
     public Optional<String> apply(final Optional<String> value, final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
 
+        validateOrThrow(paramsIncludingParentheses);
+
         if (value.isPresent()) {
             // if previous stage was non-empty: proceed with that
             return value;
@@ -55,6 +57,13 @@ final class PipelineFunctionDefault implements PipelineFunction {
             final ResolvedFunctionParameter<String> resolvedDefaultParam =
                     parseAndResolve(paramsIncludingParentheses, expressionResolver);
             return Optional.of(resolvedDefaultParam.getValue());
+        }
+    }
+
+    private void validateOrThrow(final String paramsIncludingParentheses) {
+        if (!paramsIncludingParentheses.matches(OVERALL_PATTERN_STR)) {
+            throw PlaceholderFunctionSignatureInvalidException.newBuilder(paramsIncludingParentheses, this)
+                    .build();
         }
     }
 
