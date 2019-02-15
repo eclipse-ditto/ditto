@@ -43,6 +43,7 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorInitializationException;
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
+import akka.actor.ActorRefFactory;
 import akka.actor.ActorSystem;
 import akka.actor.CoordinatedShutdown;
 import akka.actor.InvalidActorNameException;
@@ -144,10 +145,9 @@ public final class ConciergeRootActor extends AbstractActor {
         pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
         pubSubMediator.tell(new DistributedPubSubMediator.Put(conciergeForwarder), getSelf());
 
-        startClusterSingletonActor(context, BatchSupervisorActor.ACTOR_NAME,
-                BatchSupervisorActor.props(pubSubMediator, conciergeForwarder));
+        startClusterSingletonActor(context, BatchSupervisorActor.props(pubSubMediator, conciergeForwarder));
 
-        final ActorRef healthCheckingActor = startHealthCheckingActor(context, conciergeConfig.getHealthCheckConfig());
+        final ActorRef healthCheckingActor = startHealthCheckingActor(context, conciergeConfig);
 
         bindHttpStatusRoute(healthCheckingActor, conciergeConfig.getHttpConfig(), materializer);
     }
@@ -178,14 +178,15 @@ public final class ConciergeRootActor extends AbstractActor {
     }
 
 
-    private static void startClusterSingletonActor(final akka.actor.ActorContext context, final String actorName,
-            final Props props) {
-
-        ClusterUtil.startSingleton(context, ConciergeMessagingConstants.CLUSTER_ROLE, actorName, props);
+    private static void startClusterSingletonActor(final akka.actor.ActorContext context, final Props props) {
+        ClusterUtil.startSingleton(context, ConciergeMessagingConstants.CLUSTER_ROLE, BatchSupervisorActor.ACTOR_NAME,
+                props);
     }
 
-    private static ActorRef startHealthCheckingActor(final ActorContext context,
-            final ServiceSpecificConfig.HealthCheckConfig healthCheckConfig) {
+    private static ActorRef startHealthCheckingActor(final ActorRefFactory context,
+            final ConciergeConfig conciergeConfig) {
+
+        final ServiceSpecificConfig.HealthCheckConfig healthCheckConfig = conciergeConfig.getHealthCheckConfig();
 
         final HealthCheckingActorOptions.Builder hcBuilder =
                 HealthCheckingActorOptions.getBuilder(healthCheckConfig.isEnabled(), healthCheckConfig.getInterval());
@@ -196,10 +197,11 @@ public final class ConciergeRootActor extends AbstractActor {
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
 
         return startChildActor(context, DefaultHealthCheckingActorFactory.ACTOR_NAME,
-                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, MongoHealthChecker.props()));
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions,
+                        MongoHealthChecker.props(conciergeConfig.getMongoDbConfig())));
     }
 
-    private static ActorRef startChildActor(final akka.actor.ActorContext context, final String actorName,
+    private static ActorRef startChildActor(final ActorRefFactory context, final String actorName,
             final Props props) {
 
         return context.actorOf(props, actorName);

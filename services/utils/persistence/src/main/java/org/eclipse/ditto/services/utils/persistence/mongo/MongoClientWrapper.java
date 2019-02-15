@@ -26,6 +26,7 @@ import javax.net.ssl.SSLContext;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.services.utils.config.MongoConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.reactivestreams.Publisher;
 
 import com.mongodb.ClientSessionOptions;
@@ -81,6 +82,29 @@ public final class MongoClientWrapper implements DittoMongoClient {
      */
     public static MongoClientWrapper newInstance(final Config config) {
         return (MongoClientWrapper) getBuilder(MongoConfig.of(config)).build();
+    }
+
+    /**
+     * Initializes the persistence with a passed in {@code config} containing the MongoDB URI.
+     *
+     * @param mongoDbConfig provides MongoDB settings including the URI.
+     * @return a new {@code MongoClientWrapper} object.
+     */
+    public static MongoClientWrapper newInstance(final MongoDbConfig mongoDbConfig) {
+        final MongoClientWrapperBuilder builder = new MongoClientWrapperBuilder();
+
+        builder.connectionString(mongoDbConfig.getMongoDbUri());
+
+        final MongoDbConfig.ConnectionPoolConfig connectionPoolConfig = mongoDbConfig.getConnectionPoolConfig();
+        builder.connectionPoolMaxSize(connectionPoolConfig.getMaxSize());
+        builder.connectionPoolMaxWaitQueueSize(connectionPoolConfig.getMaxWaitQueueSize());
+        builder.connectionPoolMaxWaitTime(connectionPoolConfig.getMaxWaitTime());
+        builder.enableJmxListener(connectionPoolConfig.isJmxListenerEnabled());
+
+        final MongoDbConfig.OptionsConfig optionsConfig = mongoDbConfig.getOptionsConfig();
+        builder.enableSsl(optionsConfig.isSslEnabled());
+
+        return builder.build();
     }
 
     /**

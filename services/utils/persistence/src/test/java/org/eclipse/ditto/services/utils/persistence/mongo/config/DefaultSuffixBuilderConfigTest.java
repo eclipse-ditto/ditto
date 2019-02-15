@@ -41,6 +41,7 @@ public final class DefaultSuffixBuilderConfigTest {
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(DefaultSuffixBuilderConfig.class)
                 .usingGetClass()
+                .withNonnullFields("supportedPrefixes")
                 .verify();
     }
 

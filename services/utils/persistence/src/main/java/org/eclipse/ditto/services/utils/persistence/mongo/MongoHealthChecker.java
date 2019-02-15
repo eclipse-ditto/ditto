@@ -23,6 +23,7 @@ import org.eclipse.ditto.services.utils.config.MongoConfig;
 import org.eclipse.ditto.services.utils.health.AbstractHealthCheckingActor;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
 import org.eclipse.ditto.services.utils.health.mongo.RetrieveMongoStatusResponse;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 
 import com.mongodb.ReadPreference;
 import com.mongodb.client.result.DeleteResult;
@@ -53,10 +54,24 @@ public final class MongoHealthChecker extends AbstractHealthCheckingActor {
      * Constructs a {@code MongoClientActor}.
      */
     private MongoHealthChecker() {
-        final Config config = getContext().system().settings().config();
+        final ActorContext actorContext = getContext();
+        final Config config = actorContext.system().settings().config();
         mongoClient = MongoClientWrapper.getBuilder(MongoConfig.of(config))
                 .connectionPoolMaxSize(HEALTH_CHECK_MAX_POOL_SIZE)
                 .build();
+
+        /*
+         * It's important to have the read preferences to primary preferred because the replication is to slow to retrieve
+         * the inserted document from a secondary directly after inserting it on the primary.
+         */
+        collection = mongoClient.getCollection(TEST_COLLECTION_NAME)
+                .withReadPreference(ReadPreference.primaryPreferred());
+
+        materializer = ActorMaterializer.create(actorContext);
+    }
+
+    private MongoHealthChecker(final DittoMongoClient theDittoMongoClient) {
+        mongoClient = theDittoMongoClient;
 
         /*
          * It's important to have the read preferences to primary preferred because the replication is to slow to retrieve
@@ -85,6 +100,16 @@ public final class MongoHealthChecker extends AbstractHealthCheckingActor {
      */
     public static Props props() {
         return Props.create(MongoHealthChecker.class, MongoHealthChecker::new);
+    }
+
+    /**
+     * Creates Akka configuration object Props for this MongoClientActor.
+     *
+     * @return the Akka configuration Props object
+     */
+    public static Props props(final MongoDbConfig mongoDbConfig) {
+        return Props.create(MongoHealthChecker.class,
+                () -> new MongoHealthChecker(MongoClientWrapper.newInstance(mongoDbConfig)));
     }
 
     @Override
