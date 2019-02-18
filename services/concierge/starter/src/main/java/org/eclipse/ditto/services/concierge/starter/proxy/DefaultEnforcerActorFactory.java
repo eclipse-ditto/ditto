@@ -25,7 +25,7 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.services.base.config.ServiceSpecificConfig.ClusterConfig;
 import org.eclipse.ditto.services.concierge.cache.AclEnforcerCacheLoader;
-import org.eclipse.ditto.services.concierge.cache.CacheFactoryTng;
+import org.eclipse.ditto.services.concierge.cache.CacheFactory;
 import org.eclipse.ditto.services.concierge.cache.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.ThingEnforcementIdCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.update.PolicyCacheUpdateActor;
@@ -90,21 +90,21 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
         final AsyncCacheLoader<EntityId, Entry<EntityId>> thingEnforcerIdCacheLoader =
                 new ThingEnforcementIdCacheLoader(askTimeout, thingsShardRegionProxy);
         final Cache<EntityId, Entry<EntityId>> thingIdCache =
-                CacheFactoryTng.createCache(thingEnforcerIdCacheLoader, cachesConfig.getIdCacheConfig(),
+                CacheFactory.createCache(thingEnforcerIdCacheLoader, cachesConfig.getIdCacheConfig(),
                         ID_CACHE_METRIC_NAME_PREFIX + ThingCommand.RESOURCE_TYPE,
                         actorSystem.dispatchers().lookup("thing-id-cache-dispatcher"));
 
         final AsyncCacheLoader<EntityId, Entry<Enforcer>> policyEnforcerCacheLoader =
                 new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegionProxy);
         final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache =
-                CacheFactoryTng.createCache(policyEnforcerCacheLoader, cachesConfig.getEnforcerCacheConfig(),
+                CacheFactory.createCache(policyEnforcerCacheLoader, cachesConfig.getEnforcerCacheConfig(),
                         ENFORCER_CACHE_METRIC_NAME_PREFIX + "policy",
                         actorSystem.dispatchers().lookup("policy-enforcer-cache-dispatcher"));
 
         final AsyncCacheLoader<EntityId, Entry<Enforcer>> aclEnforcerCacheLoader =
                 new AclEnforcerCacheLoader(askTimeout, thingsShardRegionProxy);
         final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache =
-                CacheFactoryTng.createCache(aclEnforcerCacheLoader, cachesConfig.getEnforcerCacheConfig(),
+                CacheFactory.createCache(aclEnforcerCacheLoader, cachesConfig.getEnforcerCacheConfig(),
                         ENFORCER_CACHE_METRIC_NAME_PREFIX + "acl",
                         actorSystem.dispatchers().lookup("acl-enforcer-cache-dispatcher"));
 

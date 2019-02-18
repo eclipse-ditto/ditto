@@ -10,11 +10,13 @@
  */
 package org.eclipse.ditto.services.concierge.cache;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.concurrent.Executor;
 
-import org.eclipse.ditto.services.concierge.util.config.CacheConfigReader;
+import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.services.concierge.util.config.CacheConfig;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 
@@ -22,8 +24,9 @@ import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
 /**
- * Creates a cache configured by a {@link CacheConfigReader}.
+ * Creates a cache configured by a {@link CacheConfig}.
  */
+@Immutable
 public final class CacheFactory {
 
     private CacheFactory() {
@@ -33,50 +36,51 @@ public final class CacheFactory {
     /**
      * Creates a cache.
      *
-     * @param cacheConfigReader the {@link CacheConfigReader} which defines the cache's configuration.
+     * @param cacheConfig the {@link CacheConfig} which defines the cache's configuration.
      * @param cacheName the name of the cache. Used as metric label.
      * @param executor the executor to use in the cache.
      * @param <K> the type of the cache keys.
      * @param <V> the type of the cache values.
      * @return the created cache.
+     * @throws NullPointerException if any argument is {@code null}.
      */
-    public static <K, V> Cache<K, V> createCache(final CacheConfigReader cacheConfigReader,
-            final String cacheName,
+    public static <K, V> Cache<K, V> createCache(final CacheConfig cacheConfig, final String cacheName,
             final Executor executor) {
-        requireNonNull(cacheConfigReader);
-        requireNonNull(cacheName);
 
-        return CaffeineCache.of(caffeine(cacheConfigReader, executor), cacheName);
+        return CaffeineCache.of(caffeine(cacheConfig, executor), checkNotNull(cacheName, "cache name"));
     }
 
     /**
      * Creates a cache.
      *
      * @param cacheLoader the cache loader.
-     * @param cacheConfigReader the {@link CacheConfigReader} which defines the cache's configuration.
+     * @param cacheConfig the the cache's configuration.
      * @param cacheName the name of the cache. Used as metric label.
      * @param executor the executor to use in the cache.
      * @param <K> the type of the cache keys.
      * @param <V> the type of the cache values.
      * @return the created cache.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static <K, V> Cache<K, V> createCache(final AsyncCacheLoader<K, V> cacheLoader,
-            final CacheConfigReader cacheConfigReader,
+            final CacheConfig cacheConfig,
             final String cacheName,
             final Executor executor) {
-        requireNonNull(cacheLoader);
-        requireNonNull(cacheConfigReader);
-        requireNonNull(cacheName);
 
-        return CaffeineCache.of(caffeine(cacheConfigReader, executor), cacheLoader, cacheName);
+        checkNotNull(cacheLoader, "AsyncCacheLoader");
+        checkNotNull(cacheName, "cache name");
+
+        return CaffeineCache.of(caffeine(cacheConfig, executor), cacheLoader, cacheName);
     }
 
 
-    private static Caffeine<Object, Object> caffeine(final CacheConfigReader cacheConfigReader,
-            final Executor executor) {
+    private static Caffeine<Object, Object> caffeine(final CacheConfig cacheConfig, final Executor executor) {
+        checkNotNull(cacheConfig, "CacheConfig");
+        checkNotNull(executor, "Executor");
+
         final Caffeine<Object, Object> caffeine = Caffeine.newBuilder();
-        caffeine.maximumSize(cacheConfigReader.maximumSize());
-        caffeine.expireAfterWrite(cacheConfigReader.expireAfterWrite());
+        caffeine.maximumSize(cacheConfig.getMaximumSize());
+        caffeine.expireAfterWrite(cacheConfig.getExpireAfterWrite());
         caffeine.executor(executor);
         return caffeine;
     }
