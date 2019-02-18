@@ -23,9 +23,9 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
-import org.eclipse.ditto.services.base.config.ServiceConfigReader;
+import org.eclipse.ditto.services.base.config.ServiceSpecificConfig.ClusterConfig;
 import org.eclipse.ditto.services.concierge.cache.AclEnforcerCacheLoader;
-import org.eclipse.ditto.services.concierge.cache.CacheFactory;
+import org.eclipse.ditto.services.concierge.cache.CacheFactoryTng;
 import org.eclipse.ditto.services.concierge.cache.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.ThingEnforcementIdCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.update.PolicyCacheUpdateActor;
@@ -38,7 +38,7 @@ import org.eclipse.ditto.services.concierge.enforcement.placeholders.Placeholder
 import org.eclipse.ditto.services.concierge.enforcement.validators.CommandWithOptionalEntityValidator;
 import org.eclipse.ditto.services.concierge.starter.actors.CachedNamespaceInvalidator;
 import org.eclipse.ditto.services.concierge.starter.actors.DispatcherActorCreator;
-import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
+import org.eclipse.ditto.services.concierge.util.config.ConciergeConfig;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
@@ -63,44 +63,48 @@ import akka.actor.Props;
 import akka.cluster.sharding.ClusterSharding;
 
 /**
- * Ditto default implementation of {@link AbstractEnforcerActorFactory}.
+ * Ditto default implementation of{@link AbstractEnforcerActorFactory}.
  */
-public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFactory<ConciergeConfigReader> {
+public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFactory<ConciergeConfig> {
 
     private static final String ENFORCER_CACHE_METRIC_NAME_PREFIX = "ditto_authorization_enforcer_cache_";
     private static final String ID_CACHE_METRIC_NAME_PREFIX = "ditto_authorization_id_cache_";
 
     @Override
-    public ActorRef startEnforcerActor(final ActorContext context, final ConciergeConfigReader configReader,
+    public ActorRef startEnforcerActor(final ActorContext context, final ConciergeConfig conciergeConfig,
             final ActorRef pubSubMediator) {
-        final Duration askTimeout = configReader.caches().askTimeout();
+
+        final ConciergeConfig.CachesConfig cachesConfig = conciergeConfig.getCachesConfig();
+        final Duration askTimeout = cachesConfig.getAskTimeout();
         final ActorSystem actorSystem = context.system();
 
+        final ClusterConfig clusterConfig = conciergeConfig.getClusterConfig();
+        final int numberOfShards = clusterConfig.getNumberOfShards();
 
-        final ActorRef policiesShardRegionProxy = startProxy(actorSystem, configReader.cluster().numberOfShards(),
+        final ActorRef policiesShardRegionProxy = startProxy(actorSystem, numberOfShards,
                 PoliciesMessagingConstants.SHARD_REGION, PoliciesMessagingConstants.CLUSTER_ROLE);
 
-        final ActorRef thingsShardRegionProxy = startProxy(actorSystem, configReader.cluster().numberOfShards(),
+        final ActorRef thingsShardRegionProxy = startProxy(actorSystem, numberOfShards,
                 ThingsMessagingConstants.SHARD_REGION, ThingsMessagingConstants.CLUSTER_ROLE);
 
         final AsyncCacheLoader<EntityId, Entry<EntityId>> thingEnforcerIdCacheLoader =
                 new ThingEnforcementIdCacheLoader(askTimeout, thingsShardRegionProxy);
         final Cache<EntityId, Entry<EntityId>> thingIdCache =
-                CacheFactory.createCache(thingEnforcerIdCacheLoader, configReader.caches().id(),
+                CacheFactoryTng.createCache(thingEnforcerIdCacheLoader, cachesConfig.getIdCacheConfig(),
                         ID_CACHE_METRIC_NAME_PREFIX + ThingCommand.RESOURCE_TYPE,
                         actorSystem.dispatchers().lookup("thing-id-cache-dispatcher"));
 
         final AsyncCacheLoader<EntityId, Entry<Enforcer>> policyEnforcerCacheLoader =
                 new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegionProxy);
         final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache =
-                CacheFactory.createCache(policyEnforcerCacheLoader, configReader.caches().enforcer(),
+                CacheFactoryTng.createCache(policyEnforcerCacheLoader, cachesConfig.getEnforcerCacheConfig(),
                         ENFORCER_CACHE_METRIC_NAME_PREFIX + "policy",
                         actorSystem.dispatchers().lookup("policy-enforcer-cache-dispatcher"));
 
         final AsyncCacheLoader<EntityId, Entry<Enforcer>> aclEnforcerCacheLoader =
                 new AclEnforcerCacheLoader(askTimeout, thingsShardRegionProxy);
         final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache =
-                CacheFactory.createCache(aclEnforcerCacheLoader, configReader.caches().enforcer(),
+                CacheFactoryTng.createCache(aclEnforcerCacheLoader, cachesConfig.getEnforcerCacheConfig(),
                         ENFORCER_CACHE_METRIC_NAME_PREFIX + "acl",
                         actorSystem.dispatchers().lookup("acl-enforcer-cache-dispatcher"));
 
@@ -116,15 +120,16 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
         enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache,
                 aclEnforcerCache));
 
-        final Duration enforcementAskTimeout = configReader.enforcement().askTimeout();
+        final ConciergeConfig.EnforcementConfig enforcementConfig = conciergeConfig.getEnforcementConfig();
+        final Duration enforcementAskTimeout = enforcementConfig.getAskTimeout();
         // set activity check interval identical to cache retention
-        final Duration activityCheckInterval = configReader.caches().id().expireAfterWrite();
-        final ActorRef conciergeForwarder = getInternalConciergeForwarder(context, configReader, pubSubMediator);
+        final Duration activityCheckInterval = cachesConfig.getIdCacheConfig().getExpireAfterWrite();
+        final ActorRef conciergeForwarder = getInternalConciergeForwarder(context, clusterConfig, pubSubMediator);
         final Executor enforcerExecutor = actorSystem.dispatchers().lookup(ENFORCER_DISPATCHER);
         final Props enforcerProps =
                 EnforcerActorCreator.props(pubSubMediator, enforcementProviders, enforcementAskTimeout,
                         conciergeForwarder, enforcerExecutor, preEnforcer, activityCheckInterval);
-        final ActorRef enforcerShardRegion = startShardRegion(context.system(), configReader.cluster(), enforcerProps);
+        final ActorRef enforcerShardRegion = startShardRegion(context.system(), clusterConfig, enforcerProps);
 
         // start cache updaters
         final String instanceIndex = ConfigUtil.instanceIdentifier();
@@ -143,7 +148,7 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
                 ConciergeMessagingConstants.BLOCKED_NAMESPACES_UPDATER_NAME,
                 blockedNamespacesUpdaterProps);
 
-        context.actorOf(DispatcherActorCreator.props(configReader, pubSubMediator, enforcerShardRegion),
+        context.actorOf(DispatcherActorCreator.props(conciergeConfig, pubSubMediator, enforcerShardRegion),
                 DispatcherActorCreator.ACTOR_NAME);
 
         return enforcerShardRegion;
@@ -160,17 +165,15 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
                         .thenCompose(placeholderSubstitution);
     }
 
-    private ActorRef getInternalConciergeForwarder(final ActorContext actorContext,
-            final ServiceConfigReader configReader, final ActorRef pubSubMediator) {
+    private static ActorRef getInternalConciergeForwarder(final ActorContext actorContext,
+            final ClusterConfig clusterConfig, final ActorRef pubSubMediator) {
+
         final ActorRef conciergeShardRegionProxy = ClusterSharding.get(actorContext.system())
                 .startProxy(ConciergeMessagingConstants.SHARD_REGION,
                         Optional.of(ConciergeMessagingConstants.CLUSTER_ROLE),
+                        ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorContext.system()));
 
-                        ShardRegionExtractor.of(configReader.cluster().numberOfShards(),
-                                actorContext.system()));
-
-        return actorContext.actorOf(
-                ConciergeForwarderActor.props(pubSubMediator, conciergeShardRegionProxy),
+        return actorContext.actorOf(ConciergeForwarderActor.props(pubSubMediator, conciergeShardRegionProxy),
                 "internal" + ConciergeForwarderActor.ACTOR_NAME);
     }
 

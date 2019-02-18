@@ -10,7 +10,7 @@
  */
 package org.eclipse.ditto.services.concierge.starter.actors;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
@@ -23,7 +23,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.concierge.util.config.AbstractConciergeConfigReader;
+import org.eclipse.ditto.services.concierge.util.config.ConciergeConfig;
 import org.eclipse.ditto.services.models.concierge.ConciergeWrapper;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
@@ -66,28 +66,30 @@ public final class ThingsAggregatorActor extends AbstractActor {
     private final int maxParallelism;
     private final ActorMaterializer actorMaterializer;
 
-    private ThingsAggregatorActor(final AbstractConciergeConfigReader configReader, final ActorRef targetActor) {
+    private ThingsAggregatorActor(final ConciergeConfig.ThingsAggregatorConfig aggregatorConfig,
+            final ActorRef targetActor) {
+
         this.targetActor = targetActor;
         aggregatorDispatcher = getContext().system().dispatchers().lookup(AGGREGATOR_INTERNAL_DISPATCHER);
-        retrieveSingleThingTimeout = configReader.thingsAggregatorSingleRetrieveThingTimeout();
-        maxParallelism = configReader.thingsAggregatorMaxParallelism();
+        retrieveSingleThingTimeout = aggregatorConfig.getSingleRetrieveThingTimeout();
+        maxParallelism = aggregatorConfig.getMaxParallelism();
         actorMaterializer = ActorMaterializer.create(getContext());
     }
 
     /**
      * Creates Akka configuration object Props for this ThingsAggregatorActor.
      *
-     * @param configReader the configReader for the concierge service.
+     * @param conciergeConfig the config of Concierge.
      * @param targetActor the Actor selection to delegate "asks" for the aggregation to.
      * @return the Akka configuration Props object
      */
-    public static Props props(final AbstractConciergeConfigReader configReader, final ActorRef targetActor) {
+    public static Props props(final ConciergeConfig conciergeConfig, final ActorRef targetActor) {
         return Props.create(ThingsAggregatorActor.class, new Creator<ThingsAggregatorActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public ThingsAggregatorActor create() {
-                return new ThingsAggregatorActor(configReader, targetActor);
+                return new ThingsAggregatorActor(conciergeConfig.getThingsAggregatorConfig(), targetActor);
             }
         }).withDispatcher(AGGREGATOR_INTERNAL_DISPATCHER);
     }
@@ -134,9 +136,10 @@ public final class ThingsAggregatorActor extends AbstractActor {
                 resultReceiver);
     }
 
-    private void retrieveThingsAndSendResult(final List<String> thingIds,
+    private void retrieveThingsAndSendResult(final Collection<String> thingIds,
             @Nullable final JsonFieldSelector selectedFields,
             final Command<?> command, final ActorRef resultReceiver) {
+
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final CompletionStage<?> commandResponseSource = Source.from(thingIds)
@@ -167,9 +170,9 @@ public final class ThingsAggregatorActor extends AbstractActor {
                 .to(resultReceiver);
     }
 
-    private int calculateParallelism(final List<String> thingIds) {
+    private int calculateParallelism(final Collection<String> thingIds) {
         final int size = thingIds.size();
-        if (size < (maxParallelism / 2)) {
+        if (size < maxParallelism / 2) {
             return size;
         } else if (size < maxParallelism) {
             return size / 2;

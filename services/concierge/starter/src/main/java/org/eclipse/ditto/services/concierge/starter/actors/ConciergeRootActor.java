@@ -23,7 +23,6 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.base.config.ServiceSpecificConfig;
 import org.eclipse.ditto.services.concierge.batch.actors.BatchSupervisorActor;
 import org.eclipse.ditto.services.concierge.starter.proxy.AbstractEnforcerActorFactory;
-import org.eclipse.ditto.services.concierge.starter.proxy.AbstractEnforcerActorFactoryTng;
 import org.eclipse.ditto.services.concierge.util.config.ConciergeConfig;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
@@ -128,13 +127,13 @@ public final class ConciergeRootActor extends AbstractActor {
 
     private <C extends ConciergeConfig> ConciergeRootActor(final C conciergeConfig,
             final ActorRef pubSubMediator,
-            final AbstractEnforcerActorFactoryTng<C> authorizationProxyPropsFactory,
+            final AbstractEnforcerActorFactory<C> enforcerActorFactory,
             final ActorMaterializer materializer) {
 
         final ActorContext context = getContext();
 
         final ActorRef conciergeShardRegion =
-                authorizationProxyPropsFactory.startEnforcerActor(context, conciergeConfig, pubSubMediator);
+                enforcerActorFactory.startEnforcerActor(context, conciergeConfig, pubSubMediator);
 
         retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(conciergeShardRegion,
                 ConciergeMessagingConstants.SHARD_REGION, log);
@@ -157,24 +156,23 @@ public final class ConciergeRootActor extends AbstractActor {
      *
      * @param conciergeConfig the config of Concierge.
      * @param pubSubMediator the PubSub mediator Actor.
-     * @param authorizationProxyPropsFactory the {@link AbstractEnforcerActorFactory}.
+     * @param enforcerActorFactory factory for creating sharded enforcer actors.
      * @param materializer the materializer for the Akka actor system.
      * @return the Akka configuration Props object.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static <C extends ConciergeConfig> Props props(final C conciergeConfig,
             final ActorRef pubSubMediator,
-            final AbstractEnforcerActorFactoryTng<C> authorizationProxyPropsFactory,
+            final AbstractEnforcerActorFactory<C> enforcerActorFactory,
             final ActorMaterializer materializer) {
 
         checkNotNull(conciergeConfig, "config of Concierge");
         checkNotNull(pubSubMediator, "pub-sub mediator");
-        checkNotNull(authorizationProxyPropsFactory, "EnforcerActor factory");
+        checkNotNull(enforcerActorFactory, "EnforcerActor factory");
         checkNotNull(materializer, "ActorMaterializer");
 
         return Props.create(ConciergeRootActor.class,
-                () -> new ConciergeRootActor(conciergeConfig, pubSubMediator, authorizationProxyPropsFactory,
-                        materializer));
+                () -> new ConciergeRootActor(conciergeConfig, pubSubMediator, enforcerActorFactory, materializer));
     }
 
 
