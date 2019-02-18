@@ -36,7 +36,7 @@ public final class DefaultClusterConfig implements ClusterConfig {
         }
 
         @Override
-        public String getPath() {
+        public String getConfigPath() {
             return path;
         }
 
@@ -71,7 +71,7 @@ public final class DefaultClusterConfig implements ClusterConfig {
 
     @Override
     public int getNumberOfShards() {
-        return config.getInt(ClusterConfigValue.NUMBER_OF_SHARDS.getPath());
+        return config.getInt(ClusterConfigValue.NUMBER_OF_SHARDS.getConfigPath());
     }
 
     @Override

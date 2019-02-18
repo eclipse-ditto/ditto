@@ -43,7 +43,7 @@ public final class DefaultHealthCheckConfig implements HealthCheckConfig {
         }
 
         @Override
-        public String getPath() {
+        public String getConfigPath() {
             return path;
         }
 
@@ -78,22 +78,22 @@ public final class DefaultHealthCheckConfig implements HealthCheckConfig {
 
     @Override
     public boolean isEnabled() {
-        return config.getBoolean(HealthCheckConfigValue.ENABLED.getPath());
+        return config.getBoolean(HealthCheckConfigValue.ENABLED.getConfigPath());
     }
 
     @Override
     public Duration getInterval() {
-        return config.getDuration(HealthCheckConfigValue.INTERVAL.getPath());
+        return config.getDuration(HealthCheckConfigValue.INTERVAL.getConfigPath());
     }
 
     @Override
     public boolean isPersistenceEnabled() {
-        return config.getBoolean(HealthCheckConfigValue.PERSISTENCE_ENABLED.getPath());
+        return config.getBoolean(HealthCheckConfigValue.PERSISTENCE_ENABLED.getConfigPath());
     }
 
     @Override
     public Duration getPersistenceTimeout() {
-        return config.getDuration(HealthCheckConfigValue.PERSISTENCE_TIMEOUT.getPath());
+        return config.getDuration(HealthCheckConfigValue.PERSISTENCE_TIMEOUT.getConfigPath());
     }
 
     @Override

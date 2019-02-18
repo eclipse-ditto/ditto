@@ -59,8 +59,7 @@ public final class ConfigWithFallback implements Config {
      * {@code originalConfig} at {@code configPath}.
      * @return the instance.
      * @throws DittoConfigError if any argument is {@code null} of if the value of {@code originalConfig} at
-     * {@code configPath} is not of type
-     * {@link com.typesafe.config.ConfigValueType#OBJECT}.
+     * {@code configPath} is not of type {@link com.typesafe.config.ConfigValueType#OBJECT}.
      */
     public static ConfigWithFallback newInstance(final Config originalConfig, final String configPath,
             final KnownConfigValue[] fallBackValues) {
@@ -102,7 +101,7 @@ public final class ConfigWithFallback implements Config {
     private static Config arrayToConfig(final KnownConfigValue[] knownConfigValues) {
         final Map<String, Object> fallbackValues = new HashMap<>(knownConfigValues.length);
         for (final KnownConfigValue knownConfigValue : knownConfigValues) {
-            fallbackValues.put(knownConfigValue.getPath(), knownConfigValue.getDefaultValue());
+            fallbackValues.put(knownConfigValue.getConfigPath(), knownConfigValue.getDefaultValue());
         }
         return ConfigFactory.parseMap(fallbackValues);
     }

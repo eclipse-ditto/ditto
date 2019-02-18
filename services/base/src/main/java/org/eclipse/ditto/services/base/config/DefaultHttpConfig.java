@@ -41,7 +41,7 @@ public final class DefaultHttpConfig implements HttpConfig {
         }
 
         @Override
-        public String getPath() {
+        public String getConfigPath() {
             return path;
         }
 
@@ -75,12 +75,12 @@ public final class DefaultHttpConfig implements HttpConfig {
 
     @Override
     public String getHostname() {
-        return config.getString(HttpConfigValue.HOSTNAME.getPath());
+        return config.getString(HttpConfigValue.HOSTNAME.getConfigPath());
     }
 
     @Override
     public int getPort() {
-        return config.getInt(HttpConfigValue.PORT.getPath());
+        return config.getInt(HttpConfigValue.PORT.getConfigPath());
     }
 
     @Override

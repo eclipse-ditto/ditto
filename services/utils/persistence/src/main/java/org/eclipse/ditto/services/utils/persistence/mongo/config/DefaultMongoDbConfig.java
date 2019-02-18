@@ -42,7 +42,7 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
         }
 
         @Override
-        public String getPath() {
+        public String getConfigPath() {
             return path;
         }
 
@@ -99,7 +99,7 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
 
     @Override
     public Duration getMaxQueryTime() {
-        return config.getDuration(MongoDbConfigValue.MAX_QUERY_TIME.getPath());
+        return config.getDuration(MongoDbConfigValue.MAX_QUERY_TIME.getConfigPath());
     }
 
     @Override
@@ -184,7 +184,7 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
             }
 
             @Override
-            public String getPath() {
+            public String getConfigPath() {
                 return path;
             }
 
@@ -222,7 +222,7 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
 
         @Override
         public boolean isSslEnabled() {
-            return config.getBoolean(OptionsConfigValue.SSL_ENABLED.getPath());
+            return config.getBoolean(OptionsConfigValue.SSL_ENABLED.getConfigPath());
         }
 
         @Override
@@ -276,7 +276,7 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
             }
 
             @Override
-            public String getPath() {
+            public String getConfigPath() {
                 return path;
             }
 
@@ -311,22 +311,22 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
 
         @Override
         public int getMaxSize() {
-            return config.getInt(ConnectionPoolConfigValue.MAX_SIZE.getPath());
+            return config.getInt(ConnectionPoolConfigValue.MAX_SIZE.getConfigPath());
         }
 
         @Override
         public int getMaxWaitQueueSize() {
-            return config.getInt(ConnectionPoolConfigValue.MAX_WAIT_QUEUE_SIZE.getPath());
+            return config.getInt(ConnectionPoolConfigValue.MAX_WAIT_QUEUE_SIZE.getConfigPath());
         }
 
         @Override
         public Duration getMaxWaitTime() {
-            return config.getDuration(ConnectionPoolConfigValue.MAX_WAIT_TIME.getPath());
+            return config.getDuration(ConnectionPoolConfigValue.MAX_WAIT_TIME.getConfigPath());
         }
 
         @Override
         public boolean isJmxListenerEnabled() {
-            return config.getBoolean(ConnectionPoolConfigValue.JMX_LISTENER_ENABLED.getPath());
+            return config.getBoolean(ConnectionPoolConfigValue.JMX_LISTENER_ENABLED.getConfigPath());
         }
 
         @Override
@@ -374,7 +374,7 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
             }
 
             @Override
-            public String getPath() {
+            public String getConfigPath() {
                 return path;
             }
 
@@ -411,7 +411,7 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
 
         @Override
         public int getMaxFailures() {
-            return config.getInt(CircuitBreakerConfigValue.MAX_FAILURES.getPath());
+            return config.getInt(CircuitBreakerConfigValue.MAX_FAILURES.getConfigPath());
         }
 
         @Override
@@ -465,7 +465,7 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
                 }
 
                 @Override
-                public String getPath() {
+                public String getConfigPath() {
                     return path;
                 }
 
@@ -500,12 +500,12 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
 
             @Override
             public Duration getCall() {
-                return config.getDuration(TimeoutConfigValue.CALL.getPath());
+                return config.getDuration(TimeoutConfigValue.CALL.getConfigPath());
             }
 
             @Override
             public Duration getReset() {
-                return config.getDuration(TimeoutConfigValue.RESET.getPath());
+                return config.getDuration(TimeoutConfigValue.RESET.getConfigPath());
             }
 
             @Override
@@ -557,7 +557,7 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
             }
 
             @Override
-            public String getPath() {
+            public String getConfigPath() {
                 return path;
             }
 
@@ -592,12 +592,12 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
 
         @Override
         public boolean isCommandsEnabled() {
-            return config.getBoolean(MonitoringConfigValue.COMMANDS_ENABLED.getPath());
+            return config.getBoolean(MonitoringConfigValue.COMMANDS_ENABLED.getConfigPath());
         }
 
         @Override
         public boolean isConnectionPoolEnabled() {
-            return config.getBoolean(MonitoringConfigValue.CONNECTION_POOL_ENABLED.getPath());
+            return config.getBoolean(MonitoringConfigValue.CONNECTION_POOL_ENABLED.getConfigPath());
         }
 
         @Override

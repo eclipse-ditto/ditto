@@ -43,7 +43,7 @@ public final class DefaultMetricsConfig implements MetricsConfig {
         }
 
         @Override
-        public String getPath() {
+        public String getConfigPath() {
             return path;
         }
 
@@ -78,22 +78,22 @@ public final class DefaultMetricsConfig implements MetricsConfig {
 
     @Override
     public boolean isSystemMetricsEnabled() {
-        return config.getBoolean(MetricsConfigValue.SYSTEM_METRICS_ENABLED.getPath());
+        return config.getBoolean(MetricsConfigValue.SYSTEM_METRICS_ENABLED.getConfigPath());
     }
 
     @Override
     public boolean isPrometheusEnabled() {
-        return config.getBoolean(MetricsConfigValue.PROMETHEUS_ENABLED.getPath());
+        return config.getBoolean(MetricsConfigValue.PROMETHEUS_ENABLED.getConfigPath());
     }
 
     @Override
     public String getPrometheusHostname() {
-        return config.getString(MetricsConfigValue.PROMETHEUS_HOSTNAME.getPath());
+        return config.getString(MetricsConfigValue.PROMETHEUS_HOSTNAME.getConfigPath());
     }
 
     @Override
     public int getPrometheusPort() {
-        return config.getInt(MetricsConfigValue.PROMETHEUS_PORT.getPath());
+        return config.getInt(MetricsConfigValue.PROMETHEUS_PORT.getConfigPath());
     }
 
 }

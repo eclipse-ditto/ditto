@@ -19,14 +19,7 @@ package org.eclipse.ditto.services.utils.config;
  * </ul>
  * A path expression is a dot-separated expression such as {@code foo.bar.baz}.
  */
-public interface KnownConfigValue {
-
-    /**
-     * Returns the path of this config value.
-     *
-     * @return the path expression.
-     */
-    String getPath();
+public interface KnownConfigValue extends WithConfigPath {
 
     /**
      * Returns the default value to fall back to if no value was set in configuration for the path.

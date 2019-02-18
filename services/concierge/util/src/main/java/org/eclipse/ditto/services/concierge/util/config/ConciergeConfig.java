@@ -15,13 +15,14 @@ import java.time.Duration;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.base.config.ServiceSpecificConfig;
+import org.eclipse.ditto.services.utils.config.WithConfigPath;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.WithMongoDbConfig;
 
 /**
  * Provides the configuration settings of the Concierge service.
  */
 @Immutable
-public interface ConciergeConfig extends ServiceSpecificConfig, WithMongoDbConfig {
+public interface ConciergeConfig extends ServiceSpecificConfig, WithConfigPath, WithMongoDbConfig {
 
     /**
      * Returns the config of Concierge's enforcement behaviour.

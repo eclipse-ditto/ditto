@@ -79,14 +79,14 @@ public final class ConfigWithFallbackTest {
         final Config config = ConfigFactory.parseMap(Collections.singletonMap("foo", "bar"));
 
         final KnownConfigValue barFallbackValue = Mockito.mock(KnownConfigValue.class);
-        Mockito.when(barFallbackValue.getPath()).thenReturn("bar");
+        Mockito.when(barFallbackValue.getConfigPath()).thenReturn("bar");
         Mockito.when(barFallbackValue.getDefaultValue()).thenReturn(1);
 
         final ConfigWithFallback underTest =
                 ConfigWithFallback.newInstance(config, KNOWN_CONFIG_PATH, new KnownConfigValue[]{barFallbackValue});
 
         assertThat(underTest.root()).satisfies(configObject -> assertThat(configObject).hasSize(1));
-        assertThat(underTest.getInt(barFallbackValue.getPath())).isEqualTo(barFallbackValue.getDefaultValue());
+        assertThat(underTest.getInt(barFallbackValue.getConfigPath())).isEqualTo(barFallbackValue.getDefaultValue());
     }
 
     @Test
@@ -114,7 +114,7 @@ public final class ConfigWithFallbackTest {
         final Config config = ConfigFactory.parseMap(Collections.singletonMap(KNOWN_CONFIG_PATH, configValueMap));
 
         final KnownConfigValue barFallbackValue = Mockito.mock(KnownConfigValue.class);
-        Mockito.when(barFallbackValue.getPath()).thenReturn("bar");
+        Mockito.when(barFallbackValue.getConfigPath()).thenReturn("bar");
         Mockito.when(barFallbackValue.getDefaultValue()).thenReturn(1);
 
         final ConfigWithFallback underTest =

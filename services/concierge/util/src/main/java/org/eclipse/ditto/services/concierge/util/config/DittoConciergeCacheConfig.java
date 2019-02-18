@@ -41,7 +41,7 @@ public final class DittoConciergeCacheConfig implements CacheConfig {
         }
 
         @Override
-        public String getPath() {
+        public String getConfigPath() {
             return path;
         }
 
@@ -75,12 +75,12 @@ public final class DittoConciergeCacheConfig implements CacheConfig {
 
     @Override
     public long getMaximumSize() {
-        return config.getLong(ConciergeCacheConfigValue.MAXIMUM_SIZE.getPath());
+        return config.getLong(ConciergeCacheConfigValue.MAXIMUM_SIZE.getConfigPath());
     }
 
     @Override
     public Duration getExpireAfterWrite() {
-        return config.getDuration(ConciergeCacheConfigValue.EXPIRE_AFTER_WRITE.getPath());
+        return config.getDuration(ConciergeCacheConfigValue.EXPIRE_AFTER_WRITE.getConfigPath());
     }
 
     @Override

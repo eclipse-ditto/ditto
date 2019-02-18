@@ -177,6 +177,11 @@ public final class DittoConciergeConfig implements ConciergeConfig {
                 "]";
     }
 
+    @Override
+    public String getConfigPath() {
+        return CONFIG_PATH;
+    }
+
     /**
      * This class implements {@link EnforcementConfig} for Ditto's Concierge service.
      */
@@ -196,7 +201,7 @@ public final class DittoConciergeConfig implements ConciergeConfig {
             }
 
             @Override
-            public String getPath() {
+            public String getConfigPath() {
                 return path;
             }
 
@@ -221,7 +226,7 @@ public final class DittoConciergeConfig implements ConciergeConfig {
          * @param config is supposed to provide the settings of the enforcement config at {@value #CONFIG_PATH}.
          * @return the instance.
          * @throws NullPointerException if {@code config} is {@code null}.
-         * @throws com.typesafe.config.ConfigException.WrongType if {@code config} did not contain a nested
+         * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} did not contain a nested
          * {@code Config} for {@value #CONFIG_PATH}.
          */
         public static DittoConciergeEnforcementConfig of(final Config config) {
@@ -231,7 +236,7 @@ public final class DittoConciergeConfig implements ConciergeConfig {
 
         @Override
         public Duration getAskTimeout() {
-            return config.getDuration(ConciergeEnforcementConfigValue.ASK_TIMEOUT.getPath());
+            return config.getDuration(ConciergeEnforcementConfigValue.ASK_TIMEOUT.getConfigPath());
         }
 
         @Override
@@ -279,7 +284,7 @@ public final class DittoConciergeConfig implements ConciergeConfig {
             }
 
             @Override
-            public String getPath() {
+            public String getConfigPath() {
                 return path;
             }
 
@@ -308,7 +313,7 @@ public final class DittoConciergeConfig implements ConciergeConfig {
          * @param config is supposed to provide the settings of the caches config at {@value #CONFIG_PATH}.
          * @return the instance.
          * @throws NullPointerException if {@code config} is {@code null}.
-         * @throws com.typesafe.config.ConfigException.WrongType if {@code config} did not contain a nested
+         * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} did not contain a nested
          * {@code Config} for {@value #CONFIG_PATH}.
          */
         public static DittoConciergeCachesConfig of(final Config config) {
@@ -318,7 +323,7 @@ public final class DittoConciergeConfig implements ConciergeConfig {
 
         @Override
         public Duration getAskTimeout() {
-            return config.getDuration(ConciergeCachesConfigValue.ASK_TIMEOUT.getPath());
+            return config.getDuration(ConciergeCachesConfigValue.ASK_TIMEOUT.getConfigPath());
         }
 
         @Override
@@ -382,7 +387,7 @@ public final class DittoConciergeConfig implements ConciergeConfig {
             }
 
             @Override
-            public String getPath() {
+            public String getConfigPath() {
                 return path;
             }
 
@@ -407,7 +412,7 @@ public final class DittoConciergeConfig implements ConciergeConfig {
          * @param config is supposed to provide the settings of the things aggregator config at {@value #CONFIG_PATH}.
          * @return the instance.
          * @throws NullPointerException if {@code config} is {@code null}.
-         * @throws com.typesafe.config.ConfigException.WrongType if {@code config} did not contain a nested
+         * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} did not contain a nested
          * {@code Config} for {@value #CONFIG_PATH}.
          */
         public static DittoConciergeThingsAggregatorConfig of(final Config config) {
@@ -417,12 +422,12 @@ public final class DittoConciergeConfig implements ConciergeConfig {
 
         @Override
         public Duration getSingleRetrieveThingTimeout() {
-            return config.getDuration(ThingsAggregatorConfigValue.SINGLE_RETRIEVE_THING_TIMEOUT.getPath());
+            return config.getDuration(ThingsAggregatorConfigValue.SINGLE_RETRIEVE_THING_TIMEOUT.getConfigPath());
         }
 
         @Override
         public int getMaxParallelism() {
-            return config.getInt(ThingsAggregatorConfigValue.MAX_PARALLELISM.getPath());
+            return config.getInt(ThingsAggregatorConfigValue.MAX_PARALLELISM.getConfigPath());
         }
 
         @Override

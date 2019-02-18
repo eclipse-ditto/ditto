@@ -52,7 +52,7 @@ public final class DefaultSuffixBuilderConfig implements SuffixBuilderConfig {
         }
 
         @Override
-        public String getPath() {
+        public String getConfigPath() {
             return path;
         }
 
@@ -110,13 +110,13 @@ public final class DefaultSuffixBuilderConfig implements SuffixBuilderConfig {
                 ConfigWithFallback.newInstance(config, CONFIG_PATH, SuffixBuilderConfigValue.values());
 
         final String extractorClassName =
-                configWithFallback.getString(SuffixBuilderConfigValue.EXTRACTOR_CLASS.getPath());
+                configWithFallback.getString(SuffixBuilderConfigValue.EXTRACTOR_CLASS.getConfigPath());
         if (!extractorClassName.isEmpty()) {
             verifyIfExtractorClassIsAvailableInClasspath(extractorClassName);
         }
 
         return new DefaultSuffixBuilderConfig(
-                configWithFallback.getStringList(SuffixBuilderConfigValue.SUPPORTED_PREFIXES.getPath()));
+                configWithFallback.getStringList(SuffixBuilderConfigValue.SUPPORTED_PREFIXES.getConfigPath()));
     }
 
     private static void verifyIfExtractorClassIsAvailableInClasspath(final String extractorClassName) {
@@ -125,7 +125,8 @@ public final class DefaultSuffixBuilderConfig implements SuffixBuilderConfig {
         } catch (final ClassNotFoundException | NoClassDefFoundError e) {
             final String msgPattern = "The configured class to extract namespace suffixes <{0}> is not available at " +
                     "the classpath! Please check the config path <{1}>.";
-            final String qualifiedConfigPath = CONFIG_PATH + "." + SuffixBuilderConfigValue.EXTRACTOR_CLASS.getPath();
+            final String qualifiedConfigPath =
+                    CONFIG_PATH + "." + SuffixBuilderConfigValue.EXTRACTOR_CLASS.getConfigPath();
             throw new DittoConfigError(MessageFormat.format(msgPattern, extractorClassName, qualifiedConfigPath), e);
         }
     }

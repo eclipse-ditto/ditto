@@ -47,7 +47,7 @@ public final class DefaultLimitsConfig implements LimitsConfig {
         }
 
         @Override
-        public String getPath() {
+        public String getConfigPath() {
             return path;
         }
 
@@ -89,27 +89,27 @@ public final class DefaultLimitsConfig implements LimitsConfig {
 
     @Override
     public long getThingsMaxSize() {
-        return config.getBytes(LimitsConfigValue.THINGS_MAX_SIZE.getPath());
+        return config.getBytes(LimitsConfigValue.THINGS_MAX_SIZE.getConfigPath());
     }
 
     @Override
     public long getPoliciesMaxSize() {
-        return config.getBytes(LimitsConfigValue.POLICIES_MAX_SIZE.getPath());
+        return config.getBytes(LimitsConfigValue.POLICIES_MAX_SIZE.getConfigPath());
     }
 
     @Override
     public long getMessagesMaxSize() {
-        return config.getBytes(LimitsConfigValue.MESSAGES_MAX_SIZE.getPath());
+        return config.getBytes(LimitsConfigValue.MESSAGES_MAX_SIZE.getConfigPath());
     }
 
     @Override
     public int getThingsSearchDefaultPageSize() {
-        return config.getInt(LimitsConfigValue.THINGS_SEARCH_DEFAULT_PAGE_SIZE.getPath());
+        return config.getInt(LimitsConfigValue.THINGS_SEARCH_DEFAULT_PAGE_SIZE.getConfigPath());
     }
 
     @Override
     public int thingsSearchMaxPageSize() {
-        return config.getInt(LimitsConfigValue.THINGS_SEARCH_MAX_PAGE_SIZE.getPath());
+        return config.getInt(LimitsConfigValue.THINGS_SEARCH_MAX_PAGE_SIZE.getConfigPath());
     }
 
     @Override
