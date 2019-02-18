@@ -70,7 +70,7 @@ public final class SuffixBuilderConfigReader extends AbstractConfigReader {
     }
 
     /**
-     * @return the {@link DefaultSuffixBuilderConfig} which is used in this reader.
+     * @return the DefaultSuffixBuilderConfig which is used in this reader.
      */
     public Optional<DefaultSuffixBuilderConfig> getSuffixBuilderConfig() {
         if (suffixBuilderConfig == null) {

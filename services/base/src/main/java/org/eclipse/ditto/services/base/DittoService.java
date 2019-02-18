@@ -201,6 +201,9 @@ public abstract class DittoService<C extends ServiceConfigReader> {
      * <li>{@link #startStatusSupplierActor(ActorSystem, Config)},</li>
      * <li>{@link #startServiceRootActors(ActorSystem, ServiceConfigReader)}.</li>
      * </ul>
+     *
+     * @param config the Config to be used for initializing the Akka ActorSystem.
+     * @param actorSystem the Akka ActorSystem.
      */
     protected void initializeActorSystem(final Config config, final ActorSystem actorSystem) {
         AkkaManagement.get(actorSystem).start();

@@ -76,12 +76,12 @@ import kamon.system.SystemMetrics;
  * <ol>
  * <li>{@link #determineRawConfig()},</li>
  * <li>{@link #createActorSystem(com.typesafe.config.Config)},</li>
- * <li>{@link #startStatusSupplierActor(akka.actor.ActorSystem, com.typesafe.config.Config)},</li>
- * <li>{@link #startServiceRootActors(akka.actor.ActorSystem, org.eclipse.ditto.services.base.config.ServiceConfigReader)}.
+ * <li>{@link #startStatusSupplierActor(akka.actor.ActorSystem)},</li>
+ * <li>{@link #startServiceRootActors(akka.actor.ActorSystem, org.eclipse.ditto.services.base.config.ServiceSpecificConfig)}.
  * <ol>
- * <li>{@link #getMainRootActorProps(org.eclipse.ditto.services.base.config.ServiceConfigReader, akka.actor.ActorRef, akka.stream.ActorMaterializer)},</li>
+ * <li>{@link #getMainRootActorProps(org.eclipse.ditto.services.base.config.ServiceSpecificConfig, akka.actor.ActorRef, akka.stream.ActorMaterializer)},</li>
  * <li>{@link #startMainRootActor(akka.actor.ActorSystem, akka.actor.Props)},</li>
- * <li>{@link #getAdditionalRootActorsInformation(org.eclipse.ditto.services.base.config.ServiceConfigReader, akka.actor.ActorRef, akka.stream.ActorMaterializer)} and</li>
+ * <li>{@link #getAdditionalRootActorsInformation(org.eclipse.ditto.services.base.config.ServiceSpecificConfig, akka.actor.ActorRef, akka.stream.ActorMaterializer)} and</li>
  * <li>{@link #startAdditionalRootActors(akka.actor.ActorSystem, Iterable)}.</li>
  * </ol>
  * </li>
@@ -154,10 +154,10 @@ public abstract class DittoServiceTng<C extends ServiceSpecificConfig> {
     }
 
     /**
-     * TODO
+     * Returns the service specific config based on the given Config.
      *
-     * @param dittoConfig
-     * @return
+     * @param dittoConfig the general Config of the service.
+     * @return the service specific config.
      */
     protected abstract C getServiceSpecificConfig(Config dittoConfig);
 
@@ -184,7 +184,7 @@ public abstract class DittoServiceTng<C extends ServiceSpecificConfig> {
         configureMongoDbSuffixBuilder();
         startKamon();
         final ActorSystem actorSystem = createActorSystem(actorSystemConfig);
-        initializeActorSystem(actorSystemConfig, actorSystem);
+        initializeActorSystem(actorSystem);
         startKamonPrometheusHttpEndpoint(actorSystem);
         return actorSystem;
     }
@@ -252,16 +252,18 @@ public abstract class DittoServiceTng<C extends ServiceSpecificConfig> {
      * <ul>
      * <li>{@link #determineRawConfig()},</li>
      * <li>{@link #createActorSystem(com.typesafe.config.Config)},</li>
-     * <li>{@link #startStatusSupplierActor(akka.actor.ActorSystem, com.typesafe.config.Config)},</li>
-     * <li>{@link #startServiceRootActors(akka.actor.ActorSystem, org.eclipse.ditto.services.base.config.ServiceConfigReader)}.</li>
+     * <li>{@link #startStatusSupplierActor(akka.actor.ActorSystem)},</li>
+     * <li>{@link #startServiceRootActors(akka.actor.ActorSystem, org.eclipse.ditto.services.base.config.ServiceSpecificConfig)}.</li>
      * </ul>
+     *
+     * @param actorSystem the Akka ActorSystem to be initialized.
      */
-    protected void initializeActorSystem(final Config rawConfig, final ActorSystem actorSystem) {
+    protected void initializeActorSystem(final ActorSystem actorSystem) {
         AkkaManagement.get(actorSystem).start();
         ClusterBootstrap.get(actorSystem).start();
 
-        startStatusSupplierActor(actorSystem, rawConfig);
-        startDevOpsCommandsActor(actorSystem, rawConfig);
+        startStatusSupplierActor(actorSystem);
+        startDevOpsCommandsActor(actorSystem);
         startServiceRootActors(actorSystem, serviceSpecificConfig);
 
         CoordinatedShutdown.get(actorSystem).addTask(
@@ -323,9 +325,8 @@ public abstract class DittoServiceTng<C extends ServiceSpecificConfig> {
      * May be overridden to change the way how the actor is started.
      *
      * @param actorSystem Akka actor system for starting actors.
-     * @param config the configuration settings of this service.
      */
-    protected void startStatusSupplierActor(final ActorSystem actorSystem, final Config config) {
+    protected void startStatusSupplierActor(final ActorSystem actorSystem) {
         startActor(actorSystem, StatusSupplierActor.props(rootActorName), StatusSupplierActor.ACTOR_NAME);
     }
 
@@ -343,9 +344,8 @@ public abstract class DittoServiceTng<C extends ServiceSpecificConfig> {
      * May be overridden to change the way how the actor is started.
      *
      * @param actorSystem Akka actor system for starting actors.
-     * @param config the configuration settings of this service.
      */
-    protected void startDevOpsCommandsActor(final ActorSystem actorSystem, final Config config) {
+    protected void startDevOpsCommandsActor(final ActorSystem actorSystem) {
         startActor(actorSystem, DevOpsCommandsActor.props(LogbackLoggingFacade.newInstance(), serviceName,
                 ConfigUtil.instanceIdentifier()), DevOpsCommandsActor.ACTOR_NAME);
     }
@@ -357,9 +357,9 @@ public abstract class DittoServiceTng<C extends ServiceSpecificConfig> {
      * is overridden, the following methods will not be called automatically:</em>
      * </p>
      * <ul>
-     * <li>{@link #getMainRootActorProps(org.eclipse.ditto.services.base.config.ServiceConfigReader, akka.actor.ActorRef, akka.stream.ActorMaterializer)},</li>
+     * <li>{@link #getMainRootActorProps(org.eclipse.ditto.services.base.config.ServiceSpecificConfig, akka.actor.ActorRef, akka.stream.ActorMaterializer)},</li>
      * <li>{@link #startMainRootActor(akka.actor.ActorSystem, akka.actor.Props)},</li>
-     * <li>{@link #getAdditionalRootActorsInformation(org.eclipse.ditto.services.base.config.ServiceConfigReader, akka.actor.ActorRef, akka.stream.ActorMaterializer)} and</li>
+     * <li>{@link #getAdditionalRootActorsInformation(org.eclipse.ditto.services.base.config.ServiceSpecificConfig, akka.actor.ActorRef, akka.stream.ActorMaterializer)} and</li>
      * <li>{@link #startAdditionalRootActors(akka.actor.ActorSystem, Iterable)}.</li>
      * </ul>
      *
@@ -433,15 +433,15 @@ public abstract class DittoServiceTng<C extends ServiceSpecificConfig> {
     }
 
     /**
-     * May be overridden to return information of additional root actors of this service. <em>The base implementation
-     * returns an empty collection.</em>
+     * May be overridden to return information of additional root actors of this service.
+     * <em>The base implementation returns an empty collection.</em>
      *
-     * @param configReader the configuration reader of this service.
+     * @param serviceSpecificConfig the specific configuration of this service.
      * @param pubSubMediator ActorRef of the distributed pub-sub-mediator.
      * @param materializer the materializer for the Akka actor system.
      * @return the additional root actors information.
      */
-    protected Collection<RootActorInformation> getAdditionalRootActorsInformation(final C configReader,
+    protected Collection<RootActorInformation> getAdditionalRootActorsInformation(final C serviceSpecificConfig,
             final ActorRef pubSubMediator, final ActorMaterializer materializer) {
 
         return Collections.emptyList();
