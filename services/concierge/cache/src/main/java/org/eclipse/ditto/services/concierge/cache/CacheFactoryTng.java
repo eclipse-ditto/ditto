@@ -17,7 +17,7 @@ import java.util.concurrent.Executor;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.concierge.util.config.CacheConfigReader;
-import org.eclipse.ditto.services.concierge.util.config.ConciergeConfig.CachesConfig.CacheConfig;
+import org.eclipse.ditto.services.concierge.util.config.CacheConfig;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 

@@ -86,28 +86,6 @@ public interface ConciergeConfig extends ServiceSpecificConfig, WithMongoDbConfi
          */
         CacheConfig getEnforcerCacheConfig();
 
-        /**
-         * Provides configuration settings of a particular cache of Concierge.
-         */
-        @Immutable
-        interface CacheConfig {
-
-            /**
-             * Returns the maximum size of a cache.
-             *
-             * @return the maximum size.
-             */
-            long getMaximumSize();
-
-            /**
-             * Returns duration after which a cache entry expires.
-             *
-             * @return the duration between write and expiration.
-             */
-            Duration getExpireAfterWrite();
-
-        }
-
     }
 
     /**
