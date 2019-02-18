@@ -10,27 +10,17 @@
  */
 package org.eclipse.ditto.services.concierge.util.config;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-
-import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.base.config.DefaultClusterConfig;
-import org.eclipse.ditto.services.base.config.DefaultHealthCheckConfig;
-import org.eclipse.ditto.services.base.config.DefaultHttpConfig;
-import org.eclipse.ditto.services.base.config.DefaultLimitsConfig;
-import org.eclipse.ditto.services.base.config.DefaultMetricsConfig;
+import org.eclipse.ditto.services.base.config.DittoServiceWithMongoDbConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.services.utils.config.DittoConfigError;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigException;
 
 /**
  * This class is the implementation of {@link ConciergeConfig} for Ditto's Concierge service.
@@ -39,26 +29,20 @@ public final class DittoConciergeConfig implements ConciergeConfig {
 
     private static final String CONFIG_PATH = "concierge";
 
+    private final DittoServiceWithMongoDbConfig serviceSpecificConfig;
     private final EnforcementConfig enforcementConfig;
     private final CachesConfig cachesConfig;
     private final ThingsAggregatorConfig thingsAggregatorConfig;
-    private final ClusterConfig clusterConfig;
-    private final HealthCheckConfig healthCheckConfig;
-    private final LimitsConfig limitsConfig;
-    private final HttpConfig httpConfig;
-    private final MetricsConfig metricsConfig;
-    private final MongoDbConfig mongoDbConfig;
 
-    private DittoConciergeConfig(final Config config, final LimitsConfig theLimitsConfig) {
-        enforcementConfig = DittoConciergeEnforcementConfig.of(config);
-        cachesConfig = DittoConciergeCachesConfig.of(config);
-        thingsAggregatorConfig = DittoConciergeThingsAggregatorConfig.of(config);
-        clusterConfig = DefaultClusterConfig.of(config);
-        healthCheckConfig = DefaultHealthCheckConfig.of(config);
-        limitsConfig = theLimitsConfig;
-        httpConfig = DefaultHttpConfig.of(config);
-        metricsConfig = DefaultMetricsConfig.of(config);
-        mongoDbConfig = DefaultMongoDbConfig.of(config);
+    private DittoConciergeConfig(final DittoServiceWithMongoDbConfig serviceSpecificConfig,
+            final EnforcementConfig enforcementConfig,
+            final CachesConfig cachesConfig,
+            final ThingsAggregatorConfig thingsAggregatorConfig) {
+
+        this.serviceSpecificConfig = serviceSpecificConfig;
+        this.enforcementConfig = enforcementConfig;
+        this.cachesConfig = cachesConfig;
+        this.thingsAggregatorConfig = thingsAggregatorConfig;
     }
 
     /**
@@ -71,23 +55,12 @@ public final class DittoConciergeConfig implements ConciergeConfig {
      * at path {@value #CONFIG_PATH}.
      */
     public static DittoConciergeConfig of(final Config config) {
-        final Config conciergeConfig = tryToGetServiceSpecificConfig(checkNotNull(config, "original Config"));
-        final LimitsConfig limitsConfig = DefaultLimitsConfig.of(config);
+        final DittoServiceWithMongoDbConfig dittoServiceConfig = DittoServiceWithMongoDbConfig.of(config, CONFIG_PATH);
 
-        return new DittoConciergeConfig(conciergeConfig, limitsConfig);
-    }
-
-    private static Config tryToGetServiceSpecificConfig(final Config originalConfig) {
-        try {
-            return getServiceSpecificConfig(originalConfig);
-        } catch (final ConfigException.Missing | ConfigException.WrongType e) {
-            final String msgPattern = "Failed to get nested Config for key <{0}> from <{1}>!";
-            throw new DittoConfigError(MessageFormat.format(msgPattern, CONFIG_PATH, originalConfig), e);
-        }
-    }
-
-    private static Config getServiceSpecificConfig(final Config originalConfig) {
-        return originalConfig.getConfig(CONFIG_PATH);
+        return new DittoConciergeConfig(dittoServiceConfig,
+                DittoConciergeEnforcementConfig.of(dittoServiceConfig),
+                DittoConciergeCachesConfig.of(dittoServiceConfig),
+                DittoConciergeThingsAggregatorConfig.of(dittoServiceConfig));
     }
 
     @Override
@@ -107,35 +80,34 @@ public final class DittoConciergeConfig implements ConciergeConfig {
 
     @Override
     public ClusterConfig getClusterConfig() {
-        return clusterConfig;
+        return serviceSpecificConfig.getClusterConfig();
     }
 
     @Override
     public HealthCheckConfig getHealthCheckConfig() {
-        return healthCheckConfig;
+        return serviceSpecificConfig.getHealthCheckConfig();
     }
 
     @Override
     public LimitsConfig getLimitsConfig() {
-        return limitsConfig;
+        return serviceSpecificConfig.getLimitsConfig();
     }
 
     @Override
     public HttpConfig getHttpConfig() {
-        return httpConfig;
+        return serviceSpecificConfig.getHttpConfig();
     }
 
     @Override
     public MetricsConfig getMetricsConfig() {
-        return metricsConfig;
+        return serviceSpecificConfig.getMetricsConfig();
     }
 
     @Override
     public MongoDbConfig getMongoDbConfig() {
-        return mongoDbConfig;
+        return serviceSpecificConfig.getMongoDbConfig();
     }
 
-    @SuppressWarnings("OverlyComplexMethod")
     @Override
     public boolean equals(final Object o) {
         if (this == o) {
@@ -145,35 +117,24 @@ public final class DittoConciergeConfig implements ConciergeConfig {
             return false;
         }
         final DittoConciergeConfig that = (DittoConciergeConfig) o;
-        return enforcementConfig.equals(that.enforcementConfig) &&
+        return serviceSpecificConfig.equals(that.serviceSpecificConfig) &&
+                enforcementConfig.equals(that.enforcementConfig) &&
                 cachesConfig.equals(that.cachesConfig) &&
-                thingsAggregatorConfig.equals(that.thingsAggregatorConfig) &&
-                clusterConfig.equals(that.clusterConfig) &&
-                healthCheckConfig.equals(that.healthCheckConfig) &&
-                limitsConfig.equals(that.limitsConfig) &&
-                httpConfig.equals(that.httpConfig) &&
-                metricsConfig.equals(that.metricsConfig) &&
-                mongoDbConfig.equals(that.mongoDbConfig);
+                thingsAggregatorConfig.equals(that.thingsAggregatorConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(enforcementConfig, cachesConfig, thingsAggregatorConfig, clusterConfig, healthCheckConfig,
-                limitsConfig, httpConfig, metricsConfig, mongoDbConfig);
+        return Objects.hash(serviceSpecificConfig, enforcementConfig, cachesConfig, thingsAggregatorConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "enforcementConfig=" + enforcementConfig +
+                "serviceSpecificConfig=" + serviceSpecificConfig +
+                ", enforcementConfig=" + enforcementConfig +
                 ", cachesConfig=" + cachesConfig +
                 ", thingsAggregatorConfig=" + thingsAggregatorConfig +
-                ", clusterConfig=" + clusterConfig +
-                ", healthCheckConfig=" + healthCheckConfig +
-                ", limitsConfig=" + limitsConfig +
-                ", httpConfig=" + httpConfig +
-                ", metricsConfig=" + metricsConfig +
-                ", mongoDbConfig=" + mongoDbConfig +
                 "]";
     }
 
