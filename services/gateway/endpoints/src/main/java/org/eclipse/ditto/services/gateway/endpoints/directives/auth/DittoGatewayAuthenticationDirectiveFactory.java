@@ -18,15 +18,20 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Executor;
 
 import org.eclipse.ditto.model.policies.SubjectIssuer;
-import org.eclipse.ditto.services.gateway.endpoints.directives.auth.dummy.DummyAuthenticationProvider;
-import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.DittoAuthorizationSubjectsProvider;
-import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.DittoPublicKeyProvider;
-import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.JwtAuthenticationDirective;
-import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.JwtSubjectIssuerConfig;
-import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.JwtSubjectIssuersConfig;
-import org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt.PublicKeyProvider;
+import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationChain;
+import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationFailureAggregator;
+import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationProvider;
+import org.eclipse.ditto.services.gateway.security.authentication.dummy.DummyAuthenticationProvider;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.DefaultJwtAuthorizationContextProvider;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.DittoAuthorizationSubjectsProvider;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.DittoPublicKeyProvider;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationProvider;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtSubjectIssuerConfig;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtSubjectIssuersConfig;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.PublicKeyProvider;
 import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
 import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
 import org.slf4j.Logger;
@@ -48,11 +53,11 @@ public class DittoGatewayAuthenticationDirectiveFactory implements GatewayAuthen
     private final GatewayAuthenticationDirective gatewayAuthenticationDirective;
 
     public DittoGatewayAuthenticationDirectiveFactory(final Config config,
-            final HttpClientFacade httpClient) {
+            final HttpClientFacade httpClient, final Executor blockingDispatcher) {
         requireNonNull(config);
         requireNonNull(httpClient);
 
-        gatewayAuthenticationDirective = generateGatewayAuthenticationDirective(config, httpClient);
+        gatewayAuthenticationDirective = generateGatewayAuthenticationDirective(config, httpClient, blockingDispatcher);
     }
 
     @Override
@@ -66,15 +71,14 @@ public class DittoGatewayAuthenticationDirectiveFactory implements GatewayAuthen
     }
 
     private static GatewayAuthenticationDirective generateGatewayAuthenticationDirective(final Config config,
-            final HttpClientFacade httpClient) {
+            final HttpClientFacade httpClient, final Executor blockingDispatcher) {
         final boolean dummyAuthEnabled = config.getBoolean(ConfigKeys.AUTHENTICATION_DUMMY_ENABLED);
 
-        final List<AuthenticationProvider> authenticationChain = new LinkedList<>();
+        final List<AuthenticationProvider> authenticationProviders = new LinkedList<>();
         if (dummyAuthEnabled) {
             LOGGER.warn("Dummy authentication is enabled - Do not use this feature in production.");
-            authenticationChain.add(DummyAuthenticationProvider.INSTANCE);
+            authenticationProviders.add(DummyAuthenticationProvider.getInstance());
         }
-
 
         final JwtSubjectIssuersConfig jwtSubjectIssuersConfig = buildJwtSubjectIssuersConfig();
 
@@ -84,8 +88,20 @@ public class DittoGatewayAuthenticationDirectiveFactory implements GatewayAuthen
         final DittoAuthorizationSubjectsProvider authorizationSubjectsProvider =
                 DittoAuthorizationSubjectsProvider.of(jwtSubjectIssuersConfig);
 
-        authenticationChain.add(
-                new JwtAuthenticationDirective(publicKeyProvider, authorizationSubjectsProvider));
+        final DefaultJwtAuthorizationContextProvider authorizationContextProvider =
+                DefaultJwtAuthorizationContextProvider.getInstance(authorizationSubjectsProvider);
+
+        final JwtAuthenticationProvider jwtAuthenticationProvider =
+                JwtAuthenticationProvider.getInstance(publicKeyProvider, authorizationContextProvider);
+
+        authenticationProviders.add(jwtAuthenticationProvider);
+
+        final AuthenticationFailureAggregator authenticationFailureAggregator =
+                AuthenticationFailureAggregator.getInstance();
+
+        final AuthenticationChain authenticationChain =
+                AuthenticationChain.getInstance(authenticationProviders, authenticationFailureAggregator,
+                        blockingDispatcher);
 
         return new GatewayAuthenticationDirective(authenticationChain);
     }

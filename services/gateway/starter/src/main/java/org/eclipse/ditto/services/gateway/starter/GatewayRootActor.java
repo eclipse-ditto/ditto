@@ -59,6 +59,7 @@ import akka.actor.SupervisorStrategy;
 import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ClusterSharding;
+import akka.dispatch.MessageDispatcher;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
@@ -79,6 +80,8 @@ final class GatewayRootActor extends AbstractActor {
      * The name of this Actor in the ActorSystem.
      */
     static final String ACTOR_NAME = "gatewayRoot";
+
+    private static final String BLOCKING_DISPATCHER_NAME = "blocking-dispatcher";
 
     private static final String CHILD_RESTART_INFO_MSG = "Restarting child...";
 
@@ -246,8 +249,9 @@ final class GatewayRootActor extends AbstractActor {
             final ActorRef healthCheckingActor) {
         final HttpClientFacade httpClient = HttpClientFacade.getInstance(actorSystem);
         final ClusterStatusSupplier clusterStateSupplier = new ClusterStatusSupplier(Cluster.get(actorSystem));
+        final MessageDispatcher blockingDispatcher = actorSystem.dispatchers().lookup(BLOCKING_DISPATCHER_NAME);
         final DittoGatewayAuthenticationDirectiveFactory authenticationDirectiveFactory =
-                new DittoGatewayAuthenticationDirectiveFactory(config, httpClient);
+                new DittoGatewayAuthenticationDirectiveFactory(config, httpClient, blockingDispatcher);
         final RouteFactory routeFactory = RouteFactory.newInstance(actorSystem, proxyActor, streamingActor,
                 healthCheckingActor, clusterStateSupplier, authenticationDirectiveFactory);
 
