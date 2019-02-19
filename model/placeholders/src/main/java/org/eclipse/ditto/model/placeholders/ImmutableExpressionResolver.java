@@ -35,15 +35,15 @@ import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 @Immutable
 final class ImmutableExpressionResolver implements ExpressionResolver {
 
-    private static final String PLACEHOLDER_BASIC = "[\\w\\-\\_]+\\:[\\w\\-\\_\\|]+";
+    private static final String PLACEHOLDER_BASIC = "[\\w\\-_]+:[\\w\\-_|]+";
     private static final String ANY_NUMBER_OF_SPACES = "\\s*";
     private static final String OR = "|";
     private static final String STRING_WITH_SINGLE_QUOTES =
-            "(\\s*(?<!(\\'\\s))\\'(?=([\\w\\-\\_\\|\\:]*\\'))[\\w\\-\\_\\|\\:]*\\'?\\s*)";
+            "(\\s*(?<!('\\s))'(?=([\\w\\-_|:]*'))[\\w\\-_|:]*'?\\s*)";
     private static final String STRING_WITH_DOUBLE_QUOTES =
-            "(\\s*(?<!(\\\"\\s))\\\"(?=([\\w\\-\\_\\|\\:]*\\\"))[\\w\\-\\_\\|\\:]*\\\"?\\s*)";
-    private static final String EMPTY_FUNCTION = "()";
-    private static final String COMMA_IN_BETWEEN_PARAMETERS = "(?<!(\\(\\s))\\,?";
+            "(\\s*(?<!(\"\\s))\"(?=([\\w\\-_|:]*\"))[\\w\\-_|:]*\"?\\s*)";
+    private static final String EMPTY_FUNCTION = "";
+    private static final String COMMA_IN_BETWEEN_PARAMETERS = "(?<!(\\(\\s)),?";
 
     private static final String PIPE_PATTERN_STR = PLACEHOLDER_BASIC
             + ANY_NUMBER_OF_SPACES

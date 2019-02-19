@@ -38,7 +38,6 @@ public final class Placeholders {
     private static final String PLACEHOLDER_GROUP = "(?<" + PLACEHOLDER_GROUP_NAME + ">(.*?))";
     private static final String ANY_NUMBER_OF_SPACES = " *";
     private static final String PLACEHOLDER_REGEX =
-            //Pattern.quote(PLACEHOLDER_START) // start of placeholder
                     PLACEHOLDER_START
                     + ANY_NUMBER_OF_SPACES // allow arbitrary number of spaces
                     + PLACEHOLDER_GROUP // the content of the placeholder
