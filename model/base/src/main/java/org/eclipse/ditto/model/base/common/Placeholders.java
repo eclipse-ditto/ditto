@@ -32,17 +32,19 @@ public final class Placeholders {
 
     private static final String PLACEHOLDER_GROUP_NAME = "ph";
 
-    private static final String PLACEHOLDER_START = "{{";
+    private static final String PLACEHOLDER_START = "\\{{2}(?!\\s*\\{)";
     private static final String PLACEHOLDER_END = "}}";
 
     private static final String PLACEHOLDER_GROUP = "(?<" + PLACEHOLDER_GROUP_NAME + ">(.*?))";
     private static final String ANY_NUMBER_OF_SPACES = " *";
     private static final String PLACEHOLDER_REGEX =
-            Pattern.quote(PLACEHOLDER_START) // start of placeholder
+            //Pattern.quote(PLACEHOLDER_START) // start of placeholder
+                    PLACEHOLDER_START
                     + ANY_NUMBER_OF_SPACES // allow arbitrary number of spaces
                     + PLACEHOLDER_GROUP // the content of the placeholder
                     + ANY_NUMBER_OF_SPACES  // allow arbitrary number of spaces
                     + Pattern.quote(PLACEHOLDER_END); // end of placeholder
+
     private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile(PLACEHOLDER_REGEX);
 
     private static final String LEGACY_PLACEHOLDER_START = "${";
