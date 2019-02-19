@@ -25,6 +25,7 @@ import com.typesafe.config.Config;
 /**
  * This class is the implementation of {@link ConciergeConfig} for Ditto's Concierge service.
  */
+@Immutable
 public final class DittoConciergeConfig implements ConciergeConfig {
 
     private static final String CONFIG_PATH = "concierge";
