@@ -35,8 +35,34 @@ import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 @Immutable
 final class ImmutableExpressionResolver implements ExpressionResolver {
 
-    private static final String PIPE_PATTERN_STR =
-            "[\\w\\-\\_]+\\:[\\w\\-\\_\\|]+\\s*(?!(\\|))(\\(\\s*(((\\s*(?<!(\\'\\s))\\'(?=([\\w\\-\\_\\|\\:]*\\'))[\\w\\-\\_\\|\\:]*\\'?\\s*)|(\\s*[\\w\\-\\_\\|]+\\:[\\w\\-\\_\\|]+)|()|(\\s*(?<!(\\\"\\s))\\\"(?=([\\w\\-\\_\\|\\:]*\\\"))[\\w\\-\\_\\|\\:]*\\\"?\\s*))\\s*(?<!(\\(\\s))\\,?\\s*)*\\s*\\)\\s*)?";
+    private static final String PLACEHOLDER_BASIC = "[\\w\\-\\_]+\\:[\\w\\-\\_\\|]+";
+    private static final String ANY_NUMBER_OF_SPACES = "\\s*";
+    private static final String OR = "|";
+    private static final String STRING_WITH_SINGLE_QUOTES =
+            "(\\s*(?<!(\\'\\s))\\'(?=([\\w\\-\\_\\|\\:]*\\'))[\\w\\-\\_\\|\\:]*\\'?\\s*)";
+    private static final String STRING_WITH_DOUBLE_QUOTES =
+            "(\\s*(?<!(\\\"\\s))\\\"(?=([\\w\\-\\_\\|\\:]*\\\"))[\\w\\-\\_\\|\\:]*\\\"?\\s*)";
+    private static final String EMPTY_FUNCTION = "()";
+    private static final String COMMA_IN_BETWEEN_PARAMETERS = "(?<!(\\(\\s))\\,?";
+
+    private static final String PIPE_PATTERN_STR = PLACEHOLDER_BASIC
+            + ANY_NUMBER_OF_SPACES
+            + "(\\(" // Open function
+            + ANY_NUMBER_OF_SPACES
+            + "(" // Repeating parameters group
+            + "(" // OR group
+            + STRING_WITH_DOUBLE_QUOTES + OR
+            + STRING_WITH_SINGLE_QUOTES + OR
+            + EMPTY_FUNCTION + OR
+            + "(\\s*" + PLACEHOLDER_BASIC + ")"
+            + ")" // End OR group
+            + ANY_NUMBER_OF_SPACES
+            + COMMA_IN_BETWEEN_PARAMETERS
+            + ANY_NUMBER_OF_SPACES
+            + ")*" + ANY_NUMBER_OF_SPACES + "\\)" // Closing parameters group and function
+            + ANY_NUMBER_OF_SPACES
+            + ")?";
+
     private static final Pattern PIPE_PATTERN = Pattern.compile(PIPE_PATTERN_STR);
 
     private static final Function<String, DittoRuntimeException> UNRESOLVED_INPUT_HANDLER = unresolvedInput ->
@@ -82,7 +108,7 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
         return Optional.empty();
     }
 
-    private String getValidPlaceholderTemplate(List<String> stringList){
+    private String getValidPlaceholderTemplate(List<String> stringList) {
         try {
             return stringList.get(0); // the first pipeline stage has to start with a placeholder
         } catch (IndexOutOfBoundsException e) {
