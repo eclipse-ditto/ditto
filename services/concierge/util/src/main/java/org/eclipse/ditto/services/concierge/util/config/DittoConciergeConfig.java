@@ -51,7 +51,6 @@ public final class DittoConciergeConfig implements ConciergeConfig {
      *
      * @param config is supposed to provide the settings of the Concierge service config at {@value #CONFIG_PATH}.
      * @return the instance.
-     * @throws NullPointerException if {@code config} is {@code null}.
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} did not contain a nested Config
      * at path {@value #CONFIG_PATH}.
      */
@@ -187,7 +186,6 @@ public final class DittoConciergeConfig implements ConciergeConfig {
          *
          * @param config is supposed to provide the settings of the enforcement config at {@value #CONFIG_PATH}.
          * @return the instance.
-         * @throws NullPointerException if {@code config} is {@code null}.
          * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} did not contain a nested
          * {@code Config} for {@value #CONFIG_PATH}.
          */
@@ -274,7 +272,6 @@ public final class DittoConciergeConfig implements ConciergeConfig {
          *
          * @param config is supposed to provide the settings of the caches config at {@value #CONFIG_PATH}.
          * @return the instance.
-         * @throws NullPointerException if {@code config} is {@code null}.
          * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} did not contain a nested
          * {@code Config} for {@value #CONFIG_PATH}.
          */
@@ -373,7 +370,6 @@ public final class DittoConciergeConfig implements ConciergeConfig {
          *
          * @param config is supposed to provide the settings of the things aggregator config at {@value #CONFIG_PATH}.
          * @return the instance.
-         * @throws NullPointerException if {@code config} is {@code null}.
          * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} did not contain a nested
          * {@code Config} for {@value #CONFIG_PATH}.
          */
