@@ -15,10 +15,9 @@ import org.eclipse.ditto.services.concierge.starter.actors.ConciergeRootActor;
 import org.eclipse.ditto.services.concierge.starter.proxy.DefaultEnforcerActorFactory;
 import org.eclipse.ditto.services.concierge.util.config.ConciergeConfig;
 import org.eclipse.ditto.services.concierge.util.config.DittoConciergeConfig;
+import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -51,7 +50,7 @@ public final class ConciergeService extends DittoServiceTng<ConciergeConfig> {
     }
 
     @Override
-    protected ConciergeConfig getServiceSpecificConfig(final Config dittoConfig) {
+    protected ConciergeConfig getServiceSpecificConfig(final ScopedConfig dittoConfig) {
         return DittoConciergeConfig.of(dittoConfig);
     }
 

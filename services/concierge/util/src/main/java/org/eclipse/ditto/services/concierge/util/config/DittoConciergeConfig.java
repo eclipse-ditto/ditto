@@ -18,6 +18,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.services.base.config.DittoServiceWithMongoDbConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 
 import com.typesafe.config.Config;
@@ -51,10 +52,10 @@ public final class DittoConciergeConfig implements ConciergeConfig {
      *
      * @param config is supposed to provide the settings of the Concierge service config at {@value #CONFIG_PATH}.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} did not contain a nested Config
-     * at path {@value #CONFIG_PATH}.
+     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} did not contain a nested
+     * Config at path {@value #CONFIG_PATH}.
      */
-    public static DittoConciergeConfig of(final Config config) {
+    public static DittoConciergeConfig of(final ScopedConfig config) {
         final DittoServiceWithMongoDbConfig dittoServiceConfig = DittoServiceWithMongoDbConfig.of(config, CONFIG_PATH);
 
         return new DittoConciergeConfig(dittoServiceConfig,

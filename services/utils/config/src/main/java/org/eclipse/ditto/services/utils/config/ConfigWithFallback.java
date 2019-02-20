@@ -12,7 +12,6 @@ package org.eclipse.ditto.services.utils.config;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Period;
 import java.time.temporal.TemporalAmount;
@@ -26,7 +25,6 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.concurrent.Immutable;
 
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigList;
 import com.typesafe.config.ConfigMemorySize;
@@ -41,16 +39,18 @@ import com.typesafe.config.ConfigValue;
  * path config path and fallback values for not originally configured settings.
  */
 @Immutable
-public final class ConfigWithFallback implements Config {
+public final class ConfigWithFallback implements ScopedConfig {
 
     private final Config baseConfig;
+    private final String configPath;
 
-    private ConfigWithFallback(final Config theBaseConfig) {
+    private ConfigWithFallback(final Config theBaseConfig, final String theConfigPath) {
         baseConfig = theBaseConfig;
+        configPath = theConfigPath;
     }
 
     /**
-     * Returns a new instance of {@code ConfigWithFallback} based on the specified arguments.
+     * Returns a new instance of {@code ConfigWithFallback} based on the given arguments.
      *
      * @param originalConfig the original Config which is supposed to provide a nested Config at {@code configPath} and
      * which will be extended by the fall back config based on {@code fallBackValues}.
@@ -58,7 +58,7 @@ public final class ConfigWithFallback implements Config {
      * @param fallBackValues base for the fall back which is applied to the original Config within
      * {@code originalConfig} at {@code configPath}.
      * @return the instance.
-     * @throws DittoConfigError if any argument is {@code null} of if the value of {@code originalConfig} at
+     * @throws DittoConfigError if any argument is {@code null} or if the value of {@code originalConfig} at
      * {@code configPath} is not of type {@link com.typesafe.config.ConfigValueType#OBJECT}.
      */
     public static ConfigWithFallback newInstance(final Config originalConfig, final String configPath,
@@ -70,7 +70,7 @@ public final class ConfigWithFallback implements Config {
 
         Config baseConfig;
         if (originalConfig.hasPath(configPath)) {
-            baseConfig = tryToGetAsConfig(originalConfig, configPath);
+            baseConfig = DefaultScopedConfig.newInstance(originalConfig, configPath);
         } else {
             baseConfig = ConfigFactory.empty();
         }
@@ -78,7 +78,7 @@ public final class ConfigWithFallback implements Config {
             baseConfig = baseConfig.withFallback(arrayToConfig(fallBackValues));
         }
 
-        return new ConfigWithFallback(baseConfig);
+        return new ConfigWithFallback(baseConfig, configPath);
     }
 
     private static void validateArgument(final Object argument, final String argumentDescription) {
@@ -86,15 +86,6 @@ public final class ConfigWithFallback implements Config {
             checkNotNull(argument, argumentDescription);
         } catch (final NullPointerException e) {
             throw new DittoConfigError(e);
-        }
-    }
-
-    private static Config tryToGetAsConfig(final Config originalConfig, final String configPath) {
-        try {
-            return originalConfig.getConfig(configPath);
-        } catch (final ConfigException.WrongType e) {
-            final String msgPattern = "Failed to get nested Config at <{0}>!";
-            throw new DittoConfigError(MessageFormat.format(msgPattern, configPath), e);
         }
     }
 
@@ -287,6 +278,11 @@ public final class ConfigWithFallback implements Config {
     public Config withValue(final String path, final ConfigValue value) {return baseConfig.withValue(path, value);}
 
     @Override
+    public String getConfigPath() {
+        return configPath;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -295,7 +291,7 @@ public final class ConfigWithFallback implements Config {
             return false;
         }
         final ConfigWithFallback that = (ConfigWithFallback) o;
-        return baseConfig.equals(that.baseConfig);
+        return baseConfig.equals(that.baseConfig) && configPath.equals(that.configPath);
     }
 
     @Override
@@ -307,6 +303,7 @@ public final class ConfigWithFallback implements Config {
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "baseConfig=" + baseConfig +
+                ", configPath=" + configPath +
                 "]";
     }
 

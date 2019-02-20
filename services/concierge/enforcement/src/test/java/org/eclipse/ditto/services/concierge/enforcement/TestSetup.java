@@ -30,6 +30,7 @@ import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.services.base.DittoServiceTng;
 import org.eclipse.ditto.services.concierge.cache.AclEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.ThingEnforcementIdCacheLoader;
@@ -39,11 +40,13 @@ import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.models.concierge.cache.Entry;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
@@ -60,7 +63,9 @@ public final class TestSetup {
     public static final String THING_ID = "thing:id";
     public static final AuthorizationSubject SUBJECT = AuthorizationSubject.newInstance("dummy:subject");
 
-    public static final ConciergeConfig CONFIG = DittoConciergeConfig.of(ConfigFactory.load("test"));
+    public static final Config RAW_CONFIG = ConfigFactory.load("test");
+    public static final ConciergeConfig CONFIG = DittoConciergeConfig.of(DefaultScopedConfig.newInstance(RAW_CONFIG,
+            DittoServiceTng.DITTO_CONFIG_PATH));
 
     public static ActorRef newEnforcerActor(final ActorSystem system, final ActorRef testActorRef,
             final ActorRef mockEntitiesActor) {

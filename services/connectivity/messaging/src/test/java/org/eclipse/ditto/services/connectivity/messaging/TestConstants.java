@@ -23,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.AbstractMap;
+import java.util.AbstractQueue;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -67,6 +68,7 @@ import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
@@ -87,10 +89,10 @@ import akka.event.DiagnosticLoggingAdapter;
 import akka.event.Logging;
 import akka.japi.Creator;
 
-public class TestConstants {
+public final class TestConstants {
 
     // concurrent mutable collection of all running mock servers
-    private static final ConcurrentLinkedQueue<ServerSocket> MOCK_SERVERS = new ConcurrentLinkedQueue<>();
+    private static final AbstractQueue<ServerSocket> MOCK_SERVERS = new ConcurrentLinkedQueue<>();
 
     public static final Config CONFIG = ConfigFactory.load("test");
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
@@ -103,7 +105,7 @@ public class TestConstants {
      * Disable logging for 1 test to hide stacktrace or other logs on level ERROR. Comment out to debug the test.
      */
     public static void disableLogging(final ActorSystem system) {
-        system.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
+        system.eventStream().setLogLevel(Logging.levelFor("off").map(Logging.LogLevel::asInt).get());
     }
 
     public static HeaderMapping HEADER_MAPPING;

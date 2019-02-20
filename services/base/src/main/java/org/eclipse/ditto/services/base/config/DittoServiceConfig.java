@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.base.config;
 
-import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Period;
 import java.time.temporal.TemporalAmount;
@@ -22,10 +21,10 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.utils.config.DittoConfigError;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigList;
 import com.typesafe.config.ConfigMemorySize;
 import com.typesafe.config.ConfigMergeable;
@@ -40,16 +39,16 @@ import com.typesafe.config.ConfigValue;
  * dedicated service-specific implementations of the interface.
  */
 @Immutable
-public final class DittoServiceConfig implements Config, ServiceSpecificConfig {
+public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificConfig {
 
-    private final Config config;
+    private final ScopedConfig config;
     private final LimitsConfig limitsConfig;
     private final ClusterConfig clusterConfig;
     private final HealthCheckConfig healthCheckConfig;
     private final HttpConfig httpConfig;
     private final MetricsConfig metricsConfig;
 
-    private DittoServiceConfig(final Config theConfig, final LimitsConfig theLimitsConfig) {
+    private DittoServiceConfig(final ScopedConfig theConfig, final LimitsConfig theLimitsConfig) {
         config = theConfig;
         limitsConfig = theLimitsConfig;
         clusterConfig = DefaultClusterConfig.of(config);
@@ -74,23 +73,10 @@ public final class DittoServiceConfig implements Config, ServiceSpecificConfig {
      * </ul>
      */
     public static DittoServiceConfig of(final Config config, final String configPath) {
-        final Config serviceSpecificConfig = tryToGetServiceSpecificConfig(config, configPath);
+        final DefaultScopedConfig scopedConfig = DefaultScopedConfig.newInstance(config, configPath);
         final LimitsConfig limitsConfig = DefaultLimitsConfig.of(config);
 
-        return new DittoServiceConfig(serviceSpecificConfig, limitsConfig);
-    }
-
-    private static Config tryToGetServiceSpecificConfig(final Config originalConfig, final String configPath) {
-        try {
-            return getServiceSpecificConfig(originalConfig, configPath);
-        } catch (final NullPointerException | ConfigException.Missing | ConfigException.WrongType e) {
-            final String msgPattern = "Failed to get nested Config for key <{0}> from <{1}>!";
-            throw new DittoConfigError(MessageFormat.format(msgPattern, configPath, originalConfig), e);
-        }
-    }
-
-    private static Config getServiceSpecificConfig(final Config originalConfig, final String configPath) {
-        return originalConfig.getConfig(configPath);
+        return new DittoServiceConfig(scopedConfig, limitsConfig);
     }
 
     @Override
@@ -391,6 +377,11 @@ public final class DittoServiceConfig implements Config, ServiceSpecificConfig {
     @Override
     public Config withValue(final String path, final ConfigValue value) {
         return config.withValue(path, value);
+    }
+
+    @Override
+    public String getConfigPath() {
+        return config.getConfigPath();
     }
 
     @Override

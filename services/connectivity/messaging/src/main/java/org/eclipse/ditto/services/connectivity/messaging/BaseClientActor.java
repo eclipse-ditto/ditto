@@ -121,6 +121,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         checkNotNull(connection, "connection");
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connection.getId());
 
+//        getContext().system().settings().config()
+
         final Config config = getContext().getSystem().settings().config();
         final java.time.Duration javaInitTimeout = config.getDuration(ConfigKeys.Client.INIT_TIMEOUT);
         this.conciergeForwarder = conciergeForwarder;

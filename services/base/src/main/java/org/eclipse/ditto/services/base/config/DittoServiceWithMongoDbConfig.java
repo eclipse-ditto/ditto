@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.WithMongoDbConfig;
@@ -39,7 +40,7 @@ import com.typesafe.config.ConfigValue;
  * additionally implements {@link org.eclipse.ditto.services.utils.persistence.mongo.config.WithMongoDbConfig}.
  */
 @Immutable
-public final class DittoServiceWithMongoDbConfig implements Config, ServiceSpecificConfig, WithMongoDbConfig {
+public final class DittoServiceWithMongoDbConfig implements ScopedConfig, ServiceSpecificConfig, WithMongoDbConfig {
 
     private final DittoServiceConfig dittoServiceConfig;
     private final MongoDbConfig mongoDbConfig;
@@ -262,6 +263,11 @@ public final class DittoServiceWithMongoDbConfig implements Config, ServiceSpeci
     @Override
     public Config withValue(final String path, final ConfigValue value) {
         return dittoServiceConfig.withValue(path, value);
+    }
+
+    @Override
+    public String getConfigPath() {
+        return dittoServiceConfig.getConfigPath();
     }
 
     @Override

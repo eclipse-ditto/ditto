@@ -29,7 +29,9 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.services.base.config.ServiceSpecificConfig;
 import org.eclipse.ditto.services.base.config.raw.RawConfigSupplier;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.DittoConfigError;
+import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
 import org.eclipse.ditto.services.utils.devops.LogbackLoggingFacade;
 import org.eclipse.ditto.services.utils.health.status.StatusSupplierActor;
@@ -97,7 +99,10 @@ public abstract class DittoServiceTng<C extends ServiceSpecificConfig> {
      */
     public static final String CLUSTER_NAME = "ditto-cluster";
 
-    private static final String DITTO_CONFIG_PATH = "ditto";
+    /**
+     * The config path expression which points to the supposed nested config with the Ditto settings.
+     */
+    public static final String DITTO_CONFIG_PATH = "ditto";
 
     private final Logger logger;
     private final String serviceName;
@@ -137,7 +142,7 @@ public abstract class DittoServiceTng<C extends ServiceSpecificConfig> {
         return RawConfigSupplier.of(serviceName).get();
     }
 
-    private static Config tryToGetDittoConfigOrEmpty(final Config rawConfig) {
+    private static ScopedConfig tryToGetDittoConfigOrEmpty(final Config rawConfig) {
         try {
             return getDittoConfigOrEmpty(rawConfig);
         } catch (final ConfigException.WrongType e) {
@@ -146,20 +151,20 @@ public abstract class DittoServiceTng<C extends ServiceSpecificConfig> {
         }
     }
 
-    private static Config getDittoConfigOrEmpty(final Config rawConfig) {
+    private static ScopedConfig getDittoConfigOrEmpty(final Config rawConfig) {
         if (rawConfig.hasPath(DITTO_CONFIG_PATH)) {
-            return rawConfig.getConfig(DITTO_CONFIG_PATH);
+            return DefaultScopedConfig.newInstance(rawConfig, DITTO_CONFIG_PATH);
         }
-        return ConfigFactory.empty();
+        return DefaultScopedConfig.empty(DITTO_CONFIG_PATH);
     }
 
     /**
      * Returns the service specific config based on the given Config.
      *
-     * @param dittoConfig the general Config of the service.
+     * @param dittoConfig the general Config of the service at path {@value #DITTO_CONFIG_PATH}.
      * @return the service specific config.
      */
-    protected abstract C getServiceSpecificConfig(Config dittoConfig);
+    protected abstract C getServiceSpecificConfig(ScopedConfig dittoConfig);
 
     /**
      * Starts this service. Any thrown {@code Throwable}s will be logged and re-thrown.
@@ -367,7 +372,6 @@ public abstract class DittoServiceTng<C extends ServiceSpecificConfig> {
      * @param serviceSpecificConfig the configuration settings of this service.
      */
     protected void startServiceRootActors(final ActorSystem actorSystem, final C serviceSpecificConfig) {
-
         logger.info("Waiting for member to be up before proceeding with further initialisation.");
         Cluster.get(actorSystem).registerOnMemberUp(() -> {
             logger.info("Member successfully joined the cluster, instantiating remaining actors.");
