@@ -10,18 +10,13 @@
  */
 package org.eclipse.ditto.services.concierge.util.config;
 
-import java.time.Duration;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.base.config.DittoServiceWithMongoDbConfig;
-import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
-
-import com.typesafe.config.Config;
 
 /**
  * This class is the implementation of {@link ConciergeConfig} for Ditto's Concierge service.
@@ -59,9 +54,9 @@ public final class DittoConciergeConfig implements ConciergeConfig {
         final DittoServiceWithMongoDbConfig dittoServiceConfig = DittoServiceWithMongoDbConfig.of(config, CONFIG_PATH);
 
         return new DittoConciergeConfig(dittoServiceConfig,
-                DittoConciergeEnforcementConfig.of(dittoServiceConfig),
-                DittoConciergeCachesConfig.of(dittoServiceConfig),
-                DittoConciergeThingsAggregatorConfig.of(dittoServiceConfig));
+                DefaultEnforcementConfig.of(dittoServiceConfig),
+                DefaultCachesConfig.of(dittoServiceConfig),
+                DefaultThingsAggregatorConfig.of(dittoServiceConfig));
     }
 
     @Override
@@ -110,6 +105,11 @@ public final class DittoConciergeConfig implements ConciergeConfig {
     }
 
     @Override
+    public String getConfigPath() {
+        return CONFIG_PATH;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -137,282 +137,6 @@ public final class DittoConciergeConfig implements ConciergeConfig {
                 ", cachesConfig=" + cachesConfig +
                 ", thingsAggregatorConfig=" + thingsAggregatorConfig +
                 "]";
-    }
-
-    @Override
-    public String getConfigPath() {
-        return CONFIG_PATH;
-    }
-
-    /**
-     * This class implements {@link EnforcementConfig} for Ditto's Concierge service.
-     */
-    @Immutable
-    public static final class DittoConciergeEnforcementConfig implements EnforcementConfig {
-
-        private enum ConciergeEnforcementConfigValue implements KnownConfigValue {
-
-            ASK_TIMEOUT("ask-timeout", Duration.ofSeconds(10));
-
-            private final String path;
-            private final Object defaultValue;
-
-            private ConciergeEnforcementConfigValue(final String thePath, final Object theDefaultValue) {
-                path = thePath;
-                defaultValue = theDefaultValue;
-            }
-
-            @Override
-            public String getConfigPath() {
-                return path;
-            }
-
-            @Override
-            public Object getDefaultValue() {
-                return defaultValue;
-            }
-
-        }
-
-        private static final String CONFIG_PATH = "enforcement";
-
-        private final Config config;
-
-        private DittoConciergeEnforcementConfig(final Config theConfig) {
-            config = theConfig;
-        }
-
-        /**
-         * Returns an instance of {@code DittoConciergeEnforcementConfig} based on the settings of the specified Config.
-         *
-         * @param config is supposed to provide the settings of the enforcement config at {@value #CONFIG_PATH}.
-         * @return the instance.
-         * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} did not contain a nested
-         * {@code Config} for {@value #CONFIG_PATH}.
-         */
-        public static DittoConciergeEnforcementConfig of(final Config config) {
-            return new DittoConciergeEnforcementConfig(
-                    ConfigWithFallback.newInstance(config, CONFIG_PATH, ConciergeEnforcementConfigValue.values()));
-        }
-
-        @Override
-        public Duration getAskTimeout() {
-            return config.getDuration(ConciergeEnforcementConfigValue.ASK_TIMEOUT.getConfigPath());
-        }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            final DittoConciergeEnforcementConfig that = (DittoConciergeEnforcementConfig) o;
-            return config.equals(that.config);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(config);
-        }
-
-        @Override
-        public String toString() {
-            return getClass().getSimpleName() + " [" +
-                    "config=" + config +
-                    "]";
-        }
-
-    }
-
-    /**
-     * This class implements {@link CachesConfig} for Ditto's Concierge service.
-     */
-    @Immutable
-    public static final class DittoConciergeCachesConfig implements CachesConfig {
-
-        private enum ConciergeCachesConfigValue implements KnownConfigValue {
-
-            ASK_TIMEOUT("ask-timeout", Duration.ofSeconds(10L));
-
-            private final String path;
-            private final Object defaultValue;
-
-            private ConciergeCachesConfigValue(final String thePath, final Object theDefaultValue) {
-                path = thePath;
-                defaultValue = theDefaultValue;
-            }
-
-            @Override
-            public String getConfigPath() {
-                return path;
-            }
-
-            @Override
-            public Object getDefaultValue() {
-                return defaultValue;
-            }
-
-        }
-
-        private static final String CONFIG_PATH = "caches";
-
-        private final Config config;
-        private final CacheConfig idCacheConfig;
-        private final CacheConfig enforcerCacheConfig;
-
-        private DittoConciergeCachesConfig(final Config theConfig) {
-            config = theConfig;
-            idCacheConfig = DittoConciergeCacheConfig.getInstance(config, "id");
-            enforcerCacheConfig = DittoConciergeCacheConfig.getInstance(config, "enforcer");
-        }
-
-        /**
-         * Returns an instance of {@code DittoConciergeCachesConfig} based on the settings of the specified Config.
-         *
-         * @param config is supposed to provide the settings of the caches config at {@value #CONFIG_PATH}.
-         * @return the instance.
-         * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} did not contain a nested
-         * {@code Config} for {@value #CONFIG_PATH}.
-         */
-        public static DittoConciergeCachesConfig of(final Config config) {
-            return new DittoConciergeCachesConfig(
-                    ConfigWithFallback.newInstance(config, CONFIG_PATH, ConciergeCachesConfigValue.values()));
-        }
-
-        @Override
-        public Duration getAskTimeout() {
-            return config.getDuration(ConciergeCachesConfigValue.ASK_TIMEOUT.getConfigPath());
-        }
-
-        @Override
-        public CacheConfig getIdCacheConfig() {
-            return idCacheConfig;
-        }
-
-        @Override
-        public CacheConfig getEnforcerCacheConfig() {
-            return enforcerCacheConfig;
-        }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            final DittoConciergeCachesConfig that = (DittoConciergeCachesConfig) o;
-            return config.equals(that.config) &&
-                    idCacheConfig.equals(that.idCacheConfig) &&
-                    enforcerCacheConfig.equals(that.enforcerCacheConfig);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(config, idCacheConfig, enforcerCacheConfig);
-        }
-
-        @Override
-        public String toString() {
-            return getClass().getSimpleName() + " [" +
-                    "config=" + config +
-                    ", idCacheConfig=" + idCacheConfig +
-                    ", enforcerCacheConfig=" + enforcerCacheConfig +
-                    "]";
-        }
-
-    }
-
-    /**
-     * This class implements {@link ThingsAggregatorConfig} for Ditto's Concierge service.
-     */
-    @Immutable
-    public static final class DittoConciergeThingsAggregatorConfig implements ThingsAggregatorConfig {
-
-        private enum ThingsAggregatorConfigValue implements KnownConfigValue {
-
-            SINGLE_RETRIEVE_THING_TIMEOUT("single-retrieve-thing-timeout", Duration.ofSeconds(30L)),
-
-            MAX_PARALLELISM("max-parallelism", 20);
-
-            private final String path;
-            private final Object defaultValue;
-
-            private ThingsAggregatorConfigValue(final String thePath, final Object theDefaultValue) {
-                path = thePath;
-                defaultValue = theDefaultValue;
-            }
-
-            @Override
-            public String getConfigPath() {
-                return path;
-            }
-
-            @Override
-            public Object getDefaultValue() {
-                return defaultValue;
-            }
-        }
-
-        private static final String CONFIG_PATH = "things-aggregator";
-
-        private final Config config;
-
-        private DittoConciergeThingsAggregatorConfig(final Config theConfig) {
-            config = theConfig;
-        }
-
-        /**
-         * Returns an instance of {@code DittoConciergeThingsAggregatorConfig} based on the settings of the specified
-         * Config.
-         *
-         * @param config is supposed to provide the settings of the things aggregator config at {@value #CONFIG_PATH}.
-         * @return the instance.
-         * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} did not contain a nested
-         * {@code Config} for {@value #CONFIG_PATH}.
-         */
-        public static DittoConciergeThingsAggregatorConfig of(final Config config) {
-            return new DittoConciergeThingsAggregatorConfig(
-                    ConfigWithFallback.newInstance(config, CONFIG_PATH, ThingsAggregatorConfigValue.values()));
-        }
-
-        @Override
-        public Duration getSingleRetrieveThingTimeout() {
-            return config.getDuration(ThingsAggregatorConfigValue.SINGLE_RETRIEVE_THING_TIMEOUT.getConfigPath());
-        }
-
-        @Override
-        public int getMaxParallelism() {
-            return config.getInt(ThingsAggregatorConfigValue.MAX_PARALLELISM.getConfigPath());
-        }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            final DittoConciergeThingsAggregatorConfig that = (DittoConciergeThingsAggregatorConfig) o;
-            return config.equals(that.config);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(config);
-        }
-
-        @Override
-        public String toString() {
-            return getClass().getSimpleName() + " [" +
-                    "config=" + config +
-                    "]";
-        }
-
     }
 
 }

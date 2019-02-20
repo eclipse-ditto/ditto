@@ -78,7 +78,13 @@ public final class ConfigWithFallback implements ScopedConfig {
             baseConfig = baseConfig.withFallback(arrayToConfig(fallBackValues));
         }
 
-        return new ConfigWithFallback(baseConfig, configPath);
+        String configPathToUse = configPath;
+        if (originalConfig instanceof ScopedConfig) {
+            final WithConfigPath scopedConfig = (WithConfigPath) originalConfig;
+            configPathToUse = scopedConfig.getConfigPath() + "." + configPath;
+        }
+
+        return new ConfigWithFallback(baseConfig, configPathToUse);
     }
 
     private static void validateArgument(final Object argument, final String argumentDescription) {

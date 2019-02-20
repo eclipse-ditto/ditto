@@ -14,6 +14,8 @@ import java.time.Duration;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+
 /**
  * Provides configuration settings of a particular cache of Concierge.
  */
@@ -33,5 +35,34 @@ public interface CacheConfig {
      * @return the duration between write and expiration.
      */
     Duration getExpireAfterWrite();
+
+    /**
+     * TODO
+     */
+    enum ConciergeCacheConfigValue implements KnownConfigValue {
+
+        MAXIMUM_SIZE("maximum-size", 50_000L),
+
+        EXPIRE_AFTER_WRITE("expire-after-write", Duration.ofMinutes(15L));
+
+        private final String path;
+        private final Object defaultValue;
+
+        private ConciergeCacheConfigValue(final String thePath, final Object theDefaultValue) {
+            path = thePath;
+            defaultValue = theDefaultValue;
+        }
+
+        @Override
+        public String getConfigPath() {
+            return path;
+        }
+
+        @Override
+        public Object getDefaultValue() {
+            return defaultValue;
+        }
+
+    }
 
 }

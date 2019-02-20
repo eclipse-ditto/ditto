@@ -16,7 +16,7 @@ import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 
@@ -24,38 +24,14 @@ import com.typesafe.config.Config;
  * Default implementation of {@link CacheConfig}.
  */
 @Immutable
-public final class DittoConciergeCacheConfig implements CacheConfig {
+public final class DefaultCacheConfig implements CacheConfig {
 
-    private enum ConciergeCacheConfigValue implements KnownConfigValue {
+    private final long maximumSize;
+    private final Duration expireAfterWrite;
 
-        MAXIMUM_SIZE("maximum-size", 50_000L),
-
-        EXPIRE_AFTER_WRITE("expire-after-write", Duration.ofMinutes(15L));
-
-        private final String path;
-        private final Object defaultValue;
-
-        private ConciergeCacheConfigValue(final String thePath, final Object theDefaultValue) {
-            path = thePath;
-            defaultValue = theDefaultValue;
-        }
-
-        @Override
-        public String getConfigPath() {
-            return path;
-        }
-
-        @Override
-        public Object getDefaultValue() {
-            return defaultValue;
-        }
-
-    }
-
-    private final Config config;
-
-    private DittoConciergeCacheConfig(final Config theConfig) {
-        config = theConfig;
+    private DefaultCacheConfig(final ScopedConfig config) {
+        maximumSize = config.getLong(ConciergeCacheConfigValue.MAXIMUM_SIZE.getConfigPath());
+        expireAfterWrite = config.getDuration(ConciergeCacheConfigValue.EXPIRE_AFTER_WRITE.getConfigPath());
     }
 
     /**
@@ -64,23 +40,21 @@ public final class DittoConciergeCacheConfig implements CacheConfig {
      * @param config is supposed to provide the settings of the cache config at {@code configPath}.
      * @param configPath the supposed path of the nested cache config settings.
      * @return the instance.
-     * @throws NullPointerException if {@code config} is {@code null}.
-     * @throws com.typesafe.config.ConfigException.WrongType if {@code config} did not contain a nested
-     * {@code Config} for {@code configPath}.
+     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
-    public static DittoConciergeCacheConfig getInstance(final Config config, final String configPath) {
-        return new DittoConciergeCacheConfig(
+    public static DefaultCacheConfig getInstance(final Config config, final String configPath) {
+        return new DefaultCacheConfig(
                 ConfigWithFallback.newInstance(config, configPath, ConciergeCacheConfigValue.values()));
     }
 
     @Override
     public long getMaximumSize() {
-        return config.getLong(ConciergeCacheConfigValue.MAXIMUM_SIZE.getConfigPath());
+        return maximumSize;
     }
 
     @Override
     public Duration getExpireAfterWrite() {
-        return config.getDuration(ConciergeCacheConfigValue.EXPIRE_AFTER_WRITE.getConfigPath());
+        return expireAfterWrite;
     }
 
     @Override
@@ -91,19 +65,21 @@ public final class DittoConciergeCacheConfig implements CacheConfig {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final DittoConciergeCacheConfig that = (DittoConciergeCacheConfig) o;
-        return config.equals(that.config);
+        final DefaultCacheConfig that = (DefaultCacheConfig) o;
+        return maximumSize == that.maximumSize &&
+                expireAfterWrite.equals(that.expireAfterWrite);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(config);
+        return Objects.hash(maximumSize, expireAfterWrite);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "config=" + config +
+                "maximumSize=" + maximumSize +
+                ", expireAfterWrite=" + expireAfterWrite +
                 "]";
     }
 

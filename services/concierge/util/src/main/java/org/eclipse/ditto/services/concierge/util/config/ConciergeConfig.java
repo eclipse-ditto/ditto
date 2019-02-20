@@ -15,6 +15,7 @@ import java.time.Duration;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.base.config.ServiceSpecificConfig;
+import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 import org.eclipse.ditto.services.utils.config.WithConfigPath;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.WithMongoDbConfig;
 
@@ -58,6 +59,33 @@ public interface ConciergeConfig extends ServiceSpecificConfig, WithConfigPath, 
          */
         Duration getAskTimeout();
 
+        /**
+         * TODO
+         */
+        enum ConciergeEnforcementConfigValue implements KnownConfigValue {
+
+            ASK_TIMEOUT("ask-timeout", Duration.ofSeconds(10));
+
+            private final String path;
+            private final Object defaultValue;
+
+            private ConciergeEnforcementConfigValue(final String thePath, final Object theDefaultValue) {
+                path = thePath;
+                defaultValue = theDefaultValue;
+            }
+
+            @Override
+            public String getConfigPath() {
+                return path;
+            }
+
+            @Override
+            public Object getDefaultValue() {
+                return defaultValue;
+            }
+
+        }
+
     }
 
     /**
@@ -87,6 +115,33 @@ public interface ConciergeConfig extends ServiceSpecificConfig, WithConfigPath, 
          */
         CacheConfig getEnforcerCacheConfig();
 
+        /**
+         * TODO
+         */
+        enum ConciergeCachesConfigValue implements KnownConfigValue {
+
+            ASK_TIMEOUT("ask-timeout", Duration.ofSeconds(10L));
+
+            private final String path;
+            private final Object defaultValue;
+
+            private ConciergeCachesConfigValue(final String thePath, final Object theDefaultValue) {
+                path = thePath;
+                defaultValue = theDefaultValue;
+            }
+
+            @Override
+            public String getConfigPath() {
+                return path;
+            }
+
+            @Override
+            public Object getDefaultValue() {
+                return defaultValue;
+            }
+
+        }
+
     }
 
     /**
@@ -109,6 +164,34 @@ public interface ConciergeConfig extends ServiceSpecificConfig, WithConfigPath, 
          * @return the maximum parallelism.
          */
         int getMaxParallelism();
+
+        /**
+         * TODO
+         */
+        enum ThingsAggregatorConfigValue implements KnownConfigValue {
+
+            SINGLE_RETRIEVE_THING_TIMEOUT("single-retrieve-thing-timeout", Duration.ofSeconds(30L)),
+
+            MAX_PARALLELISM("max-parallelism", 20);
+
+            private final String path;
+            private final Object defaultValue;
+
+            private ThingsAggregatorConfigValue(final String thePath, final Object theDefaultValue) {
+                path = thePath;
+                defaultValue = theDefaultValue;
+            }
+
+            @Override
+            public String getConfigPath() {
+                return path;
+            }
+
+            @Override
+            public Object getDefaultValue() {
+                return defaultValue;
+            }
+        }
 
     }
 

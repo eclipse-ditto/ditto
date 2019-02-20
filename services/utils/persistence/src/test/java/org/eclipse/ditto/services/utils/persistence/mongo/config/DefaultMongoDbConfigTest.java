@@ -46,10 +46,10 @@ public final class DefaultMongoDbConfigTest {
         assertInstancesOf(DefaultMongoDbConfig.class,
                 areImmutable(),
                 provided(Config.class,
-                        DefaultMongoDbConfig.DefaultOptionsConfig.class,
-                        DefaultMongoDbConfig.DefaultConnectionPoolConfig.class,
-                        DefaultMongoDbConfig.DefaultCircuitBreakerConfig.class,
-                        DefaultMongoDbConfig.DefaultMonitoringConfig.class).areAlsoImmutable());
+                        DefaultOptionsConfig.class,
+                        DefaultConnectionPoolConfig.class,
+                        DefaultCircuitBreakerConfig.class,
+                        DefaultMonitoringConfig.class).areAlsoImmutable());
     }
 
     @Test

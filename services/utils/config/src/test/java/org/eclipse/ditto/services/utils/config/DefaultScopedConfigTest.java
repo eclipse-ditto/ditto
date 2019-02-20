@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.services.utils.config;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -17,6 +18,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.util.Collections;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -31,6 +33,13 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DefaultScopedConfigTest {
 
     private static final String KNOWN_CONFIG_PATH = "nowhere";
+
+    private static Config testConfig;
+
+    @BeforeClass
+    public static void initTestFixture() {
+        testConfig = ConfigFactory.load("test.conf");
+    }
 
     @Test
     public void assertImmutability() {
@@ -49,7 +58,7 @@ public final class DefaultScopedConfigTest {
     @Test
     public void tryToCreateInstanceWithNullOriginalConfig() {
         assertThatExceptionOfType(DittoConfigError.class)
-                .isThrownBy(() -> DefaultScopedConfig.newInstance(null, KNOWN_CONFIG_PATH))
+                .isThrownBy(() -> DefaultScopedConfig.newInstance((Config) null, KNOWN_CONFIG_PATH))
                 .withCause(new NullPointerException("The original Config must not be null!"));
     }
 
@@ -78,6 +87,31 @@ public final class DefaultScopedConfigTest {
                 .isThrownBy(() -> DefaultScopedConfig.newInstance(config, KNOWN_CONFIG_PATH))
                 .withMessage("Failed to get nested Config at <%s>!", KNOWN_CONFIG_PATH)
                 .withCauseInstanceOf(ConfigException.WrongType.class);
+    }
+
+    @Test
+    public void getConfigPathReturnsRelativePathIfDefaultScopedConfigIsBuiltFromPlainConfig() {
+        final DefaultScopedConfig underTest = DefaultScopedConfig.newInstance(testConfig, "ditto");
+
+        assertThat(underTest.getConfigPath()).isEqualTo("ditto");
+    }
+
+    @Test
+    public void getConfigPathReturnsAbsolutePathIfDefaultScopedConfigIsBuiltFromScopedConfig() {
+        final Config dittoScopedConfig = DefaultScopedConfig.newInstance(testConfig, "ditto");
+        final DefaultScopedConfig underTest = DefaultScopedConfig.newInstance(dittoScopedConfig, "concierge");
+
+        assertThat(underTest.getConfigPath()).isEqualTo("ditto.concierge");
+    }
+
+    @Test
+    public void tryToGetMissingValue() {
+        final DefaultScopedConfig underTest = DefaultScopedConfig.empty("ditto");
+
+        assertThatExceptionOfType(DittoConfigError.class)
+                .isThrownBy(() -> underTest.getInt(KNOWN_CONFIG_PATH))
+                .withMessage("Failed to get int value for path <%s>!", "ditto." + KNOWN_CONFIG_PATH)
+                .withCauseInstanceOf(ConfigException.Missing.class);
     }
 
 }

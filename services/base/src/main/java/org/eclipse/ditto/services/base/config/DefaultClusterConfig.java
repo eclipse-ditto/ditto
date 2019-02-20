@@ -14,7 +14,7 @@ import java.util.Objects;
 
 import org.eclipse.ditto.services.base.config.ServiceSpecificConfig.ClusterConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 
@@ -23,36 +23,12 @@ import com.typesafe.config.Config;
  */
 public final class DefaultClusterConfig implements ClusterConfig {
 
-    private enum ClusterConfigValue implements KnownConfigValue {
-
-        NUMBER_OF_SHARDS("number-of-shards", 30);
-
-        private final String path;
-        private final Object defaultValue;
-
-        private ClusterConfigValue(final String thePath, final Object theDefaultValue) {
-            path = thePath;
-            defaultValue = theDefaultValue;
-        }
-
-        @Override
-        public String getConfigPath() {
-            return path;
-        }
-
-        @Override
-        public Object getDefaultValue() {
-            return defaultValue;
-        }
-
-    }
-
     private static final String CONFIG_PATH = "cluster";
 
-    private final Config config;
+    private final int numberOfShards;
 
-    private DefaultClusterConfig(final Config theConfig) {
-        config = theConfig;
+    private DefaultClusterConfig(final ScopedConfig config) {
+        numberOfShards = config.getInt(ClusterConfigValue.NUMBER_OF_SHARDS.getConfigPath());
     }
 
     /**
@@ -60,9 +36,7 @@ public final class DefaultClusterConfig implements ClusterConfig {
      *
      * @param config is supposed to provide the settings of the cluster config at {@value #CONFIG_PATH}.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is {@code null} if the
-     * value of {@code config} at {@code configPath} is not of type
-     * {@link com.typesafe.config.ConfigValueType#OBJECT}.
+     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultClusterConfig of(final Config config) {
         return new DefaultClusterConfig(
@@ -71,7 +45,7 @@ public final class DefaultClusterConfig implements ClusterConfig {
 
     @Override
     public int getNumberOfShards() {
-        return config.getInt(ClusterConfigValue.NUMBER_OF_SHARDS.getConfigPath());
+        return numberOfShards;
     }
 
     @Override
@@ -83,18 +57,18 @@ public final class DefaultClusterConfig implements ClusterConfig {
             return false;
         }
         final DefaultClusterConfig that = (DefaultClusterConfig) o;
-        return config.equals(that.config);
+        return numberOfShards == that.numberOfShards;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(config);
+        return Objects.hash(numberOfShards);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "config=" + config +
+                "numberOfShards=" + numberOfShards +
                 "]";
     }
 

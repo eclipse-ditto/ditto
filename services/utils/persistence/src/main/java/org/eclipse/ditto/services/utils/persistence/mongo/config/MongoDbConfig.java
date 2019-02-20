@@ -14,6 +14,8 @@ import java.time.Duration;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+
 /**
  * Provides configuration settings for the service's MongoDB connection.
  */
@@ -63,6 +65,33 @@ public interface MongoDbConfig {
     MonitoringConfig getMonitoringConfig();
 
     /**
+     * An enumeration of known value paths and associated default values of the MongoDbConfig.
+     */
+    enum MongoDbConfigValue implements KnownConfigValue {
+
+        MAX_QUERY_TIME("maxQueryTime", "60s");
+
+        private final String path;
+        private final Object defaultValue;
+
+        private MongoDbConfigValue(final String thePath, final Object theDefaultValue) {
+            path = thePath;
+            defaultValue = theDefaultValue;
+        }
+
+        @Override
+        public String getConfigPath() {
+            return path;
+        }
+
+        @Override
+        public Object getDefaultValue() {
+            return defaultValue;
+        }
+
+    }
+
+    /**
      * Provides configuration settings of the MongoDB options.
      */
     @Immutable
@@ -74,6 +103,33 @@ public interface MongoDbConfig {
          * @return {@code true} if SSL should be enabled, {@code false} else.
          */
         boolean isSslEnabled();
+
+        /**
+         * An enumeration of known value paths and associated default values of the OptionsConfig.
+         */
+        enum OptionsConfigValue implements KnownConfigValue {
+
+            SSL_ENABLED("ssl", false);
+
+            private final String path;
+            private final Object defaultValue;
+
+            private OptionsConfigValue(final String thePath, final Object theDefaultValue) {
+                path = thePath;
+                defaultValue = theDefaultValue;
+            }
+
+            @Override
+            public String getConfigPath() {
+                return path;
+            }
+
+            @Override
+            public Object getDefaultValue() {
+                return defaultValue;
+            }
+
+        }
 
     }
 
@@ -111,6 +167,39 @@ public interface MongoDbConfig {
          */
         boolean isJmxListenerEnabled();
 
+        /**
+         * TODO
+         */
+        enum ConnectionPoolConfigValue implements KnownConfigValue {
+
+            MAX_SIZE("maxSize", 100),
+
+            MAX_WAIT_QUEUE_SIZE("maxWaitQueueSize", 100),
+
+            MAX_WAIT_TIME("maxWaitTime", "30s"),
+
+            JMX_LISTENER_ENABLED("jmxListenerEnabled", false);
+
+            private final String path;
+            private final Object defaultValue;
+
+            private ConnectionPoolConfigValue(final String thePath, final Object theDefaultValue) {
+                path = thePath;
+                defaultValue = theDefaultValue;
+            }
+
+            @Override
+            public String getConfigPath() {
+                return path;
+            }
+
+            @Override
+            public Object getDefaultValue() {
+                return defaultValue;
+            }
+
+        }
+
     }
 
     /**
@@ -134,6 +223,33 @@ public interface MongoDbConfig {
         TimeoutConfig getTimeoutConfig();
 
         /**
+         * TODO
+         */
+        enum CircuitBreakerConfigValue implements KnownConfigValue {
+
+            MAX_FAILURES("maxFailures", 5);
+
+            private final String path;
+            private final Object defaultValue;
+
+            private CircuitBreakerConfigValue(final String thePath, final Object theDefaultValue) {
+                path = thePath;
+                defaultValue = theDefaultValue;
+            }
+
+            @Override
+            public String getConfigPath() {
+                return path;
+            }
+
+            @Override
+            public Object getDefaultValue() {
+                return defaultValue;
+            }
+
+        }
+
+        /**
          * Provides configuration settings of the circuit breaker timeout.
          */
         @Immutable
@@ -154,6 +270,35 @@ public interface MongoDbConfig {
              * @return the duration after timeout until the circuit breaker becomes "half-opened".
              */
             Duration getReset();
+
+            /**
+             * TODO
+             */
+            enum TimeoutConfigValue implements KnownConfigValue {
+
+                CALL("call", "5s"),
+
+                RESET("reset", "10s");
+
+                private final String path;
+                private final Object defaultValue;
+
+                private TimeoutConfigValue(final String thePath, final Object theDefaultValue) {
+                    path = thePath;
+                    defaultValue = theDefaultValue;
+                }
+
+                @Override
+                public String getConfigPath() {
+                    return path;
+                }
+
+                @Override
+                public Object getDefaultValue() {
+                    return defaultValue;
+                }
+
+            }
 
         }
 
@@ -178,6 +323,35 @@ public interface MongoDbConfig {
          * @return {@code true} if connection pool statistics should be reported, {@code false} else.
          */
         boolean isConnectionPoolEnabled();
+
+        /**
+         * TODO
+         */
+        enum MonitoringConfigValue implements KnownConfigValue {
+
+            COMMANDS_ENABLED("commands", false),
+
+            CONNECTION_POOL_ENABLED("connection-pool", false);
+
+            private final String path;
+            private final Object defaultValue;
+
+            private MonitoringConfigValue(final String thePath, final Object theDefaultValue) {
+                path = thePath;
+                defaultValue = theDefaultValue;
+            }
+
+            @Override
+            public String getConfigPath() {
+                return path;
+            }
+
+            @Override
+            public Object getDefaultValue() {
+                return defaultValue;
+            }
+
+        }
 
     }
 

@@ -22,7 +22,6 @@ import java.net.URISyntaxException;
 import java.util.Map;
 
 import org.eclipse.ditto.services.utils.config.DittoConfigError;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig.DefaultOptionsConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbUriSupplier.QueryComponentParser;
 import org.junit.Test;
 

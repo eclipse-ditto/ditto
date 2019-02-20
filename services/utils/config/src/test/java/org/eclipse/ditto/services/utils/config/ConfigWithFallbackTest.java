@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -33,6 +34,14 @@ import com.typesafe.config.ConfigFactory;
 public final class ConfigWithFallbackTest {
 
     private static final String KNOWN_CONFIG_PATH = "nowhere";
+
+    private static Config testConfig;
+
+    @BeforeClass
+    public static void initTestFixture() {
+        testConfig = ConfigFactory.load("test.conf");
+    }
+
 
     @Test
     public void assertImmutability() {
@@ -126,6 +135,23 @@ public final class ConfigWithFallbackTest {
         assertThat(underTest.getString("foo")).isEqualTo("bar");
         assertThat(underTest.getInt("bar")).isEqualTo(1);
         assertThat(underTest.getBoolean("baz")).isEqualTo(true);
+    }
+
+    @Test
+    public void getConfigPathReturnsRelativePathIfConfigWithFallbackIsBuiltFromPlainConfig() {
+        final ConfigWithFallback underTest =
+                ConfigWithFallback.newInstance(testConfig, "ditto", new KnownConfigValue[0]);
+
+        assertThat(underTest.getConfigPath()).isEqualTo("ditto");
+    }
+
+    @Test
+    public void getConfigPathReturnsAbsolutePathIfDefaultScopedConfigIsBuiltFromScopedConfig() {
+        final Config dittoScopedConfig = DefaultScopedConfig.newInstance(testConfig, "ditto");
+        final ConfigWithFallback underTest =
+                ConfigWithFallback.newInstance(dittoScopedConfig, "concierge", new KnownConfigValue[0]);
+
+        assertThat(underTest.getConfigPath()).isEqualTo("ditto.concierge");
     }
 
 }

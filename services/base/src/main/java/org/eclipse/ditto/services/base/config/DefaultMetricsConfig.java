@@ -10,11 +10,13 @@
  */
 package org.eclipse.ditto.services.base.config;
 
+import java.util.Objects;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.base.config.ServiceSpecificConfig.MetricsConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 
@@ -24,42 +26,18 @@ import com.typesafe.config.Config;
 @Immutable
 public final class DefaultMetricsConfig implements MetricsConfig {
 
-    private enum MetricsConfigValue implements KnownConfigValue {
-
-        SYSTEM_METRICS_ENABLED("systemMetrics.enabled", false),
-
-        PROMETHEUS_ENABLED("prometheus.enabled", false),
-
-        PROMETHEUS_HOSTNAME("prometheus.hostname", "0.0.0.0"),
-
-        PROMETHEUS_PORT("prometheus.port", 9095);
-
-        private final String path;
-        private final Object defaultValue;
-
-        private MetricsConfigValue(final String thePath, final Object theDefaultValue) {
-            path = thePath;
-            defaultValue = theDefaultValue;
-        }
-
-        @Override
-        public String getConfigPath() {
-            return path;
-        }
-
-        @Override
-        public Object getDefaultValue() {
-            return defaultValue;
-        }
-
-    }
-
     private static final String CONFIG_PATH = "metrics";
 
-    private final Config config;
+    private final boolean systemMetricEnabled;
+    private final boolean prometheusEnabled;
+    private final String prometheusHostname;
+    private final int prometheusPort;
 
-    private DefaultMetricsConfig(final Config theConfig) {
-        config = theConfig;
+    private DefaultMetricsConfig(final ScopedConfig config) {
+        systemMetricEnabled = config.getBoolean(MetricsConfigValue.SYSTEM_METRICS_ENABLED.getConfigPath());
+        prometheusEnabled = config.getBoolean(MetricsConfigValue.PROMETHEUS_ENABLED.getConfigPath());
+        prometheusHostname = config.getString(MetricsConfigValue.PROMETHEUS_HOSTNAME.getConfigPath());
+        prometheusPort = config.getInt(MetricsConfigValue.PROMETHEUS_PORT.getConfigPath());
     }
 
     /**
@@ -67,9 +45,7 @@ public final class DefaultMetricsConfig implements MetricsConfig {
      *
      * @param config is supposed to provide the settings of the metrics config at {@value #CONFIG_PATH}.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is {@code null} if the
-     * value of {@code config} at {@code configPath} is not of type
-     * {@link com.typesafe.config.ConfigValueType#OBJECT}.
+     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultMetricsConfig of(final Config config) {
         return new DefaultMetricsConfig(
@@ -78,22 +54,52 @@ public final class DefaultMetricsConfig implements MetricsConfig {
 
     @Override
     public boolean isSystemMetricsEnabled() {
-        return config.getBoolean(MetricsConfigValue.SYSTEM_METRICS_ENABLED.getConfigPath());
+        return systemMetricEnabled;
     }
 
     @Override
     public boolean isPrometheusEnabled() {
-        return config.getBoolean(MetricsConfigValue.PROMETHEUS_ENABLED.getConfigPath());
+        return prometheusEnabled;
     }
 
     @Override
     public String getPrometheusHostname() {
-        return config.getString(MetricsConfigValue.PROMETHEUS_HOSTNAME.getConfigPath());
+        return prometheusHostname;
     }
 
     @Override
     public int getPrometheusPort() {
-        return config.getInt(MetricsConfigValue.PROMETHEUS_PORT.getConfigPath());
+        return prometheusPort;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final DefaultMetricsConfig that = (DefaultMetricsConfig) o;
+        return systemMetricEnabled == that.systemMetricEnabled &&
+                prometheusEnabled == that.prometheusEnabled &&
+                prometheusPort == that.prometheusPort &&
+                prometheusHostname.equals(that.prometheusHostname);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(systemMetricEnabled, prometheusEnabled, prometheusHostname, prometheusPort);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "systemMetricEnabled=" + systemMetricEnabled +
+                ", prometheusEnabled=" + prometheusEnabled +
+                ", prometheusHostname=" + prometheusHostname +
+                ", prometheusPort=" + prometheusPort +
+                "]";
     }
 
 }

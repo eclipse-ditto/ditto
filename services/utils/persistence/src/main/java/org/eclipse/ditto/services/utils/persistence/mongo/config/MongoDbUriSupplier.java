@@ -27,7 +27,6 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.DittoConfigError;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig.DefaultOptionsConfig;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;

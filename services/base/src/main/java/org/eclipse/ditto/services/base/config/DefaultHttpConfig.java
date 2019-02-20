@@ -16,7 +16,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.base.config.ServiceSpecificConfig.HttpConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 
@@ -26,38 +26,14 @@ import com.typesafe.config.Config;
 @Immutable
 public final class DefaultHttpConfig implements HttpConfig {
 
-    private enum HttpConfigValue implements KnownConfigValue {
-
-        HOSTNAME("hostname", ""),
-
-        PORT("port", 8080);
-
-        private final String path;
-        private final Object defaultValue;
-
-        private HttpConfigValue(final String thePath, final Object theDefaultValue) {
-            path = thePath;
-            defaultValue = theDefaultValue;
-        }
-
-        @Override
-        public String getConfigPath() {
-            return path;
-        }
-
-        @Override
-        public Object getDefaultValue() {
-            return defaultValue;
-        }
-
-    }
-
     private static final String CONFIG_PATH = "http";
 
-    private final Config config;
+    private final String hostname;
+    private final int port;
 
-    private DefaultHttpConfig(final Config theConfig) {
-        config = theConfig;
+    private DefaultHttpConfig(final ScopedConfig config) {
+        hostname = config.getString(HttpConfigValue.HOSTNAME.getConfigPath());
+        port = config.getInt(HttpConfigValue.PORT.getConfigPath());
     }
 
     /**
@@ -65,9 +41,7 @@ public final class DefaultHttpConfig implements HttpConfig {
      *
      * @param config is supposed to provide the settings of the HTTP config at {@value #CONFIG_PATH}.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is {@code null} if the
-     * value of {@code config} at {@code configPath} is not of type
-     * {@link com.typesafe.config.ConfigValueType#OBJECT}.
+     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultHttpConfig of(final Config config) {
         return new DefaultHttpConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH, HttpConfigValue.values()));
@@ -75,12 +49,12 @@ public final class DefaultHttpConfig implements HttpConfig {
 
     @Override
     public String getHostname() {
-        return config.getString(HttpConfigValue.HOSTNAME.getConfigPath());
+        return hostname;
     }
 
     @Override
     public int getPort() {
-        return config.getInt(HttpConfigValue.PORT.getConfigPath());
+        return port;
     }
 
     @Override
@@ -92,18 +66,19 @@ public final class DefaultHttpConfig implements HttpConfig {
             return false;
         }
         final DefaultHttpConfig that = (DefaultHttpConfig) o;
-        return config.equals(that.config);
+        return port == that.port && hostname.equals(that.hostname);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(config);
+        return Objects.hash(hostname, port);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "config=" + config +
+                "hostname=" + hostname +
+                ", port=" + port +
                 "]";
     }
 

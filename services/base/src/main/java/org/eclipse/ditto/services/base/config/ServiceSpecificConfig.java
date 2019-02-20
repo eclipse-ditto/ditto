@@ -14,6 +14,8 @@ import java.time.Duration;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+
 /**
  * Provides the common configuration settings of each Ditto service.
  * This interface is the base of all service specific configuration settings.
@@ -68,6 +70,33 @@ public interface ServiceSpecificConfig {
          */
         int getNumberOfShards();
 
+        /**
+         * TODO
+         */
+        enum ClusterConfigValue implements KnownConfigValue {
+
+            NUMBER_OF_SHARDS("number-of-shards", 30);
+
+            private final String path;
+            private final Object defaultValue;
+
+            private ClusterConfigValue(final String thePath, final Object theDefaultValue) {
+                path = thePath;
+                defaultValue = theDefaultValue;
+            }
+
+            @Override
+            public String getConfigPath() {
+                return path;
+            }
+
+            @Override
+            public Object getDefaultValue() {
+                return defaultValue;
+            }
+
+        }
+
     }
 
     /**
@@ -106,6 +135,39 @@ public interface ServiceSpecificConfig {
          * @see #isPersistenceEnabled()
          */
         Duration getPersistenceTimeout();
+
+        /**
+         * TODO
+         */
+        enum HealthCheckConfigValue implements KnownConfigValue {
+
+            ENABLED("enabled", true),
+
+            INTERVAL("interval", Duration.ofMinutes(1L)),
+
+            PERSISTENCE_ENABLED("persistence.enabled", false),
+
+            PERSISTENCE_TIMEOUT("persistence.timeout", Duration.ofMinutes(1));
+
+            private final String path;
+            private final Object defaultValue;
+
+            private HealthCheckConfigValue(final String thePath, final Object theDefaultValue) {
+                path = thePath;
+                defaultValue = theDefaultValue;
+            }
+
+            @Override
+            public String getConfigPath() {
+                return path;
+            }
+
+            @Override
+            public Object getDefaultValue() {
+                return defaultValue;
+            }
+
+        }
 
     }
 
@@ -150,6 +212,62 @@ public interface ServiceSpecificConfig {
          */
         int thingsSearchMaxPageSize();
 
+        /**
+         * TODO
+         */
+        enum LimitsConfigValue implements KnownConfigValue {
+
+            THINGS_MAX_SIZE("things.max-size", Constants.DEFAULT_ENTITY_MAX_SIZE),
+
+            POLICIES_MAX_SIZE("policies.max-size", Constants.DEFAULT_ENTITY_MAX_SIZE),
+
+            MESSAGES_MAX_SIZE("messages.max-size", Constants.DEFAULT_ENTITY_MAX_SIZE),
+
+            THINGS_SEARCH_DEFAULT_PAGE_SIZE(Constants.THINGS_SEARCH_KEY + "." + "default-page-size", 25),
+
+            THINGS_SEARCH_MAX_PAGE_SIZE(Constants.THINGS_SEARCH_KEY + "." + "max-page-size", 200);
+
+            private final String path;
+            private final Object defaultValue;
+
+            private LimitsConfigValue(final String thePath, final Object theDefaultValue) {
+                path = thePath;
+                defaultValue = theDefaultValue;
+            }
+
+            @Override
+            public String getConfigPath() {
+                return path;
+            }
+
+            @Override
+            public Object getDefaultValue() {
+                return defaultValue;
+            }
+
+            /**
+             * TODO
+             */
+            public static final class Constants {
+
+                /**
+                 * TODO
+                 */
+                public static final long DEFAULT_ENTITY_MAX_SIZE = 100 * 1024L;
+
+                /**
+                 * TODO
+                 */
+                public static final String THINGS_SEARCH_KEY = "things-search";
+
+                private Constants() {
+                    throw new AssertionError();
+                }
+
+            }
+
+        }
+
     }
 
     /**
@@ -171,6 +289,35 @@ public interface ServiceSpecificConfig {
          * @return an Optional containing the port number or an empty Optional if no port number was configured.
          */
         int getPort();
+
+        /**
+         * TODO
+         */
+        enum HttpConfigValue implements KnownConfigValue {
+
+            HOSTNAME("hostname", ""),
+
+            PORT("port", 8080);
+
+            private final String path;
+            private final Object defaultValue;
+
+            private HttpConfigValue(final String thePath, final Object theDefaultValue) {
+                path = thePath;
+                defaultValue = theDefaultValue;
+            }
+
+            @Override
+            public String getConfigPath() {
+                return path;
+            }
+
+            @Override
+            public Object getDefaultValue() {
+                return defaultValue;
+            }
+
+        }
 
     }
 
@@ -207,6 +354,39 @@ public interface ServiceSpecificConfig {
          * @return the port.
          */
         int getPrometheusPort();
+
+        /**
+         * TODO
+         */
+        enum MetricsConfigValue implements KnownConfigValue {
+
+            SYSTEM_METRICS_ENABLED("systemMetrics.enabled", false),
+
+            PROMETHEUS_ENABLED("prometheus.enabled", false),
+
+            PROMETHEUS_HOSTNAME("prometheus.hostname", "0.0.0.0"),
+
+            PROMETHEUS_PORT("prometheus.port", 9095);
+
+            private final String path;
+            private final Object defaultValue;
+
+            private MetricsConfigValue(final String thePath, final Object theDefaultValue) {
+                path = thePath;
+                defaultValue = theDefaultValue;
+            }
+
+            @Override
+            public String getConfigPath() {
+                return path;
+            }
+
+            @Override
+            public Object getDefaultValue() {
+                return defaultValue;
+            }
+
+        }
 
     }
 

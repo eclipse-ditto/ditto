@@ -15,7 +15,7 @@ import javax.annotation.concurrent.Immutable;
 import com.typesafe.config.Config;
 
 /**
- * This extension of {@link com.typesafe.config.Config} knows the immediate path which led to itself.
+ * This extension of {@link com.typesafe.config.Config} knows the path which led to itself.
  * Based on the following example config
  * <pre>
  *    ditto {
@@ -56,6 +56,11 @@ import com.typesafe.config.Config;
  *      }
  *    }
  * </pre>
+ * A call to method {@link #getConfigPath()} would return {@code "ditto.concierge.caches"}.
+ * <p>
+ *   All get methods will throw a {@link DittoConfigError} if the config at the particular path is missing the value or
+ *   if the value has a wrong type.
+ * </p>
  */
 @Immutable
 public interface ScopedConfig extends Config, WithConfigPath {

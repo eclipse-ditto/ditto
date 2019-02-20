@@ -16,7 +16,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.base.config.ServiceSpecificConfig.LimitsConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 
@@ -26,52 +26,20 @@ import com.typesafe.config.Config;
 @Immutable
 public final class DefaultLimitsConfig implements LimitsConfig {
 
-    private enum LimitsConfigValue implements KnownConfigValue {
-
-        THINGS_MAX_SIZE("things.max-size", Constants.DEFAULT_ENTITY_MAX_SIZE),
-
-        POLICIES_MAX_SIZE("policies.max-size", Constants.DEFAULT_ENTITY_MAX_SIZE),
-
-        MESSAGES_MAX_SIZE("messages.max-size", Constants.DEFAULT_ENTITY_MAX_SIZE),
-
-        THINGS_SEARCH_DEFAULT_PAGE_SIZE(Constants.THINGS_SEARCH_KEY + "." + "default-page-size", 25),
-
-        THINGS_SEARCH_MAX_PAGE_SIZE(Constants.THINGS_SEARCH_KEY + "." + "max-page-size", 200);
-
-        private final String path;
-        private final Object defaultValue;
-
-        private LimitsConfigValue(final String thePath, final Object theDefaultValue) {
-            path = thePath;
-            defaultValue = theDefaultValue;
-        }
-
-        @Override
-        public String getConfigPath() {
-            return path;
-        }
-
-        @Override
-        public Object getDefaultValue() {
-            return defaultValue;
-        }
-
-        private static final class Constants {
-
-            private static final long DEFAULT_ENTITY_MAX_SIZE = 100 * 1024L;
-
-            private static final String THINGS_SEARCH_KEY = "things-search";
-
-        }
-
-    }
-
     private static final String CONFIG_PATH = "limits";
 
-    private final Config config;
+    private final long thingsMaxSize;
+    private final long policiesMaxSize;
+    private final long messagesMaxSize;
+    private final int thingsSearchDefaultPageSize;
+    private final int thingsSearchMaxPageSize;
 
-    private DefaultLimitsConfig(final Config theConfig) {
-        config = theConfig;
+    private DefaultLimitsConfig(final ScopedConfig config) {
+        thingsMaxSize = config.getBytes(LimitsConfigValue.THINGS_MAX_SIZE.getConfigPath());
+        policiesMaxSize = config.getBytes(LimitsConfigValue.POLICIES_MAX_SIZE.getConfigPath());
+        messagesMaxSize = config.getBytes(LimitsConfigValue.MESSAGES_MAX_SIZE.getConfigPath());
+        thingsSearchDefaultPageSize = config.getInt(LimitsConfigValue.THINGS_SEARCH_DEFAULT_PAGE_SIZE.getConfigPath());
+        thingsSearchMaxPageSize = config.getInt(LimitsConfigValue.THINGS_SEARCH_MAX_PAGE_SIZE.getConfigPath());
     }
 
     /**
@@ -79,9 +47,7 @@ public final class DefaultLimitsConfig implements LimitsConfig {
      *
      * @param config is supposed to provide the settings of the limits config at {@value #CONFIG_PATH}.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is {@code null} if the
-     * value of {@code config} at {@code configPath} is not of type
-     * {@link com.typesafe.config.ConfigValueType#OBJECT}.
+     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultLimitsConfig of(final Config config) {
         return new DefaultLimitsConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH, LimitsConfigValue.values()));
@@ -89,27 +55,27 @@ public final class DefaultLimitsConfig implements LimitsConfig {
 
     @Override
     public long getThingsMaxSize() {
-        return config.getBytes(LimitsConfigValue.THINGS_MAX_SIZE.getConfigPath());
+        return thingsMaxSize;
     }
 
     @Override
     public long getPoliciesMaxSize() {
-        return config.getBytes(LimitsConfigValue.POLICIES_MAX_SIZE.getConfigPath());
+        return policiesMaxSize;
     }
 
     @Override
     public long getMessagesMaxSize() {
-        return config.getBytes(LimitsConfigValue.MESSAGES_MAX_SIZE.getConfigPath());
+        return messagesMaxSize;
     }
 
     @Override
     public int getThingsSearchDefaultPageSize() {
-        return config.getInt(LimitsConfigValue.THINGS_SEARCH_DEFAULT_PAGE_SIZE.getConfigPath());
+        return thingsSearchDefaultPageSize;
     }
 
     @Override
     public int thingsSearchMaxPageSize() {
-        return config.getInt(LimitsConfigValue.THINGS_SEARCH_MAX_PAGE_SIZE.getConfigPath());
+        return thingsSearchMaxPageSize;
     }
 
     @Override
@@ -121,18 +87,27 @@ public final class DefaultLimitsConfig implements LimitsConfig {
             return false;
         }
         final DefaultLimitsConfig that = (DefaultLimitsConfig) o;
-        return config.equals(that.config);
+        return thingsMaxSize == that.thingsMaxSize &&
+                policiesMaxSize == that.policiesMaxSize &&
+                messagesMaxSize == that.messagesMaxSize &&
+                thingsSearchDefaultPageSize == that.thingsSearchDefaultPageSize &&
+                thingsSearchMaxPageSize == that.thingsSearchMaxPageSize;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(config);
+        return Objects.hash(thingsMaxSize, policiesMaxSize, messagesMaxSize, thingsSearchDefaultPageSize,
+                thingsSearchMaxPageSize);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "config=" + config +
+                "thingsMaxSize=" + thingsMaxSize +
+                ", policiesMaxSize=" + policiesMaxSize +
+                ", messagesMaxSize=" + messagesMaxSize +
+                ", thingsSearchDefaultPageSize=" + thingsSearchDefaultPageSize +
+                ", thingsSearchMaxPageSize=" + thingsSearchMaxPageSize +
                 "]";
     }
 

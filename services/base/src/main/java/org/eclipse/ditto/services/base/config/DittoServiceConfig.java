@@ -37,6 +37,8 @@ import com.typesafe.config.ConfigValue;
  * This class provides a common implementation of {@link org.eclipse.ditto.services.base.config.ServiceSpecificConfig}
  * and is supposed to be used as delegation target for the methods of {@code ServiceSpecificConfig} within the
  * dedicated service-specific implementations of the interface.
+ * Furthermore it is a {@link org.eclipse.ditto.services.utils.config.ScopedConfig} to act as a source for additional
+ * config settings.
  */
 @Immutable
 public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificConfig {
