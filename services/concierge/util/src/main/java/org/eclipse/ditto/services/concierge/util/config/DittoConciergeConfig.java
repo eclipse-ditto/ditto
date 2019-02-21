@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.services.concierge.util.config;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -22,7 +23,9 @@ import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
  * This class is the implementation of {@link ConciergeConfig} for Ditto's Concierge service.
  */
 @Immutable
-public final class DittoConciergeConfig implements ConciergeConfig {
+public final class DittoConciergeConfig implements ConciergeConfig, Serializable {
+
+    private static final long serialVersionUID = -2837337263022150664L;
 
     private static final String CONFIG_PATH = "concierge";
 

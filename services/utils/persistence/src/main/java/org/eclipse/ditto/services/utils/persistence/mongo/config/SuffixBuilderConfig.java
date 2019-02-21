@@ -10,12 +10,18 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
+import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+
 /**
  * Provides the configuration settings of the MongoDB suffix builder for the Akka persistence plugin.
+ * <p>
+ * Java serialization is supported for {@code SuffixBuilderConfig}.
+ * </p>
  */
 @Immutable
 public interface SuffixBuilderConfig {
@@ -26,5 +32,34 @@ public interface SuffixBuilderConfig {
      * @return the supported prefixes.
      */
     List<String> getSupportedPrefixes();
+
+    /**
+     * An enumeration of known value paths and associated default values of the SuffixBuilderConfig.
+     */
+    enum SuffixBuilderConfigValue implements KnownConfigValue {
+
+        EXTRACTOR_CLASS("class", ""),
+
+        SUPPORTED_PREFIXES("supported-prefixes", Collections.emptyList());
+
+        private final String path;
+        private final Object defaultValue;
+
+        private SuffixBuilderConfigValue(final String thePath, final Object theDefaultValue) {
+            path = thePath;
+            defaultValue = theDefaultValue;
+        }
+
+        @Override
+        public String getConfigPath() {
+            return path;
+        }
+
+        @Override
+        public Object getDefaultValue() {
+            return defaultValue;
+        }
+
+    }
 
 }

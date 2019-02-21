@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.services.base.config;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -24,9 +25,11 @@ import com.typesafe.config.Config;
  * This class is the default implementation of {@link HttpConfig}.
  */
 @Immutable
-public final class DefaultHttpConfig implements HttpConfig {
+public final class DefaultHttpConfig implements HttpConfig, Serializable {
 
     private static final String CONFIG_PATH = "http";
+
+    private static final long serialVersionUID = 8384710520570887227L;
 
     private final String hostname;
     private final int port;

@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.services.base.config;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 import org.eclipse.ditto.services.base.config.ServiceSpecificConfig.ClusterConfig;
@@ -21,9 +22,11 @@ import com.typesafe.config.Config;
 /**
  * This class is the default implementation of {@link ClusterConfig}.
  */
-public final class DefaultClusterConfig implements ClusterConfig {
+public final class DefaultClusterConfig implements ClusterConfig, Serializable {
 
     private static final String CONFIG_PATH = "cluster";
+
+    private static final long serialVersionUID = 5940121378914735219L;
 
     private final int numberOfShards;
 

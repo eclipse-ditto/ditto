@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.services.concierge.util.config;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -18,18 +19,22 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
+import com.typesafe.config.Config;
+
 /**
- * This class implements {@link org.eclipse.ditto.services.concierge.util.config.ConciergeConfig.EnforcementConfig} for Ditto's Concierge service.
+ * This class implements {@link ConciergeConfig.EnforcementConfig} for Ditto's Concierge service.
  */
 @Immutable
-public final class DefaultEnforcementConfig implements ConciergeConfig.EnforcementConfig {
+public final class DefaultEnforcementConfig implements ConciergeConfig.EnforcementConfig, Serializable {
 
     private static final String CONFIG_PATH = "enforcement";
+
+    private static final long serialVersionUID = -3457993946046397252L;
 
     private final Duration askTimeout;
 
     private DefaultEnforcementConfig(final ScopedConfig config) {
-        askTimeout = config.getDuration(ConciergeEnforcementConfigValue.ASK_TIMEOUT.getConfigPath());
+        askTimeout = config.getDuration(EnforcementConfigValue.ASK_TIMEOUT.getConfigPath());
     }
 
     /**
@@ -39,9 +44,9 @@ public final class DefaultEnforcementConfig implements ConciergeConfig.Enforceme
      * @return the instance.
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
-    public static DefaultEnforcementConfig of(final ScopedConfig config) {
+    public static DefaultEnforcementConfig of(final Config config) {
         return new DefaultEnforcementConfig(
-                ConfigWithFallback.newInstance(config, CONFIG_PATH, ConciergeEnforcementConfigValue.values()));
+                ConfigWithFallback.newInstance(config, CONFIG_PATH, EnforcementConfigValue.values()));
     }
 
     @Override

@@ -45,7 +45,7 @@ public final class DefaultClusterConfigTest {
     public void toStringReturnsExpected() {
         final DefaultClusterConfig underTest = DefaultClusterConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.toString()).contains(underTest.getClass().getSimpleName()).contains("config");
+        assertThat(underTest.toString()).contains(underTest.getClass().getSimpleName()).contains("numberOfShards");
     }
 
 }

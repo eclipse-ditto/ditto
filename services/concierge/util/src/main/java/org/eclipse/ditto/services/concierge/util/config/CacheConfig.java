@@ -18,6 +18,9 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings of a particular cache of Concierge.
+ * <p>
+ * Java serialization is supported for {@code CacheConfig}.
+ * </p>
  */
 @Immutable
 public interface CacheConfig {
@@ -37,18 +40,24 @@ public interface CacheConfig {
     Duration getExpireAfterWrite();
 
     /**
-     * TODO
+     * An enumeration of the known config path expressions and their associated default values for {@code CacheConfig}.
      */
-    enum ConciergeCacheConfigValue implements KnownConfigValue {
+    enum CacheConfigValue implements KnownConfigValue {
 
+        /**
+         * The maximum cache size.
+         */
         MAXIMUM_SIZE("maximum-size", 50_000L),
 
+        /**
+         * Duration after which a cache entry expires.
+         */
         EXPIRE_AFTER_WRITE("expire-after-write", Duration.ofMinutes(15L));
 
         private final String path;
         private final Object defaultValue;
 
-        private ConciergeCacheConfigValue(final String thePath, final Object theDefaultValue) {
+        private CacheConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

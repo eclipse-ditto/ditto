@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.services.concierge.util.config;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -24,7 +25,9 @@ import com.typesafe.config.Config;
  * This class implements {@link org.eclipse.ditto.services.concierge.util.config.ConciergeConfig.CachesConfig} for Ditto's Concierge service.
  */
 @Immutable
-public final class DefaultCachesConfig implements ConciergeConfig.CachesConfig {
+public final class DefaultCachesConfig implements ConciergeConfig.CachesConfig, Serializable {
+
+    private static final long serialVersionUID = -3628650470707259581L;
 
     private static final String CONFIG_PATH = "caches";
 
@@ -33,7 +36,7 @@ public final class DefaultCachesConfig implements ConciergeConfig.CachesConfig {
     private final CacheConfig enforcerCacheConfig;
 
     private DefaultCachesConfig(final ScopedConfig config) {
-        askTimeout = config.getDuration(ConciergeCachesConfigValue.ASK_TIMEOUT.getConfigPath());
+        askTimeout = config.getDuration(CachesConfigValue.ASK_TIMEOUT.getConfigPath());
         idCacheConfig = DefaultCacheConfig.getInstance(config, "id");
         enforcerCacheConfig = DefaultCacheConfig.getInstance(config, "enforcer");
     }
@@ -46,8 +49,7 @@ public final class DefaultCachesConfig implements ConciergeConfig.CachesConfig {
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultCachesConfig of(final Config config) {
-        return new DefaultCachesConfig(
-                ConfigWithFallback.newInstance(config, CONFIG_PATH, ConciergeCachesConfigValue.values()));
+        return new DefaultCachesConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH, CachesConfigValue.values()));
     }
 
     @Override

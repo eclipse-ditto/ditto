@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -21,12 +22,14 @@ import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import com.typesafe.config.Config;
 
 /**
- * This class is the default implementation of {@link org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig.ConnectionPoolConfig}.
+ * This class is the default implementation of {@link MongoDbConfig.ConnectionPoolConfig}.
  */
 @Immutable
-public final class DefaultConnectionPoolConfig implements MongoDbConfig.ConnectionPoolConfig {
+public final class DefaultConnectionPoolConfig implements MongoDbConfig.ConnectionPoolConfig, Serializable {
 
     private static final String CONFIG_PATH = "pool";
+
+    private static final long serialVersionUID = -2130270007753352931L;
 
     private final int maxSize;
     private final int maxWaitQueueSize;

@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -21,12 +22,14 @@ import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import com.typesafe.config.Config;
 
 /**
- * This class is the default implementation of {@link org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig.CircuitBreakerConfig.TimeoutConfig}.
+ * This class is the default implementation of {@link MongoDbConfig.CircuitBreakerConfig.TimeoutConfig}.
  */
 @Immutable
-public final class DefaultTimeoutConfig implements MongoDbConfig.CircuitBreakerConfig.TimeoutConfig {
+public final class DefaultTimeoutConfig implements MongoDbConfig.CircuitBreakerConfig.TimeoutConfig, Serializable {
 
     private static final String CONFIG_PATH = "timeout";
+
+    private static final long serialVersionUID = 1528096509962994968L;
 
     private final Duration call;
     private final Duration reset;

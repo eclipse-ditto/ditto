@@ -12,6 +12,7 @@ package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.io.Serializable;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -22,7 +23,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.config.DittoConfigError;
-import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,36 +32,7 @@ import com.typesafe.config.Config;
  * Holds the configuration for namespace appending to mongodb collection names.
  */
 @Immutable
-public final class DefaultSuffixBuilderConfig implements SuffixBuilderConfig {
-
-    /**
-     * An enumeration of known value paths and associated default values of the SuffixBuilderConfig.
-     */
-    enum SuffixBuilderConfigValue implements KnownConfigValue {
-
-        EXTRACTOR_CLASS("class", ""),
-
-        SUPPORTED_PREFIXES("supported-prefixes", Collections.emptyList());
-
-        private final String path;
-        private final Object defaultValue;
-
-        private SuffixBuilderConfigValue(final String thePath, final Object theDefaultValue) {
-            path = thePath;
-            defaultValue = theDefaultValue;
-        }
-
-        @Override
-        public String getConfigPath() {
-            return path;
-        }
-
-        @Override
-        public Object getDefaultValue() {
-            return defaultValue;
-        }
-
-    }
+public final class DefaultSuffixBuilderConfig implements SuffixBuilderConfig, Serializable {
 
     /**
      * The supposed path of the MongoDB suffix-builder configuration object.
@@ -69,6 +40,8 @@ public final class DefaultSuffixBuilderConfig implements SuffixBuilderConfig {
     static final String CONFIG_PATH = "akka.contrib.persistence.mongodb.mongo.suffix-builder";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultSuffixBuilderConfig.class);
+
+    private static final long serialVersionUID = -5477538102846606867L;
 
     private final List<String> supportedPrefixes;
 
@@ -97,13 +70,7 @@ public final class DefaultSuffixBuilderConfig implements SuffixBuilderConfig {
      *
      * @param config the config which is supposed to contain path {@value #CONFIG_PATH}.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if
-     * <ul>
-     *     <li>{@code config} is {@code null},</li>
-     *     <li>the value of {@code config} at {@value CONFIG_PATH} is not of type
-     *     {@link com.typesafe.config.ConfigValueType#OBJECT} or</li>
-     *     <li>the class set at {@code "class"} does not exist on the classpath.</li>
-     * </ul>
+     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultSuffixBuilderConfig of(final Config config) {
         final Config configWithFallback =

@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.services.concierge.util.config;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -24,14 +25,16 @@ import com.typesafe.config.Config;
  * Default implementation of {@link CacheConfig}.
  */
 @Immutable
-public final class DefaultCacheConfig implements CacheConfig {
+public final class DefaultCacheConfig implements CacheConfig, Serializable {
+
+    private static final long serialVersionUID = -5185056342757809881L;
 
     private final long maximumSize;
     private final Duration expireAfterWrite;
 
     private DefaultCacheConfig(final ScopedConfig config) {
-        maximumSize = config.getLong(ConciergeCacheConfigValue.MAXIMUM_SIZE.getConfigPath());
-        expireAfterWrite = config.getDuration(ConciergeCacheConfigValue.EXPIRE_AFTER_WRITE.getConfigPath());
+        maximumSize = config.getLong(CacheConfigValue.MAXIMUM_SIZE.getConfigPath());
+        expireAfterWrite = config.getDuration(CacheConfigValue.EXPIRE_AFTER_WRITE.getConfigPath());
     }
 
     /**
@@ -43,8 +46,7 @@ public final class DefaultCacheConfig implements CacheConfig {
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultCacheConfig getInstance(final Config config, final String configPath) {
-        return new DefaultCacheConfig(
-                ConfigWithFallback.newInstance(config, configPath, ConciergeCacheConfigValue.values()));
+        return new DefaultCacheConfig(ConfigWithFallback.newInstance(config, configPath, CacheConfigValue.values()));
     }
 
     @Override

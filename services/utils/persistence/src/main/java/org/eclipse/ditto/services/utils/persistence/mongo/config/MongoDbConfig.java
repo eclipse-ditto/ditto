@@ -93,6 +93,9 @@ public interface MongoDbConfig {
 
     /**
      * Provides configuration settings of the MongoDB options.
+     * <p>
+     * Java serialization is supported for {@code OptionsConfig}.
+     * </p>
      */
     @Immutable
     interface OptionsConfig {
@@ -135,6 +138,9 @@ public interface MongoDbConfig {
 
     /**
      * Provides configuration settings of the MongoDB connection pool.
+     * <p>
+     * Java serialization is supported for {@code ConnectionPoolConfig}.
+     * </p>
      */
     @Immutable
     interface ConnectionPoolConfig {
@@ -168,7 +174,8 @@ public interface MongoDbConfig {
         boolean isJmxListenerEnabled();
 
         /**
-         * TODO
+         * An enumeration of the known config path expressions and their associated default values for
+         * {@code ConnectionPoolConfig}.
          */
         enum ConnectionPoolConfigValue implements KnownConfigValue {
 
@@ -204,6 +211,9 @@ public interface MongoDbConfig {
 
     /**
      * Provides configuration settings of the MongoDB circuit breaker.
+     * <p>
+     * Java serialization is supported for {@code CircuitBreakerConfig}.
+     * </p>
      */
     @Immutable
     interface CircuitBreakerConfig {
@@ -223,10 +233,14 @@ public interface MongoDbConfig {
         TimeoutConfig getTimeoutConfig();
 
         /**
-         * TODO
+         * An enumeration of the known config path expressions and their associated default values for
+         * {@code CircuitBreakerConfig}.
          */
         enum CircuitBreakerConfigValue implements KnownConfigValue {
 
+            /**
+             * The necessary amount of failures to be reached until the circuit breaker opens.
+             */
             MAX_FAILURES("maxFailures", 5);
 
             private final String path;
@@ -251,6 +265,9 @@ public interface MongoDbConfig {
 
         /**
          * Provides configuration settings of the circuit breaker timeout.
+         * <p>
+         * Java serialization is supported for {@code TimeoutConfig}.
+         * </p>
          */
         @Immutable
         interface TimeoutConfig {
@@ -306,6 +323,9 @@ public interface MongoDbConfig {
 
     /**
      * Provides the configuration settings for the MongoDB monitoring.
+     * <p>
+     * Java serialization is supported for {@code MonitoringConfig}.
+     * </p>
      */
     @Immutable
     interface MonitoringConfig {

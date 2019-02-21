@@ -21,6 +21,9 @@ import org.eclipse.ditto.services.utils.persistence.mongo.config.WithMongoDbConf
 
 /**
  * Provides the configuration settings of the Concierge service.
+ * <p>
+ * Java serialization is supported for {@code ConciergeConfig}.
+ * </p>
  */
 @Immutable
 public interface ConciergeConfig extends ServiceSpecificConfig, WithConfigPath, WithMongoDbConfig {
@@ -48,6 +51,9 @@ public interface ConciergeConfig extends ServiceSpecificConfig, WithConfigPath, 
 
     /**
      * Provides configuration settings for Concierge enforcement behaviour.
+     * <p>
+     * Java serialization is supported for {@code EnforcementConfig}.
+     * </p>
      */
     @Immutable
     interface EnforcementConfig {
@@ -60,16 +66,20 @@ public interface ConciergeConfig extends ServiceSpecificConfig, WithConfigPath, 
         Duration getAskTimeout();
 
         /**
-         * TODO
+         * An enumeration of the known config path expressions and their associated default values for
+         * {@code EnforcementConfig}.
          */
-        enum ConciergeEnforcementConfigValue implements KnownConfigValue {
+        enum EnforcementConfigValue implements KnownConfigValue {
 
+            /**
+             * The ask timeout duration: the duration to wait for entity shard regions.
+             */
             ASK_TIMEOUT("ask-timeout", Duration.ofSeconds(10));
 
             private final String path;
             private final Object defaultValue;
 
-            private ConciergeEnforcementConfigValue(final String thePath, final Object theDefaultValue) {
+            private EnforcementConfigValue(final String thePath, final Object theDefaultValue) {
                 path = thePath;
                 defaultValue = theDefaultValue;
             }
@@ -90,6 +100,9 @@ public interface ConciergeConfig extends ServiceSpecificConfig, WithConfigPath, 
 
     /**
      * Provides configuration settings of the caches of Concierge.
+     * <p>
+     * Java serialization is supported for {@code CachesConfig}.
+     * </p>
      */
     @Immutable
     interface CachesConfig {
@@ -116,16 +129,20 @@ public interface ConciergeConfig extends ServiceSpecificConfig, WithConfigPath, 
         CacheConfig getEnforcerCacheConfig();
 
         /**
-         * TODO
+         * An enumeration of the known config path expressions and their associated default values for
+         * {@code CachesConfig}.
          */
-        enum ConciergeCachesConfigValue implements KnownConfigValue {
+        enum CachesConfigValue implements KnownConfigValue {
 
+            /**
+             * The duration to wait for entity shard regions.
+             */
             ASK_TIMEOUT("ask-timeout", Duration.ofSeconds(10L));
 
             private final String path;
             private final Object defaultValue;
 
-            private ConciergeCachesConfigValue(final String thePath, final Object theDefaultValue) {
+            private CachesConfigValue(final String thePath, final Object theDefaultValue) {
                 path = thePath;
                 defaultValue = theDefaultValue;
             }
@@ -146,6 +163,9 @@ public interface ConciergeConfig extends ServiceSpecificConfig, WithConfigPath, 
 
     /**
      * Provides the configuration settings of Concierge's things aggregation.
+     * <p>
+     * Java serialization is supported for {@code ThingsAggregatorConfig}.
+     * </p>
      */
     @Immutable
     interface ThingsAggregatorConfig {
@@ -166,12 +186,19 @@ public interface ConciergeConfig extends ServiceSpecificConfig, WithConfigPath, 
         int getMaxParallelism();
 
         /**
-         * TODO
+         * An enumeration of the known config path expressions and their associated default values for
+         * {@code ThingsAggregatorConfig}.
          */
         enum ThingsAggregatorConfigValue implements KnownConfigValue {
 
+            /**
+             * The timeout how long the {@code ThingsAggregatorActor} should wait for a single retrieve thing.
+             */
             SINGLE_RETRIEVE_THING_TIMEOUT("single-retrieve-thing-timeout", Duration.ofSeconds(30L)),
 
+            /**
+             * The maximum parallelism.
+             */
             MAX_PARALLELISM("max-parallelism", 20);
 
             private final String path;
@@ -191,6 +218,7 @@ public interface ConciergeConfig extends ServiceSpecificConfig, WithConfigPath, 
             public Object getDefaultValue() {
                 return defaultValue;
             }
+
         }
 
     }

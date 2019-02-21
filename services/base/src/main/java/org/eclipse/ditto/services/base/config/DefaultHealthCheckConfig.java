@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.services.base.config;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -22,9 +23,11 @@ import com.typesafe.config.Config;
 /**
  * This class is the default implementation of {@link HealthCheckConfig}.
  */
-public final class DefaultHealthCheckConfig implements HealthCheckConfig {
+public final class DefaultHealthCheckConfig implements HealthCheckConfig, Serializable {
 
     private static final String CONFIG_PATH = "health-check";
+
+    private static final long serialVersionUID = 5197182470324016557L;
 
     private final boolean enabled;
     private final Duration interval;

@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.services.concierge.util.config;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -25,9 +26,11 @@ import com.typesafe.config.Config;
  * for Ditto's Concierge service.
  */
 @Immutable
-public final class DefaultThingsAggregatorConfig implements ConciergeConfig.ThingsAggregatorConfig {
+public final class DefaultThingsAggregatorConfig implements ConciergeConfig.ThingsAggregatorConfig, Serializable {
 
     private static final String CONFIG_PATH = "things-aggregator";
+
+    private static final long serialVersionUID = 3409907395010277780L;
 
     private final Duration singleRetrieveThingTimeout;
     private final int maxParallelism;

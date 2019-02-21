@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -20,12 +21,14 @@ import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import com.typesafe.config.Config;
 
 /**
- * This class is the default implementation of {@link org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig.MonitoringConfig}.
+ * This class is the default implementation of {@link MongoDbConfig.MonitoringConfig}.
  */
 @Immutable
-public final class DefaultMonitoringConfig implements MongoDbConfig.MonitoringConfig {
+public final class DefaultMonitoringConfig implements MongoDbConfig.MonitoringConfig, Serializable {
 
     private static final String CONFIG_PATH = "monitoring";
+
+    private static final long serialVersionUID = 2502526825604564334L;
 
     private final boolean commandsEnabled;
     private final boolean connectionPoolEnabled;

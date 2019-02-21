@@ -64,7 +64,8 @@ public final class DefaultMongoDbConfigTest {
     public void toStringContainsExpected() {
         final DefaultMongoDbConfig underTest = DefaultMongoDbConfig.of(mongoDbConfig);
 
-        assertThat(underTest.toString()).contains("config", "mongoDbUri", "optionsConfig", "connectionPoolConfig",
+        assertThat(underTest.toString()).contains(underTest.getClass().getSimpleName())
+                .contains("maxQueryTime", "mongoDbUri", "optionsConfig", "connectionPoolConfig",
                 "circuitBreakerConfig", "monitoringConfig");
     }
 

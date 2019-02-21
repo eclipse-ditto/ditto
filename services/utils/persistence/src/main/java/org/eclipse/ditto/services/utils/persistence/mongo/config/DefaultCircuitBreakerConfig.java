@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -20,12 +21,14 @@ import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import com.typesafe.config.Config;
 
 /**
- * This class is the default implementation of {@link org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig.CircuitBreakerConfig}.
+ * This class is the default implementation of {@link MongoDbConfig.CircuitBreakerConfig}.
  */
 @Immutable
-public final class DefaultCircuitBreakerConfig implements MongoDbConfig.CircuitBreakerConfig {
+public final class DefaultCircuitBreakerConfig implements MongoDbConfig.CircuitBreakerConfig, Serializable {
 
     private static final String CONFIG_PATH = "breaker";
+
+    private static final long serialVersionUID = 3134626495417410671L;
 
     private final int maxFailures;
     private final TimeoutConfig timeoutConfig;
@@ -66,8 +69,7 @@ public final class DefaultCircuitBreakerConfig implements MongoDbConfig.CircuitB
             return false;
         }
         final DefaultCircuitBreakerConfig that = (DefaultCircuitBreakerConfig) o;
-        return maxFailures == that.maxFailures &&
-                Objects.equals(timeoutConfig, that.timeoutConfig);
+        return maxFailures == that.maxFailures && Objects.equals(timeoutConfig, that.timeoutConfig);
     }
 
     @Override

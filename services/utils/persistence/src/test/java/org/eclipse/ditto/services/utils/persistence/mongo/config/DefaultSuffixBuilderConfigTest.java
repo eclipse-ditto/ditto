@@ -19,7 +19,6 @@ import java.util.Collections;
 import java.util.List;
 
 import org.eclipse.ditto.services.utils.config.DittoConfigError;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultSuffixBuilderConfig.SuffixBuilderConfigValue;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -55,7 +54,7 @@ public final class DefaultSuffixBuilderConfigTest {
     @Test
     public void tryToCreateInstanceWithNonExistingExtractorClass() {
         final String absoluteExtractorClassPath = DefaultSuffixBuilderConfig.CONFIG_PATH + "." +
-                SuffixBuilderConfigValue.EXTRACTOR_CLASS.getConfigPath();
+                SuffixBuilderConfig.SuffixBuilderConfigValue.EXTRACTOR_CLASS.getConfigPath();
         final String extractorClassName = "org.example.test.Chronophone";
         final Config config =
                 ConfigFactory.parseMap(Collections.singletonMap(absoluteExtractorClassPath, extractorClassName));
@@ -77,7 +76,7 @@ public final class DefaultSuffixBuilderConfigTest {
     @Test
     public void getSupportedPrefixesReturnsConfigured() {
         final String absoluteSupportedPrefixesPath = DefaultSuffixBuilderConfig.CONFIG_PATH + "." +
-                SuffixBuilderConfigValue.SUPPORTED_PREFIXES.getConfigPath();
+                SuffixBuilderConfig.SuffixBuilderConfigValue.SUPPORTED_PREFIXES.getConfigPath();
         final List<String> supportedPrefixes = Collections.singletonList("chronophone");
         final Config config =
                 ConfigFactory.parseMap(Collections.singletonMap(absoluteSupportedPrefixesPath, supportedPrefixes));
