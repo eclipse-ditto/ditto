@@ -97,7 +97,9 @@ public final class MongoHealthChecker extends AbstractHealthCheckingActor {
      * Creates Akka configuration object Props for this MongoClientActor.
      *
      * @return the Akka configuration Props object
+     * @deprecated use {@link #props(org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig)} instead.
      */
+    @Deprecated
     public static Props props() {
         return Props.create(MongoHealthChecker.class, MongoHealthChecker::new);
     }

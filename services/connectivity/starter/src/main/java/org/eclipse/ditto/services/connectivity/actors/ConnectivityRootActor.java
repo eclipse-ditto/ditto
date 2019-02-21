@@ -168,7 +168,7 @@ public final class ConnectivityRootActor extends AbstractActor {
 
         final CompletionStage<ServerBinding> binding =
                 getHttpBinding(connectivityConfig.getHttpConfig(), actorSystem, materializer,
-                        getHealthCheckingActor(connectivityConfig.getHealthCheckConfig()));
+                        getHealthCheckingActor(connectivityConfig));
 
         binding.thenAccept(theBinding -> CoordinatedShutdown.get(actorSystem).addTask(
                 CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_health_http_endpoint", () -> {
@@ -273,7 +273,8 @@ public final class ConnectivityRootActor extends AbstractActor {
         return logRequest("http-request", () -> logResult("http-response", statusRoute::buildStatusRoute));
     }
 
-    private ActorRef getHealthCheckingActor(final ServiceSpecificConfig.HealthCheckConfig healthCheckConfig) {
+    private ActorRef getHealthCheckingActor(final ConnectivityConfig connectivityConfig) {
+        final ServiceSpecificConfig.HealthCheckConfig healthCheckConfig = connectivityConfig.getHealthCheckConfig();
         final HealthCheckingActorOptions.Builder hcBuilder =
                 HealthCheckingActorOptions.getBuilder(healthCheckConfig.isEnabled(), healthCheckConfig.getInterval());
         if (healthCheckConfig.isPersistenceEnabled()) {
@@ -282,7 +283,8 @@ public final class ConnectivityRootActor extends AbstractActor {
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
 
         return startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
-                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, MongoHealthChecker.props()));
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions,
+                        MongoHealthChecker.props(connectivityConfig.getMongoDbConfig())));
     }
 
     private ActorRef getConciergeForwarder(final ClusterConfig clusterConfig,
