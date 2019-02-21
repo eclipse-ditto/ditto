@@ -38,6 +38,7 @@ import org.eclipse.ditto.model.connectivity.FilteredTopic;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.RetrieveConnectionMetricsAggregatorActor;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.RetrieveConnectionStatusAggregatorActor;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttValidator;
@@ -46,7 +47,6 @@ import org.eclipse.ditto.services.connectivity.messaging.rabbitmq.RabbitMQValida
 import org.eclipse.ditto.services.connectivity.messaging.validation.CompoundConnectivityCommandInterceptor;
 import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.connectivity.messaging.validation.DittoConnectivityCommandValidator;
-import org.eclipse.ditto.services.connectivity.util.ConnectionConfigReader;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -123,9 +123,6 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private static final String JOURNAL_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-journal";
     private static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-snapshots";
 
-    private static final String UNRESOLVED_PLACEHOLDERS_MESSAGE =
-            "Failed to substitute all placeholders in '{}', target is dropped.";
-
     private static final String PUB_SUB_GROUP_PREFIX = "connection:";
 
     /**
@@ -170,7 +167,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory propsFactory,
-            @Nullable final Consumer<ConnectivityCommand<?>> customCommandValidator) {
+            @Nullable final Consumer<ConnectivityCommand<?>> customCommandValidator,
+            final ConnectionConfig connectionConfig) {
 
         this.connectionId = connectionId;
         this.pubSubMediator = pubSubMediator;
@@ -178,22 +176,22 @@ public final class ConnectionActor extends AbstractPersistentActor {
         this.propsFactory = propsFactory;
         final DittoConnectivityCommandValidator dittoCommandValidator =
                 new DittoConnectivityCommandValidator(propsFactory, conciergeForwarder, CONNECTION_VALIDATOR);
+
         if (customCommandValidator != null) {
-            this.commandValidator =
+            commandValidator =
                     new CompoundConnectivityCommandInterceptor(dittoCommandValidator, customCommandValidator);
         } else {
-            this.commandValidator = dittoCommandValidator;
+            commandValidator = dittoCommandValidator;
         }
 
-        final ConnectionConfigReader configReader =
-                ConnectionConfigReader.fromRawConfig(getContext().system().settings().config());
-        snapshotThreshold = configReader.snapshotThreshold();
+        final ConnectionConfig.SnapshotConfig snapshotConfig = connectionConfig.getSnapshotConfig();
+        snapshotThreshold = snapshotConfig.getThreshold();
         snapshotAdapter = new ConnectionMongoSnapshotAdapter();
         connectionCreatedBehaviour = createConnectionCreatedBehaviour();
 
-        final java.time.Duration javaFlushTimeout = configReader.flushPendingResponsesTimeout();
+        final java.time.Duration javaFlushTimeout = connectionConfig.getFlushPendingResponsesTimeout();
         flushPendingResponsesTimeout = Duration.create(javaFlushTimeout.toMillis(), TimeUnit.MILLISECONDS);
-        clientActorAskTimeout = configReader.clientActorAskTimeout();
+        clientActorAskTimeout = connectionConfig.getClientActorAskTimeout();
 
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
     }
@@ -205,13 +203,15 @@ public final class ConnectionActor extends AbstractPersistentActor {
      * @param pubSubMediator Akka pub-sub mediator.
      * @param conciergeForwarder proxy of concierge service.
      * @param propsFactory factory of props of client actors for various protocols.
+     * @param connectionConfig the connection config.
      * @return the Akka configuration Props object
      */
     public static Props props(final String connectionId,
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory propsFactory,
-            @Nullable final Consumer<ConnectivityCommand<?>> commandValidator) {
+            @Nullable final Consumer<ConnectivityCommand<?>> commandValidator,
+            final ConnectionConfig connectionConfig) {
 
         return Props.create(ConnectionActor.class, new Creator<ConnectionActor>() {
             private static final long serialVersionUID = 1L;
@@ -219,7 +219,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
             @Override
             public ConnectionActor create() {
                 return new ConnectionActor(connectionId, pubSubMediator, conciergeForwarder, propsFactory,
-                        commandValidator);
+                        commandValidator, connectionConfig);
             }
         });
     }
@@ -475,8 +475,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
         });
     }
 
-    private void respondWithCreateConnectionResponse(final Connection connection,
-            final CreateConnection command,
+    private void respondWithCreateConnectionResponse(final Connection connection, final CreateConnection command,
             final ActorRef origin) {
 
         origin.tell(CreateConnectionResponse.of(connection, command.getDittoHeaders()), getSelf());
@@ -768,7 +767,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
         forwardToClientActors(props, command, () -> respondWithEmptyStatus(command, this.getSender()));
     }
 
-    private long extractTimeoutFromCommand(final DittoHeaders headers) {
+    private static long extractTimeoutFromCommand(final DittoHeaders headers) {
         return Optional.ofNullable(headers.get("timeout"))
                 .map(Long::parseLong)
                 .orElse(DEFAULT_RETRIEVE_STATUS_TIMEOUT);
@@ -971,8 +970,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
      */
     private static final class PerformTask {
 
-        final String description;
-        final Consumer<ConnectionActor> task;
+        private final String description;
+        private final Consumer<ConnectionActor> task;
 
         private PerformTask(final String description, final Consumer<ConnectionActor> task) {
             this.description = description;
@@ -987,6 +986,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
         public final String toString() {
             return String.format("PerformTask(%s)", description);
         }
+
     }
 
     /**
@@ -1012,18 +1012,12 @@ public final class ConnectionActor extends AbstractPersistentActor {
          *
          * @return the Akka configuration Props object
          */
-        static Props props(final ActorRef clientActor,
-                final int expectedResponses,
-                final long timeout) {
-
+        static Props props(final ActorRef clientActor, final int expectedResponses, final long timeout) {
             return Props.create(AggregateActor.class, clientActor, expectedResponses, timeout);
         }
 
         @SuppressWarnings("unused")
-        private AggregateActor(final ActorRef clientActor,
-                final int expectedResponses,
-                final long timeout) {
-
+        private AggregateActor(final ActorRef clientActor, final int expectedResponses, final long timeout) {
             this.clientActor = clientActor;
             this.expectedResponses = expectedResponses;
             this.timeout = timeout;

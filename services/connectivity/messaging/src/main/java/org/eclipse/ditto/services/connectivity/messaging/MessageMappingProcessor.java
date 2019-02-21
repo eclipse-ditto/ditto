@@ -26,7 +26,9 @@ import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.connectivity.mapping.DefaultMessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
+import org.eclipse.ditto.services.connectivity.mapping.MessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperRegistry;
+import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.InboundExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
@@ -58,8 +60,11 @@ public final class MessageMappingProcessor {
     private final DiagnosticLoggingAdapter log;
     private final ProtocolAdapter protocolAdapter;
 
-    private MessageMappingProcessor(final String connectionId, final MessageMapperRegistry registry,
-            final DiagnosticLoggingAdapter log, final ProtocolAdapter protocolAdapter) {
+    private MessageMappingProcessor(final String connectionId,
+            final MessageMapperRegistry registry,
+            final DiagnosticLoggingAdapter log,
+            final ProtocolAdapter protocolAdapter) {
+
         this.connectionId = connectionId;
         this.registry = registry;
         this.log = log;
@@ -67,27 +72,35 @@ public final class MessageMappingProcessor {
     }
 
     /**
-     * Initializes a new command processor with mappers defined in mapping mappingContext. The dynamic access is needed
-     * to instantiate message mappers for an actor system
+     * Initializes a new command processor with mappers defined in mapping mappingContext.
+     * The dynamic access is needed to instantiate message mappers for an actor system.
      *
-     * @param mappingContext the mapping Context
-     * @param actorSystem the dynamic access used for message mapper instantiation
-     * @param log the log adapter
-     * @return the processor instance
+     * @param mappingContext the mapping Context.
+     * @param actorSystem the dynamic access used for message mapper instantiation.
+     * @param mappingConfig the config of the mapping behaviour.
+     * @param log the log adapter.
+     * @return the processor instance.
      * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException if the configuration of
-     * one of the {@code mappingContext} is invalid
+     * one of the {@code mappingContext} is invalid.
      * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException if the configuration of
-     * one of the {@code mappingContext} failed for a mapper specific reason
+     * one of the {@code mappingContext} failed for a mapper specific reason.
      */
-    public static MessageMappingProcessor of(final String connectionId, @Nullable final MappingContext mappingContext,
-            final ActorSystem actorSystem, final DiagnosticLoggingAdapter log) {
+    public static MessageMappingProcessor of(final String connectionId,
+            @Nullable final MappingContext mappingContext,
+            final ActorSystem actorSystem,
+            final MappingConfig mappingConfig,
+            final DiagnosticLoggingAdapter log) {
+
+        final MessageMapperFactory messageMapperFactory =
+                DefaultMessageMapperFactory.of(connectionId, actorSystem, mappingConfig, log);
         final MessageMapperRegistry registry =
-                DefaultMessageMapperFactory.of(connectionId, actorSystem, log)
-                        .registryOf(DittoMessageMapper.CONTEXT, mappingContext);
+                messageMapperFactory.registryOf(DittoMessageMapper.CONTEXT, mappingContext);
+
         final ProtocolConfigReader protocolConfigReader =
                 ProtocolConfigReader.fromRawConfig(actorSystem.settings().config());
         final ProtocolAdapter protocolAdapter =
                 protocolConfigReader.loadProtocolAdapterProvider(actorSystem).getProtocolAdapter(null);
+
         return new MessageMappingProcessor(connectionId, registry, log, protocolAdapter);
     }
 
@@ -123,6 +136,7 @@ public final class MessageMappingProcessor {
 
     private Optional<InboundExternalMessage> convertMessage(final ExternalMessage message,
             final StartedTimer overAllProcessingTimer) {
+
         checkNotNull(message);
 
         try {
@@ -132,7 +146,7 @@ public final class MessageMappingProcessor {
 
             return adaptableOpt.map(adaptable -> {
                 enhanceLogFromAdaptable(adaptable);
-                final Signal<?> signal = this.<Signal<?>>withTimer(
+                final Signal<?> signal = MessageMappingProcessor.<Signal<?>>withTimer(
                         overAllProcessingTimer.startNewSegment(PROTOCOL_SEGMENT_NAME),
                         () -> protocolAdapter.fromAdaptable(adaptable));
                 return MappedInboundExternalMessage.of(message, adaptable.getTopicPath(), signal);
@@ -151,6 +165,7 @@ public final class MessageMappingProcessor {
 
     private Optional<ExternalMessage> convertToExternalMessage(final Supplier<Adaptable> adaptableSupplier,
             final StartedTimer overAllProcessingTimer) {
+
         checkNotNull(adaptableSupplier);
 
         try {
@@ -181,7 +196,6 @@ public final class MessageMappingProcessor {
     }
 
     private MessageMapper getMapper(final ExternalMessage message) {
-
         LogUtil.enhanceLogWithCorrelationId(log, message.getHeaders().get("correlation-id"));
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
 
@@ -204,7 +218,6 @@ public final class MessageMappingProcessor {
     }
 
     private MessageMapper getMapper(final Adaptable adaptable) {
-
         enhanceLogFromAdaptable(adaptable);
         return registry.getMapper().orElseGet(() -> {
             log.debug("Falling back to Default MessageMapper for mapping Adaptable as no MessageMapper was present: {}",
@@ -219,7 +232,7 @@ public final class MessageMappingProcessor {
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
     }
 
-    private <T> T withTimer(final StartedTimer timer, final Supplier<T> supplier) {
+    private static <T> T withTimer(final StartedTimer timer, final Supplier<T> supplier) {
         try {
             final T result = supplier.get();
             timer.tag(TracingTags.MAPPING_SUCCESS, true)
@@ -239,4 +252,5 @@ public final class MessageMappingProcessor {
                 .expirationHandling(expiredTimer -> expiredTimer.tag(TracingTags.MAPPING_SUCCESS, false))
                 .build();
     }
+
 }

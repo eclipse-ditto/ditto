@@ -8,8 +8,9 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.util;
+package org.eclipse.ditto.services.connectivity.messaging.config;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -20,12 +21,14 @@ import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import com.typesafe.config.Config;
 
 /**
- * TODO
+ * This class is the default implementation of the MQTT protocol.
  */
 @Immutable
-public final class DefaultMqttConfig implements ConnectivityConfig.ConnectionConfig.MqttConfig {
+public final class DefaultMqttConfig implements ConnectionConfig.MqttConfig, Serializable {
 
     private static final String CONFIG_PATH = "mqtt";
+
+    private static final long serialVersionUID = 4895715266164857570L;
 
     private final int sourceBufferSize;
 
@@ -34,9 +37,9 @@ public final class DefaultMqttConfig implements ConnectivityConfig.ConnectionCon
     }
 
     /**
-     * TODO
+     * Returns an instance of {@code DefaultMqttConfig} based on the settings of the specified Config.
      *
-     * @param config
+     * @param config is supposed to provide the settings of the JavaScript mapping config at {@value #CONFIG_PATH}.
      * @return the instance.
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */

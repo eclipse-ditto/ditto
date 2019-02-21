@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping;
 
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
@@ -40,10 +39,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-
-public class DittoMessageMapperTest {
-
-    private static final String EXPECTED_TOPIC_PATH = "/things/twin/commands/";
+/**
+ * Unit test for {@link DittoMessageMapper}.
+ */
+public final class DittoMessageMapperTest {
 
     @SuppressWarnings("NullableProblems") private DittoMessageMapper underTest;
 
@@ -78,14 +77,14 @@ public class DittoMessageMapperTest {
                 () -> underTest.map(in)));
     }
 
-    private Map<ExternalMessage, Optional<Adaptable>> createValidIncomingMappings() {
+    private static Map<ExternalMessage, Optional<Adaptable>> createValidIncomingMappings() {
         return Stream.of(
                 valid1(),
                 valid2()
         ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
-    private Map.Entry<ExternalMessage, Optional<Adaptable>> valid1() {
+    private static Map.Entry<ExternalMessage, Optional<Adaptable>> valid1() {
         final Map<String, String> headers = new HashMap<>();
         headers.put("header-key", "header-value");
         headers.put(ExternalMessage.CONTENT_TYPE_HEADER, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
@@ -110,7 +109,7 @@ public class DittoMessageMapperTest {
         return new AbstractMap.SimpleEntry<>(message, expected);
     }
 
-    private Map.Entry<ExternalMessage, Optional<Adaptable>> valid2() {
+    private static Map.Entry<ExternalMessage, Optional<Adaptable>> valid2() {
         final Map<String, String> headers = new HashMap<>();
         headers.put("header-key", "header-value");
         headers.put(ExternalMessage.CONTENT_TYPE_HEADER, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
@@ -129,7 +128,7 @@ public class DittoMessageMapperTest {
         return new AbstractMap.SimpleEntry<>(message, expected);
     }
 
-    private Map<ExternalMessage, Throwable> createInvalidIncomingMappings() {
+    private static Map<ExternalMessage, Throwable> createInvalidIncomingMappings() {
         final Map<ExternalMessage, Throwable> mappings = new HashMap<>();
 
         final Map<String, String> headers = new HashMap<>();
@@ -153,8 +152,7 @@ public class DittoMessageMapperTest {
         return mappings;
     }
 
-
-    private Map<Adaptable, Optional<ExternalMessage>> createValidOutgoingMappings() {
+    private static Map<Adaptable, Optional<ExternalMessage>> createValidOutgoingMappings() {
         final Map<Adaptable, Optional<ExternalMessage>> mappings = new HashMap<>();
 
         final Map<String, String> headers = new HashMap<>();
@@ -195,12 +193,9 @@ public class DittoMessageMapperTest {
         return mappings;
     }
 
-    private String expectedPath(final String id, final String action) {
-        return id + EXPECTED_TOPIC_PATH + action;
-    }
-
-    private Map<Adaptable, Throwable> createInvalidOutgoingMappings() {
+    private static Map<Adaptable, Throwable> createInvalidOutgoingMappings() {
         // adaptable is strongly typed and can always be jsonified, no invalid test needed.
         return Collections.emptyMap();
     }
+
 }

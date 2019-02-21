@@ -20,14 +20,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 
 import javax.annotation.Nullable;
 import javax.script.Bindings;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -50,7 +46,7 @@ import org.mozilla.javascript.typedarrays.NativeArrayBuffer;
 /**
  * Mapping function for outgoing messages based on JavaScript.
  */
-public class ScriptedOutgoingMapping implements MappingFunction<Adaptable, Optional<ExternalMessage>> {
+public final class ScriptedOutgoingMapping implements MappingFunction<Adaptable, Optional<ExternalMessage>> {
 
     private static final String EXTERNAL_MESSAGE_HEADERS = "headers";
     private static final String EXTERNAL_MESSAGE_CONTENT_TYPE = "contentType";
@@ -59,10 +55,8 @@ public class ScriptedOutgoingMapping implements MappingFunction<Adaptable, Optio
 
     private static final String OUTGOING_FUNCTION_NAME = "mapFromDittoProtocolMsgWrapper";
 
-    @Nullable
-    private ContextFactory contextFactory;
-    @Nullable
-    private Scriptable scope;
+    @Nullable private final ContextFactory contextFactory;
+    @Nullable private final Scriptable scope;
 
     ScriptedOutgoingMapping(@Nullable final ContextFactory contextFactory, @Nullable final Scriptable scope) {
         this.contextFactory = contextFactory;
@@ -150,7 +144,7 @@ public class ScriptedOutgoingMapping implements MappingFunction<Adaptable, Optio
                         final Object vals = values.invoke(obj);
                         if (vals instanceof Collection) {
                             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                            final Collection coll = (Collection) vals;
+                            final Iterable coll = (Iterable) vals;
                             coll.forEach(e -> baos.write(((Number) e).intValue()));
                             return Optional.of(ByteBuffer.wrap(baos.toByteArray()));
                         }
@@ -161,7 +155,7 @@ public class ScriptedOutgoingMapping implements MappingFunction<Adaptable, Optio
                 throw new IllegalStateException("Could not retrieve array values", e);
             }
         } else if (obj instanceof List<?>) {
-            final List<?> list = (List<?>) obj;
+            final Iterable<?> list = (Iterable<?>) obj;
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
             list.forEach(e -> baos.write(((Number) e).intValue()));
             return Optional.of(ByteBuffer.wrap(baos.toByteArray()));
@@ -169,7 +163,7 @@ public class ScriptedOutgoingMapping implements MappingFunction<Adaptable, Optio
         return Optional.empty();
     }
 
-    private static class NullCallable implements Callable {
+    private static final class NullCallable implements Callable {
 
         @Override
         public Object call(final Context context, final Scriptable scope, final Scriptable holdable,
@@ -177,4 +171,5 @@ public class ScriptedOutgoingMapping implements MappingFunction<Adaptable, Optio
             return objects[1];
         }
     }
+
 }

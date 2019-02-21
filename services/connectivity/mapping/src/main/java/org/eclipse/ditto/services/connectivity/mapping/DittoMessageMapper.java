@@ -33,8 +33,6 @@ import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 
-import com.typesafe.config.Config;
-
 /**
  * A message mapper implementation for the Ditto Protocol.
  * Expects messages to contain a JSON serialized Ditto Protocol message.
@@ -49,8 +47,16 @@ public final class DittoMessageMapper implements MessageMapper {
             Collections.emptyMap()
     );
 
+    /**
+     * Constructs a new {@code DittoMessageMapper} object.
+     * This constructor is required as the the instance is created via reflection.
+     */
+    public DittoMessageMapper() {
+        super();
+    }
+
     @Override
-    public void configure(final Config mappingConfig, final MessageMapperConfiguration configuration) {
+    public void configure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
         // no op
     }
 
@@ -70,7 +76,6 @@ public final class DittoMessageMapper implements MessageMapper {
         return Optional.of(
                 ProtocolFactory.newAdaptableBuilder(jsonifiableAdaptable).withHeaders(mergedHeaders).build());
     }
-
 
     @Override
     public Optional<ExternalMessage> map(final Adaptable adaptable) {

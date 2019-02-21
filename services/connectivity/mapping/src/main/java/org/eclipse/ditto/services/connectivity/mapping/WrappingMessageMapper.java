@@ -25,8 +25,6 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 
-import com.typesafe.config.Config;
-
 /**
  * Does wrap any {@link MessageMapper}.
  * <p>
@@ -35,7 +33,6 @@ import com.typesafe.config.Config;
  * </p>
  */
 final class WrappingMessageMapper implements MessageMapper {
-
 
     private final MessageMapper delegate;
 
@@ -61,13 +58,12 @@ final class WrappingMessageMapper implements MessageMapper {
     }
 
     @Override
-    public void configure(final Config mappingConfig, final MessageMapperConfiguration configuration) {
+    public void configure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
         delegate.configure(mappingConfig, configuration);
     }
 
     @Override
     public Optional<Adaptable> map(final ExternalMessage message) {
-
         final ExternalMessage enhancedMessage;
         final String correlationId;
         if (!message.getHeaders().containsKey(DittoHeaderDefinition.CORRELATION_ID.getKey())) {
@@ -103,7 +99,6 @@ final class WrappingMessageMapper implements MessageMapper {
 
     @Override
     public Optional<ExternalMessage> map(final Adaptable adaptable) {
-
         final Optional<ExternalMessage> mappedOpt = delegate.map(adaptable);
 
         return mappedOpt.map(mapped -> {
@@ -140,4 +135,5 @@ final class WrappingMessageMapper implements MessageMapper {
                 "delegate=" + delegate +
                 "]";
     }
+
 }

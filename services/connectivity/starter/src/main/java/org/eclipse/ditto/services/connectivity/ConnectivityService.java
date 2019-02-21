@@ -10,12 +10,13 @@
  */
 package org.eclipse.ditto.services.connectivity;
 
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
-import org.eclipse.ditto.services.base.DittoService;
-import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
-import org.eclipse.ditto.services.base.config.ServiceConfigReader;
+import org.eclipse.ditto.services.base.DittoServiceTng;
 import org.eclipse.ditto.services.connectivity.actors.ConnectivityRootActor;
+import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
+import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +33,7 @@ import akka.stream.ActorMaterializer;
  * </ul>
  */
 @AllParametersAndReturnValuesAreNonnullByDefault
-public final class ConnectivityService extends DittoService<ServiceConfigReader> {
+public final class ConnectivityService extends DittoServiceTng<ConnectivityConfig> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ConnectivityService.class);
 
@@ -42,7 +43,7 @@ public final class ConnectivityService extends DittoService<ServiceConfigReader>
     private static final String SERVICE_NAME = "connectivity";
 
     private ConnectivityService() {
-        super(LOGGER, SERVICE_NAME, ConnectivityRootActor.ACTOR_NAME, DittoServiceConfigReader.from(SERVICE_NAME));
+        super(LOGGER, SERVICE_NAME, ConnectivityRootActor.ACTOR_NAME);
     }
 
     /**
@@ -56,10 +57,15 @@ public final class ConnectivityService extends DittoService<ServiceConfigReader>
     }
 
     @Override
-    protected Props getMainRootActorProps(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
+    protected ConnectivityConfig getServiceSpecificConfig(final ScopedConfig dittoConfig) {
+        return DittoConnectivityConfig.of(dittoConfig);
+    }
+
+    @Override
+    protected Props getMainRootActorProps(final ConnectivityConfig connectivityConfig, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
-        return ConnectivityRootActor.props(configReader, pubSubMediator, materializer, Function.identity());
+        return ConnectivityRootActor.props(connectivityConfig, pubSubMediator, materializer, UnaryOperator.identity());
     }
 
 }

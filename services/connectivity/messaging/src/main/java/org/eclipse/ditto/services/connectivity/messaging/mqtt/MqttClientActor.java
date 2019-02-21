@@ -28,14 +28,16 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Source;
+import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
+import org.eclipse.ditto.services.connectivity.messaging.config.ClientConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
-import org.eclipse.ditto.services.connectivity.util.ConnectionConfigReader;
 
 import akka.Done;
 import akka.NotUsed;
@@ -73,37 +75,52 @@ public final class MqttClientActor extends BaseClientActor {
 
     private CompletableFuture<Status.Status> testConnectionFuture = null;
 
-    @SuppressWarnings("unused") // used by `props` via reflection
-    private MqttClientActor(final Connection connection,
-            final ConnectivityStatus desiredConnectionStatus,
-            final ActorRef conciergeForwarder) {
-
-        this(connection, desiredConnectionStatus, conciergeForwarder, MqttConnectionFactory::of);
-    }
-
     MqttClientActor(final Connection connection,
             final ConnectivityStatus desiredConnectionStatus,
+            final ClientConfig clientConfig,
+            final MappingConfig mappingConfig,
+            final ConnectionConfig.MqttConfig mqttConfig,
             final ActorRef conciergeForwarder,
             final BiFunction<Connection, DittoHeaders, MqttConnectionFactory> connectionFactoryCreator) {
-        super(connection, desiredConnectionStatus, conciergeForwarder);
+
+        super(connection, desiredConnectionStatus, clientConfig, mappingConfig, conciergeForwarder);
         this.connectionFactoryCreator = connectionFactoryCreator;
         consumerByActorNameWithIndex = new HashMap<>();
         pendingStatusReportsFromStreams = new HashSet<>();
-        sourceBufferSize = ConnectionConfigReader.fromRawConfig(getContext().system().settings().config())
-                .mqtt()
-                .sourceBufferSize();
+
+        sourceBufferSize = mqttConfig.getSourceBufferSize();
+    }
+
+    @SuppressWarnings("unused") // used by `props` via reflection
+    private MqttClientActor(final Connection connection,
+            final ConnectivityStatus desiredConnectionStatus,
+            final ClientConfig clientConfig,
+            final MappingConfig mappingConfig,
+            final ConnectionConfig.MqttConfig mqttConfig,
+            final ActorRef conciergeForwarder) {
+
+        this(connection, desiredConnectionStatus, clientConfig, mappingConfig, mqttConfig, conciergeForwarder,
+                MqttConnectionFactory::of);
     }
 
     /**
      * Creates Akka configuration object for this actor.
      *
      * @param connection the connection.
+     * @param clientConfig the client config.
+     * @param mappingConfig the mapping config.
+     * @param mqttConfig the MQTT config.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, final ActorRef conciergeForwarder) {
+    public static Props props(final Connection connection,
+            final ClientConfig clientConfig,
+            final MappingConfig mappingConfig,
+            final ConnectionConfig.MqttConfig mqttConfig,
+            final ActorRef conciergeForwarder) {
+
         return Props.create(MqttClientActor.class, validateConnection(connection), connection.getConnectionStatus(),
-                conciergeForwarder);
+                clientConfig, mappingConfig, mqttConfig, conciergeForwarder);
     }
 
     private static Connection validateConnection(final Connection connection) {
@@ -265,7 +282,7 @@ public final class MqttClientActor extends BaseClientActor {
         });
     }
 
-    private String getUniqueSourceSuffix(final int sourceIndex, final int consumerIndex) {
+    private static String getUniqueSourceSuffix(final int sourceIndex, final int consumerIndex) {
         return sourceIndex + "-" + consumerIndex;
     }
 
@@ -304,6 +321,7 @@ public final class MqttClientActor extends BaseClientActor {
 
     private FSM.State<BaseClientState, BaseClientData> handleStatusReportFromChildren(final Status.Status status,
             final BaseClientData data) {
+
         if (pendingStatusReportsFromStreams.contains(getSender())) {
             pendingStatusReportsFromStreams.remove(getSender());
             if (status instanceof Status.Failure) {
@@ -357,5 +375,7 @@ public final class MqttClientActor extends BaseClientActor {
          * Message for stream completion and stream failure.
          */
         STREAM_ENDED
+
     }
+
 }

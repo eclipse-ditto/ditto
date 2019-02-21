@@ -64,7 +64,8 @@ public final class ReconnectActorTest {
                     () -> Source.from(Arrays.asList(
                             ConnectionActor.PERSISTENCE_ID_PREFIX + "connection-1",
                             "invalid:connection-2",
-                            ConnectionActor.PERSISTENCE_ID_PREFIX + "connection-3")));
+                            ConnectionActor.PERSISTENCE_ID_PREFIX + "connection-3")),
+                    TestConstants.RECONNECT_CONFIG);
 
             actorSystem.actorOf(props);
 
@@ -83,7 +84,8 @@ public final class ReconnectActorTest {
                     () -> Source.from(Arrays.asList(
                             ConnectionActor.PERSISTENCE_ID_PREFIX + "connection-1",
                             ConnectionActor.PERSISTENCE_ID_PREFIX + "connection-2",
-                            ConnectionActor.PERSISTENCE_ID_PREFIX + "connection-3")));
+                            ConnectionActor.PERSISTENCE_ID_PREFIX + "connection-3")),
+                    TestConstants.RECONNECT_CONFIG);
 
             final ActorRef reconnectActor = actorSystem.actorOf(props);
             reconnectActor.tell(ReconnectActor.ReconnectMessages.START_RECONNECT, getRef());
@@ -94,4 +96,5 @@ public final class ReconnectActorTest {
             probe.expectNoMsg();
         }};
     }
+
 }

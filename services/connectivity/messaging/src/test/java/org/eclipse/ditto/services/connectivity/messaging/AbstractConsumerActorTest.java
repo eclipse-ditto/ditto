@@ -137,6 +137,7 @@ public abstract class AbstractConsumerActorTest<M> {
             final boolean isForwardedToConcierge,
             final Consumer<Signal<?>> verifySignal,
             final Consumer<OutboundSignal.WithExternalMessage> verifyResponse) {
+
         new TestKit(actorSystem) {{
             final TestProbe sender = TestProbe.apply(actorSystem);
             final TestProbe concierge = TestProbe.apply(actorSystem);
@@ -164,11 +165,13 @@ public abstract class AbstractConsumerActorTest<M> {
 
     private ActorRef setupMessageMappingProcessorActor(final ActorRef publisherActor,
             final ActorRef conciergeForwarderActor) {
+
         final MessageMappingProcessor mappingProcessor = MessageMappingProcessor.of(CONNECTION_ID, null, actorSystem,
-                Mockito.mock(DiagnosticLoggingAdapter.class));
+                TestConstants.MAPPING_CONFIG, Mockito.mock(DiagnosticLoggingAdapter.class));
         final Props messageMappingProcessorProps =
                 MessageMappingProcessorActor.props(publisherActor, conciergeForwarderActor, mappingProcessor,
                         CONNECTION_ID);
+
         return actorSystem.actorOf(messageMappingProcessorProps,
                 MessageMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
     }

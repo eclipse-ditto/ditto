@@ -53,12 +53,13 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
+import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.ClientConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry;
-import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
@@ -73,8 +74,6 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
-
-import com.typesafe.config.Config;
 
 import akka.actor.AbstractFSM;
 import akka.actor.ActorRef;
@@ -95,9 +94,9 @@ import scala.util.Right;
 /**
  * Base class for ClientActors which implement the connection handling for various connectivity protocols.
  * <p>
- * The actor expects to receive a {@link CreateConnection} command after it was started. If this command is not received
- * within timeout (can be the case when this actor is remotely deployed after the command was sent) the actor requests
- * the required information from ConnectionActor.
+ * The actor expects to receive a {@link CreateConnection} command after it was started.
+ * If this command is not received within timeout (can be the case when this actor is remotely deployed after the
+ * command was sent) the actor requests the required information from ConnectionActor.
  * </p>
  */
 public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseClientData> {
@@ -108,6 +107,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
 
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+
+    private final MappingConfig mappingConfig;
     private final ActorRef conciergeForwarder;
 
     @Nullable private ActorRef messageMappingProcessorActor;
@@ -115,23 +116,24 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     // counter for all child actors ever started to disambiguate between them
     private int childActorCount = 0;
 
-    protected BaseClientActor(final Connection connection, final ConnectivityStatus desiredConnectionStatus,
+    protected BaseClientActor(final Connection connection,
+            final ConnectivityStatus desiredConnectionStatus,
+            final ClientConfig clientConfig,
+            final MappingConfig mappingConfig,
             final ActorRef conciergeForwarder) {
 
         checkNotNull(connection, "connection");
+
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connection.getId());
 
-//        getContext().system().settings().config()
-
-        final Config config = getContext().getSystem().settings().config();
-        final java.time.Duration javaInitTimeout = config.getDuration(ConfigKeys.Client.INIT_TIMEOUT);
+        this.mappingConfig = mappingConfig;
         this.conciergeForwarder = conciergeForwarder;
 
-        final BaseClientData startingData = new BaseClientData(connection.getId(), connection, ConnectivityStatus.UNKNOWN,
-                desiredConnectionStatus, "initialized", Instant.now(), null, null);
+        final BaseClientData startingData = new BaseClientData(connection.getId(), connection,
+                ConnectivityStatus.UNKNOWN, desiredConnectionStatus, "initialized", Instant.now(), null, null);
 
+        final java.time.Duration javaInitTimeout = clientConfig.getInitTimeout();
         final FiniteDuration initTimeout = Duration.create(javaInitTimeout.toMillis(), TimeUnit.MILLISECONDS);
-        final FiniteDuration connectingTimeout = Duration.create(CONNECTING_TIMEOUT, TimeUnit.SECONDS);
 
         startWith(UNKNOWN, startingData, initTimeout);
 
@@ -141,6 +143,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         when(DISCONNECTED, inDisconnectedState());
 
         // volatile states that time out
+        final FiniteDuration connectingTimeout = Duration.create(CONNECTING_TIMEOUT, TimeUnit.SECONDS);
         when(CONNECTING, connectingTimeout, inConnectingState());
         when(DISCONNECTING, connectingTimeout, inDisconnectingState());
         when(TESTING, connectingTimeout, inTestingState());
@@ -162,14 +165,14 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * @param connection the Connection to test
      * @return the CompletionStage with the test result
      */
-    protected abstract CompletionStage<Status.Status> doTestConnection(final Connection connection);
+    protected abstract CompletionStage<Status.Status> doTestConnection(Connection connection);
 
     /**
      * Allocate resources once this {@code Client} connected successfully.
      *
      * @param clientConnected the ClientConnected message which may be subclassed and thus adding more information
      */
-    protected abstract void allocateResourcesOnConnection(final ClientConnected clientConnected);
+    protected abstract void allocateResourcesOnConnection(ClientConnected clientConnected);
 
     /**
      * Clean up everything spawned in {@code allocateResourcesOnConnection}. It should be idempotent.
@@ -187,7 +190,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * @param connection the Connection to use for connecting.
      * @param origin the ActorRef which caused the ConnectClient command.
      */
-    protected abstract void doConnectClient(final Connection connection, @Nullable final ActorRef origin);
+    protected abstract void doConnectClient(Connection connection, @Nullable ActorRef origin);
 
     /**
      * Invoked when this {@code Client} should disconnect.
@@ -195,7 +198,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * @param connection the Connection to use for disconnecting.
      * @param origin the ActorRef which caused the DisconnectClient command.
      */
-    protected abstract void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin);
+    protected abstract void doDisconnectClient(Connection connection, @Nullable ActorRef origin);
 
     /**
      * Release any temporary resources allocated during a connection operation when the operation times out.
@@ -274,11 +277,10 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * @return the CompletableFuture of a List
      */
     protected static <T> CompletableFuture<List<T>> collectAsList(final Stream<CompletionStage<T>> futures) {
-
         final CompletableFuture<T>[] futureArray = futures.map(CompletionStage::toCompletableFuture)
                 .toArray((IntFunction<CompletableFuture<T>[]>) CompletableFuture[]::new);
 
-        return CompletableFuture.allOf(futureArray).thenApply(_void ->
+        return CompletableFuture.allOf(futureArray).thenApply(aVoid ->
                 Arrays.stream(futureArray)
                         .map(CompletableFuture::join)
                         .collect(Collectors.toList()));
@@ -658,9 +660,9 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         }
     }
 
-    private FSM.State<BaseClientState, BaseClientData> retrieveConnectionStatus(
-            final RetrieveConnectionStatus command,
+    private FSM.State<BaseClientState, BaseClientData> retrieveConnectionStatus(final RetrieveConnectionStatus command,
             final BaseClientData data) {
+
         LogUtil.enhanceLogWithCorrelationId(log, command);
         log.debug("Received RetrieveConnectionStatus message from {}, forwarding to consumers and publishers.",
                 getSender());
@@ -686,8 +688,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     private FSM.State<BaseClientState, BaseClientData> retrieveConnectionMetrics(
-            final RetrieveConnectionMetrics command,
-            final BaseClientData data) {
+            final RetrieveConnectionMetrics command, final BaseClientData data) {
 
         LogUtil.enhanceLogWithCorrelationId(log, command);
         log.debug("Received RetrieveConnectionMetrics message, gathering metrics.");
@@ -708,8 +709,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return stay();
     }
 
-    private FSM.State<BaseClientState, BaseClientData> resetConnectionMetrics(
-            final ResetConnectionMetrics command,
+    private FSM.State<BaseClientState, BaseClientData> resetConnectionMetrics(final ResetConnectionMetrics command,
             final BaseClientData data) {
 
         LogUtil.enhanceLogWithCorrelationId(log, command);
@@ -798,7 +798,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private CompletionStage<Status.Status> testMessageMappingProcessor(@Nullable final MappingContext mappingContext) {
         try {
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
-            MessageMappingProcessor.of(connectionId(), mappingContext, getContext().getSystem(), log);
+            MessageMappingProcessor.of(connectionId(), mappingContext, getContext().getSystem(), mappingConfig, log);
             return CompletableFuture.completedFuture(new Status.Success("mapping"));
         } catch (final DittoRuntimeException dre) {
             log.info("Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
@@ -825,13 +825,15 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      */
     private Either<DittoRuntimeException, ActorRef> startMessageMappingProcessor(
             @Nullable final MappingContext mappingContext) {
+
         if (!getMessageMappingProcessorActor().isPresent()) {
             final Connection connection = connection();
 
             final MessageMappingProcessor processor;
             try {
                 // this one throws DittoRuntimeExceptions when the mapper could not be configured
-                processor = MessageMappingProcessor.of(connectionId(), mappingContext, getContext().getSystem(), log);
+                processor = MessageMappingProcessor.of(connectionId(), mappingContext, getContext().getSystem(),
+                        mappingConfig, log);
             } catch (final DittoRuntimeException dre) {
                 log.info(
                         "Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
@@ -913,4 +915,5 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             return describeEventualCause(cause);
         }
     }
+
 }

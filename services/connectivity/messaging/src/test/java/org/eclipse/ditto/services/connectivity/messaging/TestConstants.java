@@ -65,6 +65,15 @@ import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.services.base.DittoServiceTng;
+import org.eclipse.ditto.services.connectivity.mapping.DefaultMappingConfig;
+import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.ClientConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.DefaultClientConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.DefaultConnectionConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.DefaultReconnectConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.ReconnectConfig;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -95,6 +104,24 @@ public final class TestConstants {
     private static final AbstractQueue<ServerSocket> MOCK_SERVERS = new ConcurrentLinkedQueue<>();
 
     public static final Config CONFIG = ConfigFactory.load("test");
+
+    public static final MappingConfig MAPPING_CONFIG;
+    public static final ConnectionConfig CONNECTION_CONFIG;
+    public static final ClientConfig CLIENT_CONFIG;
+    public static final ReconnectConfig RECONNECT_CONFIG;
+
+    static {
+        final DefaultScopedConfig dittoScopedConfig =
+                DefaultScopedConfig.newInstance(CONFIG, DittoServiceTng.DITTO_CONFIG_PATH);
+        final DefaultScopedConfig connectivityScopedConfig =
+                DefaultScopedConfig.newInstance(dittoScopedConfig, "connectivity");
+
+        MAPPING_CONFIG = DefaultMappingConfig.of(connectivityScopedConfig);
+        CONNECTION_CONFIG = DefaultConnectionConfig.of(connectivityScopedConfig);
+        CLIENT_CONFIG = DefaultClientConfig.of(connectivityScopedConfig);
+        RECONNECT_CONFIG = DefaultReconnectConfig.of(connectivityScopedConfig);
+    }
+
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
     private static final ConnectivityStatus STATUS = ConnectivityStatus.OPEN;
     private static final String URI_TEMPLATE = "amqps://username:password@%s:%s";
@@ -108,10 +135,10 @@ public final class TestConstants {
         system.eventStream().setLogLevel(Logging.levelFor("off").map(Logging.LogLevel::asInt).get());
     }
 
-    public static HeaderMapping HEADER_MAPPING;
+    public static final HeaderMapping HEADER_MAPPING;
 
     static {
-        final HashMap<String, String> map = new HashMap<>();
+        final Map<String, String> map = new HashMap<>();
         map.put("eclipse", "ditto");
         map.put("thing_id", "{{ thing:id }}");
         map.put("device_id", "{{ header:device_id }}");
@@ -120,17 +147,18 @@ public final class TestConstants {
         HEADER_MAPPING = ConnectivityModelFactory.newHeaderMapping(map);
     }
 
-    public static Instant INSTANT = Instant.now();
+    public static final Instant INSTANT = Instant.now();
 
-    public static class Things {
+    public static final class Things {
 
         public static final String NAMESPACE = "ditto";
         public static final String ID = "thing";
         public static final String THING_ID = NAMESPACE + ":" + ID;
         public static final Thing THING = Thing.newBuilder().setId(THING_ID).build();
+
     }
 
-    public static class Authorization {
+    public static final class Authorization {
 
         static final String SUBJECT_ID = "some:subject";
         static final String SOURCE_SUBJECT_ID = "source:subject";
@@ -143,8 +171,7 @@ public final class TestConstants {
                 AuthorizationSubject.newInstance(UNAUTHORIZED_SUBJECT_ID));
     }
 
-    public static class Sources {
-
+    public static final class Sources {
 
         public static final List<Source> SOURCES_WITH_AUTH_CONTEXT =
                 singletonList(ConnectivityModelFactory.newSourceBuilder()
@@ -168,21 +195,24 @@ public final class TestConstants {
                                 .build());
     }
 
-    public static class Targets {
+    public static final class Targets {
 
         private static final HeaderMapping HEADER_MAPPING = null;
 
         public static final Target TARGET_WITH_PLACEHOLDER =
-                newTarget("target:{{ thing:namespace }}/{{thing:name}}@{{ topic:channel }}", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING,
+                newTarget("target:{{ thing:namespace }}/{{thing:name}}@{{ topic:channel }}",
+                        Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING,
                         null, Topic.TWIN_EVENTS);
         static final Target TWIN_TARGET =
                 newTarget("twinEventExchange/twinEventRoutingKey", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING,
                         null, Topic.TWIN_EVENTS);
         private static final Target TWIN_TARGET_UNAUTHORIZED =
-                newTarget("twin/key", Authorization.UNAUTHORIZED_AUTHORIZATION_CONTEXT, HEADER_MAPPING, null, Topic.TWIN_EVENTS);
+                newTarget("twin/key", Authorization.UNAUTHORIZED_AUTHORIZATION_CONTEXT, HEADER_MAPPING, null,
+                        Topic.TWIN_EVENTS);
         private static final Target LIVE_TARGET =
                 newTarget("live/key", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING, null, Topic.LIVE_EVENTS);
         private static final Set<Target> TARGETS = asSet(TWIN_TARGET, TWIN_TARGET_UNAUTHORIZED, LIVE_TARGET);
+
     }
 
     public static final class Certificates {
@@ -225,13 +255,14 @@ public final class TestConstants {
                 throw new IllegalStateException(e);
             }
         }
+
     }
 
-    public static class Metrics {
+    public static final class Metrics {
 
-        private static Instant LAST_MESSAGE_AT = Instant.now();
+        private static final Instant LAST_MESSAGE_AT = Instant.now();
 
-        public static String ID = "myConnectionId";
+        public static final String ID = "myConnectionId";
 
         public static final Duration ONE_MINUTE = Duration.ofMinutes(1);
         public static final Duration ONE_HOUR = Duration.ofHours(1);
@@ -263,7 +294,8 @@ public final class TestConstants {
 
         public static final AddressMetric
                 INBOUND_METRIC = ConnectivityModelFactory.newAddressMetric(asSet(INBOUND, MAPPING));
-        public static final AddressMetric OUTBOUND_METRIC = ConnectivityModelFactory.newAddressMetric(asSet(MAPPING, OUTBOUND));
+        public static final AddressMetric OUTBOUND_METRIC =
+                ConnectivityModelFactory.newAddressMetric(asSet(MAPPING, OUTBOUND));
 
         public static final SourceMetrics SOURCE_METRICS1 = ConnectivityModelFactory.newSourceMetrics(
                 asMap(entry("source1", INBOUND_METRIC), entry("source2", INBOUND_METRIC)));
@@ -285,10 +317,13 @@ public final class TestConstants {
         public static final RetrieveConnectionMetricsResponse METRICS_RESPONSE2 = RetrieveConnectionMetricsResponse
                 .of(ID, CONNECTION_METRICS2, SOURCE_METRICS2, TARGET_METRICS2, DittoHeaders.empty());
 
-        public static Measurement mergeMeasurements(final MetricType type, final boolean success,
-                final Measurement measurements, int times) {
+        public static Measurement mergeMeasurements(final MetricType type,
+                final boolean success,
+                final Measurement measurements,
+                final int times) {
+
             final Map<Duration, Long> result = new HashMap<>();
-            for (Duration interval : DEFAULT_INTERVALS) {
+            for (final Duration interval : DEFAULT_INTERVALS) {
                 result.put(interval,
                         Optional.of(measurements)
                                 .filter(m -> Objects.equals(type, m.getMetricType()))
@@ -302,12 +337,12 @@ public final class TestConstants {
         }
     }
 
-    private static <K, V> Map.Entry<K, V> entry(K interval, V count) {
+    private static <K, V> Map.Entry<K, V> entry(final K interval, final V count) {
         return new AbstractMap.SimpleImmutableEntry<>(interval, count);
     }
 
     @SafeVarargs
-    private static <K, V> Map<K, V> asMap(Map.Entry<K, V>... entries) {
+    private static <K, V> Map<K, V> asMap(final Map.Entry<K, V>... entries) {
         return Stream.of(entries).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
@@ -383,6 +418,7 @@ public final class TestConstants {
 
     public static Connection createConnection(final String connectionId, final ActorSystem actorSystem,
             final List<Source> sources) {
+
         return createConnection(connectionId, actorSystem, STATUS, sources);
     }
 
@@ -396,6 +432,7 @@ public final class TestConstants {
 
     public static Connection createConnection(final String connectionId, final ActorSystem actorSystem,
             final Target... targets) {
+
         return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, STATUS, getUriOfNewMockServer())
                 .sources(Sources.SOURCES_WITH_AUTH_CONTEXT)
                 .targets(asSet(targets))
@@ -413,26 +450,26 @@ public final class TestConstants {
                 mockClientActorPropsFactory);
     }
 
-    static ActorRef createConnectionSupervisorActor(final String connectionId, final ActorSystem actorSystem,
-            final ActorRef pubSubMediator, final ActorRef conciergeForwarder,
+    static ActorRef createConnectionSupervisorActor(final String connectionId,
+            final ActorSystem actorSystem,
+            final ActorRef pubSubMediator,
+            final ActorRef conciergeForwarder,
             final ClientActorPropsFactory clientActorPropsFactory) {
-        final Duration minBackoff = Duration.ofSeconds(1);
-        final Duration maxBackoff = Duration.ofSeconds(5);
-        final Double randomFactor = 1.0;
-        final Props props = ConnectionSupervisorActor.props(minBackoff, maxBackoff, randomFactor, pubSubMediator,
-                conciergeForwarder, clientActorPropsFactory, null);
 
-        final int maxAttemps = 5;
-        final long backoffMs = 1000L;
+        final Props props = ConnectionSupervisorActor.props(CONNECTION_CONFIG, pubSubMediator, conciergeForwarder,
+                clientActorPropsFactory, null);
+
+        final int maxAttempts = 5;
+        final long backOffMs = 1000L;
 
         for (int attempt = 1; ; ++attempt) {
             try {
                 return actorSystem.actorOf(props, connectionId);
             } catch (final InvalidActorNameException invalidActorNameException) {
-                if (attempt >= maxAttemps) {
+                if (attempt >= maxAttempts) {
                     throw invalidActorNameException;
                 } else {
-                    backOff(backoffMs);
+                    backOff(backOffMs);
                 }
             }
         }
@@ -481,7 +518,7 @@ public final class TestConstants {
         return new AbstractMap.SimpleImmutableEntry<>(key, value);
     }
 
-    public static class ConciergeForwarderActorMock extends AbstractActor {
+    public static final class ConciergeForwarderActorMock extends AbstractActor {
 
         private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -499,5 +536,7 @@ public final class TestConstants {
                     .matchAny(o -> log.info("Received: ''{}'' from ''{}''", o, getSender()))
                     .build();
         }
+
     }
+
 }

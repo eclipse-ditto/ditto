@@ -8,8 +8,9 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.util;
+package org.eclipse.ditto.services.connectivity.messaging.config;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -20,12 +21,14 @@ import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import com.typesafe.config.Config;
 
 /**
- * TODO
+ * This class is the default implementation of the snapshotting behaviour config.
  */
 @Immutable
-public final class DefaultSnapshotConfig implements ConnectivityConfig.ConnectionConfig.SnapshotConfig {
+public final class DefaultSnapshotConfig implements ConnectionConfig.SnapshotConfig, Serializable {
 
     private static final String CONFIG_PATH = "snapshot";
+
+    private static final long serialVersionUID = 3678342704983434382L;
 
     private final int threshold;
 
@@ -34,9 +37,9 @@ public final class DefaultSnapshotConfig implements ConnectivityConfig.Connectio
     }
 
     /**
-     * TODO
+     * Returns an instance of {@code DefaultSnapshotConfig} based on the settings of the specified Config.
      *
-     * @param config
+     * @param config is supposed to provide the settings of the JavaScript mapping config at {@value #CONFIG_PATH}.
      * @return the instance.
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */

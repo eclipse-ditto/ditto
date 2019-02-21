@@ -8,8 +8,9 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.util;
+package org.eclipse.ditto.services.connectivity.mapping.javascript;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -21,12 +22,14 @@ import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import com.typesafe.config.Config;
 
 /**
- * TODO
+ * This class is the default implementation of the JavaScript mapping config.
  */
 @Immutable
-public final class DefaultJavaScriptConfig implements ConnectivityConfig.MappingConfig.JavaScriptConfig {
+public final class DefaultJavaScriptConfig implements JavaScriptConfig, Serializable {
 
     private static final String CONFIG_PATH = "javascript";
+
+    private static final long serialVersionUID = 8391268506225245206L;
 
     private final int maxScriptSizeBytes;
     private final Duration maxScriptExecutionTime;
@@ -39,9 +42,9 @@ public final class DefaultJavaScriptConfig implements ConnectivityConfig.Mapping
     }
 
     /**
-     * TODO
+     * Returns an instance of {@code DefaultJavaScriptConfig} based on the settings of the specified Config.
      *
-     * @param config
+     * @param config is supposed to provide the settings of the JavaScript mapping config at {@value #CONFIG_PATH}.
      * @return the instance.
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */

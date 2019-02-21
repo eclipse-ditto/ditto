@@ -20,17 +20,18 @@ import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedExce
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
+import org.eclipse.ditto.services.connectivity.mapping.DefaultMappingConfig;
+import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.junit.Test;
 
-import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 /**
  * Tests the {@link JavaScriptMessageMapperRhino} sandboxing capabilities by trying to exploit CPU time, exiting, etc.
  */
-public class JavaScriptMessageMapperRhinoSandboxingTest {
+public final class JavaScriptMessageMapperRhinoSandboxingTest {
 
     @Test
     public void ensureExitForbidden() {
@@ -75,7 +76,6 @@ public class JavaScriptMessageMapperRhinoSandboxingTest {
 
     @Test
     public void ensureTooBigMappingScriptIsNotLoaded() {
-
         final StringBuilder stringBuilder = new StringBuilder();
         for (int i = 0; i < 100_000; i++) {
             stringBuilder
@@ -89,14 +89,15 @@ public class JavaScriptMessageMapperRhinoSandboxingTest {
         );
     }
 
-
-    private MessageMapper createMapper(final String maliciousStuff) {
+    private static MessageMapper createMapper(final String maliciousStuff) {
         final MessageMapper mapper = MessageMappers.createJavaScriptMessageMapper();
-        final Config mappingConfig = ConfigFactory.parseString("javascript {\n" +
-                "        maxScriptSizeBytes = 50000 # 50kB\n" +
-                "        maxScriptExecutionTime = 500ms\n" +
-                "        maxScriptStackDepth = 10\n" +
-                "      }");
+        final MappingConfig mappingConfig =
+                DefaultMappingConfig.of(ConfigFactory.parseString("javascript {\n" +
+                        "        maxScriptSizeBytes = 50000 # 50kB\n" +
+                        "        maxScriptExecutionTime = 500ms\n" +
+                        "        maxScriptStackDepth = 10\n" +
+                        "      }"));
+
         mapper.configure(mappingConfig,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder(Collections.emptyMap())
@@ -108,7 +109,7 @@ public class JavaScriptMessageMapperRhinoSandboxingTest {
         return mapper;
     }
 
-    private ExternalMessage createMessage() {
+    private static ExternalMessage createMessage() {
         final String correlationId = UUID.randomUUID().toString();
         final Map<String, String> headers = new HashMap<>();
         headers.put("correlation-id", correlationId);
@@ -144,4 +145,5 @@ public class JavaScriptMessageMapperRhinoSandboxingTest {
                 "    );\n" +
                 "}";
     }
+
 }

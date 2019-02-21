@@ -36,7 +36,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
-import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
@@ -74,14 +73,13 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Tests {@link MessageMappingProcessorActor}.
  */
-public class MessageMappingProcessorActorTest {
+public final class MessageMappingProcessorActorTest {
 
     private static final String CONNECTION_ID = "testConnection";
 
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
 
     private static ActorSystem actorSystem;
-
 
     @BeforeClass
     public static void setUp() {
@@ -110,7 +108,7 @@ public class MessageMappingProcessorActorTest {
             final String addressWithSomeOtherPlaceholder = prefix + "{{ eclipse:ditto }}";
             final String expectedTargetAddress = prefix + subject;
             final String fixedAddress = "fixedAddress";
-            final Command command = createSendMessageCommand(subject);
+            final Command command = createSendMessageCommand();
 
             final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(getRef());
             final OutboundSignal outboundSignal =
@@ -131,7 +129,7 @@ public class MessageMappingProcessorActorTest {
         }};
     }
 
-    private Target newTarget(final String address, final String originalAddress) {
+    private static Target newTarget(final String address, final String originalAddress) {
         return ConnectivityModelFactory
                 .newTargetBuilder()
                 .address(address)
@@ -166,6 +164,7 @@ public class MessageMappingProcessorActorTest {
 
     private void testExternalMessageInDittoProtocolIsProcessed(@Nullable final EnforcementFilter<String> enforcement,
             final boolean expectSuccess) {
+
         new TestKit(actorSystem) {{
             final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(getRef());
             final ModifyAttribute modifyCommand = createModifyAttributeCommand();
@@ -239,9 +238,11 @@ public class MessageMappingProcessorActorTest {
                 });
     }
 
-    private <T> void testMessageMapping(final String correlationId, final AuthorizationContext context,
+    private <T> void testMessageMapping(final String correlationId,
+            final AuthorizationContext context,
             final Class<T> expectedMessageClass,
             final Consumer<T> verifyReceivedMessage) {
+
         new TestKit(actorSystem) {{
 
             final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(getRef());
@@ -310,21 +311,19 @@ public class MessageMappingProcessorActorTest {
         };
     }
 
-    private ActorRef createMessageMappingProcessorActor(final ActorRef publisherActor) {
-        final Props props = MessageMappingProcessorActor.props(
-                publisherActor,
-                publisherActor,
-                getMessageMappingProcessor(null),
-                CONNECTION_ID);
+    private static ActorRef createMessageMappingProcessorActor(final ActorRef publisherActor) {
+        final Props props =
+                MessageMappingProcessorActor.props(publisherActor, publisherActor, getMessageMappingProcessor(),
+                        CONNECTION_ID);
         return actorSystem.actorOf(props);
     }
 
-    private MessageMappingProcessor getMessageMappingProcessor(@Nullable final MappingContext mappingContext) {
-        return MessageMappingProcessor.of(CONNECTION_ID, mappingContext, actorSystem,
+    private static MessageMappingProcessor getMessageMappingProcessor() {
+        return MessageMappingProcessor.of(CONNECTION_ID, null, actorSystem, TestConstants.MAPPING_CONFIG,
                 Mockito.mock(DiagnosticLoggingAdapter.class));
     }
 
-    private ModifyAttribute createModifyAttributeCommand() {
+    private static ModifyAttribute createModifyAttributeCommand() {
         final Map<String, String> headers = new HashMap<>();
         final String correlationId = UUID.randomUUID().toString();
         headers.put("correlation-id", correlationId);
@@ -332,21 +331,16 @@ public class MessageMappingProcessorActorTest {
         return ModifyAttribute.of("my:thing", JsonPointer.of("foo"), JsonValue.of(42), DittoHeaders.of(headers));
     }
 
-    private SendThingMessage<Object> createSendMessageCommand(final String subject) {
-        final Map<String, String> headers = new HashMap<>();
-        final String correlationId = UUID.randomUUID().toString();
-        headers.put("correlation-id", correlationId);
-        headers.put("content-type", "application/json");
-
+    private static SendThingMessage<Object> createSendMessageCommand() {
         final MessageHeaders messageHeaders =
-                MessageHeadersBuilder.newInstance(MessageDirection.TO, TestConstants.Things.THING_ID, subject)
+                MessageHeadersBuilder.newInstance(MessageDirection.TO, TestConstants.Things.THING_ID, "some-subject")
                         .build();
 
         return SendThingMessage.of(TestConstants.Things.THING_ID,
                 Message.newBuilder(messageHeaders).payload("payload").build(), DittoHeaders.empty());
     }
 
-    private static class TestPlaceholder implements Placeholder<String> {
+    private static final class TestPlaceholder implements Placeholder<String> {
 
         @Override
         public String getPrefix() {
@@ -367,5 +361,7 @@ public class MessageMappingProcessorActorTest {
         public Optional<String> apply(final String source, final String name) {
             return Optional.of(source);
         }
+
     }
+
 }

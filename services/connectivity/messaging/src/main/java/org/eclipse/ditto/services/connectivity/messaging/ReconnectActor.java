@@ -17,13 +17,11 @@ import java.util.function.Supplier;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
+import org.eclipse.ditto.services.connectivity.messaging.config.ReconnectConfig;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
-
-import com.typesafe.config.Config;
 
 import akka.NotUsed;
 import akka.actor.AbstractActor;
@@ -54,27 +52,20 @@ public final class ReconnectActor extends AbstractActor {
     private final ActorMaterializer materializer;
     private final ActorRef connectionShardRegion;
     private final Supplier<Source<String, NotUsed>> currentPersistenceIdsSourceSupplier;
-
-    private final Duration reconnectInitialDelay;
-    private final Duration reconnectInterval;
-    private final Duration reconnectRateFrequency;
-    private final int reconnectRateEntities;
+    private final ReconnectConfig reconnectConfig;
 
     private Cancellable reconnectCheck;
     private boolean reconnectInProgress = false;
 
     private ReconnectActor(final ActorRef connectionShardRegion,
-            final Supplier<Source<String, NotUsed>> currentPersistenceIdsSourceSupplier) {
+            final Supplier<Source<String, NotUsed>> currentPersistenceIdsSourceSupplier,
+            final ReconnectConfig theReconnectConfig) {
+
         this.connectionShardRegion = connectionShardRegion;
         this.currentPersistenceIdsSourceSupplier = currentPersistenceIdsSourceSupplier;
+        reconnectConfig = theReconnectConfig;
 
-        final Config config = getContext().system().settings().config();
         materializer = ActorMaterializer.create(getContext().getSystem());
-
-        reconnectInitialDelay = config.getDuration(ConfigKeys.Reconnect.RECONNECT_INITIAL_DELAY);
-        reconnectInterval = config.getDuration(ConfigKeys.Reconnect.RECONNECT_INTERVAL);
-        reconnectRateFrequency = config.getDuration(ConfigKeys.Reconnect.RECONNECT_RATE_FREQUENCY);
-        reconnectRateEntities = config.getInt(ConfigKeys.Reconnect.RECONNECT_RATE_ENTITIES);
     }
 
     /**
@@ -82,23 +73,39 @@ public final class ReconnectActor extends AbstractActor {
      *
      * @param connectionShardRegion the shard region of connections.
      * @param currentPersistenceIdsSourceSupplier supplier of persistence id sources
+     * @param reconnectConfig the config for the reconnect behaviour.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef connectionShardRegion,
-            final Supplier<Source<String, NotUsed>> currentPersistenceIdsSourceSupplier) {
-        return Props.create(ReconnectActor.class, connectionShardRegion, currentPersistenceIdsSourceSupplier);
+            final Supplier<Source<String, NotUsed>> currentPersistenceIdsSourceSupplier,
+            final ReconnectConfig reconnectConfig) {
+
+        return Props.create(ReconnectActor.class, connectionShardRegion, currentPersistenceIdsSourceSupplier,
+                reconnectConfig);
     }
 
     private Cancellable scheduleReconnect() {
-        final FiniteDuration initialDelay =
-                FiniteDuration.apply(reconnectInitialDelay.toMillis(), TimeUnit.MILLISECONDS);
-        final FiniteDuration interval = FiniteDuration.apply(reconnectInterval.toMillis(), TimeUnit.MILLISECONDS);
+        final FiniteDuration initialDelay = getInitialDelay();
+        final FiniteDuration interval = getInterval();
+        final ActorContext context = getContext();
         final ReconnectMessages message = ReconnectMessages.START_RECONNECT;
-        log.info("Scheduling reconnect for all connections with initial delay {} and interval {}.",
-                reconnectInitialDelay, reconnectInterval);
-        return getContext().getSystem()
+
+        log.info("Scheduling reconnect for all connections with initial delay <{}> and interval <{}>.", initialDelay,
+                interval);
+
+        return context.getSystem()
                 .scheduler()
-                .schedule(initialDelay, interval, getSelf(), message, getContext().dispatcher(), ActorRef.noSender());
+                .schedule(initialDelay, interval, getSelf(), message, context.dispatcher(), ActorRef.noSender());
+    }
+
+    private FiniteDuration getInitialDelay() {
+        final Duration initialDelay = reconnectConfig.getInitialDelay();
+        return FiniteDuration.apply(initialDelay.toMillis(), TimeUnit.MILLISECONDS);
+    }
+
+    private FiniteDuration getInterval() {
+        final Duration interval = reconnectConfig.getInterval();
+        return FiniteDuration.apply(interval.toMillis(), TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -119,10 +126,10 @@ public final class ReconnectActor extends AbstractActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(RetrieveConnectionStatusResponse.class,
-                        command -> log.debug("Retrieved connection status response for connection {} with status: {}",
+                        command -> log.debug("Retrieved connection status response for connection <{}> with status: {}",
                                 command.getConnectionId(), command.getConnectionStatus()))
                 .match(ConnectionNotAccessibleException.class,
-                        exception -> log.debug("Received ConnectionNotAccessibleException for connection {} " +
+                        exception -> log.debug("Received ConnectionNotAccessibleException for connection <{}> " +
                                         "(most likely, the connection was deleted): {}",
                                 exception.getDittoHeaders().getCorrelationId().orElse("<unknown>"),
                                 exception.getMessage()))
@@ -141,16 +148,17 @@ public final class ReconnectActor extends AbstractActor {
 
     private void handleStartReconnect() {
         if (reconnectInProgress) {
-            log.info("Another reconnect iteration is currently in progress. Next iteration will be started after {}.",
-                    reconnectInterval);
+            log.info("Another reconnect iteration is currently in progress. Next iteration will be started after <{}>.",
+                    reconnectConfig.getInterval());
         } else {
-            log.info("Sending reconnects for Connections. Will be sent again after the configured Interval of {}.",
-                    reconnectInterval);
+            log.info("Sending reconnects for Connections. Will be sent again after the configured interval of <{}>.",
+                    reconnectConfig.getInterval());
             reconnectInProgress = true;
             final Source<String, NotUsed> currentPersistenceIdsSource = currentPersistenceIdsSourceSupplier.get();
             if (currentPersistenceIdsSource != null) {
+                final ReconnectConfig.RateConfig rateConfig = reconnectConfig.getRateConfig();
                 currentPersistenceIdsSource
-                        .throttle(reconnectRateEntities, reconnectRateFrequency)
+                        .throttle(rateConfig.getEntityAmount(), rateConfig.getFrequency())
                         .runForeach(this::reconnect, materializer)
                         .thenRun(() -> {
                             log.info("Sending reconnects completed.");
@@ -177,10 +185,10 @@ public final class ReconnectActor extends AbstractActor {
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                     .correlationId(toCorrelationId(connectionId))
                     .build();
-            log.debug("Sending a reconnect for Connection {}", connectionId);
+            log.debug("Sending a reconnect for Connection <{}>.", connectionId);
             connectionShardRegion.tell(RetrieveConnectionStatus.of(connectionId, dittoHeaders), getSelf());
         } else {
-            log.debug("Unknown persistence id '{}', ignoring.", persistenceId);
+            log.debug("Unknown persistence id <{}>, ignoring.", persistenceId);
         }
     }
 

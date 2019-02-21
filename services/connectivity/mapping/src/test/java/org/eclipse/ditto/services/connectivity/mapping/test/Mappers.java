@@ -22,7 +22,7 @@ import akka.actor.ExtendedActorSystem;
 
 /**
  * Mock factory to create test mappers.
- * Used via dynamic access in {@link org.eclipse.ditto.services.connectivity.mapping.MessageMapperFactoryTest}.
+ * Used via dynamic access in {@link org.eclipse.ditto.services.connectivity.mapping.DefaultMessageMapperFactoryTest}.
  */
 @SuppressWarnings("unused")
 public final class Mappers implements MessageMapperInstantiation {

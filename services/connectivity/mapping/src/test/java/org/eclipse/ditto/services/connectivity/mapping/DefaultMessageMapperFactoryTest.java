@@ -11,14 +11,11 @@
 package org.eclipse.ditto.services.connectivity.mapping;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
-import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.services.connectivity.mapping.test.MappingContexts;
@@ -28,6 +25,9 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -36,38 +36,46 @@ import akka.actor.ActorSystem;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.testkit.javadsl.TestKit;
 
-public final class MessageMapperFactoryTest {
+/**
+ * Unit test for {@link DefaultMessageMapperFactory}.
+ */
+@RunWith(MockitoJUnitRunner.class)
+public final class DefaultMessageMapperFactoryTest {
 
-    private final static Config TEST_CONFIG = ConfigFactory.parseString("ditto.connectivity.mapping{" +
-            "  factory = org.eclipse.ditto.services.connectivity.mapping.test.Mappers" +
-            "}");
+    private static final String KNOWN_FACTORY_NAME = "org.eclipse.ditto.services.connectivity.mapping.test.Mappers";
 
+    private static MappingConfig mappingConfig;
     private static ActorSystem system;
 
-    private DefaultMessageMapperFactory factory;
+    @Mock
+    private DiagnosticLoggingAdapter log;
+
+    private DefaultMessageMapperFactory underTest;
 
     @BeforeClass
-    public static void setup() {
-        system = ActorSystem.create("test", TEST_CONFIG);
+    public static void initTestFixture() {
+        final Config testConfig = ConfigFactory.parseMap(
+                Collections.singletonMap("ditto.connectivity.mapping.factory", KNOWN_FACTORY_NAME));
+        mappingConfig = DefaultMappingConfig.of(testConfig.getConfig("ditto.connectivity"));
+
+        system = ActorSystem.create("test", testConfig);
     }
 
     @AfterClass
-    public static void teardown() {
+    public static void shutDownActorSystem() {
         TestKit.shutdownActorSystem(system);
         system = null;
     }
 
     @Before
     public void setUp() {
-        final DiagnosticLoggingAdapter log = mock(DiagnosticLoggingAdapter.class);
-        factory = DefaultMessageMapperFactory.of("connectionId", system, log);
+        underTest = DefaultMessageMapperFactory.of("connectionId", system, mappingConfig, log);
     }
 
     @After
     public void tearDown() {
-        factory = null;
+        underTest = null;
     }
-
 
     @Test
     public void loadMapperFromFactoryMethod() {
@@ -78,24 +86,21 @@ public final class MessageMapperFactoryTest {
         // looking for a method containing 'test' and returning a MessageMapper in Mappers.class
         final MappingContext ctx = MappingContexts.mock("test", options);
 
-        final Optional<MessageMapper> underTest = factory.mapperOf(ctx);
-        Assertions.assertThat(underTest).isPresent();
+        assertThat(underTest.mapperOf(ctx)).isPresent();
     }
 
     @Test
     public void loadMapperFromClass() {
         final MappingContext ctx = MappingContexts.mock(true);
 
-        final Optional<MessageMapper> underTest = factory.mapperOf(ctx);
-        Assertions.assertThat(underTest).isPresent();
+        assertThat(underTest.mapperOf(ctx)).isPresent();
     }
 
     @Test
     public void loadMissingMapper() {
-        final MappingContext ctx = MappingContexts.mock("not-a-class",
-                Collections.emptyMap());
+        final MappingContext ctx = MappingContexts.mock("not-a-class", Collections.emptyMap());
 
-        assertThat(factory.mapperOf(ctx)).isEmpty();
+        assertThat(underTest.mapperOf(ctx)).isEmpty();
     }
 
     @Test
@@ -103,14 +108,14 @@ public final class MessageMapperFactoryTest {
         final MappingContext ctx = MappingContexts.mock(String.class.getCanonicalName(),
                 Collections.emptyMap());
 
-        assertThat(factory.mapperOf(ctx)).isEmpty();
+        assertThat(underTest.mapperOf(ctx)).isEmpty();
     }
 
     @Test
     public void createWithFactoryMethod() {
         // looking for a method containing 'test' and returning a MessageMapper in Mappers.class
         final MappingContext ctx = MappingContexts.mock("test", Collections.emptyMap());
-        assertThat(factory.createMessageMapperInstance(ctx)).isPresent();
+        assertThat(underTest.createMessageMapperInstance(ctx)).isPresent();
     }
 
     @Test
@@ -120,7 +125,7 @@ public final class MessageMapperFactoryTest {
         final MappingContext ctx = MappingContexts.mock("strong-smell-wasabi",
                 Collections.emptyMap());
 
-        assertThat(factory.createMessageMapperInstance(ctx)).isEmpty();
+        assertThat(underTest.createMessageMapperInstance(ctx)).isEmpty();
     }
 
     @Test
@@ -128,14 +133,14 @@ public final class MessageMapperFactoryTest {
         // MockMapper extends MessageMapper and can be loaded
         final MappingContext ctx = MappingContexts.mock(MockMapper.class, Collections.emptyMap());
 
-        assertThat(factory.createMessageMapperInstance(ctx)).isPresent();
+        assertThat(underTest.createMessageMapperInstance(ctx)).isPresent();
     }
 
     @Test
     public void createWithClassNameFindsNoClass() {
         final MappingContext ctx = MappingContexts.mock("not-a-class", Collections.emptyMap());
 
-        assertThat(factory.createMessageMapperInstance(ctx)).isEmpty();
+        assertThat(underTest.createMessageMapperInstance(ctx)).isEmpty();
     }
 
     @Test
@@ -143,13 +148,13 @@ public final class MessageMapperFactoryTest {
         // load string as a MessageMapper -> should fail
         final MappingContext ctx = MappingContexts.mock(String.class.getCanonicalName(), Collections.emptyMap());
 
-        assertThat(factory.createMessageMapperInstance(ctx)).isEmpty();
+        assertThat(underTest.createMessageMapperInstance(ctx)).isEmpty();
     }
 
     @Test
     public void loadMapperWithInvalidConfig() {
         final MappingContext ctx = MappingContexts.mock(false);
-        assertThat(factory.mapperOf(ctx)).isEmpty();
+        assertThat(underTest.mapperOf(ctx)).isEmpty();
     }
 
     @Test
@@ -158,14 +163,14 @@ public final class MessageMapperFactoryTest {
 
         final MappingContext ctx =
                 ConnectivityModelFactory.newMappingContext(MockMapper.class.getCanonicalName(), opts);
-        assertThat(factory.mapperOf(ctx)).isEmpty();
+        assertThat(underTest.mapperOf(ctx)).isEmpty();
     }
 
     @Test
     public void loadRegistry() {
         final MappingContext fooCtx = MappingContexts.mock(true);
 
-        final MessageMapperRegistry underTest = factory.registryOf(DittoMessageMapper.CONTEXT, fooCtx);
+        final MessageMapperRegistry underTest = this.underTest.registryOf(DittoMessageMapper.CONTEXT, fooCtx);
         assertThat(underTest.getMapper().get().getClass()).isEqualTo(WrappingMessageMapper.class);
         assertThat(((WrappingMessageMapper) underTest.getMapper().get()).getDelegate().getClass()).isEqualTo(
                 MockMapper.class);

@@ -8,8 +8,9 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.util;
+package org.eclipse.ditto.services.connectivity.messaging.config;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -21,12 +22,14 @@ import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import com.typesafe.config.Config;
 
 /**
- * TODO
+ * This class is the default implementation of the config for for throttling the recovery of connections.
  */
 @Immutable
-public final class DefaultRateConfig implements ConnectivityConfig.ReconnectConfig.RateConfig {
+public final class DefaultRateConfig implements ReconnectConfig.RateConfig, Serializable {
 
     private static final String CONFIG_PATH = "rate";
+
+    private static final long serialVersionUID = 3239063756878906335L;
 
     private final Duration frequency;
     private final int entityAmount;
@@ -37,9 +40,9 @@ public final class DefaultRateConfig implements ConnectivityConfig.ReconnectConf
     }
 
     /**
-     * TODO
+     * Returns an instance of {@code DefaultRateConfig} based on the settings of the specified Config.
      *
-     * @param config
+     * @param config is supposed to provide the settings of the JavaScript mapping config at {@value #CONFIG_PATH}.
      * @return the instance.
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */

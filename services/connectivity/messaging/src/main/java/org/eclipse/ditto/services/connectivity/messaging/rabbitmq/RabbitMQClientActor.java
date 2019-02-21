@@ -32,9 +32,11 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
+import org.eclipse.ditto.services.connectivity.messaging.config.ClientConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
@@ -76,11 +78,11 @@ public final class RabbitMQClientActor extends BaseClientActor {
     private static final String CONSUMER_ACTOR_PREFIX = "consumer-";
 
     private final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory;
-    @Nullable private ActorRef rmqConnectionActor;
-    @Nullable private ActorRef rmqPublisherActor;
-
     private final Map<String, String> consumedTagsToAddresses;
     private final Map<String, ActorRef> consumerByAddressWithIndex;
+
+    @Nullable private ActorRef rmqConnectionActor;
+    @Nullable private ActorRef rmqPublisherActor;
 
     /*
      * This constructor is called via reflection by the static method propsForTest.
@@ -88,37 +90,51 @@ public final class RabbitMQClientActor extends BaseClientActor {
     @SuppressWarnings("unused")
     private RabbitMQClientActor(final Connection connection,
             final ConnectivityStatus connectionStatus,
+            final ClientConfig clientConfig,
+            final MappingConfig mappingConfig,
             final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory,
             final ActorRef conciergeForwarder) {
 
-        super(connection, connectionStatus, conciergeForwarder);
+        super(connection, connectionStatus, clientConfig, mappingConfig, conciergeForwarder);
 
         this.rabbitConnectionFactoryFactory = rabbitConnectionFactoryFactory;
         consumedTagsToAddresses = new HashMap<>();
         consumerByAddressWithIndex = new HashMap<>();
+
+        rmqConnectionActor = null;
+        rmqPublisherActor = null;
     }
 
     /*
      * This constructor is called via reflection by the static method props(Connection, ActorRef).
      */
     @SuppressWarnings("unused")
-    private RabbitMQClientActor(final Connection connection, final ConnectivityStatus connectionStatus,
+    private RabbitMQClientActor(final Connection connection,
+            final ConnectivityStatus connectionStatus,
+            final ClientConfig clientConfig,
+            final MappingConfig mappingConfig,
             final ActorRef conciergeForwarder) {
 
-        this(connection, connectionStatus, ConnectionBasedRabbitConnectionFactoryFactory.getInstance(),
-                conciergeForwarder);
+        this(connection, connectionStatus, clientConfig, mappingConfig,
+                ConnectionBasedRabbitConnectionFactoryFactory.getInstance(), conciergeForwarder);
     }
 
     /**
      * Creates Akka configuration object for this actor.
      *
      * @param connection the connection.
+     * @param clientConfig the client config.
+     * @param mappingConfig the mapping config,
      * @param conciergeForwarder the actor used to send signals to the concierge service.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, final ActorRef conciergeForwarder) {
+    public static Props props(final Connection connection,
+            final ClientConfig clientConfig,
+            final MappingConfig mappingConfig,
+            final ActorRef conciergeForwarder) {
+
         return Props.create(RabbitMQClientActor.class, validateConnection(connection), connection.getConnectionStatus(),
-                conciergeForwarder);
+                clientConfig, mappingConfig, conciergeForwarder);
     }
 
     /**
@@ -126,17 +142,21 @@ public final class RabbitMQClientActor extends BaseClientActor {
      *
      * @param connection the connection.
      * @param connectionStatus the desired status of the.
+     * @param clientConfig the client config.
+     * @param mappingConfig the mapping config.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
      * @param rabbitConnectionFactoryFactory the ConnectionFactory Factory to use.
      * @return the Akka configuration Props object.
      */
     static Props propsForTests(final Connection connection,
             final ConnectivityStatus connectionStatus,
+            final ClientConfig clientConfig,
+            final MappingConfig mappingConfig,
             final ActorRef conciergeForwarder,
             final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
 
         return Props.create(RabbitMQClientActor.class, validateConnection(connection), connectionStatus,
-                rabbitConnectionFactoryFactory, conciergeForwarder);
+                clientConfig, mappingConfig, rabbitConnectionFactoryFactory, conciergeForwarder);
     }
 
     private static Connection validateConnection(final Connection connection) {
@@ -150,15 +170,13 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
     @Override
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectedState() {
-        return super.inConnectedState()
-                .event(ClientConnected.class, BaseClientData.class,
-                        (event, data) -> {
-                            // when connection is lost, the library (ChannelActor) will automatically reconnect
-                            // without the state of this actor changing. But we will receive a new ClientConnected message
-                            // that we can use to bind our consumers to the channels.
-                            this.allocateResourcesOnConnection(event);
-                            return stay();
-                        });
+        return super.inConnectedState().event(ClientConnected.class, BaseClientData.class, (event, data) -> {
+            // when connection is lost, the library (ChannelActor) will automatically reconnect
+            // without the state of this actor changing. But we will receive a new ClientConnected message
+            // that we can use to bind our consumers to the channels.
+            allocateResourcesOnConnection(event);
+            return stay();
+        });
     }
 
     @Override
@@ -171,7 +189,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
         final boolean consuming = isConsuming();
         final ActorRef self = getSelf();
         connect(connection, FiniteDuration.create(CONNECTING_TIMEOUT, TimeUnit.SECONDS))
-                .thenAccept(status -> createConsumerChannelAndNotifySelf(status, consuming, rmqConnectionActor, self));
+                .thenAccept(status -> createConsumerChannelAndNotifySelf(status, consuming, self));
     }
 
     @Override
@@ -252,7 +270,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         });
 
                 rmqConnectionActor = startChildActorConflictFree(RMQ_CONNECTION_ACTOR_NAME, props);
-                rmqPublisherActor = startRmqPublisherActor().orElse(null);
+                rmqPublisherActor = startRmqPublisherActor();
 
                 // create publisher channel
                 final ActorRef finalRmqPublisherActor = rmqPublisherActor;
@@ -295,11 +313,10 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
     }
 
-    private static void createConsumerChannelAndNotifySelf(final Status.Status status,
-            final boolean consuming,
-            @Nullable final ActorRef rmqConnectionActor,
+    private void createConsumerChannelAndNotifySelf(final Status.Status status, final boolean consuming,
             final ActorRef self) {
-        if (consuming && status instanceof Status.Success && rmqConnectionActor != null) {
+
+        if (consuming && status instanceof Status.Success && null != rmqConnectionActor) {
             // send self the created channel
             final CreateChannel createChannel =
                     CreateChannel.apply(ChannelActor.props(SendChannel.to(self)::apply),
@@ -312,15 +329,15 @@ public final class RabbitMQClientActor extends BaseClientActor {
         }
     }
 
-    private Optional<ActorRef> startRmqPublisherActor() {
+    @Nullable
+    private ActorRef startRmqPublisherActor() {
         if (isPublishing()) {
-            return Optional.of(getContext().findChild(RabbitMQPublisherActor.ACTOR_NAME).orElseGet(() -> {
+            return getContext().findChild(RabbitMQPublisherActor.ACTOR_NAME).orElseGet(() -> {
                 final Props publisherProps = RabbitMQPublisherActor.props(connectionId(), getTargetsOrEmptySet());
                 return startChildActorConflictFree(RabbitMQPublisherActor.ACTOR_NAME, publisherProps);
-            }));
-        } else {
-            return Optional.empty();
+            });
         }
+        return null;
     }
 
     private void stopCommandPublisher() {
