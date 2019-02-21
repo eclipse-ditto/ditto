@@ -46,12 +46,11 @@ public final class DittoConciergeConfig implements ConciergeConfig, Serializable
     }
 
     /**
-     * Returns an instance of {@code DittoConciergeEnforcementConfig} based on the settings of the specified Config.
+     * Returns an instance of {@code DittoConciergeConfig} based on the settings of the specified Config.
      *
      * @param config is supposed to provide the settings of the Concierge service config at {@value #CONFIG_PATH}.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} did not contain a nested
-     * Config at path {@value #CONFIG_PATH}.
+     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DittoConciergeConfig of(final ScopedConfig config) {
         final DittoServiceWithMongoDbConfig dittoServiceConfig = DittoServiceWithMongoDbConfig.of(config, CONFIG_PATH);
