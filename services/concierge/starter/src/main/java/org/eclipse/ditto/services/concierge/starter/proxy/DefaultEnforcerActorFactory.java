@@ -28,17 +28,19 @@ import org.eclipse.ditto.services.concierge.cache.AclEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.CacheFactory;
 import org.eclipse.ditto.services.concierge.cache.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.ThingEnforcementIdCacheLoader;
+import org.eclipse.ditto.services.concierge.cache.config.CachesConfig;
 import org.eclipse.ditto.services.concierge.cache.update.PolicyCacheUpdateActor;
 import org.eclipse.ditto.services.concierge.enforcement.EnforcementProvider;
 import org.eclipse.ditto.services.concierge.enforcement.EnforcerActorCreator;
 import org.eclipse.ditto.services.concierge.enforcement.LiveSignalEnforcement;
 import org.eclipse.ditto.services.concierge.enforcement.PolicyCommandEnforcement;
 import org.eclipse.ditto.services.concierge.enforcement.ThingCommandEnforcement;
+import org.eclipse.ditto.services.concierge.enforcement.config.EnforcementConfig;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.PlaceholderSubstitution;
 import org.eclipse.ditto.services.concierge.enforcement.validators.CommandWithOptionalEntityValidator;
 import org.eclipse.ditto.services.concierge.starter.actors.CachedNamespaceInvalidator;
 import org.eclipse.ditto.services.concierge.starter.actors.DispatcherActorCreator;
-import org.eclipse.ditto.services.concierge.util.config.ConciergeConfig;
+import org.eclipse.ditto.services.concierge.starter.config.ConciergeConfig;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
@@ -74,7 +76,7 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
     public ActorRef startEnforcerActor(final ActorContext context, final ConciergeConfig conciergeConfig,
             final ActorRef pubSubMediator) {
 
-        final ConciergeConfig.CachesConfig cachesConfig = conciergeConfig.getCachesConfig();
+        final CachesConfig cachesConfig = conciergeConfig.getCachesConfig();
         final Duration askTimeout = cachesConfig.getAskTimeout();
         final ActorSystem actorSystem = context.system();
 
@@ -120,7 +122,7 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
         enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache,
                 aclEnforcerCache));
 
-        final ConciergeConfig.EnforcementConfig enforcementConfig = conciergeConfig.getEnforcementConfig();
+        final EnforcementConfig enforcementConfig = conciergeConfig.getEnforcementConfig();
         final Duration enforcementAskTimeout = enforcementConfig.getAskTimeout();
         // set activity check interval identical to cache retention
         final Duration activityCheckInterval = cachesConfig.getIdCacheConfig().getExpireAfterWrite();

@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.concierge.util.config;
+package org.eclipse.ditto.services.concierge.enforcement.config;
 
 import java.io.Serializable;
 import java.time.Duration;
@@ -22,10 +22,10 @@ import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import com.typesafe.config.Config;
 
 /**
- * This class implements {@link ConciergeConfig.EnforcementConfig} for Ditto's Concierge service.
+ * This class implements {@link EnforcementConfig} for Ditto's Concierge service.
  */
 @Immutable
-public final class DefaultEnforcementConfig implements ConciergeConfig.EnforcementConfig, Serializable {
+public final class DefaultEnforcementConfig implements EnforcementConfig, Serializable {
 
     private static final String CONFIG_PATH = "enforcement";
 
@@ -38,7 +38,7 @@ public final class DefaultEnforcementConfig implements ConciergeConfig.Enforceme
     }
 
     /**
-     * Returns an instance of {@code DittoConciergeEnforcementConfig} based on the settings of the specified Config.
+     * Returns an instance of {@code DefaultEnforcementConfig} based on the settings of the specified Config.
      *
      * @param config is supposed to provide the settings of the enforcement config at {@value #CONFIG_PATH}.
      * @return the instance.

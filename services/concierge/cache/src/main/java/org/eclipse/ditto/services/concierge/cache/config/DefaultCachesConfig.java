@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.concierge.util.config;
+package org.eclipse.ditto.services.concierge.cache.config;
 
 import java.io.Serializable;
 import java.time.Duration;
@@ -22,10 +22,10 @@ import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import com.typesafe.config.Config;
 
 /**
- * This class implements {@link org.eclipse.ditto.services.concierge.util.config.ConciergeConfig.CachesConfig} for Ditto's Concierge service.
+ * This class implements {@link CachesConfig} for Ditto's Concierge service.
  */
 @Immutable
-public final class DefaultCachesConfig implements ConciergeConfig.CachesConfig, Serializable {
+public final class DefaultCachesConfig implements CachesConfig, Serializable {
 
     private static final long serialVersionUID = -3628650470707259581L;
 
@@ -42,7 +42,7 @@ public final class DefaultCachesConfig implements ConciergeConfig.CachesConfig, 
     }
 
     /**
-     * Returns an instance of {@code DittoConciergeCachesConfig} based on the settings of the specified Config.
+     * Returns an instance of {@code DefaultCachesConfig} based on the settings of the specified Config.
      *
      * @param config is supposed to provide the settings of the caches config at {@value #CONFIG_PATH}.
      * @return the instance.

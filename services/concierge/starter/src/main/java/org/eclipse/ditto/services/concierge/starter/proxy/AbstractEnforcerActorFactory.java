@@ -13,7 +13,7 @@ package org.eclipse.ditto.services.concierge.starter.proxy;
 import java.util.Optional;
 
 import org.eclipse.ditto.services.base.config.ServiceSpecificConfig;
-import org.eclipse.ditto.services.concierge.util.config.ConciergeConfig;
+import org.eclipse.ditto.services.concierge.starter.config.ConciergeConfig;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 

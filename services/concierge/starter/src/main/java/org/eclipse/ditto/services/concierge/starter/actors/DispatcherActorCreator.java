@@ -15,7 +15,7 @@ import static org.eclipse.ditto.services.models.thingsearch.ThingsSearchConstant
 
 import java.util.Objects;
 
-import org.eclipse.ditto.services.concierge.util.config.ConciergeConfig;
+import org.eclipse.ditto.services.concierge.starter.config.ConciergeConfig;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommand;
 import org.eclipse.ditto.services.utils.akka.controlflow.Consume;

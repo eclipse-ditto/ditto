@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.concierge.util.config;
+package org.eclipse.ditto.services.concierge.cache.config;
 
 import java.time.Duration;
 

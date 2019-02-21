@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.concierge.util.config;
+package org.eclipse.ditto.services.concierge.starter.config;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -16,6 +16,10 @@ import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.base.config.DittoServiceWithMongoDbConfig;
+import org.eclipse.ditto.services.concierge.cache.config.CachesConfig;
+import org.eclipse.ditto.services.concierge.cache.config.DefaultCachesConfig;
+import org.eclipse.ditto.services.concierge.enforcement.config.DefaultEnforcementConfig;
+import org.eclipse.ditto.services.concierge.enforcement.config.EnforcementConfig;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 

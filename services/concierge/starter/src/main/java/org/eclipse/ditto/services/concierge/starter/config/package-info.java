@@ -9,4 +9,4 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 @org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault
-package org.eclipse.ditto.services.concierge.util.config;
+package org.eclipse.ditto.services.concierge.starter.config;

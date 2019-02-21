@@ -16,7 +16,7 @@ import java.util.concurrent.Executor;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.concierge.util.config.CacheConfig;
+import org.eclipse.ditto.services.concierge.cache.config.CacheConfig;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 
@@ -24,7 +24,7 @@ import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
 /**
- * Creates a cache configured by a {@link CacheConfig}.
+ * Creates a cache configured by a {@link org.eclipse.ditto.services.concierge.cache.config.CacheConfig}.
  */
 @Immutable
 public final class CacheFactory {
@@ -36,7 +36,7 @@ public final class CacheFactory {
     /**
      * Creates a cache.
      *
-     * @param cacheConfig the {@link CacheConfig} which defines the cache's configuration.
+     * @param cacheConfig the {@link org.eclipse.ditto.services.concierge.cache.config.CacheConfig} which defines the cache's configuration.
      * @param cacheName the name of the cache. Used as metric label.
      * @param executor the executor to use in the cache.
      * @param <K> the type of the cache keys.

@@ -23,7 +23,8 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.concierge.util.config.ConciergeConfig;
+import org.eclipse.ditto.services.concierge.starter.config.ConciergeConfig;
+import org.eclipse.ditto.services.concierge.starter.config.ThingsAggregatorConfig;
 import org.eclipse.ditto.services.models.concierge.ConciergeWrapper;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
@@ -66,9 +67,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
     private final int maxParallelism;
     private final ActorMaterializer actorMaterializer;
 
-    private ThingsAggregatorActor(final ConciergeConfig.ThingsAggregatorConfig aggregatorConfig,
-            final ActorRef targetActor) {
-
+    private ThingsAggregatorActor(final ThingsAggregatorConfig aggregatorConfig, final ActorRef targetActor) {
         this.targetActor = targetActor;
         aggregatorDispatcher = getContext().system().dispatchers().lookup(AGGREGATOR_INTERNAL_DISPATCHER);
         retrieveSingleThingTimeout = aggregatorConfig.getSingleRetrieveThingTimeout();

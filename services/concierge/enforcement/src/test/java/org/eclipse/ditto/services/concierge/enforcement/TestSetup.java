@@ -34,8 +34,8 @@ import org.eclipse.ditto.services.base.DittoServiceTng;
 import org.eclipse.ditto.services.concierge.cache.AclEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.ThingEnforcementIdCacheLoader;
-import org.eclipse.ditto.services.concierge.util.config.ConciergeConfig;
-import org.eclipse.ditto.services.concierge.util.config.DittoConciergeConfig;
+import org.eclipse.ditto.services.concierge.cache.config.CachesConfig;
+import org.eclipse.ditto.services.concierge.cache.config.DefaultCachesConfig;
 import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.models.concierge.cache.Entry;
 import org.eclipse.ditto.services.utils.cache.Cache;
@@ -64,8 +64,16 @@ public final class TestSetup {
     public static final AuthorizationSubject SUBJECT = AuthorizationSubject.newInstance("dummy:subject");
 
     public static final Config RAW_CONFIG = ConfigFactory.load("test");
-    public static final ConciergeConfig CONFIG = DittoConciergeConfig.of(DefaultScopedConfig.newInstance(RAW_CONFIG,
-            DittoServiceTng.DITTO_CONFIG_PATH));
+    public static final CachesConfig CACHES_CONFIG;
+
+    static {
+        final DefaultScopedConfig dittoScopedConfig =
+                DefaultScopedConfig.newInstance(RAW_CONFIG, DittoServiceTng.DITTO_CONFIG_PATH);
+        final DefaultScopedConfig conciergeScopedConfig =
+                DefaultScopedConfig.newInstance(dittoScopedConfig, "concierge");
+
+        CACHES_CONFIG = DefaultCachesConfig.of(conciergeScopedConfig);
+    }
 
     public static ActorRef newEnforcerActor(final ActorSystem system, final ActorRef testActorRef,
             final ActorRef mockEntitiesActor) {
@@ -86,8 +94,7 @@ public final class TestSetup {
 
         final ActorRef conciergeForwarder =
                 new TestProbe(system, createUniqueName("conciergeForwarder-")).ref();
-        final ConciergeConfig.CachesConfig cachesConfig = CONFIG.getCachesConfig();
-        final Duration askTimeout = cachesConfig.getAskTimeout();
+        final Duration askTimeout = CACHES_CONFIG.getAskTimeout();
 
         final PolicyEnforcerCacheLoader policyEnforcerCacheLoader =
                 new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegion);

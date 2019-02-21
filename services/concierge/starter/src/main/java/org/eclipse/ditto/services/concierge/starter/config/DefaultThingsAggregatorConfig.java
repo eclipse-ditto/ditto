@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.concierge.util.config;
+package org.eclipse.ditto.services.concierge.starter.config;
 
 import java.io.Serializable;
 import java.time.Duration;
@@ -22,11 +22,10 @@ import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import com.typesafe.config.Config;
 
 /**
- * This class implements {@link org.eclipse.ditto.services.concierge.util.config.ConciergeConfig.ThingsAggregatorConfig}
- * for Ditto's Concierge service.
+ * This class implements {@link ThingsAggregatorConfig} for Ditto's Concierge service.
  */
 @Immutable
-public final class DefaultThingsAggregatorConfig implements ConciergeConfig.ThingsAggregatorConfig, Serializable {
+public final class DefaultThingsAggregatorConfig implements ThingsAggregatorConfig, Serializable {
 
     private static final String CONFIG_PATH = "things-aggregator";
 
@@ -42,8 +41,7 @@ public final class DefaultThingsAggregatorConfig implements ConciergeConfig.Thin
     }
 
     /**
-     * Returns an instance of {@code DittoConciergeThingsAggregatorConfig} based on the settings of the specified
-     * Config.
+     * Returns an instance of {@code DittoThingsAggregatorConfig} based on the settings of the specified Config.
      *
      * @param config is supposed to provide the settings of the things aggregator config at {@value #CONFIG_PATH}.
      * @return the instance.
