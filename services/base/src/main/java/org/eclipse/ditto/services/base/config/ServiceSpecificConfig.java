@@ -59,6 +59,9 @@ public interface ServiceSpecificConfig {
 
     /**
      * Provides configuration settings for the Ditto cluster.
+     * <p>
+     * Java serialization is supported for {@code ClusterConfig}.
+     * </p>
      */
     @Immutable
     interface ClusterConfig {
@@ -71,10 +74,14 @@ public interface ServiceSpecificConfig {
         int getNumberOfShards();
 
         /**
-         * TODO
+         * An enumeration of the known config path expressions and their associated default values for
+         * {@code ClusterConfig}.
          */
         enum ClusterConfigValue implements KnownConfigValue {
 
+            /**
+             * The number of shards in a cluster.
+             */
             NUMBER_OF_SHARDS("number-of-shards", 30);
 
             private final String path;
@@ -101,6 +108,9 @@ public interface ServiceSpecificConfig {
 
     /**
      * Provides configuration settings regarded to Ditto's runtime health.
+     * <p>
+     * Java serialization is supported for {@code HealthCheckConfig}.
+     * </p>
      */
     @Immutable
     interface HealthCheckConfig {
@@ -137,16 +147,29 @@ public interface ServiceSpecificConfig {
         Duration getPersistenceTimeout();
 
         /**
-         * TODO
+         * An enumeration of the known config path expressions and their associated default values for
+         * {@code HealthCheckConfig}.
          */
         enum HealthCheckConfigValue implements KnownConfigValue {
 
+            /**
+             * Determines whether global health checking should be enabled.
+             */
             ENABLED("enabled", true),
 
+            /**
+             * The interval of health check.
+             */
             INTERVAL("interval", Duration.ofMinutes(1L)),
 
+            /**
+             * Determines whether the persistence health check should be enabled.
+             */
             PERSISTENCE_ENABLED("persistence.enabled", false),
 
+            /**
+             * The timeout of the health check for persistence.
+             */
             PERSISTENCE_TIMEOUT("persistence.timeout", Duration.ofMinutes(1));
 
             private final String path;
@@ -173,6 +196,9 @@ public interface ServiceSpecificConfig {
 
     /**
      * Provides configuration settings for the limits of Ditto services.
+     * <p>
+     * Java serialization is supported for {@code LimitsConfig}.
+     * </p>
      */
     @Immutable
     interface LimitsConfig {
@@ -192,7 +218,7 @@ public interface ServiceSpecificConfig {
         long getPoliciesMaxSize();
 
         /**
-         * Returns the maximum possible size of "Policies" entities in bytes.
+         * Returns the maximum possible size of "Messages" entities in bytes.
          *
          * @return max size in bytes.
          */
@@ -213,19 +239,35 @@ public interface ServiceSpecificConfig {
         int thingsSearchMaxPageSize();
 
         /**
-         * TODO
+         * An enumeration of the known config path expressions and their associated default values for
+         * {@code LimitsConfig}.
          */
         enum LimitsConfigValue implements KnownConfigValue {
 
+            /**
+             * The maximum possible size of "Thing" entities in bytes.
+             */
             THINGS_MAX_SIZE("things.max-size", Constants.DEFAULT_ENTITY_MAX_SIZE),
 
+            /**
+             * The maximum possible size of "Policies" entities in bytes.
+             */
             POLICIES_MAX_SIZE("policies.max-size", Constants.DEFAULT_ENTITY_MAX_SIZE),
 
+            /**
+             * The maximum possible size of "Messages" entities in bytes.
+             */
             MESSAGES_MAX_SIZE("messages.max-size", Constants.DEFAULT_ENTITY_MAX_SIZE),
 
-            THINGS_SEARCH_DEFAULT_PAGE_SIZE(Constants.THINGS_SEARCH_KEY + "." + "default-page-size", 25),
+            /**
+             * The default pagination size to apply when searching for "Things" via "things-search".
+             */
+            THINGS_SEARCH_DEFAULT_PAGE_SIZE(Constants.THINGS_SEARCH_PATH + "." + "default-page-size", 25),
 
-            THINGS_SEARCH_MAX_PAGE_SIZE(Constants.THINGS_SEARCH_KEY + "." + "max-page-size", 200);
+            /**
+             * The maximum pagination size to apply when searching for "Things" via "things-search".
+             */
+            THINGS_SEARCH_MAX_PAGE_SIZE(Constants.THINGS_SEARCH_PATH + "." + "max-page-size", 200);
 
             private final String path;
             private final Object defaultValue;
@@ -246,19 +288,20 @@ public interface ServiceSpecificConfig {
             }
 
             /**
-             * TODO
+             * Constants to be used for the default values of the limits config.
              */
+            @Immutable
             public static final class Constants {
 
                 /**
-                 * TODO
+                 * The default maximum size of entities.
                  */
                 public static final long DEFAULT_ENTITY_MAX_SIZE = 100 * 1024L;
 
                 /**
-                 * TODO
+                 * The config path expression common to to all config settings of the Things-Search service.
                  */
-                public static final String THINGS_SEARCH_KEY = "things-search";
+                public static final String THINGS_SEARCH_PATH = "things-search";
 
                 private Constants() {
                     throw new AssertionError();
@@ -272,6 +315,9 @@ public interface ServiceSpecificConfig {
 
     /**
      * Provides the configuration settings of the Ditto HTTP endpoint.
+     * <p>
+     * Java serialization is supported for {@code HttpConfig}.
+     * </p>
      */
     @Immutable
     interface HttpConfig {
@@ -291,12 +337,19 @@ public interface ServiceSpecificConfig {
         int getPort();
 
         /**
-         * TODO
+         * An enumeration of the known config path expressions and their associated default values for
+         * {@code HttpConfig}.
          */
         enum HttpConfigValue implements KnownConfigValue {
 
+            /**
+             * The hostname value of the HTTP endpoint.
+             */
             HOSTNAME("hostname", ""),
 
+            /**
+             * The port number of the HTTP endpoint.
+             */
             PORT("port", 8080);
 
             private final String path;
@@ -323,6 +376,9 @@ public interface ServiceSpecificConfig {
 
     /**
      * Provides the configuration settings of metrics.
+     * <p>
+     * Java serialization is supported for {@code MetricsConfig}.
+     * </p>
      */
     @Immutable
     interface MetricsConfig {
@@ -356,16 +412,29 @@ public interface ServiceSpecificConfig {
         int getPrometheusPort();
 
         /**
-         * TODO
+         * An enumeration of the known config path expressions and their associated default values for
+         * {@code MetricsConfig}.
          */
         enum MetricsConfigValue implements KnownConfigValue {
 
+            /**
+             * Determines whether system metrics are enabled.
+             */
             SYSTEM_METRICS_ENABLED("systemMetrics.enabled", false),
 
+            /**
+             * Determines whether Prometheus is enabled.
+             */
             PROMETHEUS_ENABLED("prometheus.enabled", false),
 
+            /**
+             * The hostname to bind the Prometheus HTTP server to.
+             */
             PROMETHEUS_HOSTNAME("prometheus.hostname", "0.0.0.0"),
 
+            /**
+             * The port to bind the Prometheus HTTP server to.
+             */
             PROMETHEUS_PORT("prometheus.port", 9095);
 
             private final String path;

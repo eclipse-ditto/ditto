@@ -61,6 +61,9 @@ import com.typesafe.config.Config;
  *   All get methods will throw a {@link DittoConfigError} if the config at the particular path is missing the value or
  *   if the value has a wrong type.
  * </p>
+ * <p>
+ *   Java serialization is supported for {@code ScopedConfig}.
+ * </p>
  */
 @Immutable
 public interface ScopedConfig extends Config, WithConfigPath {

@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.services.base.config;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.time.Period;
 import java.time.temporal.TemporalAmount;
@@ -41,7 +42,9 @@ import com.typesafe.config.ConfigValue;
  * config settings.
  */
 @Immutable
-public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificConfig {
+public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificConfig, Serializable {
+
+    private static final long serialVersionUID = -3055318635902386342L;
 
     private final ScopedConfig config;
     private final LimitsConfig limitsConfig;

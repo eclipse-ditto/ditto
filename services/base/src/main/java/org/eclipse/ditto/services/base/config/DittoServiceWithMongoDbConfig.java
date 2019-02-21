@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.services.base.config;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.time.Period;
 import java.time.temporal.TemporalAmount;
@@ -36,11 +37,14 @@ import com.typesafe.config.ConfigResolveOptions;
 import com.typesafe.config.ConfigValue;
 
 /**
- * This class is the same as {@link org.eclipse.ditto.services.base.config.DittoServiceConfig} except that it
- * additionally implements {@link org.eclipse.ditto.services.utils.persistence.mongo.config.WithMongoDbConfig}.
+ * This class is the same as {@link DittoServiceConfig} except that it additionally implements
+ * {@link org.eclipse.ditto.services.utils.persistence.mongo.config.WithMongoDbConfig}.
  */
 @Immutable
-public final class DittoServiceWithMongoDbConfig implements ScopedConfig, ServiceSpecificConfig, WithMongoDbConfig {
+public final class DittoServiceWithMongoDbConfig
+        implements ScopedConfig, ServiceSpecificConfig, WithMongoDbConfig, Serializable {
+
+    private static final long serialVersionUID = -2668960216840183691L;
 
     private final DittoServiceConfig dittoServiceConfig;
     private final MongoDbConfig mongoDbConfig;

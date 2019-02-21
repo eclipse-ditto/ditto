@@ -12,6 +12,7 @@ package org.eclipse.ditto.services.utils.config;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.time.Period;
 import java.time.temporal.TemporalAmount;
@@ -39,7 +40,9 @@ import com.typesafe.config.ConfigValue;
  * path config path and fallback values for not originally configured settings.
  */
 @Immutable
-public final class ConfigWithFallback implements ScopedConfig {
+public final class ConfigWithFallback implements ScopedConfig, Serializable {
+
+    private static final long serialVersionUID = 3486753715607228784L;
 
     private final Config baseConfig;
     private final String configPath;

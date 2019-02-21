@@ -69,6 +69,9 @@ public interface MongoDbConfig {
      */
     enum MongoDbConfigValue implements KnownConfigValue {
 
+        /**
+         * The maximum query duration.
+         */
         MAX_QUERY_TIME("maxQueryTime", "60s");
 
         private final String path;
@@ -112,6 +115,9 @@ public interface MongoDbConfig {
          */
         enum OptionsConfigValue implements KnownConfigValue {
 
+            /**
+             * Determines whether SSL should be enabled for the configured MongoDB source.
+             */
             SSL_ENABLED("ssl", false);
 
             private final String path;
@@ -179,12 +185,24 @@ public interface MongoDbConfig {
          */
         enum ConnectionPoolConfigValue implements KnownConfigValue {
 
+            /**
+             * The maximum number of connections in the connection pool.
+             */
             MAX_SIZE("maxSize", 100),
 
+            /**
+             * The maximum number of threads waiting for a connection to become available.
+             */
             MAX_WAIT_QUEUE_SIZE("maxWaitQueueSize", 100),
 
+            /**
+             * The maximum time to wait for a connection to become available.
+             */
             MAX_WAIT_TIME("maxWaitTime", "30s"),
 
+            /**
+             * Determines whether a JMX {@code ConnectionPoolListener} should be added.
+             */
             JMX_LISTENER_ENABLED("jmxListenerEnabled", false);
 
             private final String path;
@@ -289,12 +307,19 @@ public interface MongoDbConfig {
             Duration getReset();
 
             /**
-             * TODO
+             * An enumeration of the known config path expressions and their associated default values for
+             * {@code TimeoutConfig}.
              */
             enum TimeoutConfigValue implements KnownConfigValue {
 
+                /**
+                 * The duration to wait on MongoDB timeouts until the circuit breaker opens.
+                 */
                 CALL("call", "5s"),
 
+                /**
+                 * The duration after timeout until the circuit breaker becomes "half-opened".
+                 */
                 RESET("reset", "10s");
 
                 private final String path;
@@ -345,12 +370,19 @@ public interface MongoDbConfig {
         boolean isConnectionPoolEnabled();
 
         /**
-         * TODO
+         * An enumeration of the known config path expressions and their associated default values for
+         * {@code MonitoringConfig}.
          */
         enum MonitoringConfigValue implements KnownConfigValue {
 
+            /**
+             * Determines whether all commands should be monitored and reported with Kamon.
+             */
             COMMANDS_ENABLED("commands", false),
 
+            /**
+             * Determines whether connection pool statistics should be reported with Kamon.
+             */
             CONNECTION_POOL_ENABLED("connection-pool", false);
 
             private final String path;

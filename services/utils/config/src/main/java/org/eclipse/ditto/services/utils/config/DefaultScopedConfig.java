@@ -12,6 +12,7 @@ package org.eclipse.ditto.services.utils.config;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.io.Serializable;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Period;
@@ -39,7 +40,9 @@ import com.typesafe.config.ConfigValue;
  * This class is the default implementation of {@link org.eclipse.ditto.services.utils.config.ScopedConfig}.
  */
 @Immutable
-public final class DefaultScopedConfig implements ScopedConfig {
+public final class DefaultScopedConfig implements ScopedConfig, Serializable {
+
+    private static final long serialVersionUID = -4648396088899418257L;
 
     private final Config config;
     private final String configPath;
