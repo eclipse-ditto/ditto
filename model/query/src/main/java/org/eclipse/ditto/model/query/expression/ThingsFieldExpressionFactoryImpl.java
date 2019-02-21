@@ -119,8 +119,7 @@ public final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpres
     }
 
     /**
-     * We have to strip the leading slash, because the propertyName may be specified as Json Pointer and our data
-     * representation does not contain a leading slash.
+     * Strip the optional leading slash of the propertyName, because it may be a Json Pointer.
      *
      * @param propertyName the property name which may start with a slash
      * @return the propertyName without leading slash
