@@ -18,6 +18,7 @@ import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Function;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -63,8 +64,8 @@ final class ImmutableSearchProperty implements SearchProperty {
         return result;
     }
 
-    private static String checkStringValue(final String value) {
-        return checkNotNull(value, "string value");
+    private static void checkStringValue(final String value) {
+        checkNotNull(value, "string value");
     }
 
     @Override
@@ -93,9 +94,7 @@ final class ImmutableSearchProperty implements SearchProperty {
     }
 
     @Override
-    public PropertySearchFilter eq(final String value) {
-        checkStringValue(value);
-
+    public PropertySearchFilter eq(@Nullable final String value) {
         return ImmutablePropertyFilter.of(SearchFilter.Type.EQ, propertyPath, JsonFactory.newValue(value));
     }
 
@@ -120,9 +119,7 @@ final class ImmutableSearchProperty implements SearchProperty {
     }
 
     @Override
-    public PropertySearchFilter ne(final String value) {
-        checkStringValue(value);
-
+    public PropertySearchFilter ne(@Nullable final String value) {
         return ImmutablePropertyFilter.of(SearchFilter.Type.NE, propertyPath, JsonFactory.newValue(value));
     }
 

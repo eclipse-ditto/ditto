@@ -66,7 +66,9 @@ private class RqlOptionParser(override val input: ParserInput) extends RqlParser
     * SortProperty               = SortOrder, PropertyLiteral
     */
   private def SortProperty: Rule1[SortOptionEntry] = rule {
-    SortOrder ~ PropertyLiteral ~> ((order, property) => SearchModelFactory.newSortOptionEntry(order, property))
+    SortOrder ~ PropertyLiteral ~>
+      ((order: SortOptionEntry.SortOrder, property: CharSequence) =>
+        SearchModelFactory.newSortOptionEntry(property, order))
   }
 
   /**

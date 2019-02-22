@@ -12,6 +12,7 @@ package org.eclipse.ditto.model.thingsearch;
 
 import java.util.Collection;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonPointer;
@@ -66,11 +67,10 @@ public interface SearchProperty {
     /**
      * Returns a new search filter for checking if the value of this property is equal to the given value.
      *
-     * @param value the value to compare the value of this property with.
+     * @param value the value to compare the value of this property with, may be {@code null}.
      * @return the new search filter.
-     * @throws NullPointerException if {@code value} is {@code null}.
      */
-    PropertySearchFilter eq(String value);
+    PropertySearchFilter eq(@Nullable String value);
 
     /**
      * Returns a new search filter for checking if the value of this property is not equal to the given value.
@@ -111,7 +111,7 @@ public interface SearchProperty {
      * @return the new search filter.
      * @throws NullPointerException if {@code value} is {@code null}.
      */
-    PropertySearchFilter ne(String value);
+    PropertySearchFilter ne(@Nullable String value);
 
     /**
      * Returns a new search filter for checking if the value of this property is greater than or equal to the given

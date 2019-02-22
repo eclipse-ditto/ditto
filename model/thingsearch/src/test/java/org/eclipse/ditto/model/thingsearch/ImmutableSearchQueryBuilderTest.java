@@ -223,7 +223,8 @@ public final class ImmutableSearchQueryBuilderTest {
 
         assertThat(searchQuery)
                 .hasFilter(searchFilter)
-                .hasFilterString("and(eq(/attributes/test,false),gt(/attributes/test1,42.23))")
+                .hasFilterString("and(eq(" + test + ",false)," +
+                        "gt(" + test1 + ",42.23))")
                 .hasOptionsString("limit(0,25),sort(+/attributes/test,-/attributes/test1)");
     }
 
