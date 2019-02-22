@@ -82,7 +82,9 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.InvalidActorNameException;
+import akka.actor.PoisonPill;
 import akka.actor.Props;
+import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.event.Logging;
 import akka.japi.Creator;
@@ -417,15 +419,17 @@ public class TestConstants {
         final Duration minBackoff = Duration.ofSeconds(1);
         final Duration maxBackoff = Duration.ofSeconds(5);
         final Double randomFactor = 1.0;
+
         final Props props = ConnectionSupervisorActor.props(minBackoff, maxBackoff, randomFactor, pubSubMediator,
                 conciergeForwarder, clientActorPropsFactory, null);
+        final Props shardRegionMockProps = Props.create(ShardRegionMockActor.class, props, connectionId);
 
         final int maxAttemps = 5;
         final long backoffMs = 1000L;
 
         for (int attempt = 1; ; ++attempt) {
             try {
-                return actorSystem.actorOf(props, connectionId);
+                return actorSystem.actorOf(shardRegionMockProps, "shardRegionMock-" + connectionId);
             } catch (final InvalidActorNameException invalidActorNameException) {
                 if (attempt >= maxAttemps) {
                     throw invalidActorNameException;
@@ -433,6 +437,26 @@ public class TestConstants {
                     backOff(backoffMs);
                 }
             }
+        }
+    }
+
+    static class ShardRegionMockActor extends AbstractActor {
+
+        private final ActorRef child;
+
+        private ShardRegionMockActor(final Props childActorProps, final String childName) {
+            child = getContext().actorOf(childActorProps, childName);
+        }
+
+        @Override
+        public Receive createReceive() {
+            return receiveBuilder()
+                    .match(ShardRegion.Passivate.class, passivate -> {
+                        getSender().tell(PoisonPill.getInstance(), getSelf());
+                        getContext().stop(getSelf());
+                    })
+                    .matchAny(m -> child.forward(m, getContext()))
+                    .build();
         }
     }
 

@@ -34,6 +34,7 @@ import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
+import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.DeciderBuilder;
@@ -157,6 +158,7 @@ public final class ConnectionSupervisorActor extends AbstractActor {
                                     getContext().dispatcher(), null);
                     restartCount += 1;
                 })
+                .match(ShardRegion.Passivate.class, passivate -> getContext().getParent().tell(passivate, getSelf()))
                 .matchAny(message -> {
                     LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
                     if (child != null) {
