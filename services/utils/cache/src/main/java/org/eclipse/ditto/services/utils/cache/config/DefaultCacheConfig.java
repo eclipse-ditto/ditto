@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.concierge.cache.config;
+package org.eclipse.ditto.services.utils.cache.config;
 
 import java.io.Serializable;
 import java.time.Duration;
@@ -68,8 +68,7 @@ public final class DefaultCacheConfig implements CacheConfig, Serializable {
             return false;
         }
         final DefaultCacheConfig that = (DefaultCacheConfig) o;
-        return maximumSize == that.maximumSize &&
-                expireAfterWrite.equals(that.expireAfterWrite);
+        return maximumSize == that.maximumSize && expireAfterWrite.equals(that.expireAfterWrite);
     }
 
     @Override
