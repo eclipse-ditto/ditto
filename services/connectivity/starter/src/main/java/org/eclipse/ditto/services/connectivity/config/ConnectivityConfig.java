@@ -17,6 +17,7 @@ import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ClientConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ReconnectConfig;
+import org.eclipse.ditto.services.utils.health.config.WithHealthCheckConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.WithMongoDbConfig;
 
 /**
@@ -26,7 +27,7 @@ import org.eclipse.ditto.services.utils.persistence.mongo.config.WithMongoDbConf
  * </p>
  */
 @Immutable
-public interface ConnectivityConfig extends ServiceSpecificConfig, WithMongoDbConfig {
+public interface ConnectivityConfig extends ServiceSpecificConfig, WithHealthCheckConfig, WithMongoDbConfig {
 
     /**
      * Returns the config of connections.

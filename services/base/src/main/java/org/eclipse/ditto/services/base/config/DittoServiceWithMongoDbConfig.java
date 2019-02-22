@@ -66,9 +66,9 @@ public final class DittoServiceWithMongoDbConfig
      * @return the instance.
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if
      * <ul>
-     *     <li>{@code config} is {@code null},</li>
-     *     <li>{@code configPath} is {@code null} or if</li>
-     *     <li>{@code config} did not contain a nested Config at path {@code configPath}.</li>
+     * <li>{@code config} is {@code null},</li>
+     * <li>{@code configPath} is {@code null} or if</li>
+     * <li>{@code config} did not contain a nested Config at path {@code configPath}.</li>
      * </ul>
      */
     public static DittoServiceWithMongoDbConfig of(final Config config, final String configPath) {
@@ -78,44 +78,65 @@ public final class DittoServiceWithMongoDbConfig
     }
 
     @Override
-    public ClusterConfig getClusterConfig() {return dittoServiceConfig.getClusterConfig();}
+    public ClusterConfig getClusterConfig() {
+        return dittoServiceConfig.getClusterConfig();
+    }
 
     @Override
-    public HealthCheckConfig getHealthCheckConfig() {return dittoServiceConfig.getHealthCheckConfig();}
+    public LimitsConfig getLimitsConfig() {
+        return dittoServiceConfig.getLimitsConfig();
+    }
 
     @Override
-    public LimitsConfig getLimitsConfig() {return dittoServiceConfig.getLimitsConfig();}
+    public HttpConfig getHttpConfig() {
+        return dittoServiceConfig.getHttpConfig();
+    }
 
     @Override
-    public HttpConfig getHttpConfig() {return dittoServiceConfig.getHttpConfig();}
+    public MetricsConfig getMetricsConfig() {
+        return dittoServiceConfig.getMetricsConfig();
+    }
 
     @Override
-    public MetricsConfig getMetricsConfig() {return dittoServiceConfig.getMetricsConfig();}
+    public ConfigObject root() {
+        return dittoServiceConfig.root();
+    }
 
     @Override
-    public ConfigObject root() {return dittoServiceConfig.root();}
+    public ConfigOrigin origin() {
+        return dittoServiceConfig.origin();
+    }
 
     @Override
-    public ConfigOrigin origin() {return dittoServiceConfig.origin();}
+    public Config withFallback(final ConfigMergeable other) {
+        return dittoServiceConfig.withFallback(other);
+    }
 
     @Override
-    public Config withFallback(final ConfigMergeable other) {return dittoServiceConfig.withFallback(other);}
+    public Config resolve() {
+        return dittoServiceConfig.resolve();
+    }
 
     @Override
-    public Config resolve() {return dittoServiceConfig.resolve();}
+    public Config resolve(final ConfigResolveOptions options) {
+        return dittoServiceConfig.resolve(options);
+    }
 
     @Override
-    public Config resolve(final ConfigResolveOptions options) {return dittoServiceConfig.resolve(options);}
+    public boolean isResolved() {
+        return dittoServiceConfig.isResolved();
+    }
 
     @Override
-    public boolean isResolved() {return dittoServiceConfig.isResolved();}
-
-    @Override
-    public Config resolveWith(final Config source) {return dittoServiceConfig.resolveWith(source);}
+    public Config resolveWith(final Config source) {
+        return dittoServiceConfig.resolveWith(source);
+    }
 
     @Override
     public Config resolveWith(final Config source,
-            final ConfigResolveOptions options) {return dittoServiceConfig.resolveWith(source, options);}
+            final ConfigResolveOptions options) {
+        return dittoServiceConfig.resolveWith(source, options);
+    }
 
     @Override
     public void checkValid(final Config reference, final String... restrictToPaths) {
@@ -123,102 +144,166 @@ public final class DittoServiceWithMongoDbConfig
     }
 
     @Override
-    public boolean hasPath(final String path) {return dittoServiceConfig.hasPath(path);}
+    public boolean hasPath(final String path) {
+        return dittoServiceConfig.hasPath(path);
+    }
 
     @Override
-    public boolean hasPathOrNull(final String path) {return dittoServiceConfig.hasPathOrNull(path);}
+    public boolean hasPathOrNull(final String path) {
+        return dittoServiceConfig.hasPathOrNull(path);
+    }
 
     @Override
-    public boolean isEmpty() {return dittoServiceConfig.isEmpty();}
+    public boolean isEmpty() {
+        return dittoServiceConfig.isEmpty();
+    }
 
     @Override
-    public Set<Map.Entry<String, ConfigValue>> entrySet() {return dittoServiceConfig.entrySet();}
+    public Set<Map.Entry<String, ConfigValue>> entrySet() {
+        return dittoServiceConfig.entrySet();
+    }
 
     @Override
-    public boolean getIsNull(final String path) {return dittoServiceConfig.getIsNull(path);}
+    public boolean getIsNull(final String path) {
+        return dittoServiceConfig.getIsNull(path);
+    }
 
     @Override
-    public boolean getBoolean(final String path) {return dittoServiceConfig.getBoolean(path);}
+    public boolean getBoolean(final String path) {
+        return dittoServiceConfig.getBoolean(path);
+    }
 
     @Override
-    public Number getNumber(final String path) {return dittoServiceConfig.getNumber(path);}
+    public Number getNumber(final String path) {
+        return dittoServiceConfig.getNumber(path);
+    }
 
     @Override
-    public int getInt(final String path) {return dittoServiceConfig.getInt(path);}
+    public int getInt(final String path) {
+        return dittoServiceConfig.getInt(path);
+    }
 
     @Override
-    public long getLong(final String path) {return dittoServiceConfig.getLong(path);}
+    public long getLong(final String path) {
+        return dittoServiceConfig.getLong(path);
+    }
 
     @Override
-    public double getDouble(final String path) {return dittoServiceConfig.getDouble(path);}
+    public double getDouble(final String path) {
+        return dittoServiceConfig.getDouble(path);
+    }
 
     @Override
-    public String getString(final String path) {return dittoServiceConfig.getString(path);}
+    public String getString(final String path) {
+        return dittoServiceConfig.getString(path);
+    }
 
     @Override
     public <T extends Enum<T>> T getEnum(final Class<T> enumClass,
-            final String path) {return dittoServiceConfig.getEnum(enumClass, path);}
+            final String path) {
+        return dittoServiceConfig.getEnum(enumClass, path);
+    }
 
     @Override
-    public ConfigObject getObject(final String path) {return dittoServiceConfig.getObject(path);}
+    public ConfigObject getObject(final String path) {
+        return dittoServiceConfig.getObject(path);
+    }
 
     @Override
-    public Config getConfig(final String path) {return dittoServiceConfig.getConfig(path);}
+    public Config getConfig(final String path) {
+        return dittoServiceConfig.getConfig(path);
+    }
 
     @Override
-    public Object getAnyRef(final String path) {return dittoServiceConfig.getAnyRef(path);}
+    public Object getAnyRef(final String path) {
+        return dittoServiceConfig.getAnyRef(path);
+    }
 
     @Override
-    public ConfigValue getValue(final String path) {return dittoServiceConfig.getValue(path);}
+    public ConfigValue getValue(final String path) {
+        return dittoServiceConfig.getValue(path);
+    }
 
     @Override
-    public Long getBytes(final String path) {return dittoServiceConfig.getBytes(path);}
+    public Long getBytes(final String path) {
+        return dittoServiceConfig.getBytes(path);
+    }
 
     @Override
-    public ConfigMemorySize getMemorySize(final String path) {return dittoServiceConfig.getMemorySize(path);}
+    public ConfigMemorySize getMemorySize(final String path) {
+        return dittoServiceConfig.getMemorySize(path);
+    }
 
     @Override
-    public Long getMilliseconds(final String path) {return dittoServiceConfig.getMilliseconds(path);}
+    public Long getMilliseconds(final String path) {
+        return dittoServiceConfig.getMilliseconds(path);
+    }
 
     @Override
-    public Long getNanoseconds(final String path) {return dittoServiceConfig.getNanoseconds(path);}
+    public Long getNanoseconds(final String path) {
+        return dittoServiceConfig.getNanoseconds(path);
+    }
 
     @Override
-    public long getDuration(final String path, final TimeUnit unit) {return dittoServiceConfig.getDuration(path, unit);}
+    public long getDuration(final String path, final TimeUnit unit) {
+        return dittoServiceConfig.getDuration(path, unit);
+    }
 
     @Override
-    public Duration getDuration(final String path) {return dittoServiceConfig.getDuration(path);}
+    public Duration getDuration(final String path) {
+        return dittoServiceConfig.getDuration(path);
+    }
 
     @Override
-    public Period getPeriod(final String path) {return dittoServiceConfig.getPeriod(path);}
+    public Period getPeriod(final String path) {
+        return dittoServiceConfig.getPeriod(path);
+    }
 
     @Override
-    public TemporalAmount getTemporal(final String path) {return dittoServiceConfig.getTemporal(path);}
+    public TemporalAmount getTemporal(final String path) {
+        return dittoServiceConfig.getTemporal(path);
+    }
 
     @Override
-    public ConfigList getList(final String path) {return dittoServiceConfig.getList(path);}
+    public ConfigList getList(final String path) {
+        return dittoServiceConfig.getList(path);
+    }
 
     @Override
-    public List<Boolean> getBooleanList(final String path) {return dittoServiceConfig.getBooleanList(path);}
+    public List<Boolean> getBooleanList(final String path) {
+        return dittoServiceConfig.getBooleanList(path);
+    }
 
     @Override
-    public List<Number> getNumberList(final String path) {return dittoServiceConfig.getNumberList(path);}
+    public List<Number> getNumberList(final String path) {
+        return dittoServiceConfig.getNumberList(path);
+    }
 
     @Override
-    public List<Integer> getIntList(final String path) {return dittoServiceConfig.getIntList(path);}
+    public List<Integer> getIntList(final String path) {
+        return dittoServiceConfig.getIntList(path);
+    }
 
     @Override
-    public List<Long> getLongList(final String path) {return dittoServiceConfig.getLongList(path);}
+    public List<Long> getLongList(final String path) {
+        return dittoServiceConfig.getLongList(path);
+    }
 
     @Override
-    public List<Double> getDoubleList(final String path) {return dittoServiceConfig.getDoubleList(path);}
+    public List<Double> getDoubleList(final String path) {
+        return dittoServiceConfig.getDoubleList(path);
+    }
 
     @Override
-    public List<String> getStringList(final String path) {return dittoServiceConfig.getStringList(path);}
+    public List<String> getStringList(final String path) {
+        return dittoServiceConfig.getStringList(path);
+    }
 
     @Override
     public <T extends Enum<T>> List<T> getEnumList(final Class<T> enumClass,
-            final String path) {return dittoServiceConfig.getEnumList(enumClass, path);}
+            final String path) {
+        return dittoServiceConfig.getEnumList(enumClass, path);
+    }
 
     @Override
     public List<? extends ConfigObject> getObjectList(final String path) {
@@ -226,13 +311,19 @@ public final class DittoServiceWithMongoDbConfig
     }
 
     @Override
-    public List<? extends Config> getConfigList(final String path) {return dittoServiceConfig.getConfigList(path);}
+    public List<? extends Config> getConfigList(final String path) {
+        return dittoServiceConfig.getConfigList(path);
+    }
 
     @Override
-    public List<? extends Object> getAnyRefList(final String path) {return dittoServiceConfig.getAnyRefList(path);}
+    public List<? extends Object> getAnyRefList(final String path) {
+        return dittoServiceConfig.getAnyRefList(path);
+    }
 
     @Override
-    public List<Long> getBytesList(final String path) {return dittoServiceConfig.getBytesList(path);}
+    public List<Long> getBytesList(final String path) {
+        return dittoServiceConfig.getBytesList(path);
+    }
 
     @Override
     public List<ConfigMemorySize> getMemorySizeList(final String path) {
@@ -240,29 +331,45 @@ public final class DittoServiceWithMongoDbConfig
     }
 
     @Override
-    public List<Long> getMillisecondsList(final String path) {return dittoServiceConfig.getMillisecondsList(path);}
+    public List<Long> getMillisecondsList(final String path) {
+        return dittoServiceConfig.getMillisecondsList(path);
+    }
 
     @Override
-    public List<Long> getNanosecondsList(final String path) {return dittoServiceConfig.getNanosecondsList(path);}
+    public List<Long> getNanosecondsList(final String path) {
+        return dittoServiceConfig.getNanosecondsList(path);
+    }
 
     @Override
     public List<Long> getDurationList(final String path,
-            final TimeUnit unit) {return dittoServiceConfig.getDurationList(path, unit);}
+            final TimeUnit unit) {
+        return dittoServiceConfig.getDurationList(path, unit);
+    }
 
     @Override
-    public List<Duration> getDurationList(final String path) {return dittoServiceConfig.getDurationList(path);}
+    public List<Duration> getDurationList(final String path) {
+        return dittoServiceConfig.getDurationList(path);
+    }
 
     @Override
-    public Config withOnlyPath(final String path) {return dittoServiceConfig.withOnlyPath(path);}
+    public Config withOnlyPath(final String path) {
+        return dittoServiceConfig.withOnlyPath(path);
+    }
 
     @Override
-    public Config withoutPath(final String path) {return dittoServiceConfig.withoutPath(path);}
+    public Config withoutPath(final String path) {
+        return dittoServiceConfig.withoutPath(path);
+    }
 
     @Override
-    public Config atPath(final String path) {return dittoServiceConfig.atPath(path);}
+    public Config atPath(final String path) {
+        return dittoServiceConfig.atPath(path);
+    }
 
     @Override
-    public Config atKey(final String key) {return dittoServiceConfig.atKey(key);}
+    public Config atKey(final String key) {
+        return dittoServiceConfig.atKey(key);
+    }
 
     @Override
     public Config withValue(final String path, final ConfigValue value) {

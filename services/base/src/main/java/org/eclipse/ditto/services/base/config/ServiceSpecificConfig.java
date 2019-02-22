@@ -10,8 +10,6 @@
  */
 package org.eclipse.ditto.services.base.config;
 
-import java.time.Duration;
-
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
@@ -28,13 +26,6 @@ public interface ServiceSpecificConfig {
      * @return the cluster config.
      */
     ClusterConfig getClusterConfig();
-
-    /**
-     * Returns the health check config.
-     *
-     * @return the health check config.
-     */
-    HealthCheckConfig getHealthCheckConfig();
 
     /**
      * Returns the limits config.
@@ -88,94 +79,6 @@ public interface ServiceSpecificConfig {
             private final Object defaultValue;
 
             private ClusterConfigValue(final String thePath, final Object theDefaultValue) {
-                path = thePath;
-                defaultValue = theDefaultValue;
-            }
-
-            @Override
-            public String getConfigPath() {
-                return path;
-            }
-
-            @Override
-            public Object getDefaultValue() {
-                return defaultValue;
-            }
-
-        }
-
-    }
-
-    /**
-     * Provides configuration settings regarded to Ditto's runtime health.
-     * <p>
-     * Java serialization is supported for {@code HealthCheckConfig}.
-     * </p>
-     */
-    @Immutable
-    interface HealthCheckConfig {
-
-        /**
-         * Indicates whether global health checking should be enabled.
-         *
-         * @return {@code true} if health checking should be enabled, {@code false} else.
-         */
-        boolean isEnabled();
-
-        /**
-         * Returns the interval of health check.
-         *
-         * @return the interval.
-         * @see #isEnabled()
-         */
-        Duration getInterval();
-
-        /**
-         * Indicates whether the persistence health check should be enabled.
-         *
-         * @return {@code true} if the persistence health check should be enabled, {@code false} else.
-         */
-        boolean isPersistenceEnabled();
-
-        /**
-         * Returns the timeout of the health check for persistence.
-         * If the persistence takes longer than that to respond, it is considered "DOWN".
-         *
-         * @return the timeout of the health check for persistence.
-         * @see #isPersistenceEnabled()
-         */
-        Duration getPersistenceTimeout();
-
-        /**
-         * An enumeration of the known config path expressions and their associated default values for
-         * {@code HealthCheckConfig}.
-         */
-        enum HealthCheckConfigValue implements KnownConfigValue {
-
-            /**
-             * Determines whether global health checking should be enabled.
-             */
-            ENABLED("enabled", true),
-
-            /**
-             * The interval of health check.
-             */
-            INTERVAL("interval", Duration.ofMinutes(1L)),
-
-            /**
-             * Determines whether the persistence health check should be enabled.
-             */
-            PERSISTENCE_ENABLED("persistence.enabled", false),
-
-            /**
-             * The timeout of the health check for persistence.
-             */
-            PERSISTENCE_TIMEOUT("persistence.timeout", Duration.ofMinutes(1));
-
-            private final String path;
-            private final Object defaultValue;
-
-            private HealthCheckConfigValue(final String thePath, final Object theDefaultValue) {
                 path = thePath;
                 defaultValue = theDefaultValue;
             }

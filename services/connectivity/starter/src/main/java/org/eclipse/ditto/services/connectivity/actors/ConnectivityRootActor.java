@@ -44,6 +44,8 @@ import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
+import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
+import org.eclipse.ditto.services.utils.health.config.PersistenceConfig;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.signals.base.Signal;
@@ -274,10 +276,11 @@ public final class ConnectivityRootActor extends AbstractActor {
     }
 
     private ActorRef getHealthCheckingActor(final ConnectivityConfig connectivityConfig) {
-        final ServiceSpecificConfig.HealthCheckConfig healthCheckConfig = connectivityConfig.getHealthCheckConfig();
+        final HealthCheckConfig healthCheckConfig = connectivityConfig.getHealthCheckConfig();
         final HealthCheckingActorOptions.Builder hcBuilder =
                 HealthCheckingActorOptions.getBuilder(healthCheckConfig.isEnabled(), healthCheckConfig.getInterval());
-        if (healthCheckConfig.isPersistenceEnabled()) {
+        final PersistenceConfig persistenceConfig = healthCheckConfig.getPersistenceConfig();
+        if (persistenceConfig.isEnabled()) {
             hcBuilder.enablePersistenceCheck();
         }
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();

@@ -15,7 +15,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.services.base.config.ServiceSpecificConfig;
 import org.eclipse.ditto.services.concierge.cache.config.CachesConfig;
 import org.eclipse.ditto.services.concierge.enforcement.config.EnforcementConfig;
-import org.eclipse.ditto.services.utils.config.WithConfigPath;
+import org.eclipse.ditto.services.utils.health.config.WithHealthCheckConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.WithMongoDbConfig;
 
 /**
@@ -25,7 +25,7 @@ import org.eclipse.ditto.services.utils.persistence.mongo.config.WithMongoDbConf
  * </p>
  */
 @Immutable
-public interface ConciergeConfig extends ServiceSpecificConfig, WithConfigPath, WithMongoDbConfig {
+public interface ConciergeConfig extends ServiceSpecificConfig, WithHealthCheckConfig, WithMongoDbConfig {
 
     /**
      * Returns the config of Concierge's enforcement behaviour.

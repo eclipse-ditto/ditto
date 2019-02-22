@@ -49,7 +49,6 @@ public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificCo
     private final ScopedConfig config;
     private final LimitsConfig limitsConfig;
     private final ClusterConfig clusterConfig;
-    private final HealthCheckConfig healthCheckConfig;
     private final HttpConfig httpConfig;
     private final MetricsConfig metricsConfig;
 
@@ -57,7 +56,6 @@ public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificCo
         config = theConfig;
         limitsConfig = theLimitsConfig;
         clusterConfig = DefaultClusterConfig.of(config);
-        healthCheckConfig = DefaultHealthCheckConfig.of(config);
         httpConfig = DefaultHttpConfig.of(config);
         metricsConfig = DefaultMetricsConfig.of(config);
     }
@@ -72,9 +70,9 @@ public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificCo
      * @return the instance.
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if
      * <ul>
-     *     <li>{@code config} is {@code null},</li>
-     *     <li>{@code configPath} is {@code null} or if</li>
-     *     <li>{@code config} did not contain a nested Config at path {@code configPath}.</li>
+     * <li>{@code config} is {@code null},</li>
+     * <li>{@code configPath} is {@code null} or if</li>
+     * <li>{@code config} did not contain a nested Config at path {@code configPath}.</li>
      * </ul>
      */
     public static DittoServiceConfig of(final Config config, final String configPath) {
@@ -87,11 +85,6 @@ public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificCo
     @Override
     public ClusterConfig getClusterConfig() {
         return clusterConfig;
-    }
-
-    @Override
-    public HealthCheckConfig getHealthCheckConfig() {
-        return healthCheckConfig;
     }
 
     @Override
@@ -400,7 +393,6 @@ public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificCo
         final DittoServiceConfig that = (DittoServiceConfig) o;
         return limitsConfig.equals(that.limitsConfig) &&
                 clusterConfig.equals(that.clusterConfig) &&
-                healthCheckConfig.equals(that.healthCheckConfig) &&
                 httpConfig.equals(that.httpConfig) &&
                 metricsConfig.equals(that.metricsConfig) &&
                 config.equals(that.config);
@@ -408,7 +400,7 @@ public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificCo
 
     @Override
     public int hashCode() {
-        return Objects.hash(limitsConfig, clusterConfig, healthCheckConfig, httpConfig, metricsConfig, config);
+        return Objects.hash(limitsConfig, clusterConfig, httpConfig, metricsConfig, config);
     }
 
     @Override
@@ -416,7 +408,6 @@ public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificCo
         return getClass().getSimpleName() + " [" +
                 "limitsConfig=" + limitsConfig +
                 ", clusterConfig=" + clusterConfig +
-                ", healthCheckConfig=" + healthCheckConfig +
                 ", httpConfig=" + httpConfig +
                 ", metricsConfig=" + metricsConfig +
                 ", config=" + config +

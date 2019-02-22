@@ -25,6 +25,8 @@ import org.eclipse.ditto.services.connectivity.messaging.config.DefaultConnectio
 import org.eclipse.ditto.services.connectivity.messaging.config.DefaultReconnectConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ReconnectConfig;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
+import org.eclipse.ditto.services.utils.health.config.DefaultHealthCheckConfig;
+import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 
 /**
@@ -37,18 +39,21 @@ public final class DittoConnectivityConfig implements ConnectivityConfig, Serial
     private static final long serialVersionUID = 1833682803547451513L;
 
     private final DittoServiceWithMongoDbConfig serviceSpecificConfig;
+    private final HealthCheckConfig healthCheckConfig;
     private final ConnectionConfig connectionConfig;
     private final MappingConfig mappingConfig;
     private final ReconnectConfig reconnectConfig;
     private final ClientConfig clientConfig;
 
     private DittoConnectivityConfig(final DittoServiceWithMongoDbConfig theServiceSpecificConfig,
+            final HealthCheckConfig theHealthCheckConfig,
             final ConnectionConfig theConnectionConfig,
             final MappingConfig theMappingConfig,
             final ReconnectConfig theReconnectConfig,
             final ClientConfig theClientConfig) {
 
         serviceSpecificConfig = theServiceSpecificConfig;
+        healthCheckConfig = theHealthCheckConfig;
         connectionConfig = theConnectionConfig;
         mappingConfig = theMappingConfig;
         reconnectConfig = theReconnectConfig;
@@ -66,6 +71,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig, Serial
         final DittoServiceWithMongoDbConfig dittoServiceConfig = DittoServiceWithMongoDbConfig.of(config, CONFIG_PATH);
 
         return new DittoConnectivityConfig(dittoServiceConfig,
+                DefaultHealthCheckConfig.of(dittoServiceConfig),
                 DefaultConnectionConfig.of(dittoServiceConfig),
                 DefaultMappingConfig.of(dittoServiceConfig),
                 DefaultReconnectConfig.of(dittoServiceConfig),
@@ -99,7 +105,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig, Serial
 
     @Override
     public HealthCheckConfig getHealthCheckConfig() {
-        return serviceSpecificConfig.getHealthCheckConfig();
+        return healthCheckConfig;
     }
 
     @Override
@@ -132,6 +138,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig, Serial
         }
         final DittoConnectivityConfig that = (DittoConnectivityConfig) o;
         return Objects.equals(serviceSpecificConfig, that.serviceSpecificConfig) &&
+                Objects.equals(healthCheckConfig, that.healthCheckConfig) &&
                 Objects.equals(connectionConfig, that.connectionConfig) &&
                 Objects.equals(mappingConfig, that.mappingConfig) &&
                 Objects.equals(reconnectConfig, that.reconnectConfig) &&
@@ -140,13 +147,15 @@ public final class DittoConnectivityConfig implements ConnectivityConfig, Serial
 
     @Override
     public int hashCode() {
-        return Objects.hash(serviceSpecificConfig, connectionConfig, mappingConfig, reconnectConfig, clientConfig);
+        return Objects.hash(serviceSpecificConfig, healthCheckConfig, connectionConfig, mappingConfig, reconnectConfig,
+                clientConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "serviceSpecificConfig=" + serviceSpecificConfig +
+                ", healthCheckConfig=" + healthCheckConfig +
                 ", connectionConfig=" + connectionConfig +
                 ", mappingConfig=" + mappingConfig +
                 ", reconnectConfig=" + reconnectConfig +

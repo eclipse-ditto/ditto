@@ -22,8 +22,8 @@ import java.util.concurrent.CompletionStage;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.base.config.ServiceSpecificConfig;
 import org.eclipse.ditto.services.concierge.batch.actors.BatchSupervisorActor;
-import org.eclipse.ditto.services.concierge.starter.proxy.AbstractEnforcerActorFactory;
 import org.eclipse.ditto.services.concierge.starter.config.ConciergeConfig;
+import org.eclipse.ditto.services.concierge.starter.proxy.AbstractEnforcerActorFactory;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -33,6 +33,8 @@ import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsRespons
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
+import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
+import org.eclipse.ditto.services.utils.health.config.PersistenceConfig;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
@@ -184,12 +186,13 @@ public final class ConciergeRootActor extends AbstractActor {
     private static ActorRef startHealthCheckingActor(final ActorRefFactory context,
             final ConciergeConfig conciergeConfig) {
 
-        final ServiceSpecificConfig.HealthCheckConfig healthCheckConfig = conciergeConfig.getHealthCheckConfig();
+        final HealthCheckConfig healthCheckConfig = conciergeConfig.getHealthCheckConfig();
 
         final HealthCheckingActorOptions.Builder hcBuilder =
                 HealthCheckingActorOptions.getBuilder(healthCheckConfig.isEnabled(), healthCheckConfig.getInterval());
 
-        if (healthCheckConfig.isPersistenceEnabled()) {
+        final PersistenceConfig persistenceConfig = healthCheckConfig.getPersistenceConfig();
+        if (persistenceConfig.isEnabled()) {
             hcBuilder.enablePersistenceCheck();
         }
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
