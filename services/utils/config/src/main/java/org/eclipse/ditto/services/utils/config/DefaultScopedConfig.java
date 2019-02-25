@@ -35,6 +35,7 @@ import com.typesafe.config.ConfigObject;
 import com.typesafe.config.ConfigOrigin;
 import com.typesafe.config.ConfigResolveOptions;
 import com.typesafe.config.ConfigValue;
+import com.typesafe.config.ConfigValueType;
 
 /**
  * This class is the default implementation of {@link org.eclipse.ditto.services.utils.config.ScopedConfig}.
@@ -227,30 +228,66 @@ public final class DefaultScopedConfig implements ScopedConfig, Serializable {
     @Override
     public int getInt(final String path) {
         try {
-            return config.getInt(path);
-        } catch (final ConfigException.Missing | ConfigException.WrongType e) {
+            return tryToGetIntValue(path);
+        } catch(final ConfigException.Missing | ConfigException.WrongType | NumberFormatException e) {
             final String msgPattern = "Failed to get int value for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
+        }
+    }
+
+    private int tryToGetIntValue(final String path) {
+        try {
+            return config.getInt(path);
+        } catch (final ConfigException.WrongType e) {
+            final ConfigValue configValue = config.getValue(path);
+            if (ConfigValueType.STRING == configValue.valueType()) {
+                return Integer.parseInt(String.valueOf(configValue.unwrapped()));
+            }
+            throw e;
         }
     }
 
     @Override
     public long getLong(final String path) {
         try {
-            return config.getLong(path);
-        } catch (final ConfigException.Missing | ConfigException.WrongType e) {
+            return tryToGetLongValue(path);
+        } catch (final ConfigException.Missing | ConfigException.WrongType | NumberFormatException e) {
             final String msgPattern = "Failed to get long value for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
+        }
+    }
+
+    private long tryToGetLongValue(final String path) {
+        try {
+            return config.getLong(path);
+        } catch (final ConfigException.WrongType e) {
+            final ConfigValue configValue = config.getValue(path);
+            if (ConfigValueType.STRING == configValue.valueType()) {
+                return Long.parseLong(String.valueOf(configValue.unwrapped()));
+            }
+            throw e;
         }
     }
 
     @Override
     public double getDouble(final String path) {
         try {
-            return config.getDouble(path);
-        } catch (final ConfigException.Missing | ConfigException.WrongType e) {
+            return tryToGetDoubleValue(path);
+        } catch (final ConfigException.Missing | ConfigException.WrongType | NumberFormatException e) {
             final String msgPattern = "Failed to get double value for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
+        }
+    }
+
+    private double tryToGetDoubleValue(final String path) {
+        try {
+            return config.getDouble(path);
+        } catch (final ConfigException.WrongType e) {
+            final ConfigValue configValue = config.getValue(path);
+            if (ConfigValueType.STRING == configValue.valueType()) {
+                return Double.parseDouble(String.valueOf(configValue.unwrapped()));
+            }
+            throw e;
         }
     }
 

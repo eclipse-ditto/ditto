@@ -114,4 +114,17 @@ public final class DefaultScopedConfigTest {
                 .withCauseInstanceOf(ConfigException.Missing.class);
     }
 
+    @Test
+    public void getIntValueAlthoughConfigContainsString() {
+        final String parentPath = "ditto";
+        final String valuePath = "intValueAsString";
+        final int intValue = 23;
+        final Config config = ConfigFactory.parseMap(
+                Collections.singletonMap(parentPath + "." + valuePath, String.valueOf(intValue)));
+
+        final DefaultScopedConfig underTest = DefaultScopedConfig.newInstance(config, parentPath);
+
+        assertThat(underTest.getInt(valuePath)).as(valuePath).isEqualTo(intValue);
+    }
+
 }
