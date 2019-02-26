@@ -187,7 +187,7 @@ public class PlaceholdersTest {
 
         assertThatExceptionOfType(DittoRuntimeException.class)
                 .isThrownBy(() -> Placeholders.substitute(nestedPlaceholder, replacerFunction, unresolvedInputHandler))
-                .withMessageContaining("{{ " + REPLACER_1 + " }}");
+                .withMessageContaining("{{ " + REPLACED_1 + " }}");
     }
 
     /**
