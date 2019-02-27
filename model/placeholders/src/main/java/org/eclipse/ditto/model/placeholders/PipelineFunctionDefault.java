@@ -13,8 +13,6 @@ package org.eclipse.ditto.model.placeholders;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -24,14 +22,10 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 final class PipelineFunctionDefault implements PipelineFunction {
 
-    static final String FUNCTION_NAME = "default";
+    private static final String FUNCTION_NAME = "default";
 
-    private static final String CONSTANT_PATTERN =
-            "\\((('(?<singleQuotedConstant>.*)')|(\"(?<doubleQuotedConstant>.*)\"))\\)";
-    private static final String PLACEHOLDER_PATTERN = "\\((?<placeholder>\\w+:.+)\\)";
-
-    private static final String OVERALL_PATTERN_STR = CONSTANT_PATTERN + "|" + PLACEHOLDER_PATTERN;
-    private static final Pattern OVERALL_PATTERN = Pattern.compile(OVERALL_PATTERN_STR);
+    private final PipelineFunctionParameterResolverFactory.SingleParameterResolver parameterResolver =
+            PipelineFunctionParameterResolverFactory.forStringOrPlaceholderParameter();
 
     @Override
     public String getName() {
@@ -47,48 +41,22 @@ final class PipelineFunctionDefault implements PipelineFunction {
     public Optional<String> apply(final Optional<String> value, final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
 
-        validateOrThrow(paramsIncludingParentheses);
-
         if (value.isPresent()) {
             // if previous stage was non-empty: proceed with that
             return value;
         } else {
             // parse + resolve the specified default value:
-            final ResolvedFunctionParameter<String> resolvedDefaultParam =
-                    parseAndResolve(paramsIncludingParentheses, expressionResolver);
-            return Optional.of(resolvedDefaultParam.getValue());
+            return parseAndResolveThrow(paramsIncludingParentheses, expressionResolver);
         }
     }
 
-    private void validateOrThrow(final String paramsIncludingParentheses) {
-        if (!paramsIncludingParentheses.matches(OVERALL_PATTERN_STR)) {
+    private Optional<String> parseAndResolveThrow(final String paramsIncludingParentheses, final ExpressionResolver expressionResolver) {
+        final Optional<String> resolved = this.parameterResolver.apply(paramsIncludingParentheses, expressionResolver);
+        if(!resolved.isPresent()) {
             throw PlaceholderFunctionSignatureInvalidException.newBuilder(paramsIncludingParentheses, this)
                     .build();
         }
-    }
-
-    private ResolvedFunctionParameter<String> parseAndResolve(final String paramsIncludingParentheses,
-            final ExpressionResolver expressionResolver) {
-
-        final ParameterDefinition<String> defaultValueParam = getSignature().getParameterDefinition(0);
-        final Matcher matcher = OVERALL_PATTERN.matcher(paramsIncludingParentheses);
-        if (matcher.matches()) {
-
-            String constant = matcher.group("singleQuotedConstant");
-            constant = constant != null ? constant : matcher.group("doubleQuotedConstant");
-            if (constant != null) {
-                return new ResolvedDefaultValueParam(defaultValueParam, constant);
-            }
-
-            final String placeholder = matcher.group("placeholder");
-            if (placeholder != null) {
-                final Optional<String> resolved = expressionResolver.resolveSinglePlaceholder(placeholder);
-                return new ResolvedDefaultValueParam(defaultValueParam, resolved.orElse(placeholder));
-            }
-        }
-
-        throw PlaceholderFunctionSignatureInvalidException.newBuilder(paramsIncludingParentheses, this)
-                .build();
+        return resolved;
     }
 
     /**
@@ -98,7 +66,7 @@ final class PipelineFunctionDefault implements PipelineFunction {
 
         private static final DefaultFunctionSignature INSTANCE = new DefaultFunctionSignature();
 
-        private PipelineFunction.ParameterDefinition<String> defaultValueDescription;
+        private final PipelineFunction.ParameterDefinition<String> defaultValueDescription;
 
         private DefaultFunctionSignature() {
             defaultValueDescription = new DefaultValueParam();
@@ -121,6 +89,7 @@ final class PipelineFunctionDefault implements PipelineFunction {
         public String toString() {
             return renderSignature();
         }
+
     }
 
     /**
@@ -142,32 +111,7 @@ final class PipelineFunctionDefault implements PipelineFunction {
         public String getDescription() {
             return "Specifies the default/fallback value and may be a constant in single or double quotes or a placeholder";
         }
+
     }
 
-    /**
-     * Resolved {@link DefaultValueParam} including the 'defaultValue' value.
-     */
-    private static final class ResolvedDefaultValueParam
-            implements PipelineFunction.ResolvedFunctionParameter<String> {
-
-        private final PipelineFunction.ParameterDefinition<String> definition;
-        private String value;
-
-        private ResolvedDefaultValueParam(
-                final PipelineFunction.ParameterDefinition<String> definition,
-                final String value) {
-            this.definition = definition;
-            this.value = value;
-        }
-
-        @Override
-        public PipelineFunction.ParameterDefinition<String> getDefinition() {
-            return definition;
-        }
-
-        @Override
-        public String getValue() {
-            return value;
-        }
-    }
 }

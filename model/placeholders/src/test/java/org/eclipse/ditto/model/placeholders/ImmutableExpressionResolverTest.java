@@ -34,13 +34,14 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public class ImmutableExpressionResolverTest {
 
     private static final String THING_NAME = "foobar199";
-    private static final String THING_ID = "org.eclipse.ditto:" + THING_NAME;
+    private static final String THING_NAMESPACE= "org.eclipse.ditto";
+    private static final String THING_ID = THING_NAMESPACE + ":" + THING_NAME;
     private static final String KNOWN_TOPIC = "org.eclipse.ditto/" + THING_NAME + "/things/twin/commands/modify";
     private static final Map<String, String> KNOWN_HEADERS =
             DittoHeaders.newBuilder().putHeader("one", "1").putHeader("two", "2").build();
-    public static final String UNKNOWN_HEADER_EXPRESSION = "{{ header:missing }}";
-    public static final String UNKNOWN_THING_EXPRESSION = "{{ thing:missing }}";
-    public static final String UNKNOWN_TOPIC_EXPRESSION = "{{ topic:missing }}";
+    private static final String UNKNOWN_HEADER_EXPRESSION = "{{ header:missing }}";
+    private static final String UNKNOWN_THING_EXPRESSION = "{{ thing:missing }}";
+    private static final String UNKNOWN_TOPIC_EXPRESSION = "{{ topic:missing }}";
 
     private static ImmutableExpressionResolver underTest;
 
@@ -73,7 +74,7 @@ public class ImmutableExpressionResolverTest {
     }
 
     @Test
-    public void testSuccessfulPlaceholderResolvement() {
+    public void testSuccessfulPlaceholderResolution() {
 
         assertThat(underTest.resolve("{{ header:one }}", false))
                 .isEqualTo(KNOWN_HEADERS.get("one"));
@@ -88,7 +89,7 @@ public class ImmutableExpressionResolverTest {
         assertThat(underTest.resolve("{{ topic:entityId }}", false))
                 .isEqualTo(THING_NAME);
 
-        // verify different whitespacing
+        // verify different whitespace
         assertThat(underTest.resolve("{{topic:entityId }}", false))
                 .isEqualTo(THING_NAME);
         assertThat(underTest.resolve("{{topic:entityId}}", false))
@@ -98,7 +99,7 @@ public class ImmutableExpressionResolverTest {
     }
 
     @Test
-    public void testPlaceholderResolvementAllowingUnresolvedPlaceholders() {
+    public void testPlaceholderResolutionAllowingUnresolvedPlaceholders() {
 
         assertThat(underTest.resolve(UNKNOWN_HEADER_EXPRESSION, true))
                 .isEqualTo(UNKNOWN_HEADER_EXPRESSION);
@@ -109,7 +110,7 @@ public class ImmutableExpressionResolverTest {
     }
 
     @Test
-    public void testUnsuccessfulPlaceholderResolvement() {
+    public void testUnsuccessfulPlaceholderResolution() {
 
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(() ->
                 underTest.resolve(UNKNOWN_HEADER_EXPRESSION, false));
@@ -126,8 +127,12 @@ public class ImmutableExpressionResolverTest {
                 .isEqualTo("fallback");
         assertThat(underTest.resolve("{{ thing:bar | fn:default('bar') | fn:upper() }}", false))
                 .isEqualTo("BAR");
+        assertThat(underTest.resolve("{{ thing:id | fn:substring-before(':') }}", false))
+                .isEqualTo(THING_NAMESPACE);
+        assertThat(underTest.resolve("{{ header:unknown | fn:default(' fallback-spaces  ') }}", false))
+                .isEqualTo(" fallback-spaces  ");
 
-        // verify different whitespacing
+        // verify different whitespace
         assertThat(underTest.resolve("{{thing:bar |fn:default('bar')| fn:upper() }}", false))
                 .isEqualTo("BAR");
         assertThat(underTest.resolve("{{    thing:bar |     fn:default('bar')    |fn:upper()}}", false))
@@ -148,7 +153,7 @@ public class ImmutableExpressionResolverTest {
     }
 
     @Test
-    public void testSuccessfulSinglePlaceholderResolvement() {
+    public void testSuccessfulSinglePlaceholderResolution() {
         assertThat(underTest.resolveSinglePlaceholder("header:one"))
                 .contains(KNOWN_HEADERS.get("one"));
         assertThat(underTest.resolveSinglePlaceholder("thing:id"))
@@ -156,7 +161,7 @@ public class ImmutableExpressionResolverTest {
     }
 
     @Test
-    public void testUnsuccessfulSinglePlaceholderResolvement() {
+    public void testUnsuccessfulSinglePlaceholderResolution() {
         assertThat(underTest.resolveSinglePlaceholder("header:unknown"))
                 .isEmpty();
         assertThat(underTest.resolveSinglePlaceholder("fn:default('fallback')"))

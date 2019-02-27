@@ -139,7 +139,7 @@ public class ImmutableFunctionExpressionTest {
     @Test
     public void testFunctionDefaultWithWrongSignature() {
         assertThatExceptionOfType(PlaceholderFunctionSignatureInvalidException.class).isThrownBy(() ->
-                UNDER_TEST.resolve("fn:default('constant',2)", Optional.of(THING_ID), EXPRESSION_RESOLVER));
+                UNDER_TEST.resolve("fn:default('constant',2)", Optional.empty(), EXPRESSION_RESOLVER));
     }
 
     @Test

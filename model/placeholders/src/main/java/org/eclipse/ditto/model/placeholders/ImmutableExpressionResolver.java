@@ -22,7 +22,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.common.Placeholders;
@@ -39,9 +38,9 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
     private static final String ANY_NUMBER_OF_SPACES = "\\s*";
     private static final String OR = "|";
     private static final String STRING_WITH_SINGLE_QUOTES =
-            "(\\s*(?<!('\\s))'(?=([\\w\\-_|:]*'))[\\w\\-_|:]*'?\\s*)";
+            "(\\s*(?<!('\\s))'(?=([\\w\\-_|:\\s]*'))[\\w\\-_|:\\s]*'?\\s*)";
     private static final String STRING_WITH_DOUBLE_QUOTES =
-            "(\\s*(?<!(\"\\s))\"(?=([\\w\\-_|:]*\"))[\\w\\-_|:]*\"?\\s*)";
+            "(\\s*(?<!(\"\\s))\"(?=([\\w\\-_|:\\s]*\"))[\\w\\-_|:\\s]*\"?\\s*)";
     private static final String EMPTY_FUNCTION = "";
     private static final String COMMA_IN_BETWEEN_PARAMETERS = "(?<!(\\(\\s)),?";
 
@@ -108,39 +107,44 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
         return Optional.empty();
     }
 
-    private String getValidPlaceholderTemplate(List<String> stringList) {
-        try {
-            return stringList.get(0); // the first pipeline stage has to start with a placeholder
-        } catch (IndexOutOfBoundsException e) {
-            return "";
-        }
-    }
-
     private Function<String, Optional<String>> makePlaceholderReplacerFunction(
             final PlaceholderResolver<?> placeholderResolver) {
 
         return template -> {
 
-            Matcher matcher = PIPE_PATTERN.matcher(template);
-
-            final List<String> pipelineStagesExpressions = new ArrayList<>();
-
-            while (matcher.find()) {
-                pipelineStagesExpressions.add(matcher.group().replaceAll("\\s+", ""));
-            }
-
-            final String placeholderTemplate = getValidPlaceholderTemplate(pipelineStagesExpressions);
-
-            final List<String> pipelineStages = pipelineStagesExpressions.stream()
-                    .skip(1)
-                    .map(String::trim)
-                    .collect(Collectors.toList());
-            final Pipeline pipeline = new ImmutablePipeline(ImmutableFunctionExpression.INSTANCE, pipelineStages);
+            final List<String> pipelineStagesExpressions = getPipelineStagesExpressions(template);
+            final String placeholderTemplate = getFirstPlaceholderInPipe(pipelineStagesExpressions);
+            final Pipeline pipeline = getPipelineFromExpressions(pipelineStagesExpressions);
 
             final Optional<String> pipelineInput = resolvePlaceholder(placeholderResolver, placeholderTemplate);
             return pipeline.execute(pipelineInput, this);
 
         };
+    }
+
+    private List<String> getPipelineStagesExpressions(final String template) {
+        final Matcher matcher = PIPE_PATTERN.matcher(template);
+
+        final List<String> pipelineStagesExpressions = new ArrayList<>();
+
+        while (matcher.find()) {
+            pipelineStagesExpressions.add(matcher.group().trim());
+        }
+        return pipelineStagesExpressions;
+    }
+
+    private String getFirstPlaceholderInPipe(final List<String> pipelineStagesExpressions) {
+        if (pipelineStagesExpressions.isEmpty()) {
+            return "";
+        }
+        return pipelineStagesExpressions.get(0); // the first pipeline stage has to start with a placeholder
+    }
+
+    private Pipeline getPipelineFromExpressions(final List<String> pipelineStagesExpressions) {
+        final List<String> pipelineStages = pipelineStagesExpressions.stream()
+                .skip(1) // ignore first, as the first one is a placeholder that will be used as the input for the pipeline
+                .collect(Collectors.toList());
+        return new ImmutablePipeline(ImmutableFunctionExpression.INSTANCE, pipelineStages);
     }
 
     private Optional<String> resolvePlaceholder(final PlaceholderResolver<?> prefixed, final String placeholder) {

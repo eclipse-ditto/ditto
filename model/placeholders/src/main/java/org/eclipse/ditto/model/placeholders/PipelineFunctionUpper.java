@@ -13,8 +13,6 @@ package org.eclipse.ditto.model.placeholders;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -24,10 +22,10 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 final class PipelineFunctionUpper implements PipelineFunction {
 
-    static final String FUNCTION_NAME = "upper";
+    private static final String FUNCTION_NAME = "upper";
 
-    private static final String EMPTY_PARENTHESES_PATTERN = "\\(\\)";
-    private static final Pattern OVERALL_PATTERN = Pattern.compile(EMPTY_PARENTHESES_PATTERN);
+    private final PipelineFunctionParameterResolverFactory.EmptyParameterResolver parameterResolver =
+            PipelineFunctionParameterResolverFactory.forEmptyParameters();
 
     @Override
     public String getName() {
@@ -49,9 +47,7 @@ final class PipelineFunctionUpper implements PipelineFunction {
     }
 
     private void validateOrThrow(final String paramsIncludingParentheses) {
-
-        final Matcher matcher = OVERALL_PATTERN.matcher(paramsIncludingParentheses);
-        if (!matcher.matches()) {
+        if (!parameterResolver.test(paramsIncludingParentheses)) {
             throw PlaceholderFunctionSignatureInvalidException.newBuilder(paramsIncludingParentheses, this)
                     .build();
         }
