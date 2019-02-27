@@ -131,8 +131,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
     private void handleRetrieveThings(final RetrieveThings rt, final Object msgToAsk) {
         LogUtil.enhanceLogWithCorrelationId(log, rt.getDittoHeaders().getCorrelationId());
         log.info("Got '{}' message. Retrieving requested '{}' Things..",
-                RetrieveThings.class.getSimpleName(),
-                rt.getThingIds().size());
+                RetrieveThings.class.getSimpleName(), rt.getThingIds().size());
 
         final ActorRef sender = getSender();
         askTargetActor(rt, msgToAsk, sender);
@@ -141,8 +140,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
     private void handleSudoRetrieveThings(final SudoRetrieveThings srt, final Object msgToAsk) {
         LogUtil.enhanceLogWithCorrelationId(log, srt.getDittoHeaders().getCorrelationId());
         log.info("Got '{}' message. Retrieving requested '{}' Things..",
-                SudoRetrieveThings.class.getSimpleName(),
-                srt.getThingIds().size());
+                SudoRetrieveThings.class.getSimpleName(), srt.getThingIds().size());
 
         final ActorRef sender = getSender();
         askTargetActor(srt, msgToAsk, sender);
@@ -153,13 +151,13 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                 .thenAccept(response -> {
                     if (response instanceof DittoRuntimeException) {
                         sender.tell(response, getSelf());
-                    } else if (response instanceof SourceRef){
+                    } else if (response instanceof SourceRef) {
                         if (command instanceof SudoRetrieveThings) {
-                            handleSourceRef((SourceRef) response, ((SudoRetrieveThings) command).getThingIds(), command,
-                                    sender);
+                            handleSourceRef((SourceRef) response, ((SudoRetrieveThings) command).getThingIds(),
+                                    command, sender);
                         } else {
-                            handleSourceRef((SourceRef) response, ((RetrieveThings) command).getThingIds(), command,
-                                    sender);
+                            handleSourceRef((SourceRef) response, ((RetrieveThings) command).getThingIds(),
+                                    command, sender);
                         }
                     } else {
                         log.error("Unexpected non-DittoRuntimeException error - responding with " +
