@@ -116,7 +116,9 @@ public final class ImmutablePropertyFilterTest {
         final ImmutablePropertyFilter underTest = ImmutablePropertyFilter.of(SearchFilter.Type.IN,
                 THING_ID_PATH, Arrays.asList(valueFoo, valueBar, valueBaz));
 
-        assertThat(underTest).hasStringRepresentation("in(/thingId,\"foo\",\"bar\",\"baz\")");
+        assertThat(underTest)
+                .hasStringRepresentation(
+                        "in(" + THING_ID_PATH + ",\"foo\",\"bar\",\"baz\")");
     }
 
     @Test
@@ -124,7 +126,9 @@ public final class ImmutablePropertyFilterTest {
         final ImmutablePropertyFilter underTest =
                 ImmutablePropertyFilter.of(SearchFilter.Type.EXISTS, THING_ID_PATH, Collections.emptySet());
 
-        assertThat(underTest).hasStringRepresentation("exists(/thingId)");
+        assertThat(underTest)
+                .hasStringRepresentation(
+                        "exists(" + THING_ID_PATH + ")");
     }
 
 }

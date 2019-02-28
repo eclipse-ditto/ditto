@@ -48,7 +48,12 @@ public final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpres
     }
 
     @Override
-    public FilterFieldExpression filterBy(final String propertyName) throws IllegalArgumentException {
+    public FilterFieldExpression filterBy(final String propertyNameWithOptionalLeadingSlash)
+            throws IllegalArgumentException {
+
+        requireNonNull(propertyNameWithOptionalLeadingSlash);
+        final String propertyName = stripLeadingSlash(propertyNameWithOptionalLeadingSlash);
+
         final Supplier<FilterFieldExpression> defaultSupplier = () -> (FilterFieldExpression) common(propertyName);
         return FieldExpressionUtil.parseFeatureField(requireNonNull(propertyName))
                 .map(f -> f.getProperty()
@@ -66,7 +71,12 @@ public final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpres
     }
 
     @Override
-    public ExistsFieldExpression existsBy(final String propertyName) throws IllegalArgumentException {
+    public ExistsFieldExpression existsBy(final String propertyNameWithOptionalLeadingSlash)
+            throws IllegalArgumentException {
+
+        requireNonNull(propertyNameWithOptionalLeadingSlash);
+        final String propertyName = stripLeadingSlash(propertyNameWithOptionalLeadingSlash);
+
         return FieldExpressionUtil.parseFeatureField(requireNonNull(propertyName))
                 .map(f -> f.getFeatureId()
                         .map(id -> f.getProperty()
@@ -91,7 +101,12 @@ public final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpres
     }
 
     @Override
-    public SortFieldExpression sortBy(final String propertyName) throws IllegalArgumentException {
+    public SortFieldExpression sortBy(final String propertyNameWithOptionalLeadingSlash)
+            throws IllegalArgumentException {
+
+        requireNonNull(propertyNameWithOptionalLeadingSlash);
+        final String propertyName = stripLeadingSlash(propertyNameWithOptionalLeadingSlash);
+
         return FieldExpressionUtil.parseFeatureField(requireNonNull(propertyName))
                 .flatMap(f -> f.getFeatureId()
                         .flatMap(id -> f.getProperty()
@@ -101,6 +116,21 @@ public final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpres
                         )
                 )
                 .orElseGet(() -> (SortFieldExpression) common(propertyName));
+    }
+
+    /**
+     * Strip the optional leading slash of the propertyName, because it may be a Json Pointer.
+     *
+     * @param propertyName the property name which may start with a slash
+     * @return the propertyName without leading slash
+     */
+    private static String stripLeadingSlash(final String propertyName) {
+        requireNonNull(propertyName);
+        if (propertyName.startsWith("/")) {
+            return propertyName.substring(1);
+        } else {
+            return propertyName;
+        }
     }
 
     /**

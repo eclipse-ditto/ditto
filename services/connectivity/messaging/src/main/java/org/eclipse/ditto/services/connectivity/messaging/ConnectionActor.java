@@ -96,6 +96,7 @@ import akka.actor.Status;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.routing.ClusterRouterPool;
 import akka.cluster.routing.ClusterRouterPoolSettings;
+import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
@@ -122,9 +123,6 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
     private static final String JOURNAL_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-journal";
     private static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-snapshots";
-
-    private static final String UNRESOLVED_PLACEHOLDERS_MESSAGE =
-            "Failed to substitute all placeholders in '{}', target is dropped.";
 
     private static final String PUB_SUB_GROUP_PREFIX = "connection:";
 
@@ -281,8 +279,10 @@ public final class ConnectionActor extends AbstractPersistentActor {
                             subscribeForEvents();
                         }
                         getContext().become(connectionCreatedBehaviour);
-                    } else {
+                    } else if (lastSequenceNr() > 0) {
+                        // if the last sequence number is already > 0 we can assume that the connection was deleted:
                         stopSelfIfDeletedAfterDelay();
+                        // otherwise not - as the connection may just be created!
                     }
 
                     getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
@@ -911,9 +911,9 @@ public final class ConnectionActor extends AbstractPersistentActor {
     }
 
     private void stopSelf() {
-        log.debug("Shutting down");
-        // stop the supervisor (otherwise it'd restart this actor) which causes this actor to stop, too.
-        getContext().getParent().tell(PoisonPill.getInstance(), getSelf());
+        log.info("Passivating / shutting down");
+        final ShardRegion.Passivate passivateMessage = new ShardRegion.Passivate(PoisonPill.getInstance());
+        getContext().getParent().tell(passivateMessage, getSelf());
     }
 
     private void stopSelfIfDeletedAfterDelay() {
