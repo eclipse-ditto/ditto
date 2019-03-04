@@ -37,6 +37,7 @@ import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
@@ -100,6 +101,10 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
         });
     }
 
+    private static void stopTimer(final StartedTimer timer) {
+        timer.stop(); // stop timer
+    }
+
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
@@ -125,28 +130,43 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
 
     private void handleRetrieveThings(final RetrieveThings rt, final Object msgToAsk) {
         LogUtil.enhanceLogWithCorrelationId(log, rt.getDittoHeaders().getCorrelationId());
+        final List<String> thingIds = rt.getThingIds();
         log.info("Got '{}' message. Retrieving requested '{}' Things..",
-                RetrieveThings.class.getSimpleName(),
-                rt.getThingIds().size());
+                RetrieveThings.class.getSimpleName(), thingIds.size());
 
         final ActorRef sender = getSender();
-        PatternsCS.ask(targetActor, msgToAsk, Duration.ofSeconds(ASK_TIMEOUT))
-                .thenAccept(sourceRef ->
-                        handleSourceRef((SourceRef) sourceRef, rt.getThingIds(), rt, sender)
-                );
+        askTargetActor(rt, thingIds, msgToAsk, sender);
     }
 
-    private void handleSudoRetrieveThings(final SudoRetrieveThings rt, final Object msgToAsk) {
-        LogUtil.enhanceLogWithCorrelationId(log, rt.getDittoHeaders().getCorrelationId());
+    private void handleSudoRetrieveThings(final SudoRetrieveThings srt, final Object msgToAsk) {
+        LogUtil.enhanceLogWithCorrelationId(log, srt.getDittoHeaders().getCorrelationId());
+        final List<String> thingIds = srt.getThingIds();
         log.info("Got '{}' message. Retrieving requested '{}' Things..",
-                SudoRetrieveThings.class.getSimpleName(),
-                rt.getThingIds().size());
+                SudoRetrieveThings.class.getSimpleName(), thingIds.size());
 
         final ActorRef sender = getSender();
+        askTargetActor(srt, thingIds, msgToAsk, sender);
+    }
+
+    private void askTargetActor(final Command<?> command, final List<String> thingIds,
+            final Object msgToAsk, final ActorRef sender) {
         PatternsCS.ask(targetActor, msgToAsk, Duration.ofSeconds(ASK_TIMEOUT))
-                .thenAccept(sourceRef ->
-                        handleSourceRef((SourceRef) sourceRef, rt.getThingIds(), rt, sender)
-                );
+                .thenAccept(response -> {
+                    if (response instanceof SourceRef){
+                        handleSourceRef((SourceRef) response, thingIds, command, sender);
+                    } else if (response instanceof DittoRuntimeException) {
+                        sender.tell(response, getSelf());
+                    } else {
+                        log.error("Unexpected non-DittoRuntimeException error - responding with " +
+                                        "GatewayInternalErrorException. Cause: {} - {}",
+                                response.getClass().getSimpleName(), response);
+                        final GatewayInternalErrorException responseEx =
+                                GatewayInternalErrorException.newBuilder()
+                                        .dittoHeaders(command.getDittoHeaders())
+                                        .build();
+                        sender.tell(responseEx, getSelf());
+                    }
+                });
     }
 
     private void handleSourceRef(final SourceRef sourceRef, final List<String> thingIds,
@@ -245,10 +265,6 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
         return plainJsonThings -> SudoRetrieveThingsResponse.of(plainJsonThings.stream()
                 .map(PlainJson::getJson)
                 .collect(Collectors.toList()), dittoHeaders);
-    }
-
-    private static void stopTimer(final StartedTimer timer) {
-        timer.stop(); // stop timer
     }
 
     /**

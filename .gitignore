@@ -16,3 +16,4 @@ dependencies.txt
 /deployment/docker/sandbox/graphite/storage
 ajcore.*.txt
 *.mdb
+.env
