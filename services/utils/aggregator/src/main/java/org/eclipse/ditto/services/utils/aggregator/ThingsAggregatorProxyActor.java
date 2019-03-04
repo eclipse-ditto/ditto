@@ -130,38 +130,35 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
 
     private void handleRetrieveThings(final RetrieveThings rt, final Object msgToAsk) {
         LogUtil.enhanceLogWithCorrelationId(log, rt.getDittoHeaders().getCorrelationId());
+        final List<String> thingIds = rt.getThingIds();
         log.info("Got '{}' message. Retrieving requested '{}' Things..",
-                RetrieveThings.class.getSimpleName(), rt.getThingIds().size());
+                RetrieveThings.class.getSimpleName(), thingIds.size());
 
         final ActorRef sender = getSender();
-        askTargetActor(rt, msgToAsk, sender);
+        askTargetActor(rt, thingIds, msgToAsk, sender);
     }
 
     private void handleSudoRetrieveThings(final SudoRetrieveThings srt, final Object msgToAsk) {
         LogUtil.enhanceLogWithCorrelationId(log, srt.getDittoHeaders().getCorrelationId());
+        final List<String> thingIds = srt.getThingIds();
         log.info("Got '{}' message. Retrieving requested '{}' Things..",
-                SudoRetrieveThings.class.getSimpleName(), srt.getThingIds().size());
+                SudoRetrieveThings.class.getSimpleName(), thingIds.size());
 
         final ActorRef sender = getSender();
-        askTargetActor(srt, msgToAsk, sender);
+        askTargetActor(srt, thingIds, msgToAsk, sender);
     }
 
-    private void askTargetActor(final Command<?> command, final Object msgToAsk, final ActorRef sender) {
+    private void askTargetActor(final Command<?> command, final List<String> thingIds,
+            final Object msgToAsk, final ActorRef sender) {
         PatternsCS.ask(targetActor, msgToAsk, Duration.ofSeconds(ASK_TIMEOUT))
                 .thenAccept(response -> {
-                    if (response instanceof DittoRuntimeException) {
+                    if (response instanceof SourceRef){
+                        handleSourceRef((SourceRef) response, thingIds, command, sender);
+                    } else if (response instanceof DittoRuntimeException) {
                         sender.tell(response, getSelf());
-                    } else if (response instanceof SourceRef) {
-                        if (command instanceof SudoRetrieveThings) {
-                            handleSourceRef((SourceRef) response, ((SudoRetrieveThings) command).getThingIds(),
-                                    command, sender);
-                        } else {
-                            handleSourceRef((SourceRef) response, ((RetrieveThings) command).getThingIds(),
-                                    command, sender);
-                        }
                     } else {
                         log.error("Unexpected non-DittoRuntimeException error - responding with " +
-                                        "GatewayInternalErrorException: {} - {}",
+                                        "GatewayInternalErrorException. Cause: {} - {}",
                                 response.getClass().getSimpleName(), response);
                         final GatewayInternalErrorException responseEx =
                                 GatewayInternalErrorException.newBuilder()
