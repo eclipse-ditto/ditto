@@ -109,22 +109,4 @@ interface PipelineFunction {
 
     }
 
-    /**
-     * Describes a resolved parameter containing its {@link ParameterDefinition} and the resolved {@code value}.
-     *
-     * @param <T> the type of the resolved parameter value
-     */
-    interface ResolvedFunctionParameter<T> {
-
-        /**
-         * @return the definition of the parameter
-         */
-        PipelineFunction.ParameterDefinition<T> getDefinition();
-
-        /**
-         * @return the resolved value of the parameter
-         */
-        T getValue();
-
-    }
 }
