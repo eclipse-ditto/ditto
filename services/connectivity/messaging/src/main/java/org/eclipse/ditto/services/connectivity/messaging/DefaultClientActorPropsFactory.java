@@ -22,6 +22,7 @@ import org.eclipse.ditto.services.connectivity.messaging.config.ClientConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.rabbitmq.RabbitMQClientActor;
+import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -34,13 +35,17 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
 
     private final ClientConfig clientConfig;
     private final MappingConfig mappingConfig;
+    private final ProtocolConfig protocolConfig;
     private final ConnectionConfig.MqttConfig mqttConfig;
 
-    private DefaultClientActorPropsFactory(final ClientConfig clientConfig, final MappingConfig mappingConfig,
+    private DefaultClientActorPropsFactory(final ClientConfig clientConfig,
+            final MappingConfig mappingConfig,
+            final ProtocolConfig protocolConfig,
             final ConnectionConfig.MqttConfig mqttConfig) {
 
         this.clientConfig = checkNotNull(clientConfig, "ClientConfig");
         this.mappingConfig = checkNotNull(mappingConfig, "MappingConfig");
+        this.protocolConfig = checkNotNull(protocolConfig, "ProtocolConfig");
         this.mqttConfig = checkNotNull(mqttConfig, "MqttConfig");
     }
 
@@ -49,14 +54,18 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
      *
      * @param clientConfig the client config.
      * @param mappingConfig the mapping config.
+     * @param protocolConfig the configuration settings for protocol mapping.
      * @param connectionConfig the connection config.
      * @return the factory instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static DefaultClientActorPropsFactory getInstance(final ClientConfig clientConfig,
-            final MappingConfig mappingConfig, final ConnectionConfig connectionConfig) {
+            final MappingConfig mappingConfig,
+            final ProtocolConfig protocolConfig,
+            final ConnectionConfig connectionConfig) {
 
-        return new DefaultClientActorPropsFactory(clientConfig, mappingConfig, connectionConfig.getMqttConfig());
+        return new DefaultClientActorPropsFactory(clientConfig, mappingConfig, protocolConfig,
+                connectionConfig.getMqttConfig());
     }
 
     @Override
@@ -64,11 +73,14 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
         final ConnectionType connectionType = connection.getConnectionType();
         switch (connectionType) {
             case AMQP_091:
-                return RabbitMQClientActor.props(connection, clientConfig, mappingConfig, conciergeForwarder);
+                return RabbitMQClientActor.props(connection, clientConfig, mappingConfig, protocolConfig,
+                        conciergeForwarder);
             case AMQP_10:
-                return AmqpClientActor.props(connection, clientConfig, mappingConfig, conciergeForwarder);
+                return AmqpClientActor.props(connection, clientConfig, mappingConfig, protocolConfig,
+                        conciergeForwarder);
             case MQTT:
-                return MqttClientActor.props(connection, clientConfig, mappingConfig, mqttConfig, conciergeForwarder);
+                return MqttClientActor.props(connection, clientConfig, mappingConfig, protocolConfig, mqttConfig,
+                        conciergeForwarder);
             default:
                 throw new IllegalArgumentException("ConnectionType <" + connectionType + "> is not supported.");
         }

@@ -27,7 +27,7 @@ import javax.jms.JMSRuntimeException;
 import javax.naming.NamingException;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.services.base.config.ServiceSpecificConfig;
+import org.eclipse.ditto.services.base.config.HttpConfig;
 import org.eclipse.ditto.services.base.config.ServiceSpecificConfig.ClusterConfig;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
@@ -157,7 +157,7 @@ public final class ConnectivityRootActor extends AbstractActor {
         final ActorSystem actorSystem = getContext().system();
 
         final JavaDslMongoReadJournal mongoReadJournal = PersistenceQuery
-                .get(getContext().getSystem())
+                .get(actorSystem)
                 .getReadJournalFor(JavaDslMongoReadJournal.class, RECONNECT_READ_JOURNAL_PLUGIN_ID);
 
         final ActorRef conciergeForwarder =
@@ -180,7 +180,7 @@ public final class ConnectivityRootActor extends AbstractActor {
                 })
         ).exceptionally(failure -> {
             log.error("Something very bad happened! " + failure.getMessage(), failure);
-            getContext().system().terminate();
+            actorSystem.terminate();
             return null;
         });
     }
@@ -312,7 +312,8 @@ public final class ConnectivityRootActor extends AbstractActor {
 
         final ClientActorPropsFactory clientActorPropsFactory =
                 DefaultClientActorPropsFactory.getInstance(connectivityConfig.getClientConfig(),
-                        connectivityConfig.getMappingConfig(), connectivityConfig.getConnectionConfig());
+                        connectivityConfig.getMappingConfig(), connectivityConfig.getProtocolConfig(),
+                        connectivityConfig.getConnectionConfig());
 
         return ConnectionSupervisorActor.props(connectivityConfig.getConnectionConfig(), pubSubMediator,
                 conciergeForwarder, clientActorPropsFactory, commandValidator);
@@ -331,7 +332,7 @@ public final class ConnectivityRootActor extends AbstractActor {
                         ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem));
     }
 
-    private CompletionStage<ServerBinding> getHttpBinding(final ServiceSpecificConfig.HttpConfig httpConfig,
+    private CompletionStage<ServerBinding> getHttpBinding(final HttpConfig httpConfig,
             final ActorSystem actorSystem,
             final ActorMaterializer materializer,
             final ActorRef healthCheckingActor) {

@@ -22,7 +22,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 
-import org.eclipse.ditto.services.base.config.ServiceSpecificConfig.HttpConfig.HttpConfigValue;
+import org.eclipse.ditto.services.base.config.HttpConfig.HttpConfigValue;
 import org.junit.BeforeClass;
 import org.junit.Test;
 

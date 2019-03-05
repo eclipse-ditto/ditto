@@ -14,8 +14,6 @@ import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.KNOWN_THING_ID;
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.UNKNOWN_PATH;
 
-import java.time.Duration;
-
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -26,9 +24,11 @@ import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
+import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.junit.Before;
 import org.junit.Test;
 
+import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.server.Route;
@@ -57,11 +57,13 @@ public final class FeaturesRouteTest extends EndpointTestBase {
 
     @Before
     public void setUp() {
-        featuresRoute = new FeaturesRoute(createDummyResponseActor(), system(), Duration.ZERO, Duration.ZERO,
-                Duration.ZERO, Duration.ZERO);
-        final Route route =
-                extractRequestContext(ctx -> featuresRoute.buildFeaturesRoute(ctx, DittoHeaders.newBuilder().build(),
-                        KNOWN_THING_ID));
+        final ActorSystem actorSystem = system();
+        final ProtocolAdapterProvider adapterProvider = ProtocolAdapterProvider.load(protocolConfig, actorSystem);
+
+        featuresRoute = new FeaturesRoute(createDummyResponseActor(), actorSystem, messageConfig, claimMessageConfig,
+                httpConfig, adapterProvider.getHttpHeaderTranslator());
+        final Route route = extractRequestContext(
+                ctx -> featuresRoute.buildFeaturesRoute(ctx, DittoHeaders.empty(), KNOWN_THING_ID));
         underTest = testRoute(route);
     }
 

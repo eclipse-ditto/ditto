@@ -43,6 +43,7 @@ import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.services.gateway.endpoints.config.WebSocketConfig;
 import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.ResponsePublished;
@@ -119,44 +120,35 @@ public final class WebsocketRoute {
     private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketRoute.class);
 
     private final ActorRef streamingActor;
-    private final int subscriberBackpressureQueueSize;
-    private final int publisherBackpressureBufferSize;
-
+    private final WebSocketConfig webSocketConfig;
     private final EventStream eventStream;
-
     private final EventSniffer<Message> incomingMessageSniffer;
     private final EventSniffer<Message> outgoingMessageSniffer;
+
+    private WebsocketRoute(final ActorRef streamingActor,
+            final WebSocketConfig webSocketConfig,
+            final EventStream eventStream,
+            final EventSniffer<Message> incomingMessageSniffer,
+            final EventSniffer<Message> outgoingMessageSniffer) {
+
+        this.streamingActor = streamingActor;
+        this.webSocketConfig = webSocketConfig;
+        this.eventStream = eventStream;
+        this.incomingMessageSniffer = incomingMessageSniffer;
+        this.outgoingMessageSniffer = outgoingMessageSniffer;
+    }
 
     /**
      * Constructs the {@code /ws} route builder.
      *
      * @param streamingActor the {@link org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor} reference.
-     * @param subscriberBackpressureQueueSize the max queue size of how many inflight Commands a single Websocket client
-     * can have.
-     * @param publisherBackpressureBufferSize the max buffer size of how many outstanding CommandResponses and Events a
-     * single Websocket client can have - additionally incoming CommandResponses and Events are dropped if this size is
+     * @param webSocketConfig the configuration of the web socket enpoint.
      * @param eventStream eventStream used to publish events within the actor system
      */
-    public WebsocketRoute(final ActorRef streamingActor,
-            final int subscriberBackpressureQueueSize,
-            final int publisherBackpressureBufferSize,
+    public WebsocketRoute(final ActorRef streamingActor, final WebSocketConfig webSocketConfig,
             final EventStream eventStream) {
-        this(streamingActor, subscriberBackpressureQueueSize, publisherBackpressureBufferSize, eventStream,
-                EventSniffer.noOp(), EventSniffer.noOp());
-    }
 
-    private WebsocketRoute(final ActorRef streamingActor,
-            final int subscriberBackpressureQueueSize,
-            final int publisherBackpressureBufferSize,
-            final EventStream eventStream,
-            final EventSniffer<Message> incomingMessageSniffer,
-            final EventSniffer<Message> outgoingMessageSniffer) {
-        this.streamingActor = streamingActor;
-        this.subscriberBackpressureQueueSize = subscriberBackpressureQueueSize;
-        this.publisherBackpressureBufferSize = publisherBackpressureBufferSize;
-        this.eventStream = eventStream;
-        this.incomingMessageSniffer = incomingMessageSniffer;
-        this.outgoingMessageSniffer = outgoingMessageSniffer;
+        this(streamingActor, webSocketConfig, eventStream, EventSniffer.noOp(), EventSniffer.noOp());
     }
 
     /**
@@ -169,8 +161,8 @@ public final class WebsocketRoute {
     public WebsocketRoute withMessageSniffers(final EventSniffer<Message> incomingMessageSniffer,
             final EventSniffer<Message> outgoingMessageSniffer) {
 
-        return new WebsocketRoute(streamingActor, subscriberBackpressureQueueSize, publisherBackpressureBufferSize,
-                eventStream, incomingMessageSniffer, outgoingMessageSniffer);
+        return new WebsocketRoute(streamingActor, webSocketConfig, eventStream, incomingMessageSniffer,
+                outgoingMessageSniffer);
     }
 
     /**
@@ -178,8 +170,10 @@ public final class WebsocketRoute {
      *
      * @return the {@code /ws} route.
      */
-    public Route buildWebsocketRoute(final Integer version, final String correlationId,
-            final AuthorizationContext connectionAuthContext, final DittoHeaders additionalHeaders,
+    public Route buildWebsocketRoute(final Integer version,
+            final String correlationId,
+            final AuthorizationContext connectionAuthContext,
+            final DittoHeaders additionalHeaders,
             final ProtocolAdapter chosenProtocolAdapter) {
 
         return extractUpgradeToWebSocket(upgradeToWebSocket -> extractRequest(request ->
@@ -190,9 +184,13 @@ public final class WebsocketRoute {
         ));
     }
 
-    private HttpResponse createWebsocket(final UpgradeToWebSocket upgradeToWebSocket, final Integer version,
-            final String connectionCorrelationId, final AuthorizationContext authContext,
-            final DittoHeaders additionalHeaders, final ProtocolAdapter adapter, final HttpRequest request) {
+    private HttpResponse createWebsocket(final UpgradeToWebSocket upgradeToWebSocket,
+            final Integer version,
+            final String connectionCorrelationId,
+            final AuthorizationContext authContext,
+            final DittoHeaders additionalHeaders,
+            final ProtocolAdapter adapter,
+            final HttpRequest request) {
 
         LogUtil.logWithCorrelationId(LOGGER, connectionCorrelationId, logger ->
                 logger.info("Creating WebSocket for connection authContext: <{}>", authContext));
@@ -207,7 +205,8 @@ public final class WebsocketRoute {
 
     private Flow<Message, DittoRuntimeException, NotUsed> createIncoming(final Integer version,
             final String connectionCorrelationId,
-            final AuthorizationContext connectionAuthContext, final DittoHeaders additionalHeaders,
+            final AuthorizationContext connectionAuthContext,
+            final DittoHeaders additionalHeaders,
             final ProtocolAdapter adapter,
             final HttpRequest request) {
 
@@ -234,7 +233,8 @@ public final class WebsocketRoute {
                         processProtocolMessage(connectionAuthContext, connectionCorrelationId, strictText));
 
         final Props commandSubscriberProps =
-                CommandSubscriber.props(streamingActor, subscriberBackpressureQueueSize, eventStream);
+                CommandSubscriber.props(streamingActor, webSocketConfig.getSubscriberBackpressureQueueSize(),
+                        eventStream);
         final Sink<Signal, ActorRef> commandSubscriber = Sink.actorSubscriber(commandSubscriberProps);
 
         final Flow<String, DittoRuntimeException, NotUsed> signalErrorFlow =
@@ -246,6 +246,7 @@ public final class WebsocketRoute {
 
     private boolean processProtocolMessage(final AuthorizationContext authContext, final String connectionCorrelationId,
             final String protocolMessage) {
+
         Object messageToTellStreamingActor;
         switch (protocolMessage) {
             case START_SEND_EVENTS:
@@ -319,15 +320,14 @@ public final class WebsocketRoute {
      * @param protocolMessage the protocolMessage containing parameters, e.g.: {@code START-SEND-EVENTS?filter=eq(foo,1)}
      * @return the map containing the resolved params
      */
-    private Map<String, String> determineParams(final String protocolMessage) {
+    private static Map<String, String> determineParams(final String protocolMessage) {
         if (protocolMessage.contains("?")) {
             final String parametersString = protocolMessage.split("\\?", 2)[1];
             return Arrays.stream(parametersString.split("&"))
                     .map(paramWithValue -> paramWithValue.split("=", 2))
                     .collect(Collectors.toMap(pv -> urlDecode(pv[0]), pv -> urlDecode(pv[1])));
-        } else {
-            return Collections.emptyMap();
         }
+        return Collections.emptyMap();
     }
 
     private static String urlDecode(final String value) {
@@ -339,12 +339,11 @@ public final class WebsocketRoute {
     }
 
     private Flow<DittoRuntimeException, Message, NotUsed> createOutgoing(final String connectionCorrelationId,
-            final ProtocolAdapter adapter,
-            final HttpRequest request) {
+            final ProtocolAdapter adapter, final HttpRequest request) {
 
         final Source<Jsonifiable.WithPredicate<JsonObject, JsonField>, NotUsed> eventAndResponseSource =
                 Source.<Jsonifiable.WithPredicate<JsonObject, JsonField>>actorPublisher(
-                        EventAndResponsePublisher.props(publisherBackpressureBufferSize))
+                        EventAndResponsePublisher.props(webSocketConfig.getPublisherBackpressureBufferSize()))
                         .mapMaterializedValue(actorRef -> {
                             streamingActor.tell(new Connect(actorRef, connectionCorrelationId, STREAMING_TYPE_WS),
                                     null);
@@ -389,6 +388,7 @@ public final class WebsocketRoute {
 
     private Jsonifiable.WithPredicate<JsonObject, JsonField> publishResponsePublishedEvent(
             final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable) {
+
         if (jsonifiable instanceof CommandResponse) {
             // only create ResponsePublished for CommandResponses, not for Events with the same correlationId
             ((WithDittoHeaders) jsonifiable).getDittoHeaders()
@@ -399,7 +399,7 @@ public final class WebsocketRoute {
         return jsonifiable;
     }
 
-    private Flow<String, DittoRuntimeException, NotUsed> buildSignalErrorFlow(
+    private static Flow<String, DittoRuntimeException, NotUsed> buildSignalErrorFlow(
             final Sink<Signal, ActorRef> commandSubscriber,
             final Integer version,
             final String connectionCorrelationId,
@@ -456,7 +456,7 @@ public final class WebsocketRoute {
         }));
     }
 
-    private Signal buildSignal(final String cmdString,
+    private static Signal buildSignal(final String cmdString,
             final Integer version,
             final String connectionCorrelationId,
             final AuthorizationContext connectionAuthContext,

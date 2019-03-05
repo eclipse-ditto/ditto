@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.services.gateway.proxy.actors;
 
+import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 import akka.actor.ActorRef;
@@ -23,8 +24,10 @@ public final class ProxyActor extends AbstractThingProxyActor {
 
     private ProxyActor(final ActorRef pubSubMediator,
             final ActorRef devOpsCommandsActor,
-            final ActorRef conciergeForwarder) {
-        super(pubSubMediator, devOpsCommandsActor, conciergeForwarder);
+            final ActorRef conciergeForwarder,
+            final HttpConfig httpConfig) {
+
+        super(pubSubMediator, devOpsCommandsActor, conciergeForwarder, httpConfig);
     }
 
     /**
@@ -32,17 +35,20 @@ public final class ProxyActor extends AbstractThingProxyActor {
      *
      * @param pubSubMediator the Pub/Sub mediator to use for subscribing for events.
      * @param devOpsCommandsActor the Actor ref to the local DevOpsCommandsActor.
+     * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
             final ActorRef devOpsCommandsActor,
-            final ActorRef conciergeForwarder) {
+            final ActorRef conciergeForwarder,
+            final HttpConfig httpConfig) {
+
         return Props.create(ProxyActor.class, new Creator<ProxyActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public ProxyActor create() {
-                return new ProxyActor(pubSubMediator, devOpsCommandsActor, conciergeForwarder);
+                return new ProxyActor(pubSubMediator, devOpsCommandsActor, conciergeForwarder, httpConfig);
             }
         });
     }

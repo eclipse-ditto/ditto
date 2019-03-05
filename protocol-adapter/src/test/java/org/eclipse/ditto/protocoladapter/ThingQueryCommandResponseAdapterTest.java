@@ -53,7 +53,7 @@ public final class ThingQueryCommandResponseAdapterTest {
 
     @Before
     public void setUp() {
-        underTest = ThingQueryCommandResponseAdapter.of(DittoProtocolAdapter.headerTranslator());
+        underTest = ThingQueryCommandResponseAdapter.of(DittoProtocolAdapter.getHeaderTranslator());
     }
 
     @Test(expected = UnknownCommandResponseException.class)

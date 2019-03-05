@@ -78,6 +78,8 @@ import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCou
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.services.utils.protocol.config.DefaultProtocolConfig;
+import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
@@ -109,6 +111,7 @@ public final class TestConstants {
     public static final ConnectionConfig CONNECTION_CONFIG;
     public static final ClientConfig CLIENT_CONFIG;
     public static final ReconnectConfig RECONNECT_CONFIG;
+    public static final ProtocolConfig PROTOCOL_CONFIG;
 
     static {
         final DefaultScopedConfig dittoScopedConfig =
@@ -120,6 +123,7 @@ public final class TestConstants {
         CONNECTION_CONFIG = DefaultConnectionConfig.of(connectivityScopedConfig);
         CLIENT_CONFIG = DefaultClientConfig.of(connectivityScopedConfig);
         RECONNECT_CONFIG = DefaultReconnectConfig.of(connectivityScopedConfig);
+        PROTOCOL_CONFIG = DefaultProtocolConfig.of(dittoScopedConfig);
     }
 
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;

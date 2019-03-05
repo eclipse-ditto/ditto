@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.json.JsonValue;
@@ -31,7 +32,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageTimeoutException;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
-import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
+import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -41,8 +42,6 @@ import org.eclipse.ditto.signals.commands.base.WithEntity;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.SendMessageAcceptedResponse;
-
-import com.typesafe.config.Config;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -88,26 +87,28 @@ public final class HttpRequestActor extends AbstractActor {
     private final ActorRef proxyActor;
     private final HeaderTranslator headerTranslator;
     private final CompletableFuture<HttpResponse> httpResponseFuture;
-    private final java.time.Duration serverRequestTimeout;
+    private final HttpConfig httpConfig;
     private final Receive commandResponseAwaiting;
 
     private java.time.Duration messageTimeout;
     private boolean isFireAndForgetMessage = false;
 
-    private HttpRequestActor(final ActorRef proxyActor, final HeaderTranslator headerTranslator,
+    private HttpRequestActor(final ActorRef proxyActor,
+            final HeaderTranslator headerTranslator,
             final HttpRequest request,
-            final CompletableFuture<HttpResponse> httpResponseFuture) {
+            final CompletableFuture<HttpResponse> httpResponseFuture,
+            final HttpConfig httpConfig) {
+
         this.proxyActor = proxyActor;
         this.headerTranslator = headerTranslator;
         this.httpResponseFuture = httpResponseFuture;
+        this.httpConfig = httpConfig;
 
-        final Config config = getContext().system().settings().config();
-        serverRequestTimeout = config.getDuration(ConfigKeys.AKKA_HTTP_SERVER_REQUEST_TIMEOUT);
-        getContext().setReceiveTimeout(serverRequestTimeout);
+        getContext().setReceiveTimeout(httpConfig.getRequestTimeout());
 
         // wrap JsonRuntimeExceptions
         commandResponseAwaiting = ReceiveBuilder.create()
-                .matchEquals(COMPLETE_MESSAGE, s -> logger.debug("Got stream's '{}' message", COMPLETE_MESSAGE))
+                .matchEquals(COMPLETE_MESSAGE, s -> logger.debug("Got stream's <{}> message.", COMPLETE_MESSAGE))
                 // If an actor downstream replies with an HTTP response, simply forward it.
                 .match(HttpResponse.class, this::completeWithResult)
                 .match(SendMessageAcceptedResponse.class, cmd -> {
@@ -204,39 +205,36 @@ public final class HttpRequestActor extends AbstractActor {
 
         if (hasPlainTextContentType(dittoHeaders)) {
             return response.withEntity(CONTENT_TYPE_TEXT, ByteString.fromString(entity.asString()));
-        } else {
-            return response.withEntity(CONTENT_TYPE_JSON, ByteString.fromString(entity.toString()));
         }
+        return response.withEntity(CONTENT_TYPE_JSON, ByteString.fromString(entity.toString()));
     }
 
     private static HttpResponse addEntityAccordingToContentType(final HttpResponse response, final String entityPlain,
             final DittoHeaders dittoHeaders) {
 
-        if (hasPlainTextContentType(dittoHeaders)) {
-            return response.withEntity(CONTENT_TYPE_TEXT, ByteString.fromString(entityPlain));
-        } else {
-            return response.withEntity(CONTENT_TYPE_JSON, ByteString.fromString(entityPlain));
-        }
+        final ContentType contentType = hasPlainTextContentType(dittoHeaders) ? CONTENT_TYPE_TEXT : CONTENT_TYPE_JSON;
+        return response.withEntity(contentType, ByteString.fromString(entityPlain));
     }
 
     private HttpResponse createCommandResponse(final HttpRequest request, final CommandResponse commandResponse,
             final WithOptionalEntity withOptionalEntity) {
 
-        final Function<HttpResponse, HttpResponse> addExternalDittoHeaders =
+        final UnaryOperator<HttpResponse> addExternalDittoHeaders =
                 response -> enhanceResponseWithExternalDittoHeaders(response, commandResponse.getDittoHeaders());
-        final Function<HttpResponse, HttpResponse> addModifiedLocationHeaderForCreatedResponse =
+        final UnaryOperator<HttpResponse> addModifiedLocationHeaderForCreatedResponse =
                 createModifiedLocationHeaderAddingResponseMapper(request, commandResponse);
         final Function<HttpResponse, HttpResponse> addHeaders =
                 addExternalDittoHeaders.andThen(addModifiedLocationHeaderForCreatedResponse);
 
-        final Function<HttpResponse, HttpResponse> addBodyIfEntityExists =
+        final UnaryOperator<HttpResponse> addBodyIfEntityExists =
                 createBodyAddingResponseMapper(commandResponse, withOptionalEntity);
 
         return createHttpResponseWithHeadersAndBody(commandResponse, addHeaders, addBodyIfEntityExists);
     }
 
-    private static Function<HttpResponse, HttpResponse> createBodyAddingResponseMapper(
-            final CommandResponse commandResponse, final WithOptionalEntity withOptionalEntity) {
+    private static UnaryOperator<HttpResponse> createBodyAddingResponseMapper(final CommandResponse commandResponse,
+            final WithOptionalEntity withOptionalEntity) {
+
         return response -> {
             if (StatusCodes.NO_CONTENT.equals(response.status())) {
                 return response;
@@ -249,8 +247,9 @@ public final class HttpRequestActor extends AbstractActor {
         };
     }
 
-    private static Function<HttpResponse, HttpResponse> createModifiedLocationHeaderAddingResponseMapper(
+    private static UnaryOperator<HttpResponse> createModifiedLocationHeaderAddingResponseMapper(
             final HttpRequest request, final CommandResponse commandResponse) {
+
         return response -> {
             if (HttpStatusCode.CREATED == commandResponse.getStatusCode()) {
                 Uri newUri = request.getUri();
@@ -262,12 +261,10 @@ public final class HttpRequestActor extends AbstractActor {
 
                     // if the uri contains the id, but *not* at the beginning
                     if (uriIdIndex > 0) {
-                        createdLocation =
-                                uriStr.substring(0, uriIdIndex) + commandResponse.getId() +
-                                        commandResponse.getResourcePath().toString();
+                        createdLocation = uriStr.substring(0, uriIdIndex) + commandResponse.getId() +
+                                commandResponse.getResourcePath();
                     } else {
-                        createdLocation = uriStr + "/" + commandResponse.getId() + commandResponse.getResourcePath()
-                                .toString();
+                        createdLocation = uriStr + "/" + commandResponse.getId() + commandResponse.getResourcePath();
                     }
 
                     if (createdLocation.endsWith("/")) {
@@ -282,10 +279,10 @@ public final class HttpRequestActor extends AbstractActor {
         };
     }
 
-    private static HttpResponse createHttpResponseWithHeadersAndBody(
-            final CommandResponse commandResponse, final Function<HttpResponse, HttpResponse> addHeaders,
-            final Function<HttpResponse, HttpResponse> addBody) {
-        HttpResponse response = HttpResponse.create().withStatus(commandResponse.getStatusCodeValue());
+    private static HttpResponse createHttpResponseWithHeadersAndBody(final CommandResponse commandResponse,
+            final Function<HttpResponse, HttpResponse> addHeaders, final UnaryOperator<HttpResponse> addBody) {
+
+        final HttpResponse response = HttpResponse.create().withStatus(commandResponse.getStatusCodeValue());
 
         return addBody.apply(addHeaders.apply(response));
     }
@@ -298,25 +295,29 @@ public final class HttpRequestActor extends AbstractActor {
     }
 
     /**
-     * Creates the Akka configuration object for this {@code HttpRequestActor} for the given {@code proxyActor}, {@code
-     * request}, and {@code httpResponseFuture} which will be completed with a {@link HttpResponse}.
+     * Creates the Akka configuration object for this {@code HttpRequestActor} for the given {@code proxyActor},
+     * {@code request}, and {@code httpResponseFuture} which will be completed with a {@link HttpResponse}.
      *
      * @param proxyActor the proxy actor which delegates commands.
-     * @param headerTranslator the {@link HeaderTranslator} used to map ditto headers to (external) Http headers.
-     * @param request the HTTP request
+     * @param headerTranslator the {@link org.eclipse.ditto.protocoladapter.HeaderTranslator} used to map ditto headers
+     * to (external) Http headers.
+     * @param request the HTTP request.
      * @param httpResponseFuture the completable future which is completed with a HTTP response.
+     * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
      * @return the configuration object.
      */
-    public static Props props(final ActorRef proxyActor, final HeaderTranslator headerTranslator, final HttpRequest
-            request,
-            final CompletableFuture<HttpResponse> httpResponseFuture) {
+    public static Props props(final ActorRef proxyActor,
+            final HeaderTranslator headerTranslator,
+            final HttpRequest request,
+            final CompletableFuture<HttpResponse> httpResponseFuture,
+            final HttpConfig httpConfig) {
 
         return Props.create(HttpRequestActor.class, new Creator<HttpRequestActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public HttpRequestActor create() {
-                return new HttpRequestActor(proxyActor, headerTranslator, request, httpResponseFuture);
+                return new HttpRequestActor(proxyActor, headerTranslator, request, httpResponseFuture, httpConfig);
             }
         });
     }
@@ -406,9 +407,7 @@ public final class HttpRequestActor extends AbstractActor {
                     .map(Either::right)
                     .map(Either.RightProjection::get);
 
-            httpResponse =
-                    HttpResponse.create()
-                            .withStatus(responseStatusCode.orElse(HttpStatusCode.OK).toInt());
+            httpResponse = HttpResponse.create().withStatus(responseStatusCode.orElse(HttpStatusCode.OK).toInt());
 
             if (optionalPayload.isPresent()) {
                 final Object payload = optionalPayload.get();
@@ -447,11 +446,11 @@ public final class HttpRequestActor extends AbstractActor {
 
     private void handleReceiveTimeout(final ReceiveTimeout receiveTimeout) {
         if (messageTimeout != null && !isFireAndForgetMessage) {
-            logger.info("Got ReceiveTimeout when a message response was expected after timeout {}", messageTimeout);
+            logger.info("Got ReceiveTimeout when a message response was expected after timeout <{}>.", messageTimeout);
             handleDittoRuntimeException(new MessageTimeoutException(messageTimeout.getSeconds()));
         } else {
-            logger.warning("No response within server request timeout ({}), shutting actor down.",
-                    serverRequestTimeout);
+            logger.warning("No response within server request timeout <{}>, shutting actor down.",
+                    httpConfig.getRequestTimeout());
             // note that we do not need to send a response here, this is handled by RequestTimeoutHandlingDirective
             stop();
         }
@@ -470,20 +469,19 @@ public final class HttpRequestActor extends AbstractActor {
         completeWithResult(response);
     }
 
-    private HttpResponse buildResponseWithoutHeadersFromDittoRuntimeException(final DittoRuntimeException dre) {
+    private static HttpResponse buildResponseWithoutHeadersFromDittoRuntimeException(final DittoRuntimeException dre) {
         final HttpResponse responseWithoutHeaders = HttpResponse.create().withStatus(dre.getStatusCode().toInt());
         if (HttpStatusCode.NOT_MODIFIED.equals(dre.getStatusCode())) {
             return responseWithoutHeaders;
-        } else {
-            return responseWithoutHeaders.withEntity(CONTENT_TYPE_JSON, ByteString.fromString(dre.toJsonString()));
         }
+        return responseWithoutHeaders.withEntity(CONTENT_TYPE_JSON, ByteString.fromString(dre.toJsonString()));
     }
 
     private void completeWithResult(final HttpResponse response) {
         final int statusCode = response.status().intValue();
         if (logger.isDebugEnabled()) {
-            logger.debug("Responding with HttpResponse code '{}'", statusCode);
-            logger.debug("Responding with Entity: {}", response.entity());
+            logger.debug("Responding with HttpResponse code <{}>.", statusCode);
+            logger.debug("Responding with Entity <{}>.", response.entity());
         }
         httpResponseFuture.complete(response);
         stop();
@@ -500,7 +498,7 @@ public final class HttpRequestActor extends AbstractActor {
 
         logger.debug("Enhancing response with external headers: <{}>.", externalHeaders);
         final List<HttpHeader> externalHttpHeaders = new LinkedList<>();
-        externalHeaders.forEach((k, v) -> (externalHttpHeaders).add(RawHeader.create(k, v)));
+        externalHeaders.forEach((k, v) -> externalHttpHeaders.add(RawHeader.create(k, v)));
 
         return response.withHeaders(externalHttpHeaders);
     }

@@ -10,53 +10,39 @@
  */
 package org.eclipse.ditto.services.gateway.health;
 
-import static java.util.Objects.requireNonNull;
-
 import java.util.concurrent.CompletionStage;
-import java.util.function.Supplier;
 
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.services.utils.health.status.Status;
 import org.eclipse.ditto.services.utils.health.status.StatusSupplier;
-
-import akka.actor.ActorSystem;
 
 /**
  * Provides aggregated status information for a cluster, grouped by the cluster's roles.
  */
-public class ClusterStatusSupplier implements StatusSupplier {
+final class ClusterStatusSupplier implements StatusSupplier {
 
-    private ClusterStatusAndHealthHelper clusterStatusHealthHelper;
+    private final ClusterStatusAndHealthHelper clusterStatusAndHealthHelper;
 
-    private ClusterStatusSupplier(final ActorSystem actorSystem, final Supplier<ClusterStatus> clusterStateSupplier) {
-        this.clusterStatusHealthHelper = ClusterStatusAndHealthHelper.of(actorSystem, clusterStateSupplier);
+    private ClusterStatusSupplier(final ClusterStatusAndHealthHelper clusterStatusAndHealthHelper) {
+        this.clusterStatusAndHealthHelper = clusterStatusAndHealthHelper;
     }
 
     /**
-     * Returns a new {@link ClusterStatusSupplier}.
+     * Returns a new {@code ClusterStatusSupplier}.
      *
-     * @param actorSystem the ActorSystem to use.
-     * @param clusterStateSupplier the {@link ClusterStatus} supplier to use in order to find out the reachable cluster
-     * nodes.
-     * @return the {@link ClusterStatusSupplier}.
+     * @param clusterStatusAndHealthHelper is used for retrieving status and health information via the cluster.
+     * @return the ClusterStatusSupplier.
+     * @throws NullPointerException if any argument is {@code null}.
      */
-    public static StatusSupplier of(final ActorSystem actorSystem, final Supplier<ClusterStatus> clusterStateSupplier) {
-        requireNonNull(actorSystem);
-        requireNonNull(clusterStateSupplier);
-
-        return new ClusterStatusSupplier(actorSystem, clusterStateSupplier);
+    public static ClusterStatusSupplier of(final ClusterStatusAndHealthHelper clusterStatusAndHealthHelper) {
+        return new ClusterStatusSupplier(clusterStatusAndHealthHelper);
     }
 
     @Override
     public CompletionStage<JsonObject> get() {
-        final JsonObjectBuilder overallStatusBuilder = JsonFactory.newObjectBuilder();
-        overallStatusBuilder.setAll(Status.provideStaticStatus());
-
         // append roles statuses to static status
-        return clusterStatusHealthHelper.retrieveOverallRolesStatus()
+        return clusterStatusAndHealthHelper.retrieveOverallRolesStatus()
                 .thenApply(Status.provideStaticStatus()::setAll);
     }
+
 }

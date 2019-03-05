@@ -42,6 +42,7 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconne
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 
 import com.newmotion.akka.rabbitmq.ChannelActor;
@@ -92,10 +93,11 @@ public final class RabbitMQClientActor extends BaseClientActor {
             final ConnectivityStatus connectionStatus,
             final ClientConfig clientConfig,
             final MappingConfig mappingConfig,
+            final ProtocolConfig protocolConfig,
             final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory,
             final ActorRef conciergeForwarder) {
 
-        super(connection, connectionStatus, clientConfig, mappingConfig, conciergeForwarder);
+        super(connection, connectionStatus, clientConfig, mappingConfig, protocolConfig, conciergeForwarder);
 
         this.rabbitConnectionFactoryFactory = rabbitConnectionFactoryFactory;
         consumedTagsToAddresses = new HashMap<>();
@@ -113,9 +115,10 @@ public final class RabbitMQClientActor extends BaseClientActor {
             final ConnectivityStatus connectionStatus,
             final ClientConfig clientConfig,
             final MappingConfig mappingConfig,
+            final ProtocolConfig protocolConfig,
             final ActorRef conciergeForwarder) {
 
-        this(connection, connectionStatus, clientConfig, mappingConfig,
+        this(connection, connectionStatus, clientConfig, mappingConfig, protocolConfig,
                 ConnectionBasedRabbitConnectionFactoryFactory.getInstance(), conciergeForwarder);
     }
 
@@ -125,16 +128,18 @@ public final class RabbitMQClientActor extends BaseClientActor {
      * @param connection the connection.
      * @param clientConfig the client config.
      * @param mappingConfig the mapping config,
+     * @param protocolConfig the configuration settings for protocol mapping.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
      * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection,
             final ClientConfig clientConfig,
             final MappingConfig mappingConfig,
+            final ProtocolConfig protocolConfig,
             final ActorRef conciergeForwarder) {
 
         return Props.create(RabbitMQClientActor.class, validateConnection(connection), connection.getConnectionStatus(),
-                clientConfig, mappingConfig, conciergeForwarder);
+                clientConfig, mappingConfig, protocolConfig, conciergeForwarder);
     }
 
     /**
@@ -144,6 +149,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
      * @param connectionStatus the desired status of the.
      * @param clientConfig the client config.
      * @param mappingConfig the mapping config.
+     * @param protocolConfig the configuration settings for protocol mapping.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
      * @param rabbitConnectionFactoryFactory the ConnectionFactory Factory to use.
      * @return the Akka configuration Props object.
@@ -152,11 +158,12 @@ public final class RabbitMQClientActor extends BaseClientActor {
             final ConnectivityStatus connectionStatus,
             final ClientConfig clientConfig,
             final MappingConfig mappingConfig,
+            final ProtocolConfig protocolConfig,
             final ActorRef conciergeForwarder,
             final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
 
-        return Props.create(RabbitMQClientActor.class, validateConnection(connection), connectionStatus,
-                clientConfig, mappingConfig, rabbitConnectionFactoryFactory, conciergeForwarder);
+        return Props.create(RabbitMQClientActor.class, validateConnection(connection), connectionStatus, clientConfig,
+                mappingConfig, protocolConfig, rabbitConnectionFactoryFactory, conciergeForwarder);
     }
 
     private static Connection validateConnection(final Connection connection) {

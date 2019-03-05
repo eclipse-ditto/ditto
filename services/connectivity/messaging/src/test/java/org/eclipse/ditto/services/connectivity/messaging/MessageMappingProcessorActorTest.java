@@ -54,6 +54,7 @@ import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFac
 import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilter;
 import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilterFactory;
 import org.eclipse.ditto.services.models.connectivity.placeholder.Placeholder;
+import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
@@ -80,10 +81,12 @@ public final class MessageMappingProcessorActorTest {
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
 
     private static ActorSystem actorSystem;
+    private static ProtocolAdapterProvider protocolAdapterProvider;
 
     @BeforeClass
     public static void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
+        protocolAdapterProvider = ProtocolAdapterProvider.load(TestConstants.PROTOCOL_CONFIG, actorSystem);
     }
 
     @AfterClass
@@ -320,7 +323,7 @@ public final class MessageMappingProcessorActorTest {
 
     private static MessageMappingProcessor getMessageMappingProcessor() {
         return MessageMappingProcessor.of(CONNECTION_ID, null, actorSystem, TestConstants.MAPPING_CONFIG,
-                Mockito.mock(DiagnosticLoggingAdapter.class));
+                protocolAdapterProvider, Mockito.mock(DiagnosticLoggingAdapter.class));
     }
 
     private static ModifyAttribute createModifyAttributeCommand() {

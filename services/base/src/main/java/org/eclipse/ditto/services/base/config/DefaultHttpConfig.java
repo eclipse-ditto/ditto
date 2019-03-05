@@ -15,9 +15,9 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.base.config.ServiceSpecificConfig.HttpConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
+import org.eclipse.ditto.services.utils.config.WithConfigPath;
 
 import com.typesafe.config.Config;
 
@@ -25,7 +25,7 @@ import com.typesafe.config.Config;
  * This class is the default implementation of {@link HttpConfig}.
  */
 @Immutable
-public final class DefaultHttpConfig implements HttpConfig, Serializable {
+public final class DefaultHttpConfig implements HttpConfig, Serializable, WithConfigPath {
 
     private static final String CONFIG_PATH = "http";
 
@@ -58,6 +58,14 @@ public final class DefaultHttpConfig implements HttpConfig, Serializable {
     @Override
     public int getPort() {
         return port;
+    }
+
+    /**
+     * @return always {@value #CONFIG_PATH}.
+     */
+    @Override
+    public String getConfigPath() {
+        return CONFIG_PATH;
     }
 
     @Override

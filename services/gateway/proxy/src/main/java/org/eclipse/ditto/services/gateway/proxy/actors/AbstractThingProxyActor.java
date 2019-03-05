@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.services.gateway.proxy.actors;
 
+import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.utils.aggregator.ThingsAggregatorProxyActor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -31,10 +32,13 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
     private final ActorRef devOpsCommandsActor;
     private final ActorRef conciergeForwarder;
     private final ActorRef aggregatorProxyActor;
+    private final HttpConfig httpConfig;
 
     protected AbstractThingProxyActor(final ActorRef pubSubMediator,
             final ActorRef devOpsCommandsActor,
-            final ActorRef conciergeForwarder) {
+            final ActorRef conciergeForwarder,
+            final HttpConfig httpConfig) {
+
         super(pubSubMediator);
 
         this.devOpsCommandsActor = devOpsCommandsActor;
@@ -42,6 +46,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
         aggregatorProxyActor = getContext().actorOf(ThingsAggregatorProxyActor.props(conciergeForwarder),
                 ThingsAggregatorProxyActor.ACTOR_NAME);
+        this.httpConfig = httpConfig;
     }
 
     @Override
@@ -60,9 +65,9 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                 .match(SudoRetrieveThings.class, srt -> aggregatorProxyActor.forward(srt, getContext()))
 
                 .match(QueryThings.class, qt -> {
-                            final ActorRef responseActor = getContext()
-                                    .actorOf(QueryThingsPerRequestActor.props(qt, aggregatorProxyActor, getSender()));
-                            conciergeForwarder.tell(qt, responseActor);
+                    final ActorRef responseActor = getContext().actorOf(
+                            QueryThingsPerRequestActor.props(qt, aggregatorProxyActor, getSender(), httpConfig));
+                    conciergeForwarder.tell(qt, responseActor);
                         }
                 )
 

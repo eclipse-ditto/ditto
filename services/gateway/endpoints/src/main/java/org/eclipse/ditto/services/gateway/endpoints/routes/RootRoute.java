@@ -23,11 +23,14 @@ import static org.eclipse.ditto.services.gateway.endpoints.directives.RequestRes
 import static org.eclipse.ditto.services.gateway.endpoints.directives.auth.AuthorizationContextVersioningDirective.mapAuthorizationContext;
 import static org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils.enhanceLogWithCorrelationId;
 
-import java.util.List;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -46,6 +49,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.gateway.endpoints.directives.CorsEnablingDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.EncodingEnsuringDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.HttpsEnsuringDirective;
@@ -91,6 +95,8 @@ public final class RootRoute {
     static final String HTTP_PATH_API_PREFIX = "api";
     static final String WS_PATH_PREFIX = "ws";
 
+    private final HttpConfig httpConfig;
+
     private final StatusRoute ownStatusRoute;
     private final OverallStatusRoute overallStatusRoute;
     private final CachingHealthRoute cachingHealthRoute;
@@ -107,13 +113,14 @@ public final class RootRoute {
     private final GatewayAuthenticationDirective apiAuthenticationDirective;
     private final GatewayAuthenticationDirective wsAuthenticationDirective;
     private final ExceptionHandler exceptionHandler;
-    private final List<Integer> supportedSchemaVersions;
+    private final Set<Integer> supportedSchemaVersions;
     private final ProtocolAdapterProvider protocolAdapterProvider;
     private final HeaderTranslator headerTranslator;
     private final CustomHeadersHandler customHeadersHandler;
     private final RejectionHandler rejectionHandler;
 
     private RootRoute(final Builder builder) {
+        httpConfig = builder.httpConfig;
         ownStatusRoute = builder.statusRoute;
         overallStatusRoute = builder.overallStatusRoute;
         cachingHealthRoute = builder.cachingHealthRoute;
@@ -128,15 +135,15 @@ public final class RootRoute {
         apiAuthenticationDirective = builder.httpAuthenticationDirective;
         wsAuthenticationDirective = builder.wsAuthenticationDirective;
         exceptionHandler = builder.exceptionHandler;
-        supportedSchemaVersions = builder.supportedSchemaVersions;
+        supportedSchemaVersions = new HashSet<>(builder.supportedSchemaVersions);
         protocolAdapterProvider = builder.protocolAdapterProvider;
         headerTranslator = builder.headerTranslator;
         customHeadersHandler = builder.customHeadersHandler;
         rejectionHandler = builder.rejectionHandler;
     }
 
-    public static RootRouteBuilder getBuilder() {
-        return new Builder()
+    public static RootRouteBuilder getBuilder(final HttpConfig httpConfig) {
+        return new Builder(httpConfig)
                 .customApiRoutesProvider(NoopCustomApiRoutesProvider.getInstance())
                 .customHeadersHandler(NoopCustomHeadersHandler.getInstance())
                 .exceptionHandler(createExceptionHandler())
@@ -153,7 +160,7 @@ public final class RootRoute {
                                 ws(ctx, correlationId), // /ws
                                 ownStatusRoute.buildStatusRoute(), // /status
                                 overallStatusRoute.buildOverallStatusRoute(), // /overall
-                                devopsRoute.buildDevopsRoute(ctx) // /devops
+                                devopsRoute.buildDevOpsRoute(ctx) // /devops
                         )
                 )
         );
@@ -164,36 +171,38 @@ public final class RootRoute {
                 /* the outer handleExceptions is for handling exceptions in the directives wrapping the rootRoute
                    (which normally should not occur */
                 handleExceptions(exceptionHandler, () ->
-                        ensureCorrelationId(correlationId ->
-                                RequestTimeoutHandlingDirective.handleRequestTimeout(correlationId, () ->
-                                        logRequestResult(correlationId, () ->
-                                                innerRouteProvider.apply(correlationId)
-                                        )
-                                )
-                        )
+                        ensureCorrelationId(correlationId -> {
+                            final RequestTimeoutHandlingDirective requestTimeoutHandlingDirective =
+                                    RequestTimeoutHandlingDirective.getInstance(httpConfig);
+                            return requestTimeoutHandlingDirective.handleRequestTimeout(correlationId, () ->
+                                    logRequestResult(correlationId, () -> innerRouteProvider.apply(correlationId))
+                            );
+                        })
                 );
 
         final Function<String, Route> innerRouteProvider = correlationId ->
-                EncodingEnsuringDirective.ensureEncoding(correlationId, () ->
-                        HttpsEnsuringDirective.ensureHttps(correlationId, () ->
-                                CorsEnablingDirective.enableCors(() ->
-                                        SecurityResponseHeadersDirective.addSecurityResponseHeaders(() ->
+                EncodingEnsuringDirective.ensureEncoding(correlationId, () -> {
+                    final HttpsEnsuringDirective httpsDirective = HttpsEnsuringDirective.getInstance(httpConfig);
+                    final CorsEnablingDirective corsDirective = CorsEnablingDirective.getInstance(httpConfig);
+                    return httpsDirective.ensureHttps(correlationId, () ->
+                            corsDirective.enableCors(() ->
+                                    SecurityResponseHeadersDirective.addSecurityResponseHeaders(() ->
                                                 /* handling the rejections is done by akka automatically, but if we
                                                    do it here explicitly, we are able to log the status code for the
                                                    rejection (e.g. 404 or 405) in a wrapping directive. */
-                                                handleRejections(rejectionHandler, () ->
+                                            handleRejections(rejectionHandler, () ->
                                                         /* the inner handleExceptions is for handling exceptions
                                                            occurring in the route route. It makes sure that the
                                                            wrapping directives such as addSecurityResponseHeaders are
                                                            even called in an error case in the route route. */
-                                                        handleExceptions(exceptionHandler, () ->
-                                                                rootRoute.apply(correlationId)
-                                                        )
-                                                )
-                                        )
-                                )
-                        )
-                );
+                                                    handleExceptions(exceptionHandler, () ->
+                                                            rootRoute.apply(correlationId)
+                                                    )
+                                            )
+                                    )
+                            )
+                    );
+                });
         return outerRouteProvider.apply(innerRouteProvider);
     }
 
@@ -242,7 +251,7 @@ public final class RootRoute {
         );
     }
 
-    private Route ensureSchemaVersion(final Function<Integer, Route> inner) {
+    private Route ensureSchemaVersion(final IntFunction<Route> inner) {
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.integerSegment()),
                 apiVersion -> { // /xx/<schemaVersion>
                     if (supportedSchemaVersions.contains(apiVersion)) {
@@ -423,6 +432,7 @@ public final class RootRoute {
     @NotThreadSafe
     private static final class Builder implements RootRouteBuilder {
 
+        private final HttpConfig httpConfig;
         private StatusRoute statusRoute;
         private OverallStatusRoute overallStatusRoute;
         private CachingHealthRoute cachingHealthRoute;
@@ -439,13 +449,14 @@ public final class RootRoute {
         private GatewayAuthenticationDirective httpAuthenticationDirective;
         private GatewayAuthenticationDirective wsAuthenticationDirective;
         private ExceptionHandler exceptionHandler;
-        private List<Integer> supportedSchemaVersions;
+        private Collection<Integer> supportedSchemaVersions;
         private ProtocolAdapterProvider protocolAdapterProvider;
         private HeaderTranslator headerTranslator;
         private CustomHeadersHandler customHeadersHandler;
         private RejectionHandler rejectionHandler;
 
-        private Builder() {
+        private Builder(final HttpConfig httpConfig) {
+            this.httpConfig = httpConfig;
         }
 
         @Override
@@ -456,7 +467,7 @@ public final class RootRoute {
 
         @Override
         public RootRouteBuilder overallStatusRoute(final OverallStatusRoute route) {
-            this.overallStatusRoute = route;
+            overallStatusRoute = route;
             return this;
         }
 
@@ -533,7 +544,7 @@ public final class RootRoute {
         }
 
         @Override
-        public RootRouteBuilder supportedSchemaVersions(final List<Integer> versions) {
+        public RootRouteBuilder supportedSchemaVersions(final Collection<Integer> versions) {
             supportedSchemaVersions = versions;
             return this;
         }

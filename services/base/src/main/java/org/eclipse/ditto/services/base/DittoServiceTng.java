@@ -26,6 +26,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.services.base.config.LimitsConfig;
 import org.eclipse.ditto.services.base.config.ServiceSpecificConfig;
 import org.eclipse.ditto.services.base.config.raw.RawConfigSupplier;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
@@ -397,7 +398,7 @@ public abstract class DittoServiceTng<C extends ServiceSpecificConfig> {
      * @param serviceSpecificConfig the Ditto serviceSpecificConfig providing the limits from configuration
      */
     protected void injectSystemPropertiesLimits(final C serviceSpecificConfig) {
-        final ServiceSpecificConfig.LimitsConfig limitsConfig = serviceSpecificConfig.getLimitsConfig();
+        final LimitsConfig limitsConfig = serviceSpecificConfig.getLimitsConfig();
         System.setProperty(ThingCommandSizeValidator.DITTO_LIMITS_THINGS_MAX_SIZE_BYTES,
                 Long.toString(limitsConfig.getThingsMaxSize()));
         System.setProperty(PolicyCommandSizeValidator.DITTO_LIMITS_POLICIES_MAX_SIZE_BYTES,

@@ -258,7 +258,7 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
 
     private static MessageMappingProcessor getMessageMappingProcessor(@Nullable final MappingContext mappingContext) {
         return MessageMappingProcessor.of(CONNECTION_ID, mappingContext, actorSystem,
-                TestConstants.MAPPING_CONFIG, Mockito.mock(DiagnosticLoggingAdapter.class));
+                TestConstants.MAPPING_CONFIG, protocolAdapterProvider, Mockito.mock(DiagnosticLoggingAdapter.class));
     }
 
 }

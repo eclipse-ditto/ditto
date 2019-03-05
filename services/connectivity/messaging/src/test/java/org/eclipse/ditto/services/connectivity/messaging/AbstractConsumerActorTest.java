@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.junit.AfterClass;
@@ -53,6 +54,7 @@ public abstract class AbstractConsumerActorTest<M> {
             ConnectivityModelFactory.newEnforcement("{{ header:device_id }}", "{{ thing:id }}");
 
     protected static ActorSystem actorSystem;
+    protected static ProtocolAdapterProvider protocolAdapterProvider;
 
     @Rule
     public TestName name = new TestName();
@@ -60,6 +62,7 @@ public abstract class AbstractConsumerActorTest<M> {
     @BeforeClass
     public static void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", CONFIG);
+        protocolAdapterProvider = ProtocolAdapterProvider.load(TestConstants.PROTOCOL_CONFIG, actorSystem);
     }
 
     @AfterClass
@@ -167,7 +170,7 @@ public abstract class AbstractConsumerActorTest<M> {
             final ActorRef conciergeForwarderActor) {
 
         final MessageMappingProcessor mappingProcessor = MessageMappingProcessor.of(CONNECTION_ID, null, actorSystem,
-                TestConstants.MAPPING_CONFIG, Mockito.mock(DiagnosticLoggingAdapter.class));
+                TestConstants.MAPPING_CONFIG, protocolAdapterProvider, Mockito.mock(DiagnosticLoggingAdapter.class));
         final Props messageMappingProcessorProps =
                 MessageMappingProcessorActor.props(publisherActor, conciergeForwarderActor, mappingProcessor,
                         CONNECTION_ID);

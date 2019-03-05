@@ -25,17 +25,17 @@ import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.connectivity.mapping.DefaultMessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
+import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperRegistry;
-import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.InboundExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
-import org.eclipse.ditto.services.utils.protocol.ProtocolConfigReader;
+import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.signals.base.Signal;
 
@@ -78,6 +78,7 @@ public final class MessageMappingProcessor {
      * @param mappingContext the mapping Context.
      * @param actorSystem the dynamic access used for message mapper instantiation.
      * @param mappingConfig the config of the mapping behaviour.
+     * @param protocolAdapterProvider provides the ProtocolAdapter to be used.
      * @param log the log adapter.
      * @return the processor instance.
      * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException if the configuration of
@@ -89,6 +90,7 @@ public final class MessageMappingProcessor {
             @Nullable final MappingContext mappingContext,
             final ActorSystem actorSystem,
             final MappingConfig mappingConfig,
+            final ProtocolAdapterProvider protocolAdapterProvider,
             final DiagnosticLoggingAdapter log) {
 
         final MessageMapperFactory messageMapperFactory =
@@ -96,12 +98,8 @@ public final class MessageMappingProcessor {
         final MessageMapperRegistry registry =
                 messageMapperFactory.registryOf(DittoMessageMapper.CONTEXT, mappingContext);
 
-        final ProtocolConfigReader protocolConfigReader =
-                ProtocolConfigReader.fromRawConfig(actorSystem.settings().config());
-        final ProtocolAdapter protocolAdapter =
-                protocolConfigReader.loadProtocolAdapterProvider(actorSystem).getProtocolAdapter(null);
-
-        return new MessageMappingProcessor(connectionId, registry, log, protocolAdapter);
+        return new MessageMappingProcessor(connectionId, registry, log,
+                protocolAdapterProvider.getProtocolAdapter(null));
     }
 
     /**

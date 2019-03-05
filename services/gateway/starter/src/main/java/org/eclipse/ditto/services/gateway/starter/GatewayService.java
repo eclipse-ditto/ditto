@@ -10,14 +10,13 @@
  */
 package org.eclipse.ditto.services.gateway.starter;
 
-import org.eclipse.ditto.services.base.DittoService;
-import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
-import org.eclipse.ditto.services.base.config.ServiceConfigReader;
+import org.eclipse.ditto.services.base.DittoServiceTng;
+import org.eclipse.ditto.services.gateway.starter.config.DittoGatewayConfig;
+import org.eclipse.ditto.services.gateway.starter.config.GatewayConfig;
+import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -28,7 +27,7 @@ import akka.stream.ActorMaterializer;
  * The Gateway service for Eclipse Ditto.
  */
 @AllParametersAndReturnValuesAreNonnullByDefault
-public final class GatewayService extends DittoService {
+public final class GatewayService extends DittoServiceTng<GatewayConfig> {
 
     /**
      * Name for the Akka actor system of the Gateway service.
@@ -38,7 +37,7 @@ public final class GatewayService extends DittoService {
     private static final Logger LOGGER = LoggerFactory.getLogger(GatewayService.class);
 
     private GatewayService() {
-        super(LOGGER, SERVICE_NAME, GatewayRootActor.ACTOR_NAME, DittoServiceConfigReader.from(SERVICE_NAME));
+        super(LOGGER, SERVICE_NAME, GatewayRootActor.ACTOR_NAME);
     }
 
     /**
@@ -52,16 +51,20 @@ public final class GatewayService extends DittoService {
     }
 
     @Override
-    protected void startDevOpsCommandsActor(final ActorSystem actorSystem, final Config config) {
+    protected GatewayConfig getServiceSpecificConfig(final ScopedConfig dittoConfig) {
+        return DittoGatewayConfig.of(dittoConfig);
+    }
+
+    @Override
+    protected void startDevOpsCommandsActor(final ActorSystem actorSystem) {
         // The DevOpsCommandsActor is started by GatewayRootActor as it uses the ActorRef.
     }
 
-
     @Override
-    protected Props getMainRootActorProps(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
+    protected Props getMainRootActorProps(final GatewayConfig gatewayConfig, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
-        return GatewayRootActor.props(configReader, pubSubMediator, materializer);
+        return GatewayRootActor.props(gatewayConfig, pubSubMediator, materializer);
     }
 
 }

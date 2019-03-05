@@ -45,7 +45,7 @@ public final class DefaultClientActorPropsFactoryTest extends WithMockServers {
         serialization = SerializationExtension.get(actorSystem);
         underTest =
                 DefaultClientActorPropsFactory.getInstance(TestConstants.CLIENT_CONFIG, TestConstants.MAPPING_CONFIG,
-                        TestConstants.CONNECTION_CONFIG);
+                        TestConstants.PROTOCOL_CONFIG, TestConstants.CONNECTION_CONFIG);
     }
 
     @After

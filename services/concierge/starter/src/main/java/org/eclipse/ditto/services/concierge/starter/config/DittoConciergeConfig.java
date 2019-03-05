@@ -16,6 +16,8 @@ import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.base.config.DittoServiceWithMongoDbConfig;
+import org.eclipse.ditto.services.base.config.HttpConfig;
+import org.eclipse.ditto.services.base.config.LimitsConfig;
 import org.eclipse.ditto.services.concierge.cache.config.CachesConfig;
 import org.eclipse.ditto.services.concierge.cache.config.DefaultCachesConfig;
 import org.eclipse.ditto.services.concierge.enforcement.config.DefaultEnforcementConfig;

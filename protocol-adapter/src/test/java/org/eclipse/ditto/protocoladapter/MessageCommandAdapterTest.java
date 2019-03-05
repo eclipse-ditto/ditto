@@ -103,7 +103,7 @@ public final class MessageCommandAdapterTest {
 
     @Before
     public void setUp() {
-        underTest = MessageCommandAdapter.of(DittoProtocolAdapter.headerTranslator());
+        underTest = MessageCommandAdapter.of(DittoProtocolAdapter.getHeaderTranslator());
     }
 
     @Test

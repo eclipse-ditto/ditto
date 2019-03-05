@@ -17,8 +17,7 @@ import static akka.http.javadsl.server.Directives.path;
 import static akka.http.javadsl.server.Directives.pathEndOrSingleSlash;
 import static akka.http.javadsl.server.Directives.pathPrefix;
 import static akka.http.javadsl.server.Directives.route;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.REALM_DEVOPS;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.authenticateDevopsBasic;
+import static org.eclipse.ditto.services.gateway.endpoints.directives.DevOpsBasicAuthenticationDirective.REALM_DEVOPS;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -27,8 +26,12 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.HttpRequestActor;
+import org.eclipse.ditto.services.gateway.endpoints.config.AuthenticationConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers;
+import org.eclipse.ditto.services.gateway.endpoints.directives.DevOpsBasicAuthenticationDirective;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
@@ -57,14 +60,26 @@ public final class StatsRoute extends AbstractRoute {
     static final String SEARCH_PATH = "search";
     private static final String DETAILS_PATH = "details";
 
+    private final AuthenticationConfig.DevOpsConfig devOpsConfig;
+
     /**
      * Constructs the {@code /stats} route builder.
      *
      * @param proxyActor an actor selection of the command delegating actor.
      * @param actorSystem the akka actor system.
+     * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
+     * @param devOpsConfig the configuration settings of the Gateway service's DevOps endpoint.
+     * @param headerTranslator translates headers from external sources or to external sources.
+     * @throws NullPointerException if any argument is {@code null}.
      */
-    public StatsRoute(final ActorRef proxyActor, final ActorSystem actorSystem) {
-        super(proxyActor, actorSystem);
+    public StatsRoute(final ActorRef proxyActor,
+            final ActorSystem actorSystem,
+            final HttpConfig httpConfig,
+            final AuthenticationConfig.DevOpsConfig devOpsConfig,
+            final HeaderTranslator headerTranslator) {
+
+        super(proxyActor, actorSystem, httpConfig, headerTranslator);
+        this.devOpsConfig = devOpsConfig;
     }
 
     /*
@@ -73,7 +88,7 @@ public final class StatsRoute extends AbstractRoute {
      * @param correlationId the correlation id
      * @return route for /stats resource.
      */
-    public Route buildStatsRoute(final String correlationId) {
+    public Route buildStatsRoute(final CharSequence correlationId) {
         return Directives.rawPathPrefix(CustomPathMatchers.mergeDoubleSlashes().concat(STATISTICS_PATH_PREFIX),
                 () -> // /stats/*
                         extractRequestContext(ctx ->
@@ -84,16 +99,18 @@ public final class StatsRoute extends AbstractRoute {
         );
     }
 
-    private Route buildSubRoutes(final RequestContext ctx, final String correlationId) {
+    private Route buildSubRoutes(final RequestContext ctx, final CharSequence correlationId) {
         return route(
                 pathPrefix(THINGS_PATH, () -> // /stats/things
                         route(
-                                path(DETAILS_PATH, () ->
-                                        authenticateDevopsBasic(REALM_DEVOPS,
-                                                handleDevOpsPerRequest(ctx,
-                                                        RetrieveStatisticsDetails.of(
-                                                                buildDevOpsDittoHeaders(correlationId))))
-                                ),
+                                path(DETAILS_PATH, () -> {
+                                    final DevOpsBasicAuthenticationDirective devOpsBasicAuthenticationDirective =
+                                            DevOpsBasicAuthenticationDirective.getInstance(devOpsConfig);
+                                    return devOpsBasicAuthenticationDirective.authenticateDevOpsBasic(REALM_DEVOPS,
+                                            handleDevOpsPerRequest(ctx,
+                                                    RetrieveStatisticsDetails.of(
+                                                            buildDevOpsDittoHeaders(correlationId))));
+                                }),
                                 pathEndOrSingleSlash(() ->
                                         handleDevOpsPerRequest(ctx,
                                                 RetrieveStatistics.of(

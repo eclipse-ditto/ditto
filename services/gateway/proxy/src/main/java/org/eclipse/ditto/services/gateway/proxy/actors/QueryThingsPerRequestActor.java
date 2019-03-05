@@ -11,12 +11,11 @@
 package org.eclipse.ditto.services.gateway.proxy.actors;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.thingsearch.SearchResult;
-import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
+import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
@@ -29,7 +28,6 @@ import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
-import scala.concurrent.duration.Duration;
 
 /**
  * Actor which is started for each {@link QueryThings} command in the gateway handling the response from
@@ -50,33 +48,35 @@ final class QueryThingsPerRequestActor extends AbstractActor {
 
     private QueryThingsResponse queryThingsResponse;
 
-    private QueryThingsPerRequestActor(final QueryThings queryThings, final ActorRef aggregatorProxyActor,
-            final ActorRef originatingSender) {
+    private QueryThingsPerRequestActor(final QueryThings queryThings,
+            final ActorRef aggregatorProxyActor,
+            final ActorRef originatingSender,
+            final HttpConfig httpConfig) {
 
         this.queryThings = queryThings;
         this.aggregatorProxyActor = aggregatorProxyActor;
         this.originatingSender = originatingSender;
         queryThingsResponse = null;
 
-        final Duration timeout = Duration.create(getContext().system().settings().config()
-                        .getDuration(ConfigKeys.AKKA_HTTP_SERVER_REQUEST_TIMEOUT).getSeconds(),
-                TimeUnit.SECONDS);
-        getContext().setReceiveTimeout(timeout);
+        getContext().setReceiveTimeout(httpConfig.getRequestTimeout());
     }
 
     /**
      * Creates Akka configuration object Props for this QueryThingsPerRequestActor.
      *
-     * @return the Akka configuration Props object
+     * @return the Akka configuration Props object.
      */
-    static Props props(final QueryThings queryThings, final ActorRef aggregatorProxyActor,
-            final ActorRef originatingSender) {
+    static Props props(final QueryThings queryThings,
+            final ActorRef aggregatorProxyActor,
+            final ActorRef originatingSender,
+            final HttpConfig httpConfig) {
+
         return Props.create(QueryThingsPerRequestActor.class, new Creator<QueryThingsPerRequestActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public QueryThingsPerRequestActor create() {
-                return new QueryThingsPerRequestActor(queryThings, aggregatorProxyActor, originatingSender);
+                return new QueryThingsPerRequestActor(queryThings, aggregatorProxyActor, originatingSender, httpConfig);
             }
         });
     }
@@ -144,6 +144,5 @@ final class QueryThingsPerRequestActor extends AbstractActor {
     private void stopMyself() {
         getContext().stop(getSelf());
     }
-
 
 }

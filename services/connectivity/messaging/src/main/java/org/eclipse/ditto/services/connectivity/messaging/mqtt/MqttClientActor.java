@@ -38,6 +38,7 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnecte
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
+import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
 
 import akka.Done;
 import akka.NotUsed;
@@ -79,11 +80,12 @@ public final class MqttClientActor extends BaseClientActor {
             final ConnectivityStatus desiredConnectionStatus,
             final ClientConfig clientConfig,
             final MappingConfig mappingConfig,
+            final ProtocolConfig protocolConfig,
             final ConnectionConfig.MqttConfig mqttConfig,
             final ActorRef conciergeForwarder,
             final BiFunction<Connection, DittoHeaders, MqttConnectionFactory> connectionFactoryCreator) {
 
-        super(connection, desiredConnectionStatus, clientConfig, mappingConfig, conciergeForwarder);
+        super(connection, desiredConnectionStatus, clientConfig, mappingConfig, protocolConfig, conciergeForwarder);
         this.connectionFactoryCreator = connectionFactoryCreator;
         consumerByActorNameWithIndex = new HashMap<>();
         pendingStatusReportsFromStreams = new HashSet<>();
@@ -96,11 +98,12 @@ public final class MqttClientActor extends BaseClientActor {
             final ConnectivityStatus desiredConnectionStatus,
             final ClientConfig clientConfig,
             final MappingConfig mappingConfig,
+            final ProtocolConfig protocolConfig,
             final ConnectionConfig.MqttConfig mqttConfig,
             final ActorRef conciergeForwarder) {
 
-        this(connection, desiredConnectionStatus, clientConfig, mappingConfig, mqttConfig, conciergeForwarder,
-                MqttConnectionFactory::of);
+        this(connection, desiredConnectionStatus, clientConfig, mappingConfig, protocolConfig, mqttConfig,
+                conciergeForwarder, MqttConnectionFactory::of);
     }
 
     /**
@@ -109,6 +112,7 @@ public final class MqttClientActor extends BaseClientActor {
      * @param connection the connection.
      * @param clientConfig the client config.
      * @param mappingConfig the mapping config.
+     * @param protocolConfig the configuration settings for protocol mapping.
      * @param mqttConfig the MQTT config.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
      * @return the Akka configuration Props object.
@@ -116,11 +120,12 @@ public final class MqttClientActor extends BaseClientActor {
     public static Props props(final Connection connection,
             final ClientConfig clientConfig,
             final MappingConfig mappingConfig,
+            final ProtocolConfig protocolConfig,
             final ConnectionConfig.MqttConfig mqttConfig,
             final ActorRef conciergeForwarder) {
 
         return Props.create(MqttClientActor.class, validateConnection(connection), connection.getConnectionStatus(),
-                clientConfig, mappingConfig, mqttConfig, conciergeForwarder);
+                clientConfig, mappingConfig, protocolConfig, mqttConfig, conciergeForwarder);
     }
 
     private static Connection validateConnection(final Connection connection) {

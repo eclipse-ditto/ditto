@@ -412,7 +412,7 @@
                                 <exclude>org.eclipse.ditto.signals.commands.thingsearch.exceptions.ThingSearchErrorRegistry</exclude>
                                 <exclude>org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse#fromJson(org.eclipse.ditto.signals.commands.thingsearch.exceptions.ThingSearchErrorRegistry,org.eclipse.ditto.json.JsonObject,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
                                 <exclude>org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse#fromJson(org.eclipse.ditto.signals.commands.thingsearch.exceptions.ThingSearchErrorRegistry,java.lang.String,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
-                                <exclude>org.eclipse.ditto.protocoladapter.DittoProtocolAdapter$ProtocolAdapterErrorRegistry</exclude>
+                                <exclude>org.eclipse.ditto.protocoladapter.DittoProtocolAdapter</exclude>
                             </excludes>
                         </parameter>
                     </configuration>

@@ -15,9 +15,9 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.base.config.ServiceSpecificConfig.LimitsConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
+import org.eclipse.ditto.services.utils.config.WithConfigPath;
 
 import com.typesafe.config.Config;
 
@@ -25,7 +25,7 @@ import com.typesafe.config.Config;
  * This class is the default implementation of {@link LimitsConfig}.
  */
 @Immutable
-public final class DefaultLimitsConfig implements LimitsConfig, Serializable {
+public final class DefaultLimitsConfig implements LimitsConfig, Serializable, WithConfigPath {
 
     private static final String CONFIG_PATH = "limits";
 
@@ -79,6 +79,14 @@ public final class DefaultLimitsConfig implements LimitsConfig, Serializable {
     @Override
     public int thingsSearchMaxPageSize() {
         return thingsSearchMaxPageSize;
+    }
+
+    /**
+     * @return always {@value #CONFIG_PATH}.
+     */
+    @Override
+    public String getConfigPath() {
+        return CONFIG_PATH;
     }
 
     @Override

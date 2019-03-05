@@ -393,8 +393,8 @@ public final class MqttClientActorTest {
 
         return Props.create(MqttClientActor.class, () ->
                 new MqttClientActor(connection, connection.getConnectionStatus(), TestConstants.CLIENT_CONFIG,
-                        TestConstants.MAPPING_CONFIG, TestConstants.CONNECTION_CONFIG.getMqttConfig(), testProbe,
-                        factoryCreator));
+                        TestConstants.MAPPING_CONFIG, TestConstants.PROTOCOL_CONFIG,
+                        TestConstants.CONNECTION_CONFIG.getMqttConfig(), testProbe, factoryCreator));
     }
 
     private static MqttMessage mqttMessage(final String topic, final String payload) {

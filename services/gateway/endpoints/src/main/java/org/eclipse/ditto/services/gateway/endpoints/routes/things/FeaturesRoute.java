@@ -21,11 +21,12 @@ import static akka.http.javadsl.server.Directives.rawPathPrefix;
 import static akka.http.javadsl.server.Directives.route;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 
-import java.time.Duration;
-
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.MessageConfig;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.gateway.endpoints.utils.UriEncoding;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeature;
@@ -67,19 +68,23 @@ final class FeaturesRoute extends AbstractRoute {
      *
      * @param proxyActor an actor selection of the command delegating actor.
      * @param actorSystem the ActorSystem to use.
-     * @param messagesDefaultTimeout the duration of the default message timeout.
-     * @param messagesMaxTimeout the max duration of the message timeout.
-     * @param messagesDefaultClaimTimeout the duration of the default claim timeout.
-     * @param messagesMaxClaimTimeout the max duration of the claim timeout.
+     * @param messageConfig
+     * @param claimMessageConfig
+     * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
+     * @param headerTranslator translates headers from external sources or to external sources.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    FeaturesRoute(final ActorRef proxyActor, final ActorSystem actorSystem,
-            final Duration messagesDefaultTimeout, final Duration messagesMaxTimeout,
-            final Duration messagesDefaultClaimTimeout, final Duration messagesMaxClaimTimeout) {
-        super(proxyActor, actorSystem);
+    FeaturesRoute(final ActorRef proxyActor,
+            final ActorSystem actorSystem,
+            final MessageConfig messageConfig,
+            final MessageConfig claimMessageConfig,
+            final HttpConfig httpConfig,
+            final HeaderTranslator headerTranslator) {
 
-        messagesRoute = new MessagesRoute(proxyActor, actorSystem,
-                messagesDefaultTimeout, messagesMaxTimeout, messagesDefaultClaimTimeout, messagesMaxClaimTimeout);
+        super(proxyActor, actorSystem, httpConfig, headerTranslator);
+
+        messagesRoute = new MessagesRoute(proxyActor, actorSystem, messageConfig, claimMessageConfig, httpConfig,
+                headerTranslator);
     }
 
     private static String decodePath(final String attributePointerStr) {
@@ -92,8 +97,7 @@ final class FeaturesRoute extends AbstractRoute {
      *
      * @return the {@code /features} route.
      */
-    public Route buildFeaturesRoute(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final String thingId) {
+    public Route buildFeaturesRoute(final RequestContext ctx, final DittoHeaders dittoHeaders, final String thingId) {
         return rawPathPrefix(mergeDoubleSlashes().concat(PATH_PREFIX), () ->
                 Directives.route(
                         features(ctx, dittoHeaders, thingId),
@@ -185,6 +189,7 @@ final class FeaturesRoute extends AbstractRoute {
      */
     private Route featuresEntryDefinition(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final String thingId) {
+
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), featureId ->
                 rawPathPrefix(mergeDoubleSlashes().concat(PATH_DEFINITION), () ->
                         pathEndOrSingleSlash(() ->
@@ -221,6 +226,7 @@ final class FeaturesRoute extends AbstractRoute {
      */
     private Route featuresEntryProperties(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final String thingId) {
+
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), featureId ->
                 rawPathPrefix(mergeDoubleSlashes().concat(PATH_PROPERTIES), () ->
                         pathEndOrSingleSlash(() ->
@@ -267,6 +273,7 @@ final class FeaturesRoute extends AbstractRoute {
      */
     private Route featuresEntryPropertiesEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final String thingId) {
+
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), featureId ->
                 rawPathPrefix(mergeDoubleSlashes().concat(PATH_PROPERTIES), () ->
                         route(
@@ -320,9 +327,11 @@ final class FeaturesRoute extends AbstractRoute {
      */
     private Route featuresEntryInboxOutbox(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final String thingId) {
+
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), featureId ->
                 // POST /features/{featureId}/<inbox|outbox>
                 messagesRoute.buildFeaturesInboxOutboxRoute(ctx, dittoHeaders, thingId, featureId)
         );
     }
+
 }

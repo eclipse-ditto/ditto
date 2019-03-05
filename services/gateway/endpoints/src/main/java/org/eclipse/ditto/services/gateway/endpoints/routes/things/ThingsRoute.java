@@ -26,7 +26,6 @@ import static akka.http.javadsl.server.Directives.route;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 
-import java.time.Duration;
 import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -39,6 +38,9 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.MessageConfig;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.gateway.endpoints.utils.UriEncoding;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotExplicitlySettableException;
@@ -86,21 +88,25 @@ public final class ThingsRoute extends AbstractRoute {
      *
      * @param proxyActor an actor selection of the command delegating actor.
      * @param actorSystem the ActorSystem to use.
-     * @param messagesDefaultTimeout the duration of the default message timeout.
-     * @param messagesMaxTimeout the max duration of the message timeout.
-     * @param messagesDefaultClaimTimeout the duration of the default claim timeout.
-     * @param messagesMaxClaimTimeout the max duration of the claim timeout.
+     * @param messageConfig
+     * @param claimMessageConfig
+     * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
+     * @param headerTranslator translates headers from external sources or to external sources.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public ThingsRoute(final ActorRef proxyActor, final ActorSystem actorSystem,
-            final Duration messagesDefaultTimeout, final Duration messagesMaxTimeout,
-            final Duration messagesDefaultClaimTimeout, final Duration messagesMaxClaimTimeout) {
-        super(proxyActor, actorSystem);
+    public ThingsRoute(final ActorRef proxyActor,
+            final ActorSystem actorSystem,
+            final MessageConfig messageConfig,
+            final MessageConfig claimMessageConfig,
+            final HttpConfig httpConfig,
+            final HeaderTranslator headerTranslator) {
 
-        featuresRoute = new FeaturesRoute(proxyActor, actorSystem,
-                messagesDefaultTimeout, messagesMaxTimeout, messagesDefaultClaimTimeout, messagesMaxClaimTimeout);
-        messagesRoute = new MessagesRoute(proxyActor, actorSystem,
-                messagesDefaultTimeout, messagesMaxTimeout, messagesDefaultClaimTimeout, messagesMaxClaimTimeout);
+        super(proxyActor, actorSystem, httpConfig, headerTranslator);
+
+        featuresRoute = new FeaturesRoute(proxyActor, actorSystem, messageConfig, claimMessageConfig, httpConfig,
+                headerTranslator);
+        messagesRoute = new MessagesRoute(proxyActor, actorSystem, messageConfig, claimMessageConfig, httpConfig,
+                headerTranslator);
     }
 
     private static String decodePath(final String attributePointerStr) {
@@ -230,7 +236,7 @@ public final class ThingsRoute extends AbstractRoute {
         );
     }
 
-    private JsonObject createThingJsonObjectForPut(final String jsonString, final String thingId) {
+    private static JsonObject createThingJsonObjectForPut(final String jsonString, final String thingId) {
         final JsonObject inputJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
         final JsonObjectBuilder outputJsonBuilder = inputJson.toBuilder();
         final Optional<JsonValue> optThingId = inputJson.getValue(Thing.JsonFields.ID.getPointer());
@@ -305,8 +311,7 @@ public final class ThingsRoute extends AbstractRoute {
      *
      * @return {@code /things/<thingId>/acl/<authorizationSubject>} route.
      */
-    private Route thingsEntryAclEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final String thingId) {
+    private Route thingsEntryAclEntry(final RequestContext ctx, final DittoHeaders dittoHeaders, final String thingId) {
         return rawPathPrefix(mergeDoubleSlashes().concat(PATH_ACL), () ->
                 rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), subject ->
                         pathEndOrSingleSlash(() ->
@@ -354,6 +359,7 @@ public final class ThingsRoute extends AbstractRoute {
      */
     private Route thingsEntryAttributes(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final String thingId) {
+
         return rawPathPrefix(mergeDoubleSlashes().concat(PATH_ATTRIBUTES), () ->
                 pathEndOrSingleSlash(() ->
                         route(
@@ -397,6 +403,7 @@ public final class ThingsRoute extends AbstractRoute {
      */
     private Route thingsEntryAttributesEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final String thingId) {
+
         return rawPathPrefix(mergeDoubleSlashes().concat(PATH_ATTRIBUTES), () ->
                 route(
                         get(() -> // GET /things/<thingId>/attributes
@@ -456,8 +463,7 @@ public final class ThingsRoute extends AbstractRoute {
      *
      * @return {@code /things/<thingId>/features} route.
      */
-    private Route thingsEntryFeatures(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final String thingId) {
+    private Route thingsEntryFeatures(final RequestContext ctx, final DittoHeaders dittoHeaders, final String thingId) {
         return featuresRoute.buildFeaturesRoute(ctx, dittoHeaders, thingId); // /things/<thingId>/features
     }
 
@@ -468,6 +474,7 @@ public final class ThingsRoute extends AbstractRoute {
      */
     private Route thingsEntryInboxOutbox(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final String thingId) {
+
         return messagesRoute.buildThingsInboxOutboxRoute(ctx, dittoHeaders,
                 thingId); // /things/<thingId>/<inbox|outbox>
     }

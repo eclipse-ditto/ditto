@@ -63,6 +63,8 @@ import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCou
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
@@ -77,6 +79,7 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionS
 
 import akka.actor.AbstractFSM;
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.FSM;
 import akka.actor.Props;
 import akka.actor.Status;
@@ -109,6 +112,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final MappingConfig mappingConfig;
+    private final ProtocolAdapterProvider protocolAdapterProvider;
     private final ActorRef conciergeForwarder;
 
     @Nullable private ActorRef messageMappingProcessorActor;
@@ -120,6 +124,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             final ConnectivityStatus desiredConnectionStatus,
             final ClientConfig clientConfig,
             final MappingConfig mappingConfig,
+            final ProtocolConfig protocolConfig,
             final ActorRef conciergeForwarder) {
 
         checkNotNull(connection, "connection");
@@ -128,6 +133,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         this.mappingConfig = mappingConfig;
         this.conciergeForwarder = conciergeForwarder;
+        protocolAdapterProvider = ProtocolAdapterProvider.load(protocolConfig, getContext().getSystem());
 
         final BaseClientData startingData = new BaseClientData(connection.getId(), connection,
                 ConnectivityStatus.UNKNOWN, desiredConnectionStatus, "initialized", Instant.now(), null, null);
@@ -797,15 +803,24 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     private CompletionStage<Status.Status> testMessageMappingProcessor(@Nullable final MappingContext mappingContext) {
         try {
-            // this one throws DittoRuntimeExceptions when the mapper could not be configured
-            MessageMappingProcessor.of(connectionId(), mappingContext, getContext().getSystem(), mappingConfig, log);
-            return CompletableFuture.completedFuture(new Status.Success("mapping"));
+            return tryToConfigureMessageMappingProcessor(mappingContext);
         } catch (final DittoRuntimeException dre) {
             log.info("Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
                     dre.getClass().getSimpleName(), dre.getMessage(), dre.getDescription().orElse(""));
             getSender().tell(dre, getSelf());
             return CompletableFuture.completedFuture(new Status.Failure(dre));
         }
+    }
+
+    private CompletionStage<Status.Status> tryToConfigureMessageMappingProcessor(
+            @Nullable final MappingContext mappingContext) {
+
+        final ActorSystem actorSystem = getContext().getSystem();
+
+        // this one throws DittoRuntimeExceptions when the mapper could not be configured
+        MessageMappingProcessor.of(connectionId(), mappingContext, actorSystem, mappingConfig, protocolAdapterProvider,
+                log);
+        return CompletableFuture.completedFuture(new Status.Success("mapping"));
     }
 
     /**
@@ -833,7 +848,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             try {
                 // this one throws DittoRuntimeExceptions when the mapper could not be configured
                 processor = MessageMappingProcessor.of(connectionId(), mappingContext, getContext().getSystem(),
-                        mappingConfig, log);
+                        mappingConfig, protocolAdapterProvider, log);
             } catch (final DittoRuntimeException dre) {
                 log.info(
                         "Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
