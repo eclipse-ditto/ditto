@@ -14,6 +14,7 @@ import java.time.Duration;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.base.config.supervision.WithSupervisorConfig;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
@@ -23,7 +24,7 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
  * </p>
  */
 @Immutable
-public interface ConnectionConfig {
+public interface ConnectionConfig extends WithSupervisorConfig {
 
     /**
      * Returns the delay between subscribing to Akka pub/sub and responding to the command that triggered the
@@ -44,13 +45,6 @@ public interface ConnectionConfig {
      * @return the timeout.
      */
     Duration getClientActorAskTimeout();
-
-    /**
-     * Returns the config of the connection supervision.
-     *
-     * @return the config.
-     */
-    SupervisorConfig getSupervisorConfig();
 
     /**
      * Returns the config of the connection snapshotting behaviour.
@@ -98,97 +92,6 @@ public interface ConnectionConfig {
         @Override
         public String getConfigPath() {
             return path;
-        }
-
-    }
-
-    /**
-     * Provides configuration settings for the connection supervision.
-     * <p>
-     * Java serialization is supported for {@code SupervisorConfig}.
-     * </p>
-     */
-    @Immutable
-    interface SupervisorConfig {
-
-        /**
-         * Returns the config for the exponential back-off strategy.
-         *
-         * @return the config.
-         */
-        SupervisorConfig.ExponentialBackOffConfig getExponentialBackOffConfig();
-
-        /**
-         * Provides configuration settings for the exponential back-off strategy.
-         * <p>
-         * Java serialization is supported for {@code ExponentialBackOffConfig}.
-         * </p>
-         */
-        @Immutable
-        interface ExponentialBackOffConfig {
-
-            /**
-             * Returns the minimal exponential back-off duration.
-             *
-             * @return the min duration.
-             */
-            Duration getMin();
-
-            /**
-             * Returns the maximal exponential back-off duration.
-             *
-             * @return the max duration.
-             */
-            Duration getMax();
-
-            /**
-             * Returns the random factor of the exponential back-off strategy.
-             *
-             * @return the random factor.
-             */
-            double getRandomFactor();
-
-            /**
-             * An enumeration of the known config path expressions and their associated default values for
-             * {@code ExponentialBackOffConfig}.
-             */
-            enum ExponentialBackOffConfigValue implements KnownConfigValue {
-
-                /**
-                 * The minimal exponential back-off duration.
-                 */
-                MIN("min", "1s"),
-
-                /**
-                 * The maximal exponential back-off duration.
-                 */
-                MAX("max", "10s"),
-
-                /**
-                 * The random factor of the exponential back-off strategy.
-                 */
-                RANDOM_FACTOR("random-factor", 0.2D);
-
-                private final String path;
-                private final Object defaultValue;
-
-                private ExponentialBackOffConfigValue(final String thePath, final Object theDefaultValue) {
-                    path = thePath;
-                    defaultValue = theDefaultValue;
-                }
-
-                @Override
-                public Object getDefaultValue() {
-                    return defaultValue;
-                }
-
-                @Override
-                public String getConfigPath() {
-                    return path;
-                }
-
-            }
-
         }
 
     }

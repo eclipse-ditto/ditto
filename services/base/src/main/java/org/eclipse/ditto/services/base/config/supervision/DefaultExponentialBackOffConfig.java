@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging.config;
+package org.eclipse.ditto.services.base.config.supervision;
 
 import java.io.Serializable;
 import java.time.Duration;
@@ -25,8 +25,7 @@ import com.typesafe.config.Config;
  * This class is the default implementation of the exponential back-off config.
  */
 @Immutable
-public final class DefaultExponentialBackOffConfig
-        implements ConnectionConfig.SupervisorConfig.ExponentialBackOffConfig, Serializable {
+public final class DefaultExponentialBackOffConfig implements SupervisorConfig.ExponentialBackOffConfig, Serializable {
 
     private static final long serialVersionUID = -8907054359348063020L;
 

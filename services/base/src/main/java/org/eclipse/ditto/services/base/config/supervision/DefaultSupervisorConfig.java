@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging.config;
+package org.eclipse.ditto.services.base.config.supervision;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -24,7 +24,7 @@ import com.typesafe.config.Config;
  * This class is the default implementation of the config for connection supervision.
  */
 @Immutable
-public final class DefaultSupervisorConfig implements ConnectionConfig.SupervisorConfig, Serializable {
+public final class DefaultSupervisorConfig implements SupervisorConfig, Serializable {
 
     private static final long serialVersionUID = -9207034637228951218L;
 

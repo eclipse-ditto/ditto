@@ -16,6 +16,8 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.base.config.supervision.DefaultSupervisorConfig;
+import org.eclipse.ditto.services.base.config.supervision.SupervisorConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
