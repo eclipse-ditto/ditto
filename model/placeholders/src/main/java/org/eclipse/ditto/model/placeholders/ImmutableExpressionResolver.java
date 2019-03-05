@@ -116,8 +116,10 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
             final String placeholderTemplate = getFirstPlaceholderInPipe(pipelineStagesExpressions);
             final Pipeline pipeline = getPipelineFromExpressions(pipelineStagesExpressions);
 
-            final Optional<String> pipelineInput = resolvePlaceholder(placeholderResolver, placeholderTemplate);
-            return pipeline.execute(pipelineInput, this);
+            final Optional<String> placeholderWithoutPrefix = resolvePlaceholderWithoutPrefixIfSupported(placeholderResolver, placeholderTemplate);
+            return placeholderWithoutPrefix
+                    .map(p -> resolvePlaceholder(placeholderResolver, p))
+                    .flatMap(pipelineInput -> pipeline.execute(pipelineInput, this));
 
         };
     }
@@ -147,19 +149,22 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
         return new ImmutablePipeline(ImmutableFunctionExpression.INSTANCE, pipelineStages);
     }
 
-    private Optional<String> resolvePlaceholder(final PlaceholderResolver<?> prefixed, final String placeholder) {
-
+    private Optional<String> resolvePlaceholderWithoutPrefixIfSupported(final PlaceholderResolver<?> resolver, final String placeholder) {
         final int separatorIndex = placeholder.indexOf(SEPARATOR);
         if (separatorIndex == -1) {
             throw UnresolvedPlaceholderException.newBuilder(placeholder).build();
         }
         final String prefix = placeholder.substring(0, separatorIndex).trim();
-        final String placeholderWithoutPrefix = placeholder.substring(separatorIndex + 1).trim();
+        if (prefix.equals(resolver.getPrefix())) {
+            return Optional.of(placeholder.substring(separatorIndex + 1).trim());
+        }
+        return Optional.empty();
+    }
 
-        return Optional.of(prefixed)
-                .filter(p -> prefix.equals(p.getPrefix()))
+    private Optional<String> resolvePlaceholder(final PlaceholderResolver<?> resolver, final String placeholderWithoutPrefix) {
+        return Optional.of(resolver)
                 .filter(p -> p.supports(placeholderWithoutPrefix))
-                .flatMap(p -> prefixed.resolve(placeholderWithoutPrefix));
+                .flatMap(p -> resolver.resolve(placeholderWithoutPrefix));
     }
 
     @Override

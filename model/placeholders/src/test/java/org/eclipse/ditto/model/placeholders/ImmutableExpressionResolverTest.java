@@ -129,6 +129,8 @@ public class ImmutableExpressionResolverTest {
                 .isEqualTo("BAR");
         assertThat(underTest.resolve("{{ thing:id | fn:substring-before(':') }}", false))
                 .isEqualTo(THING_NAMESPACE);
+        assertThat(underTest.resolve("{{ thing:id | fn:substring-before(':') | fn:default('foo') }}", false))
+                .isEqualTo(THING_NAMESPACE);
         assertThat(underTest.resolve("{{ header:unknown | fn:default(' fallback-spaces  ') }}", false))
                 .isEqualTo(" fallback-spaces  ");
 
