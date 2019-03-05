@@ -2,4 +2,5 @@ apiVersion: v1
 appVersion: "0.8.0"
 description: A basic helm chart for Eclipse Ditto and K8s
 name: eclipse-ditto
+fullname: org.eclipse.ditto
 version: 0.8.0

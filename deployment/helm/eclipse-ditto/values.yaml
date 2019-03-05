@@ -1,3 +1,63 @@
 # Default values for eclipse-ditto.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
+
+service:
+  type: NodePort
+  port: 8080
+
+akka:
+  remoting:
+    port: 2551
+  mgmthttp:
+    port: 8558
+
+concierge:
+  image:
+    repository: docker.io/eclipse/ditto-concierge
+    tag: 0.8.0
+connectivity:
+  image:
+    repository: docker.io/eclipse/ditto-connectivity
+    tag: 0.8.0
+things:
+  image:
+    repository: docker.io/eclipse/ditto-things
+    tag: 0.8.0
+search:
+  image:
+    repository: docker.io/eclipse/ditto-things-search
+    tag: 0.8.0
+policies:
+  image:
+    repository: docker.io/eclipse/ditto-policies
+    tag: 0.8.0
+gateway:
+  image:
+    repository: docker.io/eclipse/ditto-gateway
+    tag: 0.8.0
+
+nginx:
+  version: 1.15
+
+mongodb:
+  # Deployed as part of chart.
+  embedded:
+    version: 3.6
+    enabled: true
+  apps:
+    concierge:
+      uri: mongodb://mongodb:27017/concierge
+      ssl: "false"
+    connectivity:
+      uri: mongodb://mongodb:27017/connectivity
+      ssl: "false"
+    things:
+      uri: mongodb://mongodb:27017/things
+      ssl: "false"
+    searchDB:
+      uri: mongodb://mongodb:27017/searchDB
+      ssl: "false"
+    policies:
+      uri: mongodb://mongodb:27017/policies
+      ssl: "false"
