@@ -13,6 +13,8 @@ package org.eclipse.ditto.services.gateway.endpoints.routes;
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.KNOWN_DOMAIN;
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.UNKNOWN_PATH;
 
+import java.util.UUID;
+
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
@@ -268,6 +270,17 @@ public final class RootRouteTest extends EndpointTestBase {
     @Test
     public void getWithInvalidEncoding() {
         final TestRouteResult result = rootTestRoute.run(HttpRequest.GET(PATH_WITH_INVALID_ENCODING));
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+    }
+
+    @Test
+    public void getExceptionForDuplicateHeaderFields() {
+        final TestRouteResult result =
+                rootTestRoute.run(withHttps(withDummyAuthentication(HttpRequest.GET(THINGS_1_PATH_WITH_IDS)
+                        .addHeader(RawHeader.create(HttpHeader.X_CORRELATION_ID.getName(), UUID.randomUUID().toString()))
+                        .addHeader(RawHeader.create(HttpHeader.X_CORRELATION_ID.getName(), UUID.randomUUID().toString()))
+                        ))
+                );
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
     }
 
