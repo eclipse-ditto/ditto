@@ -198,7 +198,7 @@ public interface MongoDbConfig {
             /**
              * The maximum time to wait for a connection to become available.
              */
-            MAX_WAIT_TIME("maxWaitTime", "30s"),
+            MAX_WAIT_TIME("maxWaitTime", Duration.ofSeconds(30L)),
 
             /**
              * Determines whether a JMX {@code ConnectionPoolListener} should be added.
