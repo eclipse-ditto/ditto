@@ -48,8 +48,8 @@ public final class StatsRouteTest extends EndpointTestBase {
     private void setUp(final ActorRef proxyActor) {
         final ActorSystem actorSystem = system();
         final ProtocolAdapterProvider adapterProvider = ProtocolAdapterProvider.load(protocolConfig, actorSystem);
-        final StatsRoute statsRoute =
-                new StatsRoute(proxyActor, actorSystem, httpConfig, devOpsConfig, adapterProvider.getHttpHeaderTranslator());
+        final StatsRoute statsRoute = new StatsRoute(proxyActor, actorSystem, httpConfig, authConfig.getDevOpsConfig(),
+                adapterProvider.getHttpHeaderTranslator());
 
         statsTestRoute = testRoute(statsRoute.buildStatsRoute(KNOWN_CORRELATION_ID));
     }
