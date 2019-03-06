@@ -36,7 +36,7 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 public abstract class CommonCommand<T extends CommonCommand> extends AbstractCommand<T> {
 
     /**
-     * Type prefix of namespace commands.
+     * Type prefix of common commands.
      */
     protected static final String TYPE_PREFIX = "common." + TYPE_QUALIFIER + ":";
 

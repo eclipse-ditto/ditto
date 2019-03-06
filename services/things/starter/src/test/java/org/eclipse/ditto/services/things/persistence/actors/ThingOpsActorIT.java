@@ -11,12 +11,13 @@
 package org.eclipse.ditto.services.things.persistence.actors;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.utils.persistence.mongo.namespace.EventSourceNamespaceOpsActorTestCases;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.NamespaceOpsActorTestCases;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
@@ -24,6 +25,8 @@ import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import com.typesafe.config.Config;
 
@@ -32,10 +35,21 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 
 /**
- * Tests {@link org.eclipse.ditto.services.things.persistence.actors.ThingNamespaceOpsActor} against a local MongoDB.
+ * Tests {@link ThingOpsActor} against a local MongoDB.
  */
 @AllValuesAreNonnullByDefault
-public final class ThingNamespaceOpsActorIT extends EventSourceNamespaceOpsActorTestCases {
+@RunWith(Parameterized.class)
+public final class ThingOpsActorIT extends NamespaceOpsActorTestCases {
+
+    @Parameterized.Parameters(name = "{0}")
+    public static Iterable<TestSetting> data() {
+        return Arrays.asList(TestSetting.NAMESPACES_WITHOUT_SUFFIX, TestSetting.NAMESPACES_WITH_SUFFIX);
+    }
+
+    public ThingOpsActorIT(
+            final NamespaceOpsActorTestCases.TestSetting testSetting) {
+        super(testSetting);
+    }
 
     @Override
     protected String getServiceName() {
@@ -82,8 +96,8 @@ public final class ThingNamespaceOpsActorIT extends EventSourceNamespaceOpsActor
     protected ActorRef startActorUnderTest(final ActorSystem actorSystem, final ActorRef pubSubMediator,
             final Config config) {
 
-        final Props nanmespaceOpsActorProps = ThingNamespaceOpsActor.props(pubSubMediator, config);
-        return actorSystem.actorOf(nanmespaceOpsActorProps, ThingNamespaceOpsActor.ACTOR_NAME);
+        final Props opsActorProps = ThingOpsActor.props(pubSubMediator, config);
+        return actorSystem.actorOf(opsActorProps, ThingOpsActor.ACTOR_NAME);
     }
 
     @Override

@@ -26,6 +26,7 @@ import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.common.CommonCommandRegistry;
+import org.eclipse.ditto.signals.commands.common.CommonCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandRegistry;
@@ -70,6 +71,7 @@ public final class ThingsMappingStrategy implements MappingStrategy {
 
     private static void addCommonStrategies(final MappingStrategiesBuilder builder) {
         builder.add(CommonCommandRegistry.getInstance());
+        builder.add(CommonCommandResponseRegistry.getInstance());
     }
 
     private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {

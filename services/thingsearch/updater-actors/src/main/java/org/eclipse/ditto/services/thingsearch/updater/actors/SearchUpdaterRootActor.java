@@ -124,8 +124,8 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                         eventProcessingActive, thingUpdaterActivityCheckInterval, maxBulkSize, blockedNamespaces));
 
         // start namespace ops actor as cluster singleton
-        startClusterSingletonActor(ThingsSearchNamespaceOpsActor.ACTOR_NAME,
-                ThingsSearchNamespaceOpsActor.props(pubSubMediator, searchUpdaterPersistence));
+        startClusterSingletonActor(ThingsSearchOpsActor.ACTOR_NAME,
+                ThingsSearchOpsActor.props(pubSubMediator, searchUpdaterPersistence));
 
         final boolean thingsSynchronizationActive = config.getBoolean(ConfigKeys.THINGS_SYNCER_ACTIVE);
         if (thingsSynchronizationActive) {

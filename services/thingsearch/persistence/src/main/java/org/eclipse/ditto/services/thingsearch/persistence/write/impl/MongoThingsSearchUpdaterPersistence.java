@@ -28,12 +28,10 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.UNSET;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
@@ -57,8 +55,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.services.utils.persistence.mongo.indices.IndexInitializer;
-import org.eclipse.ditto.services.utils.persistence.mongo.namespace.MongoNamespaceOps;
-import org.eclipse.ditto.services.utils.persistence.mongo.namespace.MongoNamespaceSelection;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.MongoOpsUtil;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.reactivestreams.Publisher;
 
@@ -91,7 +88,6 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
 
     private static final int MONGO_DUPLICATE_KEY_ERROR_CODE = 11000;
     private static final int MONGO_INDEX_VALUE_ERROR_CODE = 17280;
-    private final MongoDatabase database;
     private final MongoCollection<Document> collection;
     private final MongoCollection<Document> policiesCollection;
     private final EventToPersistenceStrategyFactory<Bson, PolicyUpdate>
@@ -111,7 +107,7 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
             final Materializer materializer) {
 
         super(log);
-        database = clientWrapper.getDefaultDatabase();
+        final MongoDatabase database = clientWrapper.getDefaultDatabase();
         collection = database.getCollection(THINGS_COLLECTION_NAME);
         policiesCollection = database.getCollection(POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME);
         indexInitializer = IndexInitializer.of(database, materializer);
@@ -477,24 +473,18 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
     }
 
     @Override
-    public Source<Optional<Throwable>, NotUsed> purge(final String namespace) {
-        final MongoNamespaceOps mongoNamespaceOps = MongoNamespaceOps.of(database);
-        final List<MongoNamespaceSelection> namespaceSelections =
-                Arrays.asList(thingNamespaceSelection(namespace), policyNamespaceSelection(namespace));
-        return mongoNamespaceOps.purgeAll(namespaceSelections)
-                .map(errors -> errors.isEmpty() ? Optional.empty() : Optional.of(errors.get(0)));
-    }
+    public Source<List<Throwable>, NotUsed> purge(final CharSequence namespace) {
+        final Bson thingNamespaceFilter = new Document().append(FIELD_NAMESPACE, new BsonString(namespace.toString()));
+        final Source<List<Throwable>, NotUsed> thingCollectionPurge =
+                MongoOpsUtil.deleteByFilter(collection, thingNamespaceFilter);
 
-    private MongoNamespaceSelection thingNamespaceSelection(final String namespace) {
-        final String collectionName = collection.getNamespace().getCollectionName();
-        final Document filter = new Document().append(FIELD_NAMESPACE, new BsonString(namespace));
-        return MongoNamespaceSelection.of(collectionName, filter);
-    }
-
-    private MongoNamespaceSelection policyNamespaceSelection(final String namespace) {
-        final String collectionName = policiesCollection.getNamespace().getCollectionName();
         final String idRegex = String.format("^%s:", namespace);
-        final Document filter = new Document().append(FIELD_ID, new BsonRegularExpression(idRegex));
-        return MongoNamespaceSelection.of(collectionName, filter);
+        final Bson policyNamespaceFilter = new Document().append(FIELD_ID, new BsonRegularExpression(idRegex));
+        final Source<List<Throwable>, NotUsed> policyCollectionPurge =
+                MongoOpsUtil.deleteByFilter(policiesCollection, policyNamespaceFilter);
+
+        return thingCollectionPurge
+                .merge(policyCollectionPurge);
     }
+
 }

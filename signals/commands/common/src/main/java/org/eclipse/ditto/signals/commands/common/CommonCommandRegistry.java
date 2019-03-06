@@ -18,6 +18,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.signals.base.AbstractJsonParsableRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
+import org.eclipse.ditto.signals.commands.common.purge.PurgeEntities;
 
 /**
  * A {@link org.eclipse.ditto.signals.base.JsonParsableRegistry} aware of all
@@ -38,6 +39,7 @@ public final class CommonCommandRegistry extends AbstractJsonParsableRegistry<Co
     public static CommonCommandRegistry getInstance() {
         final Map<String, JsonParsable<CommonCommand>> parseStrategies = new HashMap<>();
         parseStrategies.put(Shutdown.TYPE, Shutdown::fromJson);
+        parseStrategies.put(PurgeEntities.TYPE, PurgeEntities::fromJson);
 
         return new CommonCommandRegistry(parseStrategies);
     }

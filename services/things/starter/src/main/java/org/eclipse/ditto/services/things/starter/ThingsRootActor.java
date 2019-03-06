@@ -24,7 +24,7 @@ import org.eclipse.ditto.services.base.config.HealthConfigReader;
 import org.eclipse.ditto.services.base.config.HttpConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
-import org.eclipse.ditto.services.things.persistence.actors.ThingNamespaceOpsActor;
+import org.eclipse.ditto.services.things.persistence.actors.ThingOpsActor;
 import org.eclipse.ditto.services.things.persistence.actors.ThingSupervisorActor;
 import org.eclipse.ditto.services.things.persistence.actors.ThingsPersistenceStreamingActorCreator;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
@@ -162,8 +162,8 @@ final class ThingsRootActor extends AbstractActor {
                         ShardRegionExtractor.of(numberOfShards, getContext().getSystem()));
 
         // start cluster singleton for namespace ops
-        ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, ThingNamespaceOpsActor.ACTOR_NAME,
-                ThingNamespaceOpsActor.props(pubSubMediator, config));
+        ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, ThingOpsActor.ACTOR_NAME,
+                ThingOpsActor.props(pubSubMediator, config));
 
         retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(thingsShardRegion,
                 ThingsMessagingConstants.SHARD_REGION, log);

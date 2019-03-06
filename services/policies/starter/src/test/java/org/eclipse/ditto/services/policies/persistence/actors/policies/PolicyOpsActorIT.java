@@ -20,10 +20,10 @@ import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.SubjectType;
-import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicyNamespaceOpsActor;
+import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicyOpsActor;
 import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicySupervisorActor;
 import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSnapshotAdapter;
-import org.eclipse.ditto.services.utils.persistence.mongo.namespace.EventSourceNamespaceOpsActorTestCases;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.NamespaceOpsActorTestCases;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy;
@@ -31,6 +31,8 @@ import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicyResponse;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicy;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyResponse;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import com.typesafe.config.Config;
 
@@ -39,10 +41,21 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 
 /**
- * Tests {@link org.eclipse.ditto.services.policies.persistence.actors.policy.PolicyNamespaceOpsActor}.
+ * Tests {@link PolicyOpsActor}.
  */
 @AllValuesAreNonnullByDefault
-public final class PolicyNamespaceOpsActorIT extends EventSourceNamespaceOpsActorTestCases {
+@RunWith(Parameterized.class)
+public final class PolicyOpsActorIT extends NamespaceOpsActorTestCases {
+
+    @Parameterized.Parameters(name = "{0}")
+    public static Iterable<TestSetting> data() {
+        return Arrays.asList(TestSetting.NAMESPACES_WITHOUT_SUFFIX, TestSetting.NAMESPACES_WITH_SUFFIX);
+    }
+
+    public PolicyOpsActorIT(
+            final NamespaceOpsActorTestCases.TestSetting testSetting) {
+        super(testSetting);
+    }
 
     @Override
     protected String getServiceName() {
@@ -94,8 +107,8 @@ public final class PolicyNamespaceOpsActorIT extends EventSourceNamespaceOpsActo
     protected ActorRef startActorUnderTest(final ActorSystem actorSystem, final ActorRef pubSubMediator,
             final Config config) {
 
-        final Props namespaceOpsActorProps = PolicyNamespaceOpsActor.props(pubSubMediator, config);
-        return actorSystem.actorOf(namespaceOpsActorProps, PolicyNamespaceOpsActor.ACTOR_NAME);
+        final Props opsActorProps = PolicyOpsActor.props(pubSubMediator, config);
+        return actorSystem.actorOf(opsActorProps, PolicyOpsActor.ACTOR_NAME);
     }
 
     @Override

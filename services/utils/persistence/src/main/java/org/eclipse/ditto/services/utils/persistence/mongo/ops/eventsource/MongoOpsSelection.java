@@ -8,7 +8,9 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.persistence.mongo.namespace;
+package org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource;
+
+import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
 
@@ -17,28 +19,28 @@ import javax.annotation.concurrent.Immutable;
 import org.bson.Document;
 
 /**
- * Representation of a namespace's content in a collection. Consists of a collection name and a filter in BSON format.
+ * Representation a selection for a MongoDB ops operation. Consists of a collection name and a filter in BSON format.
  */
 @Immutable
-public final class MongoNamespaceSelection {
+final class MongoOpsSelection {
 
     private final String collectionName;
     private final Document filter;
 
-    private MongoNamespaceSelection(final String collectionName, final Document filter) {
-        this.collectionName = collectionName;
+    private MongoOpsSelection(final String collectionName, final Document filter) {
+        this.collectionName = requireNonNull(collectionName);
         this.filter = filter;
     }
 
     /**
-     * Creates a namespace selection.
+     * Creates a new instance.
      *
      * @param collectionName name of the collection.
      * @param filter filter of documents in the namespace.
-     * @return a new namespace selection.
+     * @return the instance.
      */
-    public static MongoNamespaceSelection of(final String collectionName, final Document filter) {
-        return new MongoNamespaceSelection(collectionName, new Document(filter));
+    public static MongoOpsSelection of(final String collectionName, final Document filter) {
+        return new MongoOpsSelection(collectionName, filter);
     }
 
     /**
@@ -49,14 +51,14 @@ public final class MongoNamespaceSelection {
     }
 
     /**
-     * @return filter of documents in the namespace.
+     * @return filter of documents.
      */
     public Document getFilter() {
         return new Document(filter);
     }
 
     /**
-     * @return whether all documents in the collection belong to the namespace.
+     * @return whether all documents of the collection are affected.
      */
     public boolean isEntireCollection() {
         return filter.isEmpty();
@@ -70,7 +72,7 @@ public final class MongoNamespaceSelection {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final MongoNamespaceSelection that = (MongoNamespaceSelection) o;
+        final MongoOpsSelection that = (MongoOpsSelection) o;
         return Objects.equals(collectionName, that.collectionName) && Objects.equals(filter, that.filter);
     }
 
@@ -80,14 +82,14 @@ public final class MongoNamespaceSelection {
     }
 
     /**
-     * Returns the collection name and indicates by text whether to drop or to filter.
+     * Returns the collection name and indicates by text whether the complete collection is affected or if it is
+     * filtered.
      *
-     * @return if {@link #isEntireCollection()} is {@code true}: {@code "COLLECTION NAME (to drop)"}, else
-     * {@code "COLLECTION NAME (to filter)"}.
+     * @return the string representation.
      */
     @Override
     public String toString() {
-        return String.format("%s (%s)", collectionName, isEntireCollection() ? "to drop" : "to filter");
+        return String.format("%s (%s)", collectionName, isEntireCollection() ? "complete" : "filtered");
     }
 
 }

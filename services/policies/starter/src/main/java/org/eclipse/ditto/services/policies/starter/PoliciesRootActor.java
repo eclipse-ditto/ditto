@@ -26,7 +26,7 @@ import org.eclipse.ditto.services.base.config.HttpConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.policies.persistence.actors.policies.PoliciesPersistenceStreamingActorCreator;
-import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicyNamespaceOpsActor;
+import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicyOpsActor;
 import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicySupervisorActor;
 import org.eclipse.ditto.services.policies.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -158,9 +158,9 @@ public final class PoliciesRootActor extends AbstractActor {
                 .start(PoliciesMessagingConstants.SHARD_REGION, policySupervisorProps, shardingSettings,
                         ShardRegionExtractor.of(numberOfShards, getContext().getSystem()));
 
-        // start cluster singleton for namespace ops
-        ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, PolicyNamespaceOpsActor.ACTOR_NAME,
-                PolicyNamespaceOpsActor.props(pubSubMediator, config));
+        // start cluster singleton for ops
+        ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, PolicyOpsActor.ACTOR_NAME,
+                PolicyOpsActor.props(pubSubMediator, config));
 
         retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(policiesShardRegion,
                 PoliciesMessagingConstants.SHARD_REGION, log);
