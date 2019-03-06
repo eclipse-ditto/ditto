@@ -10,7 +10,7 @@
  */
 package org.eclipse.ditto.model.things;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 
@@ -38,10 +38,6 @@ final class ImmutableThingRevision implements ThingRevision {
         return new ImmutableThingRevision(value);
     }
 
-    private static void checkThingVersion(final ThingRevision thingRevision) {
-        requireNonNull(thingRevision, "The other revision to compare this revision with must not be null!");
-    }
-
     @Override
     public boolean isGreaterThan(final ThingRevision other) {
         return 0 < compareTo(other);
@@ -60,6 +56,17 @@ final class ImmutableThingRevision implements ThingRevision {
     @Override
     public boolean isLowerThanOrEqualTo(final ThingRevision other) {
         return 0 >= compareTo(other);
+    }
+
+    @Override
+    public ThingRevision increment() {
+        return of(value + 1);
+    }
+
+    @Override
+    public int compareTo(final ThingRevision o) {
+        checkNotNull(o, "other revision to compare this revision with");
+        return Long.compare(value, o.toLong());
     }
 
     @Override
@@ -87,12 +94,6 @@ final class ImmutableThingRevision implements ThingRevision {
     @Override
     public int hashCode() {
         return Objects.hash(value);
-    }
-
-    @Override
-    public int compareTo(final ThingRevision o) {
-        checkThingVersion(o);
-        return Long.compare(value, o.toLong());
     }
 
 }

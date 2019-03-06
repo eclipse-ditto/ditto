@@ -39,6 +39,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.entity.Revision;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -57,6 +58,7 @@ import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingLifecycle;
+import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.utils.test.Retry;
@@ -1546,7 +1548,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         return modifyThing.getDittoHeaders();
     }
 
-    private void assertPublishEvent(final TestKit pubSubMediator, final ThingEvent event) {
+    private static void assertPublishEvent(final TestKit pubSubMediator, final ThingEvent event) {
         final DistributedPubSubMediator.Publish result =
                 pubSubMediator.expectMsgClass(DistributedPubSubMediator.Publish.class);
         final ThingEvent msg = (ThingEvent) result.msg();
@@ -1556,7 +1558,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 .isEqualTo(event.getDittoHeaders().getSchemaVersion());
     }
 
-    private Thing buildThing(final String thingId, final JsonSchemaVersion schemaVersion) {
+    private static Thing buildThing(final String thingId, final JsonSchemaVersion schemaVersion) {
         final ThingBuilder.FromScratch builder = ThingsModelFactory.newThingBuilder()
                 .setLifecycle(ThingLifecycle.ACTIVE)
                 .setAttributes(THING_ATTRIBUTES)
@@ -1571,7 +1573,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         }
     }
 
-    private CreateThing createThing(final Thing thing, final JsonSchemaVersion version) {
+    private static CreateThing createThing(final Thing thing, final JsonSchemaVersion version) {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .schemaVersion(version)
                 .authorizationSubjects(AUTH_SUBJECT)
@@ -1580,7 +1582,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         return CreateThing.of(thing, null, dittoHeaders);
     }
 
-    private ModifyThing modifyThing(final Thing thing, final JsonSchemaVersion version) {
+    private static ModifyThing modifyThing(final Thing thing, final JsonSchemaVersion version) {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .schemaVersion(version)
                 .authorizationSubjects(AUTH_SUBJECT)
@@ -1599,7 +1601,12 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         return createPersistenceActorWithPubSubFor(thing.getId().orElse(null), pubSubMediator);
     }
 
-    private Thing incrementThingRevision(final Thing thing) {
-        return thing.toBuilder().setRevision(thing.getRevision().get().toLong() + 1).build();
+    private static Thing incrementThingRevision(final Thing thing) {
+        return thing.toBuilder()
+                .setRevision(thing.getRevision()
+                        .map(Revision::increment)
+                        .orElseGet(() -> ThingRevision.newInstance(1L)))
+                .build();
     }
+
 }

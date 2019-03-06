@@ -59,6 +59,11 @@ final class ImmutablePolicyRevision implements PolicyRevision {
     }
 
     @Override
+    public PolicyRevision increment() {
+        return of(value + 1);
+    }
+
+    @Override
     public long toLong() {
         return value;
     }
