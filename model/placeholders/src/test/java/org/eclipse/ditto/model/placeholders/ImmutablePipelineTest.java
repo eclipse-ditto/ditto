@@ -40,6 +40,11 @@ public class ImmutablePipelineTest {
             "fn:substring-before(':')",
             "fn:default(thing:id)"
     );
+    private static final List<String> INVALID_STAGES = Arrays.asList(
+            "thing:name",
+            "fn:substring-before(':')",
+            "fn:unknown('foo')"
+    );
     private static final Optional<String> PIPELINE_INPUT = Optional.of("my-gateway:my-thing");
     private static final List<Optional<String>> RESPONSES = Arrays.asList(
             Optional.of("my-gateway"),
@@ -73,6 +78,14 @@ public class ImmutablePipelineTest {
 
         verifyResultEqualsLastResponse(result);
         verifyFunctionExpressionWasCalledWithIntermediateValues();
+    }
+
+    @Test(expected = PlaceholderFunctionUnknownException.class)
+    public void validate() {
+        prepareFunctionExpressionResponses();
+
+        final ImmutablePipeline pipeline = new ImmutablePipeline(functionExpression, INVALID_STAGES);
+        pipeline.validate();
     }
 
     private void prepareFunctionExpressionResponses() {

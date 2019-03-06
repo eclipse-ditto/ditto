@@ -43,6 +43,18 @@ final class ImmutablePipeline implements Pipeline {
     }
 
     @Override
+    public void validate() {
+        stageExpressions.stream()
+                .map(expression -> expression.replaceFirst(
+                        functionExpression.getPrefix() + FunctionExpression.SEPARATOR, ""))
+                .forEach(expression -> {
+                    if (!functionExpression.supports(expression)) {
+                        throw PlaceholderFunctionUnknownException.newBuilder(expression).build();
+                    }
+                });
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;

@@ -73,5 +73,7 @@ public final class AmqpValidator extends AbstractProtocolValidator {
     @Override
     public void validate(final Connection connection, final DittoHeaders dittoHeaders) {
         validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, "AMQP 1.0");
+        validateSourceConfigs(connection, dittoHeaders);
+        validateTargetConfigs(connection, dittoHeaders);
     }
 }

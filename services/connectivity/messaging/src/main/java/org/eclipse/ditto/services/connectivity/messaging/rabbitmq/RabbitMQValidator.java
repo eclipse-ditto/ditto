@@ -72,6 +72,8 @@ public final class RabbitMQValidator extends AbstractProtocolValidator {
 
     @Override
     public void validate(final Connection connection, final DittoHeaders dittoHeaders) {
-        AbstractProtocolValidator.validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, "AMQP 0.9.1");
+        validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, "AMQP 0.9.1");
+        validateSourceConfigs(connection, dittoHeaders);
+        validateTargetConfigs(connection, dittoHeaders);
     }
 }

@@ -10,14 +10,12 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.validation;
 
-import static java.util.stream.Collectors.joining;
 import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newThingPlaceholder;
 
 import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -35,9 +33,6 @@ import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
  * Protocol-specific specification for {@link org.eclipse.ditto.model.connectivity.Connection} objects.
  */
 public abstract class AbstractProtocolValidator {
-
-    private static final String ENFORCEMENT_ERROR_MESSAGE = "The placeholder ''{0}'' could not be processed " +
-            "successfully by ''{1}''";
 
     /**
      * Type of connection for which this spec applies.
@@ -181,8 +176,10 @@ public abstract class AbstractProtocolValidator {
             PlaceholderFilter.validate(template, placeholders);
         } catch (final DittoRuntimeException exception) {
             throw ConnectionConfigurationInvalidException
-                    .newBuilder(MessageFormat.format(ENFORCEMENT_ERROR_MESSAGE, template,
-                            Stream.of(placeholders).map(Placeholder::getPrefix).collect(joining(","))))
+                    .newBuilder(exception.getMessage())
+                    .description(exception.getDescription()
+                            .orElse("Check the spelling and syntax of the placeholder.")
+                    )
                     .cause(exception)
                     .dittoHeaders(headers)
                     .build();

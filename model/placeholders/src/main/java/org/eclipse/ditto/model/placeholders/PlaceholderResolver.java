@@ -38,10 +38,6 @@ public interface PlaceholderResolver<T> extends Placeholder<T> {
      * @return the resolved value or an empty optional if it could not be resolved.
      */
     default Optional<String> resolve(final String name) {
-
-        if (isForValidation()) {
-            return Optional.of("valid");
-        }
         return getPlaceholderSource()
                 .flatMap(placeholderSource -> resolve(placeholderSource, name));
     }

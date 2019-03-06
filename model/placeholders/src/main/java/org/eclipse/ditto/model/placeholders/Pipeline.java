@@ -13,7 +13,7 @@ package org.eclipse.ditto.model.placeholders;
 import java.util.Optional;
 
 /**
- * A Pipeline is able to execute its {@link FunctionExpression}s starting with a {@code pipelineInput} derived from a
+ * A Pipeline is able to execute its {@code stageExpressions} starting with a {@code pipelineInput} derived from a
  * {@link Placeholder}.
  */
 interface Pipeline {
@@ -27,5 +27,12 @@ interface Pipeline {
      * @return the result of the Pipeline execution after all stages were handled.
      */
     Optional<String> execute(Optional<String> pipelineInput, ExpressionResolver expressionResolver);
+
+    /**
+     * Validates the instantiated Pipeline and checks whether all configured {@code stageExpressions} are supported.
+     *
+     * @throws PlaceholderFunctionUnknownException if a function is contained in this Pipeline which is not supported.
+     */
+    void validate();
 
 }

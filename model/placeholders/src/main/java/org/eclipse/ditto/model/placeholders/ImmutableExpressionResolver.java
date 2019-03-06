@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -66,6 +67,8 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
 
     private static final Function<String, DittoRuntimeException> UNRESOLVED_INPUT_HANDLER = unresolvedInput ->
             UnresolvedPlaceholderException.newBuilder(unresolvedInput).build();
+
+    private static final String VALIDATION_STRING_ID = "justForValidation_" + UUID.randomUUID().toString();
 
     private final List<PlaceholderResolver<?>> placeholderResolvers;
 
@@ -119,7 +122,14 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
             final Optional<String> placeholderWithoutPrefix = resolvePlaceholderWithoutPrefixIfSupported(placeholderResolver, placeholderTemplate);
             return placeholderWithoutPrefix
                     .map(p -> resolvePlaceholder(placeholderResolver, p))
-                    .flatMap(pipelineInput -> pipeline.execute(pipelineInput, this));
+                    .flatMap(pipelineInput -> {
+                        if (Optional.of(VALIDATION_STRING_ID).equals(pipelineInput)) {
+                            pipeline.validate();
+                            // let the input pass if validation succeeded:
+                            return pipelineInput;
+                        }
+                        return pipeline.execute(pipelineInput, this);
+                    });
 
         };
     }
@@ -164,7 +174,13 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
     private Optional<String> resolvePlaceholder(final PlaceholderResolver<?> resolver, final String placeholderWithoutPrefix) {
         return Optional.of(resolver)
                 .filter(p -> p.supports(placeholderWithoutPrefix))
-                .flatMap(p -> resolver.resolve(placeholderWithoutPrefix));
+                .flatMap(p -> {
+                    if (resolver.isForValidation()) {
+                        return Optional.of(VALIDATION_STRING_ID);
+                    } else {
+                        return resolver.resolve(placeholderWithoutPrefix);
+                    }
+                });
     }
 
     @Override
