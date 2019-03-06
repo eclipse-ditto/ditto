@@ -64,7 +64,7 @@ public final class MongoOpsUtil {
     private static Source<Optional<Throwable>, NotUsed> doDrop(final MongoCollection<Document> collection) {
         return Source.fromPublisher(collection.drop())
                 .map(result -> {
-                    LOGGER.debug("Successfully dropped collection <{}>.", collection);
+                    LOGGER.debug("Successfully dropped collection <{}>.", collection.getNamespace());
                     return Optional.<Throwable>empty();
                 })
                 .recoverWithRetries(RETRY_ATTEMPTS, new PFBuilder<Throwable, Source<Optional<Throwable>, NotUsed>>()
@@ -84,8 +84,8 @@ public final class MongoOpsUtil {
                     if (LOGGER.isDebugEnabled()) {
                         // in contrast to Bson, BsonDocument has meaningful toString()
                         final BsonDocument filterBsonDoc = BsonUtil.toBsonDocument(filter);
-                        LOGGER.debug("Deleted <{}> documents. Filter was <{}>.",
-                                result.getDeletedCount(), filterBsonDoc);
+                        LOGGER.debug("Deleted <{}> documents from collection <{}>. Filter was <{}>.",
+                                result.getDeletedCount(), collection.getNamespace(), filterBsonDoc);
                     }
                     return Optional.<Throwable>empty();
                 })

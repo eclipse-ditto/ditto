@@ -10,6 +10,8 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
@@ -20,6 +22,8 @@ import org.eclipse.ditto.services.utils.persistence.mongo.ops.AbstractOpsActor;
 import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.NamespaceSuffixCollectionNames;
 import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.SuffixBuilderConfig;
 import org.eclipse.ditto.services.utils.test.mongo.MongoDbResource;
+import org.eclipse.ditto.signals.commands.common.purge.PurgeEntities;
+import org.eclipse.ditto.signals.commands.common.purge.PurgeEntitiesResponse;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespace;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespaceResponse;
 import org.junit.After;
@@ -38,11 +42,14 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Tests subclasses of {@link AbstractOpsActor} which provide purging by namespace on a eventsource persistence.
  */
-public abstract class NamespaceOpsActorTestCases {
+public abstract class OpsActorTestCases {
 
     public enum TestSetting {
         NAMESPACES_WITHOUT_SUFFIX,
-        NAMESPACES_WITH_SUFFIX
+        NAMESPACES_WITH_SUFFIX,
+        ENTITIES_WITH_NAMESPACE_WITHOUT_SUFFIX,
+        ENTITIES_WITH_NAMESPACE_WITH_SUFFIX,
+        ENTITIES_WITHOUT_NAMESPACE
     }
 
     private TestSetting testSetting;
@@ -66,9 +73,11 @@ public abstract class NamespaceOpsActorTestCases {
         }
     }
 
-    public NamespaceOpsActorTestCases(final TestSetting testSetting) {
+    public OpsActorTestCases(final TestSetting testSetting) {
         this.testSetting = testSetting;
     }
+
+    protected abstract boolean idsStartWithNamespace();
 
     /**
      * @return name of the configured service.
@@ -78,7 +87,9 @@ public abstract class NamespaceOpsActorTestCases {
     /**
      * @return list of supported persistence ID prefixes - usually a singleton of the actor's resource type.
      */
-    protected abstract List<String> getSupportedPrefixes();
+    protected final List<String> getSupportedPrefixes() {
+        return Collections.singletonList(getResourceType());
+    }
 
     /**
      * Start an entity's persistence actor.
@@ -142,13 +153,39 @@ public abstract class NamespaceOpsActorTestCases {
     public void purge() {
         switch (testSetting) {
             case NAMESPACES_WITH_SUFFIX:
+                checkIdsStartWithNamespace();
                 purgeNamespace(getConfigWithSuffixBuilder());
                 return;
             case NAMESPACES_WITHOUT_SUFFIX:
+                checkIdsStartWithNamespace();
                 purgeNamespace(getConfigWithoutSuffixBuilder());
                 return;
+            case ENTITIES_WITH_NAMESPACE_WITH_SUFFIX:
+                checkIdsStartWithNamespace();
+                purgeNamespace(getConfigWithSuffixBuilder());
+                return;
+            case ENTITIES_WITH_NAMESPACE_WITHOUT_SUFFIX:
+                checkIdsStartWithNamespace();
+                purgeNamespace(getConfigWithoutSuffixBuilder());
+                return;
+            case ENTITIES_WITHOUT_NAMESPACE:
+                checkIdsDontStartWithNamespace();
+                purgeEntities(getConfigWithoutSuffixBuilder(), false);
+                return;
             default:
-                throw new IllegalArgumentException("Not supported: " + testSetting);
+                throw new IllegalArgumentException("Unknown setting: " + testSetting);
+        }
+    }
+
+    private void checkIdsDontStartWithNamespace() {
+        if (idsStartWithNamespace()) {
+            throw new IllegalArgumentException("Not supported, cause ids start with namespace!");
+        }
+    }
+
+    private void checkIdsStartWithNamespace() {
+        if (!idsStartWithNamespace()) {
+            throw new IllegalArgumentException("Not supported, cause ids don't start with namespace!");
         }
     }
 
@@ -238,6 +275,76 @@ public abstract class NamespaceOpsActorTestCases {
             survivingActor.tell(getRetrieveEntityCommand(survivingId), getRef());
             expectMsgClass(getRetrieveEntityResponseClass());
         }};
+    }
+
+    private void purgeEntities(final Config config, final boolean prependNamespace) {
+        final ActorSystem actorSystem = ActorSystem.create(getClass().getSimpleName(), config);
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .correlationId(String.valueOf(UUID.randomUUID()))
+                .build();
+
+        new TestKit(actorSystem) {{
+            final Random random = new Random();
+
+            final String namespace = "purgedNamespace.x" + random.nextInt(1000000);
+
+            final String purgedId1 = prependNamespace("purgedId1", namespace, prependNamespace);
+            final String purgedId2 = prependNamespace("purgedId2", namespace, prependNamespace);
+            final String survivingId = prependNamespace("survingId", namespace, prependNamespace);
+
+            final ActorRef pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
+            final ActorRef actorToPurge1 = watch(startEntityActor(actorSystem, pubSubMediator, purgedId1));
+            final ActorRef actorToPurge2 = watch(startEntityActor(actorSystem, pubSubMediator, purgedId2));
+            final ActorRef survivingActor = watch(startEntityActor(actorSystem, pubSubMediator, survivingId));
+
+            final ActorRef underTest = startActorUnderTest(actorSystem, pubSubMediator, config);
+
+            // create 2 entities which will be purged
+            actorToPurge1.tell(getCreateEntityCommand(purgedId1), getRef());
+            expectMsgClass(getCreateEntityResponseClass());
+
+            actorToPurge2.tell(getCreateEntityCommand(purgedId2), getRef());
+            expectMsgClass(getCreateEntityResponseClass());
+
+            // create one entity which won't be purged
+            survivingActor.tell(getCreateEntityCommand(survivingId), getRef());
+            expectMsgClass(getCreateEntityResponseClass());
+
+            // kill the actors for the entities to be purged to avoid write conflict
+            actorToPurge1.tell(PoisonPill.getInstance(), getRef());
+            expectTerminated(actorToPurge1);
+
+            actorToPurge2.tell(PoisonPill.getInstance(), getRef());
+            expectTerminated(actorToPurge2);
+
+            // purge the 2 entities
+            final String entityType = getResourceType();
+            final PurgeEntities purgeEntities =
+                    PurgeEntities.of(entityType, Arrays.asList(purgedId1, purgedId2), dittoHeaders);
+            underTest.tell(purgeEntities, getRef());
+            expectMsg(PurgeEntitiesResponse.successful(entityType, dittoHeaders));
+
+            // restart the actors for the purged entities - they should work as if its entity never existed
+            final ActorRef purgedActor1 = watch(startEntityActor(actorSystem, pubSubMediator, purgedId1));
+            purgedActor1.tell(getRetrieveEntityCommand(purgedId1), getRef());
+            expectMsgClass(getEntityNotAccessibleClass());
+
+            final ActorRef purgedActor2 = watch(startEntityActor(actorSystem, pubSubMediator, purgedId2));
+            purgedActor2.tell(getRetrieveEntityCommand(purgedId2), getRef());
+            expectMsgClass(getEntityNotAccessibleClass());
+
+            // the actor outside the purged namespace should not be affected
+            survivingActor.tell(getRetrieveEntityCommand(survivingId), getRef());
+            expectMsgClass(getRetrieveEntityResponseClass());
+        }};
+    }
+
+    private static String prependNamespace(final String id, final String ns, boolean prepend) {
+        if (prepend) {
+            return ns + ':' + id;
+        } else {
+            return id;
+        }
     }
 
 }

@@ -13,7 +13,6 @@ package org.eclipse.ditto.services.policies.persistence.actors.policies;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
@@ -23,7 +22,7 @@ import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicyOpsActor;
 import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicySupervisorActor;
 import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSnapshotAdapter;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.NamespaceOpsActorTestCases;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.OpsActorTestCases;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy;
@@ -45,16 +44,20 @@ import akka.actor.Props;
  */
 @AllValuesAreNonnullByDefault
 @RunWith(Parameterized.class)
-public final class PolicyOpsActorIT extends NamespaceOpsActorTestCases {
+public final class PolicyOpsActorIT extends OpsActorTestCases {
 
     @Parameterized.Parameters(name = "{0}")
     public static Iterable<TestSetting> data() {
         return Arrays.asList(TestSetting.NAMESPACES_WITHOUT_SUFFIX, TestSetting.NAMESPACES_WITH_SUFFIX);
     }
 
-    public PolicyOpsActorIT(
-            final NamespaceOpsActorTestCases.TestSetting testSetting) {
+    public PolicyOpsActorIT(final OpsActorTestCases.TestSetting testSetting) {
         super(testSetting);
+    }
+
+    @Override
+    protected boolean idsStartWithNamespace() {
+        return true;
     }
 
     @Override
@@ -65,11 +68,6 @@ public final class PolicyOpsActorIT extends NamespaceOpsActorTestCases {
     @Override
     protected String getResourceType() {
         return PolicyCommand.RESOURCE_TYPE;
-    }
-
-    @Override
-    protected List<String> getSupportedPrefixes() {
-        return Collections.singletonList(PolicyCommand.RESOURCE_TYPE);
     }
 
     @Override

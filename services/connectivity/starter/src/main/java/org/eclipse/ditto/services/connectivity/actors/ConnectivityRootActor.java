@@ -32,6 +32,7 @@ import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory
 import org.eclipse.ditto.services.connectivity.messaging.ConnectionSupervisorActor;
 import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ReconnectActor;
+import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionOpsActor;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
@@ -202,6 +203,10 @@ public final class ConnectivityRootActor extends AbstractActor {
 
         startClusterSingletonActor(ReconnectActor.ACTOR_NAME, ReconnectActor.props(connectionShardRegion,
                 mongoReadJournal::currentPersistenceIds));
+
+        // start cluster singleton for entities ops
+        ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, ConnectionOpsActor.ACTOR_NAME,
+                ConnectionOpsActor.props(pubSubMediator, config));
 
         String hostname = config.getString(ConfigKeys.Http.HOSTNAME);
         if (hostname.isEmpty()) {

@@ -135,7 +135,7 @@ public class AmqpClientActorTest extends WithMockServers {
     @BeforeClass
     public static void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
-        connection = TestConstants.createConnection(connectionId, actorSystem);
+        connection = TestConstants.createConnection(connectionId);
     }
 
     @AfterClass
@@ -416,7 +416,7 @@ public class AmqpClientActorTest extends WithMockServers {
     @Test
     public void testConsumeMessageForSourcesWithSameAddress() throws JMSException {
         final Connection connection =
-                TestConstants.createConnection(connectionId, actorSystem,
+                TestConstants.createConnection(connectionId,
                         TestConstants.Sources.SOURCES_WITH_SAME_ADDRESS);
 
         final AtomicBoolean messageReceivedForGlobalContext = new AtomicBoolean(false);
@@ -442,7 +442,7 @@ public class AmqpClientActorTest extends WithMockServers {
     @Test
     public void testConsumeMessageAndExpectForwardToConciergeForwarderWithCorrectAuthContext() throws JMSException {
         final Connection connection =
-                TestConstants.createConnection(connectionId, actorSystem,
+                TestConstants.createConnection(connectionId,
                         TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT);
         testConsumeMessageAndExpectForwardToConciergeForwarder(connection, 1,
                 c -> assertThat(c.getDittoHeaders().getAuthorizationContext()).isEqualTo(
@@ -538,7 +538,7 @@ public class AmqpClientActorTest extends WithMockServers {
     @Test
     public void testTargetAddressPlaceholderReplacement() throws JMSException {
         final Connection connection =
-                TestConstants.createConnection(connectionId, actorSystem,
+                TestConstants.createConnection(connectionId,
                         TestConstants.Targets.TARGET_WITH_PLACEHOLDER);
 
         // target Placeholder: target:{{ thing:namespace }}/{{thing:name}}@{{ topic:channel }}
@@ -626,7 +626,7 @@ public class AmqpClientActorTest extends WithMockServers {
 
                 final String connectionId = createRandomConnectionId();
                 final Connection connectionWithSpecialCharacters =
-                        TestConstants.createConnection(connectionId, actorSystem, singletonList(source));
+                        TestConstants.createConnection(connectionId, singletonList(source));
 
                 testConsumeMessageAndExpectForwardToConciergeForwarder(connectionWithSpecialCharacters, 1, (cmd) -> {
                     // nothing to do here
@@ -675,7 +675,7 @@ public class AmqpClientActorTest extends WithMockServers {
 
             final String connectionId = createRandomConnectionId();
             final Connection connectionWithSpecialCharacters =
-                    TestConstants.createConnection(connectionId, actorSystem, singletonList(source));
+                    TestConstants.createConnection(connectionId, singletonList(source));
 
             testConsumeMessageAndExpectForwardToConciergeForwarder(connectionWithSpecialCharacters, 1, (cmd) -> {
                 // nothing to do here

@@ -18,9 +18,9 @@ import java.util.Collection;
 import javax.annotation.Nullable;
 
 import org.bson.BsonRegularExpression;
+import org.bson.BsonString;
 import org.bson.Document;
 
-import com.mongodb.client.model.Filters;
 import com.typesafe.config.Config;
 
 import akka.contrib.persistence.mongodb.JournallingFieldNames$;
@@ -212,7 +212,7 @@ public class MongoOpsSelectionProvider {
 
     private Document filterByPid(final String entityId) {
         final String pid = String.format("%s%s", persistenceIdPrefix, entityId);
-        return new Document(PID, Filters.eq(pid));
+        return new Document(PID, new BsonString(pid));
     }
 
     private static String getCollectionName(final Config config, final String root, final String collectionType) {

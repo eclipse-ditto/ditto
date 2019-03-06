@@ -80,7 +80,7 @@ public class RabbitMQClientActorTest {
     @BeforeClass
     public static void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
-        connection = TestConstants.createConnection(connectionId, actorSystem);
+        connection = TestConstants.createConnection(connectionId);
     }
 
     @AfterClass
@@ -151,7 +151,7 @@ public class RabbitMQClientActorTest {
         new TestKit(actorSystem) {{
             final String randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connectionWithoutTargets =
-                    TestConstants.createConnection(randomConnectionId, actorSystem, new Target[0]);
+                    TestConstants.createConnection(randomConnectionId, new Target[0]);
             final Props props = RabbitMQClientActor.propsForTests(connectionWithoutTargets, connectionStatus, getRef(),
                     (con, exHandler) -> mockConnectionFactory).withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);

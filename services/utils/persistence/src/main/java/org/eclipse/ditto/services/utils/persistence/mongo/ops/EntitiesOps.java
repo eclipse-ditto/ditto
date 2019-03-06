@@ -39,7 +39,12 @@ public interface EntitiesOps {
      * @return source of any errors during the purge.
      */
     default Source<List<Throwable>, NotUsed> purgeEntities(final Collection<String> entityIds) {
-        return Source.from(entityIds)
-                .flatMapConcat(this::purgeEntity);
+        Source<List<Throwable>, NotUsed> result = Source.empty();
+
+        for (final String entityId : entityIds) {
+            result = result.merge(purgeEntity(entityId));
+        }
+
+        return result;
     }
 }

@@ -377,16 +377,15 @@ public class TestConstants {
         MOCK_SERVERS.clear();
     }
 
-    public static Connection createConnection(final String connectionId, final ActorSystem actorSystem) {
-        return createConnection(connectionId, actorSystem, Sources.SOURCES_WITH_AUTH_CONTEXT);
+    public static Connection createConnection(final String connectionId) {
+        return createConnection(connectionId, Sources.SOURCES_WITH_AUTH_CONTEXT);
     }
 
-    public static Connection createConnection(final String connectionId, final ActorSystem actorSystem,
-            final List<Source> sources) {
-        return createConnection(connectionId, actorSystem, STATUS, sources);
+    public static Connection createConnection(final String connectionId, final List<Source> sources) {
+        return createConnection(connectionId, STATUS, sources);
     }
 
-    public static Connection createConnection(final String connectionId, final ActorSystem actorSystem,
+    public static Connection createConnection(final String connectionId,
             final ConnectivityStatus status, final List<Source> sources) {
         return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, status, getUriOfNewMockServer())
                 .sources(sources)
@@ -394,7 +393,7 @@ public class TestConstants {
                 .build();
     }
 
-    public static Connection createConnection(final String connectionId, final ActorSystem actorSystem,
+    public static Connection createConnection(final String connectionId,
             final Target... targets) {
         return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, STATUS, getUriOfNewMockServer())
                 .sources(Sources.SOURCES_WITH_AUTH_CONTEXT)

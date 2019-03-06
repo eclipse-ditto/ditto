@@ -12,12 +12,10 @@ package org.eclipse.ditto.services.things.persistence.actors;
 
 import java.time.Duration;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.NamespaceOpsActorTestCases;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.OpsActorTestCases;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
@@ -39,16 +37,20 @@ import akka.actor.Props;
  */
 @AllValuesAreNonnullByDefault
 @RunWith(Parameterized.class)
-public final class ThingOpsActorIT extends NamespaceOpsActorTestCases {
+public final class ThingOpsActorIT extends OpsActorTestCases {
 
     @Parameterized.Parameters(name = "{0}")
     public static Iterable<TestSetting> data() {
         return Arrays.asList(TestSetting.NAMESPACES_WITHOUT_SUFFIX, TestSetting.NAMESPACES_WITH_SUFFIX);
     }
 
-    public ThingOpsActorIT(
-            final NamespaceOpsActorTestCases.TestSetting testSetting) {
+    public ThingOpsActorIT(final OpsActorTestCases.TestSetting testSetting) {
         super(testSetting);
+    }
+
+    @Override
+    protected boolean idsStartWithNamespace() {
+        return true;
     }
 
     @Override
@@ -59,11 +61,6 @@ public final class ThingOpsActorIT extends NamespaceOpsActorTestCases {
     @Override
     protected String getResourceType() {
         return ThingCommand.RESOURCE_TYPE;
-    }
-
-    @Override
-    protected List<String> getSupportedPrefixes() {
-        return Collections.singletonList(ThingCommand.RESOURCE_TYPE);
     }
 
     @Override
