@@ -19,6 +19,7 @@ import java.util.function.Supplier;
 
 import org.junit.Assume;
 import org.junit.rules.ExternalResource;
+import org.slf4j.Logger;
 
 import de.flapdoodle.embed.mongo.Command;
 import de.flapdoodle.embed.mongo.MongodExecutable;
@@ -26,6 +27,7 @@ import de.flapdoodle.embed.mongo.MongodProcess;
 import de.flapdoodle.embed.mongo.MongodStarter;
 import de.flapdoodle.embed.mongo.config.ArtifactStoreBuilder;
 import de.flapdoodle.embed.mongo.config.DownloadConfigBuilder;
+import de.flapdoodle.embed.mongo.config.ExtractedArtifactStoreBuilder;
 import de.flapdoodle.embed.mongo.config.MongoCmdOptionsBuilder;
 import de.flapdoodle.embed.mongo.config.MongodConfigBuilder;
 import de.flapdoodle.embed.mongo.config.Net;
@@ -53,6 +55,7 @@ public final class MongoDbResource extends ExternalResource {
     private static final String MONGO_PORT_ENV_KEY = "MONGO_PORT";
 
     private final String bindIp;
+    private final Logger logger;
 
     /**
      * The MongoDB executable.
@@ -70,7 +73,18 @@ public final class MongoDbResource extends ExternalResource {
      * @param bindIp the IP to bind the DB on
      */
     public MongoDbResource(final String bindIp) {
+        this(bindIp, null);
+    }
+
+    /**
+     * Constructs a new {@code MongoDbResource} object.
+     *
+     * @param bindIp the IP to bind the DB on
+     * @param logger the logger used for mongod output, may be {@code null} (logging turned off)
+     */
+    public MongoDbResource(final String bindIp, final Logger logger) {
         this.bindIp = bindIp;
+        this.logger = logger;
         mongodExecutable = null;
         mongodProcess = null;
     }
@@ -99,7 +113,7 @@ public final class MongoDbResource extends ExternalResource {
         } else {
             mongoDbPort = findFreePort();
         }
-        mongodExecutable = tryToConfigureMongoDb(bindIp, mongoDbPort, proxyFactory);
+        mongodExecutable = tryToConfigureMongoDb(bindIp, mongoDbPort, proxyFactory, logger);
         mongodProcess = tryToStartMongoDb(mongodExecutable);
         Assume.assumeTrue("MongoDBResource failed to start.", isHealthy());
     }
@@ -147,30 +161,38 @@ public final class MongoDbResource extends ExternalResource {
     }
 
     private MongodExecutable tryToConfigureMongoDb(final String bindIp, final int mongoDbPort,
-            final IProxyFactory proxyFactory) {
+            final IProxyFactory proxyFactory, final Logger logger) {
         try {
-            return configureMongoDb(bindIp, mongoDbPort, proxyFactory);
+            return configureMongoDb(bindIp, mongoDbPort, proxyFactory, logger);
         } catch (final Throwable e) {
             return null;
         }
     }
 
     private static MongodExecutable configureMongoDb(final String bindIp, final int mongoDbPort,
-            final IProxyFactory proxyFactory) throws IOException {
+            final IProxyFactory proxyFactory, final Logger logger) throws IOException {
         final Command command = Command.MongoD;
+
+        final ProcessOutput processOutput;
+        if (logger != null) {
+            processOutput = ProcessOutput.getInstance("mongod", logger);
+        } else {
+            processOutput = ProcessOutput.getDefaultInstanceSilent();
+        }
 
         final MongodStarter mongodStarter = MongodStarter.getInstance(new RuntimeConfigBuilder()
                 .defaults(command)
-                .processOutput(ProcessOutput.getDefaultInstanceSilent())
-                .artifactStore(new ArtifactStoreBuilder()
+                .processOutput(processOutput)
+                .artifactStore(new ExtractedArtifactStoreBuilder()
                         .defaults(command)
                         .download(new DownloadConfigBuilder()
-                                .defaultsForCommand(command)
-                                .proxyFactory(proxyFactory)
-                                .progressListener(new StandardConsoleProgressListener())
-                        )
-                )
-                .build());
+                                        .defaultsForCommand(command)
+                                        .proxyFactory(proxyFactory)
+                                        .progressListener(new StandardConsoleProgressListener())
+                                        .build()
+                                )
+                        ).build()
+                );
 
         return mongodStarter.prepare(new MongodConfigBuilder()
                 .net(new Net(bindIp, mongoDbPort, false))
