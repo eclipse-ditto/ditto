@@ -11,8 +11,6 @@
 package org.eclipse.ditto.services.utils.persistence.mongo.namespace;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
@@ -26,6 +24,7 @@ import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.SuffixBuilder
 import org.eclipse.ditto.services.utils.test.mongo.MongoDbResource;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespace;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespaceResponse;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -55,7 +54,7 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
      * Embedded MongoDB resource.
      */
     private static MongoDbResource mongoDbResource;
-    private static Collection<ActorSystem> actorSystems = new ArrayList<>();
+    private ActorSystem actorSystem;
 
     @Rule public TestName name = new TestName();
 
@@ -71,14 +70,16 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
             mongoDbResource.stop();
             mongoDbResource = null;
         }
+    }
 
-        // stop all actor systems collected during the tests, this cannot be done in @After because stopping the
-        // actorSystem stops the running test
-        actorSystems.forEach(EventSourceNamespaceOpsActorTestCases::stopActorSystem);
+    @After
+    public void after() {
+        stopActorSystem(actorSystem);
     }
 
     @Test
     public void purgeNamespaceWithSuffixBuilder() {
+        // cannot start actor system in @Before because config is specific to the test executed
         final Config eventSourcingConfiguration = getEventSourcingConfiguration(ConfigFactory.empty());
         final ActorSystem actorSystem = startActorSystem(eventSourcingConfiguration);
         // suffix builder is active by default
@@ -90,7 +91,7 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
         final Config configOverride =
                 ConfigFactory.parseString("akka.contrib.persistence.mongodb.mongo.suffix-builder.class=\"\"");
         final Config eventSourcingConfiguration = getEventSourcingConfiguration(configOverride);
-        final ActorSystem actorSystem = startActorSystem(eventSourcingConfiguration);
+        actorSystem = startActorSystem(eventSourcingConfiguration);
         // suffix builder is active by default
         purgeNamespace(actorSystem, eventSourcingConfiguration);
     }
@@ -128,14 +129,12 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
     }
 
     private ActorSystem startActorSystem(final Config config) {
-        final ActorSystem actorSystem = ActorSystem.create("AkkaTestSystem-" + name.getMethodName(), config);
-        actorSystems.add(actorSystem);
-        return actorSystem;
+        return ActorSystem.create("AkkaTestSystem-" + name.getMethodName(), config);
     }
 
     private static void stopActorSystem(@Nullable final ActorSystem actorSystem) {
         if (actorSystem != null) {
-            TestKit.shutdownActorSystem(actorSystem, true);
+            TestKit.shutdownActorSystem(actorSystem);
         }
     }
 
