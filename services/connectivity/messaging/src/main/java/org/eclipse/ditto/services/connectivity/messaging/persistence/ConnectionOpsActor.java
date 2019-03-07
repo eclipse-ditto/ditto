@@ -50,7 +50,7 @@ public final class ConnectionOpsActor extends AbstractOpsActor {
     public static Props props(final ActorRef pubSubMediator, final Config config) {
         return Props.create(ConnectionOpsActor.class, () -> {
             final MongoEventSourceSettings eventSourceSettings =
-                    MongoEventSourceSettings.fromConfig(config, ConnectionActor.PERSISTENCE_ID_PREFIX, true,
+                    MongoEventSourceSettings.fromConfig(config, ConnectionActor.PERSISTENCE_ID_PREFIX, false,
                             ConnectionActor.JOURNAL_PLUGIN_ID, ConnectionActor.SNAPSHOT_PLUGIN_ID);
 
             final MongoClientWrapper mongoClient = MongoClientWrapper.newInstance(config);
