@@ -33,21 +33,21 @@ public final class MongoEntitiesOps implements EntitiesOps {
     private final MongoDatabase db;
     private final MongoOpsSelectionProvider selectionProvider;
 
-    private MongoEntitiesOps(final MongoDatabase db, final MongoOpsSelectionProvider selectionProvider) {
+    private MongoEntitiesOps(final MongoDatabase db, final MongoEventSourceSettings eventSourceSettings) {
         this.db = requireNonNull(db);
-        this.selectionProvider = requireNonNull(selectionProvider);
+        requireNonNull(eventSourceSettings);
+        this.selectionProvider = MongoOpsSelectionProvider.of(eventSourceSettings);
     }
 
     /**
      * Create a new instance.
      *
      * @param db the database
-     * @param selectionProvider the {@link MongoOpsSelectionProvider}
+     * @param eventSourceSettings the {@link MongoEventSourceSettings}
      * @return the instance
      */
-    public static MongoEntitiesOps of(final MongoDatabase db,
-            final MongoOpsSelectionProvider selectionProvider) {
-        return new MongoEntitiesOps(db, selectionProvider);
+    public static MongoEntitiesOps of(final MongoDatabase db, final MongoEventSourceSettings eventSourceSettings) {
+        return new MongoEntitiesOps(db, eventSourceSettings);
     }
 
     @Override

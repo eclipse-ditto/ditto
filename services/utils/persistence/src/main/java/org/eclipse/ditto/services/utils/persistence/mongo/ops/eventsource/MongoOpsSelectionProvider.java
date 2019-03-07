@@ -16,14 +16,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.bson.BsonRegularExpression;
 import org.bson.BsonString;
 import org.bson.Document;
-
-import com.typesafe.config.Config;
 
 import akka.contrib.persistence.mongodb.JournallingFieldNames$;
 
@@ -31,7 +28,7 @@ import akka.contrib.persistence.mongodb.JournallingFieldNames$;
  * Provides {@link MongoOpsSelection}s for selecting/deleting documents in a MongoDB EventSource persistence.
  */
 @Immutable
-public final class MongoOpsSelectionProvider {
+final class MongoOpsSelectionProvider {
 
     private static final String PID = JournallingFieldNames$.MODULE$.PROCESSOR_ID();
 
@@ -49,43 +46,6 @@ public final class MongoOpsSelectionProvider {
      */
     public static MongoOpsSelectionProvider of(final MongoEventSourceSettings settings) {
         return new MongoOpsSelectionProvider(settings);
-    }
-
-    /**
-     * Create a new instance.
-     *
-     * @param persistenceIdPrefix the prefix of the persistence id
-     * @param supportsNamespaces whether the underlying EventSource supports namespaces
-     * @param metadataCollectionName the name of the metadata collection
-     * @param journalCollectionName the name of the journal collection
-     * @param snapshotCollectionName the name of the snapshot collection
-     * @param suffixSeparator the suffix separator, may be {@code null}: if not null, it is assumed that there is one
-     * collection per namespace with the córresponding suffix
-     * @return the instance
-     */
-    public static MongoOpsSelectionProvider of(final String persistenceIdPrefix,
-            final boolean supportsNamespaces, final String metadataCollectionName, final String journalCollectionName,
-            final String snapshotCollectionName, @Nullable final String suffixSeparator) {
-        return of(MongoEventSourceSettings.of(persistenceIdPrefix, supportsNamespaces,
-                metadataCollectionName, journalCollectionName, snapshotCollectionName, suffixSeparator));
-    }
-
-    /**
-     * Create a new instance.
-     *
-     * @param persistenceIdPrefix the prefix of the persistence id
-     * @param supportsNamespaces whether the underlying EventSource supports namespaces
-     * @param config the config which contains the configuration of the EventSource
-     * @param journalPluginId the ID of the journal plugin to be read from the {@code config}
-     * @param snapshotPluginId the ID of the snapshot plugin to be read from the {@code config}
-     * @return the instance
-     */
-    public static MongoOpsSelectionProvider of(final String persistenceIdPrefix,
-            final boolean supportsNamespaces, final Config config,
-            final String journalPluginId,
-            final String snapshotPluginId) {
-        return of(MongoEventSourceSettings.fromConfig(config, persistenceIdPrefix, supportsNamespaces,
-                journalPluginId, snapshotPluginId));
     }
 
     /**

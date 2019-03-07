@@ -14,9 +14,9 @@ import java.util.Collections;
 
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.AbstractOpsActor;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoNamespaceOps;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoOpsSelectionProvider;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.NamespaceOps;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEventSourceSettings;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoNamespaceOps;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
@@ -50,15 +50,14 @@ public final class ThingOpsActor extends AbstractOpsActor {
      */
     public static Props props(final ActorRef pubSubMediator, final Config config) {
         return Props.create(ThingOpsActor.class, () -> {
-            final MongoOpsSelectionProvider selectionProvider =
-                    MongoOpsSelectionProvider.of(ThingPersistenceActor.PERSISTENCE_ID_PREFIX, true,
-                            config, ThingPersistenceActor.JOURNAL_PLUGIN_ID,
-                            ThingPersistenceActor.SNAPSHOT_PLUGIN_ID);
+            final MongoEventSourceSettings eventSourceSettings =
+                    MongoEventSourceSettings.fromConfig(config, ThingPersistenceActor.PERSISTENCE_ID_PREFIX, true,
+                            ThingPersistenceActor.JOURNAL_PLUGIN_ID, ThingPersistenceActor.SNAPSHOT_PLUGIN_ID);
 
             final MongoClientWrapper mongoClient = MongoClientWrapper.newInstance(config);
             final MongoDatabase db = mongoClient.getDefaultDatabase();
 
-            final NamespaceOps namespaceOps = MongoNamespaceOps.of(db, selectionProvider);
+            final NamespaceOps namespaceOps = MongoNamespaceOps.of(db, eventSourceSettings);
 
             return new ThingOpsActor(pubSubMediator, namespaceOps, mongoClient);
         });

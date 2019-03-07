@@ -15,10 +15,10 @@ import java.util.Collections;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.AbstractOpsActor;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.EntitiesOps;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEntitiesOps;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoNamespaceOps;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoOpsSelectionProvider;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.NamespaceOps;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEntitiesOps;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEventSourceSettings;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoNamespaceOps;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
@@ -51,16 +51,15 @@ public final class PolicyOpsActor extends AbstractOpsActor {
      */
     public static Props props(final ActorRef pubSubMediator, final Config config) {
         return Props.create(PolicyOpsActor.class, () -> {
-            final MongoOpsSelectionProvider selectionProvider =
-                    MongoOpsSelectionProvider.of(PolicyPersistenceActor.PERSISTENCE_ID_PREFIX, true,
-                            config, PolicyPersistenceActor.JOURNAL_PLUGIN_ID,
-                            PolicyPersistenceActor.SNAPSHOT_PLUGIN_ID);
+            final MongoEventSourceSettings eventSourceSettings =
+                    MongoEventSourceSettings.fromConfig(config, PolicyPersistenceActor.PERSISTENCE_ID_PREFIX, true,
+                            PolicyPersistenceActor.JOURNAL_PLUGIN_ID, PolicyPersistenceActor.SNAPSHOT_PLUGIN_ID);
 
             final MongoClientWrapper mongoClient = MongoClientWrapper.newInstance(config);
             final MongoDatabase db = mongoClient.getDefaultDatabase();
 
-            final NamespaceOps namespaceOps = MongoNamespaceOps.of(db, selectionProvider);
-            final EntitiesOps entitiesOps = MongoEntitiesOps.of(db, selectionProvider);
+            final NamespaceOps namespaceOps = MongoNamespaceOps.of(db, eventSourceSettings);
+            final EntitiesOps entitiesOps = MongoEntitiesOps.of(db, eventSourceSettings);
 
             return new PolicyOpsActor(pubSubMediator, namespaceOps, entitiesOps, mongoClient);
         });

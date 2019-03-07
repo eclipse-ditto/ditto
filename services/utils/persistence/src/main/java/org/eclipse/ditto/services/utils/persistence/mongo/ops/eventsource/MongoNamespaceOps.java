@@ -33,24 +33,21 @@ public final class MongoNamespaceOps implements NamespaceOps {
     private final MongoDatabase db;
     private final MongoOpsSelectionProvider selectionProvider;
 
-    private MongoNamespaceOps(final MongoDatabase db,
-            final MongoOpsSelectionProvider selectionProvider) {
-
+    private MongoNamespaceOps(final MongoDatabase db, final MongoEventSourceSettings eventSourceSettings) {
         this.db = requireNonNull(db);
-        this.selectionProvider = requireNonNull(selectionProvider);
+        requireNonNull(eventSourceSettings);
+        this.selectionProvider = MongoOpsSelectionProvider.of(eventSourceSettings);
     }
 
     /**
      * Create a new instance.
      *
      * @param db the database
-     * @param selectionProvider the {@link MongoOpsSelectionProvider}
+     * @param eventSourceSettings the {@link MongoEventSourceSettings}
      * @return the instance
      */
-    public static MongoNamespaceOps of(final MongoDatabase db,
-            final MongoOpsSelectionProvider selectionProvider) {
-
-        return new MongoNamespaceOps(db, selectionProvider);
+    public static MongoNamespaceOps of(final MongoDatabase db, final MongoEventSourceSettings eventSourceSettings) {
+        return new MongoNamespaceOps(db, eventSourceSettings);
     }
 
     @Override

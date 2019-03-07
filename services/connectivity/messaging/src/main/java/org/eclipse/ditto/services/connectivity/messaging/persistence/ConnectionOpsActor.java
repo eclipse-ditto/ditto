@@ -17,7 +17,7 @@ import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.AbstractOpsActor;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.EntitiesOps;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEntitiesOps;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoOpsSelectionProvider;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEventSourceSettings;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 
 import com.mongodb.reactivestreams.client.MongoDatabase;
@@ -49,15 +49,14 @@ public final class ConnectionOpsActor extends AbstractOpsActor {
      */
     public static Props props(final ActorRef pubSubMediator, final Config config) {
         return Props.create(ConnectionOpsActor.class, () -> {
-            final MongoOpsSelectionProvider selectionProvider =
-                    MongoOpsSelectionProvider.of(ConnectionActor.PERSISTENCE_ID_PREFIX, true,
-                            config, ConnectionActor.JOURNAL_PLUGIN_ID,
-                            ConnectionActor.SNAPSHOT_PLUGIN_ID);
+            final MongoEventSourceSettings eventSourceSettings =
+                    MongoEventSourceSettings.fromConfig(config, ConnectionActor.PERSISTENCE_ID_PREFIX, true,
+                            ConnectionActor.JOURNAL_PLUGIN_ID, ConnectionActor.SNAPSHOT_PLUGIN_ID);
 
             final MongoClientWrapper mongoClient = MongoClientWrapper.newInstance(config);
             final MongoDatabase db = mongoClient.getDefaultDatabase();
 
-            final EntitiesOps entitiesOps = MongoEntitiesOps.of(db, selectionProvider);
+            final EntitiesOps entitiesOps = MongoEntitiesOps.of(db, eventSourceSettings);
 
             return new ConnectionOpsActor(pubSubMediator, entitiesOps, mongoClient);
         });
