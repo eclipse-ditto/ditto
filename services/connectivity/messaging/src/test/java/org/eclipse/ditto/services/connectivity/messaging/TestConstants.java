@@ -184,7 +184,7 @@ public class TestConstants {
                 newTarget("twin/key", Authorization.UNAUTHORIZED_AUTHORIZATION_CONTEXT, HEADER_MAPPING, null, Topic.TWIN_EVENTS);
         private static final Target LIVE_TARGET =
                 newTarget("live/key", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING, null, Topic.LIVE_EVENTS);
-        private static final Set<Target> TARGETS = asSet(TWIN_TARGET, TWIN_TARGET_UNAUTHORIZED, LIVE_TARGET);
+        private static final List<Target> TARGETS = asList(TWIN_TARGET, TWIN_TARGET_UNAUTHORIZED, LIVE_TARGET);
     }
 
     public static final class Certificates {
@@ -400,7 +400,7 @@ public class TestConstants {
             final Target... targets) {
         return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, STATUS, getUriOfNewMockServer())
                 .sources(Sources.SOURCES_WITH_AUTH_CONTEXT)
-                .targets(asSet(targets))
+                .targets(asList(targets))
                 .build();
     }
 

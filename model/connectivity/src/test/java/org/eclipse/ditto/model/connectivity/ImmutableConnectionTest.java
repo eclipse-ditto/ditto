@@ -19,7 +19,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -66,7 +65,7 @@ public final class ImmutableConnectionTest {
     private static final Target TARGET3 =
             ConnectivityModelFactory.newTarget("amqp/target3", AUTHORIZATION_CONTEXT, HEADER_MAPPING, null, Topic.LIVE_MESSAGES,
                     Topic.LIVE_MESSAGES, Topic.LIVE_COMMANDS);
-    private static final Set<Target> TARGETS = new HashSet<>(Arrays.asList(TARGET1, TARGET2, TARGET3));
+    private static final List<Target> TARGETS = Arrays.asList(TARGET1, TARGET2, TARGET3);
 
     private static final JsonArray KNOWN_SOURCES_JSON =
             SOURCES.stream().map(Source::toJson).collect(JsonCollectors.valuesToArray());

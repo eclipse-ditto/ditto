@@ -570,7 +570,7 @@ public final class ConnectionActorTest extends WithMockServers {
                 final OutboundSignal unmappedOutboundSignal =
                         probe.expectMsgClass(OutboundSignal.class);
                 assertThat(unmappedOutboundSignal.getSource()).isEqualTo(signal);
-                assertThat(unmappedOutboundSignal.getTargets()).isEqualTo(Collections.singleton(expectedTarget));
+                assertThat(unmappedOutboundSignal.getTargets()).isEqualTo(Collections.singletonList(expectedTarget));
             } else {
                 probe.expectNoMessage();
             }

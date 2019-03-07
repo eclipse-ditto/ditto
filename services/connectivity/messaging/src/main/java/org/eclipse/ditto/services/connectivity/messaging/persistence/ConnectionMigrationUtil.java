@@ -12,6 +12,8 @@ package org.eclipse.ditto.services.connectivity.messaging.persistence;
 
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
+import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
 import javax.annotation.Nonnull;
@@ -19,6 +21,7 @@ import javax.annotation.Nonnull;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
@@ -61,11 +64,13 @@ final class ConnectionMigrationUtil {
      */
     static Connection connectionFromJsonWithMigration(@Nonnull final JsonObject connectionJsonObject) {
         final Function<JsonObject, JsonObject> migrateSourceFilters = new MigrateSourceFilters();
+        final Function<JsonObject, JsonObject> migrateTopicActionSubjectFilters = new MigrateTopicActionSubjectFilters();
         final Function<JsonObject, JsonObject> migrateAuthorizationContexts = new MigrateAuthorizationContexts();
 
         return ConnectivityModelFactory.connectionFromJson(
                 migrateAuthorizationContexts
                         .andThen(migrateSourceFilters)
+                        .andThen(migrateTopicActionSubjectFilters)
                         .apply(connectionJsonObject));
     }
 
@@ -102,7 +107,7 @@ final class ConnectionMigrationUtil {
      * }
      * </pre>
      */
-    static class MigrateSourceFilters implements Function<JsonObject, JsonObject> {
+    static class MigrateSourceFilters implements UnaryOperator<JsonObject> {
 
         @Override
         public JsonObject apply(final JsonObject connectionJsonObject) {
@@ -141,7 +146,91 @@ final class ConnectionMigrationUtil {
         }
     }
 
-    static class MigrateAuthorizationContexts implements Function<JsonObject, JsonObject> {
+    /**
+     * Migrates occurring {@code topic:action|subject} placeholders in the whole Connection document to the changed
+     * format {@code topic:action-subject}.
+     */
+    static class MigrateTopicActionSubjectFilters implements UnaryOperator<JsonObject> {
+
+        private static final String OLD_TOPIC_ACTION_SUBJECT = "topic:action|subject";
+        private static final String NEW_TOPIC_ACTION_SUBJECT = "topic:action-subject";
+
+        @Override
+        public JsonObject apply(final JsonObject connectionJsonObject) {
+
+            final JsonObjectBuilder connectionObjectBuilder = connectionJsonObject.toBuilder();
+
+            final Optional<JsonArray> sources = connectionJsonObject.getValue(Connection.JsonFields.SOURCES);
+            if (sources.isPresent()) {
+                final JsonArray sourcesArray = migrateSource(sources.get());
+                connectionObjectBuilder.set(Connection.JsonFields.SOURCES, sourcesArray);
+            }
+
+            final Optional<JsonArray> targets = connectionJsonObject.getValue(Connection.JsonFields.TARGETS);
+            if (targets.isPresent()) {
+                final JsonArray targetsArray = migrateTarget(targets.get());
+                connectionObjectBuilder.set(Connection.JsonFields.TARGETS, targetsArray);
+            }
+
+            if (sources.isPresent() || targets.isPresent()) {
+                return connectionObjectBuilder.build();
+            } else {
+                return connectionJsonObject;
+            }
+        }
+
+        private JsonArray migrateSource(final JsonArray sources) {
+            return sources.stream()
+                    .filter(JsonValue::isObject)
+                    .map(JsonValue::asObject)
+                    .map(o -> MigrateTopicActionSubjectFilters.migrateHeaderMapping(o,
+                            Source.JsonFields.HEADER_MAPPING))
+                    .collect(JsonCollectors.valuesToArray());
+        }
+
+        private JsonArray migrateTarget(final JsonArray targets) {
+            return targets.stream()
+                    .filter(JsonValue::isObject)
+                    .map(JsonValue::asObject)
+                    .map(MigrateTopicActionSubjectFilters::migrateTargetAddress)
+                    .map(o -> MigrateTopicActionSubjectFilters.migrateHeaderMapping(o,
+                            Target.JsonFields.HEADER_MAPPING))
+                    .collect(JsonCollectors.valuesToArray());
+        }
+
+        static JsonObject migrateTargetAddress(final JsonObject target) {
+
+            final Optional<String> address = target.getValue(Target.JsonFields.ADDRESS);
+            return address
+                    .filter(a -> a.contains(OLD_TOPIC_ACTION_SUBJECT))
+                    .map(a -> a.replaceAll(Pattern.quote(OLD_TOPIC_ACTION_SUBJECT), NEW_TOPIC_ACTION_SUBJECT))
+                    .map(a -> target.set(Target.JsonFields.ADDRESS, a))
+                    .orElse(target);
+        }
+
+        static JsonObject migrateHeaderMapping(final JsonObject containsHeaderMapping,
+                final JsonFieldDefinition<JsonObject> jsonFieldDefinition) {
+            final Optional<JsonObject> headerMapping = containsHeaderMapping.getValue(jsonFieldDefinition);
+            return headerMapping
+                    .map(o -> o.stream()
+                            .map(f -> {
+                                if (f.getValue().isString() &&
+                                        f.getValue().asString().contains(OLD_TOPIC_ACTION_SUBJECT)) {
+                                    return JsonField.newInstance(f.getKey(), JsonValue.of(f.getValue().asString()
+                                            .replaceAll(Pattern.quote(OLD_TOPIC_ACTION_SUBJECT),
+                                                    NEW_TOPIC_ACTION_SUBJECT)));
+                                } else {
+                                    return f;
+                                }
+                            })
+                    )
+                    .map(a -> containsHeaderMapping.set(jsonFieldDefinition, a.collect(JsonCollectors.fieldsToObject()))
+                    )
+                    .orElse(containsHeaderMapping);
+        }
+    }
+
+    static class MigrateAuthorizationContexts implements UnaryOperator<JsonObject> {
 
         @Override
         public JsonObject apply(final JsonObject connectionJsonObject) {

@@ -29,7 +29,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
@@ -361,16 +360,16 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     /**
-     * @return the sources configured for this connection or an empty set if no sources were configured.
+     * @return the sources configured for this connection or an empty list if no sources were configured.
      */
-    protected final List<Source> getSourcesOrEmptySet() {
+    protected final List<Source> getSourcesOrEmptyList() {
         return connection().getSources();
     }
 
     /**
-     * @return the targets configured for this connection or an empty set if no targets were configured.
+     * @return the targets configured for this connection or an empty list if no targets were configured.
      */
-    protected final Set<Target> getTargetsOrEmptySet() {
+    protected final List<Target> getTargetsOrEmptyList() {
         return connection().getTargets();
     }
 

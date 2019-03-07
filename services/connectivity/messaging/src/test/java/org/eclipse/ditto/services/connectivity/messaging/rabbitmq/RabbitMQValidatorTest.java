@@ -10,7 +10,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
-import static java.util.Collections.singleton;
+import static java.util.Collections.singletonList;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -120,7 +120,7 @@ public final class RabbitMQValidatorTest {
     private Connection connectionWithTarget(final String target) {
         return ConnectivityModelFactory.newConnectionBuilder("rabbitmq", ConnectionType.AMQP_091,
                 ConnectivityStatus.OPEN, "amqp://localhost:1883")
-                .targets(singleton(
+                .targets(singletonList(
                         ConnectivityModelFactory.newTarget(target, AUTHORIZATION_CONTEXT, null, 1, Topic.LIVE_EVENTS)))
                 .build();
     }

@@ -18,6 +18,7 @@ import java.io.StringWriter;
 import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -307,7 +308,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private void handleSignal(final Signal<?> signal) {
         // map to outbound signal without authorized target (responses and errors are only sent to its origin)
         log.debug("Handling raw signal: {}", signal);
-        handleOutboundSignal(OutboundSignalFactory.newOutboundSignal(signal, Collections.emptySet()));
+        handleOutboundSignal(OutboundSignalFactory.newOutboundSignal(signal, Collections.emptyList()));
     }
 
     private Optional<ExternalMessage> mapToExternalMessage(final OutboundSignal outbound) {
@@ -409,11 +410,11 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                         PlaceholderFactory.newPlaceholderResolver(TOPIC_PLACEHOLDER, topicPathOpt.orElse(null))
                 );
 
-                final Set<Target> targets = outboundSignal.getTargets().stream().map(t -> {
+                final List<Target> targets = outboundSignal.getTargets().stream().map(t -> {
                     final String address =
                             PlaceholderFilter.apply(t.getAddress(), expressionResolver, true);
                     return ConnectivityModelFactory.newTarget(t, address, t.getQos().orElse(null));
-                }).collect(Collectors.toSet());
+                }).collect(Collectors.toList());
                 final OutboundSignal modifiedOutboundSignal =
                         OutboundSignalFactory.newOutboundSignal(outboundSignal.getSource(), targets);
                 return OutboundSignalFactory.newMappedOutboundSignal(modifiedOutboundSignal,

@@ -51,7 +51,7 @@ public class MqttPublisherActorTest extends AbstractPublisherActorTest<JmsMessag
 
     @Override
     protected Props getPublisherActorProps() {
-        return MqttPublisherActor.props("theConnection", Collections.emptySet(), mqttConnectionFactory, probe.ref(), false);
+        return MqttPublisherActor.props("theConnection", Collections.emptyList(), mqttConnectionFactory, probe.ref(), false);
     }
 
     @Override

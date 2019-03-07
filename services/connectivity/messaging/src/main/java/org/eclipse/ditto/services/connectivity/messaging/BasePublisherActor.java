@@ -18,9 +18,9 @@ import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -64,14 +64,14 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     private static final TopicPathPlaceholder TOPIC_PLACEHOLDER = PlaceholderFactory.newTopicPathPlaceholder();
 
     protected final String connectionId;
-    protected final Set<Target> targets;
+    protected final List<Target> targets;
     protected final Map<Target, ResourceStatus> resourceStatusMap;
 
     private ConnectionMetricsCollector responseDroppedCounter;
     private ConnectionMetricsCollector responsePublishedCounter;
 
 
-    protected BasePublisherActor(final String connectionId, final Set<Target> targets) {
+    protected BasePublisherActor(final String connectionId, final List<Target> targets) {
         this.connectionId = checkNotNull(connectionId, "connectionId");
         this.targets = checkNotNull(targets, "targets");
         resourceStatusMap = new HashMap<>();

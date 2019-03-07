@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
-import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newEnforcement;
 import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newSourceAddressEnforcement;
@@ -158,7 +157,7 @@ public final class MqttValidatorTest {
     private Connection connectionWithTarget(final String target) {
         return ConnectivityModelFactory.newConnectionBuilder("mqtt", ConnectionType.MQTT,
                 ConnectivityStatus.OPEN, "tcp://localhost:1883")
-                .targets(singleton(
+                .targets(singletonList(
                         ConnectivityModelFactory.newTarget(target, AUTHORIZATION_CONTEXT, null, 1, Topic.LIVE_EVENTS)))
                 .build();
     }
