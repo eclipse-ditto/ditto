@@ -99,23 +99,9 @@ public final class AmqpValidatorTest {
     }
 
     @Test
-    public void testInvalidPlaceholderInTargetAddressThrowsException() {
-
-        final Target target = newTargetBuilder()
-                .address("some.address.{{ header:target }}")
-                .authorizationContext(AUTHORIZATION_CONTEXT)
-                .topics(Topic.LIVE_COMMANDS)
-                .build();
-
-        Assertions.assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(() -> UNDER_TEST.validateTarget(target, DittoHeaders.empty(), () -> "testTarget"))
-                .withCauseInstanceOf(UnresolvedPlaceholderException.class);
-    }
-
-    @Test
     public void testValidPlaceholdersInTargetAddress() {
         final Target target = newTargetBuilder()
-                .address("some.address.{{ topic:action-subject }}.{{ thing:id }}")
+                .address("some.address.{{ topic:action-subject }}.{{ thing:id }}.{{ header:correlation-id }}")
                 .authorizationContext(AUTHORIZATION_CONTEXT)
                 .topics(Topic.LIVE_COMMANDS)
                 .build();

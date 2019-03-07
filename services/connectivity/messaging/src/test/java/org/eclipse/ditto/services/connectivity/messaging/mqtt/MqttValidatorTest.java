@@ -63,6 +63,8 @@ public final class MqttValidatorTest {
         MqttValidator.newInstance().validate(connectionWithTarget("ditto/mqtt/topic"), DittoHeaders.empty());
         MqttValidator.newInstance().validate(connectionWithTarget("ditto"), DittoHeaders.empty());
         MqttValidator.newInstance().validate(connectionWithTarget("ditto/{{thing:id}}"), DittoHeaders.empty());
+        MqttValidator.newInstance().validate(connectionWithTarget("ditto/{{topic:full}}"), DittoHeaders.empty());
+        MqttValidator.newInstance().validate(connectionWithTarget("ditto/{{header:x}}"), DittoHeaders.empty());
     }
 
     @Test

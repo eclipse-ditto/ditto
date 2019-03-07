@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
+import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newThingPlaceholder;
 import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newTopicPathPlaceholder;
 
@@ -20,7 +21,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.function.Predicate;
+import java.util.function.IntPredicate;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
@@ -122,7 +123,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
         }
 
         validateTargetQoS(qos.get(), dittoHeaders, targetDescription);
-        validateTemplate(target.getAddress(), dittoHeaders, newThingPlaceholder(), newTopicPathPlaceholder());
+        validateTemplate(target.getAddress(), dittoHeaders, newThingPlaceholder(), newTopicPathPlaceholder(), newHeadersPlaceholder());
     }
 
     /**
@@ -206,7 +207,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
     }
 
     private static void validateQoS(final int qos, final DittoHeaders dittoHeaders,
-            final Supplier<String> errorSiteDescription, final Predicate<Integer> predicate) {
+            final Supplier<String> errorSiteDescription, final IntPredicate predicate) {
 
         if (!predicate.test(qos)) {
             throw invalidValueForConfig(qos, QOS, errorSiteDescription.get())

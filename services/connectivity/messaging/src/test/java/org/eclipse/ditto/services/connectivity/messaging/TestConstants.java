@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -117,6 +118,7 @@ public class TestConstants {
         map.put("device_id", "{{ header:device_id }}");
         map.put("prefixed_thing_id", "some.prefix.{{ thing:id }}");
         map.put("suffixed_thing_id", "{{ header:device_id }}.some.suffix");
+        map.put("subject", "{{ topic:action-subject }}");
         HEADER_MAPPING = ConnectivityModelFactory.newHeaderMapping(map);
     }
 
@@ -493,7 +495,7 @@ public class TestConstants {
 
     private static void backOff(final long ms) {
         try {
-            Thread.sleep(ms);
+            TimeUnit.MILLISECONDS.sleep(ms);
         } catch (final InterruptedException e) {
             throw new RuntimeException(e);
         }

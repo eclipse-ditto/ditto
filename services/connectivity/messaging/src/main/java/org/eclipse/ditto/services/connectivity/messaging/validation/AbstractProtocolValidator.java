@@ -12,6 +12,7 @@ package org.eclipse.ditto.services.connectivity.messaging.validation;
 
 import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newThingPlaceholder;
+import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newTopicPathPlaceholder;
 
 import java.text.MessageFormat;
 import java.util.Collection;
@@ -121,7 +122,7 @@ public abstract class AbstractProtocolValidator {
      */
     protected void validateHeaderMapping(final HeaderMapping headerMapping, final DittoHeaders dittoHeaders) {
         headerMapping.getMapping().forEach((key, value)
-                -> validateTemplate(value, dittoHeaders, newHeadersPlaceholder(), newThingPlaceholder()));
+                -> validateTemplate(value, dittoHeaders, newHeadersPlaceholder(), newThingPlaceholder(), newTopicPathPlaceholder()));
     }
 
     /**
