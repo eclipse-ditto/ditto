@@ -174,7 +174,7 @@ public final class MongoDbResource extends ExternalResource {
 
         return mongodStarter.prepare(new MongodConfigBuilder()
                 .net(new Net(bindIp, mongoDbPort, false))
-                .version(Version.Main.V3_4)
+                .version(Version.Main.V3_6)
                 .cmdOptions(new MongoCmdOptionsBuilder()
                         .useStorageEngine("wiredTiger")
                         .useNoJournal(false)
