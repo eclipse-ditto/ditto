@@ -89,7 +89,7 @@ final class MongoOpsSelection {
      */
     @Override
     public String toString() {
-        return String.format("%s (%s)", collectionName, isEntireCollection() ? "complete" : "filtered");
+        return String.format("%s (%s)", collectionName, isEntireCollection() ? "complete" : "filtered: " + filter);
     }
 
 }

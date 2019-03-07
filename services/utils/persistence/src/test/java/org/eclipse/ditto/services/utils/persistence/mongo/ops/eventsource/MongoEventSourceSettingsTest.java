@@ -35,7 +35,7 @@ public class MongoEventSourceSettingsTest {
 
     private static final String DEFAULT_SUFFIX_SEPARATOR = "@";
 
-    private static final String PERSISTENCE_ID_PREFIX = "myPidPrefix";
+    private static final String PERSISTENCE_ID_PREFIX = "myPidPrefix:";
     private static final boolean SUPPORTS_NAMESPACES = true;
     private static final String METADATA_COLLECTION_NAME = "myMetadataCollection";
     private static final String JOURNAL_COLLECTION_NAME = "myJournalCollection";

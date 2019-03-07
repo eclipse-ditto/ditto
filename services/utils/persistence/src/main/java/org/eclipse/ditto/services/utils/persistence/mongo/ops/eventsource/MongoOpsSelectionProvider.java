@@ -16,6 +16,7 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.bson.BsonRegularExpression;
 import org.bson.BsonString;
@@ -28,7 +29,8 @@ import akka.contrib.persistence.mongodb.JournallingFieldNames$;
 /**
  * Provides {@link MongoOpsSelection}s for selecting/deleting documents in a MongoDB EventSource persistence.
  */
-public class MongoOpsSelectionProvider {
+@Immutable
+public final class MongoOpsSelectionProvider {
 
     private static final String PID = JournallingFieldNames$.MODULE$.PROCESSOR_ID();
 
@@ -36,6 +38,17 @@ public class MongoOpsSelectionProvider {
 
     private MongoOpsSelectionProvider(final MongoEventSourceSettings settings) {
         this.settings = requireNonNull(settings);
+    }
+
+    /**
+     * Create a new instance.
+     *
+     * @param settings the MongoDB EventSource settings
+     *
+     * @return the instance
+     */
+    public static MongoOpsSelectionProvider of(final MongoEventSourceSettings settings) {
+        return new MongoOpsSelectionProvider(settings);
     }
 
     /**
@@ -54,7 +67,7 @@ public class MongoOpsSelectionProvider {
     public static MongoOpsSelectionProvider of(final String persistenceIdPrefix,
             final boolean supportsNamespaces, final String metadataCollectionName, final String journalCollectionName,
             final String snapshotCollectionName, @Nullable final String suffixSeparator) {
-        return new MongoOpsSelectionProvider(MongoEventSourceSettings.of(persistenceIdPrefix, supportsNamespaces,
+        return of(MongoEventSourceSettings.of(persistenceIdPrefix, supportsNamespaces,
                 metadataCollectionName, journalCollectionName, snapshotCollectionName, suffixSeparator));
     }
 
@@ -73,8 +86,7 @@ public class MongoOpsSelectionProvider {
             final boolean supportsNamespaces, final Config config,
             final String journalPluginId,
             final String snapshotPluginId) {
-        return new MongoOpsSelectionProvider(
-                MongoEventSourceSettings.fromConfig(config, persistenceIdPrefix, supportsNamespaces,
+        return of(MongoEventSourceSettings.fromConfig(config, persistenceIdPrefix, supportsNamespaces,
                 journalPluginId, snapshotPluginId));
     }
 
@@ -87,6 +99,10 @@ public class MongoOpsSelectionProvider {
      */
     public Collection<MongoOpsSelection> selectEntity(final String entityId) {
         requireNonNull(entityId);
+
+        if (settings.isSupportsNamespaces()) {
+            validateAndExtractNamespace(entityId);
+        }
 
         return settings.getSuffixSeparator().isPresent()
                 ? selectEntityBySuffix(entityId)
@@ -156,14 +172,14 @@ public class MongoOpsSelectionProvider {
     }
 
     private MongoOpsSelection selectEntityBySuffix(final String collection, final String entityId) {
-        final String namespace = extractNamespace(entityId);
+        final String namespace = validateAndExtractNamespace(entityId);
         final String suffixSeparator = settings.getSuffixSeparator().orElseThrow(IllegalStateException::new);
         final String suffixedCollection = String.format("%s%s%s", collection, suffixSeparator, namespace);
         final Document filter = filterByPid(entityId);
         return MongoOpsSelection.of(suffixedCollection, filter);
     }
 
-    private String extractNamespace(final String entityId) {
+    private String validateAndExtractNamespace(final String entityId) {
         final int separatorIndex = entityId.indexOf(':');
         if (separatorIndex == -1) {
             throw new IllegalArgumentException("entityId does not have namespace: " + entityId);
