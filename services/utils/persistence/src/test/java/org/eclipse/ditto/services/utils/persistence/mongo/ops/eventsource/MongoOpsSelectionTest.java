@@ -84,7 +84,7 @@ public final class MongoOpsSelectionTest {
     public void toStringOfSelectionWithFilterReturnsExpected() {
         final MongoOpsSelection underTest = MongoOpsSelection.of(COLLECTION_NAME, namespaceFilter);
 
-        assertThat(underTest.toString()).isEqualTo(COLLECTION_NAME + " (filtered + " + namespaceFilter + ")");
+        assertThat(underTest.toString()).isEqualTo(COLLECTION_NAME + " (filtered: " + namespaceFilter + ")");
     }
 
     @Test
