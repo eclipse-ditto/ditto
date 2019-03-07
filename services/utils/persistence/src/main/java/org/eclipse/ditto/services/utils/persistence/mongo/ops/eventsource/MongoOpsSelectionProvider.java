@@ -14,6 +14,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -44,7 +45,6 @@ public final class MongoOpsSelectionProvider {
      * Create a new instance.
      *
      * @param settings the MongoDB EventSource settings
-     *
      * @return the instance
      */
     public static MongoOpsSelectionProvider of(final MongoEventSourceSettings settings) {
@@ -61,7 +61,6 @@ public final class MongoOpsSelectionProvider {
      * @param snapshotCollectionName the name of the snapshot collection
      * @param suffixSeparator the suffix separator, may be {@code null}: if not null, it is assumed that there is one
      * collection per namespace with the córresponding suffix
-     *
      * @return the instance
      */
     public static MongoOpsSelectionProvider of(final String persistenceIdPrefix,
@@ -79,7 +78,6 @@ public final class MongoOpsSelectionProvider {
      * @param config the config which contains the configuration of the EventSource
      * @param journalPluginId the ID of the journal plugin to be read from the {@code config}
      * @param snapshotPluginId the ID of the snapshot plugin to be read from the {@code config}
-     *
      * @return the instance
      */
     public static MongoOpsSelectionProvider of(final String persistenceIdPrefix,
@@ -92,8 +90,8 @@ public final class MongoOpsSelectionProvider {
 
     /**
      * Select an entity by its ID.
-     * @param entityId the ID
      *
+     * @param entityId the ID
      * @return a collection of {@link MongoOpsSelection} which represent all occurrence of the entity in the
      * EventSource.
      */
@@ -111,8 +109,8 @@ public final class MongoOpsSelectionProvider {
 
     /**
      * Select a complete namespace.
-     * @param namespace the namespace
      *
+     * @param namespace the namespace
      * @return a collection of {@link MongoOpsSelection} which represent all occurrence of a namespace in the
      * EventSource.
      */
@@ -129,31 +127,33 @@ public final class MongoOpsSelectionProvider {
     }
 
     private Collection<MongoOpsSelection> selectEntityBySuffix(final String entityId) {
-        return Arrays.asList(
-                selectEntityByPid(settings.getMetadataCollectionName(), entityId), // collection "*Metadata" has no namespace suffix
+        return Collections.unmodifiableList(Arrays.asList(
+                selectEntityByPid(settings.getMetadataCollectionName(), entityId),
+                // collection "*Metadata" has no namespace suffix
                 selectEntityBySuffix(settings.getJournalCollectionName(), entityId),
-                selectEntityBySuffix(settings.getSnapshotCollectionName(), entityId));
+                selectEntityBySuffix(settings.getSnapshotCollectionName(), entityId)));
     }
 
     private Collection<MongoOpsSelection> selectEntityWithoutSuffix(final String entityId) {
-        return Arrays.asList(
+        return Collections.unmodifiableList(Arrays.asList(
                 selectEntityByPid(settings.getMetadataCollectionName(), entityId),
                 selectEntityByPid(settings.getJournalCollectionName(), entityId),
-                selectEntityByPid(settings.getSnapshotCollectionName(), entityId));
+                selectEntityByPid(settings.getSnapshotCollectionName(), entityId)));
     }
 
     private Collection<MongoOpsSelection> selectNamespaceWithSuffix(final String namespace) {
-        return Arrays.asList(
-                selectNamespaceByPid(settings.getMetadataCollectionName(), namespace), // collection "*Metadata" has no namespace suffix
+        return Collections.unmodifiableList(Arrays.asList(
+                selectNamespaceByPid(settings.getMetadataCollectionName(), namespace),
+                // collection "*Metadata" has no namespace suffix
                 selectNamespaceBySuffix(settings.getJournalCollectionName(), namespace),
-                selectNamespaceBySuffix(settings.getSnapshotCollectionName(), namespace));
+                selectNamespaceBySuffix(settings.getSnapshotCollectionName(), namespace)));
     }
 
     private Collection<MongoOpsSelection> selectNamespaceWithoutSuffix(final String namespace) {
-        return Arrays.asList(
+        return Collections.unmodifiableList(Arrays.asList(
                 selectNamespaceByPid(settings.getMetadataCollectionName(), namespace),
                 selectNamespaceByPid(settings.getJournalCollectionName(), namespace),
-                selectNamespaceByPid(settings.getSnapshotCollectionName(), namespace));
+                selectNamespaceByPid(settings.getSnapshotCollectionName(), namespace)));
     }
 
     private MongoOpsSelection selectNamespaceBySuffix(final String collection, final String namespace) {
