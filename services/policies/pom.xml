@@ -24,7 +24,6 @@
     <name>Eclipse Ditto :: Services :: Policies</name>
 
     <modules>
-        <module>util</module>
         <module>persistence</module>
         <module>starter</module>
     </modules>
