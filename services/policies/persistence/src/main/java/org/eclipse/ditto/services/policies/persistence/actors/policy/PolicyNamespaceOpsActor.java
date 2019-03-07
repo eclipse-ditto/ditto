@@ -10,9 +10,9 @@
  */
 package org.eclipse.ditto.services.policies.persistence.actors.policy;
 
+import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.namespace.AbstractEventSourceNamespaceOpsActor;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
-import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 import com.typesafe.config.Config;
 
@@ -22,13 +22,14 @@ import akka.actor.Props;
 /**
  * Namespace operations for the event-sourcing persistence of policies.
  */
-@AllValuesAreNonnullByDefault
 public final class PolicyNamespaceOpsActor extends AbstractEventSourceNamespaceOpsActor {
 
     public static final String ACTOR_NAME = "policyNamespaceOps";
 
-    private PolicyNamespaceOpsActor(final ActorRef pubSubMediator, final Config config) {
-        super(pubSubMediator, config);
+    private PolicyNamespaceOpsActor(final ActorRef pubSubMediator, final Config config,
+            final MongoDbConfig mongoDbConfig) {
+
+        super(pubSubMediator, config, mongoDbConfig);
     }
 
     /**
@@ -36,10 +37,12 @@ public final class PolicyNamespaceOpsActor extends AbstractEventSourceNamespaceO
      *
      * @param pubSubMediator Akka pub-sub mediator.
      * @param config Configuration with info about event journal, snapshot store, suffix-builder and database.
+     * @param mongoDbConfig the configuration settings for MongoDB.
      * @return a Props object.
      */
-    public static Props props(final ActorRef pubSubMediator, final Config config) {
-        return Props.create(PolicyNamespaceOpsActor.class, () -> new PolicyNamespaceOpsActor(pubSubMediator, config));
+    public static Props props(final ActorRef pubSubMediator, final Config config, final MongoDbConfig mongoDbConfig) {
+        return Props.create(PolicyNamespaceOpsActor.class,
+                () -> new PolicyNamespaceOpsActor(pubSubMediator, config, mongoDbConfig));
     }
 
     @Override

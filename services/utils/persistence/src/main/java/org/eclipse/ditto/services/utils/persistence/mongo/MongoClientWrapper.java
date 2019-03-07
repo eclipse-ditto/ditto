@@ -94,6 +94,7 @@ public final class MongoClientWrapper implements DittoMongoClient {
         final MongoClientWrapperBuilder builder = new MongoClientWrapperBuilder();
 
         builder.connectionString(mongoDbConfig.getMongoDbUri());
+        builder.maxQueryTime(mongoDbConfig.getMaxQueryTime());
 
         final MongoDbConfig.ConnectionPoolConfig connectionPoolConfig = mongoDbConfig.getConnectionPoolConfig();
         builder.connectionPoolMaxSize(connectionPoolConfig.getMaxSize());

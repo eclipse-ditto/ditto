@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.utils.persistence.mongo;
 import java.util.function.Function;
 
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
@@ -48,9 +49,37 @@ public final class DefaultPersistenceStreamingActor<T extends EntityIdWithRevisi
      * @param <T> type of messages to stream.
      * @param elementClass class of the elements.
      * @param config the configuration of the akka system.
+     * @param mongoDbConfig the configuration settings for MongoDB.
      * @param streamingCacheSize the size of the streaming cache.
-     * @param entityMapper the mapper used to map {@link PidWithSeqNr} to {@code T}. The resulting entity will be
-     * streamed to the recipient actor.
+     * @param entityMapper the mapper used to map
+     * {@link org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr} to {@code T}.
+     * The resulting entity will be streamed to the recipient actor.
+     * @return the Akka configuration Props object.
+     */
+    public static <T extends EntityIdWithRevision> Props props(final Class<T> elementClass,
+            final Config config,
+            final MongoDbConfig mongoDbConfig,
+            final int streamingCacheSize,
+            final Function<PidWithSeqNr, T> entityMapper) {
+
+        return Props.create(DefaultPersistenceStreamingActor.class, () -> {
+            final DittoMongoClient mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
+            final MongoReadJournal readJournal = MongoReadJournal.newInstance(config, mongoClient);
+            return new DefaultPersistenceStreamingActor<>(elementClass, streamingCacheSize, entityMapper, readJournal,
+                    mongoClient);
+        });
+    }
+
+    /**
+     * Creates Akka configuration object Props for this PersistenceStreamingActor.
+     *
+     * @param <T> type of messages to stream.
+     * @param elementClass class of the elements.
+     * @param config the configuration of the akka system.
+     * @param streamingCacheSize the size of the streaming cache.
+     * @param entityMapper the mapper used to map
+     * {@link org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr} to {@code T}.
+     * The resulting entity will be streamed to the recipient actor.
      * @return the Akka configuration Props object.
      */
     public static <T extends EntityIdWithRevision> Props props(final Class<T> elementClass,

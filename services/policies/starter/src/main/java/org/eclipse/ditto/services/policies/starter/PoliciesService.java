@@ -10,8 +10,11 @@
  */
 package org.eclipse.ditto.services.policies.starter;
 
-import org.eclipse.ditto.services.base.config.ServiceConfigReader;
+import org.eclipse.ditto.services.base.DittoServiceTng;
 import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSnapshotAdapter;
+import org.eclipse.ditto.services.policies.starter.config.DittoPoliciesConfig;
+import org.eclipse.ditto.services.policies.starter.config.PoliciesConfig;
+import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,12 +25,17 @@ import akka.stream.ActorMaterializer;
 /**
  * Entry point of the Policies Service.
  */
-public final class PoliciesService extends AbstractPoliciesService {
+public final class PoliciesService extends DittoServiceTng<PoliciesConfig> {
+
+    /**
+     * Name of the Policies Service.
+     */
+    public static final String SERVICE_NAME = "policies";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PoliciesService.class);
 
     private PoliciesService() {
-        super(LOGGER);
+        super(LOGGER, SERVICE_NAME, PoliciesRootActor.ACTOR_NAME);
     }
 
     /**
@@ -41,10 +49,15 @@ public final class PoliciesService extends AbstractPoliciesService {
     }
 
     @Override
-    protected Props getMainRootActorProps(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
+    protected PoliciesConfig getServiceSpecificConfig(final ScopedConfig dittoConfig) {
+        return DittoPoliciesConfig.of(dittoConfig);
+    }
+
+    @Override
+    protected Props getMainRootActorProps(final PoliciesConfig policiesConfig, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
-        return PoliciesRootActor.props(configReader, new PolicyMongoSnapshotAdapter(), pubSubMediator, materializer);
+        return PoliciesRootActor.props(policiesConfig, new PolicyMongoSnapshotAdapter(), pubSubMediator, materializer);
     }
 
 }

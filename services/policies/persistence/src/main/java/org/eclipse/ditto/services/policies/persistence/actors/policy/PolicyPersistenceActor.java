@@ -49,7 +49,9 @@ import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePoli
 import org.eclipse.ditto.services.policies.persistence.actors.AbstractReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.ReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.StrategyAwareReceiveBuilder;
-import org.eclipse.ditto.services.policies.util.ConfigKeys;
+import org.eclipse.ditto.services.policies.persistence.config.ActivityCheckConfig;
+import org.eclipse.ditto.services.policies.persistence.config.PolicyConfig;
+import org.eclipse.ditto.services.policies.persistence.config.SnapshotConfig;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.headers.conditional.ConditionalHeadersValidator;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
@@ -118,9 +120,6 @@ import org.eclipse.ditto.signals.events.policies.SubjectDeleted;
 import org.eclipse.ditto.signals.events.policies.SubjectModified;
 import org.eclipse.ditto.signals.events.policies.SubjectsModified;
 
-import com.typesafe.config.Config;
-
-import akka.ConfigurationException;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Cancellable;
@@ -168,14 +167,9 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final String policyId;
     private final SnapshotAdapter<Policy> snapshotAdapter;
+    private final PolicyConfig policyConfig;
     private final ActorRef pubSubMediator;
-    private final java.time.Duration activityCheckInterval;
-    private final java.time.Duration activityCheckDeletedInterval;
-    private final java.time.Duration snapshotInterval;
-    private final long snapshotThreshold;
     private final Receive handlePolicyEvents;
-    private final boolean snapshotDeleteOld;
-    private final boolean eventsDeleteOld;
     private Policy policy;
     private long accessCounter;
     private long lastSnapshotSequenceNr = -1;
@@ -186,24 +180,13 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     PolicyPersistenceActor(final String policyId,
             final SnapshotAdapter<Policy> snapshotAdapter,
-            final ActorRef pubSubMediator) {
+            final ActorRef pubSubMediator,
+            final PolicyConfig policyConfig) {
 
         this.policyId = policyId;
         this.pubSubMediator = pubSubMediator;
         this.snapshotAdapter = snapshotAdapter;
-
-        final Config config = getContext().system().settings().config();
-        activityCheckInterval = config.getDuration(ConfigKeys.Policy.ACTIVITY_CHECK_INTERVAL);
-        activityCheckDeletedInterval = config.getDuration(ConfigKeys.Policy.ACTIVITY_CHECK_DELETED_INTERVAL);
-        snapshotInterval = config.getDuration(ConfigKeys.Policy.SNAPSHOT_INTERVAL);
-        snapshotThreshold = config.getLong(ConfigKeys.Policy.SNAPSHOT_THRESHOLD);
-        snapshotDeleteOld = config.getBoolean(ConfigKeys.Policy.SNAPSHOT_DELETE_OLD);
-        eventsDeleteOld = config.getBoolean(ConfigKeys.Policy.EVENTS_DELETE_OLD);
-
-        if (snapshotThreshold < 0) {
-            throw new ConfigurationException(String.format("Config setting '%s' must be positive, but is: %d.",
-                    ConfigKeys.Policy.SNAPSHOT_THRESHOLD, snapshotThreshold));
-        }
+        this.policyConfig = policyConfig;
 
         handlePolicyEvents = ReceiveBuilder.create()
 
@@ -227,7 +210,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
                 // # Policy Deletion Recovery
                 .match(PolicyDeleted.class, pd -> {
-                    if (policy != null) {
+                    if (null != policy) {
                         policy = policy.toBuilder()
                                 .setLifecycle(PolicyLifecycle.DELETED)
                                 .setRevision(lastSequenceNr())
@@ -357,17 +340,20 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
      * @param policyId the ID of the Policy this Actor manages.
      * @param snapshotAdapter the adapter to serialize Policy snapshots.
      * @param pubSubMediator the PubSub mediator actor.
+     * @param policyConfig the configuration settings for Policy entities.
      * @return the Akka configuration Props object
      */
     public static Props props(final String policyId,
             final SnapshotAdapter<Policy> snapshotAdapter,
-            final ActorRef pubSubMediator) {
+            final ActorRef pubSubMediator,
+            final PolicyConfig policyConfig) {
+
         return Props.create(PolicyPersistenceActor.class, new Creator<PolicyPersistenceActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public PolicyPersistenceActor create() {
-                return new PolicyPersistenceActor(policyId, snapshotAdapter, pubSubMediator);
+                return new PolicyPersistenceActor(policyId, snapshotAdapter, pubSubMediator, policyConfig);
             }
         });
     }
@@ -387,22 +373,21 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         return Instant.now();
     }
 
-    private void scheduleCheckForPolicyActivity(final long intervalInSeconds) {
-        if (activityChecker != null) {
+    private void scheduleCheckForPolicyActivity(final java.time.Duration interval) {
+        if (null != activityChecker) {
             activityChecker.cancel();
         }
         // send a message to ourselves:
         activityChecker = getContext().system().scheduler()
-                .scheduleOnce(Duration.apply(intervalInSeconds, TimeUnit.SECONDS), getSelf(),
+                .scheduleOnce(Duration.apply(interval.getSeconds(), TimeUnit.SECONDS), getSelf(),
                         new CheckForActivity(lastSequenceNr(), accessCounter), getContext().dispatcher(), null);
     }
 
-    private void scheduleSnapshot(final long intervalInSeconds) {
-        // send a message to ourselft:
+    private void scheduleSnapshot(final java.time.Duration interval) {
+        // send a message to ourselves:
         snapshotter = getContext().system().scheduler()
-                .scheduleOnce(Duration.apply(intervalInSeconds, TimeUnit.SECONDS), getSelf(),
-                        TakeSnapshotInternal.INSTANCE,
-                        getContext().dispatcher(), null);
+                .scheduleOnce(Duration.apply(interval.getSeconds(), TimeUnit.SECONDS), getSelf(),
+                        TakeSnapshotInternal.INSTANCE, getContext().dispatcher(), null);
     }
 
     @Override
@@ -424,10 +409,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
     public void postStop() {
         super.postStop();
         invokeAfterSnapshotRunnable = null;
-        if (activityChecker != null) {
+        if (null != activityChecker) {
             activityChecker.cancel();
         }
-        if (snapshotter != null) {
+        if (null != snapshotter) {
             snapshotter.cancel();
         }
     }
@@ -490,8 +475,11 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         getContext().become(strategyAwareReceiveBuilder.build(), true);
         getContext().getParent().tell(new PolicySupervisorActor.ManualReset(), getSelf());
 
-        scheduleCheckForPolicyActivity(activityCheckInterval.getSeconds());
-        scheduleSnapshot(snapshotInterval.getSeconds());
+        final ActivityCheckConfig activityCheckConfig = policyConfig.getActivityCheckConfig();
+        scheduleCheckForPolicyActivity(activityCheckConfig.getInactiveInterval());
+
+        final SnapshotConfig snapshotConfig = policyConfig.getSnapshotConfig();
+        scheduleSnapshot(snapshotConfig.getInterval());
     }
 
     private Collection<ReceiveStrategy<?>> initPolicyCreatedStrategies() {
@@ -551,10 +539,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         getContext().become(strategyAwareReceiveBuilder.build(), true);
         getContext().getParent().tell(new PolicySupervisorActor.ManualReset(), getSelf());
 
-        if (activityChecker != null) {
+        if (null != activityChecker) {
             activityChecker.cancel();
         }
-        if (snapshotter != null) {
+        if (null != snapshotter) {
             snapshotter.cancel();
         }
         /*
@@ -562,7 +550,8 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
          * - stay in-memory for a short amount of minutes after deletion
          * - get a Snapshot when removed from memory
          */
-        scheduleCheckForPolicyActivity(activityCheckDeletedInterval.getSeconds());
+        final ActivityCheckConfig activityCheckConfig = policyConfig.getActivityCheckConfig();
+        scheduleCheckForPolicyActivity(activityCheckConfig.getDeletedInterval());
     }
 
     private Collection<ReceiveStrategy<?>> initPolicyDeletedStrategies() {
@@ -598,7 +587,8 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             handler.apply(persistedEvent);
 
             // save a snapshot if there were too many changes since the last snapshot
-            if ((lastSequenceNr() - lastSnapshotSequenceNr) > snapshotThreshold) {
+            final SnapshotConfig snapshotConfig = policyConfig.getSnapshotConfig();
+            if (lastSequenceNr() - lastSnapshotSequenceNr > snapshotConfig.getThreshold()) {
                 doSaveSnapshot(null);
             }
             notifySubscribers(event);
@@ -1945,7 +1935,8 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         }
 
         private void deleteEventsOlderThan(final long newestSequenceNumber) {
-            if (eventsDeleteOld && newestSequenceNumber > 1) {
+            final SnapshotConfig snapshotConfig = policyConfig.getSnapshotConfig();
+            if (snapshotConfig.isDeleteOldEvents() && newestSequenceNumber > 1) {
                 final long upToSequenceNumber = newestSequenceNumber - 1;
                 log.debug("Delete all event messages for Policy <{}> up to sequence number <{}>.", policy,
                         upToSequenceNumber);
@@ -1954,7 +1945,8 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         }
 
         private void deleteSnapshot(final long sequenceNumber) {
-            if (snapshotDeleteOld && sequenceNumber != -1) {
+            final SnapshotConfig snapshotConfig = policyConfig.getSnapshotConfig();
+            if (snapshotConfig.isDeleteOldSnapshot() && sequenceNumber != -1) {
                 log.debug("Delete old snapshot for Policy <{}> with sequence number <{}>.", policyId, sequenceNumber);
                 PolicyPersistenceActor.this.deleteSnapshot(sequenceNumber);
             }
@@ -2132,8 +2124,9 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             notifySender(builder.build());
 
             // Make sure activity checker is on, but there is no need to schedule it more than once.
-            if (activityChecker == null) {
-                scheduleCheckForPolicyActivity(activityCheckInterval.getSeconds());
+            if (null == activityChecker) {
+                final ActivityCheckConfig activityCheckConfig = policyConfig.getActivityCheckConfig();
+                scheduleCheckForPolicyActivity(activityCheckConfig.getInactiveInterval());
             }
         }
 
@@ -2186,10 +2179,12 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                 // - the latest snapshot is out of date or is still ongoing.
                 final Object snapshotToStore = snapshotAdapter.toSnapshotStore(policy);
                 saveSnapshot(snapshotToStore);
-                scheduleCheckForPolicyActivity(activityCheckDeletedInterval.getSeconds());
+                final ActivityCheckConfig activityCheckConfig = policyConfig.getActivityCheckConfig();
+                scheduleCheckForPolicyActivity(activityCheckConfig.getDeletedInterval());
             } else if (accessCounter > message.getCurrentAccessCounter()) {
                 // if the Thing was accessed in any way since the last check
-                scheduleCheckForPolicyActivity(activityCheckInterval.getSeconds());
+                final ActivityCheckConfig activityCheckConfig = policyConfig.getActivityCheckConfig();
+                scheduleCheckForPolicyActivity(activityCheckConfig.getInactiveInterval());
             } else {
                 // safe to shutdown after a period of inactivity if:
                 // - policy is active (and taking regular snapshots of itself), or
@@ -2269,7 +2264,8 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             // if the Policy is not "deleted":
             if (isPolicyActive()) {
                 // schedule the next snapshot:
-                scheduleSnapshot(snapshotInterval.getSeconds());
+                final SnapshotConfig snapshotConfig = policyConfig.getSnapshotConfig();
+                scheduleSnapshot(snapshotConfig.getInterval());
             }
         }
 

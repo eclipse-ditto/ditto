@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.policies.persistence.actors;
+package org.eclipse.ditto.services.policies.persistence.actors.policy;
 
 import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.services.policies.persistence.TestConstants.Policy.SUBJECT_TYPE;
@@ -39,7 +39,10 @@ import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.policies.persistence.TestConstants;
+import org.eclipse.ditto.services.policies.persistence.config.DefaultPolicyConfig;
+import org.eclipse.ditto.services.policies.persistence.config.PolicyConfig;
 import org.junit.After;
+import org.junit.BeforeClass;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -67,10 +70,8 @@ public abstract class PersistenceActorTestBase {
                     EffectedPermissions.newInstance(Permissions.newInstance(Permission.READ),
                             PoliciesModelFactory.noPermissions()));
     private static final SubjectIssuer ISSUER_GOOGLE = SubjectIssuer.GOOGLE;
-    protected static final SubjectId POLICY_SUBJECT_ID =
-            SubjectId.newInstance(ISSUER_GOOGLE, "allowedId");
-    protected static final Subject POLICY_SUBJECT =
-            Subject.newInstance(POLICY_SUBJECT_ID, SUBJECT_TYPE);
+    protected static final SubjectId POLICY_SUBJECT_ID = SubjectId.newInstance(ISSUER_GOOGLE, "allowedId");
+    protected static final Subject POLICY_SUBJECT = Subject.newInstance(POLICY_SUBJECT_ID, SUBJECT_TYPE);
     protected static final Resources POLICY_RESOURCES_ALL = Resources.newInstance(POLICY_RESOURCE_ALL);
     protected static final Resources POLICY_RESOURCES_READ = Resources.newInstance(POLICY_RESOURCE_READ);
     protected static final Subjects POLICY_SUBJECTS = Subjects.newInstance(POLICY_SUBJECT);
@@ -85,9 +86,19 @@ public abstract class PersistenceActorTestBase {
     private static final PolicyEntry ANOTHER_POLICY_ENTRY =
             PoliciesModelFactory.newPolicyEntry(ANOTHER_POLICY_LABEL, POLICY_SUBJECTS, POLICY_RESOURCES_READ);
     private static final long POLICY_REVISION = 0;
+
+    protected static Config testConfig;
+    protected static PolicyConfig policyConfig;
+
     protected ActorSystem actorSystem = null;
     protected ActorRef pubSubMediator = null;
     protected DittoHeaders dittoHeadersV2;
+
+    @BeforeClass
+    public static void initTestFixture() {
+        testConfig = ConfigFactory.load("test");
+        policyConfig = DefaultPolicyConfig.of(testConfig.getConfig("ditto.policies"));
+    }
 
     protected static DittoHeaders createDittoHeaders(final JsonSchemaVersion schemaVersion,
             final String... authSubjects) {
@@ -126,7 +137,7 @@ public abstract class PersistenceActorTestBase {
         init(config);
     }
 
-    public void setUpBase() {
+    protected void setUpBase() {
         final Config config = ConfigFactory.load("test");
 
         init(config);
@@ -138,7 +149,6 @@ public abstract class PersistenceActorTestBase {
         dittoHeadersV2 = createDittoHeaders(JsonSchemaVersion.V_2, AUTH_SUBJECT);
     }
 
-    /** */
     @After
     public void tearDownBase() {
         if (actorSystem != null) {
@@ -153,4 +163,5 @@ public abstract class PersistenceActorTestBase {
     protected void disableLogging() {
         actorSystem.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
     }
+
 }

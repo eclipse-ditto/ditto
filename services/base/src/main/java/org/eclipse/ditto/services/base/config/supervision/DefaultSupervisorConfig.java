@@ -39,7 +39,7 @@ public final class DefaultSupervisorConfig implements SupervisorConfig, Serializ
     /**
      * Returns an instance of {@code DefaultSupervisorConfig} based on the settings of the specified Config.
      *
-     * @param config is supposed to provide the settings of the JavaScript mapping config at {@value #CONFIG_PATH}.
+     * @param config is supposed to provide the settings of the supervisor config at {@value #CONFIG_PATH}.
      * @return instance
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */

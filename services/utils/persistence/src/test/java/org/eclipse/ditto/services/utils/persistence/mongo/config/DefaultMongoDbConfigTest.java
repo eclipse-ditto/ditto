@@ -74,9 +74,9 @@ public final class DefaultMongoDbConfigTest {
         final DefaultMongoDbConfig underTest = DefaultMongoDbConfig.of(mongoDbConfig);
 
         assertThat(underTest.getMaxQueryTime()).isEqualTo(Duration.ofSeconds(10));
-        assertThat(underTest.getMongoDbUri()).isEqualTo("mongodb://foo:bar@mongodb:27017/test?ssl=true&w=1");
+        assertThat(underTest.getMongoDbUri()).isEqualTo("mongodb://foo:bar@mongodb:27017/test?w=1&ssl=false");
         assertThat(underTest.getOptionsConfig()).satisfies(optionsConfig -> {
-            assertThat(optionsConfig.isSslEnabled()).isTrue();
+            assertThat(optionsConfig.isSslEnabled()).isFalse();
         });
         assertThat(underTest.getConnectionPoolConfig()).satisfies(connectionPoolConfig -> {
             assertThat(connectionPoolConfig.getMaxSize()).isEqualTo(1_000);

@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.policies.persistence.actors.policies;
 
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -22,6 +21,8 @@ import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicyNamespaceOpsActor;
 import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicySupervisorActor;
+import org.eclipse.ditto.services.policies.persistence.config.DefaultPolicyConfig;
+import org.eclipse.ditto.services.policies.persistence.config.PolicyConfig;
 import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.namespace.EventSourceNamespaceOpsActorTestCases;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
@@ -31,8 +32,10 @@ import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicyResponse;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicy;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyResponse;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
+import org.junit.BeforeClass;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -43,6 +46,13 @@ import akka.actor.Props;
  */
 @AllValuesAreNonnullByDefault
 public final class PolicyNamespaceOpsActorIT extends EventSourceNamespaceOpsActorTestCases {
+
+    private static PolicyConfig policyConfig;
+
+    @BeforeClass
+    public static void initTestFixture() {
+        policyConfig = DefaultPolicyConfig.of(ConfigFactory.load("policy-test"));
+    }
 
     @Override
     protected String getServiceName() {
@@ -94,19 +104,13 @@ public final class PolicyNamespaceOpsActorIT extends EventSourceNamespaceOpsActo
     protected ActorRef startActorUnderTest(final ActorSystem actorSystem, final ActorRef pubSubMediator,
             final Config config) {
 
-        final Props namespaceOpsActorProps = PolicyNamespaceOpsActor.props(pubSubMediator, config);
+        final Props namespaceOpsActorProps = PolicyNamespaceOpsActor.props(pubSubMediator, config, mongoDbConfig);
         return actorSystem.actorOf(namespaceOpsActorProps, PolicyNamespaceOpsActor.ACTOR_NAME);
     }
 
     @Override
     protected ActorRef startEntityActor(final ActorSystem system, final ActorRef pubSubMediator, final String id) {
-        // essentially never restart
-        final Duration minBackOff = Duration.ofSeconds(36000);
-        final Duration maxBackOff = Duration.ofSeconds(36000);
-        final double randomFactor = 0.2;
-
-        final Props props = PolicySupervisorActor.props(pubSubMediator, minBackOff, maxBackOff, randomFactor,
-                new PolicyMongoSnapshotAdapter());
+        final Props props = PolicySupervisorActor.props(pubSubMediator, policyConfig, new PolicyMongoSnapshotAdapter());
 
         return system.actorOf(props, id);
     }

@@ -16,6 +16,7 @@ import java.util.Collection;
 import org.bson.BsonRegularExpression;
 import org.bson.Document;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 
 import com.typesafe.config.Config;
 
@@ -44,6 +45,24 @@ public abstract class AbstractEventSourceNamespaceOpsActor extends AbstractNames
      */
     protected AbstractEventSourceNamespaceOpsActor(final ActorRef pubSubMediator, final Config config) {
         super(pubSubMediator, MongoNamespaceOps.of(MongoClientWrapper.newInstance(config)));
+        metadata = getCollectionName(config, getJournalPluginId(), "metadata");
+        journal = getCollectionName(config, getJournalPluginId(), "journal");
+        snapshot = getCollectionName(config, getSnapshotPluginId(), "snaps");
+        suffixSeparator = readConfig(config, suffixBuilderPath("separator"), "@");
+        isSuffixBuilderEnabled = !readConfig(config, suffixBuilderPath("class"), "").trim().isEmpty();
+    }
+
+    /**
+     * Creates a new instance of this actor.
+     *
+     * @param pubSubMediator Akka pub-sub mediator.
+     * @param config configuration with info about the event journal, snapshot store, metadata and suffix builder.
+     * @param mongoDbConfig the configuration settings for MongoDB.
+     */
+    protected AbstractEventSourceNamespaceOpsActor(final ActorRef pubSubMediator, final Config config,
+            final MongoDbConfig mongoDbConfig) {
+
+        super(pubSubMediator, MongoNamespaceOps.of(MongoClientWrapper.newInstance(mongoDbConfig)));
         metadata = getCollectionName(config, getJournalPluginId(), "metadata");
         journal = getCollectionName(config, getJournalPluginId(), "journal");
         snapshot = getCollectionName(config, getSnapshotPluginId(), "snaps");

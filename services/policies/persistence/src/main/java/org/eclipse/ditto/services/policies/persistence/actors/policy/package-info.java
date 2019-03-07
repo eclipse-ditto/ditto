@@ -8,9 +8,5 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
-/**
- * This package provides means for starting the Policies service.
- */
 @org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault
-package org.eclipse.ditto.services.policies.starter;
+package org.eclipse.ditto.services.policies.persistence.actors.policy;
