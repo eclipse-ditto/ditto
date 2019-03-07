@@ -32,25 +32,10 @@ public class MongoOpsSelectionProvider {
 
     private static final String PID = JournallingFieldNames$.MODULE$.PROCESSOR_ID();
 
-    private final String persistenceIdPrefix;
+    private final MongoEventSourceSettings settings;
 
-    // realtime journal is not touched because it is a capped collection
-    private final String metadataCollectionName;
-    private final String journalCollectionName;
-    private final String snapshotCollectionName;
-    private final boolean supportsNamespaces;
-    @Nullable
-    private final String suffixSeparator;
-
-    private MongoOpsSelectionProvider(final String persistenceIdPrefix,
-            final boolean supportsNamespaces, final String metadataCollectionName, final String journalCollectionName,
-            final String snapshotCollectionName, @Nullable final String suffixSeparator) {
-        this.persistenceIdPrefix = requireNonNull(persistenceIdPrefix);
-        this.supportsNamespaces = supportsNamespaces;
-        this.metadataCollectionName = requireNonNull(metadataCollectionName);
-        this.journalCollectionName = requireNonNull(journalCollectionName);
-        this.snapshotCollectionName = requireNonNull(snapshotCollectionName);
-        this.suffixSeparator = suffixSeparator;
+    private MongoOpsSelectionProvider(final MongoEventSourceSettings settings) {
+        this.settings = requireNonNull(settings);
     }
 
     /**
@@ -69,8 +54,8 @@ public class MongoOpsSelectionProvider {
     public static MongoOpsSelectionProvider of(final String persistenceIdPrefix,
             final boolean supportsNamespaces, final String metadataCollectionName, final String journalCollectionName,
             final String snapshotCollectionName, @Nullable final String suffixSeparator) {
-        return new MongoOpsSelectionProvider(persistenceIdPrefix, supportsNamespaces,
-                metadataCollectionName, journalCollectionName, snapshotCollectionName, suffixSeparator);
+        return new MongoOpsSelectionProvider(MongoEventSourceSettings.of(persistenceIdPrefix, supportsNamespaces,
+                metadataCollectionName, journalCollectionName, snapshotCollectionName, suffixSeparator));
     }
 
     /**
@@ -88,30 +73,9 @@ public class MongoOpsSelectionProvider {
             final boolean supportsNamespaces, final Config config,
             final String journalPluginId,
             final String snapshotPluginId) {
-        requireNonNull(persistenceIdPrefix);
-        requireNonNull(config);
-        requireNonNull(journalPluginId);
-        requireNonNull(snapshotPluginId);
-
-        final String metadataCollectionName = getCollectionName(config, journalPluginId, "metadata");
-        final String journalCollectionName = getCollectionName(config, journalPluginId, "journal");
-        final String snapshotCollectionName = getCollectionName(config, snapshotPluginId, "snaps");
-
-        final String suffixSeparator;
-        if (supportsNamespaces) {
-            final boolean isSuffixBuilderEnabled =
-                    !readConfig(config, suffixBuilderPath("class"), "").trim().isEmpty();
-            if (isSuffixBuilderEnabled) {
-                suffixSeparator = readConfig(config, suffixBuilderPath("separator"), "@");
-            } else {
-                suffixSeparator = null;
-            }
-        } else {
-            suffixSeparator = null;
-        }
-
-        return new MongoOpsSelectionProvider(persistenceIdPrefix, supportsNamespaces,
-                metadataCollectionName, journalCollectionName, snapshotCollectionName, suffixSeparator);
+        return new MongoOpsSelectionProvider(
+                MongoEventSourceSettings.fromConfig(config, persistenceIdPrefix, supportsNamespaces,
+                journalPluginId, snapshotPluginId));
     }
 
     /**
@@ -124,7 +88,7 @@ public class MongoOpsSelectionProvider {
     public Collection<MongoOpsSelection> selectEntity(final String entityId) {
         requireNonNull(entityId);
 
-        return suffixSeparator != null
+        return settings.getSuffixSeparator().isPresent()
                 ? selectEntityBySuffix(entityId)
                 : selectEntityWithoutSuffix(entityId);
     }
@@ -139,44 +103,45 @@ public class MongoOpsSelectionProvider {
     public Collection<MongoOpsSelection> selectNamespace(final String namespace) {
         requireNonNull(namespace);
 
-        if (!supportsNamespaces) {
+        if (!settings.isSupportsNamespaces()) {
             throw new UnsupportedOperationException("Namespaces are not supported");
         }
 
-        return suffixSeparator != null
+        return settings.getSuffixSeparator().isPresent()
                 ? selectNamespaceWithSuffix(namespace)
                 : selectNamespaceWithoutSuffix(namespace);
     }
 
     private Collection<MongoOpsSelection> selectEntityBySuffix(final String entityId) {
         return Arrays.asList(
-                selectEntityByPid(metadataCollectionName, entityId), // collection "*Metadata" has no namespace suffix
-                selectEntityBySuffix(journalCollectionName, entityId),
-                selectEntityBySuffix(snapshotCollectionName, entityId));
+                selectEntityByPid(settings.getMetadataCollectionName(), entityId), // collection "*Metadata" has no namespace suffix
+                selectEntityBySuffix(settings.getJournalCollectionName(), entityId),
+                selectEntityBySuffix(settings.getSnapshotCollectionName(), entityId));
     }
 
     private Collection<MongoOpsSelection> selectEntityWithoutSuffix(final String entityId) {
         return Arrays.asList(
-                selectEntityByPid(metadataCollectionName, entityId),
-                selectEntityByPid(journalCollectionName, entityId),
-                selectEntityByPid(snapshotCollectionName, entityId));
+                selectEntityByPid(settings.getMetadataCollectionName(), entityId),
+                selectEntityByPid(settings.getJournalCollectionName(), entityId),
+                selectEntityByPid(settings.getSnapshotCollectionName(), entityId));
     }
 
     private Collection<MongoOpsSelection> selectNamespaceWithSuffix(final String namespace) {
         return Arrays.asList(
-                selectNamespaceByPid(metadataCollectionName, namespace), // collection "*Metadata" has no namespace suffix
-                selectNamespaceBySuffix(journalCollectionName, namespace),
-                selectNamespaceBySuffix(snapshotCollectionName, namespace));
+                selectNamespaceByPid(settings.getMetadataCollectionName(), namespace), // collection "*Metadata" has no namespace suffix
+                selectNamespaceBySuffix(settings.getJournalCollectionName(), namespace),
+                selectNamespaceBySuffix(settings.getSnapshotCollectionName(), namespace));
     }
 
     private Collection<MongoOpsSelection> selectNamespaceWithoutSuffix(final String namespace) {
         return Arrays.asList(
-                selectNamespaceByPid(metadataCollectionName, namespace),
-                selectNamespaceByPid(journalCollectionName, namespace),
-                selectNamespaceByPid(snapshotCollectionName, namespace));
+                selectNamespaceByPid(settings.getMetadataCollectionName(), namespace),
+                selectNamespaceByPid(settings.getJournalCollectionName(), namespace),
+                selectNamespaceByPid(settings.getSnapshotCollectionName(), namespace));
     }
 
     private MongoOpsSelection selectNamespaceBySuffix(final String collection, final String namespace) {
+        final String suffixSeparator = settings.getSuffixSeparator().orElseThrow(IllegalStateException::new);
         final String suffixedCollection = String.format("%s%s%s", collection, suffixSeparator, namespace);
         return MongoOpsSelection.of(suffixedCollection, new Document());
     }
@@ -186,12 +151,13 @@ public class MongoOpsSelectionProvider {
     }
 
     private Document filterByPidPrefix(final String namespace) {
-        final String pidRegex = String.format("^%s%s:", persistenceIdPrefix, namespace);
+        final String pidRegex = String.format("^%s%s:", settings.getPersistenceIdPrefix(), namespace);
         return new Document(PID, new BsonRegularExpression(pidRegex));
     }
 
     private MongoOpsSelection selectEntityBySuffix(final String collection, final String entityId) {
         final String namespace = extractNamespace(entityId);
+        final String suffixSeparator = settings.getSuffixSeparator().orElseThrow(IllegalStateException::new);
         final String suffixedCollection = String.format("%s%s%s", collection, suffixSeparator, namespace);
         final Document filter = filterByPid(entityId);
         return MongoOpsSelection.of(suffixedCollection, filter);
@@ -211,19 +177,8 @@ public class MongoOpsSelectionProvider {
     }
 
     private Document filterByPid(final String entityId) {
-        final String pid = String.format("%s%s", persistenceIdPrefix, entityId);
+        final String pid = String.format("%s%s", settings.getPersistenceIdPrefix(), entityId);
         return new Document(PID, new BsonString(pid));
     }
 
-    private static String getCollectionName(final Config config, final String root, final String collectionType) {
-        return config.getString(String.format("%s.overrides.%s-collection", root, collectionType));
-    }
-
-    private static String readConfig(final Config config, final String path, final String fallback) {
-        return config.hasPath(path) ? config.getString(path) : fallback;
-    }
-
-    private static String suffixBuilderPath(final String key) {
-        return "akka.contrib.persistence.mongodb.mongo.suffix-builder." + key;
-    }
 }
