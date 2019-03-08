@@ -1,7 +1,34 @@
+{{-  $conciergeUri := printf "%s?ssl=%s" .Values.mongodb.apps.concierge.uri .Values.mongodb.apps.concierge.ssl -}}
+{{-  $connectivityUri := printf "%s?ssl=%s" .Values.mongodb.apps.connectivity.uri .Values.mongodb.apps.connectivity.ssl -}}
+{{-  $thingsUri := printf "%s?ssl=%s" .Values.mongodb.apps.things.uri .Values.mongodb.apps.things.ssl -}}
+{{-  $searchDBUri := printf "%s?ssl=%s" .Values.mongodb.apps.searchDB.uri .Values.mongodb.apps.searchDB.ssl -}}
+{{-  $policiesUri := printf "%s?ssl=%s" .Values.mongodb.apps.policies.uri .Values.mongodb.apps.policies.ssl -}}
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mongodb
+type: Opaque
+data:
+  concierge-uri: {{$conciergeUri | b64enc | quote}}  
+  connectivity-uri: {{$connectivityUri | b64enc | quote}}  
+  things-uri: {{$thingsUri | b64enc | quote}}  
+  searchDB-uri: {{$searchDBUri | b64enc | quote}}  
+  policies-uri: {{$policiesUri | b64enc | quote}}  
+---
+{{- if .Values.mongodb.embedded.enabled -}}
 apiVersion: v1
 kind: Service
 metadata:
   name: mongodb
+  labels:
+    app.kubernetes.io/name: mongodb
+    app.kubernetes.io/component: database
+    app.kubernetes.io/version: "{{ .Values.mongodb.embedded.version }}"
+    app.kubernetes.io/part-of: {{ .Chart.Name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
   clusterIP: None
   ports:
@@ -20,10 +47,17 @@ spec:
     metadata:
       labels:
         app: mongodb
+        app.kubernetes.io/name: mongodb
+        app.kubernetes.io/component: database
+        app.kubernetes.io/version: "{{ .Values.mongodb.embedded.version }}"
+        app.kubernetes.io/part-of: {{ .Chart.Name }}
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
     spec:
       containers:
       - name: mongodb
-        image: docker.io/mongo:3.6
+        image: docker.io/mongo:{{ .Values.mongodb.embedded.version }}
         command:
           - mongod
           - --bind_ip
@@ -36,3 +70,4 @@ spec:
         env:
         - name: TZ
           value: Europe/Berlin
+{{- end }}

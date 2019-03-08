@@ -65,6 +65,7 @@ import org.eclipse.ditto.services.gateway.endpoints.utils.DittoRejectionHandlerF
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayDuplicateHeaderException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,11 +87,9 @@ import akka.util.ByteString;
  */
 public final class RootRoute {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(RootRoute.class);
-
     static final String HTTP_PATH_API_PREFIX = "api";
     static final String WS_PATH_PREFIX = "ws";
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(RootRoute.class);
     private final StatusRoute ownStatusRoute;
     private final OverallStatusRoute overallStatusRoute;
     private final CachingHealthRoute cachingHealthRoute;
@@ -350,7 +349,7 @@ public final class RootRoute {
 
         final DittoHeadersBuilder builder = DittoHeaders.newBuilder();
 
-        final Map<String, String> externalHeadersMap = getFilteredExternalHeaders(ctx.getRequest());
+        final Map<String, String> externalHeadersMap = getFilteredExternalHeaders(ctx.getRequest(), correlationId);
         builder.putHeaders(externalHeadersMap);
 
         final JsonSchemaVersion jsonSchemaVersion = JsonSchemaVersion.forInt(version)
@@ -380,10 +379,15 @@ public final class RootRoute {
                 authorizationContext, dittoDefaultHeaders);
     }
 
-    private Map<String, String> getFilteredExternalHeaders(final HttpMessage httpRequest) {
-        final Map<String, String> externalHeaders =
+    private Map<String, String> getFilteredExternalHeaders(final HttpMessage httpRequest, final String correlationId ) {
+        Map<String, String> externalHeaders =
                 StreamSupport.stream(httpRequest.getHeaders().spliterator(), false)
-                        .collect(Collectors.toMap(HttpHeader::name, HttpHeader::value));
+                        .collect(Collectors.toMap(HttpHeader::name, HttpHeader::value, (dv1, dv2) -> {
+                            throw GatewayDuplicateHeaderException
+                                    .newBuilder()
+                                    .dittoHeaders(DittoHeaders.newBuilder().correlationId(correlationId).build())
+                                    .build();
+                        }));
         return headerTranslator.fromExternalHeaders(externalHeaders);
     }
 
