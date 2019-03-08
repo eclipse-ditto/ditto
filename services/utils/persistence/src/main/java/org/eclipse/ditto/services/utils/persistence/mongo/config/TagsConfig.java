@@ -8,14 +8,14 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.policies.starter.config;
+package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
- * Provides the configuration settings of the policies' tags.
+ * Provides the configuration settings of entity tags.
  * <p>
  * Java serialization is supported for {@code TagsConfig}.
  * </p>
@@ -24,7 +24,7 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 public interface TagsConfig {
 
     /**
-     * Returns the size of the cache used for streaming Policy Tags (each stream has its own cache).
+     * Returns the size of the cache used for streaming tags (each stream has its own cache).
      *
      * @return the size.
      */
@@ -36,7 +36,7 @@ public interface TagsConfig {
     enum TagsConfigValue implements KnownConfigValue {
 
         /**
-         * The size of the cache used for streaming Policy Tags (each stream has its own cache).
+         * The size of the cache used for streaming tags (each stream has its own cache).
          */
         STREAMING_CACHE_SIZE("streaming-cache-size", 1_000);
 

@@ -30,7 +30,6 @@ import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicyNames
 import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicySupervisorActor;
 import org.eclipse.ditto.services.policies.persistence.config.PolicyConfig;
 import org.eclipse.ditto.services.policies.starter.config.PoliciesConfig;
-import org.eclipse.ditto.services.policies.starter.config.TagsConfig;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
@@ -43,6 +42,7 @@ import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.TagsConfig;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 
 import akka.Done;

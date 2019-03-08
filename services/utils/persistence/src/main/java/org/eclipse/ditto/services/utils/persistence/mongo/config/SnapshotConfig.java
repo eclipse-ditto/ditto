@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.policies.persistence.config;
+package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
 import java.time.Duration;
 
@@ -17,7 +17,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
- * Provides configuration settings for the handling of snapshots of policy entities.
+ * Provides configuration settings for the handling entity snapshots.
  * <p>
  * Java serialization is supported for {@code SnapshotConfig}.
  * </p>
@@ -26,14 +26,14 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 public interface SnapshotConfig {
 
     /**
-     * Returns the interval when to do snapshot for a Policy which had changes to it.
+     * Returns the interval when to do snapshot for an entity which had changes to it.
      *
      * @return the interval.
      */
     Duration getInterval();
 
     /**
-     * Returns the threshold after how many changes to a Policy to do a snapshot.
+     * Returns the threshold after how many changes to an entity to do a snapshot.
      *
      * @return the threshold.
      */
@@ -60,12 +60,12 @@ public interface SnapshotConfig {
     enum SnapshotConfigValue implements KnownConfigValue {
 
         /**
-         * The interval when to do snapshot for a Policy which had changes to it.
+         * The interval when to do snapshot for an entity which had changes to it.
          */
         INTERVAL("interval", Duration.ofMinutes(15L)),
 
         /**
-         * The threshold after how many changes to a Policy to do a snapshot.
+         * The threshold after how many changes to an entity to do a snapshot.
          */
         THRESHOLD("threshold", 500),
 

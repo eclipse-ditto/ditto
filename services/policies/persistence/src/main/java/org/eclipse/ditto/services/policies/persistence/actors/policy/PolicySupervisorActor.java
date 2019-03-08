@@ -75,7 +75,7 @@ public final class PolicySupervisorActor extends AbstractActor {
         try {
             policyId = URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name());
         } catch (final UnsupportedEncodingException e) {
-            throw new IllegalStateException("Unsupported encoding", e);
+            throw new IllegalStateException("Unsupported encoding!", e);
         }
         persistenceActorProps = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator, policyConfig);
         exponentialBackOffConfig = policyConfig.getSupervisorConfig().getExponentialBackOffConfig();
@@ -94,7 +94,7 @@ public final class PolicySupervisorActor extends AbstractActor {
      * </p>
      *
      * @param pubSubMediator the PubSub mediator actor.
-     * @param policyConfig the configuration settings for actor supervision.
+     * @param policyConfig the configuration settings for policy entities.
      * @param snapshotAdapter the adapter to serialize snapshots.
      * @return the {@link Props} to create this actor.
      */

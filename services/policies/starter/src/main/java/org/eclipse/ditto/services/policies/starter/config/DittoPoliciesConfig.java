@@ -20,11 +20,11 @@ import org.eclipse.ditto.services.base.config.HttpConfig;
 import org.eclipse.ditto.services.base.config.LimitsConfig;
 import org.eclipse.ditto.services.policies.persistence.config.DefaultPolicyConfig;
 import org.eclipse.ditto.services.policies.persistence.config.PolicyConfig;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.services.utils.health.config.DefaultHealthCheckConfig;
 import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultTagsConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.TagsConfig;
 
 import com.typesafe.config.Config;
 
@@ -43,13 +43,11 @@ public final class DittoPoliciesConfig implements PoliciesConfig, Serializable {
     private final PolicyConfig policyConfig;
     private final TagsConfig tagsConfig;
 
-    private DittoPoliciesConfig(final DittoServiceWithMongoDbConfig dittoServiceConfig,
-            final ScopedConfig policiesScopedConfig) {
-
+    private DittoPoliciesConfig(final DittoServiceWithMongoDbConfig dittoServiceConfig) {
         this.dittoServiceConfig = dittoServiceConfig;
-        healthCheckConfig = DefaultHealthCheckConfig.of(policiesScopedConfig);
-        policyConfig = DefaultPolicyConfig.of(policiesScopedConfig);
-        tagsConfig = DefaultTagsConfig.of(policiesScopedConfig);
+        healthCheckConfig = DefaultHealthCheckConfig.of(dittoServiceConfig);
+        policyConfig = DefaultPolicyConfig.of(dittoServiceConfig);
+        tagsConfig = DefaultTagsConfig.of(dittoServiceConfig);
     }
 
     /**
@@ -61,8 +59,7 @@ public final class DittoPoliciesConfig implements PoliciesConfig, Serializable {
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DittoPoliciesConfig of(final Config dittoScopedConfig) {
-        return new DittoPoliciesConfig(DittoServiceWithMongoDbConfig.of(dittoScopedConfig, CONFIG_PATH),
-                DefaultScopedConfig.newInstance(dittoScopedConfig, CONFIG_PATH));
+        return new DittoPoliciesConfig(DittoServiceWithMongoDbConfig.of(dittoScopedConfig, CONFIG_PATH));
     }
 
     @Override

@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.policies.persistence.config;
+package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
 import java.io.Serializable;
 import java.time.Duration;
@@ -25,7 +25,7 @@ import com.typesafe.config.Config;
  * Provides the configuration settings of a policy entity's activity check.
  */
 @Immutable
-final class DefaultActivityCheckConfig implements ActivityCheckConfig, Serializable {
+public final class DefaultActivityCheckConfig implements ActivityCheckConfig, Serializable {
 
     private static final String CONFIG_PATH = "activity-check";
 

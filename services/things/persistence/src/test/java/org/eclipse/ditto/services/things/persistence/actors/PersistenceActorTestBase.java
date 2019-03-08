@@ -12,7 +12,6 @@ package org.eclipse.ditto.services.things.persistence.actors;
 
 import static java.util.Objects.requireNonNull;
 
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.UUID;
@@ -36,7 +35,10 @@ import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.services.things.persistence.config.DefaultThingConfig;
+import org.eclipse.ditto.services.things.persistence.config.ThingConfig;
 import org.junit.After;
+import org.junit.BeforeClass;
 import org.junit.rules.TestWatcher;
 import org.slf4j.Logger;
 
@@ -85,12 +87,24 @@ public abstract class PersistenceActorTestBase {
     private static final ThingLifecycle THING_LIFECYCLE = ThingLifecycle.ACTIVE;
     private static final long THING_REVISION = 1;
 
+    protected static Config testConfig;
+    protected static ThingConfig thingConfig;
 
     protected ActorSystem actorSystem = null;
     protected TestProbe pubSubTestProbe = null;
     protected ActorRef pubSubMediator = null;
     protected DittoHeaders dittoHeadersV1;
     protected DittoHeaders dittoHeadersV2;
+
+    @BeforeClass
+    public static void initTestFixture() {
+        testConfig = ConfigFactory.load("test");
+        thingConfig = getThingConfig(testConfig);
+    }
+
+    protected static ThingConfig getThingConfig(final Config testConfig) {
+        return DefaultThingConfig.of(testConfig.getConfig("ditto.things"));
+    }
 
     protected static DittoHeaders createDittoHeadersMock(final JsonSchemaVersion schemaVersion,
             final String... authSubjects) {
@@ -161,30 +175,38 @@ public abstract class PersistenceActorTestBase {
     }
 
     protected ActorRef createPersistenceActorFor(final String thingId) {
-        return createPersistenceActorWithPubSubFor(thingId, pubSubMediator);
+        return createPersistenceActorWithPubSubFor(thingId, pubSubMediator, thingConfig);
     }
 
-    protected ActorRef createPersistenceActorWithPubSubFor(final String thingId, final ActorRef pubSubMediator) {
-        return actorSystem.actorOf(getPropsOfThingPersistenceActor(thingId, pubSubMediator));
+    protected ActorRef createPersistenceActorFor(final String thingId, final ThingConfig thingConfig) {
+        return createPersistenceActorWithPubSubFor(thingId, pubSubMediator, thingConfig);
     }
 
-    private Props getPropsOfThingPersistenceActor(final String thingId) {
-        return getPropsOfThingPersistenceActor(thingId, pubSubMediator);
+    protected ActorRef createPersistenceActorWithPubSubFor(final String thingId, final ActorRef pubSubMediator,
+            final ThingConfig thingConfig) {
+
+        return actorSystem.actorOf(getPropsOfThingPersistenceActor(thingId, pubSubMediator, thingConfig));
     }
 
-    private Props getPropsOfThingPersistenceActor(final String thingId, final ActorRef pubSubMediator) {
-        return ThingPersistenceActor.props(thingId, pubSubMediator);
+    private static Props getPropsOfThingPersistenceActor(final String thingId, final ActorRef pubSubMediator,
+            final ThingConfig thingConfig) {
+
+        return ThingPersistenceActor.props(thingId, pubSubMediator, thingConfig, true);
     }
 
     protected ActorRef createSupervisorActorFor(final String thingId) {
-        final Duration minBackOff = Duration.ofSeconds(7);
-        final Duration maxBackOff = Duration.ofSeconds(60);
-        final double randomFactor = 0.2;
+        return createSupervisorActorFor(thingId, thingConfig);
+    }
 
-        final Props props = ThingSupervisorActor.props(pubSubMediator, minBackOff, maxBackOff, randomFactor,
-                this::getPropsOfThingPersistenceActor);
+    protected ActorRef createSupervisorActorFor(final String thingId, final ThingConfig thingConfig) {
+        final Props props =
+                ThingSupervisorActor.props(pubSubMediator, thingConfig, this::getPropsOfThingPersistenceActor);
 
         return actorSystem.actorOf(props, thingId);
+    }
+
+    private Props getPropsOfThingPersistenceActor(final String thingId) {
+        return getPropsOfThingPersistenceActor(thingId, pubSubMediator, thingConfig);
     }
 
     /**
@@ -202,6 +224,7 @@ public abstract class PersistenceActorTestBase {
         protected void starting(final org.junit.runner.Description description) {
             logger.info("Testing: {}#{}()", description.getTestClass().getSimpleName(), description.getMethodName());
         }
+
     }
 
     /**
@@ -210,4 +233,5 @@ public abstract class PersistenceActorTestBase {
     protected void disableLogging() {
         actorSystem.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
     }
+
 }

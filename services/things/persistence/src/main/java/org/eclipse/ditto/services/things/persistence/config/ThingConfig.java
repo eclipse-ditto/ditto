@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.policies.persistence.config;
+package org.eclipse.ditto.services.things.persistence.config;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -17,11 +17,11 @@ import org.eclipse.ditto.services.utils.persistence.mongo.config.WithActivityChe
 import org.eclipse.ditto.services.utils.persistence.mongo.config.WithSnapshotConfig;
 
 /**
- * Provides configuration settings for policy entities.
+ * Provides configuration settings for thing entities.
  * <p>
- * Java serialization is supported for {@code PolicyConfig}.
+ * Java serialization is supported for {@code ThingConfig}.
  * </p>
  */
 @Immutable
-public interface PolicyConfig extends WithSupervisorConfig, WithActivityCheckConfig, WithSnapshotConfig {
+public interface ThingConfig extends WithSupervisorConfig, WithActivityCheckConfig, WithSnapshotConfig {
 }

@@ -16,6 +16,7 @@ import org.eclipse.ditto.services.base.config.ServiceSpecificConfig;
 import org.eclipse.ditto.services.policies.persistence.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.health.config.WithHealthCheckConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.WithMongoDbConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.WithTagsConfig;
 
 /**
  * Provides the configuration settings of the Policies service.
@@ -24,7 +25,8 @@ import org.eclipse.ditto.services.utils.persistence.mongo.config.WithMongoDbConf
  * </p>
  */
 @Immutable
-public interface PoliciesConfig extends ServiceSpecificConfig, WithHealthCheckConfig, WithMongoDbConfig {
+public interface PoliciesConfig
+        extends ServiceSpecificConfig, WithHealthCheckConfig, WithMongoDbConfig, WithTagsConfig {
 
     /**
      * Returns the configuration settings for policy entities.
@@ -32,12 +34,5 @@ public interface PoliciesConfig extends ServiceSpecificConfig, WithHealthCheckCo
      * @return the config.
      */
     PolicyConfig getPolicyConfig();
-
-    /**
-     * Returns the configuration settings for policies tags.
-     *
-     * @return the config.
-     */
-    TagsConfig getTagsConfig();
 
 }

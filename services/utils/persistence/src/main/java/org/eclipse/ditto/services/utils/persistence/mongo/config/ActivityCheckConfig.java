@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.policies.persistence.config;
+package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
 import java.time.Duration;
 
@@ -17,7 +17,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
- * Provides configuration settings for checking the activity of policy entities.
+ * Provides configuration settings for checking the activity of entities.
  * <p>
  * Java serialization is supported for {@code ActivityCheckConfig}.
  * </p>
@@ -26,14 +26,14 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 public interface ActivityCheckConfig {
 
     /**
-     * Returns the interval of how long to keep an "inactive" Policy in memory.
+     * Returns the interval of how long to keep an "inactive" entity in memory.
      *
      * @return the interval.
      */
     Duration getInactiveInterval();
 
     /**
-     * Returns the interval of how long to keep a deleted Policy in memory.
+     * Returns the interval of how long to keep a deleted entity in memory.
      *
      * @return the interval.
      */
@@ -46,12 +46,12 @@ public interface ActivityCheckConfig {
     enum ActivityCheckConfigValue implements KnownConfigValue {
 
         /**
-         * The interval of how long to keep an "inactive" Policy in memory.
+         * The interval of how long to keep an "inactive" entity in memory.
          */
         INACTIVE_INTERVAL("inactive-interval", Duration.ofHours(2L)),
 
         /**
-         * The interval of how long to keep a deleted Policy in memory.
+         * The interval of how long to keep a deleted entity in memory.
          */
         DELETED_INTERVAL("deleted-interval", Duration.ofMinutes(5L));
 

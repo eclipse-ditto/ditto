@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceActor;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
+import org.eclipse.ditto.services.things.starter.config.ThingsConfig;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -31,12 +32,14 @@ final class ThingPersistenceActorPropsFactory implements Function<String, Props>
 
     private final ActorRef pubSubMediator;
     private final ThingSnapshotter.Create thingSnapshotterCreate;
+    private final ThingsConfig thingsConfig;
 
     private ThingPersistenceActorPropsFactory(final ActorRef pubSubMediator,
-            final ThingSnapshotter.Create thingSnapshotterCreate) {
+            final ThingSnapshotter.Create thingSnapshotterCreate, final ThingsConfig thingsConfig) {
 
         this.pubSubMediator = checkNotNull(pubSubMediator);
         this.thingSnapshotterCreate = checkNotNull(thingSnapshotterCreate);
+        this.thingsConfig = checkNotNull(thingsConfig, "ThingsConfig");
     }
 
     /**
@@ -44,13 +47,14 @@ final class ThingPersistenceActorPropsFactory implements Function<String, Props>
      *
      * @param pubSubMediator ActorRef of the distributed pub-sub-mediator.
      * @param thingSnapshotterCreate functional interface for the constructor of snapshotter classes.
+     * @param thingsConfig the configuration settings of the Things service.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static ThingPersistenceActorPropsFactory getInstance(final ActorRef pubSubMediator,
-            final ThingSnapshotter.Create thingSnapshotterCreate) {
+            final ThingSnapshotter.Create thingSnapshotterCreate, final ThingsConfig thingsConfig) {
 
-        return new ThingPersistenceActorPropsFactory(pubSubMediator, thingSnapshotterCreate);
+        return new ThingPersistenceActorPropsFactory(pubSubMediator, thingSnapshotterCreate, thingsConfig);
     }
 
     /**
@@ -65,7 +69,8 @@ final class ThingPersistenceActorPropsFactory implements Function<String, Props>
     public Props apply(final String thingId) {
         argumentNotEmpty(thingId, "thing ID");
 
-        return ThingPersistenceActor.props(thingId, pubSubMediator, thingSnapshotterCreate);
+        return ThingPersistenceActor.props(thingId, pubSubMediator, thingSnapshotterCreate,
+                thingsConfig.getThingConfig(), thingsConfig.isLogIncomingMessages());
     }
 
 }

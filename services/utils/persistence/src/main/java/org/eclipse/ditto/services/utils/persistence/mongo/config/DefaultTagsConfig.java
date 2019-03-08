@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.policies.starter.config;
+package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -16,7 +16,6 @@ import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 
@@ -24,7 +23,7 @@ import com.typesafe.config.Config;
  * This class implements the policies tags config.
  */
 @Immutable
-final class DefaultTagsConfig implements TagsConfig, Serializable {
+public final class DefaultTagsConfig implements TagsConfig, Serializable {
 
     private static final String CONFIG_PATH = "tags";
 
@@ -32,8 +31,8 @@ final class DefaultTagsConfig implements TagsConfig, Serializable {
 
     private final int streamingCacheSize;
 
-    private DefaultTagsConfig(final ScopedConfig tagsScopedConfig) {
-        streamingCacheSize = tagsScopedConfig.getInt(TagsConfigValue.STREAMING_CACHE_SIZE.getConfigPath());
+    private DefaultTagsConfig(final Config config) {
+        streamingCacheSize = config.getInt(TagsConfigValue.STREAMING_CACHE_SIZE.getConfigPath());
     }
 
     /**

@@ -49,12 +49,12 @@ import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePoli
 import org.eclipse.ditto.services.policies.persistence.actors.AbstractReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.ReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.StrategyAwareReceiveBuilder;
-import org.eclipse.ditto.services.policies.persistence.config.ActivityCheckConfig;
 import org.eclipse.ditto.services.policies.persistence.config.PolicyConfig;
-import org.eclipse.ditto.services.policies.persistence.config.SnapshotConfig;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.headers.conditional.ConditionalHeadersValidator;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
@@ -167,9 +167,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final String policyId;
     private final SnapshotAdapter<Policy> snapshotAdapter;
-    private final PolicyConfig policyConfig;
     private final ActorRef pubSubMediator;
+    private final PolicyConfig policyConfig;
     private final Receive handlePolicyEvents;
+
     private Policy policy;
     private long accessCounter;
     private long lastSnapshotSequenceNr = -1;
@@ -184,8 +185,8 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             final PolicyConfig policyConfig) {
 
         this.policyId = policyId;
-        this.pubSubMediator = pubSubMediator;
         this.snapshotAdapter = snapshotAdapter;
+        this.pubSubMediator = pubSubMediator;
         this.policyConfig = policyConfig;
 
         handlePolicyEvents = ReceiveBuilder.create()

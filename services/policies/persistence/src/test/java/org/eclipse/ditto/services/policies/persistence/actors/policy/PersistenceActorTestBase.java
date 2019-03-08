@@ -102,6 +102,7 @@ public abstract class PersistenceActorTestBase {
 
     protected static DittoHeaders createDittoHeaders(final JsonSchemaVersion schemaVersion,
             final String... authSubjects) {
+
         final List<String> authSubjectsStr = Arrays.asList(authSubjects);
         final List<AuthorizationSubject> authSubjectsList = new ArrayList<>();
         authSubjectsStr.stream().map(AuthorizationModelFactory::newAuthSubject).forEach(authSubjectsList::add);

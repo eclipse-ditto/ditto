@@ -10,12 +10,13 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors;
 
-import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.things.persistence.config.DefaultThingConfig;
+import org.eclipse.ditto.services.things.persistence.config.ThingConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.namespace.EventSourceNamespaceOpsActorTestCases;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
@@ -24,8 +25,10 @@ import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
+import org.junit.BeforeClass;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -36,6 +39,13 @@ import akka.actor.Props;
  */
 @AllValuesAreNonnullByDefault
 public final class ThingNamespaceOpsActorIT extends EventSourceNamespaceOpsActorTestCases {
+
+    private static ThingConfig thingConfig;
+
+    @BeforeClass
+    public static void initTestFixture() {
+        thingConfig = DefaultThingConfig.of(ConfigFactory.load("thing-test"));
+    }
 
     @Override
     protected String getServiceName() {
@@ -54,8 +64,7 @@ public final class ThingNamespaceOpsActorIT extends EventSourceNamespaceOpsActor
 
     @Override
     protected Object getCreateEntityCommand(final String id) {
-        final DittoHeaders headers = DittoHeaders.empty();
-        return CreateThing.of(Thing.newBuilder().setId(id).setPolicyId(id).build(), null, headers);
+        return CreateThing.of(Thing.newBuilder().setId(id).setPolicyId(id).build(), null, DittoHeaders.empty());
     }
 
     @Override
@@ -82,20 +91,16 @@ public final class ThingNamespaceOpsActorIT extends EventSourceNamespaceOpsActor
     protected ActorRef startActorUnderTest(final ActorSystem actorSystem, final ActorRef pubSubMediator,
             final Config config) {
 
-        final Props nanmespaceOpsActorProps = ThingNamespaceOpsActor.props(pubSubMediator, config);
-        return actorSystem.actorOf(nanmespaceOpsActorProps, ThingNamespaceOpsActor.ACTOR_NAME);
+        final Props namespaceOpsActorProps = ThingNamespaceOpsActor.props(pubSubMediator, config, mongoDbConfig);
+        return actorSystem.actorOf(namespaceOpsActorProps, ThingNamespaceOpsActor.ACTOR_NAME);
     }
 
     @Override
     protected ActorRef startEntityActor(final ActorSystem system, final ActorRef pubSubMediator, final String id) {
-        // essentially never restart
-        final Duration minBackOff = Duration.ofSeconds(36000);
-        final Duration maxBackOff = Duration.ofSeconds(36000);
-        final double randomFactor = 0.2;
-
-        final Props props = ThingSupervisorActor.props(pubSubMediator, minBackOff, maxBackOff, randomFactor,
-                theId -> ThingPersistenceActor.props(theId, pubSubMediator));
+        final Props props = ThingSupervisorActor.props(pubSubMediator, thingConfig,
+                theId -> ThingPersistenceActor.props(theId, pubSubMediator, thingConfig, true));
 
         return system.actorOf(props, id);
     }
+
 }

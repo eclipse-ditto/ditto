@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.policies.persistence.config;
+package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
 import java.io.Serializable;
 import java.text.MessageFormat;
@@ -27,7 +27,7 @@ import com.typesafe.config.Config;
  * This class implements the config for the handling of snapshots of policy entities.
  */
 @Immutable
-final class DefaultSnapshotConfig implements SnapshotConfig, Serializable {
+public final class DefaultSnapshotConfig implements SnapshotConfig, Serializable {
 
     private static final String CONFIG_PATH = "snapshot";
 

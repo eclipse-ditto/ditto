@@ -20,10 +20,13 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.base.actors.ShutdownNamespaceBehavior;
+import org.eclipse.ditto.services.base.config.supervision.SupervisorConfig;
+import org.eclipse.ditto.services.things.persistence.config.ThingConfig;
 import org.eclipse.ditto.services.things.persistence.strategies.AbstractReceiveStrategy;
 import org.eclipse.ditto.services.things.persistence.strategies.ReceiveStrategy;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -58,21 +61,17 @@ public final class ThingSupervisorActor extends AbstractActor {
 
     private final String thingId;
     private final Props persistenceActorProps;
-    private final Duration minBackOff;
-    private final Duration maxBackOff;
-    private final double randomFactor;
+    private final SupervisorConfig.ExponentialBackOffConfig exponentialBackOffConfig;
     private final SupervisorStrategy supervisorStrategy;
     private final ShutdownNamespaceBehavior shutdownNamespaceBehavior;
 
-    private ActorRef child;
+    @Nullable private ActorRef child;
     private long restartCount;
 
-    private ThingSupervisorActor(final Duration minBackOff,
-            final Duration maxBackOff,
-            final double randomFactor,
+    private ThingSupervisorActor(final ActorRef pubSubMediator,
+            final ThingConfig thingConfig,
             final Function<String, Props> thingPersistenceActorPropsFactory,
-            final SupervisorStrategy supervisorStrategy,
-            final ActorRef pubSubMediator) {
+            final SupervisorStrategy supervisorStrategy) {
 
         try {
             thingId = URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name());
@@ -80,14 +79,12 @@ public final class ThingSupervisorActor extends AbstractActor {
             throw new IllegalStateException("Unsupported encoding!", e);
         }
         persistenceActorProps = thingPersistenceActorPropsFactory.apply(thingId);
-        this.minBackOff = minBackOff;
-        this.maxBackOff = maxBackOff;
-        this.randomFactor = randomFactor;
+        exponentialBackOffConfig = thingConfig.getSupervisorConfig().getExponentialBackOffConfig();
         this.supervisorStrategy = supervisorStrategy;
-
         shutdownNamespaceBehavior = ShutdownNamespaceBehavior.fromId(thingId, pubSubMediator, getSelf());
 
         child = null;
+        restartCount = 0L;
     }
 
     /**
@@ -98,18 +95,13 @@ public final class ThingSupervisorActor extends AbstractActor {
      * </p>
      *
      * @param pubSubMediator Akka pub-sub mediator.
-     * @param minBackOff minimum (initial) duration until the child actor will started again, if it is terminated.
-     * @param maxBackOff the exponential back-off is capped to this duration.
-     * @param randomFactor after calculation of the exponential back-off an additional random delay based on this factor
-     * is added, e.g. `0.2` adds up to `20%` delay. In order to skip this additional delay pass in `0`.
+     * @param thingConfig the configuration settings for thing entities.
      * @param thingPersistenceActorPropsFactory factory for creating Props to be used for creating
      * {@link ThingPersistenceActor}s.
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final ActorRef pubSubMediator,
-            final Duration minBackOff,
-            final Duration maxBackOff,
-            final double randomFactor,
+            final ThingConfig thingConfig,
             final Function<String, Props> thingPersistenceActorPropsFactory) {
 
         return Props.create(ThingSupervisorActor.class, new Creator<ThingSupervisorActor>() {
@@ -123,15 +115,14 @@ public final class ThingSupervisorActor extends AbstractActor {
                         .matchAny(e -> SupervisorStrategy.escalate())
                         .build());
 
-                return new ThingSupervisorActor(minBackOff, maxBackOff, randomFactor, thingPersistenceActorPropsFactory,
-                        oneForOneStrategy, pubSubMediator);
+                return new ThingSupervisorActor(pubSubMediator, thingConfig, thingPersistenceActorPropsFactory,
+                        oneForOneStrategy);
             }
         });
     }
 
     private Collection<ReceiveStrategy<?>> initReceiveStrategies() {
-        final Collection<ReceiveStrategy<?>> result = new ArrayList<>();
-
+        final Collection<ReceiveStrategy<?>> result = new ArrayList<>(3);
         result.add(new StartChildStrategy());
         result.add(new ChildTerminatedStrategy());
         result.add(new ManualResetStrategy());
@@ -214,14 +205,15 @@ public final class ThingSupervisorActor extends AbstractActor {
         }
 
         private Duration calculateRestartDelay() {
-            final double rnd = 1.0 + ThreadLocalRandom.current().nextDouble() * randomFactor;
-            if (restartCount >= 30) // Duration overflow protection (> 100 years)
-            {
+            final Duration maxBackOff = exponentialBackOffConfig.getMax();
+            if (restartCount >= 30) { // Duration overflow protection (> 100 years)
                 return maxBackOff;
-            } else {
-                final double backOff = minBackOff.toNanos() * Math.pow(2, restartCount) * rnd;
-                return Duration.ofNanos(Math.min(maxBackOff.toNanos(), (long) backOff));
             }
+            final Duration minBackOff = exponentialBackOffConfig.getMin();
+            final double rnd =
+                    1.0 + ThreadLocalRandom.current().nextDouble() * exponentialBackOffConfig.getRandomFactor();
+            final double backOff = minBackOff.toNanos() * Math.pow(2, restartCount) * rnd;
+            return Duration.ofNanos(Math.min(maxBackOff.toNanos(), (long) backOff));
         }
 
     }
@@ -306,4 +298,5 @@ public final class ThingSupervisorActor extends AbstractActor {
     enum Control {
         PASSIVATE
     }
+
 }
