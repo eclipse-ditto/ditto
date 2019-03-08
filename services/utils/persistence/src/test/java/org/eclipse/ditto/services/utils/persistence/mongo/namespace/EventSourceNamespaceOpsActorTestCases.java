@@ -47,7 +47,6 @@ import akka.testkit.javadsl.TestKit;
  */
 public abstract class EventSourceNamespaceOpsActorTestCases {
 
-    private static final Logger MONGOD_LOGGER = LoggerFactory.getLogger("mongod");
     private static final Random RANDOM = new Random();
 
     /**
@@ -60,7 +59,7 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
 
     @BeforeClass
     public static void startMongoDb() {
-        mongoDbResource = new MongoDbResource("localhost", MONGOD_LOGGER);
+        mongoDbResource = new MongoDbResource("localhost");
         mongoDbResource.start();
     }
 
@@ -117,6 +116,7 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
                 "akka.remote.artery.bind.port=0\n" +
                 "akka.cluster.seed-nodes=[]\n" +
                 "akka.coordinated-shutdown.exit-jvm=off\n" +
+                "ditto.things.log-incoming-messages=true\n" +
                 "akka.contrib.persistence.mongodb.mongo.mongouri=" + mongoUriValue +
                 "ditto.services-utils-config.mongodb.uri=" + mongoUriValue;
 
