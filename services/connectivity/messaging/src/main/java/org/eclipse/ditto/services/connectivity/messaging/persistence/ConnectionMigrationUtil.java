@@ -11,7 +11,6 @@
 package org.eclipse.ditto.services.connectivity.messaging.persistence;
 
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
@@ -63,9 +62,9 @@ final class ConnectionMigrationUtil {
      * @return the (potentially migrated) Connection instance
      */
     static Connection connectionFromJsonWithMigration(@Nonnull final JsonObject connectionJsonObject) {
-        final Function<JsonObject, JsonObject> migrateSourceFilters = new MigrateSourceFilters();
-        final Function<JsonObject, JsonObject> migrateTopicActionSubjectFilters = new MigrateTopicActionSubjectFilters();
-        final Function<JsonObject, JsonObject> migrateAuthorizationContexts = new MigrateAuthorizationContexts();
+        final UnaryOperator<JsonObject> migrateSourceFilters = new MigrateSourceFilters();
+        final UnaryOperator<JsonObject> migrateTopicActionSubjectFilters = new MigrateTopicActionSubjectFilters();
+        final UnaryOperator<JsonObject> migrateAuthorizationContexts = new MigrateAuthorizationContexts();
 
         return ConnectivityModelFactory.connectionFromJson(
                 migrateAuthorizationContexts
