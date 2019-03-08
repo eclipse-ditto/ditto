@@ -173,8 +173,8 @@ public final class PoliciesRootActor extends AbstractActor {
         }
 
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
-        final Props healthCheckingActorProps =
-                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, MongoHealthChecker.props());
+        final Props healthCheckingActorProps = DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions,
+                MongoHealthChecker.props(policiesConfig.getMongoDbConfig()));
         final ActorRef healthCheckingActor =
                 startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME, healthCheckingActorProps);
 

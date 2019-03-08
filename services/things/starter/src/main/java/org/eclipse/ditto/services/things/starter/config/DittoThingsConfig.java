@@ -44,12 +44,12 @@ public final class DittoThingsConfig implements ThingsConfig, Serializable {
     private final TagsConfig tagsConfig;
     private final ThingConfig thingConfig;
 
-    private DittoThingsConfig(final DittoServiceWithMongoDbConfig scopedConfig) {
-        basicConfig = scopedConfig;
-        logIncomingMessages = scopedConfig.getBoolean(ThingsConfigValue.LOG_INCOMING_MESSAGES.getConfigPath());
-        healthCheckConfig = DefaultHealthCheckConfig.of(scopedConfig);
-        tagsConfig = DefaultTagsConfig.of(scopedConfig);
-        thingConfig = DefaultThingConfig.of(scopedConfig);
+    private DittoThingsConfig(final DittoServiceWithMongoDbConfig dittoServiceConfig) {
+        basicConfig = dittoServiceConfig;
+        logIncomingMessages = dittoServiceConfig.getBoolean(ThingsConfigValue.LOG_INCOMING_MESSAGES.getConfigPath());
+        healthCheckConfig = DefaultHealthCheckConfig.of(dittoServiceConfig);
+        tagsConfig = DefaultTagsConfig.of(dittoServiceConfig);
+        thingConfig = DefaultThingConfig.of(dittoServiceConfig);
     }
 
     /**
@@ -61,7 +61,7 @@ public final class DittoThingsConfig implements ThingsConfig, Serializable {
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DittoThingsConfig of(final Config dittoScopedConfig) {
-        return DittoThingsConfig.of(DittoServiceWithMongoDbConfig.of(dittoScopedConfig, CONFIG_PATH));
+        return new DittoThingsConfig(DittoServiceWithMongoDbConfig.of(dittoScopedConfig, CONFIG_PATH));
     }
 
     @Override

@@ -171,12 +171,13 @@ public final class ThingsRootActor extends AbstractActor {
 
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
         final ActorRef healthCheckingActor = startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
-                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, MongoHealthChecker.props()));
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions,
+                        MongoHealthChecker.props(thingsConfig.getMongoDbConfig())));
 
         final TagsConfig tagsConfig = thingsConfig.getTagsConfig();
         final ActorRef persistenceStreamingActor = startChildActor(ThingsPersistenceStreamingActorCreator.ACTOR_NAME,
                 ThingsPersistenceStreamingActorCreator.props(actorSystem.settings().config(),
-                        tagsConfig.getStreamingCacheSize()));
+                        thingsConfig.getMongoDbConfig(), tagsConfig.getStreamingCacheSize()));
 
         pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
         pubSubMediator.tell(new DistributedPubSubMediator.Put(persistenceStreamingActor), getSelf());

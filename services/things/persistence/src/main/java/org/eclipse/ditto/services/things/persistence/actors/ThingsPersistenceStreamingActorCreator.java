@@ -12,6 +12,7 @@ package org.eclipse.ditto.services.things.persistence.actors;
 
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.utils.persistence.mongo.DefaultPersistenceStreamingActor;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr;
 
 import com.typesafe.config.Config;
@@ -37,6 +38,7 @@ public final class ThingsPersistenceStreamingActorCreator {
      * Creates Akka configuration object Props for this PersistenceQueriesActor.
      *
      * @param config the actor system configuration.
+     * @param mongoDbConfig the configuration settings for MongoDB.
      * @param streamingCacheSize the size of the streaming cache.
      * @return the Akka configuration Props object.
      */
