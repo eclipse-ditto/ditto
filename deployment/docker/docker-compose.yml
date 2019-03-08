@@ -15,7 +15,7 @@ services:
   policies:
     init: true
     image: docker.io/eclipse/ditto-policies:${DITTO_VERSION:-latest}
-    mem_limit: 256m
+    mem_limit: 384m
     networks:
       default:
         aliases:
@@ -30,7 +30,7 @@ services:
   things:
     init: true
     image: docker.io/eclipse/ditto-things:${DITTO_VERSION:-latest}
-    mem_limit: 256m
+    mem_limit: 384m
     networks:
       default:
         aliases:
@@ -64,7 +64,7 @@ services:
   concierge:
     init: true
     image: docker.io/eclipse/ditto-concierge:${DITTO_VERSION:-latest}
-    mem_limit: 256m
+    mem_limit: 384m
     networks:
       default:
         aliases:
@@ -81,7 +81,7 @@ services:
   connectivity:
     init: true
     image: docker.io/eclipse/ditto-connectivity:${DITTO_VERSION:-latest}
-    mem_limit: 256m
+    mem_limit: 384m
     networks:
       default:
         aliases:
@@ -99,7 +99,7 @@ services:
   gateway:
     init: true
     image: docker.io/eclipse/ditto-gateway:${DITTO_VERSION:-latest}
-    mem_limit: 256m
+    mem_limit: 384m
     networks:
       default:
         aliases:
