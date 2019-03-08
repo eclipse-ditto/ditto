@@ -152,6 +152,8 @@ public final class PlaceholderFilter {
      * @return the template string with the resolved values
      * @throws UnresolvedPlaceholderException if {@code allowUnresolved} is true and not all
      * placeholders were resolved
+     * @throws PlaceholderFunctionTooComplexException thrown if the {@code template} contains a placeholder
+     * function chain which is too complex (e.g. too much chained function calls)
      */
     public static String apply(final String template, final ExpressionResolver expressionResolver,
             final boolean allowUnresolved) {
@@ -166,6 +168,8 @@ public final class PlaceholderFilter {
      * @param template a string potentially containing placeholders to replace
      * @param placeholders the {@link Placeholder}s to use for replacement
      * @throws UnresolvedPlaceholderException in case the template's placeholders could not completely be resolved
+     * @throws PlaceholderFunctionTooComplexException thrown if the {@code template} contains a placeholder
+     * function chain which is too complex (e.g. too much chained function calls)
      */
     public static void validate(final String template, final Placeholder<?>... placeholders) {
         String replaced = template;

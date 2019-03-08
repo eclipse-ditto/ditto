@@ -42,6 +42,8 @@ public interface ExpressionResolver {
      * {@code true} and placeholders could not be resolved.
      * @throws org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException thrown if {@code allowUnresolved} was
      * set to {@code false} and the passed in {@code expressionTemplate} could not be resolved
+     * @throws PlaceholderFunctionTooComplexException thrown if the {@code expressionTemplate} contains a placeholder
+     * function chain which is too complex (e.g. too much chained function calls)
      */
     String resolve(String expressionTemplate, boolean allowUnresolved);
 

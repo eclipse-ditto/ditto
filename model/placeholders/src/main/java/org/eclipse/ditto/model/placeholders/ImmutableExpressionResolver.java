@@ -143,6 +143,10 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
 
         while (matcher.find()) {
             pipelineStagesExpressions.add(matcher.group().trim());
+
+            if (pipelineStagesExpressions.size() > MAX_COUNT_PIPELINE_FUNCTIONS + 1) { // +1 for the starting placeholder
+                throw PlaceholderFunctionTooComplexException.newBuilder(MAX_COUNT_PIPELINE_FUNCTIONS).build();
+            }
         }
         return pipelineStagesExpressions;
     }
@@ -158,11 +162,6 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
         final List<String> pipelineStages = pipelineStagesExpressions.stream()
                 .skip(1) // ignore first, as the first one is a placeholder that will be used as the input for the pipeline
                 .collect(Collectors.toList());
-
-        if (pipelineStages.size() > MAX_COUNT_PIPELINE_FUNCTIONS) {
-            throw PlaceholderFunctionTooComplexException.newBuilder(MAX_COUNT_PIPELINE_FUNCTIONS).build();
-        }
-
         return new ImmutablePipeline(ImmutableFunctionExpression.INSTANCE, pipelineStages);
     }
 

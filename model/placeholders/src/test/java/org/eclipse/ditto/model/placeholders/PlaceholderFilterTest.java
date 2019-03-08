@@ -220,6 +220,9 @@ public class PlaceholderFilterTest {
 
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
                 () -> PlaceholderFilter.validate("{{thing:nam}}espace }}{{  thing:name }}{{header:device-id }}", placeholders));
+
+        assertThatExceptionOfType(PlaceholderFunctionTooComplexException.class).isThrownBy(
+                () -> PlaceholderFilter.validate("{{ header:unknown | fn:default('fallback') | fn:upper() | fn:lower() | fn:upper() | fn:lower() | fn:upper() | fn:lower() | fn:upper() | fn:lower() | fn:upper() | fn:lower() }}", placeholders));
     }
 
     private static String filterChain(final String template, final FilterTuple... tuples) {
