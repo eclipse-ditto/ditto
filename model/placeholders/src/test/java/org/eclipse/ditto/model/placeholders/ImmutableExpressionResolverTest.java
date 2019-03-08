@@ -12,6 +12,7 @@ package org.eclipse.ditto.model.placeholders;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -174,4 +175,22 @@ public class ImmutableExpressionResolverTest {
                 .isEmpty();
     }
 
+    @Test
+    public void testResolveBarelyTooComplexFunctionChainWorks() {
+        // 10 functions should work:
+        assertThat(underTest.resolve(
+                "{{ header:unknown | fn:default('fallback') | fn:upper() | fn:lower() | fn:upper() | fn:lower() | fn:upper() | fn:lower() | fn:upper() | fn:lower() | fn:upper() }}",
+                false))
+                .isEqualTo("FALLBACK");
+    }
+
+    @Test
+    public void testResolveTooComplexFunctionChainResultsInException() {
+        // 11 functions should fail:
+        assertThatThrownBy(() ->
+                underTest.resolve(
+                        "{{ header:unknown | fn:default('fallback') | fn:upper() | fn:lower() | fn:upper() | fn:lower() | fn:upper() | fn:lower() | fn:upper() | fn:lower() | fn:upper() | fn:lower() }}",
+                        false))
+                .isInstanceOf(PlaceholderFunctionTooComplexException.class);
+    }
 }

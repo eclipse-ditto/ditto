@@ -35,6 +35,8 @@ import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 @Immutable
 final class ImmutableExpressionResolver implements ExpressionResolver {
 
+    private static final int MAX_COUNT_PIPELINE_FUNCTIONS = 10;
+
     private static final String PLACEHOLDER_BASIC = "[\\w\\-_]+:[\\w\\-_|]+";
     private static final String ANY_NUMBER_OF_SPACES = "\\s*";
     private static final String OR = "|";
@@ -156,6 +158,11 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
         final List<String> pipelineStages = pipelineStagesExpressions.stream()
                 .skip(1) // ignore first, as the first one is a placeholder that will be used as the input for the pipeline
                 .collect(Collectors.toList());
+
+        if (pipelineStages.size() > MAX_COUNT_PIPELINE_FUNCTIONS) {
+            throw PlaceholderFunctionTooComplexException.newBuilder(MAX_COUNT_PIPELINE_FUNCTIONS).build();
+        }
+
         return new ImmutablePipeline(ImmutableFunctionExpression.INSTANCE, pipelineStages);
     }
 
