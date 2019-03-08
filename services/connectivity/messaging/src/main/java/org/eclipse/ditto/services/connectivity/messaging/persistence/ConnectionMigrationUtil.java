@@ -112,7 +112,7 @@ final class ConnectionMigrationUtil {
         @Override
         public JsonObject apply(final JsonObject connectionJsonObject) {
             final Optional<JsonArray> sources = connectionJsonObject.getValue(Connection.JsonFields.SOURCES);
-            if (sources.isPresent() && needsSourceFilterMigration(connectionJsonObject)) {
+            if (sources.isPresent() && needsSourceFilterMigration(sources.get())) {
                 final JsonArray sourcesArray = sources.get().stream()
                         .filter(JsonValue::isObject)
                         .map(JsonValue::asObject)
@@ -124,10 +124,11 @@ final class ConnectionMigrationUtil {
             }
         }
 
-        private static boolean needsSourceFilterMigration(final JsonObject connectionJsonObject) {
-            final Optional<JsonArray> sources = connectionJsonObject.getValue(Connection.JsonFields.SOURCES);
-            return sources.isPresent() && sources.get().stream().filter(JsonValue::isObject)
-                    .map(JsonValue::asObject).anyMatch(source -> source.contains("filters"));
+        private static boolean needsSourceFilterMigration(final JsonArray sources) {
+            return sources.stream()
+                    .filter(JsonValue::isObject)
+                    .map(JsonValue::asObject)
+                    .anyMatch(source -> source.contains("filters"));
         }
 
         static JsonObject migrateSourceFilters(final JsonObject source) {
@@ -183,8 +184,7 @@ final class ConnectionMigrationUtil {
             return sources.stream()
                     .filter(JsonValue::isObject)
                     .map(JsonValue::asObject)
-                    .map(o -> MigrateTopicActionSubjectFilters.migrateHeaderMapping(o,
-                            Source.JsonFields.HEADER_MAPPING))
+                    .map(o -> MigrateTopicActionSubjectFilters.migrateHeaderMapping(o, Source.JsonFields.HEADER_MAPPING))
                     .collect(JsonCollectors.valuesToArray());
         }
 
@@ -193,8 +193,7 @@ final class ConnectionMigrationUtil {
                     .filter(JsonValue::isObject)
                     .map(JsonValue::asObject)
                     .map(MigrateTopicActionSubjectFilters::migrateTargetAddress)
-                    .map(o -> MigrateTopicActionSubjectFilters.migrateHeaderMapping(o,
-                            Target.JsonFields.HEADER_MAPPING))
+                    .map(o -> MigrateTopicActionSubjectFilters.migrateHeaderMapping(o, Target.JsonFields.HEADER_MAPPING))
                     .collect(JsonCollectors.valuesToArray());
         }
 
