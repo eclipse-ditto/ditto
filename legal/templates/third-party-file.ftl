@@ -13,7 +13,7 @@
         + "\n\n * Maven coordinates: `" + p.groupId + ":" + p.artifactId + ":" + p.version + "`"
         + "\n * License: " + licenseFormat(licenses)
         + "\n * Project: " + p.url
-        + "\n * Source: " + p.scm.url
+        + "\n * Source: " + (p.scm.url)!"not declared"
             ?replace('(git@|scm:git:git://|git://|http://)','https://','r')
             ?replace('.git','')
             ?replace('https://github.com:','https://github.com/')
