@@ -10,9 +10,12 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.namespace;
 
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
@@ -21,9 +24,14 @@ import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.SuffixBuilder
 import org.eclipse.ditto.services.utils.test.mongo.MongoDbResource;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespace;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespaceResponse;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -39,10 +47,15 @@ import akka.testkit.javadsl.TestKit;
  */
 public abstract class EventSourceNamespaceOpsActorTestCases {
 
+    private static final Random RANDOM = new Random();
+
     /**
      * Embedded MongoDB resource.
      */
     private static MongoDbResource mongoDbResource;
+    private ActorSystem actorSystem;
+
+    @Rule public TestName name = new TestName();
 
     @BeforeClass
     public static void startMongoDb() {
@@ -58,17 +71,28 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
         }
     }
 
+    @After
+    public void after() {
+        stopActorSystem(actorSystem);
+    }
+
     @Test
     public void purgeNamespaceWithSuffixBuilder() {
+        // cannot start actor system in @Before because config is specific to the test executed
+        final Config eventSourcingConfiguration = getEventSourcingConfiguration(ConfigFactory.empty());
+        final ActorSystem actorSystem = startActorSystem(eventSourcingConfiguration);
         // suffix builder is active by default
-        purgeNamespace(getEventSourcingConfiguration(ConfigFactory.empty()));
+        purgeNamespace(actorSystem, eventSourcingConfiguration);
     }
 
     @Test
     public void purgeNamespaceWithoutSuffixBuilder() {
         final Config configOverride =
                 ConfigFactory.parseString("akka.contrib.persistence.mongodb.mongo.suffix-builder.class=\"\"");
-        purgeNamespace(getEventSourcingConfiguration(configOverride));
+        final Config eventSourcingConfiguration = getEventSourcingConfiguration(configOverride);
+        actorSystem = startActorSystem(eventSourcingConfiguration);
+        // suffix builder is active by default
+        purgeNamespace(actorSystem, eventSourcingConfiguration);
     }
 
     /**
@@ -78,17 +102,21 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
      * @return config to feed the actor system and its actors.
      */
     private Config getEventSourcingConfiguration(final Config configOverride) {
-        final String databaseName = "test";
+        final String databaseName =
+                name.getMethodName() + "-" + BigInteger.valueOf(System.currentTimeMillis()).toString(16);
         final String mongoUriValue = String.format("\"mongodb://%s:%s/%s\"\n",
                 mongoDbResource.getBindIp(), mongoDbResource.getPort(), databaseName);
 
         // - do not log dead letters (i. e., events for which there is no subscriber)
         // - bind to random available port
         // - do not attempt to join an Akka cluster
+        // - do not shutdown jvm on exit (breaks unit tests)
         // - make Mongo URI known to the persistence plugin and to the NamespaceOps actor
         final String testConfig = "akka.log-dead-letters=0\n" +
                 "akka.remote.artery.bind.port=0\n" +
                 "akka.cluster.seed-nodes=[]\n" +
+                "akka.coordinated-shutdown.exit-jvm=off\n" +
+                "ditto.things.log-incoming-messages=true\n" +
                 "akka.contrib.persistence.mongodb.mongo.mongouri=" + mongoUriValue +
                 "ditto.services-utils-config.mongodb.uri=" + mongoUriValue;
 
@@ -102,6 +130,16 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
         return configOverride.withFallback(configWithSuffixBuilder);
     }
 
+    private ActorSystem startActorSystem(final Config config) {
+        return ActorSystem.create("AkkaTestSystem-" + name.getMethodName(), config);
+    }
+
+    private static void stopActorSystem(@Nullable final ActorSystem actorSystem) {
+        if (actorSystem != null) {
+            TestKit.shutdownActorSystem(actorSystem);
+        }
+    }
+
     /**
      * @return name of the configured service.
      */
@@ -112,16 +150,14 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
      */
     protected abstract List<String> getSupportedPrefixes();
 
-    private void purgeNamespace(final Config config) {
-        final ActorSystem actorSystem = ActorSystem.create(getClass().getSimpleName(), config);
+    private void purgeNamespace(final ActorSystem actorSystem, final Config config) {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .correlationId(String.valueOf(UUID.randomUUID()))
                 .build();
 
         new TestKit(actorSystem) {{
-            final Random random = new Random();
-            final String purgedNamespace = "purgedNamespace.x" + random.nextInt(1000000);
-            final String survivingNamespace = "survivingNamespace.x" + random.nextInt(1000000);
+            final String purgedNamespace = "purgedNamespace.x" + RANDOM.nextInt(1000000);
+            final String survivingNamespace = "survivingNamespace.x" + RANDOM.nextInt(1000000);
 
             final String purgedId = purgedNamespace + ":name";
             final String survivingId = survivingNamespace + ":name";

@@ -13,10 +13,8 @@ package org.eclipse.ditto.signals.events.connectivity;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -58,9 +56,8 @@ public final class TestConstants {
     );
 
     private static final HeaderMapping HEADER_MAPPING = null;
-    public static final Set<Target> TARGETS = new HashSet<>(
-            Collections.singletonList(
-                    ConnectivityModelFactory.newTarget("eventQueue", AUTHORIZATION_CONTEXT, HEADER_MAPPING, null, Topic.TWIN_EVENTS)));
+    public static final List<Target> TARGETS = Collections.singletonList(
+                    ConnectivityModelFactory.newTarget("eventQueue", AUTHORIZATION_CONTEXT, HEADER_MAPPING, null, Topic.TWIN_EVENTS));
     public static Connection CONNECTION =
             ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
                     .sources(SOURCES)

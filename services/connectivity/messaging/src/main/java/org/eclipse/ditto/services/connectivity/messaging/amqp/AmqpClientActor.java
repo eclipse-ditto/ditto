@@ -301,7 +301,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             stopCommandProducer();
             final String namePrefix = AmqpPublisherActor.ACTOR_NAME;
             if (jmsSession != null) {
-                final Props props = AmqpPublisherActor.props(connectionId(), getTargetsOrEmptySet(), jmsSession);
+                final Props props = AmqpPublisherActor.props(connectionId(), getTargetsOrEmptyList(), jmsSession);
                 amqpPublisherActor = startChildActorConflictFree(namePrefix, props);
             } else {
                 throw new IllegalStateException(

@@ -18,9 +18,9 @@ import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -31,6 +31,12 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.placeholders.ExpressionResolver;
+import org.eclipse.ditto.model.placeholders.HeadersPlaceholder;
+import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.model.placeholders.ThingPlaceholder;
+import org.eclipse.ditto.model.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectionMetricsCollector;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry;
@@ -38,11 +44,6 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
-import org.eclipse.ditto.services.models.connectivity.placeholder.HeadersPlaceholder;
-import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory;
-import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFilter;
-import org.eclipse.ditto.services.models.connectivity.placeholder.ThingPlaceholder;
-import org.eclipse.ditto.services.models.connectivity.placeholder.TopicPathPlaceholder;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.signals.base.Signal;
@@ -63,14 +64,14 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     private static final TopicPathPlaceholder TOPIC_PLACEHOLDER = PlaceholderFactory.newTopicPathPlaceholder();
 
     protected final String connectionId;
-    protected final Set<Target> targets;
+    protected final List<Target> targets;
     protected final Map<Target, ResourceStatus> resourceStatusMap;
 
     private ConnectionMetricsCollector responseDroppedCounter;
     private ConnectionMetricsCollector responsePublishedCounter;
 
 
-    protected BasePublisherActor(final String connectionId, final Set<Target> targets) {
+    protected BasePublisherActor(final String connectionId, final List<Target> targets) {
         this.connectionId = checkNotNull(connectionId, "connectionId");
         this.targets = checkNotNull(targets, "targets");
         resourceStatusMap = new HashMap<>();
@@ -245,17 +246,16 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 return messageBuilder.build();
             }
             final Signal<?> sourceSignal = outboundSignal.getSource();
+
+            final ExpressionResolver expressionResolver = PlaceholderFactory.newExpressionResolver(
+                    PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, originalHeaders),
+                    PlaceholderFactory.newPlaceholderResolver(THING_PLACEHOLDER, sourceSignal.getId()),
+                    PlaceholderFactory.newPlaceholderResolver(TOPIC_PLACEHOLDER, originalMessage.getTopicPath().orElse(null))
+            );
+
             final Map<String, String> mappedHeaders = mapping.getMapping().entrySet().stream()
                     .map(e -> new AbstractMap.SimpleEntry<>(e.getKey(),
-                            PlaceholderFilter.apply(e.getValue(), originalHeaders, HEADERS_PLACEHOLDER, true))
-                    )
-                    .map(e -> new AbstractMap.SimpleEntry<>(e.getKey(),
-                            PlaceholderFilter.apply(e.getValue(), sourceSignal.getId(), THING_PLACEHOLDER, true))
-                    )
-                    .map(e -> originalMessage.getTopicPath()
-                            .map(topicPath -> new AbstractMap.SimpleEntry<>(e.getKey(),
-                                    PlaceholderFilter.apply(e.getValue(), topicPath, TOPIC_PLACEHOLDER, true))
-                            ).orElse(e)
+                            PlaceholderFilter.apply(e.getValue(), expressionResolver, true))
                     )
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 

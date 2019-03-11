@@ -10,8 +10,9 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
-import static org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory.newThingPlaceholder;
-import static org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory.newTopicPathPlaceholder;
+import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newHeadersPlaceholder;
+import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newThingPlaceholder;
+import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newTopicPathPlaceholder;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -25,8 +26,8 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
-import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory;
 
 /**
  * Connection specification for Amqp protocol.
@@ -62,7 +63,7 @@ public final class AmqpValidator extends AbstractProtocolValidator {
     protected void validateTarget(final Target target, final DittoHeaders dittoHeaders,
             final Supplier<String> targetDescription) {
         target.getHeaderMapping().ifPresent(mapping -> validateHeaderMapping(mapping, dittoHeaders));
-        validateTemplate(target.getAddress(), dittoHeaders, newThingPlaceholder(), newTopicPathPlaceholder());
+        validateTemplate(target.getAddress(), dittoHeaders, newThingPlaceholder(), newTopicPathPlaceholder(), newHeadersPlaceholder());
     }
 
     @Override
@@ -73,5 +74,7 @@ public final class AmqpValidator extends AbstractProtocolValidator {
     @Override
     public void validate(final Connection connection, final DittoHeaders dittoHeaders) {
         validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, "AMQP 1.0");
+        validateSourceConfigs(connection, dittoHeaders);
+        validateTargetConfigs(connection, dittoHeaders);
     }
 }

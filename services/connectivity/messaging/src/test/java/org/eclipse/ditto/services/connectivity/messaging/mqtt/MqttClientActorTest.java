@@ -124,7 +124,7 @@ public class MqttClientActorTest {
                 ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT, ConnectivityStatus.OPEN,
                         serverHost)
                         .sources(singletonList(MQTT_SOURCE))
-                        .targets(singleton(TARGET))
+                        .targets(singletonList(TARGET))
                         .failoverEnabled(true)
                         .build();
     }
@@ -315,7 +315,7 @@ public class MqttClientActorTest {
             final ExternalMessage externalMessage =
                     ExternalMessageFactory.newExternalMessageBuilder(new HashMap<>()).withText(expectedJson).build();
             when(mappedSignal.getExternalMessage()).thenReturn(externalMessage);
-            when(mappedSignal.getTargets()).thenReturn(singleton(TARGET));
+            when(mappedSignal.getTargets()).thenReturn(singletonList(TARGET));
             when(mappedSignal.getSource()).thenReturn(thingModifiedEvent);
             underTest.tell(mappedSignal, getRef());
 

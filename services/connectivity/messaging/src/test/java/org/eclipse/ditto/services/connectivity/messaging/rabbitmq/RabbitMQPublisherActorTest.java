@@ -53,7 +53,7 @@ public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest<JmsMe
 
     @Override
     protected Props getPublisherActorProps() {
-        return RabbitMQPublisherActor.props("theConnection", Collections.emptySet());
+        return RabbitMQPublisherActor.props("theConnection", Collections.emptyList());
     }
 
     @Override

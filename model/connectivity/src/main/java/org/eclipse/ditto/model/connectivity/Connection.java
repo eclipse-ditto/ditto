@@ -70,11 +70,11 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
     List<Source> getSources();
 
     /**
-     * Returns a set of targets of this {@code Connection}.
+     * Returns a list of targets of this {@code Connection}.
      *
      * @return the targets
      */
-    Set<Target> getTargets();
+    List<Target> getTargets();
 
     /**
      * Returns how many clients on different cluster nodes should establish the {@code Connection}.

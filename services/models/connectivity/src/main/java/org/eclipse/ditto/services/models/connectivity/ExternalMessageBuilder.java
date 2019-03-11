@@ -18,8 +18,8 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
+import org.eclipse.ditto.model.placeholders.EnforcementFilter;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilter;
 
 /**
  * Builder for building instances of {@link ExternalMessage}.
