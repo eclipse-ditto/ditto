@@ -37,9 +37,9 @@ import akka.stream.javadsl.Sink;
 
 /**
  * Superclass of actors operating on the persistence at the level of namespaces.
- * It subscribes to the commands {@link PurgeNamespace} from the pub-sub mediator and carries them out.
- * Instances of this actor should start as cluster singletons in order to not perform identical operations multiple
- * times on the database.
+ * It subscribes to the commands from the pub-sub mediator and carries them out.
+ * Instances of the same type of this actor (running on different nodes) should register with the same group in order
+ * to make sure that only one of those actors runs the command on the database.
  */
 public abstract class AbstractOpsActor extends AbstractActor {
 
@@ -115,7 +115,9 @@ public abstract class AbstractOpsActor extends AbstractActor {
         if (namespaceOps != null) {
             log.debug("Subscribing for  namespace commands");
             final ActorRef self = getSelf();
-            pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(PurgeNamespace.TYPE, self), self);
+            final DistributedPubSubMediator.Subscribe subscribe =
+                    new DistributedPubSubMediator.Subscribe(PurgeNamespace.TYPE, getSubscribeGroup(), self);
+            pubSubMediator.tell(subscribe, self);
         }
     }
 
@@ -124,11 +126,15 @@ public abstract class AbstractOpsActor extends AbstractActor {
             final ActorRef self = getSelf();
             final String topic = PurgeEntities.getTopic(resourceType);
             final DistributedPubSubMediator.Subscribe subscribe =
-                    new DistributedPubSubMediator.Subscribe(topic, self);
+                    new DistributedPubSubMediator.Subscribe(topic, getSubscribeGroup(), self);
 
             log.debug("Subscribing for  entities commands on topic <{}>", topic);
             pubSubMediator.tell(subscribe, self);
         }
+    }
+
+    private String getSubscribeGroup() {
+        return getSelf().path().toStringWithoutAddress();
     }
 
     @Override

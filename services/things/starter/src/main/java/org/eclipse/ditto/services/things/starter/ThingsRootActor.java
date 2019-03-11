@@ -31,7 +31,6 @@ import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshott
 import org.eclipse.ditto.services.things.starter.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
-import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
@@ -161,9 +160,7 @@ final class ThingsRootActor extends AbstractActor {
                         shardingSettings,
                         ShardRegionExtractor.of(numberOfShards, getContext().getSystem()));
 
-        // start cluster singleton for namespace ops
-        ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, ThingOpsActor.ACTOR_NAME,
-                ThingOpsActor.props(pubSubMediator, config));
+        startChildActor(ThingOpsActor.ACTOR_NAME, ThingOpsActor.props(pubSubMediator, config));
 
         retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(thingsShardRegion,
                 ThingsMessagingConstants.SHARD_REGION, log);

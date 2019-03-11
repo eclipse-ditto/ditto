@@ -31,7 +31,6 @@ import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicySuper
 import org.eclipse.ditto.services.policies.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
-import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
@@ -158,9 +157,7 @@ public final class PoliciesRootActor extends AbstractActor {
                 .start(PoliciesMessagingConstants.SHARD_REGION, policySupervisorProps, shardingSettings,
                         ShardRegionExtractor.of(numberOfShards, getContext().getSystem()));
 
-        // start cluster singleton for ops
-        ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, PolicyOpsActor.ACTOR_NAME,
-                PolicyOpsActor.props(pubSubMediator, config));
+        startChildActor(PolicyOpsActor.ACTOR_NAME, PolicyOpsActor.props(pubSubMediator, config));
 
         retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(policiesShardRegion,
                 PoliciesMessagingConstants.SHARD_REGION, log);
