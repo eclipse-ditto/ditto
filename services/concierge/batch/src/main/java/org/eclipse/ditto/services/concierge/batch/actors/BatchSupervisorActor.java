@@ -166,7 +166,8 @@ public final class BatchSupervisorActor extends AbstractPersistentActor {
 
     @Override
     public void preStart() {
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
+        pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(ExecuteBatch.TYPE, ACTOR_NAME, getSelf()),
+                getSelf());
         pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(BatchExecutionFinished.TYPE, ACTOR_NAME, getSelf()),
                 getSelf());
     }
