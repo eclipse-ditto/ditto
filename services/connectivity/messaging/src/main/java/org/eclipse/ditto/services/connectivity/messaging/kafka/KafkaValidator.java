@@ -10,8 +10,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
-import static org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory.newThingPlaceholder;
-import static org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory.newTopicPathPlaceholder;
+import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newThingPlaceholder;
+import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newTopicPathPlaceholder;
 
 import java.text.MessageFormat;
 import java.util.Arrays;
@@ -30,7 +30,6 @@ import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
-import org.eclipse.paho.client.mqttv3.MqttTopic;
 
 /**
  * TODO: implement fully

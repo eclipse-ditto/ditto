@@ -10,12 +10,13 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
-import java.util.Set;
+import java.util.List;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.errors.TimeoutException;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectionMetricsCollector;
@@ -50,7 +51,7 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
 
     private final boolean dryRun;
 
-    private KafkaPublisherActor(final String connectionId, final Set<Target> targets,
+    private KafkaPublisherActor(final String connectionId, final List<Target> targets,
             final KafkaConnectionFactory factory,
             final ActorRef kafkaClientActor,
             final boolean dryRun) {
@@ -85,7 +86,7 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
      * @param dryRun whether this publisher is only created for a test or not.
      * @return the Akka configuration Props object.
      */
-    static Props props(final String connectionId, final Set<Target> targets,
+    static Props props(final String connectionId, final List<Target> targets,
             final KafkaConnectionFactory factory, final ActorRef kafkaClientActor,
             final boolean dryRun) {
         return Props.create(KafkaPublisherActor.class, new Creator<KafkaPublisherActor>() {

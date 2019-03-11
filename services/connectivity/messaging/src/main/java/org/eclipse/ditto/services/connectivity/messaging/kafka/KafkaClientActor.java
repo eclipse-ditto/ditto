@@ -99,11 +99,11 @@ public final class KafkaClientActor extends BaseClientActor {
                 .event(ClientConnected.class, BaseClientData.class, (event, data) -> {
                     final String url = data.getConnection().getUri();
                     final String message = "Kafka connection to " + url + " established successfully";
-                    completeTestConnectionFuture(new Status.Success(message), data);
+                    completeTestConnectionFuture(new Status.Success(message));
                     return stay();
                 })
                 .event(ConnectionFailure.class, BaseClientData.class, (event, data) -> {
-                    completeTestConnectionFuture(new Status.Failure(event.getFailure().cause()), data);
+                    completeTestConnectionFuture(new Status.Failure(event.getFailure().cause()));
                     return stay();
                 });
     }
@@ -165,7 +165,7 @@ public final class KafkaClientActor extends BaseClientActor {
         // ensure no previous publisher stays in memory
         stopKafkaPublisher();
         kafkaPublisherActor = startChildActorConflictFree(KafkaPublisherActor.ACTOR_NAME,
-                KafkaPublisherActor.props(connectionId(), getTargetsOrEmptySet(), factory, getSelf(), dryRun));
+                KafkaPublisherActor.props(connectionId(), getTargetsOrEmptyList(), factory, getSelf(), dryRun));
         pendingStatusReportsFromStreams.add(kafkaPublisherActor);
     }
 
@@ -205,7 +205,7 @@ public final class KafkaClientActor extends BaseClientActor {
         return stay();
     }
 
-    private void completeTestConnectionFuture(final Status.Status testResult, final BaseClientData data) {
+    private void completeTestConnectionFuture(final Status.Status testResult) {
         if (testConnectionFuture != null) {
             testConnectionFuture.complete(testResult);
         } else {
