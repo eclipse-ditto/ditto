@@ -10,8 +10,8 @@
  */
 package org.eclipse.ditto.services.models.connectivity;
 
+import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Predicate;
 
 import org.eclipse.ditto.json.JsonField;
@@ -45,7 +45,7 @@ final class MappedOutboundSignal implements OutboundSignal.WithExternalMessage {
     }
 
     @Override
-    public Set<Target> getTargets() {
+    public List<Target> getTargets() {
         return delegate.getTargets();
     }
 

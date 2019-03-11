@@ -403,7 +403,7 @@ public class JavaScriptMessageMapperRhinoTest {
         final CreateThing createThing =
                 CreateThing.of(newThing, null,
                         DittoHeaders.newBuilder().correlationId(correlationId).putHeader("subject",
-                                "{{topic:action|subject}}").build());
+                                "{{topic:action-subject}}").build());
         final Adaptable inputAdaptable = DittoProtocolAdapter.newInstance().toAdaptable(createThing);
         final JsonifiableAdaptable jsonifiableInputAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(inputAdaptable);
 
@@ -437,7 +437,7 @@ public class JavaScriptMessageMapperRhinoTest {
         final CreateThing createThing =
                 CreateThing.of(newThing, null,
                         DittoHeaders.newBuilder().correlationId(correlationId).putHeader("subject",
-                                "{{topic:action|subject}}").build());
+                                "{{topic:action-subject}}").build());
 
 
         System.out.println("HEADERS: " + ProtocolFactory.newHeadersWithDittoContentType(createThing.getDittoHeaders()));

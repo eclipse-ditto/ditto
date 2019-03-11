@@ -18,6 +18,7 @@ import java.io.StringWriter;
 import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -48,6 +49,13 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MetricDirection;
 import org.eclipse.ditto.model.connectivity.MetricType;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.placeholders.EnforcementFilter;
+import org.eclipse.ditto.model.placeholders.ExpressionResolver;
+import org.eclipse.ditto.model.placeholders.HeadersPlaceholder;
+import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.model.placeholders.ThingPlaceholder;
+import org.eclipse.ditto.model.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectionMetricsCollector;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry;
@@ -55,11 +63,6 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.InboundExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
-import org.eclipse.ditto.services.models.connectivity.placeholder.HeadersPlaceholder;
-import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory;
-import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFilter;
-import org.eclipse.ditto.services.models.connectivity.placeholder.ThingPlaceholder;
-import org.eclipse.ditto.services.models.connectivity.placeholder.TopicPathPlaceholder;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
@@ -305,7 +308,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private void handleSignal(final Signal<?> signal) {
         // map to outbound signal without authorized target (responses and errors are only sent to its origin)
         log.debug("Handling raw signal: {}", signal);
-        handleOutboundSignal(OutboundSignalFactory.newOutboundSignal(signal, Collections.emptySet()));
+        handleOutboundSignal(OutboundSignalFactory.newOutboundSignal(signal, Collections.emptyList()));
     }
 
     private Optional<ExternalMessage> mapToExternalMessage(final OutboundSignal outbound) {
@@ -382,6 +385,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     static final class PlaceholderInTargetAddressSubstitution
             implements BiFunction<OutboundSignal, ExternalMessage, OutboundSignal.WithExternalMessage> {
 
+        private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
         private static final ThingPlaceholder THING_PLACEHOLDER = PlaceholderFactory.newThingPlaceholder();
         private static final TopicPathPlaceholder TOPIC_PLACEHOLDER = PlaceholderFactory.newTopicPathPlaceholder();
 
@@ -399,18 +403,18 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                     .getTargets()
                     .stream()
                     .anyMatch(t -> Placeholders.containsAnyPlaceholder(t.getAddress()))) {
-                final Set<Target> targets = outboundSignal.getTargets().stream().map(t -> {
-                    String address =
-                            PlaceholderFilter.apply(t.getAddress(), outboundSignal.getSource().getId(), THING_PLACEHOLDER, true);
-                    if (topicPathOpt.isPresent()) {
-                        address =
-                                PlaceholderFilter.apply(address, topicPathOpt.get(), TOPIC_PLACEHOLDER, true);
-                    } else {
-                        log.warning("TopicPath for ExternalMessage was absent when trying to replace placeholders, " +
-                                "remaining address: <{}>", address);
-                    }
+
+                final ExpressionResolver expressionResolver = PlaceholderFactory.newExpressionResolver(
+                        PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, externalMessage.getHeaders()),
+                        PlaceholderFactory.newPlaceholderResolver(THING_PLACEHOLDER, outboundSignal.getSource().getId()),
+                        PlaceholderFactory.newPlaceholderResolver(TOPIC_PLACEHOLDER, topicPathOpt.orElse(null))
+                );
+
+                final List<Target> targets = outboundSignal.getTargets().stream().map(t -> {
+                    final String address =
+                            PlaceholderFilter.apply(t.getAddress(), expressionResolver, true);
                     return ConnectivityModelFactory.newTarget(t, address, t.getQos().orElse(null));
-                }).collect(Collectors.toSet());
+                }).collect(Collectors.toList());
                 final OutboundSignal modifiedOutboundSignal =
                         OutboundSignalFactory.newOutboundSignal(outboundSignal.getSource(), targets);
                 return OutboundSignalFactory.newMappedOutboundSignal(modifiedOutboundSignal,
@@ -490,7 +494,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     }
 
     /**
-     * Helper class applying the {@link org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilter} of
+     * Helper class applying the {@link EnforcementFilter} of
      * the passed in {@link ExternalMessage} by throwing a {@link ConnectionSignalIdEnforcementFailedException} if the
      * enforcement failed.
      */
@@ -535,18 +539,16 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 final DittoHeaders dittoHeaders = signal.getDittoHeaders();
                 final String thingId = signal.getId();
 
+                final ExpressionResolver expressionResolver = PlaceholderFactory.newExpressionResolver(
+                        PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, dittoHeaders),
+                        PlaceholderFactory.newPlaceholderResolver(THING_PLACEHOLDER, thingId),
+                        PlaceholderFactory.newPlaceholderResolver(TOPIC_PLACEHOLDER, inboundExternalMessage.getTopicPath())
+                );
+
                 final DittoHeadersBuilder dittoHeadersBuilder = dittoHeaders.toBuilder();
                 mapping.getMapping().entrySet().stream()
                         .map(e -> newEntry(e.getKey(),
-                                PlaceholderFilter.apply(e.getValue(), dittoHeaders, HEADERS_PLACEHOLDER, true))
-                        )
-                        .map(e -> newEntry(e.getKey(),
-                                PlaceholderFilter.apply(e.getValue(), thingId, THING_PLACEHOLDER, true))
-                        )
-                        .map(e -> newEntry(e.getKey(),
-                                PlaceholderFilter.apply(e.getValue(),
-                                        inboundExternalMessage.getTopicPath(),
-                                        TOPIC_PLACEHOLDER, true))
+                                PlaceholderFilter.apply(e.getValue(), expressionResolver, true))
                         )
                         .forEach(e -> dittoHeadersBuilder.putHeader(e.getKey(), e.getValue()));
 

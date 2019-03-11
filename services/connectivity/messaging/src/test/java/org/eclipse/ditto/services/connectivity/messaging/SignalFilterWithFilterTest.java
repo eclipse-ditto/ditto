@@ -19,9 +19,7 @@ import static org.eclipse.ditto.model.connectivity.Topic.TWIN_EVENTS;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonPointer;
@@ -70,7 +68,7 @@ public class SignalFilterWithFilterTest {
 
         final Connection connection = ConnectivityModelFactory
                 .newConnectionBuilder(CONNECTION, ConnectionType.AMQP_10, ConnectivityStatus.OPEN, URI)
-                .targets(new HashSet<>(Arrays.asList(targetA, targetB, targetC)))
+                .targets(Arrays.asList(targetA, targetB, targetC))
                 .build();
 
         final Thing thing = Thing.newBuilder()
@@ -82,10 +80,10 @@ public class SignalFilterWithFilterTest {
         final ThingModified thingModified = ThingModified.of(thing, 3L, headers);
 
         final SignalFilter signalFilter = new SignalFilter(connection);
-        final Set<Target> filteredTargets = signalFilter.filter(thingModified);
+        final List<Target> filteredTargets = signalFilter.filter(thingModified);
         Assertions
                 .assertThat(filteredTargets)
-                .isEqualTo(Collections.singleton(targetA)); // THEN: only targetA should be in the filtered targets
+                .isEqualTo(Collections.singletonList(targetA)); // THEN: only targetA should be in the filtered targets
     }
 
     @Test
@@ -110,7 +108,7 @@ public class SignalFilterWithFilterTest {
 
         final Connection connection = ConnectivityModelFactory
                 .newConnectionBuilder(CONNECTION, ConnectionType.AMQP_10, ConnectivityStatus.OPEN, URI)
-                .targets(new HashSet<>(Arrays.asList(targetA, targetB, targetC)))
+                .targets(Arrays.asList(targetA, targetB, targetC))
                 .build();
 
         final Thing thing = Thing.newBuilder()
@@ -123,10 +121,10 @@ public class SignalFilterWithFilterTest {
         final ThingModified thingModified = ThingModified.of(thing, 3L, headers);
 
         final SignalFilter signalFilter = new SignalFilter(connection);
-        final Set<Target> filteredTargets = signalFilter.filter(thingModified);
+        final List<Target> filteredTargets = signalFilter.filter(thingModified);
         Assertions
                 .assertThat(filteredTargets)
-                .isEqualTo(Collections.singleton(targetA)); // THEN: only targetA should be in the filtered targets
+                .isEqualTo(Collections.singletonList(targetA)); // THEN: only targetA should be in the filtered targets
     }
 
     @Test
@@ -158,7 +156,7 @@ public class SignalFilterWithFilterTest {
 
         final Connection connection = ConnectivityModelFactory
                 .newConnectionBuilder(CONNECTION, ConnectionType.AMQP_10, ConnectivityStatus.OPEN, URI)
-                .targets(new HashSet<>(Arrays.asList(targetA, targetB, targetC, targetD)))
+                .targets(Arrays.asList(targetA, targetB, targetC, targetD))
                 .build();
 
         final Thing thing = Thing.newBuilder()
@@ -170,7 +168,7 @@ public class SignalFilterWithFilterTest {
         final ThingModified thingModified = ThingModified.of(thing, 3L, headers);
 
         final SignalFilter signalFilter = new SignalFilter(connection);
-        final Set<Target> filteredTargets = signalFilter.filter(thingModified);
+        final List<Target> filteredTargets = signalFilter.filter(thingModified);
         Assertions
                 .assertThat(filteredTargets)
                 .contains(targetA, targetD); // THEN: only targetA and targetD should be in the filtered targets

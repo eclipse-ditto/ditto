@@ -17,6 +17,7 @@ import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -396,7 +397,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
             return;
         }
 
-        final Set<Target> subscribedAndAuthorizedTargets = signalFilter.filter(signal);
+        final List<Target> subscribedAndAuthorizedTargets = signalFilter.filter(signal);
         if (subscribedAndAuthorizedTargets.isEmpty()) {
             log.debug("Signal dropped: No subscribed and authorized targets present");
             return;

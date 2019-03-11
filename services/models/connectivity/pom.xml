@@ -31,6 +31,11 @@
         <!-- ### Compile ### -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-model-placeholders</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-messages</artifactId>
         </dependency>
         <dependency>

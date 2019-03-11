@@ -95,7 +95,7 @@
         <jmh.version>1.4.1</jmh.version>
 
         <scalatest.version>3.0.0</scalatest.version>
-        <flapdoodle.version>2.0.0</flapdoodle.version>
+        <flapdoodle.version>2.2.0</flapdoodle.version>
     </properties>
 
     <dependencyManagement>
@@ -530,6 +530,11 @@
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-model-thingsearch-parser</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-model-placeholders</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

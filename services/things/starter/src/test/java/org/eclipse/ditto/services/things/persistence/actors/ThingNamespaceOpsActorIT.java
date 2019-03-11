@@ -82,8 +82,8 @@ public final class ThingNamespaceOpsActorIT extends EventSourceNamespaceOpsActor
     protected ActorRef startActorUnderTest(final ActorSystem actorSystem, final ActorRef pubSubMediator,
             final Config config) {
 
-        final Props nanmespaceOpsActorProps = ThingNamespaceOpsActor.props(pubSubMediator, config);
-        return actorSystem.actorOf(nanmespaceOpsActorProps, ThingNamespaceOpsActor.ACTOR_NAME);
+        final Props namespaceOpsActorProps = ThingNamespaceOpsActor.props(pubSubMediator, config);
+        return actorSystem.actorOf(namespaceOpsActorProps, ThingNamespaceOpsActor.ACTOR_NAME);
     }
 
     @Override

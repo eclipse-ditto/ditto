@@ -10,10 +10,10 @@
  */
 package org.eclipse.ditto.services.models.connectivity;
 
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -42,11 +42,11 @@ import org.eclipse.ditto.signals.commands.base.Command;
 final class UnmappedOutboundSignal implements OutboundSignal {
 
     private final Signal<?> source;
-    private final Set<Target> targets;
+    private final List<Target> targets;
 
-    UnmappedOutboundSignal(final Signal<?> source, final Set<Target> targets) {
+    UnmappedOutboundSignal(final Signal<?> source, final List<Target> targets) {
         this.source = source;
-        this.targets = Collections.unmodifiableSet(new HashSet<>(targets));
+        this.targets = Collections.unmodifiableList(new ArrayList<>(targets));
     }
 
     /**
@@ -68,11 +68,11 @@ final class UnmappedOutboundSignal implements OutboundSignal {
                 .apply(readSourceObj, DittoHeaders.empty());
 
         final JsonArray readTargetsArr = jsonObject.getValueOrThrow(JsonFields.TARGETS);
-        final Set<Target> targets = readTargetsArr.stream()
+        final List<Target> targets = readTargetsArr.stream()
                 .filter(JsonValue::isObject)
                 .map(JsonValue::asObject)
                 .map(ConnectivityModelFactory::targetFromJson)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toList());
 
         return new UnmappedOutboundSignal((Signal<?>) signalJsonifiable, targets);
     }
@@ -83,7 +83,7 @@ final class UnmappedOutboundSignal implements OutboundSignal {
     }
 
     @Override
-    public Set<Target> getTargets() {
+    public List<Target> getTargets() {
         return targets;
     }
 

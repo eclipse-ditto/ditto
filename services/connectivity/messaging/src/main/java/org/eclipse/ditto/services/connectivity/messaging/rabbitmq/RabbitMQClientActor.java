@@ -315,7 +315,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     private Optional<ActorRef> startRmqPublisherActor() {
         if (isPublishing()) {
             return Optional.of(getContext().findChild(RabbitMQPublisherActor.ACTOR_NAME).orElseGet(() -> {
-                final Props publisherProps = RabbitMQPublisherActor.props(connectionId(), getTargetsOrEmptySet());
+                final Props publisherProps = RabbitMQPublisherActor.props(connectionId(), getTargetsOrEmptyList());
                 return startChildActorConflictFree(RabbitMQPublisherActor.ACTOR_NAME, publisherProps);
             }));
         } else {
@@ -343,7 +343,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     private void startConsumers(final Channel channel) {
         final Optional<ActorRef> messageMappingProcessor = getMessageMappingProcessorActor();
         if (messageMappingProcessor.isPresent()) {
-            getSourcesOrEmptySet().forEach(source ->
+            getSourcesOrEmptyList().forEach(source ->
                     source.getAddresses().forEach(sourceAddress -> {
                         for (int i = 0; i < source.getConsumerCount(); i++) {
                             final String addressWithIndex = sourceAddress + "-" + i;
@@ -373,7 +373,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
     private void ensureQueuesExist(final Channel channel) {
         final Collection<String> missingQueues = new ArrayList<>();
-        getSourcesOrEmptySet().forEach(consumer ->
+        getSourcesOrEmptyList().forEach(consumer ->
                 consumer.getAddresses().forEach(address -> {
                     try {
                         channel.queueDeclarePassive(address);
