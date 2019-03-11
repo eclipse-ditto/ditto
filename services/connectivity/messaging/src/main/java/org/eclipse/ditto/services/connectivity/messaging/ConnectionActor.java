@@ -38,6 +38,7 @@ import org.eclipse.ditto.model.connectivity.FilteredTopic;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
+import org.eclipse.ditto.services.connectivity.messaging.kafka.KafkaValidator;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.RetrieveConnectionMetricsAggregatorActor;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.RetrieveConnectionStatusAggregatorActor;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttValidator;
@@ -137,7 +138,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private static final ConnectionValidator CONNECTION_VALIDATOR = ConnectionValidator.of(
             RabbitMQValidator.newInstance(),
             AmqpValidator.newInstance(),
-            MqttValidator.newInstance());
+            MqttValidator.newInstance(),
+            KafkaValidator.newInstance());
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
