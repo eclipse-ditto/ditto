@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
-import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -556,7 +555,7 @@ public class AmqpClientActorTest extends WithMockServers {
             final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(singletonList(""));
 
             final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(thingModifiedEvent,
-                    singleton(ConnectivityModelFactory.newTarget(
+                    singletonList(ConnectivityModelFactory.newTarget(
                             TestConstants.Targets.TARGET_WITH_PLACEHOLDER.getAddress(),
                             Authorization.AUTHORIZATION_CONTEXT,
                             null, null, Topic.TWIN_EVENTS))
@@ -587,7 +586,7 @@ public class AmqpClientActorTest extends WithMockServers {
 
             final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(singletonList(""));
             final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(thingModifiedEvent,
-                    singleton(ConnectivityModelFactory.newTarget(expectedAddress, Authorization.AUTHORIZATION_CONTEXT, null,
+                    singletonList(ConnectivityModelFactory.newTarget(expectedAddress, Authorization.AUTHORIZATION_CONTEXT, null,
                             null, Topic.TWIN_EVENTS)));
 
             amqpClientActor.tell(outboundSignal, getRef());

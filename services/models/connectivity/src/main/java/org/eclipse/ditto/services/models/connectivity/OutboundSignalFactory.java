@@ -10,7 +10,7 @@
  */
 package org.eclipse.ditto.services.models.connectivity;
 
-import java.util.Set;
+import java.util.List;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -33,7 +33,7 @@ public final class OutboundSignalFactory {
      * @param targets the Set of Targets where the Signal should be delivered to.
      * @return the created OutboundSignal.
      */
-    public static OutboundSignal newOutboundSignal(final Signal<?> signal, final Set<Target> targets) {
+    public static OutboundSignal newOutboundSignal(final Signal<?> signal, final List<Target> targets) {
         return new UnmappedOutboundSignal(signal, targets);
     }
 

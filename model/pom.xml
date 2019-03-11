@@ -38,6 +38,7 @@
         <module>query</module>
         <module>rql</module>
         <module>rql-parser</module>
+        <module>placeholders</module>
     </modules>
 
     <dependencies>

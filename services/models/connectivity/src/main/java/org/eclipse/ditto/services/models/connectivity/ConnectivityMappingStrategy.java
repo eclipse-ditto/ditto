@@ -34,7 +34,7 @@ import org.eclipse.ditto.signals.events.connectivity.ConnectivityEventRegistry;
 
 /**
  * {@link MappingStrategy} for the Connectivity service containing all
- * {@link org.eclipse.ditto.model.base.json.Jsonifiable} types known to this service.
+ * {@link Jsonifiable} types known to this service.
  */
 public final class ConnectivityMappingStrategy implements MappingStrategy {
 

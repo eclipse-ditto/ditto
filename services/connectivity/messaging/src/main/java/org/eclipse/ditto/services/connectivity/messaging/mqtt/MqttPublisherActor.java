@@ -12,7 +12,7 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.Set;
+import java.util.List;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
@@ -58,7 +58,7 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
 
     private final boolean dryRun;
 
-    private MqttPublisherActor(final String connectionId, final Set<Target> targets,
+    private MqttPublisherActor(final String connectionId, final List<Target> targets,
             final MqttConnectionFactory factory,
             final ActorRef mqttClientActor,
             final boolean dryRun) {
@@ -86,7 +86,7 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
      * @param dryRun whether this publisher is only created for a test or not.
      * @return the Akka configuration Props object.
      */
-    static Props props(final String connectionId, final Set<Target> targets,
+    static Props props(final String connectionId, final List<Target> targets,
             final MqttConnectionFactory factory, final ActorRef mqttClientActor,
             final boolean dryRun) {
         return Props.create(MqttPublisherActor.class, new Creator<MqttPublisherActor>() {

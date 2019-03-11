@@ -10,7 +10,7 @@
  */
 package org.eclipse.ditto.services.models.connectivity;
 
-import java.util.Set;
+import java.util.List;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -40,7 +40,7 @@ public interface OutboundSignal extends Jsonifiable.WithFieldSelectorAndPredicat
     /**
      * @return the targets that are authorized to read and subscribed for the outbound signal.
      */
-    Set<Target> getTargets();
+    List<Target> getTargets();
 
     /**
      * Returns all non hidden marked fields of this {@code Connection}.

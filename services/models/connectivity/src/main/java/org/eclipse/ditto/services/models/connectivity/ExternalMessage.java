@@ -17,8 +17,8 @@ import java.util.Optional;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
+import org.eclipse.ditto.model.placeholders.EnforcementFilter;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilter;
 
 /**
  * Simple wrapper around the headers and the payload received from or sent to external AMQP (0.9 or 1.0)

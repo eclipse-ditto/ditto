@@ -66,6 +66,9 @@
                 <configuration>
                     <parameter>
                         <excludes>
+                            <!-- reduced visibility from public to private: -->
+                            <exclude>org.eclipse.ditto.model.base.common.Placeholders#ANY_NUMBER_OF_SPACES</exclude>
+                            <exclude>org.eclipse.ditto.model.base.common.Placeholders#PLACEHOLDER_GROUP</exclude>
                             <exclude>org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException</exclude>
                         </excludes>
                     </parameter>

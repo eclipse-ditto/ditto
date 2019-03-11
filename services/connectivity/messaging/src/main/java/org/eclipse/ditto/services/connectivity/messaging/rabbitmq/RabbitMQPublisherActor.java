@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -67,7 +68,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
 
     @Nullable private ActorRef channelActor;
 
-    private RabbitMQPublisherActor(final Set<Target> targets, final String connectionId) {
+    private RabbitMQPublisherActor(final List<Target> targets, final String connectionId) {
         super(connectionId, targets);
     }
 
@@ -78,7 +79,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
      * @param targets the targets to publish to
      * @return the Akka configuration Props object.
      */
-    static Props props(final String connectionId, final Set<Target> targets) {
+    static Props props(final String connectionId, final List<Target> targets) {
         return Props.create(RabbitMQPublisherActor.class, new Creator<RabbitMQPublisherActor>() {
             private static final long serialVersionUID = 1L;
 

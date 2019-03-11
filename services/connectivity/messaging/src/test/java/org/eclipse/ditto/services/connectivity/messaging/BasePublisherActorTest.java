@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
-import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 
 import java.util.HashMap;
@@ -59,7 +58,7 @@ public class BasePublisherActorTest {
                         HEADER_MAPPING, null,
                         Topic.TWIN_EVENTS);
         final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(thingModifiedEvent,
-                singleton(target));
+                singletonList(target));
 
         final String correlationId = UUID.randomUUID().toString();
         final String correlationIdImportant = correlationId + "-important!";

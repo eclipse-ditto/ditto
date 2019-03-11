@@ -129,6 +129,9 @@ entries:
     - title: Connections
       url: /basic-connections.html
       output: web
+    - title: Placeholders
+      url: /basic-placeholders.html
+      output: web
     - title: Change notifications
       url: /basic-changenotifications.html
       output: web
