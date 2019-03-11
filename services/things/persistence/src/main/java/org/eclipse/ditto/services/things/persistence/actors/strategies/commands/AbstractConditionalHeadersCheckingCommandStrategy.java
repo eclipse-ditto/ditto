@@ -61,7 +61,8 @@ public abstract class AbstractConditionalHeadersCheckingCommandStrategy<C extend
                 .flatMap(EntityTag::fromEntity)
                 .orElse(null);
 
-        context.getLog().debug("Validating conditional headers with currentETagValue <{}> on command <{}>.");
+        context.getLog().debug("Validating conditional headers with currentETagValue <{}> on command <{}>.",
+                currentETagValue, command);
         try {
             VALIDATOR.checkConditionalHeaders(command, currentETagValue);
             context.getLog().debug("Validating conditional headers succeeded.");
