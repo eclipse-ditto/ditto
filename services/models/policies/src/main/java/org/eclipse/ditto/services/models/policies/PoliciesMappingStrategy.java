@@ -21,19 +21,14 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommandRegistry;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommandResponseRegistry;
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
-import org.eclipse.ditto.services.models.streaming.StreamingRegistry;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
-import org.eclipse.ditto.signals.commands.common.CommonCommandRegistry;
-import org.eclipse.ditto.signals.commands.devops.DevOpsCommandRegistry;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
-import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandRegistry;
 import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandResponseRegistry;
-import org.eclipse.ditto.signals.commands.policies.PolicyCommandRegistry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponseRegistry;
 import org.eclipse.ditto.signals.events.policies.PolicyEventRegistry;
 
@@ -47,9 +42,9 @@ public final class PoliciesMappingStrategy implements MappingStrategy {
         final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
 
         builder.add(GlobalErrorRegistry.getInstance());
+        builder.add(GlobalCommandRegistry.getInstance());
 
         addPoliciesStrategies(builder);
-        addCommonStrategies(builder);
         addDevOpsStrategies(builder);
         addNamespacesStrategies(builder);
 
@@ -57,12 +52,9 @@ public final class PoliciesMappingStrategy implements MappingStrategy {
     }
 
     private static void addPoliciesStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(PolicyCommandRegistry.newInstance())
-                .add(PolicyCommandResponseRegistry.newInstance())
+        builder.add(PolicyCommandResponseRegistry.newInstance())
                 .add(PolicyEventRegistry.newInstance())
-                .add(SudoCommandRegistry.newInstance())
                 .add(SudoCommandResponseRegistry.newInstance())
-                .add(StreamingRegistry.newInstance())
                 .add(Policy.class, (Function<JsonObject, Jsonifiable<?>>) PoliciesModelFactory::newPolicy)
                 .add(PolicyTag.class, jsonObject -> PolicyTag.fromJson(jsonObject))  // do not replace with lambda!
                 .add(BatchedEntityIdWithRevisions.typeOf(PolicyTag.class),
@@ -71,17 +63,11 @@ public final class PoliciesMappingStrategy implements MappingStrategy {
                         jsonObject -> PolicyReferenceTag.fromJson(jsonObject));  // do not replace with lambda!
     }
 
-    private static void addCommonStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(CommonCommandRegistry.getInstance());
-    }
-
     private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(DevOpsCommandRegistry.newInstance());
         builder.add(DevOpsCommandResponseRegistry.newInstance());
     }
 
     private static void addNamespacesStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(NamespaceCommandRegistry.getInstance());
         builder.add(NamespaceCommandResponseRegistry.getInstance());
     }
 

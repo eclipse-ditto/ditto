@@ -29,7 +29,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.things.ThingCommandRegistry;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.junit.Test;
@@ -127,7 +127,7 @@ public final class BatchExecutionStartedTest {
     public void createInstanceFromValidJson() {
         final BatchExecutionStarted underTest =
                 BatchExecutionStarted.fromJson(KNOWN_JSON.toString(), DittoHeaders.empty(),
-                        ThingCommandRegistry.newInstance());
+                        GlobalCommandRegistry.getInstance());
 
         assertThat(underTest).isNotNull();
         assertThat(underTest.getBatchId()).isEqualTo(KNOWN_BATCH_ID);
@@ -138,7 +138,7 @@ public final class BatchExecutionStartedTest {
     public void retrieveEventName() {
         final String name =
                 BatchExecutionStarted.fromJson(KNOWN_JSON.toString(), DittoHeaders.empty(),
-                        ThingCommandRegistry.newInstance()).getName();
+                        GlobalCommandRegistry.getInstance()).getName();
         assertThat(name).isEqualTo(BatchExecutionStarted.NAME);
     }
 

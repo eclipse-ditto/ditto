@@ -26,11 +26,9 @@ import org.eclipse.ditto.services.models.things.ThingsMappingStrategy;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
-import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandRegistry;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponseRegistry;
-import org.eclipse.ditto.signals.commands.devops.DevOpsCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
-import org.eclipse.ditto.signals.commands.messages.MessageCommandRegistry;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponseRegistry;
 import org.eclipse.ditto.signals.events.connectivity.ConnectivityEventRegistry;
 
@@ -63,10 +61,10 @@ public final class ConnectivityMappingStrategy implements MappingStrategy {
         final Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> combinedStrategy = new HashMap<>();
 
         final MappingStrategiesBuilder strategiesBuilder = MappingStrategiesBuilder.newInstance()
-                .add(ConnectivityCommandRegistry.newInstance())
+                .add(GlobalCommandRegistry.getInstance())
+                .add(GlobalErrorRegistry.getInstance())
                 .add(ConnectivityCommandResponseRegistry.newInstance())
                 .add(ConnectivityEventRegistry.newInstance())
-                .add(GlobalErrorRegistry.getInstance())
                 .add(Connection.class, jsonObject ->
                         ConnectivityModelFactory.connectionFromJson(jsonObject)) // do not replace with lambda!
                 .add("ImmutableConnection", jsonObject ->
@@ -91,12 +89,10 @@ public final class ConnectivityMappingStrategy implements MappingStrategy {
     }
 
     private static void addMessagesStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(MessageCommandRegistry.newInstance());
         builder.add(MessageCommandResponseRegistry.newInstance());
     }
 
     private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(DevOpsCommandRegistry.newInstance());
         builder.add(DevOpsCommandResponseRegistry.newInstance());
     }
 

@@ -27,6 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -37,6 +38,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * Command which modifies a {@link Connection}.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = ModifyConnection.TYPE_PREFIX, name = ModifyConnection.NAME)
 public final class ModifyConnection extends AbstractCommand<ModifyConnection>
         implements ConnectivityModifyCommand<ModifyConnection> {
 

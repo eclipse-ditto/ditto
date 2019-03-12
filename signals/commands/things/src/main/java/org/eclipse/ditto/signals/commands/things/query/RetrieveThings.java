@@ -40,6 +40,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.WithNamespace;
@@ -50,6 +51,7 @@ import org.eclipse.ditto.signals.commands.things.exceptions.MissingThingIdsExcep
  * Thing IDs.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = RetrieveThings.TYPE_PREFIX, name = RetrieveThings.NAME)
 public final class RetrieveThings extends AbstractCommand<RetrieveThings>
         implements ThingQueryCommand<RetrieveThings>, WithNamespace {
 

@@ -23,7 +23,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
-import org.eclipse.ditto.signals.commands.batch.BatchCommandRegistry;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.batch.BatchCommandResponseRegistry;
 import org.eclipse.ditto.signals.events.batch.BatchEventRegistry;
 
@@ -37,14 +37,14 @@ public final class BatchMappingStrategy implements MappingStrategy {
     public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy() {
         final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
 
-        final BatchStepCommandRegistry batchStepCommandRegistry = BatchStepCommandRegistry.newInstance();
+        final GlobalCommandRegistry globalCommandRegistry = GlobalCommandRegistry.getInstance();
         final BatchStepCommandResponseRegistry batchStepCommandResponseRegistry =
                 BatchStepCommandResponseRegistry.newInstance();
 
         builder.add(GlobalErrorRegistry.getInstance());
-        builder.add(BatchCommandRegistry.newInstance(batchStepCommandRegistry));
+        builder.add(globalCommandRegistry);
         builder.add(BatchCommandResponseRegistry.newInstance());
-        builder.add(BatchEventRegistry.newInstance(batchStepCommandRegistry, batchStepCommandResponseRegistry));
+        builder.add(BatchEventRegistry.newInstance(globalCommandRegistry, batchStepCommandResponseRegistry));
 
         return builder.build();
     }

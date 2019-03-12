@@ -29,6 +29,8 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.PoliciesConflictingException;
@@ -180,4 +182,18 @@ public final class CreateThingTest {
                         "The Thing with ID ''{0}'' could not be created as it contained an inline Policy as" +
                                 " well as a policyID to copy.", TestConstants.Thing.THING_ID));
     }
+
+    @Test
+    public void parseCreateThingCommand() {
+        final GlobalCommandRegistry commandRegistry = GlobalCommandRegistry.getInstance();
+
+        final CreateThing command = CreateThing.of(TestConstants.Thing.THING, null,
+                TestConstants.DITTO_HEADERS);
+        final JsonObject jsonObject = command.toJson(FieldType.regularOrSpecial());
+
+        final Command parsedCommand = commandRegistry.parse(jsonObject, TestConstants.DITTO_HEADERS);
+
+        assertThat(parsedCommand).isEqualTo(command);
+    }
+
 }

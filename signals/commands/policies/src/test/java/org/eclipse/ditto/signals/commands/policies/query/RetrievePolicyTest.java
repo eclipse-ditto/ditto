@@ -24,6 +24,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
+import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.TestConstants;
 import org.junit.Test;
@@ -89,6 +91,19 @@ public final class RetrievePolicyTest {
 
         assertThat(underTest).isNotNull();
         assertThat(underTest.getId()).isEqualTo(TestConstants.Policy.POLICY_ID);
+    }
+
+    @Test
+    public void parseRetrievePolicyCommand() {
+        final GlobalCommandRegistry commandRegistry = GlobalCommandRegistry.getInstance();
+
+        final RetrievePolicy command = RetrievePolicy.of(
+                TestConstants.Policy.POLICY_ID, TestConstants.DITTO_HEADERS);
+        final JsonObject jsonObject = command.toJson(FieldType.regularOrSpecial());
+
+        final Command parsedCommand = commandRegistry.parse(jsonObject, TestConstants.DITTO_HEADERS);
+
+        assertThat(parsedCommand).isEqualTo(command);
     }
 
 }

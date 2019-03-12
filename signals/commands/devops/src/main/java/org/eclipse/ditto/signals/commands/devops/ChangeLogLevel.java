@@ -27,6 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.devops.ImmutableLoggerConfig;
 import org.eclipse.ditto.model.devops.LoggerConfig;
@@ -37,6 +38,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * LoggerConfig}.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = ChangeLogLevel.TYPE_PREFIX, name = ChangeLogLevel.NAME)
 public final class ChangeLogLevel extends AbstractDevOpsCommand<ChangeLogLevel> {
 
     /**

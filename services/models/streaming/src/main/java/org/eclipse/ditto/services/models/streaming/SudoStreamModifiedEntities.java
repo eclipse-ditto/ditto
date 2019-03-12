@@ -35,6 +35,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
@@ -46,13 +47,17 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
  */
 @Immutable
 @AllValuesAreNonnullByDefault
+@JsonParsableCommand(typePrefix = SudoStreamModifiedEntities.TYPE_PREFIX, name = SudoStreamModifiedEntities.NAME)
 public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStreamModifiedEntities>
         implements StreamingMessage {
+
+    static final String NAME = "org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities";
 
     /**
      * Type of this command.
      */
-    public static final String TYPE = TYPE_PREFIX + SudoStreamModifiedEntities.class.getName();
+    public static final String TYPE = TYPE_PREFIX + NAME;
+
 
     static final JsonFieldDefinition<String> JSON_START =
             JsonFactory.newStringFieldDefinition("payload/start", REGULAR, V_1, V_2);

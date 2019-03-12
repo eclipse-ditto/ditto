@@ -29,9 +29,9 @@ import org.eclipse.ditto.signals.base.JsonParsableRegistry;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.batch.ExecuteBatch;
 import org.eclipse.ditto.signals.commands.batch.ExecuteBatchResponse;
-import org.eclipse.ditto.signals.commands.things.ThingCommandRegistry;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
@@ -212,7 +212,7 @@ public final class BatchSupervisorActorTest {
     private static final class SharedRegionProxyMock extends AbstractActor {
 
         private int modifyFeatureCount = 0;
-        private final JsonParsableRegistry<? extends Command> commandRegistry = ThingCommandRegistry.newInstance();
+        private final JsonParsableRegistry<? extends Command> commandRegistry = GlobalCommandRegistry.getInstance();
 
         SharedRegionProxyMock() {
         }

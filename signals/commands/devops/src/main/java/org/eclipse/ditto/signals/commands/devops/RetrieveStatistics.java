@@ -21,6 +21,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -28,6 +29,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * Command which retrieves publicly available statistics about the stored Things currently present.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = RetrieveStatistics.TYPE_PREFIX, name = RetrieveStatistics.NAME)
 public final class RetrieveStatistics extends AbstractDevOpsCommand<RetrieveStatistics> {
 
     /**

@@ -26,6 +26,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
@@ -39,6 +40,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * org.eclipse.ditto.model.policies.PolicyEntry}'s {@link org.eclipse.ditto.model.policies.Subjects}.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = DeleteSubject.TYPE_PREFIX, name = DeleteSubject.NAME)
 public final class DeleteSubject extends AbstractCommand<DeleteSubject> implements PolicyModifyCommand<DeleteSubject> {
 
     /**

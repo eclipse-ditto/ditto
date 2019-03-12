@@ -12,9 +12,9 @@
  */
 package org.eclipse.ditto.services.concierge.batch;
 
-import org.eclipse.ditto.services.models.concierge.batch.BatchStepCommandRegistry;
 import org.eclipse.ditto.services.models.concierge.batch.BatchStepCommandResponseRegistry;
 import org.eclipse.ditto.services.utils.persistence.mongo.AbstractMongoEventAdapter;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.events.base.EventRegistry;
 import org.eclipse.ditto.signals.events.batch.BatchEvent;
 import org.eclipse.ditto.signals.events.batch.BatchEventRegistry;
@@ -32,11 +32,11 @@ public final class MongoBatchEventAdapter extends AbstractMongoEventAdapter<Batc
     }
 
     private static EventRegistry<BatchEvent> createEventRegistry() {
-        final BatchStepCommandRegistry batchStepCommandRegistry = BatchStepCommandRegistry.newInstance();
+        final GlobalCommandRegistry globalCommandRegistry = GlobalCommandRegistry.getInstance();
         final BatchStepCommandResponseRegistry batchStepCommandResponseRegistry =
                 BatchStepCommandResponseRegistry.newInstance();
 
-        return BatchEventRegistry.newInstance(batchStepCommandRegistry, batchStepCommandResponseRegistry);
+        return BatchEventRegistry.newInstance(globalCommandRegistry, batchStepCommandResponseRegistry);
     }
 
 }

@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -88,7 +89,7 @@ public final class SudoStreamModifiedEntitiesTest {
                 SudoStreamModifiedEntities.fromJson(KNOWN_JSON, EMPTY_DITTO_HEADERS);
 
         final Jsonifiable parsed =
-                StreamingRegistry.newInstance().parse(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
+                GlobalCommandRegistry.getInstance().parse(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
 
         assertThat(expected).isEqualTo(parsed);
     }

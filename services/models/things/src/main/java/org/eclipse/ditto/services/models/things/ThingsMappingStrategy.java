@@ -21,18 +21,13 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
-import org.eclipse.ditto.services.models.streaming.StreamingRegistry;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommandRegistry;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommandResponseRegistry;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
-import org.eclipse.ditto.signals.commands.common.CommonCommandRegistry;
-import org.eclipse.ditto.signals.commands.devops.DevOpsCommandRegistry;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
-import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandRegistry;
 import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandResponseRegistry;
-import org.eclipse.ditto.signals.commands.things.ThingCommandRegistry;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponseRegistry;
 import org.eclipse.ditto.signals.events.things.ThingEventRegistry;
 
@@ -46,9 +41,9 @@ public final class ThingsMappingStrategy implements MappingStrategy {
         final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
 
         builder.add(GlobalErrorRegistry.getInstance());
+        builder.add(GlobalCommandRegistry.getInstance());
 
         addThingsStrategies(builder);
-        addCommonStrategies(builder);
         addDevOpsStrategies(builder);
         addNamespacesStrategies(builder);
 
@@ -56,12 +51,9 @@ public final class ThingsMappingStrategy implements MappingStrategy {
     }
 
     private static void addThingsStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(ThingCommandRegistry.newInstance())
-                .add(ThingCommandResponseRegistry.newInstance())
+        builder.add(ThingCommandResponseRegistry.newInstance())
                 .add(ThingEventRegistry.newInstance())
-                .add(SudoCommandRegistry.newInstance())
                 .add(SudoCommandResponseRegistry.newInstance())
-                .add(StreamingRegistry.newInstance())
                 .add(Thing.class,
                         (jsonObject) -> ThingsModelFactory.newThing(jsonObject)) // do not replace with lambda!
                 .add(ThingTag.class, jsonObject -> ThingTag.fromJson(jsonObject))  // do not replace with lambda!
@@ -70,17 +62,11 @@ public final class ThingsMappingStrategy implements MappingStrategy {
                 .build();
     }
 
-    private static void addCommonStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(CommonCommandRegistry.getInstance());
-    }
-
     private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(DevOpsCommandRegistry.newInstance());
         builder.add(DevOpsCommandResponseRegistry.newInstance());
     }
 
     private static void addNamespacesStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(NamespaceCommandRegistry.getInstance());
         builder.add(NamespaceCommandResponseRegistry.getInstance());
     }
 

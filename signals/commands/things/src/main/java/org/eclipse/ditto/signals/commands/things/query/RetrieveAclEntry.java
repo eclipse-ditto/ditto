@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingIdValidator;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
@@ -41,6 +42,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * Command which retrieves the ACL entry of a {@code Thing} based on the passed in ID and Authorization Subject.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = RetrieveAclEntry.TYPE_PREFIX, name = RetrieveAclEntry.NAME)
 public final class RetrieveAclEntry extends AbstractCommand<RetrieveAclEntry>
         implements ThingQueryCommand<RetrieveAclEntry> {
 

@@ -35,17 +35,21 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
-import org.eclipse.ditto.signals.commands.base.CommandRegistry;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 
 /**
  * This command initiates a batch execution of a list of {@link Command}.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = ExecuteBatch.TYPE_PREFIX, name = ExecuteBatch.NAME)
 public final class ExecuteBatch extends AbstractCommand<ExecuteBatch> implements BatchCommand<ExecuteBatch> {
+
+    private static final GlobalCommandRegistry GLOBAL_COMMAND_REGISTRY = GlobalCommandRegistry.getInstance();
 
     /**
      * Name of this command.
@@ -105,16 +109,14 @@ public final class ExecuteBatch extends AbstractCommand<ExecuteBatch> implements
      *
      * @param jsonString the JSON string of which the command is to be created.
      * @param dittoHeaders the headers of the command.
-     * @param commandRegistry the {@link CommandRegistry} to use in order to deserialize the commands in the JSON.
      * @return the command.
      * @throws NullPointerException if {@code jsonString} is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
      */
-    public static ExecuteBatch fromJson(final String jsonString, final DittoHeaders dittoHeaders,
-            final CommandRegistry<? extends Command> commandRegistry) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders, commandRegistry);
+    public static ExecuteBatch fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
+        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
     /**
@@ -122,14 +124,12 @@ public final class ExecuteBatch extends AbstractCommand<ExecuteBatch> implements
      *
      * @param jsonObject the JSON object of which the command is to be created.
      * @param dittoHeaders the headers of the command.
-     * @param commandRegistry the {@link CommandRegistry} to use in order to deserialize the commands in the JSON.
      * @return the command.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static ExecuteBatch fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders,
-            final CommandRegistry<? extends Command> commandRegistry) {
+    public static ExecuteBatch fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
 
         return new CommandJsonDeserializer<ExecuteBatch>(TYPE, jsonObject).deserialize(() -> {
             final String batchId = jsonObject.getValueOrThrow(BatchCommand.JsonFields.BATCH_ID);
@@ -140,7 +140,7 @@ public final class ExecuteBatch extends AbstractCommand<ExecuteBatch> implements
                     .map(json -> {
                         final DittoHeaders headers =
                                 DittoHeaders.newBuilder(json.getValueOrThrow(JSON_DITTO_HEADERS)).build();
-                        return commandRegistry.parse(json.getValueOrThrow(JSON_COMMAND), headers);
+                        return GLOBAL_COMMAND_REGISTRY.parse(json.getValueOrThrow(JSON_COMMAND), headers);
                     })
                     .collect(Collectors.toList());
 

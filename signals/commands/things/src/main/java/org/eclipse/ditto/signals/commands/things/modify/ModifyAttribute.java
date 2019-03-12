@@ -30,6 +30,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingIdValidator;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
@@ -41,6 +42,7 @@ import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInva
  * This command modifies an attribute.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = ModifyAttribute.TYPE_PREFIX, name = ModifyAttribute.NAME)
 public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
         implements ThingModifyCommand<ModifyAttribute> {
 

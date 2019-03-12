@@ -51,14 +51,6 @@ public final class GlobalErrorRegistry extends AbstractErrorRegistry<DittoRuntim
         return parseRegistries;
     }
 
-    @Override
-    protected String resolveType(final JsonObject jsonObject) {
-        return jsonObject.getValue(DittoRuntimeException.JsonFields.ERROR_CODE)
-                .orElseThrow(() -> JsonMissingFieldException.newBuilder()
-                        .fieldName(DittoRuntimeException.JsonFields.ERROR_CODE.getPointer().toString())
-                        .build());
-    }
-
     /**
      * Gets an instance of {@link GlobalErrorRegistry}.
      *

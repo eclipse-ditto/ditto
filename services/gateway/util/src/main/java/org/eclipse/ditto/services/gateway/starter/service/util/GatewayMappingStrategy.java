@@ -27,12 +27,9 @@ import org.eclipse.ditto.services.models.thingsearch.ThingSearchMappingStrategy;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
-import org.eclipse.ditto.signals.commands.common.CommonCommandRegistry;
-import org.eclipse.ditto.signals.commands.devops.DevOpsCommandRegistry;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
-import org.eclipse.ditto.signals.commands.messages.MessageCommandRegistry;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponseRegistry;
-import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandRegistry;
 import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandResponseRegistry;
 
 /**
@@ -69,9 +66,9 @@ public final class GatewayMappingStrategy implements MappingStrategy {
                 jsonObject -> StreamingAck.fromJson(jsonObject)); // do not replace with lambda!
 
         builder.add(GlobalErrorRegistry.getInstance());
+        builder.add(GlobalCommandRegistry.getInstance());
 
         addMessagesStrategies(builder);
-        addCommonStrategies(builder);
         addDevOpsStrategies(builder);
         addNamespacesStrategies(builder);
 
@@ -80,21 +77,14 @@ public final class GatewayMappingStrategy implements MappingStrategy {
     }
 
     private static void addMessagesStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(MessageCommandRegistry.newInstance());
         builder.add(MessageCommandResponseRegistry.newInstance());
     }
 
-    private static void addCommonStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(CommonCommandRegistry.getInstance());
-    }
-
     private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(DevOpsCommandRegistry.newInstance());
         builder.add(DevOpsCommandResponseRegistry.newInstance());
     }
 
     private static void addNamespacesStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(NamespaceCommandRegistry.getInstance());
         builder.add(NamespaceCommandResponseRegistry.getInstance());
     }
 

@@ -26,7 +26,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
-import org.eclipse.ditto.signals.commands.things.ThingCommandRegistry;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
@@ -62,8 +62,8 @@ public final class ShardRegionExtractorTest {
         final GlobalErrorRegistry globalErrorRegistry = GlobalErrorRegistry.getInstance();
         globalErrorRegistry.getTypes().forEach(type -> mappingStrategies.put(type, globalErrorRegistry::parse));
 
-        final ThingCommandRegistry thingCommandRegistry = ThingCommandRegistry.newInstance();
-        thingCommandRegistry.getTypes().forEach(type -> mappingStrategies.put(type, thingCommandRegistry::parse));
+        final GlobalCommandRegistry globalCommandRegistry = GlobalCommandRegistry.getInstance();
+        globalCommandRegistry.getTypes().forEach(type -> mappingStrategies.put(type, globalCommandRegistry::parse));
 
         final ThingCommandResponseRegistry thingCommandResponseRegistry = ThingCommandResponseRegistry.newInstance();
         thingCommandResponseRegistry.getTypes()

@@ -29,7 +29,6 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.things.ThingCommandRegistry;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.junit.Test;
 
@@ -128,8 +127,7 @@ public final class ExecuteBatchTest {
 
     @Test
     public void createInstanceFromValidJson() {
-        final ExecuteBatch underTest = ExecuteBatch.fromJson(KNOWN_JSON.toString(), DittoHeaders.empty(),
-                ThingCommandRegistry.newInstance());
+        final ExecuteBatch underTest = ExecuteBatch.fromJson(KNOWN_JSON.toString(), DittoHeaders.empty());
 
         assertThat(underTest).isNotNull();
         assertThat(underTest.getBatchId()).isEqualTo(KNOWN_BATCH_ID);
@@ -139,8 +137,7 @@ public final class ExecuteBatchTest {
     @Test
     public void retrieveCommandName() {
         final String name =
-                ExecuteBatch.fromJson(KNOWN_JSON.toString(), DittoHeaders.empty(),
-                        ThingCommandRegistry.newInstance()).getName();
+                ExecuteBatch.fromJson(KNOWN_JSON.toString(), DittoHeaders.empty()).getName();
         assertThat(name).isEqualTo(ExecuteBatch.NAME);
     }
 

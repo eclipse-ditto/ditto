@@ -28,7 +28,7 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
-import org.eclipse.ditto.signals.commands.things.ThingCommandRegistry;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
@@ -151,7 +151,7 @@ public final class JsonifiableSerializerTest {
         public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy() {
             return MappingStrategiesBuilder.newInstance()
                     .add(GlobalErrorRegistry.getInstance())
-                    .add(ThingCommandRegistry.newInstance())
+                    .add(GlobalCommandRegistry.getInstance())
                     .add(ThingCommandResponseRegistry.newInstance())
                     .add(Thing.class, (jsonObject) -> ThingsModelFactory.newThing(jsonObject)) // do not replace with lambda!
                     .add(ShardedMessageEnvelope.class, (jsonObject) -> ShardedMessageEnvelope.fromJson(jsonObject)) // do not replace with lambda!
