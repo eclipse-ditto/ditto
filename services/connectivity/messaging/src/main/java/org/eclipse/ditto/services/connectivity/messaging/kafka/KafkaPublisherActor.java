@@ -16,7 +16,6 @@ import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.errors.TimeoutException;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectionMetricsCollector;
@@ -32,16 +31,20 @@ import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
+import akka.kafka.ProducerMessage;
 import akka.stream.ActorMaterializer;
 import akka.stream.OverflowStrategy;
 import akka.stream.javadsl.Keep;
+import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.util.ByteString;
 
 /**
- * Responsible for publishing {@link org.eclipse.ditto.services.models.connectivity.ExternalMessage}s into an Kafka broker.
+ * Responsible for publishing {@link org.eclipse.ditto.services.models.connectivity.ExternalMessage}s into an Kafka
+ * broker.
  */
 public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
+
     static final String ACTOR_NAME = "kafkaPublisher";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
@@ -59,16 +62,13 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
         this.kafkaClientActor = kafkaClientActor;
         this.dryRun = dryRun;
 
-        // TODO: verify the actor is stopped via Status.Success or Status.Failure. When using a PoisonPill, the Source
-        //  will keep consuming even though the actor is killed.
-        final Pair<ActorRef, CompletionStage<Done>> materializedValues =
-                Source.<ProducerRecord<String, String>>actorRef(100, OverflowStrategy.dropHead())
-                        .toMat(factory.newSink(), Keep.both())
+        final Pair<ActorRef, CompletionStage<Done>> materializedFlowedValues =
+                Source.<ProducerMessage.Envelope<String, String, ConnectionMetricsCollector>>actorRef(100, OverflowStrategy.dropHead())
+                        .via(factory.newFlow())
+                        .toMat(KafkaPublisherActor.publishSuccessSink(), Keep.both())
                         .run(ActorMaterializer.create(getContext()));
-
-        materializedValues.second().handleAsync(this::reportReadiness);
-
-        sourceActor = materializedValues.first();
+        sourceActor = materializedFlowedValues.first();
+        materializedFlowedValues.second().handleAsync(this::handleCompletionOrFailure);
 
         // TODO: think about doing this somewhere else
         // has to be done since we the publisher won't send a Done instance after finishing its connectivity.
@@ -97,6 +97,13 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
                 return new KafkaPublisherActor(connectionId, targets, factory, kafkaClientActor, dryRun);
             }
         });
+    }
+
+    private static Sink<ProducerMessage.Results<String, String, ConnectionMetricsCollector>, CompletionStage<Done>> publishSuccessSink() {
+
+        // basically, we don't know if the 'publish' will succeed or fail. We would need to write our own
+        // GraphStage actor for Kafka and MQTT, since alpakka doesn't provide this useful information for us.
+        return Sink.foreach(results -> results.passThrough().recordSuccess());
     }
 
     @Override
@@ -130,19 +137,18 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
     private void publishMessage(final KafkaPublishTarget publishTarget, final ExternalMessage message,
             final ConnectionMetricsCollector publishedCounter) {
 
-        final ProducerRecord<String, String> kafkaMessage = mapExternalMessageToKafkaMessage(publishTarget, message);
-        // TODO: handle org.apache.kafka.common.errors.TimeoutException which is a reply if the producer can't send the message in time
+        final ProducerMessage.Envelope<String, String, ConnectionMetricsCollector> kafkaMessage = mapExternalMessageToKafkaMessage(publishTarget, message, publishedCounter);
         sourceActor.tell(kafkaMessage, getSelf());
-        // TODO: we don't know yet if we succeeded here...
-        publishedCounter.recordSuccess();
     }
 
-    private boolean isDryRun(final Object message) {
+    private boolean isDryRun(final Object unused) {
         return dryRun;
     }
 
-    private static ProducerRecord<String, String> mapExternalMessageToKafkaMessage(final KafkaPublishTarget publishTarget,
-            final ExternalMessage externalMessage) {
+    private static ProducerMessage.Envelope<String, String, ConnectionMetricsCollector> mapExternalMessageToKafkaMessage(
+            final KafkaPublishTarget publishTarget,
+            final ExternalMessage externalMessage,
+            final ConnectionMetricsCollector metricsCollector) {
 
         final String payload;
         if (externalMessage.isTextMessage()) {
@@ -156,26 +162,40 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
         } else {
             payload = "";
         }
-        return new ProducerRecord<>(publishTarget.getTopic(), payload);
+        final ProducerRecord<String, String> record =
+                new ProducerRecord<>(publishTarget.getTopic(), publishTarget.getPartition(), publishTarget.getKey(), payload);
+        return ProducerMessage.single(record, metricsCollector);
+    }
+
+
+    private Done handleCompletionOrFailure(final Done done, final Throwable throwable) {
+        if (null == throwable) {
+            // todo: stop actor in this case
+            log.info("Internal kafka publisher completed. Stopping publisher actor.");
+        } else if (shuttingDown) {
+            log.info("Received and ignoring exception while shutting down: {}", throwable.getMessage());
+        } else {
+            // TODO: handle the different exceptions thrown by the publisher
+            /*
+            possible errors as found in KafkaProducer.java:
+            @throws AuthenticationException if authentication fails. See the exception for more details
+             * @throws AuthorizationException fatal error indicating that the producer is not allowed to write
+             * @throws IllegalStateException if a transactional.id has been configured and no transaction has been started, or
+             *                               when send is invoked after producer has been closed.
+             * @throws InterruptException If the thread is interrupted while blocked
+             * @throws SerializationException If the key or value are not valid objects given the configured serializers
+             * @throws TimeoutException If the time taken for fetching metadata or allocating memory for the record has surpassed <code>max.block.ms</code>.
+             * @throws KafkaException If a Kafka related error occurs that does not belong to the public API exceptions.
+
+             */
+            log.error(throwable, "An error happened in the internal kafka publisher: {}");
+        }
+        return done;
     }
 
     private void reportInitialConnectionState() {
-        this.reportReadiness(Done.done(), null);
-    }
-
-    /*
-     * Called inside future - must be thread-safe.
-     */
-    @Nullable
-    private Done reportReadiness(@Nullable final Done done, @Nullable final Throwable exception) {
-        if (exception == null) {
-            log.info("Publisher ready");
-            kafkaClientActor.tell(new Status.Success(done), getSelf());
-        } else {
-            log.info("Publisher failed");
-            kafkaClientActor.tell(new Status.Failure(exception), getSelf());
-        }
-        return done;
+        log.info("Publisher ready");
+        kafkaClientActor.tell(new Status.Success(Done.done()), getSelf());
     }
 
     @Override

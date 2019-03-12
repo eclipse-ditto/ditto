@@ -10,18 +10,15 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
-import java.util.concurrent.CompletionStage;
-
-import org.apache.kafka.clients.producer.ProducerRecord;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 
 import com.typesafe.config.Config;
 
-import akka.Done;
+import akka.kafka.ProducerMessage;
 import akka.kafka.ProducerSettings;
 import akka.kafka.javadsl.Producer;
-import akka.stream.javadsl.Sink;
+import akka.stream.javadsl.Flow;
 
 /**
  * Creates Kafka sinks.
@@ -44,8 +41,8 @@ final class DefaultKafkaConnectionFactory implements KafkaConnectionFactory {
     }
 
     @Override
-    public Sink<ProducerRecord<String, String>, CompletionStage<Done>> newSink() {
-        return Producer.plainSink(settings, kafkaProducer);
+    public <T> Flow<ProducerMessage.Envelope<String, String, T>, ProducerMessage.Results<String, String, T>, akka.NotUsed> newFlow() {
+        return Producer.flexiFlow(settings, kafkaProducer);
     }
 
 }

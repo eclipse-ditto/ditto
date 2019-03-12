@@ -10,16 +10,14 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
-import java.util.concurrent.CompletionStage;
-
-import org.apache.kafka.clients.producer.ProducerRecord;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 
 import com.typesafe.config.Config;
 
-import akka.Done;
-import akka.stream.javadsl.Sink;
+import akka.NotUsed;
+import akka.kafka.ProducerMessage;
+import akka.stream.javadsl.Flow;
 
 /**
  * Creates Kafka sinks.
@@ -34,11 +32,11 @@ public interface KafkaConnectionFactory {
     String connectionId();
 
     /**
-     * Create an Akka stream sink of Kafka messages.
+     * Create an Akka stream flow of Kafka messages.
      *
-     * @return Akka stream sink that publishes Kafka messages to the broker.
+     * @return Akka stream flow that publishes Kafka messages to the broker.
      */
-    Sink<ProducerRecord<String, String>, CompletionStage<Done>> newSink();
+    <T> Flow<ProducerMessage.Envelope<String, String, T>, ProducerMessage.Results<String, String, T>, NotUsed> newFlow();
 
     /**
      * Create a default Kafka connection factory.
@@ -50,4 +48,5 @@ public interface KafkaConnectionFactory {
     static KafkaConnectionFactory of(final Connection connection, final DittoHeaders dittoHeaders, final Config config) {
         return new DefaultKafkaConnectionFactory(connection, dittoHeaders, config);
     }
+
 }

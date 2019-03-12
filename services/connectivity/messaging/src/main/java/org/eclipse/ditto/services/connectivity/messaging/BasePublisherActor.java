@@ -67,8 +67,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     protected final List<Target> targets;
     protected final Map<Target, ResourceStatus> resourceStatusMap;
 
-    private ConnectionMetricsCollector responseDroppedCounter;
-    private ConnectionMetricsCollector responsePublishedCounter;
+    private final ConnectionMetricsCollector responseDroppedCounter;
+    private final ConnectionMetricsCollector responsePublishedCounter;
 
 
     protected BasePublisherActor(final String connectionId, final List<Target> targets) {

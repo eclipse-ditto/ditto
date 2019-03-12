@@ -12,6 +12,7 @@ package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
 import java.util.Objects;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.common.ConditionChecker;
@@ -25,17 +26,33 @@ import org.eclipse.ditto.services.connectivity.messaging.PublishTarget;
 final class KafkaPublishTarget implements PublishTarget {
 
     private final String topic;
+    private final String key;
+    private final Integer partition;
 
     static KafkaPublishTarget of(final String topic) {
-        return new KafkaPublishTarget(topic);
+        // TODO: extract key/partition from the possible formats:
+        // topic/<key string>
+        // topic#<partition 1..99_999>
+        // topic
+        return new KafkaPublishTarget(topic, null, null);
     }
 
-    private KafkaPublishTarget(final String topic) {
+    private KafkaPublishTarget(final String topic, @Nullable final String key, @Nullable final Integer partition) {
         this.topic = ConditionChecker.argumentNotEmpty(topic, "topic");
-    }
+        this.key = key;
+        this.partition = partition;
+}
 
     String getTopic() {
         return topic;
+    }
+
+    String getKey() {
+        return key;
+    }
+
+    Integer getPartition() {
+        return partition;
     }
 
     @Override
