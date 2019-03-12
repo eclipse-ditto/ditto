@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
@@ -166,21 +167,34 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
             final ExternalMessage externalMessage,
             final ConnectionMetricsCollector metricsCollector) {
 
-        final String payload;
+        final String payload = mapExternalMessagePayload(externalMessage);
+        final Iterable<Header> headers = mapExternalMessageHeaders(externalMessage);
+
+        final ProducerRecord<String, String> record =
+                new ProducerRecord<>(publishTarget.getTopic(), publishTarget.getPartition(), publishTarget.getKey(), payload, headers);
+        return ProducerMessage.single(record, metricsCollector);
+    }
+
+    private static Iterable<Header> mapExternalMessageHeaders(final ExternalMessage externalMessage) {
+        return externalMessage.getHeaders()
+                .entrySet()
+                .stream()
+                .map(header -> new RecordHeader(header.getKey(), header.getValue().getBytes(StandardCharsets.US_ASCII)))
+                .collect(Collectors.toList());
+    }
+
+    private static String mapExternalMessagePayload(final ExternalMessage externalMessage) {
         if (externalMessage.isTextMessage()) {
-            payload = externalMessage.getTextPayload()
+            return externalMessage.getTextPayload()
                     .orElse("");
         } else if (externalMessage.isBytesMessage()) {
-            payload = externalMessage.getBytePayload()
+            return externalMessage.getBytePayload()
                     .map(ByteString::fromByteBuffer)
                     .map(ByteString::utf8String)
                     .orElse("");
-        } else {
-            payload = "";
+
         }
-        final ProducerRecord<String, String> record =
-                new ProducerRecord<>(publishTarget.getTopic(), publishTarget.getPartition(), publishTarget.getKey(), payload);
-        return ProducerMessage.single(record, metricsCollector);
+        return "";
     }
 
 
