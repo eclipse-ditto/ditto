@@ -183,7 +183,9 @@ public final class KafkaClientActor extends BaseClientActor {
             //  we need to send a Status.Success or Status.Failure to it first. it will then push all remaining messages
             //  i think and then stop the actor. Otherwise the Source will keep consuming even if the actor was killed.
             //  We will also need to fix this for MQTT and maybe the others, too.
-            stopChildActor(kafkaPublisherActor);
+            log.debug("Stopping child actor <{}>.", kafkaPublisherActor.path());
+            // shutdown using a message, so the actor can clean up first
+            kafkaPublisherActor.tell(KafkaPublisherActor.GracefulStop.INSTANCE, getSelf());
             kafkaPublisherActor = null;
         }
     }

@@ -12,10 +12,13 @@ package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
 import java.util.List;
 import java.util.concurrent.CompletionStage;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.internals.RecordHeader;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectionMetricsCollector;
@@ -53,6 +56,8 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
     private final ActorRef kafkaClientActor;
 
     private final boolean dryRun;
+    private boolean shuttingDown = false;
+
 
     private KafkaPublisherActor(final String connectionId, final List<Target> targets,
             final KafkaConnectionFactory factory,
@@ -75,6 +80,16 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
         // in fact at the time of writing it doesn't report on connectivity in any way.
         this.reportInitialConnectionState();
     }
+
+    /*
+      TODO: test cases:
+      1. what happens if the topic is missing -> org.apache.kafka.common.errors.TimeoutException: Topic <topic> not present in metadata after 10000 ms.
+      2. what happens if authentication is unsuccessful
+      3. what happens if authorization is unsuccessful
+      4. what happens if the port is closed
+      5. what happens if kafka is stopped
+      6. how to handle poisonpill to us?
+     */
 
     /**
      * Creates Akka configuration object {@link akka.actor.Props} for this {@code BasePublisherActor}.
@@ -109,7 +124,8 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
         receiveBuilder.match(OutboundSignal.WithExternalMessage.class, this::isDryRun,
-                outbound -> log.info("Message dropped in dry run mode: {}", outbound));
+                outbound -> log.info("Message dropped in dry run mode: {}", outbound))
+                .matchEquals(GracefulStop.INSTANCE, this::stopGracefully);
     }
 
     @Override
@@ -201,6 +217,21 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
     @Override
     protected DiagnosticLoggingAdapter log() {
         return log;
+    }
+
+    private void stopGracefully(GracefulStop unused) {
+        this.shuttingDown = true;
+        log.info("stopping publisher actor, sending status to child actor to stop it");
+        sourceActor.tell(new Status.Success("stopped"), ActorRef.noSender());
+        log.debug("stopping myself.");
+        getContext().stop(getSelf());
+    }
+
+    public static class GracefulStop {
+        public static final GracefulStop INSTANCE = new GracefulStop();
+        private GracefulStop() {
+            // intentionally empty
+        }
     }
 
 }
