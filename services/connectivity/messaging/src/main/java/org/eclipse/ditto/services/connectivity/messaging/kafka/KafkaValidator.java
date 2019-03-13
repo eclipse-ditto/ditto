@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
+import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newThingPlaceholder;
 import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newTopicPathPlaceholder;
 
@@ -17,12 +18,12 @@ import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.apache.kafka.common.errors.InvalidTopicException;
+import org.apache.kafka.common.internals.Topic;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
@@ -78,7 +79,8 @@ public final class KafkaValidator extends AbstractProtocolValidator {
     @Override
     protected void validateTarget(final Target target, final DittoHeaders dittoHeaders,
             final Supplier<String> targetDescription) {
-        validateTemplate(target.getAddress(), dittoHeaders, newThingPlaceholder(), newTopicPathPlaceholder());
+
+        validateTemplate(target.getAddress(), dittoHeaders, newThingPlaceholder(), newTopicPathPlaceholder(), newHeadersPlaceholder());
     }
 
     private static void validateAddresses(final Connection connection, final DittoHeaders dittoHeaders) {
@@ -89,21 +91,59 @@ public final class KafkaValidator extends AbstractProtocolValidator {
                 .forEach(a -> validateAddress(a, dittoHeaders));
     }
 
+    // todo: validate connection uri
+    // todo: validate additional bootstrap servers
+
     private static void validateAddress(final String address, final DittoHeaders dittoHeaders) {
-        validateKafkaTopic(address, errorMessage -> {
-            final String message = MessageFormat.format(INVALID_TOPIC_FORMAT, address, errorMessage);
-            return ConnectionConfigurationInvalidException.newBuilder(message)
-                    .dittoHeaders(dittoHeaders)
-                    .build();
-        });
-    }
-
-    private static void validateKafkaTopic(final String address, final Function<String, DittoRuntimeException> errorProducer) {
-        try {
-            // TODO: implement
-        } catch (final IllegalArgumentException e) {
-            throw errorProducer.apply(e.getMessage());
+        if (containsKey(address)) {
+            validateTargetAddressWithKey(address, dittoHeaders);
+        } else if (containsPartition(address)) {
+            validateTargetAddressWithPartition(address, dittoHeaders);
+        } else {
+            validateTopic(address, dittoHeaders);
         }
-
     }
+
+    private static boolean containsKey(final String targetAddress) {
+        final int index = targetAddress.indexOf(KafkaPublishTarget.KEY_SEPARATOR);
+        return index > 0 && index < targetAddress.length();
+    }
+
+    private static void validateTargetAddressWithKey(final String targetAddress, final DittoHeaders dittoHeaders) {
+        final String[] split = targetAddress.split(KafkaPublishTarget.KEY_SEPARATOR, 2);
+        validateTopic(split[0], dittoHeaders);
+        validateKey(split[1]);
+    }
+
+    private static void validateKey(final String key) {
+        // no-op, everything allowed by now since it might contain placeholders that can resolver to everything
+    }
+
+    private static boolean containsPartition(final String targetAddress) {
+        final int index = targetAddress.indexOf(KafkaPublishTarget.PARTITION_SEPARATOR);
+        return index > 0 && index < targetAddress.length();
+    }
+
+    private static void validateTargetAddressWithPartition(final String targetAddress, final DittoHeaders dittoHeaders) {
+        final String[] split = targetAddress.split(KafkaPublishTarget.PARTITION_SEPARATOR, 2);
+        validateTopic(split[0], dittoHeaders);
+        validatePartition(split[1]);
+    }
+
+    private static void validatePartition(final String partitionString) {
+        // no-op, everything allowed by now, since it might contain a placeholder that resolves to an integer
+    }
+
+    private static void validateTopic(final String topic, final DittoHeaders dittoHeaders) {
+        try {
+            Topic.validate(topic);
+        } catch (final InvalidTopicException e) {
+            final String message = MessageFormat.format(INVALID_TOPIC_FORMAT, topic, e.getMessage());
+            throw ConnectionConfigurationInvalidException.newBuilder(message)
+                    .dittoHeaders(dittoHeaders)
+                    .cause(e)
+                    .build();
+        }
+    }
+
 }

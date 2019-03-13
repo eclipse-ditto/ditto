@@ -28,8 +28,8 @@ import org.eclipse.ditto.services.connectivity.messaging.PublishTarget;
 @Immutable
 final class KafkaPublishTarget implements PublishTarget {
 
-    private static final String KEY_SEPARATOR = "/";
-    private static final String PARTITION_SEPARATOR = "#";
+    static final String KEY_SEPARATOR = "/";
+    static final String PARTITION_SEPARATOR = "#";
 
     private final String topic;
     private final String key;
