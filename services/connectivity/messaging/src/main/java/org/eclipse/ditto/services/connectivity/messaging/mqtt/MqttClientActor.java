@@ -151,8 +151,8 @@ public final class MqttClientActor extends BaseClientActor {
     }
 
     @Override
-    protected Optional<ActorRef> getPublisherActor() {
-        return Optional.ofNullable(mqttPublisherActor);
+    protected ActorRef getPublisherActor() {
+        return mqttPublisherActor;
     }
 
     @Override
@@ -271,10 +271,10 @@ public final class MqttClientActor extends BaseClientActor {
 
     @Override
     protected void cleanupResourcesForConnection() {
-
         pendingStatusReportsFromStreams.clear();
         activateConsumerKillSwitch();
         stopCommandConsumers();
+        stopMessageMappingProcessorActor();
         stopMqttPublisher();
     }
 
