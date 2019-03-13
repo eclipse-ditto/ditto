@@ -5,7 +5,10 @@ tags: [protocol, connectivity]
 permalink: connectivity-protocol-bindings-mqtt.html
 ---
 
-[awsiot]: https://docs.aws.amazon.com/iot/
+Consume messages from MQTT brokers via [sources](#source-format) and send messages to AMQP brokers via 
+[targets](#target-format).
+
+## Content-type
 
 When MQTT messages are sent in [Ditto Protocol](protocol-overview.html),
 the payload should be `UTF-8` encoded strings.
@@ -27,6 +30,10 @@ These properties are supported:
   If a command sets the header `reply-to`, then its response is published at the topic equal to the header value.
 
 ## Specific connection configuration
+
+The common configuration for connections in [Connections > Sources](basic-connections.html#sources) and 
+[Connections > Targets](basic-connections.html#targets) applies here as well. 
+Following are some specifics for MQTT connections:
 
 ### Source format
 
@@ -54,28 +61,8 @@ For an MQTT connection:
 
 #### Enforcement
 
-{% include_relative connectivity-enforcement.md %}
+As MQTT 3.1.1 does not support headers in its protocol, headers may not be used during [source enforcement](basic-connections.html#source-enforcement).
 
-The following placeholders are available for the `input` field:
-
-| Placeholder    | Description  | Example   |
-|-----------|-------|---------------|
-| `{%raw%}{{ source:address }}{%endraw%}` | The topic on which the message was received. | devices/sensors/temperature1  |
-
-Assuming a device `temperature1` publishes its telemetry data to an MQTT broker on topic `devices/sensors/temperature1`.
-The MQTT broker verifies that no other device is allowed to publish on this topic. To enforce that the device can 
-only send data to the Thing `sensors:temperature1` the following enforcement configuration can be used: 
-```json
-{
-  "addresses": [ "devices/sensors/#" ],
-  "authorizationContext": ["ditto:inbound-auth-subject", "..."],
-  "qos": 1,
-  "enforcement": {
-    "input": "{%raw%}{{ source:address }}{%endraw%}",
-    "filters": [ "{%raw%}devices/{{ thing:namespace }}/{{ thing:name }}{%endraw%}" ]
-  }
-}
-```
 
 #### Source header mapping
 
@@ -109,35 +96,6 @@ The default value is `0` (at-most-once).
   ],
   "authorizationContext": ["ditto:outbound-auth-subject", "..."],
   "qos": 0
-}
-```
-
-#### Filtering
-
-In order to only consume specific events like described in [change notifications](basic-changenotifications.html), the
-following parameters can additionally be provided when specifying the `topics` of a target:
-
-| Description | Topic | Filter by namespaces | Filter by RQL expression |
-|-------------|-----------------|------------------|-----------|
-| Subscribe for [events/change notifications](basic-changenotifications.html) | `_/_/things/twin/events` | &#10004; | &#10004; |
-| Subscribe for [messages](basic-messages.html) | `_/_/things/live/messages` | &#10004; | &#10060; |
-| Subscribe for [live commands](protocol-twinlive.html) | `_/_/things/live/commands` | &#10004; | &#10060; |
-| Subscribe for [live events](protocol-twinlive.html) | `_/_/things/live/events` | &#10004; | &#10004; |
-
-The parameters are specified similar to HTTP query parameters, the first one separated with a `?` and all following ones
-with `&`. You have to URL encode the filter values before using them in a configuration.
-
-For example this way the connection session would register for all events in the namespace `org.eclipse.ditto` and which
-would match an attribute "counter" to be greater than 42. Additionally it would subscribe to messages in the namespace
-`org.eclipse.ditto`:
-```json
-{
-  "address": "eclipse-ditto-sandbox/{%raw%}{{ thing:id }}{%endraw%}",
-  "topics": [
-    "_/_/things/twin/events?namespaces=org.eclipse.ditto&filter=gt(attributes/counter,42)",
-    "_/_/things/live/messages?namespaces=org.eclipse.ditto"
-  ],
-  "authorizationContext": ["ditto:outbound-auth-subject", "..."]
 }
 ```
 
@@ -188,15 +146,6 @@ Connection configuration to create a new MQTT connection:
 }
 ```
 
-## Messages
-
-Messages consumed via the MQTT binding are treated similar to the
-[WebSocket binding](httpapi-protocol-bindings-websocket.html), 
-meaning that the messages are expected to be [Ditto Protocol](protocol-overview.html) messages serialized as
-UTF-8-coded JSON (as shown for example in the [protocol examples](protocol-examples.html)).
-If your payload does not conform to the [Ditto Protocol](protocol-overview.html) or uses any character set other
-than UTF-8, you can configure a custom [payload mapping](connectivity-mapping.html).
-
 ## Client-certificate authentication
 
 Ditto supports certificate-based authentication for MQTT connections. Consult 
@@ -241,3 +190,5 @@ Here is an example MQTT connection that checks the broker certificate and authen
   ]
 }
 ```
+
+[awsiot]: https://docs.aws.amazon.com/iot/
