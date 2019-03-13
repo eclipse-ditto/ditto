@@ -19,7 +19,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 
 /**
- * Cluster singleton to perform ops on the search index.
+ * Actor which performs ops on the search index.
  */
 public final class ThingsSearchOpsActor extends AbstractOpsActor {
 
