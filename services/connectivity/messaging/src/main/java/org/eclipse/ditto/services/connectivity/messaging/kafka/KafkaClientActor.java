@@ -30,6 +30,8 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnecte
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
+import org.eclipse.ditto.services.connectivity.util.ConnectionConfigReader;
+import org.eclipse.ditto.services.connectivity.util.KafkaConfigReader;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -57,19 +59,8 @@ public final class KafkaClientActor extends BaseClientActor {
             final ConnectivityStatus desiredConnectionStatus,
             final ActorRef conciergeForwarder) {
         super(connection, desiredConnectionStatus, conciergeForwarder);
-
-        // TODO: get the configuration from anywhere else
-        this.connectionFactoryCreator = (c, headers) -> KafkaConnectionFactory.of(c, headers, getContext().getSystem().settings().config());
-        pendingStatusReportsFromStreams = new HashSet<>();
-    }
-
-    KafkaClientActor(final Connection connection,
-            final ConnectivityStatus desiredConnectionStatus,
-            final ActorRef conciergeForwarder,
-            final BiFunction<Connection, DittoHeaders, KafkaConnectionFactory> connectionFactoryCreator) {
-        super(connection, desiredConnectionStatus, conciergeForwarder);
-        // TODO: get the configuration from anywhere else
-        this.connectionFactoryCreator = (c, headers) -> KafkaConnectionFactory.of(c, headers, getContext().getSystem().settings().config());
+        final KafkaConfigReader configReader = ConnectionConfigReader.fromRawConfig(getContext().system().settings().config()).kafka();
+        this.connectionFactoryCreator = (c, headers) -> KafkaConnectionFactory.of(c, headers, configReader);
         pendingStatusReportsFromStreams = new HashSet<>();
     }
 

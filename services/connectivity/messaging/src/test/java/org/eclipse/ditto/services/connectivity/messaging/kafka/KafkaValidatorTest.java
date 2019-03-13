@@ -76,9 +76,9 @@ public class KafkaValidatorTest {
                 .isThrownBy(() -> KafkaValidator.newInstance().validate(connection, DittoHeaders.empty()));
     }
 
-
     @Test
     public void testImmutability() {
         assertInstancesOf(KafkaValidator.class, areImmutable());
     }
+
 }

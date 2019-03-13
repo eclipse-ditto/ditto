@@ -22,8 +22,7 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
-
-import com.typesafe.config.Config;
+import org.eclipse.ditto.services.connectivity.util.KafkaConfigReader;
 
 import akka.kafka.ProducerSettings;
 
@@ -42,9 +41,9 @@ final class ProducerSettingsFactory {
         return INSTANCE;
     }
 
-    ProducerSettings<String, String> createProducerSettings(final Connection connection, final DittoHeaders dittoHeaders, final Config config) {
+    ProducerSettings<String, String> createProducerSettings(final Connection connection, final DittoHeaders dittoHeaders, final KafkaConfigReader config) {
         // TODO: config may not be null!
-        ProducerSettings settings = ProducerSettings.create(config, KEY_SERIALIZER, VALUE_SERIALIZER)
+        ProducerSettings settings = ProducerSettings.create(config.internalProducerSettings(), KEY_SERIALIZER, VALUE_SERIALIZER)
                 .withBootstrapServers(getBootstrapServers(connection))
                 .withProperty(ProducerConfig.MAX_BLOCK_MS_CONFIG, "10000"); // TODO blocking timeout, either due to missing metadata or due to full buffer, reset to 60.000
 //                .withCloseTimeout()
@@ -104,11 +103,20 @@ final class ProducerSettingsFactory {
     }
 
     private static String getBootstrapServers(final Connection connection) {
-        // TODO: do we need special validation of the bootstrapServers? or does the model need additional validation?
+        // TODO: add validation for bootstrapServers to validator
         final String additionalBootstrapServers = connection.getSpecificConfig().get("bootstrapServers");
         if (null != additionalBootstrapServers && !additionalBootstrapServers.isEmpty()) {
-            return connection.getUri() + "," + additionalBootstrapServers;
+            final String serverWithoutProtocol = connection.getHostname() + ":" + connection.getPort();
+            return mergeAdditionalBootstrapServers(serverWithoutProtocol, additionalBootstrapServers);
         }
         return connection.getUri();
+    }
+
+    private static String mergeAdditionalBootstrapServers(final String serverWithoutProtocol, final String additionalBootstrapServers) {
+        final Set<String> additionalServers = Arrays.stream(additionalBootstrapServers.split(","))
+                .map(String::trim)
+                .collect(Collectors.toSet());
+        additionalServers.add(serverWithoutProtocol);
+        return String.join(",", additionalServers);
     }
 }

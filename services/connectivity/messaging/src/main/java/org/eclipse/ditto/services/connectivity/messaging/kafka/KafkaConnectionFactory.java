@@ -12,8 +12,7 @@ package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
-
-import com.typesafe.config.Config;
+import org.eclipse.ditto.services.connectivity.util.KafkaConfigReader;
 
 import akka.NotUsed;
 import akka.kafka.ProducerMessage;
@@ -41,11 +40,12 @@ public interface KafkaConnectionFactory {
     /**
      * Create a default Kafka connection factory.
      *
-     * @param connection The Kafka connection.
+     * @param connection the Kafka connection.
      * @param dittoHeaders Ditto headers.
+     * @param config the Kafka config reader.
      * @return an Kafka connection factory.
      */
-    static KafkaConnectionFactory of(final Connection connection, final DittoHeaders dittoHeaders, final Config config) {
+    static KafkaConnectionFactory of(final Connection connection, final DittoHeaders dittoHeaders, final KafkaConfigReader config) {
         return new DefaultKafkaConnectionFactory(connection, dittoHeaders, config);
     }
 

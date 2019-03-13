@@ -28,5 +28,14 @@ public final class KafkaConfigReader extends AbstractConfigReader {
         super(config);
     }
 
-    // TODO: implement the required configurations, see https://doc.akka.io/docs/akka-stream-kafka/current/producer.html#settings
+    /**
+     * Configuration for producers needed by akka-stream-kafka.
+     *
+     * @see <a href="https://doc.akka.io/docs/akka-stream-kafka/current/producer.html#settings">akka-stream-kafka Producer settings</a>
+     * @return internal producer configuration needed by akka-stream-kafka client.
+     */
+    public Config internalProducerSettings(){
+        return getChildOrEmpty("producer.internal");
+    }
+
 }
