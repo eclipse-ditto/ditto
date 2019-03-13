@@ -15,6 +15,9 @@ import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Au
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -62,6 +65,23 @@ public class KafkaValidatorTest {
         verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithTarget("ditto\\"));
     }
 
+    @Test
+    public void testValidBootstrapServers() {
+        KafkaValidator.newInstance().validate(connectionWithBootstrapServers(null), DittoHeaders.empty());
+        KafkaValidator.newInstance().validate(connectionWithBootstrapServers(""), DittoHeaders.empty());
+        KafkaValidator.newInstance().validate(connectionWithBootstrapServers("foo:123"), DittoHeaders.empty());
+        KafkaValidator.newInstance().validate(connectionWithBootstrapServers("foo:123,bar:456"), DittoHeaders.empty());
+        KafkaValidator.newInstance()
+                .validate(connectionWithBootstrapServers("foo:123, bar:456 , baz:789"), DittoHeaders.empty());
+    }
+
+    @Test
+    public void testInvalidBootstrapServers() {
+        verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithBootstrapServers("fo#add#123o:123"));
+        verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithBootstrapServers("foo:123;bar:456"));
+        verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithBootstrapServers("http://foo:123"));
+    }
+
     private Connection connectionWithTarget(final String target) {
         return ConnectivityModelFactory.newConnectionBuilder("kafka", ConnectionType.KAFKA,
                 ConnectivityStatus.OPEN, "tcp://localhost:1883")
@@ -70,6 +90,17 @@ public class KafkaValidatorTest {
                 .build();
     }
 
+    private Connection connectionWithBootstrapServers(final String bootstrapServers) {
+        final Map<String, String> specificConfig = new HashMap<>();
+        specificConfig.put("bootstrapServers", bootstrapServers);
+        return ConnectivityModelFactory.newConnectionBuilder("kafka", ConnectionType.KAFKA,
+                ConnectivityStatus.OPEN, "tcp://localhost:1883")
+                .targets(singletonList(
+                        ConnectivityModelFactory.newTarget("events", AUTHORIZATION_CONTEXT, null, 1,
+                                Topic.LIVE_EVENTS)))
+                .specificConfig(specificConfig)
+                .build();
+    }
 
     private void verifyConnectionConfigurationInvalidExceptionIsThrown(final Connection connection) {
         Assertions.assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)

@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -33,14 +34,17 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
 
 /**
- * TODO: implement fully
- * TODO: unit test
- * Connection specification for Kafka protocol.
+ * TODO: implement fully TODO: unit test Connection specification for Kafka protocol.
  */
 @Immutable
 public final class KafkaValidator extends AbstractProtocolValidator {
 
     private static final String INVALID_TOPIC_FORMAT = "The provided topic ''{0}'' is not valid: {1}";
+
+    private static final Pattern BOOTSTRAP_SERVERS_PATTERN = Pattern.compile(
+            "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])(\\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9]))*:([1-9]|[1-5]?[0-9]{2,4}|6[1-4][0-9]{3}|65[1-4][0-9]{2}|655[1-2][0-9]|6553[1-5])[\\s,]*?)+$");
+    private static final String INVALID_BOOTSTRAP_SERVERS =
+            "The provided list of bootstrap servers ''{0}'' is not valid";
 
     private static final Collection<String> ACCEPTED_SCHEMES =
             Collections.unmodifiableList(Arrays.asList("tcp", "ssl"));
@@ -63,9 +67,10 @@ public final class KafkaValidator extends AbstractProtocolValidator {
     public void validate(final Connection connection, final DittoHeaders dittoHeaders) {
         validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, "Kafka 2.1.1");
         validateAddresses(connection, dittoHeaders);
+        validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
+        validateBootstrapServers(connection, dittoHeaders);
     }
-
 
     @Override
     protected void validateSource(final Source source, final DittoHeaders dittoHeaders,
@@ -80,7 +85,8 @@ public final class KafkaValidator extends AbstractProtocolValidator {
     protected void validateTarget(final Target target, final DittoHeaders dittoHeaders,
             final Supplier<String> targetDescription) {
 
-        validateTemplate(target.getAddress(), dittoHeaders, newThingPlaceholder(), newTopicPathPlaceholder(), newHeadersPlaceholder());
+        validateTemplate(target.getAddress(), dittoHeaders, newThingPlaceholder(), newTopicPathPlaceholder(),
+                newHeadersPlaceholder());
     }
 
     private static void validateAddresses(final Connection connection, final DittoHeaders dittoHeaders) {
@@ -92,7 +98,6 @@ public final class KafkaValidator extends AbstractProtocolValidator {
     }
 
     // todo: validate connection uri
-    // todo: validate additional bootstrap servers
 
     private static void validateAddress(final String address, final DittoHeaders dittoHeaders) {
         if (containsKey(address)) {
@@ -124,7 +129,8 @@ public final class KafkaValidator extends AbstractProtocolValidator {
         return index > 0 && index < targetAddress.length();
     }
 
-    private static void validateTargetAddressWithPartition(final String targetAddress, final DittoHeaders dittoHeaders) {
+    private static void validateTargetAddressWithPartition(final String targetAddress,
+            final DittoHeaders dittoHeaders) {
         final String[] split = targetAddress.split(KafkaPublishTarget.PARTITION_SEPARATOR, 2);
         validateTopic(split[0], dittoHeaders);
         validatePartition(split[1]);
@@ -142,6 +148,17 @@ public final class KafkaValidator extends AbstractProtocolValidator {
             throw ConnectionConfigurationInvalidException.newBuilder(message)
                     .dittoHeaders(dittoHeaders)
                     .cause(e)
+                    .build();
+        }
+    }
+
+    private static void validateBootstrapServers(final Connection connection, final DittoHeaders dittoHeaders) {
+        // TODO: use constant for bootstrapServers config property
+        final String servers = connection.getSpecificConfig().get("bootstrapServers");
+        if (null != servers && !servers.isEmpty() && !BOOTSTRAP_SERVERS_PATTERN.matcher(servers).matches()) {
+            final String message = MessageFormat.format(INVALID_BOOTSTRAP_SERVERS, servers);
+            throw ConnectionConfigurationInvalidException.newBuilder(message)
+                    .dittoHeaders(dittoHeaders)
                     .build();
         }
     }
