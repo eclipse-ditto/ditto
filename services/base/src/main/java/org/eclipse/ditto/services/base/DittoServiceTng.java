@@ -140,7 +140,9 @@ public abstract class DittoServiceTng<C extends ServiceSpecificConfig> {
      * @return the config of this service.
      */
     protected Config determineRawConfig() {
-        return RawConfigSupplier.of(serviceName).get();
+        final Config config = RawConfigSupplier.of(serviceName).get();
+        logger.debug("Using RawConfig: {}", config);
+        return config;
     }
 
     private static ScopedConfig tryToGetDittoConfigOrEmpty(final Config rawConfig) {
