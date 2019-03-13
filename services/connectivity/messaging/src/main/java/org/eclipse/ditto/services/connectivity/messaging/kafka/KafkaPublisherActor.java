@@ -136,12 +136,12 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
 
     @Override
     protected KafkaPublishTarget toPublishTarget(final String address) {
-        return KafkaPublishTarget.of(address);
+        return KafkaPublishTarget.fromTargetAddress(address);
     }
 
     @Override
     protected KafkaPublishTarget toReplyTarget(final String replyToAddress) {
-        return KafkaPublishTarget.of(replyToAddress);
+        return KafkaPublishTarget.fromTargetAddress(replyToAddress);
     }
 
     @Override
