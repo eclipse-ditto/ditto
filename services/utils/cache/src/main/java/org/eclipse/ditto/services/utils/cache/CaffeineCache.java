@@ -16,6 +16,8 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executor;
+import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
 
@@ -168,6 +170,20 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
         requireNonNull(key);
 
         return asyncLoadingCache.get(key).thenApply(Optional::ofNullable);
+    }
+
+    /**
+     * Lookup a value in cache, or create it via {@code mappingFunction} and store it if the value was not cached.
+     * Only available for Caffeine caches.
+     *
+     * @param key key associated with the value in cache.
+     * @param mappingFunction function to create the value in case of absence.
+     * @return future value under normal circumstances, or a failed future if the mapping function fails.
+     */
+    public CompletableFuture<V> get(final K key,
+            final BiFunction<K, Executor, CompletableFuture<V>> mappingFunction) {
+
+        return asyncLoadingCache.get(key, mappingFunction);
     }
 
     @Override
