@@ -170,7 +170,10 @@ public final class PurgeEntities extends CommonCommand<PurgeEntities> {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[" + super.toString() + "]";
+        return getClass().getSimpleName() + " [" + super.toString() +
+                ", entityType=" + entityType +
+                ", entityIds=" + entityIds +
+                "]";
     }
 
     /**
