@@ -24,7 +24,7 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ConnectionSupervisorActor;
 import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorPropsFactory;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.OpsActorTestCases;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
@@ -33,8 +33,7 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnectionRe
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnection;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionResponse;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.Test;
 
 import com.typesafe.config.Config;
 
@@ -47,21 +46,11 @@ import akka.testkit.TestProbe;
  * Tests {@link ConnectionOpsActor}.
  */
 @AllValuesAreNonnullByDefault
-@RunWith(Parameterized.class)
-public final class ConnectionOpsActorIT extends OpsActorTestCases {
+public final class ConnectionOpsActorIT extends MongoEventSourceITAssertions {
 
-    @Parameterized.Parameters(name = "{0}")
-    public static Iterable<TestSetting> data() {
-        return Collections.singleton(TestSetting.ENTITIES_WITHOUT_NAMESPACE);
-    }
-
-    public ConnectionOpsActorIT(final OpsActorTestCases.TestSetting testSetting) {
-        super(testSetting);
-    }
-
-    @Override
-    protected boolean idsStartWithNamespace() {
-        return false;
+    @Test
+    public void purgeEntitiesWithoutNamespace() {
+        assertPurgeEntitiesWithoutNamespace();
     }
 
     @Override

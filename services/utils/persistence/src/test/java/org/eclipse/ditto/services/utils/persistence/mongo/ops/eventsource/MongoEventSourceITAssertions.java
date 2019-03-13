@@ -28,7 +28,6 @@ import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespace;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespaceResponse;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Test;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -42,17 +41,9 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Tests subclasses of {@link AbstractOpsActor} which provide purging by namespace on a eventsource persistence.
  */
-public abstract class OpsActorTestCases {
+public abstract class MongoEventSourceITAssertions {
 
-    public enum TestSetting {
-        NAMESPACES_WITHOUT_SUFFIX,
-        NAMESPACES_WITH_SUFFIX,
-        ENTITIES_WITH_NAMESPACE_WITHOUT_SUFFIX,
-        ENTITIES_WITH_NAMESPACE_WITH_SUFFIX,
-        ENTITIES_WITHOUT_NAMESPACE
-    }
-
-    private TestSetting testSetting;
+    private ActorSystem actorSystem;
 
     /**
      * Embedded MongoDB resource.
@@ -67,17 +58,34 @@ public abstract class OpsActorTestCases {
 
     @After
     public void tearDown() {
+        if (actorSystem != null) {
+            TestKit.shutdownActorSystem(actorSystem);
+        }
         if (mongoDbResource != null) {
             mongoDbResource.stop();
             mongoDbResource = null;
         }
     }
 
-    public OpsActorTestCases(final TestSetting testSetting) {
-        this.testSetting = testSetting;
+    protected void assertPurgeNamespaceWithoutSuffix() {
+        purgeNamespace(getConfigWithoutSuffixBuilder());
     }
 
-    protected abstract boolean idsStartWithNamespace();
+    protected void assertPurgeNamespaceWithSuffix() {
+        purgeNamespace(getConfigWithSuffixBuilder());
+    }
+
+    protected void assertPurgeEntitiesWithoutNamespace() {
+        purgeEntities(getConfigWithoutSuffixBuilder(), false);
+    }
+
+    protected void assertPurgeEntitiesWithNamespaceWithoutSuffix() {
+        purgeEntities(getConfigWithoutSuffixBuilder(), true);
+    }
+
+    protected void assertPurgeEntitiesWithNamespaceWithSuffix() {
+        purgeEntities(getConfigWithSuffixBuilder(), true);
+    }
 
     /**
      * @return name of the configured service.
@@ -149,46 +157,6 @@ public abstract class OpsActorTestCases {
      */
     protected abstract String getResourceType();
 
-    @Test
-    public void purge() {
-        switch (testSetting) {
-            case NAMESPACES_WITH_SUFFIX:
-                checkIdsStartWithNamespace();
-                purgeNamespace(getConfigWithSuffixBuilder());
-                return;
-            case NAMESPACES_WITHOUT_SUFFIX:
-                checkIdsStartWithNamespace();
-                purgeNamespace(getConfigWithoutSuffixBuilder());
-                return;
-            case ENTITIES_WITH_NAMESPACE_WITH_SUFFIX:
-                checkIdsStartWithNamespace();
-                purgeNamespace(getConfigWithSuffixBuilder());
-                return;
-            case ENTITIES_WITH_NAMESPACE_WITHOUT_SUFFIX:
-                checkIdsStartWithNamespace();
-                purgeNamespace(getConfigWithoutSuffixBuilder());
-                return;
-            case ENTITIES_WITHOUT_NAMESPACE:
-                checkIdsDontStartWithNamespace();
-                purgeEntities(getConfigWithoutSuffixBuilder(), false);
-                return;
-            default:
-                throw new IllegalArgumentException("Unknown setting: " + testSetting);
-        }
-    }
-
-    private void checkIdsDontStartWithNamespace() {
-        if (idsStartWithNamespace()) {
-            throw new IllegalArgumentException("Not supported, cause ids start with namespace!");
-        }
-    }
-
-    private void checkIdsStartWithNamespace() {
-        if (!idsStartWithNamespace()) {
-            throw new IllegalArgumentException("Not supported, cause ids don't start with namespace!");
-        }
-    }
-
     private Config getConfigWithSuffixBuilder() {
         // suffix builder is active by default
         return getEventSourcingConfiguration(ConfigFactory.empty());
@@ -218,6 +186,8 @@ public abstract class OpsActorTestCases {
         final String testConfig = "akka.log-dead-letters=0\n" +
                 "akka.remote.artery.bind.port=0\n" +
                 "akka.cluster.seed-nodes=[]\n" +
+                "akka.coordinated-shutdown.exit-jvm=off\n" +
+                "ditto.things.log-incoming-messages=true\n" +
                 "akka.contrib.persistence.mongodb.mongo.mongouri=" + mongoUriValue +
                 "ditto.services-utils-config.mongodb.uri=" + mongoUriValue;
 
@@ -232,7 +202,7 @@ public abstract class OpsActorTestCases {
     }
 
     private void purgeNamespace(final Config config) {
-        final ActorSystem actorSystem = ActorSystem.create(getClass().getSimpleName(), config);
+        actorSystem = startActorSystem(config);
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .correlationId(String.valueOf(UUID.randomUUID()))
                 .build();
@@ -278,7 +248,7 @@ public abstract class OpsActorTestCases {
     }
 
     private void purgeEntities(final Config config, final boolean prependNamespace) {
-        final ActorSystem actorSystem = ActorSystem.create(getClass().getSimpleName(), config);
+        actorSystem = startActorSystem(config);
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .correlationId(String.valueOf(UUID.randomUUID()))
                 .build();
@@ -337,6 +307,11 @@ public abstract class OpsActorTestCases {
             survivingActor.tell(getRetrieveEntityCommand(survivingId), getRef());
             expectMsgClass(getRetrieveEntityResponseClass());
         }};
+    }
+
+    private ActorSystem startActorSystem(final Config config) {
+        final String name = getClass().getSimpleName() + '-' + UUID.randomUUID().toString();
+        return ActorSystem.create(name, config);
     }
 
     private static String prependNamespace(final String id, final String ns, boolean prepend) {

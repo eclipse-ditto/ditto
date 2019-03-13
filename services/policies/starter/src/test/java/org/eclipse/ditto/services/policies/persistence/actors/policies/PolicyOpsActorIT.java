@@ -22,7 +22,7 @@ import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicyOpsActor;
 import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicySupervisorActor;
 import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSnapshotAdapter;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.OpsActorTestCases;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy;
@@ -30,8 +30,7 @@ import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicyResponse;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicy;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyResponse;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.Test;
 
 import com.typesafe.config.Config;
 
@@ -43,21 +42,26 @@ import akka.actor.Props;
  * Tests {@link PolicyOpsActor}.
  */
 @AllValuesAreNonnullByDefault
-@RunWith(Parameterized.class)
-public final class PolicyOpsActorIT extends OpsActorTestCases {
+public final class PolicyOpsActorIT extends MongoEventSourceITAssertions {
 
-    @Parameterized.Parameters(name = "{0}")
-    public static Iterable<TestSetting> data() {
-        return Arrays.asList(TestSetting.NAMESPACES_WITHOUT_SUFFIX, TestSetting.NAMESPACES_WITH_SUFFIX);
+    @Test
+    public void purgeNamespaceWithoutSuffix() {
+        assertPurgeNamespaceWithoutSuffix();
     }
 
-    public PolicyOpsActorIT(final OpsActorTestCases.TestSetting testSetting) {
-        super(testSetting);
+    @Test
+    public void purgeNamespaceWithSuffix() {
+        assertPurgeNamespaceWithSuffix();
     }
 
-    @Override
-    protected boolean idsStartWithNamespace() {
-        return true;
+    @Test
+    public void purgeEntitiesWithNamespaceWithoutSuffix() {
+        assertPurgeEntitiesWithNamespaceWithoutSuffix();
+    }
+
+    @Test
+    public void purgeEntitiesWithNamespaceWithSuffix() {
+        assertPurgeEntitiesWithNamespaceWithSuffix();
     }
 
     @Override
