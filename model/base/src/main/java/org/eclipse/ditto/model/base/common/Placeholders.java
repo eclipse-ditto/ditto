@@ -36,6 +36,7 @@ public final class Placeholders {
     private static final String PLACEHOLDER_END = "}}";
 
     private static final String PLACEHOLDER_GROUP = "(?<" + PLACEHOLDER_GROUP_NAME + ">(([^}]|}[^}])*+))";
+    private static final String LEGACY_PLACEHOLDER_GROUP = "(?<" + PLACEHOLDER_GROUP_NAME + ">([^}]*+))";
     private static final String ANY_NUMBER_OF_SPACES = "\\s*+";
     private static final String PLACEHOLDER_REGEX = PLACEHOLDER_START
             + ANY_NUMBER_OF_SPACES // allow arbitrary number of spaces
@@ -48,7 +49,7 @@ public final class Placeholders {
     private static final String LEGACY_PLACEHOLDER_START = "${";
     private static final String LEGACY_PLACEHOLDER_END = "}";
     private static final String LEGACY_PLACEHOLDER_REGEX =
-            Pattern.quote(LEGACY_PLACEHOLDER_START) + PLACEHOLDER_GROUP + Pattern.quote(LEGACY_PLACEHOLDER_END);
+            Pattern.quote(LEGACY_PLACEHOLDER_START) + LEGACY_PLACEHOLDER_GROUP + Pattern.quote(LEGACY_PLACEHOLDER_END);
     private static final Pattern LEGACY_PLACEHOLDER_PATTERN = Pattern.compile(LEGACY_PLACEHOLDER_REGEX);
 
     private static final String LEGACY_REQUEST_SUBJECT_ID =
