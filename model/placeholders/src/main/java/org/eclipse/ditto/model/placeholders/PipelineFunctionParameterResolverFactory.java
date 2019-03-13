@@ -26,10 +26,10 @@ final class PipelineFunctionParameterResolverFactory {
 
     /**
      * Use this to create a parameter resolver that validates for empty parameters.
-     *
+     * <p>
      * E.g.
      * <ul>
-     *     <li>()</li>
+     * <li>()</li>
      * </ul>
      */
     static EmptyParameterResolver forEmptyParameters() {
@@ -38,11 +38,11 @@ final class PipelineFunctionParameterResolverFactory {
 
     /**
      * Use this to create a parameter resolver that resolves a string constant.
-     *
+     * <p>
      * E.g.
      * <ul>
-     *     <li>("value")</li>
-     *     <li>('value')</li>
+     * <li>("value")</li>
+     * <li>('value')</li>
      * </ul>
      */
     static SingleParameterResolver forStringParameter() {
@@ -51,16 +51,17 @@ final class PipelineFunctionParameterResolverFactory {
 
     /**
      * Use this to create a parameter resolver that resolves a string constant or a placeholder.
-     *
+     * <p>
      * E.g.
      * <ul>
-     *     <li>("value")</li>
-     *     <li>('value')</li>
-     *     <li>(thing:id)</li>
+     * <li>("value")</li>
+     * <li>('value')</li>
+     * <li>(thing:id)</li>
      * </ul>
      */
     static SingleParameterResolver forStringOrPlaceholderParameter() {
-        return new SingleParameterResolver(SingleParameterResolver.STRING_CONSTANT_PATTERN_STR + "|" + SingleParameterResolver.PLACEHOLDER_PATTERN_STR);
+        return new SingleParameterResolver(SingleParameterResolver.STRING_CONSTANT_PATTERN_STR + "|" +
+                SingleParameterResolver.PLACEHOLDER_PATTERN_STR);
     }
 
     private PipelineFunctionParameterResolverFactory() {
@@ -69,9 +70,12 @@ final class PipelineFunctionParameterResolverFactory {
 
     static class SingleParameterResolver implements BiFunction<String, ExpressionResolver, Optional<String>> {
 
-        static final String STRING_CONSTANT_PATTERN_STR =
-                "(\\(\\s*'(?<singleQuotedConstant>[^']*)'[^,]*\\))|(\\(\\s*\"(?<doubleQuotedConstant>[^\"]*)\"[^,]*\\))";
-        static final String PLACEHOLDER_PATTERN_STR = "\\(\\s*(?<placeholder>\\w+:[^,\\s]+)[^,]*\\)";
+        static final String STRING_CONSTANT_PATTERN_STR = String.format(
+                "(\\(\\s*+'(?<singleQuotedConstant>%s)'\\s*+\\))|(\\(\\s*+\"(?<doubleQuotedConstant>%s)\"\\s*+\\))",
+                PipelineFunction.SINGLE_QUOTED_STRING_CONTENT,
+                PipelineFunction.DOUBLE_QUOTED_STRING_CONTENT);
+
+        static final String PLACEHOLDER_PATTERN_STR = "\\(\\s*+(?<placeholder>\\w+:[^,\\s]+)[^,)]*+\\)";
 
         private final Pattern pattern;
 
@@ -80,7 +84,8 @@ final class PipelineFunctionParameterResolverFactory {
         }
 
         @Override
-        public Optional<String> apply(final String paramsIncludingParentheses, final ExpressionResolver expressionResolver) {
+        public Optional<String> apply(final String paramsIncludingParentheses,
+                final ExpressionResolver expressionResolver) {
             final Matcher matcher = this.pattern.matcher(paramsIncludingParentheses);
             if (matcher.matches()) {
 
@@ -102,7 +107,8 @@ final class PipelineFunctionParameterResolverFactory {
     }
 
     static class EmptyParameterResolver implements Predicate<String> {
-        private static final String EMPTY_PARENTHESES_PATTERN = "\\(\\s*\\)";
+
+        private static final String EMPTY_PARENTHESES_PATTERN = "\\(\\s*+\\)";
 
         @Override
         public boolean test(final String paramsIncludingParentheses) {

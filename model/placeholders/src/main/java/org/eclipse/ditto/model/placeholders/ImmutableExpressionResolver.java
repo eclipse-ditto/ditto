@@ -37,33 +37,22 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
 
     private static final int MAX_COUNT_PIPELINE_FUNCTIONS = 10;
 
-    private static final String PLACEHOLDER_BASIC = "[\\w\\-_]+:[\\w\\-_|]+";
-    private static final String ANY_NUMBER_OF_SPACES = "\\s*";
     private static final String OR = "|";
-    private static final String STRING_WITH_SINGLE_QUOTES =
-            "(\\s*(?<!('\\s))'(?=([\\w\\-_|:\\s]*'))[\\w\\-_|:\\s]*'?\\s*)";
-    private static final String STRING_WITH_DOUBLE_QUOTES =
-            "(\\s*(?<!(\"\\s))\"(?=([\\w\\-_|:\\s]*\"))[\\w\\-_|:\\s]*\"?\\s*)";
-    private static final String EMPTY_FUNCTION = "";
-    private static final String COMMA_IN_BETWEEN_PARAMETERS = "(?<!(\\(\\s)),?";
 
-    private static final String PIPE_PATTERN_STR = PLACEHOLDER_BASIC
-            + ANY_NUMBER_OF_SPACES
-            + "(\\(" // Open function
-            + ANY_NUMBER_OF_SPACES
-            + "(" // Repeating parameters group
-            + "(" // OR group
-            + STRING_WITH_DOUBLE_QUOTES + OR
-            + STRING_WITH_SINGLE_QUOTES + OR
-            + EMPTY_FUNCTION + OR
-            + "(\\s*" + PLACEHOLDER_BASIC + ")"
-            + ")" // End OR group
-            + ANY_NUMBER_OF_SPACES
-            + COMMA_IN_BETWEEN_PARAMETERS
-            + ANY_NUMBER_OF_SPACES
-            + ")*" + ANY_NUMBER_OF_SPACES + "\\)" // Closing parameters group and function
-            + ANY_NUMBER_OF_SPACES
-            + ")?";
+    private static final String NO_QUOTE = "[^|'\"]++";
+
+    private static final String SINGLE_QUOTED_STRING =
+            String.format("'%s'", PipelineFunction.SINGLE_QUOTED_STRING_CONTENT);
+
+    private static final String DOUBLE_QUOTED_STRING =
+            String.format("\"%s\"", PipelineFunction.DOUBLE_QUOTED_STRING_CONTENT);
+
+    private static final String PIPE_STAGE =
+            "(?:" + NO_QUOTE + OR + SINGLE_QUOTED_STRING + OR + DOUBLE_QUOTED_STRING + ")++";
+
+    private static final Pattern PIPE_STAGE_PATTERN = Pattern.compile(PIPE_STAGE);
+
+    private static final String PIPE_PATTERN_STR = PIPE_STAGE + "(?:\\|" + PIPE_STAGE + ")*+";
 
     private static final Pattern PIPE_PATTERN = Pattern.compile(PIPE_PATTERN_STR);
 
@@ -121,7 +110,8 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
             final String placeholderTemplate = getFirstPlaceholderInPipe(pipelineStagesExpressions);
             final Pipeline pipeline = getPipelineFromExpressions(pipelineStagesExpressions);
 
-            final Optional<String> placeholderWithoutPrefix = resolvePlaceholderWithoutPrefixIfSupported(placeholderResolver, placeholderTemplate);
+            final Optional<String> placeholderWithoutPrefix =
+                    resolvePlaceholderWithoutPrefixIfSupported(placeholderResolver, placeholderTemplate);
             return placeholderWithoutPrefix
                     .map(p -> resolvePlaceholder(placeholderResolver, p))
                     .flatMap(pipelineInput -> {
@@ -137,14 +127,19 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
     }
 
     private List<String> getPipelineStagesExpressions(final String template) {
-        final Matcher matcher = PIPE_PATTERN.matcher(template);
+
+        if (!PIPE_PATTERN.matcher(template).matches()) {
+            throw UNRESOLVED_INPUT_HANDLER.apply(template);
+        }
 
         final List<String> pipelineStagesExpressions = new ArrayList<>();
+        final Matcher matcher = PIPE_STAGE_PATTERN.matcher(template);
 
         while (matcher.find()) {
             pipelineStagesExpressions.add(matcher.group().trim());
 
-            if (pipelineStagesExpressions.size() > MAX_COUNT_PIPELINE_FUNCTIONS + 1) { // +1 for the starting placeholder
+            // +1 for the starting placeholder
+            if (pipelineStagesExpressions.size() > MAX_COUNT_PIPELINE_FUNCTIONS + 1) {
                 throw PlaceholderFunctionTooComplexException.newBuilder(MAX_COUNT_PIPELINE_FUNCTIONS).build();
             }
         }
@@ -165,7 +160,8 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
         return new ImmutablePipeline(ImmutableFunctionExpression.INSTANCE, pipelineStages);
     }
 
-    private Optional<String> resolvePlaceholderWithoutPrefixIfSupported(final PlaceholderResolver<?> resolver, final String placeholder) {
+    private Optional<String> resolvePlaceholderWithoutPrefixIfSupported(final PlaceholderResolver<?> resolver,
+            final String placeholder) {
         final int separatorIndex = placeholder.indexOf(SEPARATOR);
         if (separatorIndex == -1) {
             throw UnresolvedPlaceholderException.newBuilder(placeholder).build();
@@ -177,7 +173,8 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
         return Optional.empty();
     }
 
-    private Optional<String> resolvePlaceholder(final PlaceholderResolver<?> resolver, final String placeholderWithoutPrefix) {
+    private Optional<String> resolvePlaceholder(final PlaceholderResolver<?> resolver,
+            final String placeholderWithoutPrefix) {
         return Optional.of(resolver)
                 .filter(p -> p.supports(placeholderWithoutPrefix))
                 .flatMap(p -> {
