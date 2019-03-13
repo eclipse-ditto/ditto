@@ -84,8 +84,12 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
 
     /*
       TODO: test cases:
-      1. what happens if the topic is missing -> org.apache.kafka.common.errors.TimeoutException: Topic <topic> not present in metadata after 10000 ms.
-      2. what happens if authentication is unsuccessful
+      1.0 what happens if the topic is missing -> org.apache.kafka.common.errors.TimeoutException: Topic <topic> not present in metadata after 10000 ms.
+      1.1 what happens if the partition is not available -> org.apache.kafka.common.errors.TimeoutException: Topic test not present in metadata after 10000 ms.
+      2. what happens if authentication is unsuccessful -> org.apache.kafka.common.errors.SaslAuthenticationException: Authentication failed: Invalid username or password
+                                                         The internal NetworkClient of the used library will start logging failures repeatedly:
+                                                         o.a.k.c.NetworkClient  - [Producer clientId=producer-3] Connection to node -1 (localhost/127.0.0.1:9092) failed authentication due to: Authentication failed: Invalid username or password
+                                                         we should therefore definitely stop the producer and ourself
       3. what happens if authorization is unsuccessful
       4. what happens if the port is closed
       5. what happens if kafka is stopped

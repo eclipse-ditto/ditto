@@ -10,7 +10,10 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
+import java.util.Arrays;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -43,7 +46,7 @@ final class ProducerSettingsFactory {
         // TODO: config may not be null!
         ProducerSettings settings = ProducerSettings.create(config, KEY_SERIALIZER, VALUE_SERIALIZER)
                 .withBootstrapServers(getBootstrapServers(connection))
-                .withProperty(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, "10000");
+                .withProperty(ProducerConfig.MAX_BLOCK_MS_CONFIG, "10000"); // TODO blocking timeout, either due to missing metadata or due to full buffer, reset to 60.000
 //                .withCloseTimeout()
 //                .withDispatcher()
 //                .withEosCommitInterval()
@@ -66,10 +69,10 @@ final class ProducerSettingsFactory {
             final String password,
             final ProducerSettings<String, String> producerSettings) {
 
-        producerSettings.withProperty(SaslConfigs.SASL_MECHANISM, "PLAIN");
-        // TODO: if SSL is enabled, use SASL_SSL, otherwise SASL_PLAINTEXT ... so is it bad to always use sasl_plaintext?
-        producerSettings.withProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT");
-        return producerSettings.withProperty(SaslConfigs.SASL_JAAS_CONFIG, "org.apache.kafka.common.security.plain.PlainLoginModule required " +
+        // TODO: if SSL is enabled, use SASL_SSL, otherwise SASL_PLAINTEXT
+        return producerSettings.withProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT")
+                .withProperty(SaslConfigs.SASL_MECHANISM, "PLAIN")
+                .withProperty(SaslConfigs.SASL_JAAS_CONFIG, "org.apache.kafka.common.security.plain.PlainLoginModule required " +
                 "username=\"" + username +"\" " +
                 "password=\"" + password +"\";");
     }
