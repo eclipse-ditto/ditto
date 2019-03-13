@@ -15,6 +15,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -80,13 +81,13 @@ public class KafkaPublishTargetTest {
 
     @Test
     public void invalidCharsInTopicNameThrowError() {
-        assertThatExceptionOfType(IllegalStateException.class) // TODO: create exception class
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
                 .isThrownBy(() -> KafkaPublishTarget.fromTargetAddress("events*andstuff"));
     }
 
     @Test
     public void invalidPartitionThrowsError() {
-        assertThatExceptionOfType(IllegalStateException.class) // TODO: create exception class
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
                 .isThrownBy(() -> KafkaPublishTarget.fromTargetAddress("events#notAnInteger"));
     }
 

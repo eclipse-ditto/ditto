@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
+import java.text.MessageFormat;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
@@ -17,6 +18,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.apache.kafka.common.errors.InvalidTopicException;
 import org.apache.kafka.common.internals.Topic;
+import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.services.connectivity.messaging.PublishTarget;
 
 
@@ -94,7 +96,9 @@ final class KafkaPublishTarget implements PublishTarget {
             Topic.validate(topic);
             return topic;
         } catch (final InvalidTopicException e) {
-            throw new IllegalStateException("Topic is invalid: " + topic, e);
+            throw ConnectionConfigurationInvalidException.newBuilder(e.getMessage())
+                    .cause(e)
+                    .build();
         }
     }
 
@@ -102,7 +106,10 @@ final class KafkaPublishTarget implements PublishTarget {
         try {
             return Integer.parseInt(partitionString);
         } catch (final NumberFormatException e) {
-            throw new IllegalStateException("Can't parse partition number from " + partitionString, e);
+            final String message = MessageFormat.format("Can not parse partition number from {0}", partitionString);
+            throw ConnectionConfigurationInvalidException.newBuilder(message)
+                    .cause(e)
+                    .build();
         }
     }
 
