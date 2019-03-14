@@ -15,9 +15,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
 import javax.annotation.Nullable;
 
@@ -48,12 +45,6 @@ public class DummyAuthenticationProviderTest {
     private static final Query DUMMY_AUTH_QUERY = Query.create(new Pair<>(DUMMY_AUTH_HEADER_NAME, "myDummy"));
 
     private DummyAuthenticationProvider underTest;
-
-    private final Executor messageDispatcher;
-
-    public DummyAuthenticationProviderTest() {
-        this.messageDispatcher = Executors.newFixedThreadPool(8);
-    }
 
     @Before
     public void setup() {
@@ -89,70 +80,68 @@ public class DummyAuthenticationProviderTest {
     }
 
     @Test
-    public void doExtractAuthenticationFails() throws ExecutionException, InterruptedException {
+    public void doExtractAuthenticationFails() {
         final String correlationId = UUID.randomUUID().toString();
         final RequestContext requestContext = mockRequestContext(null, null);
 
         final DefaultAuthenticationResult authenticationResult =
-                underTest.doExtractAuthentication(requestContext, correlationId, messageDispatcher).get();
+                underTest.doExtractAuthentication(requestContext, correlationId);
 
         assertThat(authenticationResult.isSuccess()).isFalse();
     }
 
     @Test
-    public void doExtractAuthenticationFailsWithEmptyDummyAuthHeader()
-            throws ExecutionException, InterruptedException {
+    public void doExtractAuthenticationFailsWithEmptyDummyAuthHeader() {
         final String correlationId = UUID.randomUUID().toString();
         final RequestContext requestContext = mockRequestContext(HttpHeader.parse(DUMMY_AUTH_HEADER_NAME, ""), null);
 
         final DefaultAuthenticationResult authenticationResult =
-                underTest.doExtractAuthentication(requestContext, correlationId, messageDispatcher).get();
+                underTest.doExtractAuthentication(requestContext, correlationId);
 
         assertThat(authenticationResult.isSuccess()).isFalse();
     }
 
     @Test
-    public void doExtractAuthenticationFailsWithEmptyDummyAuthQueryParam()
-            throws ExecutionException, InterruptedException {
+    public void doExtractAuthenticationFailsWithEmptyDummyAuthQueryParam() {
         final String correlationId = UUID.randomUUID().toString();
         final RequestContext requestContext =
                 mockRequestContext(null, Query.create(Pair.create(DUMMY_AUTH_HEADER_NAME, "")));
 
         final DefaultAuthenticationResult authenticationResult =
-                underTest.doExtractAuthentication(requestContext, correlationId, messageDispatcher).get();
+                underTest.doExtractAuthentication(requestContext, correlationId);
 
         assertThat(authenticationResult.isSuccess()).isFalse();
     }
 
     @Test
-    public void doExtractAuthenticationByHeader() throws ExecutionException, InterruptedException {
+    public void doExtractAuthenticationByHeader() {
         final String correlationId = UUID.randomUUID().toString();
         final RequestContext requestContext = mockRequestContext(DUMMY_AUTH_HEADER, null);
 
         final DefaultAuthenticationResult authenticationResult =
-                underTest.doExtractAuthentication(requestContext, correlationId, messageDispatcher).get();
+                underTest.doExtractAuthentication(requestContext, correlationId);
 
         assertThat(authenticationResult.isSuccess()).isTrue();
     }
 
     @Test
-    public void doExtractAuthenticationByQueryParam() throws ExecutionException, InterruptedException {
+    public void doExtractAuthenticationByQueryParam() {
         final String correlationId = UUID.randomUUID().toString();
         final RequestContext requestContext = mockRequestContext(null, DUMMY_AUTH_QUERY);
 
         final DefaultAuthenticationResult authenticationResult =
-                underTest.doExtractAuthentication(requestContext, correlationId, messageDispatcher).get();
+                underTest.doExtractAuthentication(requestContext, correlationId);
 
         assertThat(authenticationResult.isSuccess()).isTrue();
     }
 
     @Test
-    public void doExtractAuthenticationByQueryParamAndHeader() throws ExecutionException, InterruptedException {
+    public void doExtractAuthenticationByQueryParamAndHeader() {
         final String correlationId = UUID.randomUUID().toString();
         final RequestContext requestContext = mockRequestContext(DUMMY_AUTH_HEADER, DUMMY_AUTH_QUERY);
 
         final DefaultAuthenticationResult authenticationResult =
-                underTest.doExtractAuthentication(requestContext, correlationId, messageDispatcher).get();
+                underTest.doExtractAuthentication(requestContext, correlationId);
 
         assertThat(authenticationResult.isSuccess()).isTrue();
     }

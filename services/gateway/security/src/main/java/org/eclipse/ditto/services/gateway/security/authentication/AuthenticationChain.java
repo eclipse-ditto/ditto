@@ -111,11 +111,8 @@ public final class AuthenticationChain {
 
             LOGGER.debug("Applying authentication provider '{}' to URI '{}'",
                     authenticationProvider.getClass().getSimpleName(), requestUri);
-            final CompletableFuture<AuthenticationResult> authenticationResultFuture =
-                    authenticationProvider.extractAuthentication(requestContext, correlationId, blockingDispatcher);
-            final AuthenticationResultWaiter authenticationResultSupplier =
-                    AuthenticationResultWaiter.of(authenticationResultFuture, correlationId);
-            final AuthenticationResult authenticationResult = authenticationResultSupplier.get();
+            final AuthenticationResult authenticationResult =
+                    authenticationProvider.extractAuthentication(requestContext, correlationId);
 
             if (authenticationResult.isSuccess()) {
                 LOGGER.debug("Authentication using authentication provider '{}' to URI '{}' was successful.",

@@ -15,7 +15,6 @@ import static org.eclipse.ditto.services.gateway.security.utils.HttpUtils.getReq
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -32,7 +31,6 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import akka.http.javadsl.model.headers.Authorization;
 import akka.http.javadsl.server.RequestContext;
 
 /**
@@ -84,28 +82,34 @@ public final class JwtAuthenticationProvider extends TimeMeasuringAuthentication
      *
      * @param requestContext the request context to authenticate.
      * @param correlationId the correlation id of the request.
-     * @param blockingDispatcher dispatcher used for blocking calls.
      * @return A future resolving to an authentication result.
      */
     @Override
-    protected CompletableFuture<DefaultAuthenticationResult> doExtractAuthentication(
-            final RequestContext requestContext,
-            final String correlationId,
-            final Executor blockingDispatcher) {
+    protected DefaultAuthenticationResult doExtractAuthentication(final RequestContext requestContext,
+            final String correlationId) {
 
         final Optional<JsonWebToken> jwtOptional = extractJwtFromRequest(requestContext);
 
         if (!jwtOptional.isPresent()) {
             LOGGER.debug("JWT is missing.");
-            return CompletableFuture.completedFuture(
-                    DefaultAuthenticationResult.failed(buildMissingJwtException(correlationId)));
+            return DefaultAuthenticationResult.failed(buildMissingJwtException(correlationId));
         }
 
-        final JsonWebToken jwt = jwtOptional.get();
+        final CompletableFuture<DefaultAuthenticationResult> authenticationResultFuture =
+                getAuthorizationContext(jwtOptional.get(), correlationId)
+                        .thenApply(DefaultAuthenticationResult::successful)
+                        .exceptionally(throwable -> toFailedAuthenticationResult(throwable, correlationId));
 
-        return CompletableFuture
-                .runAsync(() -> LogUtil.enhanceLogWithCorrelationId(correlationId))
-                .thenCompose(voidValue -> jwt.validate(publicKeyProvider))
+        return waitForResult(authenticationResultFuture, correlationId);
+    }
+
+    private CompletableFuture<AuthorizationContext> getAuthorizationContext(final JsonWebToken jwt,
+            final String correlationId) {
+        return jwt.validate(publicKeyProvider)
+                .thenApply(validationResult -> {
+                    LogUtil.enhanceLogWithCorrelationId(correlationId);
+                    return validationResult;
+                })
                 .thenApply(validationResult -> {
                     if (!validationResult.isValid()) {
                         final Throwable reasonForInvalidity = requireNonNull(validationResult.getReasonForInvalidity());
@@ -123,9 +127,8 @@ public final class JwtAuthenticationProvider extends TimeMeasuringAuthentication
                     }
 
                     LOGGER.info("Completed JWT authentication successfully.");
-                    return DefaultAuthenticationResult.successful(authorizationContext);
-                })
-                .exceptionally(throwable -> toFailedAuthenticationResult(throwable, correlationId));
+                    return authorizationContext;
+                });
     }
 
     /**

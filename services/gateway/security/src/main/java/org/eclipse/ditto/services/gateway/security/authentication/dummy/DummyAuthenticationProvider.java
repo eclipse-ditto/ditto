@@ -16,8 +16,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
@@ -30,7 +28,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.security.authentication.DefaultAuthenticationResult;
 import org.eclipse.ditto.services.gateway.security.authentication.TimeMeasuringAuthenticationProvider;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,28 +59,8 @@ public final class DummyAuthenticationProvider extends
     }
 
     @Override
-    protected CompletableFuture<DefaultAuthenticationResult> doExtractAuthentication(
+    protected DefaultAuthenticationResult doExtractAuthentication(
             final RequestContext requestContext,
-            final String correlationId,
-            final Executor blockingDispatcher) {
-
-        return CompletableFuture
-                .runAsync(() -> LogUtil.enhanceLogWithCorrelationId(correlationId), blockingDispatcher)
-                .thenApply(voidValue -> doExtractAuthentication(requestContext, correlationId));
-    }
-
-    @Override
-    protected DefaultAuthenticationResult toFailedAuthenticationResult(final Throwable throwable,
-            final String correlationId) {
-        return DefaultAuthenticationResult.failed(toDittoRuntimeException(throwable, correlationId));
-    }
-
-    @Override
-    public String getType() {
-        return AUTH_TYPE;
-    }
-
-    private DefaultAuthenticationResult doExtractAuthentication(final RequestContext requestContext,
             final String correlationId) {
         final Optional<String> dummyAuthOpt = getDummyAuth(requestContext);
 
@@ -106,6 +83,17 @@ public final class DummyAuthenticationProvider extends
         LOGGER.warn("Dummy authentication has been applied for the following subjects: {}", dummyAuth);
 
         return DefaultAuthenticationResult.successful(authorizationContext);
+    }
+
+    @Override
+    protected DefaultAuthenticationResult toFailedAuthenticationResult(final Throwable throwable,
+            final String correlationId) {
+        return DefaultAuthenticationResult.failed(toDittoRuntimeException(throwable, correlationId));
+    }
+
+    @Override
+    public String getType() {
+        return AUTH_TYPE;
     }
 
     private Optional<String> getDummyAuth(final RequestContext requestContext) {

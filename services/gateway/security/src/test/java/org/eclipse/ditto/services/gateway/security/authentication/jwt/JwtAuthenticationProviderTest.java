@@ -25,9 +25,6 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -63,12 +60,6 @@ public class JwtAuthenticationProviderTest {
     @Mock
     private JwtAuthorizationContextProvider authenticationContextProvider;
 
-    private final Executor messageDispatcher;
-
-    public JwtAuthenticationProviderTest() {
-        this.messageDispatcher = Executors.newFixedThreadPool(8);
-    }
-
     @Before
     public void setup() {
         this.underTest =
@@ -103,8 +94,7 @@ public class JwtAuthenticationProviderTest {
     }
 
     @Test
-    public void doExtractAuthentication()
-            throws ExecutionException, InterruptedException, JwtAuthorizationContextProviderException {
+    public void doExtractAuthentication() throws JwtAuthorizationContextProviderException {
         when(publicKeyProvider.getPublicKey(ISSUER, KEY_ID)).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(PUBLIC_KEY)));
         when(authenticationContextProvider.getAuthorizationContext(any(JsonWebToken.class))).thenReturn(
@@ -112,15 +102,14 @@ public class JwtAuthenticationProviderTest {
         final RequestContext requestContext = mockRequestContext(VALID_AUTHORIZATION_HEADER);
         final String correlationId = UUID.randomUUID().toString();
         final DefaultAuthenticationResult authenticationResult =
-                underTest.doExtractAuthentication(requestContext, correlationId, messageDispatcher)
-                        .get();
+                underTest.doExtractAuthentication(requestContext, correlationId);
 
         assertThat(authenticationResult.isSuccess()).isTrue();
     }
 
     @Test
     public void doExtractAuthenticationWhenAuthorizationContextProviderErrors()
-            throws ExecutionException, InterruptedException, JwtAuthorizationContextProviderException {
+            throws JwtAuthorizationContextProviderException {
         when(publicKeyProvider.getPublicKey(ISSUER, KEY_ID)).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(PUBLIC_KEY)));
         when(authenticationContextProvider.getAuthorizationContext(any(JsonWebToken.class)))
@@ -128,8 +117,7 @@ public class JwtAuthenticationProviderTest {
         final RequestContext requestContext = mockRequestContext(VALID_AUTHORIZATION_HEADER);
         final String correlationId = UUID.randomUUID().toString();
         final DefaultAuthenticationResult authenticationResult =
-                underTest.doExtractAuthentication(requestContext, correlationId, messageDispatcher)
-                        .get();
+                underTest.doExtractAuthentication(requestContext, correlationId);
 
         verify(authenticationContextProvider).getAuthorizationContext(any(JsonWebToken.class));
         assertThat(authenticationResult.isSuccess()).isFalse();
@@ -143,14 +131,12 @@ public class JwtAuthenticationProviderTest {
     }
 
     @Test
-    public void doExtractAuthenticationWithMissingJwt()
-            throws ExecutionException, InterruptedException {
+    public void doExtractAuthenticationWithMissingJwt() {
         final RequestContext requestContext = mockRequestContext();
         final String correlationId = UUID.randomUUID().toString();
 
         final DefaultAuthenticationResult authenticationResult =
-                underTest.doExtractAuthentication(requestContext, correlationId, messageDispatcher)
-                        .get();
+                underTest.doExtractAuthentication(requestContext, correlationId);
 
         assertThat(authenticationResult.isSuccess()).isFalse();
         assertThat(authenticationResult.getReasonOfFailure()).isInstanceOf(GatewayAuthenticationFailedException.class);
@@ -165,16 +151,14 @@ public class JwtAuthenticationProviderTest {
     }
 
     @Test
-    public void doExtractAuthenticationWithInvalidJwt()
-            throws ExecutionException, InterruptedException {
+    public void doExtractAuthenticationWithInvalidJwt() {
         when(publicKeyProvider.getPublicKey(ISSUER, KEY_ID)).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(PUBLIC_KEY_2)));
         final RequestContext requestContext = mockRequestContext(VALID_AUTHORIZATION_HEADER);
         final String correlationId = UUID.randomUUID().toString();
 
         final DefaultAuthenticationResult authenticationResult =
-                underTest.doExtractAuthentication(requestContext, correlationId, messageDispatcher)
-                        .get();
+                underTest.doExtractAuthentication(requestContext, correlationId);
 
         assertThat(authenticationResult.isSuccess()).isFalse();
         assertThat(authenticationResult.getReasonOfFailure()).isInstanceOf(GatewayAuthenticationFailedException.class);

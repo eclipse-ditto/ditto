@@ -10,9 +10,6 @@
  */
 package org.eclipse.ditto.services.gateway.security.authentication;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
-
 import akka.http.javadsl.server.RequestContext;
 
 /**
@@ -35,9 +32,7 @@ public interface AuthenticationProvider<R extends AuthenticationResult> {
      *
      * @param requestContext the request context to authenticate.
      * @param correlationId the correlation id of the request.
-     * @param blockingDispatcher dispatcher used for blocking calls.
-     * @return A future resolving to an authentication result.
+     * @return the authentication result.
      */
-    CompletableFuture<R> extractAuthentication(RequestContext requestContext, String correlationId,
-            Executor blockingDispatcher);
+    R extractAuthentication(RequestContext requestContext, String correlationId);
 }

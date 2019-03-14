@@ -11,15 +11,13 @@
 package org.eclipse.ditto.services.gateway.security.authentication;
 
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
@@ -49,32 +47,28 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
      *
      * @param requestContext the request context to authenticate.
      * @param correlationId the correlation id of the request.
-     * @param blockingDispatcher dispatcher used for blocking calls.
      * @return A future resolving to an authentication result.
      */
     @Override
-    public final CompletableFuture<R> extractAuthentication(final RequestContext requestContext,
-            final String correlationId, final Executor blockingDispatcher) {
+    public final R extractAuthentication(final RequestContext requestContext,
+            final String correlationId) {
         final StartedTimer timer = TraceUtils
                 .newAuthFilterTimer(getType())
                 .build();
-
-        return CompletableFuture.runAsync(() -> LogUtil.enhanceLogWithCorrelationId(correlationId), blockingDispatcher)
-                .thenCompose(voidValue -> doExtractAuthentication(requestContext, correlationId, blockingDispatcher))
-                .thenApply(result -> {
-                    timer.tag(AUTH_SUCCESS_TAG, result.isSuccess()).stop();
-                    return result;
-                }).exceptionally(throwable -> {
-                    timer.tag(AUTH_SUCCESS_TAG, false).tag(AUTH_ERROR_TAG, true).stop();
-                    return toFailedAuthenticationResult(throwable, correlationId);
-                }).thenApply(result -> {
-                    if (!result.isSuccess()) {
-                        final Throwable reasonOfFailure = result.getReasonOfFailure();
-                        LOGGER.info("Authentication failed with Exception of type '{}' with message '{}'",
-                                reasonOfFailure.getClass().getName(), reasonOfFailure.getMessage());
-                    }
-                    return result;
-                });
+        try {
+            final R authenticationResult = doExtractAuthentication(requestContext, correlationId);
+            final boolean isSuccess = authenticationResult.isSuccess();
+            if (!isSuccess) {
+                final Throwable reasonOfFailure = authenticationResult.getReasonOfFailure();
+                LOGGER.info("Authentication failed with Exception of type '{}' with message '{}'",
+                        reasonOfFailure.getClass().getName(), reasonOfFailure.getMessage());
+            }
+            timer.tag(AUTH_SUCCESS_TAG, isSuccess).stop();
+            return authenticationResult;
+        } catch (Exception e) {
+            timer.tag(AUTH_SUCCESS_TAG, false).tag(AUTH_ERROR_TAG, true).stop();
+            return toFailedAuthenticationResult(e, correlationId);
+        }
     }
 
     /**
@@ -89,11 +83,9 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
      *
      * @param requestContext the request context to authenticate.
      * @param correlationId the correlation id of the request.
-     * @param blockingDispatcher dispatcher used for blocking calls.
      * @return A future resolving to an authentication result.
      */
-    protected abstract CompletableFuture<R> doExtractAuthentication(RequestContext requestContext,
-            String correlationId, Executor blockingDispatcher);
+    protected abstract R doExtractAuthentication(RequestContext requestContext, String correlationId);
 
     /**
      * Creates failed authentication result with a {@link AuthenticationResult#getReasonOfFailure() reason of failure}
@@ -120,6 +112,10 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
         final Throwable throwableToMap = unwrapCompletionException(throwable);
         return unwrapDittoRuntimeException(throwableToMap, correlationId)
                 .orElse(buildInternalErrorException(throwableToMap, correlationId));
+    }
+
+    protected R waitForResult(final Future<R> authenticationResultFuture, final String correlationId) {
+        return AuthenticationResultWaiter.of(authenticationResultFuture, correlationId).get();
     }
 
     private Throwable unwrapCompletionException(final Throwable potentialExecutionException) {

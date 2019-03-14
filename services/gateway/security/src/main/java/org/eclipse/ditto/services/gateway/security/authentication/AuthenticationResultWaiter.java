@@ -30,17 +30,18 @@ import org.slf4j.LoggerFactory;
  * {@link AuthenticationResultWaiter#AWAIT_AUTH_TIMEOUT}.
  */
 @Immutable
-public final class AuthenticationResultWaiter implements Supplier<AuthenticationResult> {
+public final class AuthenticationResultWaiter<R extends AuthenticationResult>
+        implements Supplier<AuthenticationResult> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticationResultWaiter.class);
 
     private static final Duration AWAIT_AUTH_TIMEOUT = Duration.ofSeconds(5L);
 
-    private final Future<AuthenticationResult> authenticationResultFuture;
+    private final Future<R> authenticationResultFuture;
     private final String correlationId;
     private final Duration awaitAuthTimeout;
 
-    private AuthenticationResultWaiter(final Future<AuthenticationResult> authenticationResultFuture,
+    private AuthenticationResultWaiter(final Future<R> authenticationResultFuture,
             final String correlationId, final Duration awaitAuthTimeout) {
         this.authenticationResultFuture = authenticationResultFuture;
         this.correlationId = correlationId;
@@ -54,32 +55,30 @@ public final class AuthenticationResultWaiter implements Supplier<Authentication
      * @param correlationId the correlation id for this authentication.
      * @return the created instance of {@link AuthenticationResultWaiter}.
      */
-    public static AuthenticationResultWaiter of(Future<AuthenticationResult> authenticationResultFuture,
+    public static <R extends AuthenticationResult> AuthenticationResultWaiter<R> of(Future<R> authenticationResultFuture,
             final String correlationId) {
-        return new AuthenticationResultWaiter(authenticationResultFuture, correlationId, AWAIT_AUTH_TIMEOUT);
+        return new AuthenticationResultWaiter<R>(authenticationResultFuture, correlationId, AWAIT_AUTH_TIMEOUT);
     }
 
     /**
-     * Waits for {@link #authenticationResultFuture} and returns a failed authentication result with
-     * {@link GatewayAuthenticationProviderUnavailableException} as reason if this takes longer than defined in
-     * {@link AuthenticationResultWaiter#awaitAuthTimeout}.
+     * Waits for {@link #authenticationResultFuture} to be completed.
      *
      * @return the authentication result
+     * @throws GatewayAuthenticationProviderUnavailableException if this takes longer than defined in
+     * {@link AuthenticationResultWaiter#awaitAuthTimeout}.
      */
     @Override
     @SuppressWarnings("squid:S2142")
-    public AuthenticationResult get() {
+    public R get() {
         try {
             LOGGER.debug("Waiting for authentication result");
             return authenticationResultFuture.get(awaitAuthTimeout.getSeconds(), TimeUnit.SECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             LOGGER.warn("Error while waiting for authentication result", e);
-            return DefaultAuthenticationResult.failed(
-                    GatewayAuthenticationProviderUnavailableException.newBuilder()
-                            .dittoHeaders(DittoHeaders.newBuilder().correlationId(correlationId).build())
-                            .cause(e)
-                            .build()
-            );
+            throw GatewayAuthenticationProviderUnavailableException.newBuilder()
+                    .dittoHeaders(DittoHeaders.newBuilder().correlationId(correlationId).build())
+                    .cause(e)
+                    .build();
         }
     }
 }
