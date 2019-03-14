@@ -16,12 +16,11 @@ import java.util.Objects;
 
 import org.eclipse.ditto.model.query.expression.visitors.ExistsFieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.FieldExpressionVisitor;
-import org.eclipse.ditto.model.query.expression.visitors.PolicyRestrictedFieldExpressionVisitor;
 
 /**
  * Field expression for features itself with a given feature id.
  */
-public class FeatureExpressionImpl implements ExistsFieldExpression, PolicyRestrictedFieldExpression {
+public class FeatureExpressionImpl implements ExistsFieldExpression {
 
     private static final String DOT = ".";
 
@@ -38,11 +37,6 @@ public class FeatureExpressionImpl implements ExistsFieldExpression, PolicyRestr
 
     @Override
     public <T> T acceptExistsVisitor(final ExistsFieldExpressionVisitor<T> visitor) {
-        return visitor.visitFeature(featureId);
-    }
-
-    @Override
-    public <T> T acceptPolicyRestrictedVisitor(final PolicyRestrictedFieldExpressionVisitor<T> visitor) {
         return visitor.visitFeature(featureId);
     }
 

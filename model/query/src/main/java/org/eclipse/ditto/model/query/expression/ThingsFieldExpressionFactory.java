@@ -24,22 +24,6 @@ public interface ThingsFieldExpressionFactory extends FieldExpressionFactory {
     ExistsFieldExpression existsByFeatureId(final String featureId);
 
     /**
-     * Return a filter field expression for the given feature property key.
-     *
-     * @param property the property path
-     * @return the filter field expression
-     */
-    FilterFieldExpression filterByFeatureProperty(final String property);
-
-    /**
-     * Return a exist field expression for the given feature property key.
-     *
-     * @param property the property path
-     * @return the exist field expression
-     */
-    ExistsFieldExpression existsByFeatureProperty(final String property);
-
-    /**
      * Return a filter field expression for the given feature id and property key.
      *
      * @param featureId the feature id
@@ -47,15 +31,6 @@ public interface ThingsFieldExpressionFactory extends FieldExpressionFactory {
      * @return the filter field expression
      */
     FilterFieldExpression filterByFeatureProperty(final String featureId, final String property);
-
-    /**
-     * Return a exist field expression for the given feature id and property key.
-     *
-     * @param featureId the feature id
-     * @param property the property path
-     * @return the exist field expression
-     */
-    ExistsFieldExpression existsByFeatureProperty(final String featureId, final String property);
 
     /**
      * Return a sortOptions field expression for the given feature property key.
@@ -111,7 +86,6 @@ public interface ThingsFieldExpressionFactory extends FieldExpressionFactory {
     FilterFieldExpression filterByGlobalRead();
 
     /**
-     *
      * @return a filter expression for the given namespace
      */
     FilterFieldExpression filterByNamespace();

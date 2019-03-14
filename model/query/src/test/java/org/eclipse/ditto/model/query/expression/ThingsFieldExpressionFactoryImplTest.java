@@ -30,19 +30,16 @@ public final class ThingsFieldExpressionFactoryImplTest {
 
     private final ThingsFieldExpressionFactory ef = new ThingsFieldExpressionFactoryImpl();
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void filterByWithNullPropertyName() {
         ef.filterBy(null);
     }
 
-    /** */
     @Test(expected = IllegalArgumentException.class)
     public void filterByWithUnknownPropertyName() {
         ef.filterBy("unknown");
     }
 
-    /** */
     @Test
     public void filterByWithFeaturePropertyWithId() {
         final FieldExpression fieldExpression = ef.filterBy(KNOWN_FEATURE_PROPERTY_WITH_ID);
@@ -51,34 +48,21 @@ public final class ThingsFieldExpressionFactoryImplTest {
         assertThat(fieldExpression).isEqualTo(expected);
     }
 
-    /** */
-    @Test
-    public void filterByWithFeaturePropertyWithoutId() {
-        final FieldExpression fieldExpression = ef.filterBy(KNOWN_FEATURE_PROPERTY);
-
-        final FilterFieldExpression expected = new FeaturePropertyExpressionImpl(KNOWN_STRING);
-        assertThat(fieldExpression).isEqualTo(expected);
-    }
-
-    /** */
     @Test(expected = IllegalArgumentException.class)
     public void filterByWithFeature() {
         ef.filterBy(KNOWN_FEATURE);
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void existsByWithNullPropertyName() {
         ef.existsBy(null);
     }
 
-    /** */
     @Test(expected = IllegalArgumentException.class)
     public void existsByWithUnknownPropertyName() {
         ef.existsBy("unknown");
     }
 
-    /** */
     @Test
     public void existsByWithFeaturePropertyWithId() {
         final FieldExpression fieldExpression = ef.existsBy(KNOWN_FEATURE_PROPERTY_WITH_ID);
@@ -87,16 +71,6 @@ public final class ThingsFieldExpressionFactoryImplTest {
         assertThat(fieldExpression).isEqualTo(expected);
     }
 
-    /** */
-    @Test
-    public void existsByWithFeaturePropertyWithoutId() {
-        final FieldExpression fieldExpression = ef.existsBy(KNOWN_FEATURE_PROPERTY);
-
-        final ExistsFieldExpression expected = new FeaturePropertyExpressionImpl(KNOWN_STRING);
-        assertThat(fieldExpression).isEqualTo(expected);
-    }
-
-    /** */
     @Test
     public void existsByWithFeature() {
         final FieldExpression fieldExpression = ef.existsBy(KNOWN_FEATURE);
@@ -105,7 +79,6 @@ public final class ThingsFieldExpressionFactoryImplTest {
         assertThat(fieldExpression).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void existsByWithJsonPointer() {
         final FieldExpression fieldExpression = ef.existsBy(SLASH + KNOWN_FEATURE);
@@ -114,7 +87,6 @@ public final class ThingsFieldExpressionFactoryImplTest {
         assertThat(fieldExpression).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void sortByWithFeatureProperty() {
         final FieldExpression fieldExpression = ef.sortBy(KNOWN_FEATURE_PROPERTY_WITH_ID);
@@ -123,7 +95,7 @@ public final class ThingsFieldExpressionFactoryImplTest {
         assertThat(fieldExpression).isEqualTo(expected);
     }
 
-    /** */
+
     @Test
     public void sortByWithJsonPointer() {
         final FieldExpression fieldExpression = ef.sortBy(SLASH + KNOWN_FEATURE_PROPERTY_WITH_ID);
@@ -132,19 +104,11 @@ public final class ThingsFieldExpressionFactoryImplTest {
         assertThat(fieldExpression).isEqualTo(expected);
     }
 
-    /** */
     @Test(expected = IllegalArgumentException.class)
     public void sortByWithFeaturePropertyInvalid1() {
         ef.sortBy(KNOWN_FEATURE);
     }
 
-    /** */
-    @Test(expected = IllegalArgumentException.class)
-    public void sortByWithFeaturePropertyInvalid2() {
-        ef.sortBy(KNOWN_FEATURE_PROPERTY);
-    }
-
-    /** */
     @Test
     public void filterByWithAttribute() {
         final FieldExpression fieldExpression = ef.filterBy(FieldExpressionUtil.addAttributesPrefix(KNOWN_STRING));
@@ -154,7 +118,6 @@ public final class ThingsFieldExpressionFactoryImplTest {
     }
 
 
-    /** */
     @Test
     public void filterByWithThingId() {
         final FieldExpression fieldExpression = ef.filterBy(FieldExpressionUtil.FIELD_NAME_THING_ID);
@@ -163,7 +126,6 @@ public final class ThingsFieldExpressionFactoryImplTest {
         assertThat(fieldExpression).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void filterByWithJsonPointer() {
         final FieldExpression fieldExpression = ef.filterBy(SLASH + FieldExpressionUtil.FIELD_NAME_THING_ID);
@@ -172,18 +134,6 @@ public final class ThingsFieldExpressionFactoryImplTest {
         assertThat(fieldExpression).isEqualTo(expected);
     }
 
-    /** */
-    @Test
-    public void filterByFeatureProperty() {
-        final FilterFieldExpression fieldExpression = ef.filterByFeatureProperty(KNOWN_STRING);
-
-        final FilterFieldExpression expected =
-                new FeaturePropertyExpressionImpl(KNOWN_STRING);
-        assertThat(fieldExpression).isEqualTo(expected);
-        assertThat(fieldExpression).isNotNull().isInstanceOf(FeaturePropertyExpressionImpl.class);
-    }
-
-    /** */
     @Test
     public void filterByFeatureIdAndProperty() {
         final FilterFieldExpression fieldExpression = ef.filterByFeatureProperty(KNOWN_FEATURE_ID, KNOWN_STRING);
@@ -193,7 +143,6 @@ public final class ThingsFieldExpressionFactoryImplTest {
         assertThat(fieldExpression).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void sortByFeatureProperty() {
         final SortFieldExpression fieldExpression = ef.sortByFeatureProperty(KNOWN_FEATURE_ID, KNOWN_STRING);
@@ -203,19 +152,11 @@ public final class ThingsFieldExpressionFactoryImplTest {
         assertThat(fieldExpression).isEqualTo(expected);
     }
 
-    /** */
-    @Test(expected = NullPointerException.class)
-    public void filterByFeaturePropertyWithNullKey() {
-        ef.filterByFeatureProperty(null);
-    }
-
-    /** */
     @Test(expected = NullPointerException.class)
     public void sortByFeaturePropertyWithNullKey() {
         ef.sortByFeatureProperty(null, null);
     }
 
-    /** */
     @Test
     public void filterByAttribute() {
         final FilterFieldExpression fieldExpression = ef.filterByAttribute(KNOWN_STRING);
@@ -224,7 +165,6 @@ public final class ThingsFieldExpressionFactoryImplTest {
         assertThat(fieldExpression).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void sortByAttribute() {
         final SortFieldExpression fieldExpression = ef.sortByAttribute(KNOWN_STRING);
@@ -233,19 +173,16 @@ public final class ThingsFieldExpressionFactoryImplTest {
         assertThat(fieldExpression).isEqualTo(expected);
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void filterByAttributeWithNullKey() {
         ef.filterByAttribute(null);
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void sortByAttributeWithNullKey() {
         ef.sortByAttribute(null);
     }
 
-    /** */
     @Test
     public void filterByThingId() {
         final FilterFieldExpression fieldExpression = ef.filterByThingId();
@@ -254,7 +191,6 @@ public final class ThingsFieldExpressionFactoryImplTest {
         assertThat(fieldExpression).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void sortByThingId() {
         final SortFieldExpression fieldExpression = ef.sortByThingId();

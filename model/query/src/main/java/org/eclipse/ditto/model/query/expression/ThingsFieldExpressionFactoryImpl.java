@@ -56,17 +56,12 @@ public final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpres
 
         final Supplier<FilterFieldExpression> defaultSupplier = () -> (FilterFieldExpression) common(propertyName);
         return FieldExpressionUtil.parseFeatureField(requireNonNull(propertyName))
-                .map(f -> f.getProperty()
-                        .map(property -> f.getFeatureId()
+                .<FilterFieldExpression>flatMap(f -> f.getProperty()
+                        .flatMap(property ->
                                 // we have a feature id and a property path
-                                .map(id -> (FilterFieldExpression) new FeatureIdPropertyExpressionImpl(id, property))
-                                // we have a property path
-                                .orElseGet(() -> new FeaturePropertyExpressionImpl(property))
+                                f.getFeatureId().map(id -> new FeatureIdPropertyExpressionImpl(id, property))
                         )
-                        // we have a feature field but no property path, this is invalid for filter operations
-                        .orElseGet(defaultSupplier)
                 )
-                // we have no feature at all, continue with the other possibilities
                 .orElseGet(defaultSupplier);
     }
 
@@ -78,22 +73,12 @@ public final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpres
         final String propertyName = stripLeadingSlash(propertyNameWithOptionalLeadingSlash);
 
         return FieldExpressionUtil.parseFeatureField(requireNonNull(propertyName))
-                .map(f -> f.getFeatureId()
+                .flatMap(f -> f.getFeatureId()
                         .map(id -> f.getProperty()
-                                // we have a feature id and a property path
-                                .map(property -> (ExistsFieldExpression) new FeatureIdPropertyExpressionImpl(id,
-                                        property))
+                                .<ExistsFieldExpression>map(property ->
+                                        new FeatureIdPropertyExpressionImpl(id, property))
                                 // we have a feature id but no property path
                                 .orElseGet(() -> new FeatureExpressionImpl(id))
-                        )
-                        // we have a feature field but no feature id, means it must be a property path
-                        .orElseGet(() -> (ExistsFieldExpression) f.getProperty()
-                                .map((String property) -> (ExistsFieldExpression) new FeaturePropertyExpressionImpl(
-                                        property))
-                                // at this point, we know that there must be a property, so the following throw should
-                                // never happen and is only there to make the compiler happy:
-                                .orElseThrow(() ->
-                                        new IllegalStateException("Illegal state while parsing feature property path."))
                         )
                 )
                 // we have no feature at all, continue with the other possibilities
@@ -158,22 +143,7 @@ public final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpres
     }
 
     @Override
-    public FilterFieldExpression filterByFeatureProperty(final String property) {
-        return new FeaturePropertyExpressionImpl(property);
-    }
-
-    @Override
-    public ExistsFieldExpression existsByFeatureProperty(final String property) {
-        return new FeaturePropertyExpressionImpl(property);
-    }
-
-    @Override
     public FilterFieldExpression filterByFeatureProperty(final String featureId, final String property) {
-        return new FeatureIdPropertyExpressionImpl(featureId, property);
-    }
-
-    @Override
-    public ExistsFieldExpression existsByFeatureProperty(final String featureId, final String property) {
         return new FeatureIdPropertyExpressionImpl(featureId, property);
     }
 

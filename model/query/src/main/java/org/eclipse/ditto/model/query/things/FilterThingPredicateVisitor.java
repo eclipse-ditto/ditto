@@ -46,15 +46,6 @@ public final class FilterThingPredicateVisitor implements FilterFieldExpressionV
     }
 
     @Override
-    public Predicate<Thing> visitFeatureProperty(final String property) {
-        return thing -> thing.getFeatures()
-                .map(features -> features.stream()
-                        .anyMatch(feature -> feature.getProperty(property).isPresent())
-                )
-                .orElse(false);
-    }
-
-    @Override
     public Predicate<Thing> visitSimple(final String fieldName) {
         return predicateFunction.apply(fieldName);
     }

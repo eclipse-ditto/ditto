@@ -15,14 +15,12 @@ import static java.util.Objects.requireNonNull;
 import org.eclipse.ditto.model.query.expression.visitors.ExistsFieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.FieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.FilterFieldExpressionVisitor;
-import org.eclipse.ditto.model.query.expression.visitors.PolicyRestrictedFieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.SortFieldExpressionVisitor;
 
 /**
  * Expression for an attribute.
  */
-public class AttributeExpressionImpl implements FilterFieldExpression, SortFieldExpression, ExistsFieldExpression,
-        PolicyRestrictedFieldExpression {
+public class AttributeExpressionImpl implements FilterFieldExpression, SortFieldExpression, ExistsFieldExpression {
 
     private final String key;
 
@@ -59,11 +57,6 @@ public class AttributeExpressionImpl implements FilterFieldExpression, SortField
 
     @Override
     public <T> T accept(final FieldExpressionVisitor<T> visitor) {
-        return visitor.visitAttribute(key);
-    }
-
-    @Override
-    public <T> T acceptPolicyRestrictedVisitor(final PolicyRestrictedFieldExpressionVisitor<T> visitor) {
         return visitor.visitAttribute(key);
     }
 

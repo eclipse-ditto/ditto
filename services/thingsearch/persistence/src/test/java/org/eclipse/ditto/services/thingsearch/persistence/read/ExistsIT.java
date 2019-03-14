@@ -30,10 +30,9 @@ import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Features;
+import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
 import org.junit.Before;
 import org.junit.Test;
-
-import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
 
 /**
  * Test the exists field expressions against the database.
@@ -54,11 +53,7 @@ public final class ExistsIT extends AbstractReadPersistenceITBase {
     private static final long THING2_KNOWN_PROPERTY_VALUE = 2;
 
     private static final String THINGS_KNOWN_ATTR = "attr1/a/b";
-    private static final String THINGS_KNOWN_ATTR_PART = "att";
     private static final String THINGS_UNKNOWN_ATTR = "attr2";
-    private static final String THINGS_KNOWN_PROPERTY = "property/a/b";
-    private static final String THINGS_KNOWN_PROPERTY_PART = "prop";
-    private static final String THINGS_UNKNOWN_PROPERTY = "property2";
 
     private static final String TAGS1 = "tags1";
     private static final String TAGS2 = "tags2";
@@ -78,42 +73,6 @@ public final class ExistsIT extends AbstractReadPersistenceITBase {
         final Criteria crit = cf.existsCriteria(ef.existsByFeatureId(THING2_KNOWN_FEATURE_ID));
         final Collection<String> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING2_ID);
-    }
-
-    @Test
-    public void existsByKnownFeatureIdAndProperty() {
-        final Criteria crit =
-                cf.existsCriteria(ef.existsByFeatureProperty(THING1_KNOWN_FEATURE_ID, THINGS_KNOWN_PROPERTY));
-        final Collection<String> result = findForCriteria(crit);
-        assertThat(result).containsOnly(THING1_ID);
-    }
-
-    @Test
-    public void existsByExactProperty() {
-        final Criteria crit = cf.existsCriteria(ef.existsByFeatureProperty(THING1_KNOWN_PROPERTY));
-        final Collection<String> result = findForCriteria(crit);
-        assertThat(result).containsOnly(THING1_ID);
-    }
-
-    @Test
-    public void existsByKnownProperty() {
-        final Criteria crit = cf.existsCriteria(ef.existsByFeatureProperty(THINGS_KNOWN_PROPERTY));
-        final Collection<String> result = findForCriteria(crit);
-        assertThat(result).containsOnly(THING1_ID, THING2_ID);
-    }
-
-    @Test
-    public void existsByUnknownProperty() {
-        final Criteria crit = cf.existsCriteria(ef.existsByFeatureProperty(THINGS_UNKNOWN_PROPERTY));
-        final Collection<String> result = findForCriteria(crit);
-        assertThat(result).isEmpty();
-    }
-
-    @Test
-    public void existsByPartOfKnownProperty() {
-        final Criteria crit = cf.existsCriteria(ef.existsByFeatureProperty(THINGS_KNOWN_PROPERTY_PART));
-        final Collection<String> result = findForCriteria(crit);
-        assertThat(result).isEmpty();
     }
 
     @Test

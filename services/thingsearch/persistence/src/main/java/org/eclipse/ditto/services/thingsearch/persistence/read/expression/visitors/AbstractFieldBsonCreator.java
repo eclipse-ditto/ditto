@@ -47,15 +47,6 @@ public abstract class AbstractFieldBsonCreator {
         return Filters.in(FIELD_GLOBAL_READ, authorizationSubjectIds);
     }
 
-    /**
-     * Method inherited in concrete subclasses from different BSON creator interfaces.
-     *
-     * @param featureId the feature ID of the feature-ID-property RQL expression.
-     * @param property property path of the feature-ID-property RQL expression.
-     * @return Bson created from this RQL expression.
-     */
-    public abstract Bson visitFeatureIdProperty(final String featureId, final String property);
-
     abstract Bson visitPointer(final String pointer);
 
     abstract Bson visitRootLevelField(final String fieldName);
@@ -66,18 +57,6 @@ public abstract class AbstractFieldBsonCreator {
                         Filters.in(FIELD_GRANTED, authorizationSubjectIds),
                         Filters.nin(FIELD_REVOKED, authorizationSubjectIds)
                 ));
-    }
-
-    /**
-     * Feature ID wildcard '*' will match on the literal feature ID '*' because each feature property is extra
-     * indexed under feature ID '*'.
-     *
-     * @param property property key of unknown feature.
-     * @return nothing
-     * @throws InvalidRqlExpressionException always
-     */
-    public final Bson visitFeatureProperty(final String property) {
-        return visitFeatureIdProperty("*", property);
     }
 
     /**

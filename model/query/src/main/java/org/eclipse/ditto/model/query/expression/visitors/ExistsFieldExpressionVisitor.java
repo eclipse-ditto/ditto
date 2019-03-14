@@ -15,20 +15,15 @@ import org.eclipse.ditto.model.query.expression.ExistsFieldExpression;
 /**
  * Compositional interpreter of {@link ExistsFieldExpression}.
  */
-public interface ExistsFieldExpressionVisitor<T>
-        extends PolicyRestrictedFieldExpressionVisitor<T>, SortFieldExpressionVisitor<T> {
+public interface ExistsFieldExpressionVisitor<T> extends SortFieldExpressionVisitor<T> {
 
     @Override
     T visitAttribute(final String key);
 
-    @Override
     T visitFeature(final String featureId);
 
     @Override
     T visitFeatureIdProperty(final String featureId, final String property);
-
-    @Override
-    T visitFeatureProperty(final String property);
 
     @Override
     T visitSimple(final String fieldName);

@@ -45,22 +45,8 @@ public final class ModelBasedThingsFieldExpressionFactory implements ThingsField
 
     @Override
     public FilterFieldExpression filterByFeatureProperty(
-            final String property) {return delegate.filterByFeatureProperty(property);}
-
-    @Override
-    public ExistsFieldExpression existsByFeatureProperty(
-            final String property) {return delegate.existsByFeatureProperty(property);}
-
-    @Override
-    public FilterFieldExpression filterByFeatureProperty(
             final String featureId, final String property) {
         return delegate.filterByFeatureProperty(featureId, property);
-    }
-
-    @Override
-    public ExistsFieldExpression existsByFeatureProperty(
-            final String featureId, final String property) {
-        return delegate.existsByFeatureProperty(featureId, property);
     }
 
     @Override
