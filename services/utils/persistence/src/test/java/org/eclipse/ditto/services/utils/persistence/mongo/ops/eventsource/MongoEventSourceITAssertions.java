@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -42,6 +43,8 @@ import akka.testkit.javadsl.TestKit;
  * Tests subclasses of {@link AbstractOpsActor} which provide purging by namespace on a eventsource persistence.
  */
 public abstract class MongoEventSourceITAssertions {
+
+    private static final Duration WAIT_FOR_CREATE_RESPONSE_DURATION = Duration.ofSeconds(10);
 
     private ActorSystem actorSystem;
 
@@ -223,10 +226,10 @@ public abstract class MongoEventSourceITAssertions {
 
             // create 2 entities in 2 namespaces, 1 of which will be purged
             actorToPurge.tell(getCreateEntityCommand(purgedId), getRef());
-            expectMsgClass(getCreateEntityResponseClass());
+            expectCreateEntityResponse(this);
 
             survivingActor.tell(getCreateEntityCommand(survivingId), getRef());
-            expectMsgClass(getCreateEntityResponseClass());
+            expectCreateEntityResponse(this);
 
             // kill the actor in the namespace to be purged to avoid write conflict
             actorToPurge.tell(PoisonPill.getInstance(), getRef());
@@ -271,14 +274,14 @@ public abstract class MongoEventSourceITAssertions {
 
             // create 2 entities which will be purged
             actorToPurge1.tell(getCreateEntityCommand(purgedId1), getRef());
-            expectMsgClass(getCreateEntityResponseClass());
+            expectCreateEntityResponse(this);
 
             actorToPurge2.tell(getCreateEntityCommand(purgedId2), getRef());
-            expectMsgClass(getCreateEntityResponseClass());
+            expectCreateEntityResponse(this);
 
             // create one entity which won't be purged
             survivingActor.tell(getCreateEntityCommand(survivingId), getRef());
-            expectMsgClass(getCreateEntityResponseClass());
+            expectCreateEntityResponse(this);
 
             // kill the actors for the entities to be purged to avoid write conflict
             actorToPurge1.tell(PoisonPill.getInstance(), getRef());
@@ -307,6 +310,10 @@ public abstract class MongoEventSourceITAssertions {
             survivingActor.tell(getRetrieveEntityCommand(survivingId), getRef());
             expectMsgClass(getRetrieveEntityResponseClass());
         }};
+    }
+
+    private void expectCreateEntityResponse(final TestKit testKit) {
+        testKit.expectMsgClass(WAIT_FOR_CREATE_RESPONSE_DURATION, getCreateEntityResponseClass());
     }
 
     private ActorSystem startActorSystem(final Config config) {
