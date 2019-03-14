@@ -95,7 +95,7 @@ public final class AuthenticationChain {
             final String correlationId) {
 
         return CompletableFuture
-                .runAsync(() -> LogUtil.enhanceLogWithCorrelationId(correlationId))
+                .runAsync(() -> LogUtil.enhanceLogWithCorrelationId(correlationId), blockingDispatcher)
                 .thenApply(voidValue -> doAuthenticate(requestContext, correlationId));
     }
 
