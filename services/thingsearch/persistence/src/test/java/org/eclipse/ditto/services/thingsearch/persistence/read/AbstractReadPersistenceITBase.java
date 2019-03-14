@@ -10,9 +10,6 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.read;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -30,11 +27,14 @@ import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectType;
+import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.thingsearch.persistence.AbstractThingSearchPersistenceITBase;
 import org.junit.Before;
+
+import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
+import org.eclipse.ditto.services.thingsearch.persistence.AbstractThingSearchPersistenceITBase;
 
 
 /**
@@ -51,6 +51,10 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
     public void before() {
         super.before();
         policyEnforcer = PolicyEnforcers.defaultEvaluator(createPolicy());
+    }
+
+    ResultList<String> findForCriteria(final Criteria criteria) {
+        return findAll(qbf.newBuilder(criteria).build());
     }
 
     boolean isV1() {
@@ -104,12 +108,7 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
     }
 
     Thing persistThingV1(final Thing thingV1) {
-        final long revision = thingV1.getRevision()
-                .orElseThrow(() ->
-                        new RuntimeException(MessageFormat.format("Thing <{}> does not contain revision", thingV1)))
-                .toLong();
-        assertThat(runBlockingWithReturn(writePersistence.insertOrUpdate(thingV1, revision, -1L)))
-                .isTrue();
+        log.info("EXECUTED {}", runBlockingWithReturn(writePersistence.writeThingWithAcl(thingV1)));
         return thingV1;
     }
 
@@ -126,15 +125,8 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
     }
 
     Thing persistThingV2(final Thing thingV2) {
-        final long revision = thingV2.getRevision()
-                .orElseThrow(() ->
-                        new RuntimeException(MessageFormat.format("Thing <{}> does not contain revision", thingV2)))
-                .toLong();
-        assertThat(runBlockingWithReturn(writePersistence.insertOrUpdate(thingV2, revision, 0L)))
-                .isTrue();
-        assertThat(runBlockingWithReturn(writePersistence.updatePolicy(thingV2, getPolicyEnforcer(thingV2.getId()
-                .orElseThrow(() -> new IllegalStateException("not possible"))))))
-                .isTrue();
+        final Enforcer enforcer = getPolicyEnforcer(thingV2.getId().orElseThrow(IllegalStateException::new));
+        log.info("EXECUTED {}", runBlockingWithReturn(writePersistence.write(thingV2, enforcer, 0L)));
         return thingV2;
     }
 

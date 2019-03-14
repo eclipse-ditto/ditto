@@ -22,18 +22,19 @@ import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors
 import org.junit.Test;
 
 import com.mongodb.client.model.Filters;
+
 /**
  * Tests {@link NorCriteriaImpl}.
  */
 public final class NorCriteriaImplTest extends AbstractCriteriaTestBase {
 
-    /** */
+
     @Test(expected = NullPointerException.class)
     public void norWithNullSubCriteria() {
         new NorCriteriaImpl(null);
     }
 
-    /** */
+
     @Test
     public void norWithEmptySubCriteria() {
         nor(Collections.emptyList());
@@ -41,20 +42,20 @@ public final class NorCriteriaImplTest extends AbstractCriteriaTestBase {
 
     private static void nor(final List<Criteria> orCriteria) {
         final Iterable<Bson> bsonObjects =
-                orCriteria.stream().map(CreateBsonVisitor::apply).collect(Collectors.toList());
+                orCriteria.stream().map(CreateBsonVisitor::sudoApply).collect(Collectors.toList());
         final Bson expectedBson = Filters.nor(bsonObjects);
 
         final Criteria actualCriteria = new NorCriteriaImpl(orCriteria);
-        assertCriteria(expectedBson, actualCriteria);
+        assertSudoCriteria(expectedBson, actualCriteria);
     }
 
-    /** */
+
     @Test
     public void norWithOneSubCriteria() {
         nor(Collections.singletonList(KNOWN_CRITERIA_1));
     }
 
-    /** */
+
     @Test
     public void norWithMoreThanOneSubCriteria() {
         nor(Arrays.asList(KNOWN_CRITERIA_1, KNOWN_CRITERIA_2));

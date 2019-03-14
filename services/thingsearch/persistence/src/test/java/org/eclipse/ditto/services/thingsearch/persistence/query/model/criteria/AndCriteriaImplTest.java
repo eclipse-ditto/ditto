@@ -18,22 +18,22 @@ import java.util.stream.Collectors;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.model.query.criteria.AndCriteriaImpl;
 import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonVisitor;
 import org.junit.Test;
 
 import com.mongodb.client.model.Filters;
+
+import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonVisitor;
+
 /**
  * Tests {@link AndCriteriaImpl}.
  */
 public final class AndCriteriaImplTest extends AbstractCriteriaTestBase {
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void andWithNullSubCriteria() {
         new AndCriteriaImpl(null);
     }
 
-    /** */
     @Test
     public void andWithEmptySubCriteria() {
         and(Collections.emptyList());
@@ -41,20 +41,18 @@ public final class AndCriteriaImplTest extends AbstractCriteriaTestBase {
 
     private static void and(final List<Criteria> andCriteria) {
         final Iterable<Bson> bsonObjects =
-                andCriteria.stream().map(CreateBsonVisitor::apply).collect(Collectors.toList());
+                andCriteria.stream().map(CreateBsonVisitor::sudoApply).collect(Collectors.toList());
         final Bson expectedBson = Filters.and(bsonObjects);
 
         final Criteria actualCriteria = new AndCriteriaImpl(andCriteria);
-        assertCriteria(expectedBson, actualCriteria);
+        assertSudoCriteria(expectedBson, actualCriteria);
     }
 
-    /** */
     @Test
     public void andWithOneSubCriteria() {
         and(Collections.singletonList(KNOWN_CRITERIA_1));
     }
 
-    /** */
     @Test
     public void andWithMoreThanOneSubCriteria() {
         and(Arrays.asList(KNOWN_CRITERIA_1, KNOWN_CRITERIA_2));

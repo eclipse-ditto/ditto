@@ -12,13 +12,16 @@ package org.eclipse.ditto.services.thingsearch.persistence.query.model.criteria;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.List;
+
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.criteria.EqPredicateImpl;
 import org.eclipse.ditto.model.query.criteria.FieldCriteriaImpl;
 import org.eclipse.ditto.model.query.expression.AttributeExpressionImpl;
-import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonVisitor;
 import org.eclipse.ditto.services.utils.persistence.mongo.assertions.BsonAssertions;
+
+import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonVisitor;
 
 
 /**
@@ -40,14 +43,24 @@ abstract class AbstractCriteriaTestBase {
     protected static final Criteria KNOWN_CRITERIA_2 =
             new FieldCriteriaImpl(new AttributeExpressionImpl(KNOWN_ATTR_KEY), new EqPredicateImpl("attributeValue2"));
 
-
-    protected static void assertCriteria(final Bson expectedBson, final Criteria actualCriteria) {
+    protected static void assertSudoCriteria(final Bson expectedBson, final Criteria actualCriteria) {
         requireNonNull(expectedBson);
         requireNonNull(actualCriteria);
 
-        final Bson actualBson = CreateBsonVisitor.apply(actualCriteria);
+        final Bson actualBson = CreateBsonVisitor.sudoApply(actualCriteria);
 
         BsonAssertions.assertThat(actualBson).isEqualTo(expectedBson);
     }
 
+    protected static void assertCriteria(final Bson expectedBson, final Criteria actualCriteria,
+            final List<String> authSubjects) {
+
+        requireNonNull(expectedBson);
+        requireNonNull(actualCriteria);
+        requireNonNull(authSubjects);
+
+        final Bson actualBson = CreateBsonVisitor.apply(actualCriteria, authSubjects);
+
+        BsonAssertions.assertThat(actualBson).isEqualTo(expectedBson);
+    }
 }

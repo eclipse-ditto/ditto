@@ -22,18 +22,19 @@ import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors
 import org.junit.Test;
 
 import com.mongodb.client.model.Filters;
+
 /**
  * Unit test for {@link OrCriteriaImpl}.
  */
 public final class OrCriteriaImplTest extends AbstractCriteriaTestBase {
 
-    /** */
+
     @Test(expected = NullPointerException.class)
     public void orWithNullSubCriteria() {
         new OrCriteriaImpl(null);
     }
 
-    /** */
+
     @Test
     public void orWithEmptySubCriteria() {
         or(Collections.emptyList());
@@ -41,21 +42,21 @@ public final class OrCriteriaImplTest extends AbstractCriteriaTestBase {
 
     private static void or(final List<Criteria> orCriteria) {
         final Iterable<Bson> bsonObjects =
-                orCriteria.stream().map(CreateBsonVisitor::apply).collect(Collectors.toList());
+                orCriteria.stream().map(CreateBsonVisitor::sudoApply).collect(Collectors.toList());
         final Bson expectedBson = Filters.or(bsonObjects);
 
         final Criteria actualCriteria = new OrCriteriaImpl(orCriteria);
 
-        assertCriteria(expectedBson, actualCriteria);
+        assertSudoCriteria(expectedBson, actualCriteria);
     }
 
-    /** */
+
     @Test
     public void orWithOneSubCriteria() {
         or(Collections.singletonList(KNOWN_CRITERIA_1));
     }
 
-    /** */
+
     @Test
     public void orWithMoreThanOneSubCriteria() {
         or(Arrays.asList(KNOWN_CRITERIA_1, KNOWN_CRITERIA_2));

@@ -43,43 +43,43 @@ public final class LikePredicateImplTest {
     private static final String KNOWN_VALUE_MINIMAL_PRE_AND_POSTFIX = "*a*";
     private static final String ESCAPED_KNOWN_VALUE_MINIMAL_PRE_AND_POSTFIX = "\\Qa\\E";
 
-    /** */
+
     @Test(expected = NullPointerException.class)
     public void withNullValue() {
         valueCheck(null, ESCAPED_KNOWN_VALUE_STARTS_WITH);
     }
 
-    /** */
+
     @Test
     public void startsWith() {
         valueCheck(KNOWN_VALUE_STARTS_WITH, ESCAPED_KNOWN_VALUE_STARTS_WITH);
     }
 
-    /** */
+
     @Test
     public void contains() {
         valueCheck(KNOWN_VALUE_CONTAINS, ESCAPED_KNOWN_VALUE_CONTAINS);
     }
 
-    /** */
+
     @Test
     public void endsWith() {
         valueCheck(KNOWN_VALUE_ENDS_WITH, ESCAPED_KNOWN_VALUE_ENDS_WITH);
     }
 
-    /** */
+
     @Test
     public void repeatingWildcard() {
         valueCheck(KNOWN_VALUE_REPEATING, ESCAPED_KNOWN_VALUE_REPEATING);
     }
 
-    /** */
+
     @Test
     public void onlyWildcards() {
         valueCheck(KNOWN_VALUE_ONLY_WILDCARDS, ESCAPED_KNOWN_VALUE_ONLY_WILDCARDS);
     }
 
-    /** */
+
     @Test
     public void preAndPostfix() {
         valueCheck(KNOWN_VALUE_MINIMAL_PRE_AND_POSTFIX, ESCAPED_KNOWN_VALUE_MINIMAL_PRE_AND_POSTFIX);

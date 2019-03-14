@@ -10,19 +10,18 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors;
 
-import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ACL;
-import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ATTRIBUTE_PREFIX_WITH_ENDING_SLASH;
-import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_FEATURE_PROPERTIES_PREFIX_WITH_ENDING_SLASH;
-import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_GLOBAL_READS;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ATTRIBUTES_PATH;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_FEATURES_PATH;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL;
-import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL_FEATURE_ID;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL_KEY;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL_VALUE;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.PROPERTIES;
 
+import java.util.List;
 import java.util.function.Function;
 
-import org.bson.BsonDocument;
-import org.bson.BsonNull;
+import javax.annotation.Nullable;
+
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.model.query.expression.FilterFieldExpression;
 import org.eclipse.ditto.model.query.expression.visitors.FilterFieldExpressionVisitor;
@@ -32,17 +31,22 @@ import com.mongodb.client.model.Filters;
 /**
  * Creates a Mongo Bson object for field-based search criteria.
  */
-public class GetFilterBsonVisitor implements FilterFieldExpressionVisitor<Bson> {
+public class GetFilterBsonVisitor extends AbstractFieldBsonCreator implements FilterFieldExpressionVisitor<Bson> {
 
     private final Function<String, Bson> predicateFunction;
+    private final Bson valueFilter;
 
     /**
      * Creates a visitor object to create a Mongo Bson object for field-based search criteria.
      *
      * @param predicateFunction the function for creating the predicate-part (e.g. "eq", "ne", ...) of the criteria
      */
-    private GetFilterBsonVisitor(final Function<String, Bson> predicateFunction) {
+    private GetFilterBsonVisitor(final Function<String, Bson> predicateFunction,
+            @Nullable List<String> authorizationSubjectIds) {
+
+        super(authorizationSubjectIds);
         this.predicateFunction = predicateFunction;
+        this.valueFilter = predicateFunction.apply(FIELD_INTERNAL_VALUE);
     }
 
     /**
@@ -50,54 +54,54 @@ public class GetFilterBsonVisitor implements FilterFieldExpressionVisitor<Bson> 
      *
      * @param expression the expression to create a filter for.
      * @param predicateFunction the function for creating the predicate-part (e.g. "eq", "ne", ...) of the criteria
+     * @param authorizationSubjectIds subject IDs to check for authorization, or null to not restrict visibility at all
      * @return the complete Bson for the field-based search criteria
      */
-    public static Bson apply(final FilterFieldExpression expression, final Function<String, Bson> predicateFunction) {
-        return expression.acceptFilterVisitor(new GetFilterBsonVisitor(predicateFunction));
+    public static Bson apply(final FilterFieldExpression expression,
+            final Function<String, Bson> predicateFunction,
+            @Nullable final List<String> authorizationSubjectIds) {
+
+        return expression.acceptFilterVisitor(new GetFilterBsonVisitor(predicateFunction, authorizationSubjectIds));
+    }
+
+    /**
+     * Create Bson without considering authorization.
+     *
+     * @param expression the field expression.
+     * @param predicateFunction the predicate creator.
+     * @return the filter Bson with no restriction on visibility.
+     */
+    public static Bson sudoApply(final FilterFieldExpression expression,
+            final Function<String, Bson> predicateFunction) {
+        return expression.acceptFilterVisitor(new GetFilterBsonVisitor(predicateFunction, null));
     }
 
     @Override
     public Bson visitAttribute(final String key) {
-        final String attributeKeyWithPrefix = FIELD_ATTRIBUTE_PREFIX_WITH_ENDING_SLASH + key;
-        final Bson keyRestrictionBson = Filters.eq(FIELD_INTERNAL_KEY, attributeKeyWithPrefix);
-
-        // match 'null' on 'f' field to be able to use the index
-        final Bson nullFeatureId = new BsonDocument().append(FIELD_INTERNAL_FEATURE_ID, BsonNull.VALUE);
-
-        return Filters.elemMatch(FIELD_INTERNAL,
-                Filters.and(keyRestrictionBson, nullFeatureId, predicateFunction.apply(FIELD_INTERNAL_VALUE)));
+        return matchKeyValue(FIELD_ATTRIBUTES_PATH + key);
     }
 
     @Override
     public Bson visitFeatureIdProperty(final String featureId, final String property) {
-        return Filters.elemMatch(
-                FIELD_INTERNAL,
-                Filters.and(
-                        Filters.eq(FIELD_INTERNAL_KEY, FIELD_FEATURE_PROPERTIES_PREFIX_WITH_ENDING_SLASH + property),
-                        Filters.eq(FIELD_INTERNAL_FEATURE_ID, featureId),
-                        predicateFunction.apply(FIELD_INTERNAL_VALUE)));
+        return matchKeyValue(FIELD_FEATURES_PATH + featureId + PROPERTIES + property);
+    }
+
+
+    @Override
+    Bson visitPointer(final String pointer) {
+        return matchKeyValue(pointer);
     }
 
     @Override
-    public Bson visitFeatureProperty(final String property) {
-        return Filters.elemMatch(FIELD_INTERNAL, Filters.and(
-                Filters.eq(FIELD_INTERNAL_KEY, FIELD_FEATURE_PROPERTIES_PREFIX_WITH_ENDING_SLASH + property),
-                predicateFunction.apply(FIELD_INTERNAL_VALUE)));
-    }
-
-    @Override
-    public Bson visitSimple(final String fieldName) {
+    Bson visitRootLevelField(final String fieldName) {
         return predicateFunction.apply(fieldName);
     }
 
-    @Override
-    public Bson visitAcl() {
-        return predicateFunction.apply(FIELD_INTERNAL + "." + FIELD_ACL);
-    }
-
-    @Override
-    public Bson visitGlobalReads() {
-        return predicateFunction.apply(
-                FIELD_INTERNAL + "." + FIELD_GLOBAL_READS);
+    private Bson matchKeyValue(final String key) {
+        final Bson keyValueFilter = Filters.and(Filters.eq(FIELD_INTERNAL_KEY, key), valueFilter);
+        return Filters.elemMatch(FIELD_INTERNAL,
+                getAuthorizationBson()
+                        .map(authBson -> Filters.and(keyValueFilter, authBson))
+                        .orElse(keyValueFilter));
     }
 }

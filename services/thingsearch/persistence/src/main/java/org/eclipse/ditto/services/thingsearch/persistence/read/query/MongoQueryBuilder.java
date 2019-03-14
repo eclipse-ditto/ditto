@@ -10,17 +10,20 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.read.query;
 
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ID;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.query.QueryBuilder;
+import org.eclipse.ditto.model.query.SortDirection;
 import org.eclipse.ditto.model.query.SortOption;
 import org.eclipse.ditto.model.query.criteria.Criteria;
+import org.eclipse.ditto.model.query.expression.SimpleFieldExpressionImpl;
 
 /**
  * Mongo implementation for {@link QueryBuilder}.
@@ -40,6 +43,9 @@ final class MongoQueryBuilder implements QueryBuilder {
      */
     private static final int MAX_LIMIT_UNLIMITED = Integer.MAX_VALUE;
 
+    private static final List<SortOption> DEFAULT_SORT_OPTIONS =
+            Collections.singletonList(new SortOption(new SimpleFieldExpressionImpl(FIELD_ID), SortDirection.ASC));
+
     private final Criteria criteria;
     private final int maxLimit;
     private int limit;
@@ -51,7 +57,7 @@ final class MongoQueryBuilder implements QueryBuilder {
         this.maxLimit = maxLimit;
         limit = defaultLimit;
         skip = DEFAULT_SKIP;
-        sortOptions = new ArrayList<>();
+        sortOptions = DEFAULT_SORT_OPTIONS;
     }
 
     /**

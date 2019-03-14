@@ -43,6 +43,10 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-model-query</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-model-policies</artifactId>
         </dependency>
         <dependency>
@@ -56,10 +60,6 @@
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-model-thingsearch</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-model-query</artifactId>
         </dependency>
 
         <dependency>
@@ -84,6 +84,17 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-models-thingsearch</artifactId>
         </dependency>
+        <!-- for policy enforcer cache -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-concierge-util</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-concierge-cache</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -96,6 +107,10 @@
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-persistence</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-utils-namespaces</artifactId>
         </dependency>
 
         <dependency>

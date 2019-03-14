@@ -11,12 +11,17 @@
 package org.eclipse.ditto.services.thingsearch.persistence.read;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.services.thingsearch.persistence.TestConstants.Thing.NAMESPACE;
-import static org.eclipse.ditto.services.thingsearch.persistence.TestConstants.thingId;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
@@ -25,20 +30,23 @@ import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Features;
+import org.junit.Before;
 import org.junit.Test;
+
+import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
 
 /**
  * Test the exists field expressions against the database.
  */
-public final class ExistsIT extends AbstractVersionedThingSearchPersistenceITBase {
+public final class ExistsIT extends AbstractReadPersistenceITBase {
 
-    private static final String THING1_ID = thingId(NAMESPACE, "thing1");
+    private static final String THING1_ID = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing1");
     private static final String THING1_KNOWN_ATTR = "attr1/a/b/c";
     private static final String THING1_KNOWN_ATTR_VALUE = "thing1";
     private static final String THING1_KNOWN_FEATURE_ID = "feature1";
     private static final String THING1_KNOWN_PROPERTY = "property/a/b/c";
     private static final long THING1_KNOWN_PROPERTY_VALUE = 1;
-    private static final String THING2_ID = thingId(NAMESPACE, "thing2");
+    private static final String THING2_ID = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing2");
     private static final String THING2_KNOWN_ATTR = "attr1/a/b/d";
     private static final String THING2_KNOWN_ATTR_VALUE = "thing2";
     private static final String THING2_KNOWN_FEATURE_ID = "feature2";
@@ -52,124 +60,103 @@ public final class ExistsIT extends AbstractVersionedThingSearchPersistenceITBas
     private static final String THINGS_KNOWN_PROPERTY_PART = "prop";
     private static final String THINGS_UNKNOWN_PROPERTY = "property2";
 
+    private static final String TAGS1 = "tags1";
+    private static final String TAGS2 = "tags2";
+    private static final String TAGS3 = "tags3";
+    private static final String TAGS4 = "tags4";
+
     private final CriteriaFactory cf = new CriteriaFactoryImpl();
     private final ThingsFieldExpressionFactory ef = new ThingsFieldExpressionFactoryImpl();
 
-    @Override
-    void createTestDataV1() {
+    @Before
+    public void createTestData() {
         insertThings();
     }
 
-    @Override
-    void createTestDataV2() {
-        insertThings();
-    }
-
-    /** */
     @Test
     public void existsByKnownFeatureId() {
         final Criteria crit = cf.existsCriteria(ef.existsByFeatureId(THING2_KNOWN_FEATURE_ID));
-        final Collection<String> result = executeVersionedQuery(crit);
+        final Collection<String> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING2_ID);
     }
 
-    /** */
     @Test
     public void existsByKnownFeatureIdAndProperty() {
         final Criteria crit =
                 cf.existsCriteria(ef.existsByFeatureProperty(THING1_KNOWN_FEATURE_ID, THINGS_KNOWN_PROPERTY));
-        final Collection<String> result = executeVersionedQuery(crit);
+        final Collection<String> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING1_ID);
     }
 
-    /** */
     @Test
     public void existsByExactProperty() {
         final Criteria crit = cf.existsCriteria(ef.existsByFeatureProperty(THING1_KNOWN_PROPERTY));
-        final Collection<String> result = executeVersionedQuery(crit);
+        final Collection<String> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING1_ID);
     }
 
-    /** */
     @Test
     public void existsByKnownProperty() {
         final Criteria crit = cf.existsCriteria(ef.existsByFeatureProperty(THINGS_KNOWN_PROPERTY));
-        final Collection<String> result = executeVersionedQuery(crit);
+        final Collection<String> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING1_ID, THING2_ID);
     }
 
-    /** */
     @Test
     public void existsByUnknownProperty() {
         final Criteria crit = cf.existsCriteria(ef.existsByFeatureProperty(THINGS_UNKNOWN_PROPERTY));
-        final Collection<String> result = executeVersionedQuery(crit);
+        final Collection<String> result = findForCriteria(crit);
         assertThat(result).isEmpty();
     }
 
-    /** */
     @Test
     public void existsByPartOfKnownProperty() {
         final Criteria crit = cf.existsCriteria(ef.existsByFeatureProperty(THINGS_KNOWN_PROPERTY_PART));
-        final Collection<String> result = executeVersionedQuery(crit);
+        final Collection<String> result = findForCriteria(crit);
         assertThat(result).isEmpty();
     }
 
-    /** */
     @Test
     public void existsByExactAttribute() {
         final Criteria crit = cf.existsCriteria(ef.existsByAttribute(THING2_KNOWN_ATTR));
-        final Collection<String> result = executeVersionedQuery(crit);
+        final Collection<String> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING2_ID);
     }
 
-    /** */
     @Test
     public void existsByKnownAttribute() {
         final Criteria crit = cf.existsCriteria(ef.existsByAttribute(THINGS_KNOWN_ATTR));
-        final Collection<String> result = executeVersionedQuery(crit);
+        final Collection<String> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING1_ID, THING2_ID);
     }
 
-    /** */
     @Test
     public void existsByUnknownAttribute() {
         final Criteria crit = cf.existsCriteria(ef.existsByAttribute(THINGS_UNKNOWN_ATTR));
-        final Collection<String> result = executeVersionedQuery(crit);
+        final Collection<String> result = findForCriteria(crit);
         assertThat(result).isEmpty();
     }
 
-    /** */
     @Test
-    public void existsByPartOfKnownAttribute() {
-        final Criteria crit = cf.existsCriteria(ef.existsByFeatureProperty(THINGS_KNOWN_ATTR_PART));
-        final Collection<String> result = executeVersionedQuery(crit);
-        assertThat(result).isEmpty();
-    }
+    public void nullAndEmptyValuesExist() {
+        final List<List<String>> results = Stream.of(TAGS1, TAGS2, TAGS3, TAGS4)
+                .map(tagName -> cf.existsCriteria(ef.existsByAttribute(tagName)))
+                .map(this::findForCriteria)
+                .map(ArrayList::new)
+                .collect(Collectors.toList());
 
+        final List<List<String>> expected = Stream.generate(() -> THING1_ID)
+                .limit(4L)
+                .map(Collections::singletonList)
+                .collect(Collectors.toList());
 
-    /** */
-    @Test
-    public void notExistsByKnownPropertyWithEmptyExpectedResult() {
-        final Criteria crit = cf.nor(Collections.singletonList(
-                cf.existsCriteria(fef.existsByFeatureProperty(THINGS_KNOWN_PROPERTY))));
-
-        final Collection<String> result = executeVersionedQuery(crit);
-        assertThat(result).isEmpty();
-    }
-
-    /** */
-    @Test
-    public void notExistsByThing1KnownProperty() {
-        final Criteria crit = cf.nor(Collections.singletonList(
-                cf.existsCriteria(fef.existsByFeatureProperty(THING1_KNOWN_PROPERTY))));
-
-        final Collection<String> result = executeVersionedQuery(crit);
-
-        assertThat(result).containsOnly(THING2_ID);
+        assertThat(results).isEqualTo(expected);
     }
 
     private void insertThings() {
-        final Attributes attributes1 = createAttributes(THING1_KNOWN_ATTR, THING1_KNOWN_ATTR_VALUE);
+        final Attributes attributes1 = createAttributes(THING1_KNOWN_ATTR, THING1_KNOWN_ATTR_VALUE).toBuilder()
+                .setAll(createEmptyAttributes())
+                .build();
         final Features features1 =
                 createFeatures(THING1_KNOWN_FEATURE_ID, THING1_KNOWN_PROPERTY, THING1_KNOWN_PROPERTY_VALUE);
 
@@ -183,7 +170,7 @@ public final class ExistsIT extends AbstractVersionedThingSearchPersistenceITBas
 
     private static Attributes createAttributes(final String attributeKey, final String attributeValue) {
         return Attributes.newBuilder()
-                .set(attributeKey, attributeValue)
+                .set(JsonPointer.of(attributeKey), attributeValue)
                 .build();
     }
 
@@ -192,5 +179,14 @@ public final class ExistsIT extends AbstractVersionedThingSearchPersistenceITBas
 
         final Feature feature = Feature.newBuilder().withId(featureId).build().setProperty(propertyKey, propertyValue);
         return Features.newBuilder().set(feature).build();
+    }
+
+    private static JsonObject createEmptyAttributes() {
+        return JsonObject.newBuilder()
+                .set(TAGS1, JsonObject.empty())
+                .set(TAGS2, JsonFactory.nullLiteral())
+                .set(TAGS3, JsonObject.newBuilder().set("foo", JsonFactory.nullLiteral()).build())
+                .set(TAGS4, JsonObject.newBuilder().set("foo", JsonObject.empty()).build())
+                .build();
     }
 }

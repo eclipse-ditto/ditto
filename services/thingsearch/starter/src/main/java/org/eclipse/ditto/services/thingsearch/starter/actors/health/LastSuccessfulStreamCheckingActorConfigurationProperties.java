@@ -14,14 +14,15 @@ import static java.util.Objects.requireNonNull;
 
 import java.time.Duration;
 
-import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
 
 import com.typesafe.config.Config;
 
+import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
+
 /**
  * Holds the configuration properties for a new instance of
- * {@link org.eclipse.ditto.services.thingsearch.starter.actors.health.LastSuccessfulStreamCheckingActor}.
+ * {@link LastSuccessfulStreamCheckingActor}.
  */
 final class LastSuccessfulStreamCheckingActorConfigurationProperties {
 

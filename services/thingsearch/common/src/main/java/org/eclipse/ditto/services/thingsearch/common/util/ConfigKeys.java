@@ -33,24 +33,6 @@ public final class ConfigKeys {
      * Prefix for mongoDB config
      */
     private static final String MONGO_CONFIG_PREFIX = SEARCH_PREFIX + "mongodb.";
-    /**
-     * Prefix for circuit breaker config.
-     */
-    private static final String MONGO_CIRCUIT_BREAKER_CONFIG_PREFIX = MONGO_CONFIG_PREFIX + "breaker.";
-    /**
-     * Max retries config for circuit breaker.
-     */
-    public static final String MONGO_CIRCUIT_BREAKER_FAILURES = MONGO_CIRCUIT_BREAKER_CONFIG_PREFIX + "maxFailures";
-    /**
-     * Call timeout config for circuit breaker.
-     */
-    public static final String MONGO_CIRCUIT_BREAKER_TIMEOUT_CALL =
-            MONGO_CIRCUIT_BREAKER_CONFIG_PREFIX + "timeout.call";
-    /**
-     * Reset timeout for circuit breaker.
-     */
-    public static final String MONGO_CIRCUIT_BREAKER_TIMEOUT_RESET =
-            MONGO_CIRCUIT_BREAKER_CONFIG_PREFIX + "timeout.reset";
 
     private static final String MONITORING_PREFIX = MONGO_CONFIG_PREFIX + "monitoring.";
     /**
@@ -78,11 +60,6 @@ public final class ConfigKeys {
     public static final String DELETION_AGE = DELETION_PREFIX + "deletion-age";
 
     /**
-     * Whether or not the deletion of marked as deleted Things from the search index is enabled.
-     */
-    public static final String DELETION_ENABLED = DELETION_PREFIX + "enabled";
-
-    /**
      * Key configuring the interval (as Duration) when marked as deleted Things should be deleted (e.g. once a day).
      */
     public static final String DELETION_RUN_INTERVAL = DELETION_PREFIX + "run-interval";
@@ -104,16 +81,14 @@ public final class ConfigKeys {
     public static final String MAX_BULK_SIZE = SEARCH_UPDATER_PREFIX + "max-bulk-size";
 
     /**
-     * Controls whether thing and policy cache-updates should be active or not.
+     * Path to configuration of the search updater stream.
      */
-    public static final String CACHE_UPDATES_ACTIVE = SEARCH_UPDATER_PREFIX + "cache-updates.active";
+    public static final String UPDATER_STREAM = SEARCH_UPDATER_PREFIX + "stream";
 
     /**
-     * The interval which defines how long a thing updater is considered active. When not active, the corresponding
-     * actor can be stopped.
+     * Lifetime of an idling ThingUpdater.
      */
-    public static final String THINGS_ACTIVITY_CHECK_INTERVAL = SEARCH_UPDATER_PREFIX +
-            "activity-check-interval";
+    public static final String THING_UPDATER_MAX_IDLE_TIME = SEARCH_UPDATER_PREFIX + "max-idle-time";
 
     private static final String SYNC_PREFIX = SEARCH_UPDATER_PREFIX + "sync.";
 
@@ -164,7 +139,6 @@ public final class ConfigKeys {
      */
     public static final String POLICIES_SYNCER_OUTDATED_ERROR_OFFSET =
             SYNC_POLICIES_PREFIX + "outdated-error-offset";
-
 
     /*
      * This class is not designed for instantiation.

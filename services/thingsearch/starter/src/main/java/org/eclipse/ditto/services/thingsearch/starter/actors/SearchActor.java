@@ -10,8 +10,9 @@
  */
 package org.eclipse.ditto.services.thingsearch.starter.actors;
 
+import java.util.List;
 import java.util.Optional;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
@@ -19,40 +20,31 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.query.Query;
-import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
-import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
-import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.thingsearch.SearchModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchResult;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoRetrieveNamespaceReport;
-import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
-import org.eclipse.ditto.services.thingsearch.persistence.query.AggregationQueryActor;
-import org.eclipse.ditto.services.thingsearch.persistence.query.QueryActor;
-import org.eclipse.ditto.services.thingsearch.persistence.read.PolicyRestrictedSearchAggregation;
-import org.eclipse.ditto.services.thingsearch.persistence.read.ThingsSearchPersistence;
-import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.IsPolicyLookupNeededVisitor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.commands.thingsearch.query.CountThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.CountThingsResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThingsResponse;
-import org.eclipse.ditto.signals.commands.thingsearch.query.ThingSearchQueryCommand;
 
 import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
+import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.PatternsCS;
 import akka.stream.ActorMaterializer;
@@ -63,6 +55,10 @@ import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import scala.concurrent.ExecutionContextExecutor;
 
+import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
+import org.eclipse.ditto.services.thingsearch.persistence.query.QueryParser;
+import org.eclipse.ditto.services.thingsearch.persistence.read.ThingsSearchPersistence;
+
 /**
  * Actor handling all supported {@link ThingSearchCommand}s. Currently those are {@link CountThings} and {@link
  * QueryThings}.
@@ -70,12 +66,9 @@ import scala.concurrent.ExecutionContextExecutor;
  * Passes the commands to the appropriate query actor which is determined by the API version of each received command
  * (see {@link DittoHeaders#getSchemaVersion()}).
  * <p>
- * Commands with version 1 are delegated to the {@link QueryActor} which creates a {@link Query} out of the commands.
+ * Commands are parsed into {@link Query} objects.
  * <p>
- * Commands with version 2 are delegated to the {@link AggregationQueryActor} which creates a {@link
- * PolicyRestrictedSearchAggregation} out of the commands.
- * <p>
- * Both, Query and PolicyRestrictedSearchAggregation are executed against the passed {@link ThingsSearchPersistence}.
+ * Query executes against the passed {@link ThingsSearchPersistence}.
  * <p>
  * The ThingsSearchPersistence returns only Thing IDs. Thus to provide complete Thing information to the requester,
  * things have to be retrieved from Things Service via distributed pub/sub.
@@ -85,11 +78,9 @@ public final class SearchActor extends AbstractActor {
     /**
      * The name of this actor in the system.
      */
-    public static final String ACTOR_NAME = "thingsSearch";
+    static final String ACTOR_NAME = "thingsSearch";
 
     private static final String SEARCH_DISPATCHER_ID = "search-dispatcher";
-
-    private static final int QUERY_ASK_TIMEOUT = 500;
 
     private static final String TRACING_THINGS_SEARCH = "things_search_query";
     private static final String QUERY_PARSING_SEGMENT_NAME = "query_parsing";
@@ -98,21 +89,17 @@ public final class SearchActor extends AbstractActor {
     private static final String API_VERSION_TAG = "api_version";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-    private final QueryFilterCriteriaFactory queryFilterCriteriaFactory =
-            new QueryFilterCriteriaFactory(new CriteriaFactoryImpl(), new ThingsFieldExpressionFactoryImpl());
 
-    private final ActorRef aggregationQueryActor;
-    private final ActorRef findQueryActor;
+    private final QueryParser queryParser;
     private final ThingsSearchPersistence searchPersistence;
     private final ActorMaterializer materializer;
     private final ExecutionContextExecutor dispatcher;
 
-    private SearchActor(final ActorRef aggregationQueryActor,
-            final ActorRef findQueryActor,
+    private SearchActor(
+            final QueryParser queryParser,
             final ThingsSearchPersistence searchPersistence) {
 
-        this.aggregationQueryActor = aggregationQueryActor;
-        this.findQueryActor = findQueryActor;
+        this.queryParser = queryParser;
         this.searchPersistence = searchPersistence;
         materializer = ActorMaterializer.create(getContext().system());
 
@@ -122,32 +109,22 @@ public final class SearchActor extends AbstractActor {
     /**
      * Creates Akka configuration object Props for this SearchActor.
      *
-     * @param aggregationQueryActor ActorRef for the {@link AggregationQueryActor} to use in order to create {@link
-     * PolicyRestrictedSearchAggregation}s from {@link ThingSearchCommand}s.
-     * @param findQueryActor ActorRef for the {@link QueryActor} to construct find queries.
-     * @param searchPersistence the {@link ThingsSearchPersistence} to use in order to execute {@link
-     * PolicyRestrictedSearchAggregation}s.
+     * @param queryFactory factory of query objects.
+     * @param searchPersistence the {@link ThingsSearchPersistence} to use in order to execute queries.
      * @return the Akka configuration Props object.
      */
-    static Props props(final ActorRef aggregationQueryActor,
-            final ActorRef findQueryActor,
+    static Props props(
+            final QueryParser queryFactory,
             final ThingsSearchPersistence searchPersistence) {
 
-        return Props.create(SearchActor.class, new Creator<SearchActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public SearchActor create() {
-                return new SearchActor(aggregationQueryActor, findQueryActor, searchPersistence);
-            }
-        });
+        return Props.create(SearchActor.class, () -> new SearchActor(queryFactory, searchPersistence));
     }
 
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(CountThings.class, this::count)
-                .match(SudoCountThings.class, this::count)
+                .match(SudoCountThings.class, this::sudoCount)
                 .match(QueryThings.class, this::query)
                 .match(SudoRetrieveNamespaceReport.class, this::namespaceReport)
                 .matchAny(any -> log.warning("Got unknown message '{}'", any))
@@ -164,12 +141,22 @@ public final class SearchActor extends AbstractActor {
                 .to(getSender());
     }
 
-    private void count(final Command countThings) {
-        final DittoHeaders dittoHeaders = countThings.getDittoHeaders();
+    private void count(final CountThings countThings) {
+        executeCount(countThings, queryParser::parse, false);
+    }
+
+    private void sudoCount(final SudoCountThings sudoCountThings) {
+        executeCount(sudoCountThings, queryParser::parseSudoCountThings, true);
+    }
+
+    private <T extends Command> void executeCount(final T countCommand,
+            final Function<T, Query> queryParseFunction,
+            final boolean isSudo) {
+        final DittoHeaders dittoHeaders = countCommand.getDittoHeaders();
         final Optional<String> correlationIdOpt = dittoHeaders.getCorrelationId();
         LogUtil.enhanceLogWithCorrelationId(log, correlationIdOpt);
-        log.info("Processing CountThings command: {}", countThings);
-        final JsonSchemaVersion version = countThings.getImplementedSchemaVersion();
+        log.info("Processing CountThings command: {}", countCommand);
+        final JsonSchemaVersion version = countCommand.getImplementedSchemaVersion();
 
         final String queryType = "count";
 
@@ -179,50 +166,37 @@ public final class SearchActor extends AbstractActor {
 
         final ActorRef sender = getSender();
 
-        // choose a query actor based on the API version in command headers
-        final ActorRef chosenQueryActor = chooseQueryActor(version, countThings);
+        final Source<Object, ?> replySource = createQuerySource(queryParseFunction, countCommand)
+                .flatMapConcat(query -> {
+                    LogUtil.enhanceLogWithCorrelationId(log, correlationIdOpt);
+                    stopTimer(queryParsingTimer);
+                    final StartedTimer databaseAccessTimer =
+                            countTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
 
-        PatternsCS.pipe(
-                Source.fromCompletionStage(PatternsCS.ask(chosenQueryActor, countThings, QUERY_ASK_TIMEOUT))
-                        .flatMapConcat(query -> {
-                            LogUtil.enhanceLogWithCorrelationId(log, correlationIdOpt);
-                            queryParsingTimer.stop();
-                            if (query instanceof PolicyRestrictedSearchAggregation) {
-                                final StartedTimer databaseAccessTimer =
-                                        countTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
-                                // aggregation-based count for things with policies
-                                return processSearchPersistenceResult(
-                                        () -> searchPersistence.count((PolicyRestrictedSearchAggregation) query),
-                                        dittoHeaders)
-                                        .via(Flow.fromFunction(result -> {
-                                            databaseAccessTimer.stop();
-                                            return result;
-                                        }))
-                                        .map(count -> CountThingsResponse.of(count, dittoHeaders));
-                            } else if (query instanceof Query) {
-                                final StartedTimer databaseAccessTimer =
-                                        countTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
-                                // count without aggregation for things without policies
-                                return processSearchPersistenceResult(() -> searchPersistence.count((Query) query),
-                                        dittoHeaders)
-                                        .via(Flow.fromFunction(result -> {
-                                            databaseAccessTimer.stop();
-                                            return result;
-                                        }))
-                                        .map(count -> CountThingsResponse.of(count, dittoHeaders));
-                            } else if (query instanceof DittoRuntimeException) {
-                                log.info("QueryActor responded with DittoRuntimeException: {}", query);
-                                return Source.<Object>failed((Throwable) query);
-                            } else {
-                                log.error("Expected 'PolicyRestrictedSearchAggregation', but got: {}", query);
-                                return Source.<Object>single(CountThingsResponse.of(-1, dittoHeaders));
-                            }
+                    final Source<Long, NotUsed> countResultSource = isSudo
+                            ? searchPersistence.sudoCount(query)
+                            : searchPersistence.count(query,
+                            countCommand.getDittoHeaders().getAuthorizationSubjects());
+
+                    return processSearchPersistenceResult(countResultSource, dittoHeaders)
+                            .via(Flow.fromFunction(result -> {
+                                stopTimer(databaseAccessTimer);
+                                return result;
+                            }))
+                            .map(count -> CountThingsResponse.of(count, dittoHeaders));
+                })
+                .<Object>map(result -> {
+                    stopTimer(countTimer);
+                    return result;
+                })
+                .recoverWithRetries(1, new PFBuilder<Throwable, Source<Object, NotUsed>>()
+                        .matchAny(error -> {
+                            stopTimer(countTimer);
+                            return Source.single(asDittoRuntimeException(error, countCommand));
                         })
-                        .via(Flow.fromFunction(result -> {
-                            countTimer.stop();
-                            return result;
-                        }))
-                        .runWith(Sink.head(), materializer), dispatcher)
+                        .build());
+
+        PatternsCS.pipe(replySource.runWith(Sink.head(), materializer), dispatcher)
                 .to(sender);
     }
 
@@ -239,59 +213,39 @@ public final class SearchActor extends AbstractActor {
 
         final ActorRef sender = getSender();
 
-        // choose a query actor based on the API version in command headers
-        final ActorRef chosenQueryActor = chooseQueryActor(version, queryThings);
+        final Source<Object, ?> replySource = createQuerySource(queryParser::parse, queryThings)
+                .flatMapConcat(query -> {
+                    LogUtil.enhanceLogWithCorrelationId(log, correlationIdOpt);
+                    stopTimer(queryParsingTimer);
+                    final StartedTimer databaseAccessTimer =
+                            searchTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
 
-        PatternsCS.pipe(
-                Source.fromCompletionStage(PatternsCS.ask(chosenQueryActor, queryThings, QUERY_ASK_TIMEOUT))
-                        .flatMapConcat(query -> {
-                            LogUtil.enhanceLogWithCorrelationId(log, correlationIdOpt);
-                            queryParsingTimer.stop();
-
-                            if (query instanceof PolicyRestrictedSearchAggregation) {
-                                final StartedTimer databaseAccessTimer =
-                                        searchTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
-                                // policy-based search via aggregation
-                                return processSearchPersistenceResult(
-                                        () -> searchPersistence.findAll((PolicyRestrictedSearchAggregation) query),
-                                        dittoHeaders)
-                                        .via(Flow.fromFunction(result -> {
-                                            databaseAccessTimer.stop();
-                                            return result;
-                                        }))
-                                        .flatMapConcat(resultList -> retrieveThingsForIds(resultList, queryThings));
-                            } else if (query instanceof Query) {
-                                final StartedTimer databaseAccessTimer =
-                                        searchTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
-                                // api/1 search via 'find'
-                                return processSearchPersistenceResult(() -> searchPersistence.findAll((Query) query),
-                                        dittoHeaders)
-                                        .via(Flow.fromFunction(result -> {
-                                            databaseAccessTimer.stop();
-                                            return result;
-                                        }))
-                                        .flatMapConcat(resultList -> retrieveThingsForIds(resultList, queryThings));
-                            } else if (query instanceof DittoRuntimeException) {
-                                log.info("QueryActor responded with DittoRuntimeException: {}", query);
-                                return Source.<QueryThingsResponse>failed((Throwable) query);
-                            } else {
-                                log.error("Expected 'PolicyRestrictedSearchAggregation' or 'query', but got: {}",
-                                        query);
-                                return Source.<QueryThingsResponse>single(
-                                        QueryThingsResponse.of(SearchModelFactory.emptySearchResult(), dittoHeaders));
-                            }
+                    final List<String> subjectIds = queryThings.getDittoHeaders().getAuthorizationSubjects();
+                    return processSearchPersistenceResult(searchPersistence.findAll(query, subjectIds),
+                            dittoHeaders)
+                            .via(Flow.fromFunction(result -> {
+                                stopTimer(databaseAccessTimer);
+                                return result;
+                            }))
+                            .flatMapConcat(resultList -> retrieveThingsForIds(resultList, queryThings));
+                })
+                .<Object>map(result -> {
+                    stopTimer(searchTimer);
+                    return result;
+                })
+                .recoverWithRetries(1, new PFBuilder<Throwable, Source<Object, NotUsed>>()
+                        .matchAny(error -> {
+                            stopTimer(searchTimer);
+                            return Source.single(asDittoRuntimeException(error, queryThings));
                         })
-                        .via(Flow.fromFunction(result -> {
-                            searchTimer.stop();
-                            return result;
-                        }))
-                        .runWith(Sink.head(), materializer), dispatcher)
+                        .build());
+
+        PatternsCS.pipe(replySource.runWith(Sink.head(), materializer), dispatcher)
                 .to(sender);
     }
 
-    private <T> Source<T, NotUsed> processSearchPersistenceResult(final Supplier<Source<T, NotUsed>> resultSupplier,
+    private <T> Source<T, NotUsed> processSearchPersistenceResult(Source<T, NotUsed> source,
             final DittoHeaders dittoHeaders) {
-        final Source<T, NotUsed> source = resultSupplier.get();
 
         final Flow<T, T, NotUsed> logAndFinishPersistenceSegmentFlow =
                 Flow.fromFunction(result -> {
@@ -301,7 +255,19 @@ public final class SearchActor extends AbstractActor {
                     return result;
                 });
 
-        return source.<T, NotUsed>via(logAndFinishPersistenceSegmentFlow);
+        return source.via(logAndFinishPersistenceSegmentFlow);
+    }
+
+    private DittoRuntimeException asDittoRuntimeException(final Throwable error, final WithDittoHeaders trigger) {
+        if (error instanceof DittoRuntimeException) {
+            return (DittoRuntimeException) error;
+        } else {
+            log.error(error, "SearchActor failed to execute <{}>", trigger);
+            return GatewayInternalErrorException.newBuilder()
+                    .dittoHeaders(trigger.getDittoHeaders())
+                    .cause(error)
+                    .build();
+        }
     }
 
     private Graph<SourceShape<QueryThingsResponse>, NotUsed> retrieveThingsForIds(final ResultList<String> thingIds,
@@ -313,8 +279,9 @@ public final class SearchActor extends AbstractActor {
         final Optional<String> correlationIdOpt = dittoHeaders.getCorrelationId();
         LogUtil.enhanceLogWithCorrelationId(log, correlationIdOpt);
         if (thingIds.isEmpty()) {
-            result = Source.<QueryThingsResponse>single(QueryThingsResponse.of(SearchModelFactory.emptySearchResult(), dittoHeaders));
-        } else  {
+            result = Source.single(
+                    QueryThingsResponse.of(SearchModelFactory.emptySearchResult(), dittoHeaders));
+        } else {
             // only respond with the determined "thingIds", the lookup of the things is done in gateway:
             final JsonArray items = thingIds.stream()
                     .map(JsonValue::of)
@@ -325,29 +292,10 @@ public final class SearchActor extends AbstractActor {
                     .collect(JsonCollectors.valuesToArray());
             final SearchResult searchResult = SearchModelFactory.newSearchResult(items, thingIds.nextPageOffset());
 
-            result = Source.<QueryThingsResponse>single(QueryThingsResponse.of(searchResult, dittoHeaders));
+            result = Source.single(QueryThingsResponse.of(searchResult, dittoHeaders));
         }
 
         return result;
-    }
-
-    private ActorRef chooseQueryActor(final JsonSchemaVersion version, final Command<?> command) {
-        if (command instanceof ThingSearchQueryCommand<?>) {
-            final String filter = ((ThingSearchQueryCommand<?>) command).getFilter().orElse(null);
-            // useless parsing of command just to choose another actor to "parse" the filter string
-            try {
-                final Criteria criteria = queryFilterCriteriaFactory.filterCriteria(filter, command.getDittoHeaders());
-                final boolean needToLookupPolicy =
-                        JsonSchemaVersion.V_1 != version && criteria.accept(new IsPolicyLookupNeededVisitor());
-                return needToLookupPolicy ? aggregationQueryActor : findQueryActor;
-            } catch (final DittoRuntimeException e) {
-                // criteria is invalid, let the query actor deal with it
-                return findQueryActor;
-            }
-        } else {
-            // don't bother with aggregation for sudo commands
-            return findQueryActor;
-        }
     }
 
     private static StartedTimer startNewTimer(final JsonSchemaVersion version, final String queryType) {
@@ -355,6 +303,24 @@ public final class SearchActor extends AbstractActor {
                 .tag(QUERY_TYPE_TAG, queryType)
                 .tag(API_VERSION_TAG, version.toString())
                 .build();
+    }
+
+    private static <T> Source<Query, NotUsed> createQuerySource(final Function<T, Query> parser,
+            final T command) {
+
+        try {
+            return Source.single(parser.apply(command));
+        } catch (final Throwable e) {
+            return Source.failed(e);
+        }
+    }
+
+    private static void stopTimer(final StartedTimer timer) {
+        try {
+            timer.stop();
+        } catch (final IllegalStateException e) {
+            // it is okay if the timer was stopped.
+        }
     }
 
 }

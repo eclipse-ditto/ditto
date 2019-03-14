@@ -10,93 +10,110 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.read;
 
-import static com.mongodb.client.model.Filters.and;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETE_AT;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETED_FLAG;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
-import org.bson.BsonBoolean;
+import javax.annotation.Nullable;
+
 import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceReportResult;
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceResultEntry;
-import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
-import org.eclipse.ditto.services.thingsearch.common.model.ResultListImpl;
-import org.eclipse.ditto.services.thingsearch.persistence.Indices;
-import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
-import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonVisitor;
-import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQuery;
 import org.eclipse.ditto.services.utils.config.MongoConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
+import org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil;
+import org.eclipse.ditto.services.utils.persistence.mongo.indices.DefaultIndexKey;
+import org.eclipse.ditto.services.utils.persistence.mongo.indices.IndexDirection;
 import org.eclipse.ditto.services.utils.persistence.mongo.indices.IndexInitializer;
+import org.eclipse.ditto.services.utils.persistence.mongo.indices.IndexKey;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayQueryTimeExceededException;
 
 import com.mongodb.MongoExecutionTimeoutException;
 import com.mongodb.ReadPreference;
 import com.mongodb.client.model.CountOptions;
+import com.mongodb.client.model.IndexOptions;
 import com.mongodb.reactivestreams.client.AggregatePublisher;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
+import akka.Done;
 import akka.NotUsed;
 import akka.actor.ActorSystem;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.PFBuilder;
 import akka.stream.ActorMaterializer;
+import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import scala.PartialFunction;
+
+import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
+import org.eclipse.ditto.services.thingsearch.common.model.ResultListImpl;
+import org.eclipse.ditto.services.thingsearch.persistence.Indices;
+import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
+import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonVisitor;
+import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQuery;
 
 /**
  * Persistence Service Implementation for asynchronous MongoDB search.
  */
-public final class MongoThingsSearchPersistence implements ThingsSearchPersistence {
+public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
 
     private final MongoCollection<Document> collection;
+    private final LoggingAdapter log;
+
     private final IndexInitializer indexInitializer;
     private final Duration maxQueryTime;
-    private final LoggingAdapter log;
+    private final ActorMaterializer materializer;
 
     /**
      * Initializes the things search persistence with a passed in {@code persistence}.
      *
-     * @param mongoClient the mongoDB persistence wrapper.
+     * @param database the mongoDB database.
      * @param actorSystem the Akka ActorSystem.
      */
-    public MongoThingsSearchPersistence(final DittoMongoClient mongoClient, final ActorSystem actorSystem) {
-        final MongoDatabase database = mongoClient.getDefaultDatabase();
-        collection = database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME).withReadPreference(
-                ReadPreference.secondaryPreferred());;
-        indexInitializer = IndexInitializer.of(database, ActorMaterializer.create(actorSystem));
-        maxQueryTime = mongoClient.getDittoSettings().getMaxQueryTime();
-        log = Logging.getLogger(actorSystem, getClass());
-    }
+    public MongoThingsSearchPersistence(final MongoDatabase database, final ActorSystem actorSystem) {
+        // configure search persistence to stress the primary as little as possible and tolerate inconsistency
+        collection = database
+                .getCollection(PersistenceConstants.THINGS_COLLECTION_NAME)
+                .withReadPreference(ReadPreference.secondaryPreferred());
 
-    /**
-     * Create a BSON filter for not-deleted entries.
-     *
-     * @return the BSON filter.
-     */
-    public static BsonDocument filterNotDeleted() {
-        return new BsonDocument().append(FIELD_DELETED_FLAG, BsonBoolean.FALSE);
+        log = Logging.getLogger(actorSystem, getClass());
+        final ActorMaterializer materializer = ActorMaterializer.create(actorSystem);
+        indexInitializer = IndexInitializer.of(database, materializer);
+        maxQueryTime = MongoConfig.of(actorSystem.settings().config()).getMaxQueryTime();
+        this.materializer = materializer;
     }
 
     @Override
     public CompletionStage<Void> initializeIndices() {
-        return indexInitializer.initialize(PersistenceConstants.THINGS_COLLECTION_NAME, Indices.Things.all())
+        return createDeleteAtIndex()
+                .thenCompose(done ->
+                        indexInitializer.initialize(PersistenceConstants.THINGS_COLLECTION_NAME, Indices.all()))
                 .exceptionally(t -> {
                     log.error(t, "Index-Initialization failed: {}", t.getMessage());
                     return null;
                 });
+    }
+
+    // TODO: remove this hack; extend Ditto's Index class instead
+    private CompletionStage<Done> createDeleteAtIndex() {
+        final IndexKey indexKey = DefaultIndexKey.of(FIELD_DELETE_AT, IndexDirection.ASCENDING);
+        final BsonDocument keys = new BsonDocument().append(indexKey.getFieldName(), indexKey.getBsonValue());
+        final IndexOptions indexOptions = new IndexOptions()
+                .expireAfter(0L, TimeUnit.SECONDS)
+                .background(true)
+                .sparse(true)
+                .name(FIELD_DELETE_AT);
+        return Source.fromPublisher(collection.createIndex(keys, indexOptions)).runWith(Sink.ignore(), materializer);
     }
 
     @Override
@@ -112,7 +129,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
 
         return Source.fromPublisher(aggregatePublisher)
                 .map(document -> {
-                    final String namespace = document.get(PersistenceConstants.FIELD_ID) != null
+                    final String namespace = (document.get(PersistenceConstants.FIELD_ID) != null)
                             ? document.get(PersistenceConstants.FIELD_ID).toString()
                             : "NOT_MIGRATED";
                     final long count = Long.parseLong(document.get(PersistenceConstants.FIELD_COUNT).toString());
@@ -122,81 +139,57 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
                     list.add(entry);
                     return list;
                 })
-                .<SearchNamespaceReportResult>map(SearchNamespaceReportResult::new);
+                .map(SearchNamespaceReportResult::new);
     }
 
     @Override
-    public Source<Long, NotUsed> count(final PolicyRestrictedSearchAggregation policyRestrictedSearchAggregation) {
-        checkNotNull(policyRestrictedSearchAggregation, "policy restricted aggregation");
+    public Source<Long, NotUsed> count(final Query query,
+            @Nullable final List<String> authorizationSubjectIds) {
 
-        final Source<Document, NotUsed> source = policyRestrictedSearchAggregation.execute(collection, maxQueryTime);
-
-        return source.map(doc -> doc.get(PersistenceConstants.COUNT_RESULT_NAME))
-                .map(countResult -> (Number) countResult)
-                .map(Number::longValue) // use Number.longValue() to support both Integer and Long values
-                .orElse(Source.<Long>single(0L))
-                .mapError(handleMongoExecutionTimeExceededException())
-                .log("count");
-    }
-
-    @Override
-    public Source<ResultList<String>, NotUsed> findAll(final PolicyRestrictedSearchAggregation aggregation) {
-        checkNotNull(aggregation, "aggregation");
-
-        final Source<Document, NotUsed> source = aggregation.execute(collection, maxQueryTime);
-
-        return source.map(doc -> doc.getString(PersistenceConstants.FIELD_ID))
-                .fold(new ArrayList<String>(), (list, id) -> {
-                    list.add(id);
-                    return list;
-                })
-                .map(resultsPlus0ne -> toResultList(resultsPlus0ne, aggregation.getSkip(), aggregation.getLimit()))
-                .mapError(handleMongoExecutionTimeExceededException())
-                .log("findAll");
-    }
-
-    @Override
-    public Source<Long, NotUsed> count(final Query query) {
         checkNotNull(query, "query");
 
-        final BsonDocument queryFilter = getMongoFilter(query);
+        final BsonDocument queryFilter = getMongoFilter(query, authorizationSubjectIds);
         log.debug("count with query filter <{}>.", queryFilter);
-
-        final Bson filter = and(filterNotDeleted(), queryFilter);
 
         final CountOptions countOptions = new CountOptions()
                 .skip(query.getSkip())
                 .limit(query.getLimit())
                 .maxTime(maxQueryTime.getSeconds(), TimeUnit.SECONDS);
 
-        return Source.fromPublisher(collection.count(filter, countOptions))
+        return Source.fromPublisher(collection.count(queryFilter, countOptions))
                 .mapError(handleMongoExecutionTimeExceededException())
                 .log("count");
     }
 
     @Override
-    public Source<ResultList<String>, NotUsed> findAll(final Query query) {
+    public Source<Long, NotUsed> sudoCount(final Query query) {
+        return count(query, null);
+    }
+
+    @Override
+    public Source<ResultList<String>, NotUsed> findAll(final Query query,
+            @Nullable final List<String> authorizationSubjectIds) {
+
         checkNotNull(query, "query");
 
-        final BsonDocument queryFilter = getMongoFilter(query);
+        final BsonDocument queryFilter = getMongoFilter(query, authorizationSubjectIds);
         if (log.isDebugEnabled()) {
             log.debug("findAll with query filter <{}>.", queryFilter);
         }
 
-        final Bson filter = and(filterNotDeleted(), queryFilter);
-        final Optional<Bson> sortOptions = Optional.of(getMongoSort(query));
+        final Bson sortOptions = getMongoSort(query);
 
         final int limit = query.getLimit();
         final int skip = query.getSkip();
         final Bson projection = new Document(PersistenceConstants.FIELD_ID, 1);
 
-        return Source.fromPublisher(collection.find(filter, Document.class)
-                .sort(sortOptions.orElse(null))
-                .limit(limit + 1)
-                .skip(skip)
-                .projection(projection)
-                .maxTime(maxQueryTime.getSeconds(), TimeUnit.SECONDS)
-        )
+        return Source.fromPublisher(
+                collection.find(queryFilter, Document.class)
+                        .sort(sortOptions)
+                        .limit(limit + 1)
+                        .skip(skip)
+                        .projection(projection)
+                        .maxTime(maxQueryTime.getSeconds(), TimeUnit.SECONDS))
                 .map(doc -> doc.getString(PersistenceConstants.FIELD_ID))
                 .fold(new ArrayList<String>(), (list, id) -> {
                     list.add(id);
@@ -225,9 +218,14 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
         return pagedResultList;
     }
 
-    private static BsonDocument getMongoFilter(final Query query) {
-        return org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil.toBsonDocument(
-                CreateBsonVisitor.apply(query.getCriteria()));
+    private static BsonDocument getMongoFilter(final Query query,
+            @Nullable final List<String> authorizationSubjectIds) {
+
+        if (authorizationSubjectIds != null) {
+            return BsonUtil.toBsonDocument(CreateBsonVisitor.apply(query.getCriteria(), authorizationSubjectIds));
+        } else {
+            return BsonUtil.toBsonDocument(CreateBsonVisitor.sudoApply(query.getCriteria()));
+        }
     }
 
     private static Bson getMongoSort(final Query query) {
@@ -235,7 +233,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
         return mongoQuery.getSortOptionsAsBson();
     }
 
-    private static PartialFunction<Throwable, Throwable> handleMongoExecutionTimeExceededException() {
+    private PartialFunction<Throwable, Throwable> handleMongoExecutionTimeExceededException() {
         return new PFBuilder<Throwable, Throwable>()
                 .match(Throwable.class, error ->
                         error instanceof MongoExecutionTimeoutException
@@ -244,5 +242,4 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
                 )
                 .build();
     }
-
 }

@@ -19,6 +19,7 @@ import org.eclipse.ditto.model.query.QueryBuilderFactory;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.services.base.config.LimitsConfigReader;
 
+
 /**
  * Mongo implementation for {@link QueryBuilderFactory}.
  */

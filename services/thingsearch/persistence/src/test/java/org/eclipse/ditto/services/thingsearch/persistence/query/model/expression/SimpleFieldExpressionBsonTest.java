@@ -21,13 +21,16 @@ import org.eclipse.ditto.model.query.SortDirection;
 import org.eclipse.ditto.model.query.criteria.EqPredicateImpl;
 import org.eclipse.ditto.model.query.criteria.Predicate;
 import org.eclipse.ditto.model.query.expression.SimpleFieldExpressionImpl;
-import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonPredicateVisitor;
-import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetFilterBsonVisitor;
-import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetSortBsonVisitor;
 import org.eclipse.ditto.services.utils.persistence.mongo.assertions.BsonAssertions;
 import org.junit.Test;
 
+import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Sorts;
+
+import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonPredicateVisitor;
+import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetExistsBsonVisitor;
+import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetFilterBsonVisitor;
+import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetSortBsonVisitor;
 
 /**
  * Tests Bson generators of {@link SimpleFieldExpressionImpl}.
@@ -38,13 +41,11 @@ public final class SimpleFieldExpressionBsonTest {
     private static final String KNOWN_VALUE = "knownValue";
     private static final Predicate KNOWN_PREDICATE = new EqPredicateImpl(KNOWN_VALUE);
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void constructWithNullValue() {
         new SimpleFieldExpressionImpl(null);
     }
 
-    /** */
     @Test
     public void constructValid() {
         final SimpleFieldExpressionImpl expression = new SimpleFieldExpressionImpl(KNOWN_FIELD_NAME);
@@ -52,20 +53,29 @@ public final class SimpleFieldExpressionBsonTest {
         Assertions.assertThat(expression).isNotNull();
     }
 
-    /** */
+    @Test
+    public void getExistsBson() {
+        final Bson expectedBson = Filters.exists(KNOWN_FIELD_NAME);
+
+        final SimpleFieldExpressionImpl expression = new SimpleFieldExpressionImpl(KNOWN_FIELD_NAME);
+
+        final Bson createdBson = GetExistsBsonVisitor.apply(expression);
+
+        BsonAssertions.assertThat(createdBson).isEqualTo(expectedBson);
+    }
+
     @Test
     public void getFieldCriteriaBson() {
         final Bson expectedBson = CreateBsonPredicateVisitor.apply(KNOWN_PREDICATE, KNOWN_FIELD_NAME);
 
         final SimpleFieldExpressionImpl expression = new SimpleFieldExpressionImpl(KNOWN_FIELD_NAME);
 
-        final Bson createdBson = GetFilterBsonVisitor.apply(expression,
+        final Bson createdBson = GetFilterBsonVisitor.sudoApply(expression,
                 KNOWN_PREDICATE.accept(CreateBsonPredicateVisitor.getInstance()));
 
         BsonAssertions.assertThat(createdBson).isEqualTo(expectedBson);
     }
 
-    /** */
     @Test
     public void getSortBson() {
         final List<BsonDocument> expectedSortBsonDocs =
@@ -79,5 +89,4 @@ public final class SimpleFieldExpressionBsonTest {
 
         BsonAssertions.assertThat(actualSortBsonDocs).isEqualTo(expectedSortBsonDocs);
     }
-
 }

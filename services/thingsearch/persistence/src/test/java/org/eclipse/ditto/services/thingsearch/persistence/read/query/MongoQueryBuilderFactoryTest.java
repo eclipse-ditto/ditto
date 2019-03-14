@@ -29,7 +29,7 @@ public final class MongoQueryBuilderFactoryTest {
     private final QueryBuilderFactory fac = new MongoQueryBuilderFactory
             (DittoLimitsConfigReader.fromRawConfig(ConfigFactory.load("test")));
 
-    /** */
+
     @Test
     public void newBuilderWithValidCriteria() {
         final Criteria crit = mock(Criteria.class);
@@ -39,13 +39,13 @@ public final class MongoQueryBuilderFactoryTest {
         assertThat(builder).isInstanceOf(MongoQueryBuilder.class);
     }
 
-    /** */
+
     @Test(expected = NullPointerException.class)
     public void newBuilderWithNullCriteria() {
         fac.newBuilder(null);
     }
 
-    /** */
+
     @Test
     public void newUnlimitedBuilderWithValidCriteria() {
         final Criteria crit = mock(Criteria.class);
@@ -55,7 +55,7 @@ public final class MongoQueryBuilderFactoryTest {
         assertThat(builder).isInstanceOf(MongoQueryBuilder.class);
     }
 
-    /** */
+
     @Test(expected = NullPointerException.class)
     public void newUnlimitedBuilderWithNullCriteria() {
         fac.newUnlimitedBuilder(null);

@@ -29,13 +29,13 @@ public final class InPredicateImplTest {
     private static final String KNOWN_FIELD_NAME = "knownFieldName";
     private static final String[] KNOWN_VALUE = {"knownValue1", "knownValue2", "knownValue3"};
 
-    /** */
+
     @Test(expected = NullPointerException.class)
     public void withNullValue() {
         new InPredicateImpl(null);
     }
 
-    /** */
+
     @Test
     public void withStringValue() {
         final List<Object> values = new ArrayList<>();

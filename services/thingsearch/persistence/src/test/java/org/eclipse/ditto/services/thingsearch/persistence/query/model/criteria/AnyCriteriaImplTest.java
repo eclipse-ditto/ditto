@@ -20,12 +20,12 @@ import org.junit.Test;
  */
 public class AnyCriteriaImplTest extends AbstractCriteriaTestBase {
 
-    /** */
+
     @Test
     public void any() {
         final Bson expectedBson = new BsonDocument();
 
         final Criteria actualCriteria = AnyCriteriaImpl.getInstance();
-        assertCriteria(expectedBson, actualCriteria);
+        assertSudoCriteria(expectedBson, actualCriteria);
     }
 }

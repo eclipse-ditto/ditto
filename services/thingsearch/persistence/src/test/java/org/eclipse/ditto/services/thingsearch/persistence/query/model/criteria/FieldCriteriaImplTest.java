@@ -10,19 +10,25 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.query.model.criteria;
 
-import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL_FEATURE_ID;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_GLOBAL_READ;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_GRANTED;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL_KEY;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL_VALUE;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_REVOKED;
 
-import org.bson.BsonDocument;
-import org.bson.BsonNull;
+import java.util.Arrays;
+import java.util.List;
+
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.criteria.EqPredicateImpl;
 import org.eclipse.ditto.model.query.criteria.FieldCriteriaImpl;
 import org.eclipse.ditto.model.query.expression.AttributeExpressionImpl;
-import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.junit.Test;
 
 import com.mongodb.client.model.Filters;
+
 /**
  * Tests class {@link FieldCriteriaImpl}.
  */
@@ -31,28 +37,35 @@ public class FieldCriteriaImplTest extends AbstractCriteriaTestBase {
     private static final String KNOWN_ATTR_KEY = "attributeKey";
     private static final String KNOWN_ATTR_VALUE = "attributeValue";
 
-    /** */
     @Test
     public void fieldCriteriaValid() {
-        final Bson expectedBson = Filters.elemMatch(PersistenceConstants.FIELD_INTERNAL, Filters
-                .and(new BsonDocument().append(FIELD_INTERNAL_FEATURE_ID, BsonNull.VALUE),
-                        Filters.eq(PersistenceConstants.FIELD_INTERNAL_KEY,
-                                PersistenceConstants.FIELD_ATTRIBUTE_PREFIX_WITH_ENDING_SLASH + KNOWN_ATTR_KEY),
-                        Filters.eq(PersistenceConstants.FIELD_INTERNAL_VALUE, KNOWN_ATTR_VALUE)));
+        final List<String> subjectIds = Arrays.asList("subject:alpha", "subject:beta");
+
+        final Bson expectedBson = Filters.and(
+                // $elemMatch on actual attribute
+                Filters.elemMatch(FIELD_INTERNAL, Filters.and(
+                        Filters.eq(FIELD_INTERNAL_KEY, "/attributes/" + KNOWN_ATTR_KEY),
+                        Filters.eq(FIELD_INTERNAL_VALUE, KNOWN_ATTR_VALUE),
+                        Filters.and(
+                                Filters.in(FIELD_GRANTED, subjectIds),
+                                Filters.nin(FIELD_REVOKED, subjectIds)
+                        ))),
+                // $in on global-read to ensure visibility in the presence of negation
+                Filters.in(FIELD_GLOBAL_READ, subjectIds));
 
         final Criteria actualCriteria =
                 new FieldCriteriaImpl(new AttributeExpressionImpl(KNOWN_ATTR_KEY),
                         new EqPredicateImpl(KNOWN_ATTR_VALUE));
-        assertCriteria(expectedBson, actualCriteria);
+        assertCriteria(expectedBson, actualCriteria, subjectIds);
     }
 
-    /** */
+
     @Test(expected = NullPointerException.class)
     public void fieldCriteriaWithNullExpression() {
         new FieldCriteriaImpl(null, new EqPredicateImpl(KNOWN_ATTR_VALUE));
     }
 
-    /** */
+
     @Test(expected = NullPointerException.class)
     public void fieldCriteriaWithNullPredicate() {
         new FieldCriteriaImpl(new AttributeExpressionImpl(KNOWN_ATTR_KEY), null);

@@ -10,14 +10,18 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.query.model.criteria;
 
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ATTRIBUTES_PATH;
+
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.criteria.ExistsCriteriaImpl;
 import org.eclipse.ditto.model.query.expression.AttributeExpressionImpl;
-import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.junit.Test;
 
 import com.mongodb.client.model.Filters;
+
+import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
+
 /**
  * Unit test for {@link ExistsCriteriaImpl}.
  */
@@ -27,19 +31,16 @@ public final class ExistsCriteriaImplTest extends AbstractCriteriaTestBase {
     private static final String ENDS_WITH = "(/|\\z)";
     private static final String KNOWN_ATTR_KEY = "attributeKey";
 
-    /** */
     @Test
     public void existsCriteriaValid() {
         final Bson expectedBson = Filters.regex(PersistenceConstants.FIELD_PATH_KEY,
-                STARTS_WITH + PersistenceConstants.FIELD_ATTRIBUTE_PREFIX_WITH_ENDING_SLASH + KNOWN_ATTR_KEY +
-                        ENDS_WITH);
+                STARTS_WITH + FIELD_ATTRIBUTES_PATH + KNOWN_ATTR_KEY + ENDS_WITH);
 
         final Criteria actualCriteria = new ExistsCriteriaImpl(new AttributeExpressionImpl(KNOWN_ATTR_KEY));
 
-        assertCriteria(expectedBson, actualCriteria);
+        assertSudoCriteria(expectedBson, actualCriteria);
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void existsCriteriaWithNullExpression() {
         new ExistsCriteriaImpl(null);

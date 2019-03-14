@@ -26,13 +26,13 @@ abstract class AbstractPredicateTest {
     static final String KNOWN_FIELD_NAME = "knownFieldName";
     static final String KNOWN_VALUE = "knownValue";
 
-    /** */
+
     @Test
     public void withNullValue() {
         withValue(null);
     }
 
-    /** */
+
     @Test
     public void withStringValue() {
         withValue(KNOWN_VALUE);

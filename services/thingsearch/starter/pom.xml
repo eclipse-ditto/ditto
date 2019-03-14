@@ -25,16 +25,27 @@
     <properties>
         <the.build.timestamp>${maven.build.timestamp}</the.build.timestamp>
         <maven.build.timestamp.format>yyyy-MM-dd HH:mm</maven.build.timestamp.format>
+
+        <!-- increase direct buffer size to fit more nio bytebuffers for MongoDB driver -->
+        <thingsearch.max.direct.buffer.size>512m</thingsearch.max.direct.buffer.size>
+        <!-- limit direct memory usage by Java NIO to avoid OutOfMemoryError -->
+        <thingsearch.jdk.nio.maxCachedBufferSize>262144</thingsearch.jdk.nio.maxCachedBufferSize>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-models-concierge</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-base</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-models-concierge</artifactId>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>ditto-services-thingsearch-common</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -110,7 +121,7 @@
             <artifactId>akka-discovery-kubernetes-api_${scala.version}</artifactId>
         </dependency>
 
-        <dependency>
+	<dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
         </dependency>
@@ -192,7 +203,8 @@
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <manifestEntries>
-                                        <Main-Class>org.eclipse.ditto.services.thingsearch.starter.SearchService
+                                        <Main-Class>
+                                            org.eclipse.ditto.services.thingsearch.starter.SearchService
                                         </Main-Class>
                                     </manifestEntries>
                                 </transformer>
@@ -210,18 +222,41 @@
             </plugin>
 
             <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-resources</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>src/main/resources</directory>
+                                    <filtering>false</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
                 <groupId>io.fabric8</groupId>
                 <artifactId>docker-maven-plugin</artifactId>
                 <configuration>
                     <autoPull>always</autoPull> <!-- always pull latest BaseImage -->
                     <images>
                         <image>
-                            <alias>${things-search.docker.image.name}</alias>
+                            <alias>${thingsearch.docker.image.name}</alias>
                             <name>
-                                ${docker.repository}/${things-search.docker.image.name}:${project.version}
+                                ${docker.repository.things}/${thingsearch.docker.image.name}:${project.version}
                             </name>
                             <build>
                                 <from>${docker.image.jdk}</from>
+                                <maintainer>${docker.maintainer}</maintainer>
                                 <tags>
                                     <tag>${docker.image.additional.tag}</tag>
                                 </tags>
@@ -232,20 +267,21 @@
                                     <HTTP_PORT>${docker.image.port}</HTTP_PORT>
                                     <HOSTING_ENVIRONMENT>Docker</HOSTING_ENVIRONMENT>
                                 </env>
-                                <workdir>/opt/ditto</workdir>
-                                <entryPoint>
+                                <cmd>
                                     <exec>
                                         <arg>java</arg>
+                                        <arg>-Djdk.nio.maxCachedBufferSize=${thingsearch.jdk.nio.maxCachedBufferSize}</arg>
+                                        <arg>-XX:MaxDirectMemorySize=${thingsearch.max.direct.buffer.size}</arg>
                                         <arg>-jar</arg>
-                                        <arg>/opt/ditto/starter.jar</arg>
+                                        <arg>/starter.jar</arg>
                                     </exec>
-                                </entryPoint>
+                                </cmd>
                                 <assembly>
                                     <basedir>/</basedir>
                                     <descriptor>assembly.xml</descriptor>
                                 </assembly>
                                 <runCmds>
-                                    <runCmd>ln -s /opt/ditto/${project.build.finalName}-allinone.jar /opt/ditto/starter.jar</runCmd>
+                                    <runCmd>ln -s /${project.build.finalName}-allinone.jar /starter.jar</runCmd>
                                 </runCmds>
                             </build>
                         </image>
