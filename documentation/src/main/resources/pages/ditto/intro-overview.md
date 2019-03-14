@@ -1,6 +1,6 @@
 ---
 title: Ditto documentation overview
-keywords: purpose, about, motivation, digital twin
+keywords: purpose, about, motivation, digital twin, digitaltwin, twin
 tags: [getting_started]
 permalink: intro-overview.html
 ---
@@ -33,8 +33,8 @@ It also does not specify which data or which structure a “Thing” in the IoT 
 
 ## When to use it?
 
-  {% include callout.html content="**TL;DR**<br/>Use it in order to get a fully-fledged, authorization aware, web API 
-  (HTTP and WebSocket) for accessing your “Things” and their most recently reported state." type="primary" %}
+  {% include callout.html content="**TL;DR**<br/>Use it in order to get a fully-fledged, authorization aware API 
+  (HTTP, WebSocket and other messaging protocols) for interacting with your Digital Twins and all aspects around them." type="primary" %}
 
 Imagine you are building an IoT solution. And let's assume that you use both hardware (e.g. sensors or actuators) and
 software (e.g. a mobile or web app) in order to solve your customer's problem.
