@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.read;
 
-import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETE_AT;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Duration;
@@ -28,39 +27,32 @@ import org.bson.conversions.Bson;
 import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceReportResult;
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceResultEntry;
-import org.eclipse.ditto.services.utils.config.MongoConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil;
-import org.eclipse.ditto.services.utils.persistence.mongo.indices.DefaultIndexKey;
-import org.eclipse.ditto.services.utils.persistence.mongo.indices.IndexDirection;
-import org.eclipse.ditto.services.utils.persistence.mongo.indices.IndexInitializer;
-import org.eclipse.ditto.services.utils.persistence.mongo.indices.IndexKey;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayQueryTimeExceededException;
-
-import com.mongodb.MongoExecutionTimeoutException;
-import com.mongodb.ReadPreference;
-import com.mongodb.client.model.CountOptions;
-import com.mongodb.client.model.IndexOptions;
-import com.mongodb.reactivestreams.client.AggregatePublisher;
-import com.mongodb.reactivestreams.client.MongoCollection;
-import com.mongodb.reactivestreams.client.MongoDatabase;
-
-import akka.Done;
-import akka.NotUsed;
-import akka.actor.ActorSystem;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
-import akka.japi.pf.PFBuilder;
-import akka.stream.ActorMaterializer;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
-import scala.PartialFunction;
-
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultListImpl;
 import org.eclipse.ditto.services.thingsearch.persistence.Indices;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQuery;
+import org.eclipse.ditto.services.utils.config.MongoConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil;
+import org.eclipse.ditto.services.utils.persistence.mongo.indices.IndexInitializer;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayQueryTimeExceededException;
+
+import com.mongodb.MongoExecutionTimeoutException;
+import com.mongodb.ReadPreference;
+import com.mongodb.client.model.CountOptions;
+import com.mongodb.reactivestreams.client.AggregatePublisher;
+import com.mongodb.reactivestreams.client.MongoCollection;
+import com.mongodb.reactivestreams.client.MongoDatabase;
+
+import akka.NotUsed;
+import akka.actor.ActorSystem;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
+import akka.japi.pf.PFBuilder;
+import akka.stream.ActorMaterializer;
+import akka.stream.javadsl.Source;
+import scala.PartialFunction;
 
 /**
  * Persistence Service Implementation for asynchronous MongoDB search.
@@ -72,7 +64,6 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
 
     private final IndexInitializer indexInitializer;
     private final Duration maxQueryTime;
-    private final ActorMaterializer materializer;
 
     /**
      * Initializes the things search persistence with a passed in {@code persistence}.
@@ -90,30 +81,15 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
         final ActorMaterializer materializer = ActorMaterializer.create(actorSystem);
         indexInitializer = IndexInitializer.of(database, materializer);
         maxQueryTime = MongoConfig.of(actorSystem.settings().config()).getMaxQueryTime();
-        this.materializer = materializer;
     }
 
     @Override
     public CompletionStage<Void> initializeIndices() {
-        return createDeleteAtIndex()
-                .thenCompose(done ->
-                        indexInitializer.initialize(PersistenceConstants.THINGS_COLLECTION_NAME, Indices.all()))
+        return indexInitializer.initialize(PersistenceConstants.THINGS_COLLECTION_NAME, Indices.all())
                 .exceptionally(t -> {
                     log.error(t, "Index-Initialization failed: {}", t.getMessage());
                     return null;
                 });
-    }
-
-    // TODO: remove this hack; extend Ditto's Index class instead
-    private CompletionStage<Done> createDeleteAtIndex() {
-        final IndexKey indexKey = DefaultIndexKey.of(FIELD_DELETE_AT, IndexDirection.ASCENDING);
-        final BsonDocument keys = new BsonDocument().append(indexKey.getFieldName(), indexKey.getBsonValue());
-        final IndexOptions indexOptions = new IndexOptions()
-                .expireAfter(0L, TimeUnit.SECONDS)
-                .background(true)
-                .sparse(true)
-                .name(FIELD_DELETE_AT);
-        return Source.fromPublisher(collection.createIndex(keys, indexOptions)).runWith(Sink.ignore(), materializer);
     }
 
     @Override

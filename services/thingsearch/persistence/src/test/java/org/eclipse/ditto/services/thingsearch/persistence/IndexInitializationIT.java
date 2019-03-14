@@ -11,13 +11,11 @@
 package org.eclipse.ditto.services.thingsearch.persistence;
 
 import org.eclipse.ditto.services.utils.persistence.mongo.assertions.MongoIndexAssertions;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * Checks the initialization of Mongo indices.
  */
-@Ignore("TODO: restore after adding expiration-index")
 public class IndexInitializationIT extends AbstractThingSearchPersistenceITBase {
 
     @Test

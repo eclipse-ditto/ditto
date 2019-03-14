@@ -53,8 +53,7 @@ public final class Indices {
     private static final Index POLICY = IndexFactory.newInstance("policyId",
             Arrays.asList(FIELD_POLICY_ID, FIELD_POLICY_REVISION), false);
 
-    private static final Index DUMMY_INDEX_DELETE_AT = IndexFactory.newInstance(FIELD_DELETE_AT,
-            Collections.singletonList(FIELD_DELETE_AT), false);
+    private static final Index DELETE_AT = IndexFactory.newExpirationIndex(FIELD_DELETE_AT, FIELD_DELETE_AT, 0L);
 
     /**
      * Index for namespace.
@@ -69,7 +68,7 @@ public final class Indices {
      */
     public static List<Index> all() {
         return Collections.unmodifiableList(
-                Arrays.asList(KEY_VALUE, GLOBAL_READ, POLICY, NAMESPACE, DUMMY_INDEX_DELETE_AT));
+                Arrays.asList(KEY_VALUE, GLOBAL_READ, POLICY, NAMESPACE, DELETE_AT));
     }
 
 }
