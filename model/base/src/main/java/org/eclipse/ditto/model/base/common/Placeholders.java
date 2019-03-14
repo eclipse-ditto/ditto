@@ -35,24 +35,25 @@ public final class Placeholders {
     private static final String PLACEHOLDER_START = "\\{{2}(?!\\s*\\{)";
     private static final String PLACEHOLDER_END = "}}";
 
-    private static final String PLACEHOLDER_GROUP = "(?<" + PLACEHOLDER_GROUP_NAME + ">(.*?))";
-    private static final String ANY_NUMBER_OF_SPACES = " *";
-    private static final String PLACEHOLDER_REGEX =
-                    PLACEHOLDER_START
-                    + ANY_NUMBER_OF_SPACES // allow arbitrary number of spaces
-                    + PLACEHOLDER_GROUP // the content of the placeholder
-                    + ANY_NUMBER_OF_SPACES  // allow arbitrary number of spaces
-                    + Pattern.quote(PLACEHOLDER_END); // end of placeholder
+    private static final String PLACEHOLDER_GROUP = "(?<" + PLACEHOLDER_GROUP_NAME + ">(([^}]|}[^}])*+))";
+    private static final String LEGACY_PLACEHOLDER_GROUP = "(?<" + PLACEHOLDER_GROUP_NAME + ">([^}]*+))";
+    private static final String ANY_NUMBER_OF_SPACES = "\\s*+";
+    private static final String PLACEHOLDER_REGEX = PLACEHOLDER_START
+            + ANY_NUMBER_OF_SPACES // allow arbitrary number of spaces
+            + PLACEHOLDER_GROUP // the content of the placeholder
+            + ANY_NUMBER_OF_SPACES  // allow arbitrary number of spaces
+            + Pattern.quote(PLACEHOLDER_END); // end of placeholder
 
     private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile(PLACEHOLDER_REGEX);
 
     private static final String LEGACY_PLACEHOLDER_START = "${";
     private static final String LEGACY_PLACEHOLDER_END = "}";
     private static final String LEGACY_PLACEHOLDER_REGEX =
-            Pattern.quote(LEGACY_PLACEHOLDER_START) + PLACEHOLDER_GROUP + Pattern.quote(LEGACY_PLACEHOLDER_END);
+            Pattern.quote(LEGACY_PLACEHOLDER_START) + LEGACY_PLACEHOLDER_GROUP + Pattern.quote(LEGACY_PLACEHOLDER_END);
     private static final Pattern LEGACY_PLACEHOLDER_PATTERN = Pattern.compile(LEGACY_PLACEHOLDER_REGEX);
 
-    private static final String LEGACY_REQUEST_SUBJECT_ID = "(?<" + PLACEHOLDER_GROUP_NAME + ">" + Pattern.quote("request.subjectId") + ")";
+    private static final String LEGACY_REQUEST_SUBJECT_ID =
+            "(?<" + PLACEHOLDER_GROUP_NAME + ">" + Pattern.quote("request.subjectId") + ")";
     private static final String LEGACY_REQUEST_SUBJECT_ID_REGEX =
             Pattern.quote(LEGACY_PLACEHOLDER_START) + LEGACY_REQUEST_SUBJECT_ID + Pattern.quote(LEGACY_PLACEHOLDER_END);
     private static final Pattern LEGACY_REQUEST_SUBJECT_ID_PATTERN = Pattern.compile(LEGACY_REQUEST_SUBJECT_ID_REGEX);
@@ -162,7 +163,8 @@ public final class Placeholders {
         if (containsLegacyPlaceholder(input)) {
             // for legacy placeholder we only allow request.subjectId, all other placeholders are unresolved
             if (containsLegacyRequestSubjectIdPlaceholder(input)) {
-                final String substituted = substitute(input, LEGACY_REQUEST_SUBJECT_ID_PATTERN, placeholderReplacerFunction);
+                final String substituted =
+                        substitute(input, LEGACY_REQUEST_SUBJECT_ID_PATTERN, placeholderReplacerFunction);
                 if (!allowUnresolved && containsLegacyPlaceholder(substituted)) {
                     throw unresolvedInputHandler.apply(substituted);
                 } else {

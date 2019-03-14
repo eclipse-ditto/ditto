@@ -20,6 +20,16 @@ import java.util.Optional;
 interface PipelineFunction {
 
     /**
+     * Pattern for content of single-quoted strings.
+     */
+    String SINGLE_QUOTED_STRING_CONTENT = "(?:\\\\'|[^'])*+";
+
+    /**
+     * Pattern for content of double-quoted strings.
+     */
+    String DOUBLE_QUOTED_STRING_CONTENT = "(?:\\\\\"|[^\"])*+";
+
+    /**
      * @return the function name
      */
     String getName();
@@ -67,7 +77,7 @@ interface PipelineFunction {
         default String renderSignature() {
             final List<ParameterDefinition> parameterDefinitions = getParameterDefinitions();
             final StringBuilder sb = new StringBuilder("(");
-            for (int i=0; i<parameterDefinitions.size(); i++) {
+            for (int i = 0; i < parameterDefinitions.size(); i++) {
                 final ParameterDefinition definition = parameterDefinitions.get(i);
                 sb.append(definition.getType().getSimpleName());
                 sb.append(" ");
@@ -75,7 +85,7 @@ interface PipelineFunction {
                 sb.append(" /* ");
                 sb.append(definition.getDescription());
                 sb.append(" */");
-                if (i+1 < parameterDefinitions.size()) {
+                if (i + 1 < parameterDefinitions.size()) {
                     sb.append(" , ");
                 }
             }
