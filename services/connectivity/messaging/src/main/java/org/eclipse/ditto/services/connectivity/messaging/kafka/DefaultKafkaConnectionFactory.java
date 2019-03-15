@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.util.KafkaConfigReader;
 
@@ -28,9 +27,10 @@ final class DefaultKafkaConnectionFactory implements KafkaConnectionFactory {
     private final ProducerSettings<String, String> settings;
     private final org.apache.kafka.clients.producer.Producer<String, String> kafkaProducer;
 
-    DefaultKafkaConnectionFactory(final Connection connection, final DittoHeaders dittoHeaders, final KafkaConfigReader config) {
+    DefaultKafkaConnectionFactory(final Connection connection,
+            final KafkaConfigReader config) {
         this.connection = connection;
-        settings = ProducerSettingsFactory.getInstance().createProducerSettings(connection, dittoHeaders, config);
+        settings = ProducerSettingsFactory.getInstance().createProducerSettings(connection, config);
         kafkaProducer = settings.createKafkaProducer();
     }
 

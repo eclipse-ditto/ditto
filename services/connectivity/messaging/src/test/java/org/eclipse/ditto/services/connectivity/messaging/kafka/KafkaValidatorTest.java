@@ -34,6 +34,12 @@ import org.junit.Test;
  */
 public class KafkaValidatorTest {
 
+    private static final Map<String, String> DEFAULT_SPECIFIC_CONFIG = new HashMap<>();
+
+    static {
+        DEFAULT_SPECIFIC_CONFIG.put("bootstrapServers", "localhost:1883");
+    }
+
     @Test
     public void testSourcesAreInvalid() {
         verifyConnectionConfigurationInvalidExceptionIsThrownForSource(source("any"));
@@ -67,8 +73,6 @@ public class KafkaValidatorTest {
 
     @Test
     public void testValidBootstrapServers() {
-        KafkaValidator.newInstance().validate(connectionWithBootstrapServers(null), DittoHeaders.empty());
-        KafkaValidator.newInstance().validate(connectionWithBootstrapServers(""), DittoHeaders.empty());
         KafkaValidator.newInstance().validate(connectionWithBootstrapServers("foo:123"), DittoHeaders.empty());
         KafkaValidator.newInstance().validate(connectionWithBootstrapServers("foo:123,bar:456"), DittoHeaders.empty());
         KafkaValidator.newInstance()
@@ -77,6 +81,8 @@ public class KafkaValidatorTest {
 
     @Test
     public void testInvalidBootstrapServers() {
+        verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithBootstrapServers(null));
+        verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithBootstrapServers(""));
         verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithBootstrapServers("fo#add#123o:123"));
         verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithBootstrapServers("foo:123;bar:456"));
         verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithBootstrapServers("http://foo:123"));
@@ -87,6 +93,7 @@ public class KafkaValidatorTest {
                 ConnectivityStatus.OPEN, "tcp://localhost:1883")
                 .targets(singletonList(
                         ConnectivityModelFactory.newTarget(target, AUTHORIZATION_CONTEXT, null, 1, Topic.LIVE_EVENTS)))
+                .specificConfig(DEFAULT_SPECIFIC_CONFIG)
                 .build();
     }
 

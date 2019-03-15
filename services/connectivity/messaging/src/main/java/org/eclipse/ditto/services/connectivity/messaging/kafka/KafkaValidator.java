@@ -19,7 +19,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.function.Supplier;
-import java.util.regex.Pattern;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -34,20 +33,18 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
 
 /**
- * TODO: implement fully TODO: unit test Connection specification for Kafka protocol.
+ * Validator for Kafka connections.
  */
 @Immutable
 public final class KafkaValidator extends AbstractProtocolValidator {
 
     private static final String INVALID_TOPIC_FORMAT = "The provided topic ''{0}'' is not valid: {1}";
 
-    private static final Pattern BOOTSTRAP_SERVERS_PATTERN = Pattern.compile(
-            "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])(\\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9]))*:([1-9]|[1-5]?[0-9]{2,4}|6[1-4][0-9]{3}|65[1-4][0-9]{2}|655[1-2][0-9]|6553[1-5])[\\s,]*?)+$");
-    private static final String INVALID_BOOTSTRAP_SERVERS =
-            "The provided list of bootstrap servers ''{0}'' is not valid";
-
     private static final Collection<String> ACCEPTED_SCHEMES =
             Collections.unmodifiableList(Arrays.asList("tcp", "ssl"));
+
+    private static final Collection<KafkaSpecificConfig> SPECIFIC_CONFIGS =
+            Collections.unmodifiableList(Arrays.asList(KafkaAuthenticationSpecificConfig.getInstance(), KafkaBootstrapServerSpecificConfig.getInstance()));
 
     /**
      * Create a new {@code MqttConnectionSpec}.
@@ -69,7 +66,7 @@ public final class KafkaValidator extends AbstractProtocolValidator {
         validateAddresses(connection, dittoHeaders);
         validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
-        validateBootstrapServers(connection, dittoHeaders);
+        validateSpecificConfigs(connection, dittoHeaders);
     }
 
     @Override
@@ -97,8 +94,6 @@ public final class KafkaValidator extends AbstractProtocolValidator {
                 .forEach(a -> validateAddress(a, dittoHeaders));
     }
 
-    // todo: validate connection uri
-
     private static void validateAddress(final String address, final DittoHeaders dittoHeaders) {
         if (containsKey(address)) {
             validateTargetAddressWithKey(address, dittoHeaders);
@@ -117,11 +112,7 @@ public final class KafkaValidator extends AbstractProtocolValidator {
     private static void validateTargetAddressWithKey(final String targetAddress, final DittoHeaders dittoHeaders) {
         final String[] split = targetAddress.split(KafkaPublishTarget.KEY_SEPARATOR, 2);
         validateTopic(split[0], dittoHeaders);
-        validateKey(split[1]);
-    }
-
-    private static void validateKey(final String key) {
-        // no-op, everything allowed by now since it might contain placeholders that can resolver to everything
+        // won't validate the key since it might contain placeholders
     }
 
     private static boolean containsPartition(final String targetAddress) {
@@ -133,11 +124,7 @@ public final class KafkaValidator extends AbstractProtocolValidator {
             final DittoHeaders dittoHeaders) {
         final String[] split = targetAddress.split(KafkaPublishTarget.PARTITION_SEPARATOR, 2);
         validateTopic(split[0], dittoHeaders);
-        validatePartition(split[1]);
-    }
-
-    private static void validatePartition(final String partitionString) {
-        // no-op, everything allowed by now, since it might contain a placeholder that resolves to an integer
+        // won't validate the partition since it might contain placeholders
     }
 
     private static void validateTopic(final String topic, final DittoHeaders dittoHeaders) {
@@ -152,15 +139,10 @@ public final class KafkaValidator extends AbstractProtocolValidator {
         }
     }
 
-    private static void validateBootstrapServers(final Connection connection, final DittoHeaders dittoHeaders) {
-        // TODO: use constant for bootstrapServers config property
-        final String servers = connection.getSpecificConfig().get("bootstrapServers");
-        if (null != servers && !servers.isEmpty() && !BOOTSTRAP_SERVERS_PATTERN.matcher(servers).matches()) {
-            final String message = MessageFormat.format(INVALID_BOOTSTRAP_SERVERS, servers);
-            throw ConnectionConfigurationInvalidException.newBuilder(message)
-                    .dittoHeaders(dittoHeaders)
-                    .build();
-        }
+    private void validateSpecificConfigs(final Connection connection, final DittoHeaders dittoHeaders) {
+        SPECIFIC_CONFIGS.stream()
+                .filter(specificConfig -> specificConfig.isApplicable(connection))
+                .forEach(specificConfig -> specificConfig.validateOrThrow(connection, dittoHeaders));
     }
 
 }

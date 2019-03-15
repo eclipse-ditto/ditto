@@ -60,7 +60,7 @@ public final class KafkaClientActor extends BaseClientActor {
             final ActorRef conciergeForwarder) {
         super(connection, desiredConnectionStatus, conciergeForwarder);
         final KafkaConfigReader configReader = ConnectionConfigReader.fromRawConfig(getContext().system().settings().config()).kafka();
-        this.connectionFactoryCreator = (c, headers) -> KafkaConnectionFactory.of(c, headers, configReader);
+        this.connectionFactoryCreator = (c, headers) -> KafkaConnectionFactory.of(c, configReader);
         pendingStatusReportsFromStreams = new HashSet<>();
     }
 

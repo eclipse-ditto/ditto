@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -71,7 +70,7 @@ public class ProducerSettingsFactoryTest {
     }
 
     private ProducerSettings<String, String> settings() {
-        return underTest.createProducerSettings(connection(), DittoHeaders.empty(), CONFIG_READER);
+        return underTest.createProducerSettings(connection(), CONFIG_READER);
     }
 
     private Connection connection() {

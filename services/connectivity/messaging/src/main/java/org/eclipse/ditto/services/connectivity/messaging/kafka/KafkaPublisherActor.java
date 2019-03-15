@@ -18,6 +18,9 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.errors.AuthenticationException;
+import org.apache.kafka.common.errors.AuthorizationException;
+import org.apache.kafka.common.errors.TimeoutException;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -89,11 +92,13 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
       2. what happens if authentication is unsuccessful -> org.apache.kafka.common.errors.SaslAuthenticationException: Authentication failed: Invalid username or password
                                                          The internal NetworkClient of the used library will start logging failures repeatedly:
                                                          o.a.k.c.NetworkClient  - [Producer clientId=producer-3] Connection to node -1 (localhost/127.0.0.1:9092) failed authentication due to: Authentication failed: Invalid username or password
-                                                         we should therefore definitely stop the producer and ourself
-      3. what happens if authorization is unsuccessful
-      4. what happens if the port is closed
-      5. what happens if kafka is stopped
-      6. how to handle poisonpill to us?
+                                                         todo: we should therefore definitely stop the producer and ourselves
+      3. what happens if authorization is unsuccessful -> org.apache.kafka.common.errors.TopicAuthorizationException: Not authorized to access topics: [test]
+                                                         todo: we should therefore definitely stop the producer and orselves. but the timeoutexception is a problem :/
+      4. what happens if the port is closed -> timeout
+      5. what happens if kafka is stopped -> timeout probably and a lot of network client problems:
+                                            Error while fetching metadata with correlation id 81 : {test=LEADER_NOT_AVAILABLE} (org.apache.kafka.clients.NetworkClient)
+      6. how to handle poisonpill to us? -> graceful shutdown
      */
 
     /**
@@ -130,7 +135,7 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
         receiveBuilder.match(OutboundSignal.WithExternalMessage.class, this::isDryRun,
                 outbound -> log.info("Message dropped in dry run mode: {}", outbound))
-                .matchEquals(GracefulStop.INSTANCE, this::stopGracefully);
+                .matchEquals(GracefulStop.INSTANCE, unused -> this.stopGracefully());
     }
 
     @Override
@@ -162,7 +167,7 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
         sourceActor.tell(kafkaMessage, getSelf());
     }
 
-    private boolean isDryRun(final Object unused) {
+    private boolean isDryRun() {
         return dryRun;
     }
 
@@ -201,30 +206,35 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
         return "";
     }
 
-
     private Done handleCompletionOrFailure(final Done done, final Throwable throwable) {
         if (null == throwable) {
-            // todo: stop actor in this case
-            log.info("Internal kafka publisher completed. Stopping publisher actor.");
+            log.info("Internal kafka publisher completed.");
+            stop();
         } else if (shuttingDown) {
             log.info("Received and ignoring exception while shutting down: {}", throwable.getMessage());
+        } else if (throwable instanceof AuthorizationException || throwable instanceof AuthenticationException) {
+            log.info("Received exception from internal kafka publisher and can't recover from it: {}", throwable.getMessage());
+            stop();
+        } else if (throwable instanceof TimeoutException) {
+            log.info("Ran into a timeout when accessing Kafka with message: <{}>. This might have several reasons, " +
+                    "e.g. the Kafka broker not being accessible, the topic or the partition not being existing, a wrong port etc. ",
+                    throwable.getMessage());
+            restart();
         } else {
-            // TODO: handle the different exceptions thrown by the publisher
-            /*
-            possible errors as found in KafkaProducer.java:
-            @throws AuthenticationException if authentication fails. See the exception for more details
-             * @throws AuthorizationException fatal error indicating that the producer is not allowed to write
-             * @throws IllegalStateException if a transactional.id has been configured and no transaction has been started, or
-             *                               when send is invoked after producer has been closed.
-             * @throws InterruptException If the thread is interrupted while blocked
-             * @throws SerializationException If the key or value are not valid objects given the configured serializers
-             * @throws TimeoutException If the time taken for fetching metadata or allocating memory for the record has surpassed <code>max.block.ms</code>.
-             * @throws KafkaException If a Kafka related error occurs that does not belong to the public API exceptions.
-
-             */
-            log.error(throwable, "An error happened in the internal kafka publisher: {}");
+            log.error(throwable, "An unexpected error happened in the internal kafka publisher and we can't recover from it. Stopping publisher actor.");
+            stop();
         }
         return done;
+    }
+
+    private void stop() {
+        log.info("Stopping publisher actor");
+        // TODO: implement
+    }
+
+    private void restart() {
+        log.info("Restarting publisher actor");
+        // TODO: implement
     }
 
     private void reportInitialConnectionState() {
@@ -237,7 +247,7 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
         return log;
     }
 
-    private void stopGracefully(GracefulStop unused) {
+    private void stopGracefully() {
         this.shuttingDown = true;
         log.info("stopping publisher actor, sending status to child actor to stop it");
         sourceActor.tell(new Status.Success("stopped"), ActorRef.noSender());
