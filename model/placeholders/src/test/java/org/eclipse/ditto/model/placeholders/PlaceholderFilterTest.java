@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 import org.eclipse.ditto.protocoladapter.TopicPath;
@@ -223,6 +224,42 @@ public class PlaceholderFilterTest {
 
         assertThatExceptionOfType(PlaceholderFunctionTooComplexException.class).isThrownBy(
                 () -> PlaceholderFilter.validate("{{ header:unknown | fn:default('fallback') | fn:upper() | fn:lower() | fn:upper() | fn:lower() | fn:upper() | fn:lower() | fn:upper() | fn:lower() | fn:upper() | fn:lower() }}", placeholders));
+    }
+
+    @Test
+    public void testValidateAndReplace() {
+        final String replacement = UUID.randomUUID().toString();
+        // no whitespace
+        assertThat(PlaceholderFilter.validateAndReplace("{{thing:namespace}}/{{thing:name}}:{{header:device-id}}", replacement, placeholders))
+            .isEqualTo(String.format("%s/%s:%s", replacement, replacement, replacement));
+
+        // multi whitespace
+        assertThat(PlaceholderFilter.validateAndReplace("{{  thing:namespace  }}/{{  thing:name  }}:{{  header:device-id  }}", replacement, placeholders))
+            .isEqualTo(String.format("%s/%s:%s", replacement, replacement, replacement));
+
+        // mixed whitespace
+        assertThat(PlaceholderFilter.validateAndReplace("{{thing:namespace }}/{{  thing:name }}:{{header:device-id }}", replacement, placeholders))
+            .isEqualTo(String.format("%s/%s:%s", replacement, replacement, replacement));
+
+        // no separators
+        assertThat(PlaceholderFilter.validateAndReplace("{{thing:namespace }}{{  thing:name }}{{header:device-id }}", replacement, placeholders))
+            .isEqualTo(String.format("%s%s%s", replacement, replacement, replacement));
+
+        // whitespace separators
+        assertThat(PlaceholderFilter.validateAndReplace("{{thing:namespace }}  {{  thing:name }}  {{header:device-id }}", replacement, placeholders))
+            .isEqualTo(String.format("%s  %s  %s", replacement, replacement, replacement));
+
+        // pre/postfix whitespace
+        assertThat(PlaceholderFilter.validateAndReplace("  {{thing:namespace }}{{  thing:name }}{{header:device-id }}  ", replacement, placeholders))
+            .isEqualTo(String.format("  %s%s%s  ", replacement, replacement, replacement));
+
+        // pre/postfix
+        assertThat(PlaceholderFilter.validateAndReplace("-----{{thing:namespace }}{{  thing:name }}{{header:device-id }}-----", replacement, placeholders))
+            .isEqualTo(String.format("-----%s%s%s-----", replacement, replacement, replacement));
+
+        // pre/postfix and separators
+        assertThat(PlaceholderFilter.validateAndReplace("-----{{thing:namespace }}///{{  thing:name }}///{{header:device-id }}-----", replacement, placeholders))
+            .isEqualTo(String.format("-----%s///%s///%s-----", replacement, replacement, replacement));
     }
 
     private static String filterChain(final String template, final FilterTuple... tuples) {

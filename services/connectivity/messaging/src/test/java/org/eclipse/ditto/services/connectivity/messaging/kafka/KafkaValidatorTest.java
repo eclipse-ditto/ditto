@@ -57,9 +57,8 @@ public class KafkaValidatorTest {
     @Test
     public void testValidTargetAddress() {
         KafkaValidator.newInstance().validate(connectionWithTarget("events"), DittoHeaders.empty());
-        KafkaValidator.newInstance().validate(connectionWithTarget("events/"), DittoHeaders.empty());
-        KafkaValidator.newInstance().validate(connectionWithTarget("ditto#"), DittoHeaders.empty());
         KafkaValidator.newInstance().validate(connectionWithTarget("ditto/{{thing:id}}"), DittoHeaders.empty());
+        KafkaValidator.newInstance().validate(connectionWithTarget("{{thing:namespace}}/{{thing:name}}"), DittoHeaders.empty());
         KafkaValidator.newInstance().validate(connectionWithTarget("events#{{topic:full}}"), DittoHeaders.empty());
         KafkaValidator.newInstance().validate(connectionWithTarget("ditto/{{header:x}}"), DittoHeaders.empty());
     }
@@ -67,6 +66,9 @@ public class KafkaValidatorTest {
     @Test
     public void testInvalidTargetAddress() {
         verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithTarget(""));
+        verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithTarget("events/"));
+        verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithTarget("ditto#"));
+        verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithTarget("ditto#notANumber"));
         verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithTarget("ditto*a"));
         verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithTarget("ditto\\"));
     }

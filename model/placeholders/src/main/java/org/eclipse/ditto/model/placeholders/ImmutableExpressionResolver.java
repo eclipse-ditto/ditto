@@ -23,6 +23,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.common.Placeholders;
@@ -70,12 +71,19 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
     private static final Function<String, DittoRuntimeException> UNRESOLVED_INPUT_HANDLER = unresolvedInput ->
             UnresolvedPlaceholderException.newBuilder(unresolvedInput).build();
 
-    private static final String VALIDATION_STRING_ID = "justForValidation_" + UUID.randomUUID().toString();
+    private static final String DEFAULT_VALIDATION_STRING_ID = "justForValidation_" + UUID.randomUUID().toString();
+    private final String placeholderReplacementInValidation;
 
     private final List<PlaceholderResolver<?>> placeholderResolvers;
 
     ImmutableExpressionResolver(final List<PlaceholderResolver<?>> placeholderResolvers) {
+        this(placeholderResolvers, DEFAULT_VALIDATION_STRING_ID);
+    }
+
+    ImmutableExpressionResolver(final List<PlaceholderResolver<?>> placeholderResolvers,
+            final String stringUsedInPlaceholderValidation) {
         this.placeholderResolvers = Collections.unmodifiableList(new ArrayList<>(placeholderResolvers));
+        this.placeholderReplacementInValidation = stringUsedInPlaceholderValidation;
     }
 
     @Override
@@ -121,11 +129,12 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
             final String placeholderTemplate = getFirstPlaceholderInPipe(pipelineStagesExpressions);
             final Pipeline pipeline = getPipelineFromExpressions(pipelineStagesExpressions);
 
-            final Optional<String> placeholderWithoutPrefix = resolvePlaceholderWithoutPrefixIfSupported(placeholderResolver, placeholderTemplate);
+            final Optional<String> placeholderWithoutPrefix =
+                    resolvePlaceholderWithoutPrefixIfSupported(placeholderResolver, placeholderTemplate);
             return placeholderWithoutPrefix
                     .map(p -> resolvePlaceholder(placeholderResolver, p))
                     .flatMap(pipelineInput -> {
-                        if (Optional.of(VALIDATION_STRING_ID).equals(pipelineInput)) {
+                        if (Optional.of(placeholderReplacementInValidation).equals(pipelineInput)) {
                             pipeline.validate();
                             // let the input pass if validation succeeded:
                             return pipelineInput;
@@ -144,7 +153,8 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
         while (matcher.find()) {
             pipelineStagesExpressions.add(matcher.group().trim());
 
-            if (pipelineStagesExpressions.size() > MAX_COUNT_PIPELINE_FUNCTIONS + 1) { // +1 for the starting placeholder
+            if (pipelineStagesExpressions.size() >
+                    MAX_COUNT_PIPELINE_FUNCTIONS + 1) { // +1 for the starting placeholder
                 throw PlaceholderFunctionTooComplexException.newBuilder(MAX_COUNT_PIPELINE_FUNCTIONS).build();
             }
         }
@@ -165,7 +175,8 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
         return new ImmutablePipeline(ImmutableFunctionExpression.INSTANCE, pipelineStages);
     }
 
-    private Optional<String> resolvePlaceholderWithoutPrefixIfSupported(final PlaceholderResolver<?> resolver, final String placeholder) {
+    private Optional<String> resolvePlaceholderWithoutPrefixIfSupported(final PlaceholderResolver<?> resolver,
+            final String placeholder) {
         final int separatorIndex = placeholder.indexOf(SEPARATOR);
         if (separatorIndex == -1) {
             throw UnresolvedPlaceholderException.newBuilder(placeholder).build();
@@ -177,12 +188,13 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
         return Optional.empty();
     }
 
-    private Optional<String> resolvePlaceholder(final PlaceholderResolver<?> resolver, final String placeholderWithoutPrefix) {
+    private Optional<String> resolvePlaceholder(final PlaceholderResolver<?> resolver,
+            final String placeholderWithoutPrefix) {
         return Optional.of(resolver)
                 .filter(p -> p.supports(placeholderWithoutPrefix))
                 .flatMap(p -> {
                     if (resolver.isForValidation()) {
-                        return Optional.of(VALIDATION_STRING_ID);
+                        return Optional.of(placeholderReplacementInValidation);
                     } else {
                         return resolver.resolve(placeholderWithoutPrefix);
                     }
@@ -190,7 +202,7 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
@@ -198,19 +210,20 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
             return false;
         }
         final ImmutableExpressionResolver that = (ImmutableExpressionResolver) o;
-        return Objects.equals(placeholderResolvers, that.placeholderResolvers);
+        return Objects.equals(placeholderReplacementInValidation, that.placeholderReplacementInValidation) &&
+                Objects.equals(placeholderResolvers, that.placeholderResolvers);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(placeholderResolvers);
+        return Objects.hash(placeholderReplacementInValidation, placeholderResolvers);
     }
-
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "placeholderResolvers=" + placeholderResolvers +
+                ", placeholderReplacementInValidation=" + placeholderReplacementInValidation +
+                ", placeholderResolvers=" + placeholderResolvers +
                 "]";
     }
 

@@ -18,7 +18,9 @@ import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.UUID;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -38,7 +40,11 @@ import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProt
 @Immutable
 public final class KafkaValidator extends AbstractProtocolValidator {
 
+    private static final String DUMMY_TOPIC = "replaced_placeholder";
+    private static final String DUMMY_PARTITION = "3";
+
     private static final String INVALID_TOPIC_FORMAT = "The provided topic ''{0}'' is not valid: {1}";
+    private static final String NOT_EMPTY_FORMAT = "The provided {0} in your target address may not be empty.";
 
     private static final Collection<String> ACCEPTED_SCHEMES =
             Collections.unmodifiableList(Arrays.asList("tcp", "ssl"));
@@ -63,7 +69,6 @@ public final class KafkaValidator extends AbstractProtocolValidator {
     @Override
     public void validate(final Connection connection, final DittoHeaders dittoHeaders) {
         validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, "Kafka 2.1.1");
-        validateAddresses(connection, dittoHeaders);
         validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
         validateSpecificConfigs(connection, dittoHeaders);
@@ -81,26 +86,20 @@ public final class KafkaValidator extends AbstractProtocolValidator {
     @Override
     protected void validateTarget(final Target target, final DittoHeaders dittoHeaders,
             final Supplier<String> targetDescription) {
+        final String placeholderReplacement = UUID.randomUUID().toString();
+        final String addressWithoutPlaceholders = validateTemplateAndReplace(target.getAddress(), dittoHeaders,
+                placeholderReplacement, newThingPlaceholder(), newTopicPathPlaceholder(), newHeadersPlaceholder());
 
-        validateTemplate(target.getAddress(), dittoHeaders, newThingPlaceholder(), newTopicPathPlaceholder(),
-                newHeadersPlaceholder());
+        this.validateAddress(addressWithoutPlaceholders, dittoHeaders, placeholderReplacement);
     }
 
-    private static void validateAddresses(final Connection connection, final DittoHeaders dittoHeaders) {
-        // no wildcards allowed for publish targets
-        connection.getTargets()
-                .stream()
-                .map(Target::getAddress)
-                .forEach(a -> validateAddress(a, dittoHeaders));
-    }
-
-    private static void validateAddress(final String address, final DittoHeaders dittoHeaders) {
+    private void validateAddress(final String address, final DittoHeaders dittoHeaders, final String placeholderReplacement) {
         if (containsKey(address)) {
-            validateTargetAddressWithKey(address, dittoHeaders);
+            validateTargetAddressWithKey(address, dittoHeaders, placeholderReplacement);
         } else if (containsPartition(address)) {
-            validateTargetAddressWithPartition(address, dittoHeaders);
+            validateTargetAddressWithPartition(address, dittoHeaders, placeholderReplacement);
         } else {
-            validateTopic(address, dittoHeaders);
+            validateTopic(address, dittoHeaders, placeholderReplacement);
         }
     }
 
@@ -109,10 +108,10 @@ public final class KafkaValidator extends AbstractProtocolValidator {
         return index > 0 && index < targetAddress.length();
     }
 
-    private static void validateTargetAddressWithKey(final String targetAddress, final DittoHeaders dittoHeaders) {
+    private void validateTargetAddressWithKey(final String targetAddress, final DittoHeaders dittoHeaders, final String placeholderReplacement) {
         final String[] split = targetAddress.split(KafkaPublishTarget.KEY_SEPARATOR, 2);
-        validateTopic(split[0], dittoHeaders);
-        // won't validate the key since it might contain placeholders
+        validateTopic(split[0], dittoHeaders, placeholderReplacement);
+        validateKey(split[1], dittoHeaders);
     }
 
     private static boolean containsPartition(final String targetAddress) {
@@ -120,16 +119,21 @@ public final class KafkaValidator extends AbstractProtocolValidator {
         return index > 0 && index < targetAddress.length();
     }
 
-    private static void validateTargetAddressWithPartition(final String targetAddress,
-            final DittoHeaders dittoHeaders) {
+    private void validateTargetAddressWithPartition(final String targetAddress,
+            final DittoHeaders dittoHeaders, final String placeholderReplacement) {
         final String[] split = targetAddress.split(KafkaPublishTarget.PARTITION_SEPARATOR, 2);
-        validateTopic(split[0], dittoHeaders);
-        // won't validate the partition since it might contain placeholders
+        validateTopic(split[0], dittoHeaders, placeholderReplacement);
+        validatePartition(split[1], dittoHeaders, placeholderReplacement);
     }
 
-    private static void validateTopic(final String topic, final DittoHeaders dittoHeaders) {
+    private void validateTopic(final String topic, final DittoHeaders dittoHeaders, final String placeholderReplacement) {
+        if (topic.isEmpty()) {
+            throwEmptyException("topic", dittoHeaders);
+        }
+
         try {
-            Topic.validate(topic);
+            final String topicWithoutPlaceholders = topic.replaceAll(Pattern.quote(placeholderReplacement), DUMMY_TOPIC);
+            Topic.validate(topicWithoutPlaceholders);
         } catch (final InvalidTopicException e) {
             final String message = MessageFormat.format(INVALID_TOPIC_FORMAT, topic, e.getMessage());
             throw ConnectionConfigurationInvalidException.newBuilder(message)
@@ -139,10 +143,39 @@ public final class KafkaValidator extends AbstractProtocolValidator {
         }
     }
 
+    private void validateKey(final String key, final DittoHeaders dittoHeaders) {
+        if (key.isEmpty()) {
+            throwEmptyException("key", dittoHeaders);
+        }
+    }
+
+    private void validatePartition(final String partition, final DittoHeaders dittoHeaders, final String placeholderReplacement) {
+        if (partition.isEmpty()) {
+            throwEmptyException("partition", dittoHeaders);
+        }
+        try {
+            final String partitionWithoutPlaceholders = partition.replaceAll(Pattern.quote(placeholderReplacement), DUMMY_PARTITION);
+            Integer.parseInt(partitionWithoutPlaceholders);
+        } catch (final NumberFormatException e) {
+            final String message = MessageFormat.format("Can not parse partition number from {0}.",
+                    partition.replaceAll(Pattern.quote(placeholderReplacement), "<placeholder>"));
+            throw ConnectionConfigurationInvalidException.newBuilder(message)
+                    .cause(e)
+                    .build();
+        }
+    }
+
     private void validateSpecificConfigs(final Connection connection, final DittoHeaders dittoHeaders) {
         SPECIFIC_CONFIGS.stream()
                 .filter(specificConfig -> specificConfig.isApplicable(connection))
                 .forEach(specificConfig -> specificConfig.validateOrThrow(connection, dittoHeaders));
+    }
+
+    private static void throwEmptyException(final String type, final DittoHeaders dittoHeaders) {
+        final String message = MessageFormat.format(NOT_EMPTY_FORMAT, type);
+        throw ConnectionConfigurationInvalidException.newBuilder(message)
+                .dittoHeaders(dittoHeaders)
+                .build();
     }
 
 }

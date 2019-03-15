@@ -186,4 +186,33 @@ public abstract class AbstractProtocolValidator {
                     .build();
         }
     }
+
+    /**
+     * Validates that the passed {@code template} is both valid and that the placeholders in the passed {@code template}
+     * are completely replaceable by the provided {@code placeholders}. Each placeholder will be replaced by
+     * {@code stringUsedInPlaceholderReplacement} and the resolved template without any remaining placeholders will be returned.
+     *
+     * @param template a string potentially containing placeholders to replace
+     * @param headers the DittoHeaders to use in order for e.g. building DittoRuntimeExceptions
+     * @param stringUsedInPlaceholderReplacement the dummy value used as a replacement for the found placeholders.
+     * @param placeholders the {@link Placeholder}s to use for replacement
+     * @throws ConnectionConfigurationInvalidException in case the template's placeholders could not completely be
+     * resolved
+     * @return the {@code template} with every placeholder replaced by {@code stringUsedInPlaceholderReplacement}.
+     */
+    protected String validateTemplateAndReplace(final String template, final DittoHeaders headers,
+            final String stringUsedInPlaceholderReplacement, final Placeholder<?>... placeholders) {
+        try {
+            return PlaceholderFilter.validateAndReplace(template, stringUsedInPlaceholderReplacement, placeholders);
+        } catch (final DittoRuntimeException exception) {
+            throw ConnectionConfigurationInvalidException
+                    .newBuilder(exception.getMessage())
+                    .description(exception.getDescription()
+                            .orElse("Check the spelling and syntax of the placeholder.")
+                    )
+                    .cause(exception)
+                    .dittoHeaders(headers)
+                    .build();
+        }
+    }
 }
