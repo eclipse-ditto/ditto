@@ -28,6 +28,4 @@ public interface FilterFieldExpressionVisitor<T> extends SortFieldExpressionVisi
     T visitSimple(final String fieldName);
 
     T visitAcl();
-
-    T visitGlobalReads();
 }

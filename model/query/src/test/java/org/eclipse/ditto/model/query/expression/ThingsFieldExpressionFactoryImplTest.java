@@ -24,7 +24,6 @@ public final class ThingsFieldExpressionFactoryImplTest {
     private static final String KNOWN_STRING = "KNOWN_STRING";
     private static final String KNOWN_FEATURE_ID = "feature1";
     private static final String KNOWN_FEATURE = "features/" + KNOWN_FEATURE_ID;
-    private static final String KNOWN_FEATURE_PROPERTY = "features/*/properties/" + KNOWN_STRING;
     private static final String KNOWN_FEATURE_PROPERTY_WITH_ID =
             "features/" + KNOWN_FEATURE_ID + "/properties/" + KNOWN_STRING;
 
@@ -152,11 +151,6 @@ public final class ThingsFieldExpressionFactoryImplTest {
         assertThat(fieldExpression).isEqualTo(expected);
     }
 
-    @Test(expected = NullPointerException.class)
-    public void sortByFeaturePropertyWithNullKey() {
-        ef.sortByFeatureProperty(null, null);
-    }
-
     @Test
     public void filterByAttribute() {
         final FilterFieldExpression fieldExpression = ef.filterByAttribute(KNOWN_STRING);
@@ -171,16 +165,6 @@ public final class ThingsFieldExpressionFactoryImplTest {
 
         final SortFieldExpression expected = new AttributeExpressionImpl(KNOWN_STRING);
         assertThat(fieldExpression).isEqualTo(expected);
-    }
-
-    @Test(expected = NullPointerException.class)
-    public void filterByAttributeWithNullKey() {
-        ef.filterByAttribute(null);
-    }
-
-    @Test(expected = NullPointerException.class)
-    public void sortByAttributeWithNullKey() {
-        ef.sortByAttribute(null);
     }
 
     @Test

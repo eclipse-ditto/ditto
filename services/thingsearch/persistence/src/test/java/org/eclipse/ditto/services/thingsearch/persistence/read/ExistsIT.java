@@ -76,6 +76,14 @@ public final class ExistsIT extends AbstractReadPersistenceITBase {
     }
 
     @Test
+    public void existsByKnownFeatureIdAndProperty() {
+        final Criteria crit =
+                cf.existsCriteria(ef.existsByFeatureProperty(THING1_KNOWN_FEATURE_ID, THING1_KNOWN_PROPERTY));
+        final Collection<String> result = findForCriteria(crit);
+        assertThat(result).containsOnly(THING1_ID);
+    }
+
+    @Test
     public void existsByExactAttribute() {
         final Criteria crit = cf.existsCriteria(ef.existsByAttribute(THING2_KNOWN_ATTR));
         final Collection<String> result = findForCriteria(crit);

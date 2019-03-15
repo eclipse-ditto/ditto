@@ -35,13 +35,11 @@ public final class FilterThingPredicateVisitor implements FilterFieldExpressionV
 
     @Override
     public Predicate<Thing> visitAttribute(final String key) {
-
         return predicateFunction.apply("/attributes/" + key);
     }
 
     @Override
     public Predicate<Thing> visitFeatureIdProperty(final String featureId, final String property) {
-
         return predicateFunction.apply("/features/" + featureId + "/properties/" + property);
     }
 
@@ -53,10 +51,5 @@ public final class FilterThingPredicateVisitor implements FilterFieldExpressionV
     @Override
     public Predicate<Thing> visitAcl() {
         return predicateFunction.apply("/acl");
-    }
-
-    @Override
-    public Predicate<Thing> visitGlobalReads() {
-        return thing -> true; // not relevant for Thing Predicates
     }
 }

@@ -32,7 +32,4 @@ public interface FieldExpressionVisitor<T>
 
     @Override
     T visitAcl();
-
-    @Override
-    T visitGlobalReads();
 }

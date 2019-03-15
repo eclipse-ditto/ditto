@@ -66,8 +66,7 @@ public final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpres
     }
 
     @Override
-    public ExistsFieldExpression existsBy(final String propertyNameWithOptionalLeadingSlash)
-            throws IllegalArgumentException {
+    public ExistsFieldExpression existsBy(final String propertyNameWithOptionalLeadingSlash) {
 
         requireNonNull(propertyNameWithOptionalLeadingSlash);
         final String propertyName = stripLeadingSlash(propertyNameWithOptionalLeadingSlash);
@@ -124,7 +123,7 @@ public final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpres
      * @throws IllegalArgumentException if the property can not be mapped. Because of this, call this method last in the
      * workflow.
      */
-    private FieldExpression common(final String propertyName) throws IllegalArgumentException {
+    private FieldExpression common(final String propertyName) {
         if (FieldExpressionUtil.isAttributeFieldName(propertyName)) {
             return new AttributeExpressionImpl(FieldExpressionUtil.stripAttributesPrefix(propertyName));
         }
@@ -137,58 +136,4 @@ public final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpres
         throw new IllegalArgumentException("Unknown property name: " + propertyName);
     }
 
-    @Override
-    public ExistsFieldExpression existsByFeatureId(final String featureId) {
-        return new FeatureExpressionImpl(featureId);
-    }
-
-    @Override
-    public FilterFieldExpression filterByFeatureProperty(final String featureId, final String property) {
-        return new FeatureIdPropertyExpressionImpl(featureId, property);
-    }
-
-    @Override
-    public SortFieldExpression sortByFeatureProperty(final String featureId, final String property) {
-        return new FeatureIdPropertyExpressionImpl(featureId, property);
-    }
-
-    @Override
-    public FilterFieldExpression filterByAttribute(final String key) {
-        return new AttributeExpressionImpl(key);
-    }
-
-    @Override
-    public ExistsFieldExpression existsByAttribute(final String key) {
-        return new AttributeExpressionImpl(key);
-    }
-
-    @Override
-    public SortFieldExpression sortByAttribute(final String key) {
-        return new AttributeExpressionImpl(requireNonNull(key));
-    }
-
-    @Override
-    public FilterFieldExpression filterByAcl() {
-        return new ThingsAclFieldExpressionImpl();
-    }
-
-    @Override
-    public FilterFieldExpression filterByGlobalRead() {
-        return new ThingsGlobalReadsFieldExpressionImpl();
-    }
-
-    @Override
-    public FilterFieldExpression filterByThingId() {
-        return new SimpleFieldExpressionImpl(FieldExpressionUtil.FIELD_ID);
-    }
-
-    @Override
-    public SortFieldExpression sortByThingId() {
-        return new SimpleFieldExpressionImpl(FieldExpressionUtil.FIELD_ID);
-    }
-
-    @Override
-    public FilterFieldExpression filterByNamespace() {
-        return new SimpleFieldExpressionImpl(FieldExpressionUtil.FIELD_NAMESPACE);
-    }
 }
