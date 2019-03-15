@@ -11,6 +11,7 @@
 package org.eclipse.ditto.services.gateway.security.authentication.jwt;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtTestConstants.ISSUER;
 import static org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtTestConstants.KEY_ID;
 import static org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtTestConstants.PUBLIC_KEY;
@@ -18,12 +19,15 @@ import static org.eclipse.ditto.services.gateway.security.authentication.jwt.Jwt
 import static org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtTestConstants.VALID_JWT_TOKEN;
 import static org.mockito.Mockito.when;
 
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayJwtInvalidException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -65,6 +69,34 @@ public class AbstractJsonWebTokenTest {
         assertThat(jwtValidationResult.getReasonForInvalidity()).isInstanceOf(SignatureException.class);
     }
 
+    @Test
+    public void constructorFailsIfJwtDoesNotConsistOfThreeParts() {
+        final String header = "{\"header\":\"value\"}";
+        final String payload = "{\"payload\":\"foo\"}";
+
+        final String authorizationHeader = "Bearer " + base64(header) + "." + base64(payload);
+
+        assertThatExceptionOfType(GatewayJwtInvalidException.class).isThrownBy(() ->
+                new AbstractJsonWebTokenTestImplementation(authorizationHeader));
+
+    }
+
+    @Test
+    public void constructor() {
+        final String header = "{\"header\":\"value\"}";
+        final String payload = "{\"payload\":\"foo\"}";
+        final String signature = "{\"signature\":\"foo\"}";
+
+        final String authorizationHeader = "Bearer " + base64(header) + "." + base64(payload) + "." + base64(signature);
+
+        final AbstractJsonWebTokenTestImplementation abstractJsonWebTokenTestImplementation =
+                new AbstractJsonWebTokenTestImplementation(authorizationHeader);
+
+        assertThat(abstractJsonWebTokenTestImplementation.getHeader().toString()).isEqualTo(header);
+        assertThat(abstractJsonWebTokenTestImplementation.getBody().toString()).isEqualTo(payload);
+        assertThat(abstractJsonWebTokenTestImplementation.getSignature()).isEqualTo(base64(signature));
+    }
+
     private static class AbstractJsonWebTokenTestImplementation extends AbstractJsonWebToken {
 
         private AbstractJsonWebTokenTestImplementation(final String authorizationString) {
@@ -75,6 +107,10 @@ public class AbstractJsonWebTokenTest {
         public List<String> getSubjects() {
             return Collections.emptyList();
         }
+    }
+
+    private String base64(final String value) {
+        return new String(Base64.getEncoder().encode(value.getBytes()));
     }
 
 }

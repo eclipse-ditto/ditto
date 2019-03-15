@@ -55,7 +55,7 @@ public abstract class AbstractJsonWebToken implements JsonWebToken {
     private final JsonObject body;
     private final String signature;
 
-    protected AbstractJsonWebToken(final String authorizationString) {
+    AbstractJsonWebToken(final String authorizationString) {
         checkNotNull(authorizationString, "Authorization String");
         checkNotEmpty(authorizationString, "Authorization String");
 
@@ -66,14 +66,20 @@ public abstract class AbstractJsonWebToken implements JsonWebToken {
         }
 
         final String jwtBase64Encoded = authorizationStringSplit[1];
-        final String[] split = jwtBase64Encoded.split(JWT_DELIMITER);
+        final String[] tokenParts = jwtBase64Encoded.split(JWT_DELIMITER);
+
+        if (tokenParts.length != 3) {
+            throw GatewayJwtInvalidException.newBuilder()
+                    .description("The token is expected to have three parts: header, payload and signature.")
+                    .build();
+        }
 
         try {
             final Base64.Decoder decoder = Base64.getDecoder();
-            final byte[] headerBytes = decoder.decode(split[0]);
+            final byte[] headerBytes = decoder.decode(tokenParts[0]);
             header = JsonFactory.newObject(new String(headerBytes, StandardCharsets.UTF_8));
 
-            final byte[] bodyBytes = decoder.decode(split[1]);
+            final byte[] bodyBytes = decoder.decode(tokenParts[1]);
             body = JsonFactory.newObject(new String(bodyBytes, StandardCharsets.UTF_8));
         } catch (final IllegalArgumentException | JsonParseException e) {
             throw GatewayJwtInvalidException.newBuilder()
@@ -83,7 +89,7 @@ public abstract class AbstractJsonWebToken implements JsonWebToken {
         }
 
         token = jwtBase64Encoded;
-        signature = split[2];
+        signature = tokenParts[2];
     }
 
     protected AbstractJsonWebToken(final JsonWebToken jsonWebToken) {

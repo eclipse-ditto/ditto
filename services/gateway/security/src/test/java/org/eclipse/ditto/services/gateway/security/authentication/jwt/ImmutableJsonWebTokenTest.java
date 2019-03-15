@@ -73,8 +73,7 @@ public final class ImmutableJsonWebTokenTest {
     @Test
     public void tryToParseTokenFromInvalidAuthorization() {
         assertThatExceptionOfType(GatewayJwtInvalidException.class)
-                .isThrownBy(() -> ImmutableJsonWebToken.fromAuthorizationString("Authorization foo"))
-                .withCauseInstanceOf(JsonParseException.class);
+                .isThrownBy(() -> ImmutableJsonWebToken.fromAuthorizationString("Authorization foo"));
     }
 
     @Test
