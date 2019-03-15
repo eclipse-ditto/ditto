@@ -22,8 +22,6 @@ import org.eclipse.ditto.model.query.expression.visitors.FieldExpressionVisitor;
  */
 public class FeatureExpressionImpl implements ExistsFieldExpression {
 
-    private static final String DOT = ".";
-
     private final String featureId;
 
     /**

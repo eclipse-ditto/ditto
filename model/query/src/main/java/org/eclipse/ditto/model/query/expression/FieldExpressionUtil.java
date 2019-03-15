@@ -32,11 +32,6 @@ public final class FieldExpressionUtil {
     public static final String FIELD_NAME_THING_ID = "thingId";
 
     /**
-     * Owner field name.
-     */
-    public static final String FIELD_NAME_OWNER = "owner";
-
-    /**
      * namespace field to be saved in field expressions.
      */
     public static final String FIELD_NAMESPACE = "_namespace";
