@@ -11,6 +11,7 @@
 package org.eclipse.ditto.services.utils.persistence.mongo.namespace;
 
 import java.math.BigInteger;
+import java.time.Duration;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
@@ -30,8 +31,6 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -170,10 +169,10 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
 
             // create 2 entities in 2 namespaces, 1 of which will be purged
             actorToPurge.tell(getCreateEntityCommand(purgedId), getRef());
-            expectMsgClass(getCreateEntityResponseClass());
+            expectMsgClass(Duration.ofSeconds(10L), getCreateEntityResponseClass());
 
             survivingActor.tell(getCreateEntityCommand(survivingId), getRef());
-            expectMsgClass(getCreateEntityResponseClass());
+            expectMsgClass(Duration.ofSeconds(10L), getCreateEntityResponseClass());
 
             // kill the actor in the namespace to be purged to avoid write conflict
             actorToPurge.tell(PoisonPill.getInstance(), getRef());
