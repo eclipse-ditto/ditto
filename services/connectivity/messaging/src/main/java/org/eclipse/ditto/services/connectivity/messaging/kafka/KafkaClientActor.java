@@ -12,7 +12,6 @@ package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
 import java.util.HashSet;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -122,8 +121,9 @@ public final class KafkaClientActor extends BaseClientActor {
     }
 
     @Override
-    protected Optional<ActorRef> getPublisherActor() {
-        return Optional.ofNullable(kafkaPublisherActor);
+    protected ActorRef getPublisherActor() {
+        // TODO TJ check if we always create the producer!
+        return kafkaPublisherActor;
     }
 
     @Override
