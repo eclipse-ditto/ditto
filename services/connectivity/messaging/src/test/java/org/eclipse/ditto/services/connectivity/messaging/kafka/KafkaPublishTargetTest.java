@@ -30,8 +30,8 @@ public class KafkaPublishTargetTest {
         final KafkaPublishTarget target = KafkaPublishTarget.fromTargetAddress("events");
 
         assertThat(target.getTopic()).isEqualTo("events");
-        assertThat(target.getKey()).isNull();
-        assertThat(target.getPartition()).isNull();
+        assertThat(target.getKey()).isEmpty();
+        assertThat(target.getPartition()).isEmpty();
     }
 
     @Test
@@ -39,8 +39,8 @@ public class KafkaPublishTargetTest {
         final KafkaPublishTarget target = KafkaPublishTarget.fromTargetAddress("events/anyRandomKey");
 
         assertThat(target.getTopic()).isEqualTo("events");
-        assertThat(target.getKey()).isEqualTo("anyRandomKey");
-        assertThat(target.getPartition()).isNull();
+        assertThat(target.getKey()).contains("anyRandomKey");
+        assertThat(target.getPartition()).isEmpty();
     }
 
     @Test
@@ -49,16 +49,16 @@ public class KafkaPublishTargetTest {
         final KafkaPublishTarget target = KafkaPublishTarget.fromTargetAddress("events/" + keyWithSpecialChars);
 
         assertThat(target.getTopic()).isEqualTo("events");
-        assertThat(target.getKey()).isEqualTo(keyWithSpecialChars);
-        assertThat(target.getPartition()).isNull();
+        assertThat(target.getKey()).contains(keyWithSpecialChars);
+        assertThat(target.getPartition()).isEmpty();
     }
 
     @Test
     public void extractsTopicAndPartition() {
         final KafkaPublishTarget target = KafkaPublishTarget.fromTargetAddress("events#3");
         assertThat(target.getTopic()).isEqualTo("events");
-        assertThat(target.getKey()).isNull();
-        assertThat(target.getPartition()).isEqualTo(3);
+        assertThat(target.getKey()).isEmpty();
+        assertThat(target.getPartition()).contains(3);
     }
 
     @Test
@@ -66,8 +66,8 @@ public class KafkaPublishTargetTest {
         final KafkaPublishTarget target = KafkaPublishTarget.fromTargetAddress("events/");
 
         assertThat(target.getTopic()).isEqualTo("events");
-        assertThat(target.getKey()).isNull();
-        assertThat(target.getPartition()).isNull();
+        assertThat(target.getKey()).isEmpty();
+        assertThat(target.getPartition()).isEmpty();
     }
 
     @Test
@@ -75,8 +75,8 @@ public class KafkaPublishTargetTest {
         final KafkaPublishTarget target = KafkaPublishTarget.fromTargetAddress("events#");
 
         assertThat(target.getTopic()).isEqualTo("events");
-        assertThat(target.getKey()).isNull();
-        assertThat(target.getPartition()).isNull();
+        assertThat(target.getKey()).isEmpty();
+        assertThat(target.getPartition()).isEmpty();
     }
 
     @Test

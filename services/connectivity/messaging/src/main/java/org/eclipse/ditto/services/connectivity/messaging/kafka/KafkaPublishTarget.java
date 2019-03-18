@@ -12,6 +12,7 @@ package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
 import java.text.MessageFormat;
 import java.util.Objects;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -63,6 +64,7 @@ final class KafkaPublishTarget implements PublishTarget {
         return new KafkaPublishTarget(topic, key, null);
     }
 
+    @Nullable
     private static String validateKey(final String key) {
         return key.isEmpty() ? null : key;
     }
@@ -79,6 +81,7 @@ final class KafkaPublishTarget implements PublishTarget {
         return new KafkaPublishTarget(topic, null, partition);
     }
 
+    @Nullable
     private static Integer validatePartition(final String partitionString) {
         if (partitionString.isEmpty()) {
             return null;
@@ -117,12 +120,12 @@ final class KafkaPublishTarget implements PublishTarget {
         return topic;
     }
 
-    String getKey() {
-        return key;
+    Optional<String> getKey() {
+        return Optional.ofNullable(key);
     }
 
-    Integer getPartition() {
-        return partition;
+    Optional<Integer> getPartition() {
+        return Optional.ofNullable(partition);
     }
 
     @Override

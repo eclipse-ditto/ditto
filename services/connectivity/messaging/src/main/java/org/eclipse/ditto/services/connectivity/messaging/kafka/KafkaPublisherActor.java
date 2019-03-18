@@ -175,7 +175,9 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
         final Iterable<Header> headers = mapExternalMessageHeaders(externalMessage);
 
         final ProducerRecord<String, String> record =
-                new ProducerRecord<>(publishTarget.getTopic(), publishTarget.getPartition(), publishTarget.getKey(),
+                new ProducerRecord<>(publishTarget.getTopic(),
+                        publishTarget.getPartition().orElse(null),
+                        publishTarget.getKey().orElse(null),
                         payload, headers);
         return ProducerMessage.single(record, metricsCollector);
     }
