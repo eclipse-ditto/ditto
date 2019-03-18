@@ -184,7 +184,7 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
         return externalMessage.getHeaders()
                 .entrySet()
                 .stream()
-                .map(header -> new RecordHeader(header.getKey(), header.getValue().getBytes(StandardCharsets.US_ASCII)))
+                .map(header -> new RecordHeader(header.getKey(), header.getValue().getBytes(StandardCharsets.UTF_8)))
                 .collect(Collectors.toList());
     }
 
