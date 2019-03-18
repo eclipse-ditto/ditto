@@ -19,7 +19,6 @@ import java.util.Collections;
 
 import javax.jms.JMSException;
 
-import org.apache.qpid.jms.message.JmsMessage;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
@@ -35,7 +34,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.testkit.TestProbe;
 
-public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest<JmsMessage> {
+public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest {
 
 
     private TestProbe probe;

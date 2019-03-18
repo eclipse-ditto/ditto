@@ -40,7 +40,7 @@ import akka.actor.Props;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
-public abstract class AbstractPublisherActorTest<T> {
+public abstract class AbstractPublisherActorTest {
 
     private static final Config CONFIG = ConfigFactory.load("test");
     protected static ActorSystem actorSystem;
