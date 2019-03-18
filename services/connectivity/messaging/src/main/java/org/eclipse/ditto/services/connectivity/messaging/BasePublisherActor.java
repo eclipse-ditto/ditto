@@ -93,6 +93,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     final ExternalMessage response = outbound.getExternalMessage();
                     final String correlationId = response.getHeaders().get(CORRELATION_ID.getKey());
                     LogUtil.enhanceLogWithCorrelationId(log(), correlationId);
+                    LogUtil.enhanceLogWithCustomField(log(), BaseClientData.MDC_CONNECTION_ID, connectionId);
 
                     final String replyToFromHeader = response.getHeaders().get(ExternalMessage.REPLY_TO_HEADER);
                     if (replyToFromHeader != null) {
@@ -111,6 +112,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     final ExternalMessage message = outbound.getExternalMessage();
                     final String correlationId = message.getHeaders().get(CORRELATION_ID.getKey());
                     LogUtil.enhanceLogWithCorrelationId(log(), correlationId);
+                    LogUtil.enhanceLogWithCustomField(log(), BaseClientData.MDC_CONNECTION_ID, connectionId);
 
                     final Signal<?> outboundSource = outbound.getSource();
                     log().debug("Publishing mapped message of type <{}> to targets <{}>: {}",
