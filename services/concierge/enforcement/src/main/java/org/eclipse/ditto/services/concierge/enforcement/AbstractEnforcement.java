@@ -132,7 +132,7 @@ public abstract class AbstractEnforcement<T extends Signal> {
     protected void reportError(final String hint, final ActorRef sender, final Throwable error,
             final DittoHeaders dittoHeaders) {
         if (error instanceof DittoRuntimeException) {
-            log(dittoHeaders).error(error, hint);
+            log(dittoHeaders).info("{}: {}", hint, error);
             sender.tell(error, self());
         } else {
             reportUnexpectedError(hint, sender, error, dittoHeaders);

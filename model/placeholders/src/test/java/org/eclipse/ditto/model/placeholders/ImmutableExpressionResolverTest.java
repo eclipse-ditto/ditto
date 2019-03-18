@@ -34,7 +34,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public class ImmutableExpressionResolverTest {
 
     private static final String THING_NAME = "foobar199";
-    private static final String THING_NAMESPACE= "org.eclipse.ditto";
+    private static final String THING_NAMESPACE = "org.eclipse.ditto";
     private static final String THING_ID = THING_NAMESPACE + ":" + THING_NAME;
     private static final String KNOWN_TOPIC = "org.eclipse.ditto/" + THING_NAME + "/things/twin/commands/modify";
     private static final Map<String, String> KNOWN_HEADERS =
@@ -143,8 +143,25 @@ public class ImmutableExpressionResolverTest {
                 .isEqualTo("BAR");
         assertThat(underTest.resolve("{{ thing:bar | fn:default(  'bar'  ) |fn:upper(  ) }}", false))
                 .isEqualTo("BAR");
-        assertThat(underTest.resolve("{{ thing:id | fn:substring-before(\"|\") | fn:default('bAz') | fn:lower() }}", false))
+        assertThat(underTest.resolve(
+                "{{ thing:id | fn:substring-before(\"|\") | fn:default('bAz') | fn:lower() }}",
+                false))
                 .isEqualTo("baz");
+    }
+
+    @Test
+    public void testSpecialCharactersInStrings() {
+        assertThat(underTest.resolve("{{ thing:bar | fn:default( ' \\s%!@/*+\"\\'上手カキクケコ' ) | fn:upper( ) }}", false))
+                .isEqualTo(" \\S%!@/*+\"\\'上手カキクケコ");
+
+        assertThat(underTest.resolve("{{ thing:bar | fn:default( \" \\s%!@/*+'\\\"上手カキクケコ\" ) | fn:upper( ) }}", false))
+                .isEqualTo(" \\S%!@/*+'\\\"上手カキクケコ");
+    }
+
+    @Test
+    public void rejectUnsupportedPlaceholdersWithSpecialCharacters() {
+        assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(() ->
+                underTest.resolve("{{ thing:id\\s%!@/*+上手カキクケコ }}", false));
     }
 
     @Test

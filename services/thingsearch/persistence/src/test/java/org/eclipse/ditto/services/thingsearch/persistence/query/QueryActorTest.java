@@ -45,7 +45,7 @@ import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.testkit.JavaTestKit;
+import akka.testkit.javadsl.TestKit;
 
 /**
  * Unit test for {@link QueryActor}.
@@ -82,7 +82,7 @@ public final class QueryActorTest {
     private Criteria criteriaMock;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         final Config config = ConfigFactory.load("test");
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
 
@@ -102,14 +102,16 @@ public final class QueryActorTest {
     }
 
     @After
-    public void tearDown() throws Exception {
-        JavaTestKit.shutdownActorSystem(actorSystem);
-        actorSystem = null;
+    public void tearDown() {
+        if (actorSystem != null) {
+            TestKit.shutdownActorSystem(actorSystem);
+            actorSystem = null;
+        }
     }
 
     @Test
     public void countThingsToQuery() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final ActorRef underTest = createQueryActor();
 
@@ -124,7 +126,7 @@ public final class QueryActorTest {
 
     @Test
     public void queryThingsToQuery() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final ActorRef underTest = createQueryActor();
 
@@ -138,7 +140,7 @@ public final class QueryActorTest {
 
     @Test
     public void queryThingsToQueryWithOptions() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final ActorRef underTest = createQueryActor();
 
@@ -154,7 +156,7 @@ public final class QueryActorTest {
 
     @Test
     public void queryThingsToQueryWithInvalidFilter() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final ActorRef underTest = createQueryActor();
 

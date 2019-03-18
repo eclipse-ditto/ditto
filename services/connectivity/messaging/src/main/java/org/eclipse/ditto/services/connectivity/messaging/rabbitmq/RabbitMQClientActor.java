@@ -22,6 +22,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
@@ -183,6 +184,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     protected void allocateResourcesOnConnection(final ClientConnected clientConnected) {
         log.debug("Received ClientConnected");
         if (clientConnected instanceof RmqConsumerChannelCreated) {
+            startMessageMappingProcessor();
             final RmqConsumerChannelCreated rmqConsumerChannelCreated = (RmqConsumerChannelCreated) clientConnected;
             startCommandConsumers(rmqConsumerChannelCreated.getChannel());
         }
@@ -192,6 +194,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     protected void cleanupResourcesForConnection() {
         log.debug("cleaning up");
         stopCommandConsumers();
+        stopMessageMappingProcessorActor();
         stopCommandPublisher();
         if (rmqConnectionActor != null) {
             stopChildActor(rmqConnectionActor);
@@ -204,8 +207,8 @@ public final class RabbitMQClientActor extends BaseClientActor {
     }
 
     @Override
-    protected Optional<ActorRef> getPublisherActor() {
-        return Optional.ofNullable(rmqPublisherActor);
+    protected ActorRef getPublisherActor() {
+        return rmqPublisherActor;
     }
 
     private static Optional<ConnectionFactory> tryToCreateConnectionFactory(
@@ -252,7 +255,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         });
 
                 rmqConnectionActor = startChildActorConflictFree(RMQ_CONNECTION_ACTOR_NAME, props);
-                rmqPublisherActor = startRmqPublisherActor().orElse(null);
+                rmqPublisherActor = startRmqPublisherActor();
 
                 // create publisher channel
                 final ActorRef finalRmqPublisherActor = rmqPublisherActor;
@@ -312,15 +315,14 @@ public final class RabbitMQClientActor extends BaseClientActor {
         }
     }
 
-    private Optional<ActorRef> startRmqPublisherActor() {
-        if (isPublishing()) {
-            return Optional.of(getContext().findChild(RabbitMQPublisherActor.ACTOR_NAME).orElseGet(() -> {
-                final Props publisherProps = RabbitMQPublisherActor.props(connectionId(), getTargetsOrEmptyList());
-                return startChildActorConflictFree(RabbitMQPublisherActor.ACTOR_NAME, publisherProps);
-            }));
-        } else {
-            return Optional.empty();
-        }
+    private ActorRef startRmqPublisherActor() {
+        return StreamSupport.stream(getContext().getChildren().spliterator(), false)
+                .filter(child -> child.path().name().startsWith(RabbitMQPublisherActor.ACTOR_NAME))
+                .findFirst()
+                .orElseGet(() -> {
+                    final Props publisherProps = RabbitMQPublisherActor.props(connectionId(), getTargetsOrEmptyList());
+                    return startChildActorConflictFree(RabbitMQPublisherActor.ACTOR_NAME, publisherProps);
+                });
     }
 
     private void stopCommandPublisher() {

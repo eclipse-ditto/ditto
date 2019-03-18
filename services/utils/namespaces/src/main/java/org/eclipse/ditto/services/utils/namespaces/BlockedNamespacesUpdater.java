@@ -40,9 +40,6 @@ public final class BlockedNamespacesUpdater extends AbstractActor {
     private BlockedNamespacesUpdater(final BlockedNamespaces blockedNamespaces, final ActorRef pubSubMediator) {
         this.blockedNamespaces = blockedNamespaces;
 
-        // register self for pub-sub on restart
-        pubSubMediator.tell(new Put(getSelf()), getSelf());
-
         // subscribe to namespace-blocking commands
         pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(BlockNamespace.TYPE, getSelf()), getSelf());
         pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(UnblockNamespace.TYPE, getSelf()), getSelf());

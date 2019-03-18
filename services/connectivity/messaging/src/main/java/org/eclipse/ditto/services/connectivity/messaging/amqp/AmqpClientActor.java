@@ -208,8 +208,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             this.jmsSession = c.session;
             consumers.clear();
             consumers.addAll(c.consumerList);
-            startCommandConsumers(consumers);
+            // note: start order is important (publisher -> mapping -> consumer actor)
             startAmqpPublisherActor();
+            startMessageMappingProcessor(connection().getMappingContext().orElse(null));
+            startCommandConsumers(consumers);
         } else {
             log.info("ClientConnected was not JmsConnected as expected, ignoring as this probably was a reconnection");
         }
@@ -219,6 +221,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     protected void cleanupResourcesForConnection() {
         log.debug("cleaning up");
         stopCommandConsumers();
+        stopMessageMappingProcessorActor();
         stopCommandProducer();
         // closing JMS connection closes all sessions and consumers
         ensureJmsConnectionClosed();
@@ -253,8 +256,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     @Override
-    protected Optional<ActorRef> getPublisherActor() {
-        return Optional.ofNullable(amqpPublisherActor);
+    protected ActorRef getPublisherActor() {
+        return amqpPublisherActor;
     }
 
     @Override
@@ -297,18 +300,16 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     private void startAmqpPublisherActor() {
-        if (isPublishing()) {
-            stopCommandProducer();
-            final String namePrefix = AmqpPublisherActor.ACTOR_NAME;
-            if (jmsSession != null) {
-                final Props props = AmqpPublisherActor.props(connectionId(), getTargetsOrEmptyList(), jmsSession);
-                amqpPublisherActor = startChildActorConflictFree(namePrefix, props);
-            } else {
-                throw new IllegalStateException(
-                        "Could not start AmqpPublisherActor due to missing jmsSession or connection");
-            }
+        stopCommandProducer();
+        final String namePrefix = AmqpPublisherActor.ACTOR_NAME;
+        if (jmsSession != null) {
+            final Props props = AmqpPublisherActor.props(connectionId(), getTargetsOrEmptyList(), jmsSession);
+            amqpPublisherActor = startChildActorConflictFree(namePrefix, props);
         } else {
-            log.info("This client is not configured for publishing, not starting AmqpPublisherActor");
+            throw ConnectionFailedException
+                    .newBuilder(connectionId())
+                    .message("Could not start publisher actor due to missing jms session or connection.")
+                    .build();
         }
     }
 

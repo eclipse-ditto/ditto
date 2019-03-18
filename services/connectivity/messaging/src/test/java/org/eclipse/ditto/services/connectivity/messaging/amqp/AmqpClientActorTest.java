@@ -486,6 +486,20 @@ public class AmqpClientActorTest extends WithMockServers {
     @Test
     public void testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponse() throws JMSException {
         testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponse(
+                connection, (id, headers) -> ModifyThingResponse.modified(id, DittoHeaders.of(headers)),
+                "replies",
+                message -> message.contains("\"status\":2"));
+    }
+
+    @Test
+    public void testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponseForConnectionWithoutTarget()
+            throws JMSException {
+        final String targetsKey = Connection.JsonFields.TARGETS.getPointer().toString();
+        final Connection connectionWithoutTargets
+                = ConnectivityModelFactory.connectionFromJson(connection.toJson().remove(targetsKey));
+
+        testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponse(
+                connectionWithoutTargets,
                 (id, headers) -> ModifyThingResponse.modified(id, DittoHeaders.of(headers)),
                 "replies",
                 message -> message.contains("\"status\":2"));
@@ -494,14 +508,14 @@ public class AmqpClientActorTest extends WithMockServers {
     @Test
     public void testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveError() throws JMSException {
         testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponse(
-                (id, headers) -> ThingErrorResponse.of(id,
+                connection, (id, headers) -> ThingErrorResponse.of(id,
                         ThingNotModifiableException.newBuilder(id).dittoHeaders(headers).build()),
                 "replies",
                 message -> message.contains("ditto/thing/things/twin/errors"));
     }
 
     private void testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponse(
-            final BiFunction<String, DittoHeaders, CommandResponse> responseSupplier,
+            final Connection connection, final BiFunction<String, DittoHeaders, CommandResponse> responseSupplier,
             final String expectedAddress,
             final Predicate<String> messageTextPredicate) throws JMSException {
         new TestKit(actorSystem) {{
