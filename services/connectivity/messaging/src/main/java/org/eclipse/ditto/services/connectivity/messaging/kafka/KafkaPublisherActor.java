@@ -79,9 +79,6 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
         sourceActor = materializedFlowedValues.first();
         materializedFlowedValues.second().handleAsync(this::handleCompletionOrFailure);
 
-        // TODO: think about doing this somewhere else
-        // has to be done since we the publisher won't send a Done instance after finishing its connectivity.
-        // in fact at the time of writing it doesn't report on connectivity in any way.
         this.reportInitialConnectionState();
     }
 

@@ -15,11 +15,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
@@ -47,9 +45,7 @@ public final class KafkaClientActor extends BaseClientActor {
     private ActorRef kafkaPublisherActor;
 
     private final Set<ActorRef> pendingStatusReportsFromStreams;
-    // TODO: is this created only once per connection? why would we need this bifunction then? we could create the
-    //  connectionFactory on startup.
-    private final BiFunction<Connection, DittoHeaders, KafkaConnectionFactory> connectionFactoryCreator;
+    private final KafkaConnectionFactory connectionFactory;
 
     private CompletableFuture<Status.Status> testConnectionFuture = null;
 
@@ -59,7 +55,7 @@ public final class KafkaClientActor extends BaseClientActor {
             final ActorRef conciergeForwarder) {
         super(connection, desiredConnectionStatus, conciergeForwarder);
         final KafkaConfigReader configReader = ConnectionConfigReader.fromRawConfig(getContext().system().settings().config()).kafka();
-        this.connectionFactoryCreator = (c, headers) -> KafkaConnectionFactory.of(c, configReader);
+        this.connectionFactory = KafkaConnectionFactory.of(connection, configReader);
         pendingStatusReportsFromStreams = new HashSet<>();
     }
 
@@ -111,7 +107,7 @@ public final class KafkaClientActor extends BaseClientActor {
             return CompletableFuture.completedFuture(new Status.Failure(error));
         }
         testConnectionFuture = new CompletableFuture<>();
-        connectClient(connection, true);
+        connectClient(true);
         return testConnectionFuture;
     }
 
@@ -128,7 +124,7 @@ public final class KafkaClientActor extends BaseClientActor {
 
     @Override
     protected void doConnectClient(final Connection connection, @Nullable final ActorRef origin) {
-        connectClient(connection, false);
+        connectClient(false);
     }
 
     @Override
@@ -140,23 +136,19 @@ public final class KafkaClientActor extends BaseClientActor {
      * Start Kafka publishers, expect "Status.Success" from each of them, then send "ClientConnected" to
      * self.
      *
-     * @param connection connection of the publishers.
      * @param dryRun if set to true, exchange no message between the broker and the Ditto cluster.
      */
-    private void connectClient(final Connection connection, final boolean dryRun) {
-        final KafkaConnectionFactory factory =
-                connectionFactoryCreator.apply(connection, stateData().getSessionHeaders());
-
+    private void connectClient(final boolean dryRun) {
         // start publisher
-        startKafkaPublisher(factory, dryRun);
+        startKafkaPublisher(dryRun);
     }
 
-    private void startKafkaPublisher(final KafkaConnectionFactory factory, final boolean dryRun) {
+    private void startKafkaPublisher(final boolean dryRun) {
         log.info("Starting Kafka publisher actor.");
         // ensure no previous publisher stays in memory
         stopKafkaPublisher();
         kafkaPublisherActor = startChildActorConflictFree(KafkaPublisherActor.ACTOR_NAME,
-                KafkaPublisherActor.props(connectionId(), getTargetsOrEmptyList(), factory, getSelf(), dryRun));
+                KafkaPublisherActor.props(connectionId(), getTargetsOrEmptyList(), connectionFactory, getSelf(), dryRun));
         pendingStatusReportsFromStreams.add(kafkaPublisherActor);
     }
 
