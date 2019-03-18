@@ -55,41 +55,46 @@ public abstract class AbstractJsonWebToken implements JsonWebToken {
     private final JsonObject body;
     private final String signature;
 
-    AbstractJsonWebToken(final String authorizationString) {
-        checkNotNull(authorizationString, "Authorization String");
-        checkNotEmpty(authorizationString, "Authorization String");
+    protected AbstractJsonWebToken(final String authorizationString) {
+        token = getBase64EncodedToken(authorizationString);
 
-        final String[] authorizationStringSplit = authorizationString.split(AUTHORIZATION_DELIMITER);
-
-        if (authorizationStringSplit.length != 2) {
-            throw GatewayAuthenticationFailedException.newBuilder("The Authorization Header is invalid!").build();
-        }
-
-        final String jwtBase64Encoded = authorizationStringSplit[1];
-        final String[] tokenParts = jwtBase64Encoded.split(JWT_DELIMITER);
-
-        if (tokenParts.length != 3) {
+        final String[] tokenParts = token.split(JWT_DELIMITER);
+        final int expectedTokenPartAmount = 3;
+        if (expectedTokenPartAmount != tokenParts.length) {
             throw GatewayJwtInvalidException.newBuilder()
                     .description("The token is expected to have three parts: header, payload and signature.")
                     .build();
         }
+        header = tryToDecodeJwtPart(tokenParts[0]);
+        body = tryToDecodeJwtPart(tokenParts[1]);
+        signature = tokenParts[2];
+    }
 
+    private static String getBase64EncodedToken(final String authorizationString) {
+        checkNotNull(authorizationString, "Authorization String");
+        checkNotEmpty(authorizationString, "Authorization String");
+
+        final String[] authorizationStringSplit = authorizationString.split(AUTHORIZATION_DELIMITER);
+        if (2 != authorizationStringSplit.length) {
+            throw GatewayAuthenticationFailedException.newBuilder("The Authorization Header is invalid!").build();
+        }
+        return authorizationStringSplit[1];
+    }
+
+    private static JsonObject tryToDecodeJwtPart(final String jwtPart) {
         try {
-            final Base64.Decoder decoder = Base64.getDecoder();
-            final byte[] headerBytes = decoder.decode(tokenParts[0]);
-            header = JsonFactory.newObject(new String(headerBytes, StandardCharsets.UTF_8));
-
-            final byte[] bodyBytes = decoder.decode(tokenParts[1]);
-            body = JsonFactory.newObject(new String(bodyBytes, StandardCharsets.UTF_8));
+            return decodeJwtPart(jwtPart);
         } catch (final IllegalArgumentException | JsonParseException e) {
             throw GatewayJwtInvalidException.newBuilder()
                     .description("Check if your JSON Web Token has the correct format and is Base64 URL encoded.")
                     .cause(e)
                     .build();
         }
+    }
 
-        token = jwtBase64Encoded;
-        signature = tokenParts[2];
+    private static JsonObject decodeJwtPart(final String jwtPart) {
+        final Base64.Decoder decoder = Base64.getDecoder();
+        return JsonFactory.newObject(new String(decoder.decode(jwtPart), StandardCharsets.UTF_8));
     }
 
     protected AbstractJsonWebToken(final JsonWebToken jsonWebToken) {
@@ -131,6 +136,41 @@ public abstract class AbstractJsonWebToken implements JsonWebToken {
         return signature;
     }
 
+    /**
+     * Checks if this JSON web token is valid in terms of not expired, well formed and correctly signed.
+     *
+     * @param publicKeyProvider the public key provider to provide the public key that should be used to sign this JSON
+     * web token.
+     * @return {@code true} if the JSON web token is valid, {@code false} if not.
+     */
+    @Override
+    public CompletableFuture<BinaryValidationResult> validate(final PublicKeyProvider publicKeyProvider) {
+        final String issuer = getIssuer();
+        final String keyId = getKeyId();
+        return publicKeyProvider.getPublicKey(issuer, keyId)
+                .thenApply(publicKeyOpt -> publicKeyOpt
+                        .map(this::doValidate)
+                        .orElse(BinaryValidationResult.invalid(buildPublicKeyNotFoundException(issuer, keyId))));
+    }
+
+    private BinaryValidationResult doValidate(final PublicKey publicKey) {
+        try {
+            Jwts.parser().deserializeJsonWith(JjwtDeserializer.getInstance())
+                    .setSigningKey(publicKey)
+                    .parse(getToken());
+
+            return BinaryValidationResult.valid();
+        } catch (final Exception e) {
+            LOGGER.info("Got Exception '{}' during parsing JWT: {}", e.getClass().getSimpleName(), e.getMessage());
+            return BinaryValidationResult.invalid(e);
+        }
+    }
+
+    private static DittoRuntimeException buildPublicKeyNotFoundException(final String issuer, final String keyId) {
+        final String message = String.format("Public Key of issuer '%s' with key id '%s' not found", issuer, keyId);
+        return GatewayAuthenticationFailedException.newBuilder(message).build();
+    }
+
     @Override
     public boolean equals(final Object o) {
         if (this == o) {
@@ -140,9 +180,10 @@ public abstract class AbstractJsonWebToken implements JsonWebToken {
             return false;
         }
         final AbstractJsonWebToken that = (AbstractJsonWebToken) o;
-        return Objects.equals(token, that.token) && Objects.equals(header, that.header) &&
-                Objects.equals(body, that.body)
-                && Objects.equals(signature, that.signature);
+        return Objects.equals(token, that.token) &&
+                Objects.equals(header, that.header) &&
+                Objects.equals(body, that.body) &&
+                Objects.equals(signature, that.signature);
     }
 
     @Override
@@ -155,38 +196,4 @@ public abstract class AbstractJsonWebToken implements JsonWebToken {
         return "token=" + token + ", header=" + header + ", body=" + body + ", signature=" + signature;
     }
 
-    /**
-     * Checks if this json web token is valid in terms of not expired, well formed and correctly signed.
-     *
-     * @param publicKeyProvider The public key provider to provide the public key that should be used to sign this json
-     * web token.
-     * @return true if the json web token is valid, false if not.
-     */
-    @Override
-    public CompletableFuture<BinaryValidationResult> validate(final PublicKeyProvider publicKeyProvider) {
-        final String issuer = this.getIssuer();
-        final String keyId = this.getKeyId();
-        return publicKeyProvider.getPublicKey(issuer, keyId)
-                .thenApply(publicKeyOpt -> publicKeyOpt
-                        .map(this::doValidate)
-                        .orElse(BinaryValidationResult.invalid(buildPublicKeyNotFoundException(issuer, keyId))));
-    }
-
-    private BinaryValidationResult doValidate(final PublicKey publicKey) {
-        try {
-            Jwts.parser().deserializeJsonWith(JjwtDeserializer.getInstance())
-                    .setSigningKey(publicKey)
-                    .parse(this.getToken());
-
-            return BinaryValidationResult.valid();
-        } catch (final Exception e) {
-            LOGGER.info("Got Exception '{}' during parsing JWT: {}", e.getClass().getSimpleName(), e.getMessage());
-            return BinaryValidationResult.invalid(e);
-        }
-    }
-
-    private DittoRuntimeException buildPublicKeyNotFoundException(final String issuer, final String keyId) {
-        final String message = String.format("Public Key of issuer '%s' with key id '%s' not found", issuer, keyId);
-        return GatewayAuthenticationFailedException.newBuilder(message).build();
-    }
 }
