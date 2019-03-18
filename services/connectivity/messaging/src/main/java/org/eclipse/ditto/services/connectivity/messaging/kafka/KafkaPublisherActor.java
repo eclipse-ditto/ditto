@@ -157,7 +157,8 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
     private void publishMessage(final KafkaPublishTarget publishTarget, final ExternalMessage message,
             final ConnectionMetricsCollector publishedCounter) {
 
-        final ProducerMessage.Envelope<String, String, ConnectionMetricsCollector> kafkaMessage = mapExternalMessageToKafkaMessage(publishTarget, message, publishedCounter);
+        final ProducerMessage.Envelope<String, String, ConnectionMetricsCollector> kafkaMessage =
+                mapExternalMessageToKafkaMessage(publishTarget, message, publishedCounter);
         sourceActor.tell(kafkaMessage, getSelf());
     }
 
@@ -174,7 +175,8 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
         final Iterable<Header> headers = mapExternalMessageHeaders(externalMessage);
 
         final ProducerRecord<String, String> record =
-                new ProducerRecord<>(publishTarget.getTopic(), publishTarget.getPartition(), publishTarget.getKey(), payload, headers);
+                new ProducerRecord<>(publishTarget.getTopic(), publishTarget.getPartition(), publishTarget.getKey(),
+                        payload, headers);
         return ProducerMessage.single(record, metricsCollector);
     }
 
@@ -201,29 +203,38 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
     }
 
     private Done handleCompletionOrFailure(final Done done, final Throwable throwable) {
+        // when getting here, the Kafka producer will have finished its work either because it got an exception or because
+        // the stream (it is built upon) is finished. Since the stream is never expected to finish, we will try to
+        // restart the producer most of the times. Only when it was intentionally stopped (#shuttingDown), we will not
+        // restart it.
         if (null == throwable) {
             logWithConnectionId().info("Internal kafka publisher completed.");
-            stop();
+            restartInternalKafkaProducer();
+
         } else if (shuttingDown) {
-            logWithConnectionId().info("Received and ignoring exception while shutting down: {}", throwable.getMessage());
+            logWithConnectionId().info("Received exception while shutting down and thus ignoring it: {}",
+                    throwable.getMessage());
+
         } else if (throwable instanceof AuthorizationException || throwable instanceof AuthenticationException) {
-            logWithConnectionId().info("Received exception from internal kafka publisher and can't recover from it: {}", throwable.getMessage());
-            stop();
-        } else if (throwable instanceof TimeoutException) {
-            logWithConnectionId().info("Ran into a timeout when accessing Kafka with message: <{}>. This might have several reasons, " +
-                    "e.g. the Kafka broker not being accessible, the topic or the partition not being existing, a wrong port etc. ",
+            logWithConnectionId().info("Ran into authentication or authorization problems against Kafka broker: {}",
                     throwable.getMessage());
             restartInternalKafkaProducer();
-        } else {
-            logWithConnectionId().error(throwable, "An unexpected error happened in the internal kafka publisher and we can't recover from it. Stopping publisher actor.");
-            stop();
-        }
-        return done;
-    }
 
-    private void stop() {
-        logWithConnectionId().info("Stopping publisher actor");
-        // TODO: implement
+        } else if (throwable instanceof TimeoutException) {
+            logWithConnectionId().info(
+                    "Ran into a timeout when accessing Kafka with message: <{}>. This might have several reasons, " +
+                            "e.g. the Kafka broker not being accessible, the topic or the partition not being existing, a wrong port etc. ",
+                    throwable.getMessage());
+            restartInternalKafkaProducer();
+
+        } else {
+            logWithConnectionId().error(throwable,
+                    "An unexpected error happened in the internal Kafka publisher and we can't recover from it.");
+            restartInternalKafkaProducer();
+
+        }
+
+        return done;
     }
 
     private void startInternalKafkaProducer() {
@@ -236,9 +247,11 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
         this.sourceActor = createInternalKafkaProducer(connectionFactory, this::handleCompletionOrFailure);
     }
 
-    private ActorRef createInternalKafkaProducer(final KafkaConnectionFactory factory, final BiFunction<Done, Throwable, Done> completionOrFailureHandler) {
+    private ActorRef createInternalKafkaProducer(final KafkaConnectionFactory factory,
+            final BiFunction<Done, Throwable, Done> completionOrFailureHandler) {
         final Pair<ActorRef, CompletionStage<Done>> materializedFlowedValues =
-                Source.<ProducerMessage.Envelope<String, String, ConnectionMetricsCollector>>actorRef(100, OverflowStrategy.dropHead())
+                Source.<ProducerMessage.Envelope<String, String, ConnectionMetricsCollector>>actorRef(100,
+                        OverflowStrategy.dropHead())
                         .via(factory.newFlow())
                         .toMat(KafkaPublisherActor.publishSuccessSink(), Keep.both())
                         .run(ActorMaterializer.create(getContext()));
@@ -276,10 +289,13 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
     }
 
     static class GracefulStop {
+
         static final GracefulStop INSTANCE = new GracefulStop();
+
         private GracefulStop() {
             // intentionally empty
         }
+
     }
 
 }
