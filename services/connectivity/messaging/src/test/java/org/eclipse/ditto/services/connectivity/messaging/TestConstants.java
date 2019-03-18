@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -82,7 +83,9 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.InvalidActorNameException;
+import akka.actor.PoisonPill;
 import akka.actor.Props;
+import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.event.Logging;
 import akka.japi.Creator;
@@ -115,6 +118,7 @@ public class TestConstants {
         map.put("device_id", "{{ header:device_id }}");
         map.put("prefixed_thing_id", "some.prefix.{{ thing:id }}");
         map.put("suffixed_thing_id", "{{ header:device_id }}.some.suffix");
+        map.put("subject", "{{ topic:action-subject }}");
         HEADER_MAPPING = ConnectivityModelFactory.newHeaderMapping(map);
     }
 
@@ -180,7 +184,7 @@ public class TestConstants {
                 newTarget("twin/key", Authorization.UNAUTHORIZED_AUTHORIZATION_CONTEXT, HEADER_MAPPING, null, Topic.TWIN_EVENTS);
         private static final Target LIVE_TARGET =
                 newTarget("live/key", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING, null, Topic.LIVE_EVENTS);
-        private static final Set<Target> TARGETS = asSet(TWIN_TARGET, TWIN_TARGET_UNAUTHORIZED, LIVE_TARGET);
+        private static final List<Target> TARGETS = asList(TWIN_TARGET, TWIN_TARGET_UNAUTHORIZED, LIVE_TARGET);
     }
 
     public static final class Certificates {
@@ -396,7 +400,7 @@ public class TestConstants {
             final Target... targets) {
         return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, STATUS, getUriOfNewMockServer())
                 .sources(Sources.SOURCES_WITH_AUTH_CONTEXT)
-                .targets(asSet(targets))
+                .targets(asList(targets))
                 .build();
     }
 
@@ -417,15 +421,17 @@ public class TestConstants {
         final Duration minBackoff = Duration.ofSeconds(1);
         final Duration maxBackoff = Duration.ofSeconds(5);
         final Double randomFactor = 1.0;
+
         final Props props = ConnectionSupervisorActor.props(minBackoff, maxBackoff, randomFactor, pubSubMediator,
                 conciergeForwarder, clientActorPropsFactory, null);
+        final Props shardRegionMockProps = Props.create(ShardRegionMockActor.class, props, connectionId);
 
         final int maxAttemps = 5;
         final long backoffMs = 1000L;
 
         for (int attempt = 1; ; ++attempt) {
             try {
-                return actorSystem.actorOf(props, connectionId);
+                return actorSystem.actorOf(shardRegionMockProps, "shardRegionMock-" + connectionId);
             } catch (final InvalidActorNameException invalidActorNameException) {
                 if (attempt >= maxAttemps) {
                     throw invalidActorNameException;
@@ -433,6 +439,26 @@ public class TestConstants {
                     backOff(backoffMs);
                 }
             }
+        }
+    }
+
+    static class ShardRegionMockActor extends AbstractActor {
+
+        private final ActorRef child;
+
+        private ShardRegionMockActor(final Props childActorProps, final String childName) {
+            child = getContext().actorOf(childActorProps, childName);
+        }
+
+        @Override
+        public Receive createReceive() {
+            return receiveBuilder()
+                    .match(ShardRegion.Passivate.class, passivate -> {
+                        getSender().tell(PoisonPill.getInstance(), getSelf());
+                        getContext().stop(getSelf());
+                    })
+                    .matchAny(m -> child.forward(m, getContext()))
+                    .build();
         }
     }
 
@@ -469,7 +495,7 @@ public class TestConstants {
 
     private static void backOff(final long ms) {
         try {
-            Thread.sleep(ms);
+            TimeUnit.MILLISECONDS.sleep(ms);
         } catch (final InterruptedException e) {
             throw new RuntimeException(e);
         }

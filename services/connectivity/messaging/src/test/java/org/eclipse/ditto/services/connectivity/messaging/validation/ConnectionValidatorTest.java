@@ -102,7 +102,7 @@ public class ConnectionValidatorTest {
         final Connection connection =
                 ConnectivityModelFactory.newConnectionBuilder("id", ConnectionType.AMQP_10, ConnectivityStatus.OPEN,
                         "amqp://localhost:5671")
-                        .targets(Collections.singleton(
+                        .targets(Collections.singletonList(
                                 ConnectivityModelFactory.newTarget("",
                                         Authorization.AUTHORIZATION_CONTEXT,
                                         null, null,

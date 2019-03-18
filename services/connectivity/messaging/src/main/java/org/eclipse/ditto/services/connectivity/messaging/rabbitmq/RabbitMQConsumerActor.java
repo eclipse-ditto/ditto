@@ -11,6 +11,7 @@
 package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,14 +30,14 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
+import org.eclipse.ditto.model.placeholders.EnforcementFactoryFactory;
+import org.eclipse.ditto.model.placeholders.EnforcementFilterFactory;
+import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.BaseConsumerActor;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
-import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFactoryFactory;
-import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilterFactory;
-import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import com.rabbitmq.client.BasicProperties;
@@ -56,13 +57,8 @@ import akka.japi.pf.ReceiveBuilder;
 public final class RabbitMQConsumerActor extends BaseConsumerActor {
 
     private static final String MESSAGE_ID_HEADER = "messageId";
-    private static final Set<String> CONTENT_TYPES_INTERPRETED_AS_TEXT;
-
-    static {
-        final Set<String> contentTypes = new HashSet<>(5);
-        Collections.addAll(contentTypes, "text/plain", "text/html", "text/yaml", "application/json", "application/xml");
-        CONTENT_TYPES_INTERPRETED_AS_TEXT = Collections.unmodifiableSet(contentTypes);
-    }
+    private static final Set<String> CONTENT_TYPES_INTERPRETED_AS_TEXT = Collections.unmodifiableSet(new HashSet<>(
+            Arrays.asList("text/plain", "text/html", "text/yaml", "application/json", "application/xml")));
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 

@@ -53,12 +53,13 @@ public abstract class AbstractReceiveStrategy<T> implements ReceiveStrategy<T> {
         preApply(message);
     }
 
-    protected void preApply(final T message) {
+    private void preApply(final T message) {
         if (message instanceof Command) {
             final Command command = (Command) message;
             LogUtil.enhanceLogWithCorrelationId(logger, command.getDittoHeaders().getCorrelationId());
             if (logger.isDebugEnabled()) {
-                logger.debug("Applying command <{}>: {}", command.getType(), command.toJsonString());
+                logger.debug("Applying command <{}> with strategy <{}>: {}",
+                        command.getType(), this.getClass().getSimpleName(), command.toJsonString());
             }
         }
         doApply(message);

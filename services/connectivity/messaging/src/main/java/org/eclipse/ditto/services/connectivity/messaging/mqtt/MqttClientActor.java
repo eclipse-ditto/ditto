@@ -151,8 +151,8 @@ public final class MqttClientActor extends BaseClientActor {
     }
 
     @Override
-    protected Optional<ActorRef> getPublisherActor() {
-        return Optional.ofNullable(mqttPublisherActor);
+    protected ActorRef getPublisherActor() {
+        return mqttPublisherActor;
     }
 
     @Override
@@ -203,7 +203,7 @@ public final class MqttClientActor extends BaseClientActor {
         // ensure no previous publisher stays in memory
         stopMqttPublisher();
         mqttPublisherActor = startChildActorConflictFree(MqttPublisherActor.ACTOR_NAME,
-                MqttPublisherActor.props(connectionId(), getTargetsOrEmptySet(), factory, getSelf(), dryRun));
+                MqttPublisherActor.props(connectionId(), getTargetsOrEmptyList(), factory, getSelf(), dryRun));
         pendingStatusReportsFromStreams.add(mqttPublisherActor);
     }
 
@@ -271,10 +271,10 @@ public final class MqttClientActor extends BaseClientActor {
 
     @Override
     protected void cleanupResourcesForConnection() {
-
         pendingStatusReportsFromStreams.clear();
         activateConsumerKillSwitch();
         stopCommandConsumers();
+        stopMessageMappingProcessorActor();
         stopMqttPublisher();
     }
 

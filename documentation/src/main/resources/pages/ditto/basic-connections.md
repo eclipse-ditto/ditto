@@ -53,10 +53,11 @@ For more information on the `mappingContext` see the corresponding [Payload Mapp
 
 The configuration of a connection allows to use placeholders at certain places. This allows more fine grained control 
 over how messages are consumed or where they are published to. The general syntax of a placeholder is 
-`{% raw %}{{ placeholder }}{% endraw %}`. A missing placeholder results in an error which is passed back to the sender (if a _reply-to_
- header was provided). Which placeholder values are available depends on the context where the placeholder is used. 
+`{% raw %}{{ placeholder }}{% endraw %}`. Have a look at the [placeholders concept](basic-placeholders.html) for more details on that. 
+A missing placeholder results in an error which is passed back to the sender (if a _reply-to_ header was provided). 
 
 ### Placeholder for source authorization subjects
+
 Processing the messages received via a source using the _same fixed authorization subject_ may not be 
 suitable for every scenario. For example, if you want to declare fine-grained write permissions per device, this would not 
 be possible with a fixed global subject. For this use case we have introduced placeholder substitution for authorization subjects of 
@@ -90,6 +91,7 @@ In case the header cannot be resolved or the header contains unexpected characte
 back to the sender as an error message, if a valid _reply-to_ header was provided, otherwise the message is dropped.
 
 ### Placeholder for target addresses
+
 Another use case for placeholders may be to publish Thing events or live commands and events to a target address 
 containing Thing-specific information e.g. you can distribute Things from different namespaces to different target addresses.
 You can use the placeholders `{% raw %}{{ thing:id }}{% endraw %}`, `{% raw %}{{ thing:namespace }}{% endraw %}` and `{% raw %}{{ thing:name }}{% endraw %}` in the target address for this purpose.
@@ -101,6 +103,8 @@ For a Thing with the ID _org.eclipse.ditto:device-123_ these placeholders would 
 | `thing:namespace`  | Namespace (i.e. first part of an ID)  | _org.eclipse.ditto_ |
 | `thing:name` | Name (i.e. second part of an ID ) | _device-123_ |
 
+Event more than those above, all mentioned [connection placeholders](basic-placeholders.html#scope-connections) may be
+used in target addresses. 
 
 Example:
 

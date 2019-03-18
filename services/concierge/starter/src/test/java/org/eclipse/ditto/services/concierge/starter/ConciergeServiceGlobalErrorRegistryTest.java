@@ -16,6 +16,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.messages.AuthorizationSubjectBlockedException;
 import org.eclipse.ditto.model.namespaces.NamespaceBlockedException;
+import org.eclipse.ditto.model.placeholders.PlaceholderFunctionSignatureInvalidException;
 import org.eclipse.ditto.model.policies.PolicyEntryInvalidException;
 import org.eclipse.ditto.model.things.AclEntryInvalidException;
 import org.eclipse.ditto.protocoladapter.UnknownCommandException;
@@ -47,7 +48,8 @@ public final class ConciergeServiceGlobalErrorRegistryTest extends GlobalErrorRe
                 JsonTypeNotParsableException.class,
                 BatchAlreadyExecutingException.class,
                 InvalidNamespacesException.class,
-                NamespaceBlockedException.class
+                NamespaceBlockedException.class,
+                PlaceholderFunctionSignatureInvalidException.class
         ));
     }
 }

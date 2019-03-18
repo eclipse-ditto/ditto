@@ -16,10 +16,10 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.Collections;
 
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.query.QueryBuilder;
 import org.eclipse.ditto.model.query.SortDirection;
 import org.eclipse.ditto.model.query.expression.FieldExpressionFactory;
-import org.eclipse.ditto.model.query.expression.FieldExpressionUtil;
 import org.eclipse.ditto.model.query.expression.SortFieldExpression;
 import org.eclipse.ditto.model.thingsearch.LimitOption;
 import org.eclipse.ditto.model.thingsearch.SearchModelFactory;
@@ -38,9 +38,12 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public final class ParameterOptionVisitorTest {
 
+    private static final JsonPointer POINTER_2 = JsonPointer.of("/jsonpointer2");
+    private static final JsonPointer POINTER_1 = JsonPointer.of("/jsonpointer1");
+
     private static final int KNOWN_LIMIT = 4;
     private static final int KNOWN_SKIP = 8;
-    private static final String KNOWN_ATTR_KEY = "knownAttrKey";
+
     private QueryBuilder qbMock;
     @Mock
     private SortFieldExpression exprMock;
@@ -83,52 +86,15 @@ public final class ParameterOptionVisitorTest {
 
     /** */
     @Test
-    public void visitSortOptionOwner() {
+    public void visitSortOptionWithSingleSortOption() {
         // prepare
-        SortOption sortOption = SearchModelFactory.newSortOption(Collections.emptyList());
-        sortOption = sortOption.add(FieldExpressionUtil.FIELD_NAME_OWNER, SortOptionEntry.SortOrder.ASC);
+        final SortOption sortOption = SearchModelFactory.newSortOption(POINTER_1, SortOptionEntry.SortOrder.ASC);
 
         // test
         visitor.visitAll(Collections.singletonList(sortOption));
 
         // verify
-        verify(exprFactoryMock).sortBy(FieldExpressionUtil.FIELD_NAME_OWNER);
-        verify(qbMock).sort(
-                Collections.singletonList(new org.eclipse.ditto.model.query.SortOption(exprMock,
-                        SortDirection.ASC)));
-    }
-
-    /** */
-    @Test
-    public void visitSortOptionThingId() {
-        // prepare
-        SortOption sortOption = SearchModelFactory.newSortOption(Collections.emptyList());
-        sortOption = sortOption.add(FieldExpressionUtil.FIELD_NAME_THING_ID, SortOptionEntry.SortOrder.ASC);
-
-        // test
-        visitor.visitAll(Collections.singletonList(sortOption));
-
-        // verify
-        verify(exprFactoryMock).sortBy(FieldExpressionUtil.FIELD_NAME_THING_ID);
-        verify(qbMock).sort(
-                Collections.singletonList(
-                        new org.eclipse.ditto.model.query.SortOption(exprMock, SortDirection
-                                .ASC)));
-    }
-
-    /** */
-    @Test
-    public void visitSortOptionAttribute() {
-        // prepare
-        SortOption sortOption = SearchModelFactory.newSortOption(Collections.emptyList());
-        sortOption =
-                sortOption.add(FieldExpressionUtil.addAttributesPrefix(KNOWN_ATTR_KEY), SortOptionEntry.SortOrder.ASC);
-
-        // test
-        visitor.visitAll(Collections.singletonList(sortOption));
-
-        // verify
-        verify(exprFactoryMock).sortBy(FieldExpressionUtil.addAttributesPrefix(KNOWN_ATTR_KEY));
+        verify(exprFactoryMock).sortBy(POINTER_1.toString());
         verify(qbMock).sort(
                 Collections.singletonList(new org.eclipse.ditto.model.query.SortOption(exprMock,
                         SortDirection.ASC)));
@@ -138,11 +104,12 @@ public final class ParameterOptionVisitorTest {
     @Test(expected = IllegalArgumentException.class)
     public void visitUnsupportedSortExpression() {
         // prepare
-        final String unsupportedExpr = "unsupportedExpr";
-        SortOption sortOption = SearchModelFactory.newSortOption(Collections.emptyList());
-        sortOption = sortOption.add(unsupportedExpr, SortOptionEntry.SortOrder.ASC);
+        final JsonPointer unsupportedProperty = JsonPointer.of("unsupportedExpr");
+        final SortOption sortOption = SearchModelFactory.newSortOption(unsupportedProperty,
+                SortOptionEntry.SortOrder.ASC);
 
-        when(exprFactoryMock.sortBy(unsupportedExpr)).thenThrow(new IllegalArgumentException("Unsupported expr"));
+        when(exprFactoryMock.sortBy(unsupportedProperty.toString()))
+                .thenThrow(new IllegalArgumentException("Unsupported expr"));
 
         // test
         visitor.visitAll(Collections.singletonList(sortOption));
@@ -153,15 +120,15 @@ public final class ParameterOptionVisitorTest {
     public void visitSortOptionMultiple() {
         // prepare
         SortOption sortOption = SearchModelFactory.newSortOption(Collections.emptyList());
-        sortOption = sortOption.add(FieldExpressionUtil.FIELD_NAME_THING_ID, SortOptionEntry.SortOrder.DESC);
-        sortOption = sortOption.add(FieldExpressionUtil.FIELD_NAME_OWNER, SortOptionEntry.SortOrder.ASC);
+        sortOption = sortOption.add(POINTER_2, SortOptionEntry.SortOrder.DESC);
+        sortOption = sortOption.add(POINTER_1, SortOptionEntry.SortOrder.ASC);
 
         // test
         visitor.visitAll(Collections.singletonList(sortOption));
 
         // verify
-        verify(exprFactoryMock).sortBy(FieldExpressionUtil.FIELD_NAME_THING_ID);
-        verify(exprFactoryMock).sortBy(FieldExpressionUtil.FIELD_NAME_OWNER);
+        verify(exprFactoryMock).sortBy(POINTER_2.toString());
+        verify(exprFactoryMock).sortBy(POINTER_1.toString());
         verify(qbMock).sort(
                 Arrays.asList(new org.eclipse.ditto.model.query.SortOption(exprMock,
                                 SortDirection.DESC),
@@ -176,7 +143,7 @@ public final class ParameterOptionVisitorTest {
         // test
         final LimitOption limitOption = SearchModelFactory.newLimitOption(KNOWN_SKIP, KNOWN_LIMIT);
         SortOption sortOption = SearchModelFactory.newSortOption(Collections.emptyList());
-        sortOption = sortOption.add(FieldExpressionUtil.FIELD_NAME_THING_ID, SortOptionEntry.SortOrder.ASC);
+        sortOption = sortOption.add(POINTER_1, SortOptionEntry.SortOrder.ASC);
 
         // test
         visitor.visitAll(Arrays.asList(limitOption, sortOption));
@@ -184,7 +151,7 @@ public final class ParameterOptionVisitorTest {
         // verify
         verify(qbMock).skip(KNOWN_SKIP);
         verify(qbMock).limit(KNOWN_LIMIT);
-        verify(exprFactoryMock).sortBy(FieldExpressionUtil.FIELD_NAME_THING_ID);
+        verify(exprFactoryMock).sortBy(POINTER_1.toString());
         verify(qbMock).sort(
                 Collections.singletonList(new org.eclipse.ditto.model.query.SortOption(exprMock,
                         SortDirection.ASC)));

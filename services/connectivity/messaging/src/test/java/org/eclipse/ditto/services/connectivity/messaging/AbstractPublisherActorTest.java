@@ -81,7 +81,7 @@ public abstract class AbstractPublisherActorTest<T> {
                             .headerMapping(TestConstants.HEADER_MAPPING)
                             .topics(Topic.TWIN_EVENTS)
                             .build();
-            when(outboundSignal.getTargets()).thenReturn(Collections.singleton(decorateTarget(target)));
+            when(outboundSignal.getTargets()).thenReturn(Collections.singletonList(decorateTarget(target)));
 
 
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().putHeader("device_id", "ditto:thing").build();

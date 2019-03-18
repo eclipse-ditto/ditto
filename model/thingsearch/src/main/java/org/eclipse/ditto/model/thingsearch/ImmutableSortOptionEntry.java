@@ -28,7 +28,7 @@ final class ImmutableSortOptionEntry implements SortOptionEntry {
     private final JsonPointer propertyPath;
     private final SortOrder sortOrder;
 
-    ImmutableSortOptionEntry(final SortOrder sortOrder, final CharSequence propertyPath) {
+    ImmutableSortOptionEntry(final CharSequence propertyPath, final SortOrder sortOrder) {
         this.propertyPath = JsonFactory.newPointer(checkNotNull(propertyPath, "property path"));
         this.sortOrder = sortOrder;
     }
@@ -36,13 +36,13 @@ final class ImmutableSortOptionEntry implements SortOptionEntry {
     /**
      * Constructs new SortOptionEntry.
      *
-     * @param sortOrder the sortOrder.
      * @param propertyPath the propertyPath.
+     * @param sortOrder the sortOrder.
      * @return the SortOptionEntry.
      * @throws NullPointerException if {@code propertyPath} is {@code null}.
      */
-    public static ImmutableSortOptionEntry of(final SortOrder sortOrder, final CharSequence propertyPath) {
-        return new ImmutableSortOptionEntry(sortOrder, propertyPath);
+    public static ImmutableSortOptionEntry of(final CharSequence propertyPath, final SortOrder sortOrder) {
+        return new ImmutableSortOptionEntry(propertyPath, sortOrder);
     }
 
     /**
@@ -53,7 +53,7 @@ final class ImmutableSortOptionEntry implements SortOptionEntry {
      * @throws NullPointerException if {@code propertyPath} is {@code null}.
      */
     public static ImmutableSortOptionEntry asc(final CharSequence propertyPath) {
-        return new ImmutableSortOptionEntry(SortOrder.ASC, propertyPath);
+        return new ImmutableSortOptionEntry(propertyPath, SortOrder.ASC);
     }
 
     /**
@@ -64,7 +64,7 @@ final class ImmutableSortOptionEntry implements SortOptionEntry {
      * @throws NullPointerException if {@code propertyPath} is {@code null}.
      */
     public static ImmutableSortOptionEntry desc(final CharSequence propertyPath) {
-        return new ImmutableSortOptionEntry(SortOrder.DESC, propertyPath);
+        return new ImmutableSortOptionEntry(propertyPath, SortOrder.DESC);
     }
 
     @Override

@@ -13,7 +13,6 @@ package org.eclipse.ditto.model.connectivity;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -127,7 +126,7 @@ public interface ConnectionBuilder {
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code targets} is {@code null}.
      */
-    ConnectionBuilder targets(Set<Target> targets);
+    ConnectionBuilder targets(List<Target> targets);
 
     /**
      * Sets how many clients on different cluster nodes should establish the {@code Connection}.

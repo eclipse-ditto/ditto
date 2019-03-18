@@ -10,14 +10,13 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.validation;
 
-import static java.util.stream.Collectors.joining;
-import static org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory.newHeadersPlaceholder;
-import static org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory.newThingPlaceholder;
+import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newHeadersPlaceholder;
+import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newThingPlaceholder;
+import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newTopicPathPlaceholder;
 
 import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -28,16 +27,13 @@ import org.eclipse.ditto.model.connectivity.ConnectionUriInvalidException;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.services.models.connectivity.placeholder.Placeholder;
-import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFilter;
+import org.eclipse.ditto.model.placeholders.Placeholder;
+import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
 
 /**
  * Protocol-specific specification for {@link org.eclipse.ditto.model.connectivity.Connection} objects.
  */
 public abstract class AbstractProtocolValidator {
-
-    private static final String ENFORCEMENT_ERROR_MESSAGE = "The placeholder ''{0}'' could not be processed " +
-            "successfully by ''{1}''";
 
     /**
      * Type of connection for which this spec applies.
@@ -126,7 +122,7 @@ public abstract class AbstractProtocolValidator {
      */
     protected void validateHeaderMapping(final HeaderMapping headerMapping, final DittoHeaders dittoHeaders) {
         headerMapping.getMapping().forEach((key, value)
-                -> validateTemplate(value, dittoHeaders, newHeadersPlaceholder(), newThingPlaceholder()));
+                -> validateTemplate(value, dittoHeaders, newHeadersPlaceholder(), newThingPlaceholder(), newTopicPathPlaceholder()));
     }
 
     /**
@@ -177,29 +173,14 @@ public abstract class AbstractProtocolValidator {
      */
     protected void validateTemplate(final String template, final DittoHeaders headers,
             final Placeholder<?>... placeholders) {
-        validateTemplate(template, false, headers, placeholders);
-    }
-
-    /**
-     * Validates that the passed {@code template} is both valid and depending on the {@code allowUnresolved} boolean
-     * that the placeholders in the passed {@code template} are completely replaceable by the provided
-     * {@code placeholders}.
-     *
-     * @param template a string potentially containing placeholders to replace
-     * @param allowUnresolved whether to allow if there could be placeholders in the template left unreplaced
-     * @param headers the DittoHeaders to use in order for e.g. building DittoRuntimeExceptions
-     * @param placeholders the {@link Placeholder}s to use for replacement
-     * @throws ConnectionConfigurationInvalidException in case the template's placeholders could not completely be
-     * resolved
-     */
-    protected void validateTemplate(final String template, final boolean allowUnresolved, final DittoHeaders headers,
-            final Placeholder<?>... placeholders) {
         try {
-            PlaceholderFilter.validate(template, allowUnresolved, placeholders);
+            PlaceholderFilter.validate(template, placeholders);
         } catch (final DittoRuntimeException exception) {
             throw ConnectionConfigurationInvalidException
-                    .newBuilder(MessageFormat.format(ENFORCEMENT_ERROR_MESSAGE, template,
-                            Stream.of(placeholders).map(Placeholder::getPrefix).collect(joining(","))))
+                    .newBuilder(exception.getMessage())
+                    .description(exception.getDescription()
+                            .orElse("Check the spelling and syntax of the placeholder.")
+                    )
                     .cause(exception)
                     .dittoHeaders(headers)
                     .build();
