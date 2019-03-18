@@ -141,6 +141,8 @@ public final class KafkaClientActor extends BaseClientActor {
     private void connectClient(final boolean dryRun) {
         // start publisher
         startKafkaPublisher(dryRun);
+        startMessageMappingProcessor();
+        // no command consumers as we don't support consuming from sources yet
     }
 
     private void startKafkaPublisher(final boolean dryRun) {
