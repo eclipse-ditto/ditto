@@ -48,15 +48,7 @@ final class ProducerSettingsFactory {
 //                .withEosCommitInterval()
 //                .withParallelism()
 
-        // sasl/plain typically uses TLS for encryption to implement secure authentication,
-        if (isSecureConnection(connection)) {
-            // TODO: probably only SSL for anonymous auth, but it could also be that this means we would do 2-way ssl
-            settings = settings.withProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_SSL");
-        } else {
-            // TODO: probably only PLAINTEXT for anonymous auth
-            settings = settings.withProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT");
-        }
-
+        settings = addSecurityProtocol(connection, settings);
         settings = addSpecificConfigs(settings, connection);
 
         return settings;
@@ -71,7 +63,33 @@ final class ProducerSettingsFactory {
         return currentSettings;
     }
 
+    private ProducerSettings<String, String> addSecurityProtocol(final Connection connection, final ProducerSettings<String, String>  settings) {
+        if (isAuthenticatedConnection(connection)) {
+            return addAuthenticatedSecurityProtocol(connection, settings);
+        }
+        return addUnauthenticatedSecurityProtocol(connection, settings);
+    }
+
+    private static boolean isAuthenticatedConnection(final Connection connection) {
+        return KafkaAuthenticationSpecificConfig.getInstance().isApplicable(connection);
+    }
+
+    private static ProducerSettings<String, String> addAuthenticatedSecurityProtocol(final Connection connection, final ProducerSettings<String, String>  settings) {
+        if (isSecureConnection(connection)) {
+            return settings.withProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_SSL");
+        }
+        return settings.withProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT");
+    }
+
+    private static ProducerSettings<String, String> addUnauthenticatedSecurityProtocol(final Connection connection, final ProducerSettings<String, String>  settings) {
+        if (isSecureConnection(connection)) {
+            return settings.withProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
+        }
+        return settings.withProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "PLAINTEXT");
+    }
+
     private static boolean isSecureConnection(final Connection connection) {
         return "ssl".equals(connection.getProtocol());
     }
+
 }
