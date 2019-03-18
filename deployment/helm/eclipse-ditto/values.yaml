@@ -12,29 +12,44 @@ akka:
   mgmthttp:
     port: 8558
 
+global:
+  timezone: Europe/Berlin
+
 concierge:
+  name: concierge
   image:
     repository: docker.io/eclipse/ditto-concierge
+    imagePullPolicy: IfNotPresent
     tag: 0.8.0
 connectivity:
+  name: connectivity
   image:
     repository: docker.io/eclipse/ditto-connectivity
+    imagePullPolicy: IfNotPresent
     tag: 0.8.0
 things:
+  name: things
   image:
     repository: docker.io/eclipse/ditto-things
+    imagePullPolicy: IfNotPresent
     tag: 0.8.0
 search:
+  name: things-search
   image:
     repository: docker.io/eclipse/ditto-things-search
+    imagePullPolicy: IfNotPresent
     tag: 0.8.0
 policies:
+  name: policies
   image:
     repository: docker.io/eclipse/ditto-policies
+    imagePullPolicy: IfNotPresent
     tag: 0.8.0
 gateway:
+  name: gateway
   image:
     repository: docker.io/eclipse/ditto-gateway
+    imagePullPolicy: IfNotPresent
     tag: 0.8.0
 
 nginx:
