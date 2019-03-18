@@ -14,8 +14,9 @@
 |com.github.jnr|jnr-constants|0.9.9| [16302](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16302) |
 |com.github.jnr|jnr-ffi|2.1.7| [16303](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16303) |
 |com.github.jnr|jnr-x86asm|1.0.2| [16304](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16304) |
-|com.github.scullxbones|akka-persistence-mongo-common_2.12|2.2.2| [18708](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18708) |
-|com.github.scullxbones|akka-persistence-mongo-scala_2.12|2.2.2| [18709](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18709) |
+|com.github.luben|zstd-jni|1.3.7-1| [19163](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19163) |
+|com.github.scullxbones|akka-persistence-mongo-common_2.12|2.2.4| [18708](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18708) |
+|com.github.scullxbones|akka-persistence-mongo-scala_2.12|2.2.4| [18709](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18709) |
 |com.lightbend.akka|akka-stream-alpakka-mqtt_2.12|0.20| [17357](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17357) |
 |com.lightbend.akka.discovery|akka-discovery_2.12|0.14.0| [16727](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16727) |
 |com.lightbend.akka.discovery|akka-discovery-dns_2.12|0.14.0| [16727](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16727) |
@@ -39,6 +40,7 @@
 |com.typesafe.akka|akka-remote_2.12|2.5.17| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
 |com.typesafe.akka|akka-slf4j_2.12|2.5.17| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
 |com.typesafe.akka|akka-stream_2.12|2.5.17| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
+|com.typesafe.akka|akka-stream-kafka_2.12|1.0.1| [19166](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19166) |
 |com.typesafe|config|1.3.3| [14400](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14400) |
 |com.typesafe|ssl-config-core_2.12|0.2.4| [16314](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16314) |
 |io.aeron|aeron-client|1.9.3| [16553](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16553) |
@@ -62,12 +64,14 @@
 |nl.grons|metrics-scala_2.12|3.5.5_a2.4| [14491](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14491) |
 |org.agrona|agrona|0.9.18| [16554](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16554) |
 |org.apache.geronimo.specs|geronimo-jms_2.0_spec|1.0-alpha-2| [16327](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16327) |
+|org.apache.kafka|kafka-clients|2.1.1| [19161](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19161) |
 |org.apache.qpid|proton-j|0.29.0| [17533](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17533) |
 |org.apache.qpid|qpid-jms-client|0.36.0| [17532](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17532) |
 |org.atteo.classindex|classindex|3.6| [18906](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18906) |
 |org.eclipse.paho|org.eclipse.paho.client.mqttv3|1.2.0| not required as Eclipse project |
 |org.hdrhistogram|HdrHistogram|2.1.9| [14471](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14471) |
 |org.lmdbjava|lmdbjava|0.6.1| [16336](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16336) |
+|org.lz4|lz4-java|1.5.0| [19162](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19162) |
 |org.mongodb|bson|3.8.2| [18673](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18673) |
 |org.mongodb|mongodb-driver-async|3.8.2| [18673](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18673) |
 |org.mongodb|mongodb-driver-core|3.8.2| [18673](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18673) |
@@ -91,6 +95,7 @@
 |org.typelevel|macro-compat_2.12|1.1.1| [16326](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16326) |
 |org.webjars.npm|bytebuffer|5.0.1| [16728](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16728) |
 |org.webjars.npm|long|3.2.0| [16729](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16729) |
+|org.xerial.snappy|snappy-java|1.1.7.2| [19164](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19164) |
 
 ## Works-With dependencies
 
