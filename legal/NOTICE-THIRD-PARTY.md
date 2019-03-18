@@ -80,49 +80,49 @@
  * Source: https://github.com/jnr/jnr-x86asm
 
 
-## akka-persistence-mongo-common (2.2.2)
+## akka-persistence-mongo-common (2.2.4)
 
- * Maven coordinates: `com.github.scullxbones:akka-persistence-mongo-common_2.12:2.2.2`
+ * Maven coordinates: `com.github.scullxbones:akka-persistence-mongo-common_2.12:2.2.4`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://github.com/scullxbones/akka-persistence-mongo
  * Source: github.com/scullxbones/akka-persistence-mongo
 
 
-## akka-persistence-mongo-scala (2.2.2)
+## akka-persistence-mongo-scala (2.2.4)
 
- * Maven coordinates: `com.github.scullxbones:akka-persistence-mongo-scala_2.12:2.2.2`
+ * Maven coordinates: `com.github.scullxbones:akka-persistence-mongo-scala_2.12:2.2.4`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://github.com/scullxbones/akka-persistence-mongo
  * Source: github.com/scullxbones/akka-persistence-mongo
 
 
-## akka-stream-alpakka-mqtt (1.0-M2)
+## akka-stream-alpakka-mqtt (0.20)
 
- * Maven coordinates: `com.lightbend.akka:akka-stream-alpakka-mqtt_2.12:1.0-M2`
+ * Maven coordinates: `com.lightbend.akka:akka-stream-alpakka-mqtt_2.12:0.20`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://doc.akka.io/docs/alpakka/current/
+ * Project: https://github.com/akka/alpakka
  * Source: https://github.com/akka/alpakka
 
 
-## akka-discovery-kubernetes-api (1.0.0-RC2)
+## akka-discovery-kubernetes-api (1.0.0)
 
- * Maven coordinates: `com.lightbend.akka.discovery:akka-discovery-kubernetes-api_2.12:1.0.0-RC2`
+ * Maven coordinates: `com.lightbend.akka.discovery:akka-discovery-kubernetes-api_2.12:1.0.0`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://github.com/akka/akka-management
  * Source: https://github.com/akka/akka-management
 
 
-## akka-management-cluster-bootstrap (1.0.0-RC2)
+## akka-management-cluster-bootstrap (1.0.0)
 
- * Maven coordinates: `com.lightbend.akka.management:akka-management-cluster-bootstrap_2.12:1.0.0-RC2`
+ * Maven coordinates: `com.lightbend.akka.management:akka-management-cluster-bootstrap_2.12:1.0.0`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://github.com/akka/akka-management
  * Source: https://github.com/akka/akka-management
 
 
-## akka-management (1.0.0-RC2)
+## akka-management (1.0.0)
 
- * Maven coordinates: `com.lightbend.akka.management:akka-management_2.12:1.0.0-RC2`
+ * Maven coordinates: `com.lightbend.akka.management:akka-management_2.12:1.0.0`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://github.com/akka/akka-management
  * Source: https://github.com/akka/akka-management
@@ -150,14 +150,6 @@
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://github.com/lightbend/config
  * Source: https://github.com/lightbend/config
-
-
-## ssl-config-core (0.3.6)
-
- * Maven coordinates: `com.typesafe:ssl-config-core_2.12:0.3.6`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/lightbend/ssl-config
- * Source: https://github.com/lightbend/ssl-config
 
 
 ## ssl-config-core (0.3.7)
@@ -192,14 +184,6 @@
  * Source: https://github.com/akka/akka
 
 
-## akka-cluster (2.5.19)
-
- * Maven coordinates: `com.typesafe.akka:akka-cluster_2.12:2.5.19`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://akka.io/
- * Source: https://github.com/akka/akka
-
-
 ## akka-cluster (2.5.21)
 
  * Maven coordinates: `com.typesafe.akka:akka-cluster_2.12:2.5.21`
@@ -208,9 +192,9 @@
  * Source: https://github.com/akka/akka
 
 
-## akka-discovery (2.5.19)
+## akka-discovery (2.5.21)
 
- * Maven coordinates: `com.typesafe.akka:akka-discovery_2.12:2.5.19`
+ * Maven coordinates: `com.typesafe.akka:akka-discovery_2.12:2.5.21`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: http://akka.io/
  * Source: https://github.com/akka/akka
@@ -280,25 +264,9 @@
  * Source: https://github.com/akka/akka
 
 
-## akka-protobuf (2.5.19)
-
- * Maven coordinates: `com.typesafe.akka:akka-protobuf_2.12:2.5.19`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://akka.io/
- * Source: https://github.com/akka/akka
-
-
 ## akka-protobuf (2.5.21)
 
  * Maven coordinates: `com.typesafe.akka:akka-protobuf_2.12:2.5.21`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://akka.io/
- * Source: https://github.com/akka/akka
-
-
-## akka-remote (2.5.19)
-
- * Maven coordinates: `com.typesafe.akka:akka-remote_2.12:2.5.19`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: http://akka.io/
  * Source: https://github.com/akka/akka
@@ -328,14 +296,6 @@
  * Source: https://github.com/akka/akka
 
 
-## akka-stream (2.5.19)
-
- * Maven coordinates: `com.typesafe.akka:akka-stream_2.12:2.5.19`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://akka.io/
- * Source: https://github.com/akka/akka
-
-
 ## akka-stream (2.5.21)
 
  * Maven coordinates: `com.typesafe.akka:akka-stream_2.12:2.5.21`
@@ -344,25 +304,9 @@
  * Source: https://github.com/akka/akka
 
 
-## aeron (1.12.0)
-
- * Maven coordinates: `io.aeron:aeron-client:1.12.0`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/real-logic/aeron
- * Source: https://github.com/real-logic/aeron
-
-
 ## aeron (1.15.1)
 
  * Maven coordinates: `io.aeron:aeron-client:1.15.1`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/real-logic/aeron
- * Source: https://github.com/real-logic/aeron
-
-
-## aeron (1.12.0)
-
- * Maven coordinates: `io.aeron:aeron-driver:1.12.0`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://github.com/real-logic/aeron
  * Source: https://github.com/real-logic/aeron
@@ -520,9 +464,9 @@
  * Source: https://github.com/netty/netty/netty-transport-native-unix-common
 
 
-## spray-json (1.3.3)
+## spray-json (1.3.5)
 
- * Maven coordinates: `io.spray:spray-json_2.12:1.3.3`
+ * Maven coordinates: `io.spray:spray-json_2.12:1.3.5`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://github.com/spray/spray-json
  * Source: https://github.com/spray/spray
@@ -534,14 +478,6 @@
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://github.com/erikvanoosten/metrics-scala
  * Source: https://github.com/erikvanoosten/metrics-scala
-
-
-## agrona (0.9.27)
-
- * Maven coordinates: `org.agrona:agrona:0.9.27`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/real-logic/agrona
- * Source: https://github.com/real-logic/agrona
 
 
 ## agrona (0.9.31)
@@ -782,14 +718,6 @@
  * License: [BSD-3-Clause](licenses/BSD-3-Clause.txt)
  * Project: http://www.scala-lang.org/
  * Source: https://github.com/scala/scala-parser-combinators
-
-
-## SLF4J API Module (1.7.10)
-
- * Maven coordinates: `org.slf4j:slf4j-api:1.7.10`
- * License: [MIT](licenses/MIT.txt)
- * Project: http://www.slf4j.org
- * Source: https://github.com/ceki/slf4j/slf4j-api
 
 
 ## SLF4J API Module (1.7.25)

@@ -16,10 +16,10 @@
 |com.github.jnr|jnr-x86asm|1.0.2| [16304](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16304) |
 |com.github.scullxbones|akka-persistence-mongo-common_2.12|2.2.2| [18708](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18708) |
 |com.github.scullxbones|akka-persistence-mongo-scala_2.12|2.2.2| [18709](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18709) |
-|com.lightbend.akka|akka-stream-alpakka-mqtt_2.12|1.0-M2| [17357](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17357) TODO wait for 1.0 and add CQ |
-|com.lightbend.akka.discovery|akka-discovery-kubernetes-api_2.12|1.0.0-RC2| [16727](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16727) TODO wait for 1.0.0 an add CQ |
-|com.lightbend.akka.management|akka-management_2.12|1.0.0-RC2| [16727](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16727) TODO wait for 1.0.0 an add CQ |
-|com.lightbend.akka.management|akka-management-cluster-bootstrap_2.12|1.0.0-RC2| [16727](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16727) TODO wait for 1.0.0 an add CQ |
+|com.lightbend.akka|akka-stream-alpakka-mqtt_2.12|0.20| [17357](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17357) TODO wait for 1.0 and add CQ |
+|com.lightbend.akka.discovery|akka-discovery-kubernetes-api_2.12|1.0.0| [19295](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19295) |
+|com.lightbend.akka.management|akka-management_2.12|1.0.0| [19295](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19295) |
+|com.lightbend.akka.management|akka-management-cluster-bootstrap_2.12|1.0.0| [19295](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19295) |
 |com.newmotion|akka-rabbitmq_2.12|5.0.0| [16333](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16333) |
 |com.rabbitmq|amqp-client|5.4.2| [17744](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17744) |
 |com.typesafe.akka|akka-actor_2.12|2.5.21| [18999](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18999) |
@@ -57,7 +57,7 @@
 |io.netty|netty-transport-native-epoll|linux-x86_64| [19002](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19002) |
 |io.netty|netty-transport-native-kqueue|osx-x86_64| [19002](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19002) |
 |io.netty|netty-transport-native-unix-common|4.1.32.Final| [19002](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19002) |
-|io.spray|spray-json_2.12|1.3.3| [16555](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16555) |
+|io.spray|spray-json_2.12|1.3.5| [16555](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16555) |
 |nl.grons|metrics-scala_2.12|3.5.5_a2.4| [14491](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14491) |
 |org.agrona|agrona|0.9.31| [16554](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16554) |
 |org.apache.geronimo.specs|geronimo-jms_2.0_spec|1.0-alpha-2| [16327](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16327) |
@@ -97,7 +97,6 @@
 |---|---|---|---|
 |com.google.code.findbugs|jsr305|3.0.1| [14511](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14511) |
 |com.github.dnvriend|akka-persistence-inmemory_2.12|2.5.1.1| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
-|commons-io|commons-io|2.4| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |com.typesafe.akka|akka-http-testkit_2.12|10.1.7| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |com.typesafe.akka|akka-stream-testkit_2.12|2.5.21| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |com.typesafe.akka|akka-testkit_2.12|2.5.21| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |

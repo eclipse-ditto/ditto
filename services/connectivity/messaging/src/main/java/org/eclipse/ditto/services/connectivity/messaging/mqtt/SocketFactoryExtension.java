@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 import javax.net.ssl.SSLSocketFactory;
 
 import akka.stream.alpakka.mqtt.MqttConnectionSettings;
+import scala.Some;
 
 /**
   * Extends the {@code MqttConnectionSettings} by an {@code SSLSocketFactory}.
@@ -31,7 +32,12 @@ final class SocketFactoryExtension {
      * @return a copy of {@code s} with {@code sf}.
      */
     static MqttConnectionSettings withSocketFactory(final MqttConnectionSettings s, final SSLSocketFactory sf) {
-        return s.withSocketFactory(sf);
+        // with Alpakka-MQTT 1.0 this will become:
+        //        return s.withSocketFactory(sf);
+        return s.copy(s.broker(), s.clientId(), s.persistence(), s.auth(), Some.apply(sf), s.cleanSession(), s.will(),
+                s.automaticReconnect(), s.keepAliveInterval(), s.connectionTimeout(), s.disconnectQuiesceTimeout(),
+                s.disconnectTimeout(), s.maxInFlight(), s.mqttVersion(), s.serverUris(), s.sslHostnameVerifier(),
+                s.sslProperties());
     }
 
 }
