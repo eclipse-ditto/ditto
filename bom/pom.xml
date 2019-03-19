@@ -262,6 +262,11 @@
                 <artifactId>akka-discovery-kubernetes-api_${scala.version}</artifactId>
                 <version>${akka-management.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.lightbend.akka.management</groupId>
+                <artifactId>akka-management-cluster-http_${scala.version}</artifactId>
+                <version>${akka-management.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>com.ajjpj.simple-akka-downing</groupId>
