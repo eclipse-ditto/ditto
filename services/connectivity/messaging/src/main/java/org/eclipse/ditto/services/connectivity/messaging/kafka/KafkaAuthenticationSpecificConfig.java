@@ -72,7 +72,8 @@ public final class KafkaAuthenticationSpecificConfig implements KafkaSpecificCon
     }
 
     private boolean containsValidSaslMechanismConfiguration(final Connection connection) {
-        return SASL_MECHANISMS_WITH_LOGIN_MODULE.containsKey(getSaslMechanismOrDefault(connection));
+        final String mechanism = getSaslMechanismOrDefault(connection);
+        return SASL_MECHANISMS_WITH_LOGIN_MODULE.containsKey(mechanism.toUpperCase());
     }
 
     @Override
@@ -82,7 +83,7 @@ public final class KafkaAuthenticationSpecificConfig implements KafkaSpecificCon
         final Optional<String> password = connection.getPassword();
         // chose to not use isApplicable() but directly check username and password since we need to Optional#get them.
         if (isValid(connection) && username.isPresent() && password.isPresent()) {
-            final String saslMechanism = getSaslMechanismOrDefault(connection);
+            final String saslMechanism = getSaslMechanismOrDefault(connection).toUpperCase();
             final String loginModule = getLoginModuleForSaslMechanism(saslMechanism);
             final String jaasConfig = getJaasConfig(loginModule, username.get(), password.get());
 

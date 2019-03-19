@@ -57,7 +57,10 @@ have READ permission on the Thing that is associated with a message.
 
 The specific configuration properties contain the following keys:
 * `bootstrapServers` (required): contains a comma separated list of Kafka bootstrap servers to use for connecting to
-
+* `saslMechanism` (required): contains one of the following SASL mechanisms to use for authentication at Kafka:
+    * `plain`
+    * `scram-sha-256`
+    * `scram-sha-512`
 
 ## Establishing connecting to an Apache Kafka endpoint
 
@@ -79,6 +82,7 @@ Example connection configuration to create a new Kafka 2.x connection in order t
     "uri": "tcp://user:password@localhost:9092",
     "specificConfig": {
       "bootstrapServers": "localhost:9092,other.host:9092"
+      "saslMechanism": "plain"
     },
     "sources": [],
     "targets": [
