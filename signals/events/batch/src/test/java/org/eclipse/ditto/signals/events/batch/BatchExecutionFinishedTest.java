@@ -29,7 +29,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.commands.things.ThingCommandResponseRegistry;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.junit.Test;
@@ -130,7 +130,7 @@ public final class BatchExecutionFinishedTest {
     public void createInstanceFromValidJson() {
         final BatchExecutionFinished underTest =
                 BatchExecutionFinished.fromJson(KNOWN_JSON.toString(), DittoHeaders.empty(),
-                        ThingCommandResponseRegistry.newInstance());
+                        GlobalCommandResponseRegistry.getInstance());
 
         assertThat(underTest).isNotNull();
         assertThat(underTest.getBatchId()).isEqualTo(KNOWN_BATCH_ID);
@@ -141,7 +141,7 @@ public final class BatchExecutionFinishedTest {
     public void retrieveEventName() {
         final String name =
                 BatchExecutionFinished.fromJson(KNOWN_JSON.toString(), DittoHeaders.empty(),
-                        ThingCommandResponseRegistry.newInstance()).getName();
+                        GlobalCommandResponseRegistry.getInstance()).getName();
         assertThat(name).isEqualTo(BatchExecutionFinished.NAME);
     }
 

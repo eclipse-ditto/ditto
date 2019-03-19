@@ -72,6 +72,7 @@
                         <excludes>
                             <exclude>org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants</exclude>
                             <exclude>org.eclipse.ditto.services.models.concierge.batch.BatchStepCommandRegistry</exclude>
+                            <exclude>org.eclipse.ditto.services.models.concierge.batch.BatchStepCommandResponseRegistry</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

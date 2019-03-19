@@ -23,6 +23,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.junit.Test;
@@ -89,4 +91,16 @@ public class RetrieveThingResponseTest {
         assertThat(underTest.getThing().toJson()).isEqualTo(TestConstants.Thing.THING.toJson());
     }
 
+    @Test
+    public void parseRetrieveThingCommandResponse() {
+        final RetrieveThingResponse commandResponse =
+                RetrieveThingResponse.of(TestConstants.Thing.THING_ID, TestConstants.Thing.THING,
+                        TestConstants.DITTO_HEADERS);
+        final JsonObject jsonObject = commandResponse.toJson(FieldType.regularOrSpecial());
+
+        final CommandResponse parsedCommandResponse =
+                GlobalCommandResponseRegistry.getInstance().parse(jsonObject, TestConstants.DITTO_HEADERS);
+
+        assertThat(parsedCommandResponse).isEqualTo(commandResponse);
+    }
 }

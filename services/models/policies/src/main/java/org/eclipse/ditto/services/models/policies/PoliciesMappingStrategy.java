@@ -21,15 +21,12 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommandResponseRegistry;
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
-import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
-import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandResponseRegistry;
-import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponseRegistry;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 import org.eclipse.ditto.signals.events.policies.PolicyEventRegistry;
 
 /**
@@ -43,18 +40,15 @@ public final class PoliciesMappingStrategy implements MappingStrategy {
 
         builder.add(GlobalErrorRegistry.getInstance());
         builder.add(GlobalCommandRegistry.getInstance());
+        builder.add(GlobalCommandResponseRegistry.getInstance());
 
         addPoliciesStrategies(builder);
-        addDevOpsStrategies(builder);
-        addNamespacesStrategies(builder);
 
         return builder.build();
     }
 
     private static void addPoliciesStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(PolicyCommandResponseRegistry.newInstance())
-                .add(PolicyEventRegistry.newInstance())
-                .add(SudoCommandResponseRegistry.newInstance())
+        builder.add(PolicyEventRegistry.newInstance())
                 .add(Policy.class, (Function<JsonObject, Jsonifiable<?>>) PoliciesModelFactory::newPolicy)
                 .add(PolicyTag.class, jsonObject -> PolicyTag.fromJson(jsonObject))  // do not replace with lambda!
                 .add(BatchedEntityIdWithRevisions.typeOf(PolicyTag.class),
@@ -62,13 +56,4 @@ public final class PoliciesMappingStrategy implements MappingStrategy {
                 .add(PolicyReferenceTag.class,
                         jsonObject -> PolicyReferenceTag.fromJson(jsonObject));  // do not replace with lambda!
     }
-
-    private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(DevOpsCommandResponseRegistry.newInstance());
-    }
-
-    private static void addNamespacesStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(NamespaceCommandResponseRegistry.getInstance());
-    }
-
 }

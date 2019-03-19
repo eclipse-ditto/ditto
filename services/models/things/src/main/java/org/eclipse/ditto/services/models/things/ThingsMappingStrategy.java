@@ -21,14 +21,11 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommandResponseRegistry;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
-import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
-import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandResponseRegistry;
-import org.eclipse.ditto.signals.commands.things.ThingCommandResponseRegistry;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 import org.eclipse.ditto.signals.events.things.ThingEventRegistry;
 
 /**
@@ -42,18 +39,15 @@ public final class ThingsMappingStrategy implements MappingStrategy {
 
         builder.add(GlobalErrorRegistry.getInstance());
         builder.add(GlobalCommandRegistry.getInstance());
+        builder.add(GlobalCommandResponseRegistry.getInstance());
 
         addThingsStrategies(builder);
-        addDevOpsStrategies(builder);
-        addNamespacesStrategies(builder);
 
         return builder.build();
     }
 
     private static void addThingsStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(ThingCommandResponseRegistry.newInstance())
-                .add(ThingEventRegistry.newInstance())
-                .add(SudoCommandResponseRegistry.newInstance())
+        builder.add(ThingEventRegistry.newInstance())
                 .add(Thing.class,
                         (jsonObject) -> ThingsModelFactory.newThing(jsonObject)) // do not replace with lambda!
                 .add(ThingTag.class, jsonObject -> ThingTag.fromJson(jsonObject))  // do not replace with lambda!
@@ -61,13 +55,4 @@ public final class ThingsMappingStrategy implements MappingStrategy {
                         BatchedEntityIdWithRevisions.deserializer(jsonObject -> ThingTag.fromJson(jsonObject)))
                 .build();
     }
-
-    private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(DevOpsCommandResponseRegistry.newInstance());
-    }
-
-    private static void addNamespacesStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(NamespaceCommandResponseRegistry.getInstance());
-    }
-
 }

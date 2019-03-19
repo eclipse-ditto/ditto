@@ -26,6 +26,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceReportResult;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
@@ -35,6 +36,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  * Response to a {@link SudoRetrieveNamespaceReport} containing a {@link SearchNamespaceReportResult}.
  */
 @Immutable
+@JsonParsableCommandResponse(type = SudoRetrieveNamespaceReportResponse.TYPE)
 public final class SudoRetrieveNamespaceReportResponse extends
         AbstractCommandResponse<SudoRetrieveNamespaceReportResponse>
         implements ThingSearchSudoCommandResponse<SudoRetrieveNamespaceReportResponse> {

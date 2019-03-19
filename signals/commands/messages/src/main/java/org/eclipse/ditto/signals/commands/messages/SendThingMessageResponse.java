@@ -18,6 +18,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -26,6 +27,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  *
  * @param <T> the type of the message's payload.
  */
+@JsonParsableCommandResponse(type = SendThingMessageResponse.TYPE)
 public final class SendThingMessageResponse<T> extends AbstractMessageCommandResponse<T, SendThingMessageResponse> {
 
     /**
@@ -95,7 +97,7 @@ public final class SendThingMessageResponse<T> extends AbstractMessageCommandRes
     public static <T> SendThingMessageResponse<T> fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<SendThingMessageResponse<T>>(TYPE, jsonObject).deserialize(
-                (statusCode) -> {
+                statusCode -> {
                     final String thingId = jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID);
                     final Message<T> message = deserializeMessageFromJson(jsonObject);
 

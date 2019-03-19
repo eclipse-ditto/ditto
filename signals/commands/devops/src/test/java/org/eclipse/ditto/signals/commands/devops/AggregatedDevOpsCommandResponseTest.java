@@ -24,6 +24,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -31,7 +33,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public class AggregatedDevOpsCommandResponseTest {
 
     private static final String RESPONSES_TYPE = DevOpsCommandResponse.TYPE_PREFIX + ":" + ExecutePiggybackCommand.NAME;
-    private final DevOpsCommandResponseRegistry underTest = DevOpsCommandResponseRegistry.newInstance();
+    private final GlobalCommandResponseRegistry underTest = GlobalCommandResponseRegistry.getInstance();
 
     @Test
     public void testHashCodeAndEquals() {
@@ -64,7 +66,7 @@ public class AggregatedDevOpsCommandResponseTest {
 
         final JsonObject responseToJson = aggregatedDevOpsCommandResponse.toJson();
 
-        final DevOpsCommandResponse parsedCommandResponse = underTest.parse(responseToJson, DittoHeaders.empty());
+        final CommandResponse parsedCommandResponse = underTest.parse(responseToJson, DittoHeaders.empty());
 
         Assertions.assertThat(parsedCommandResponse).isEqualTo(aggregatedDevOpsCommandResponse);
         DittoJsonAssertions.assertThat(parsedCommandResponse.toJson()).isEqualTo(responseToJson);

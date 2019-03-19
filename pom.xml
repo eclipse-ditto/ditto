@@ -400,6 +400,17 @@
                             <skipPomModules>true</skipPomModules>
                             <htmlTitle>${project.name} :: Binary Compatibility Report</htmlTitle>
                             <excludes>
+                                <exclude>org.eclipse.ditto.signals.commands.base.AbstractCommandResponseRegistry</exclude>
+                                <exclude>org.eclipse.ditto.signals.commands.policies.PolicyCommandResponseRegistry</exclude>
+                                <exclude>org.eclipse.ditto.signals.commands.things.ThingCommandResponseRegistry</exclude>
+                                <exclude>org.eclipse.ditto.signals.commands.thingsearch.SearchCommandResponseRegistry</exclude>
+                                <exclude>org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommandResponseRegistry</exclude>
+                                <exclude>org.eclipse.ditto.signals.commands.messages.MessageCommandResponseRegistry</exclude>
+                                <exclude>org.eclipse.ditto.signals.commands.batch.BatchCommandResponseRegistry</exclude>
+                                <exclude>org.eclipse.ditto.services.models.things.commands.sudo.SudoCommandResponseRegistry</exclude>
+                                <exclude>org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommandResponseRegistry</exclude>
+                                <exclude>org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommandResponseRegistry</exclude>
+
                                 <exclude>org.eclipse.ditto.signals.commands.base.AbstractCommandRegistry</exclude>
                                 <exclude>org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandRegistry</exclude>
                                 <exclude>org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandRegistry</exclude>
@@ -418,6 +429,7 @@
                                 <exclude>org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandRegistry</exclude>
                                 <exclude>org.eclipse.ditto.signals.commands.thingsearch.SearchCommandRegistry</exclude>
                                 <exclude>org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommandRegistry</exclude>
+
                                 <exclude>org.eclipse.ditto.signals.commands.base.CommonErrorRegistry</exclude>
                                 <exclude>org.eclipse.ditto.signals.commands.policies.exceptions.PolicyErrorRegistry</exclude>
                                 <exclude>org.eclipse.ditto.signals.commands.things.exceptions.ThingErrorRegistry</exclude>

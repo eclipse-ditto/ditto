@@ -27,6 +27,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.signals.commands.base.WithEntity;
@@ -35,6 +36,7 @@ import org.eclipse.ditto.signals.commands.base.WithEntity;
  * Response to a {@link RetrieveStatistics} command containing a {@link JsonObject} of the retrieved Statistics.
  */
 @Immutable
+@JsonParsableCommandResponse(type = RetrieveStatisticsResponse.TYPE)
 public final class RetrieveStatisticsResponse extends AbstractDevOpsCommandResponse<RetrieveStatisticsResponse>
         implements WithEntity<RetrieveStatisticsResponse> {
 

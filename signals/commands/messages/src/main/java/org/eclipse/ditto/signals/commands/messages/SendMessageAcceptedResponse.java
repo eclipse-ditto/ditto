@@ -21,6 +21,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
@@ -29,6 +30,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  * Command to send a response to a {@link Message}.
  */
 @Immutable
+@JsonParsableCommandResponse(type = SendMessageAcceptedResponse.TYPE)
 public final class SendMessageAcceptedResponse
         extends AbstractMessageCommandResponse<Void, SendMessageAcceptedResponse> {
 

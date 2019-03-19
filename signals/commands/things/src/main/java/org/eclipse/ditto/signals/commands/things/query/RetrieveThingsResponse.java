@@ -38,6 +38,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
@@ -49,6 +50,7 @@ import org.eclipse.ditto.signals.commands.base.WithNamespace;
  * Response to a {@link RetrieveThings} command.
  */
 @Immutable
+@JsonParsableCommandResponse(type = RetrieveThingsResponse.TYPE)
 public final class RetrieveThingsResponse extends AbstractCommandResponse<RetrieveThingsResponse> implements
         ThingQueryCommandResponse<RetrieveThingsResponse>, WithNamespace {
 

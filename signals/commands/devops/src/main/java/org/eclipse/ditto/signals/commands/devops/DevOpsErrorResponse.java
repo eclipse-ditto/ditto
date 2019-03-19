@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.WithEntity;
@@ -39,6 +40,7 @@ import org.eclipse.ditto.signals.commands.base.WithEntity;
  * Response to a {@link DevOpsCommand} which wraps the exception thrown while processing the command.
  */
 @Immutable
+@JsonParsableCommandResponse(type = DevOpsErrorResponse.TYPE)
 public final class DevOpsErrorResponse extends AbstractCommandResponse<DevOpsErrorResponse>
         implements DevOpsCommandResponse<DevOpsErrorResponse>, WithEntity<DevOpsErrorResponse> {
 

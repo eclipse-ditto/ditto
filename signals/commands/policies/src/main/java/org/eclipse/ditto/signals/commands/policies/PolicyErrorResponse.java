@@ -28,6 +28,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
@@ -37,6 +38,7 @@ import org.eclipse.ditto.signals.commands.base.ErrorResponse;
  * Response to a {@link PolicyCommand} which wraps the exception thrown while processing the command.
  */
 @Immutable
+@JsonParsableCommandResponse(type = PolicyErrorResponse.TYPE)
 public final class PolicyErrorResponse extends AbstractCommandResponse<PolicyErrorResponse> implements
         PolicyCommandResponse<PolicyErrorResponse>, ErrorResponse<PolicyErrorResponse> {
 

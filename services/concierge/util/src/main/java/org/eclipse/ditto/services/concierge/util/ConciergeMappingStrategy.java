@@ -28,9 +28,7 @@ import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
-import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
-import org.eclipse.ditto.signals.commands.messages.MessageCommandResponseRegistry;
-import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandResponseRegistry;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 
 /**
  * {@link MappingStrategy} for the concierge service.
@@ -67,25 +65,9 @@ public final class ConciergeMappingStrategy implements MappingStrategy {
 
         builder.add(GlobalErrorRegistry.getInstance());
         builder.add(GlobalCommandRegistry.getInstance());
-
-        addMessagesStrategies(builder);
-        addDevOpsStrategies(builder);
-        addNamespacesStrategies(builder);
+        builder.add(GlobalCommandResponseRegistry.getInstance());
 
         combinedStrategy.putAll(builder.build());
         return combinedStrategy;
     }
-
-    private static void addMessagesStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(MessageCommandResponseRegistry.newInstance());
-    }
-
-    private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(DevOpsCommandResponseRegistry.newInstance());
-    }
-
-    private static void addNamespacesStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(NamespaceCommandResponseRegistry.getInstance());
-    }
-
 }

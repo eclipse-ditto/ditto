@@ -24,7 +24,7 @@ import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
-import org.eclipse.ditto.signals.commands.batch.BatchCommandResponseRegistry;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 import org.eclipse.ditto.signals.events.batch.BatchEventRegistry;
 
 /**
@@ -38,13 +38,13 @@ public final class BatchMappingStrategy implements MappingStrategy {
         final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
 
         final GlobalCommandRegistry globalCommandRegistry = GlobalCommandRegistry.getInstance();
-        final BatchStepCommandResponseRegistry batchStepCommandResponseRegistry =
-                BatchStepCommandResponseRegistry.newInstance();
+        final GlobalCommandResponseRegistry globalCommandResponseRegistry =
+                GlobalCommandResponseRegistry.getInstance();
 
         builder.add(GlobalErrorRegistry.getInstance());
         builder.add(globalCommandRegistry);
-        builder.add(BatchCommandResponseRegistry.newInstance());
-        builder.add(BatchEventRegistry.newInstance(globalCommandRegistry, batchStepCommandResponseRegistry));
+        builder.add(globalCommandResponseRegistry);
+        builder.add(BatchEventRegistry.newInstance(globalCommandRegistry, globalCommandResponseRegistry));
 
         return builder.build();
     }

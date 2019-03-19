@@ -27,7 +27,7 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
-import org.eclipse.ditto.signals.commands.things.ThingCommandResponseRegistry;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
@@ -65,9 +65,9 @@ public final class ShardRegionExtractorTest {
         final GlobalCommandRegistry globalCommandRegistry = GlobalCommandRegistry.getInstance();
         globalCommandRegistry.getTypes().forEach(type -> mappingStrategies.put(type, globalCommandRegistry::parse));
 
-        final ThingCommandResponseRegistry thingCommandResponseRegistry = ThingCommandResponseRegistry.newInstance();
-        thingCommandResponseRegistry.getTypes()
-                .forEach(type -> mappingStrategies.put(type, thingCommandResponseRegistry::parse));
+        final GlobalCommandResponseRegistry commandResponseRegistry = GlobalCommandResponseRegistry.getInstance();
+        commandResponseRegistry.getTypes()
+                .forEach(type -> mappingStrategies.put(type, commandResponseRegistry::parse));
 
         underTest = ShardRegionExtractor.of(NUMBER_OF_SHARDS, mappingStrategies);
     }

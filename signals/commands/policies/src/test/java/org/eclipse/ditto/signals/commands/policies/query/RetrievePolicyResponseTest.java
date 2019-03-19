@@ -23,6 +23,8 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
 import org.eclipse.ditto.signals.commands.policies.TestConstants;
 import org.junit.Test;
@@ -88,6 +90,19 @@ public final class RetrievePolicyResponseTest {
 
         assertThat(underTest).isNotNull();
         assertThat(underTest.getPolicy().toJson()).isEqualTo(TestConstants.Policy.POLICY.toJson());
+    }
+
+    @Test
+    public void parsePolicyQueryCommandResponse() {
+        final RetrievePolicyResponse commandResponse =
+                RetrievePolicyResponse.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.POLICY,
+                        TestConstants.DITTO_HEADERS);
+        final JsonObject jsonObject = commandResponse.toJson(FieldType.regularOrSpecial());
+
+        final CommandResponse parsedCommandResponse =
+                GlobalCommandResponseRegistry.getInstance().parse(jsonObject, TestConstants.DITTO_HEADERS);
+
+        assertThat(parsedCommandResponse).isEqualTo(commandResponse);
     }
 
 }

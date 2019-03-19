@@ -24,6 +24,8 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -88,10 +90,10 @@ public final class SudoRetrieveThingResponseTest {
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                 SudoRetrieveThingResponse.fromJson(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
 
-        final SudoCommandResponse sudoCommandResponse =
-                SudoCommandResponseRegistry.newInstance().parse(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
+        final CommandResponse commandResponse =
+                GlobalCommandResponseRegistry.getInstance().parse(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
 
-        assertThat(sudoRetrieveThingResponse).isEqualTo(sudoCommandResponse);
+        assertThat(sudoRetrieveThingResponse).isEqualTo(commandResponse);
     }
 
 }
