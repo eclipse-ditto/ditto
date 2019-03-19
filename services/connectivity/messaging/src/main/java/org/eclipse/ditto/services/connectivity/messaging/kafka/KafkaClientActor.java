@@ -36,12 +36,11 @@ import akka.actor.Status;
 import akka.japi.pf.FSMStateFunctionBuilder;
 
 /**
- * TODO: implement fully
- * TODO: unit test
  * Actor which handles connection to Kafka server.
  */
 public final class KafkaClientActor extends BaseClientActor {
 
+    private final KafkaPublisherActorFactory publisherActorFactory;
     private ActorRef kafkaPublisherActor;
 
     private final Set<ActorRef> pendingStatusReportsFromStreams;
@@ -52,10 +51,12 @@ public final class KafkaClientActor extends BaseClientActor {
     @SuppressWarnings("unused") // used by `props` via reflection
     private KafkaClientActor(final Connection connection,
             final ConnectivityStatus desiredConnectionStatus,
-            final ActorRef conciergeForwarder) {
+            final ActorRef conciergeForwarder,
+            final KafkaPublisherActorFactory factory) {
         super(connection, desiredConnectionStatus, conciergeForwarder);
         final KafkaConfigReader configReader = ConnectionConfigReader.fromRawConfig(getContext().system().settings().config()).kafka();
         this.connectionFactory = KafkaConnectionFactory.of(connection, configReader);
+        this.publisherActorFactory = factory;
         pendingStatusReportsFromStreams = new HashSet<>();
     }
 
@@ -66,13 +67,12 @@ public final class KafkaClientActor extends BaseClientActor {
      * @param conciergeForwarder the actor used to send signals to the concierge service.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, final ActorRef conciergeForwarder) {
+    public static Props props(final Connection connection, final ActorRef conciergeForwarder, final KafkaPublisherActorFactory factory) {
         return Props.create(KafkaClientActor.class, validateConnection(connection), connection.getConnectionStatus(),
-                conciergeForwarder);
+                conciergeForwarder, factory);
     }
 
     private static Connection validateConnection(final Connection connection) {
-        // TODO: think about it
         // nothing to do so far
         return connection;
     }
@@ -149,8 +149,8 @@ public final class KafkaClientActor extends BaseClientActor {
         log.info("Starting Kafka publisher actor.");
         // ensure no previous publisher stays in memory
         stopKafkaPublisher();
-        kafkaPublisherActor = startChildActorConflictFree(KafkaPublisherActor.ACTOR_NAME,
-                KafkaPublisherActor.props(connectionId(), getTargetsOrEmptyList(), connectionFactory, getSelf(), dryRun));
+        kafkaPublisherActor = startChildActorConflictFree(publisherActorFactory.name(),
+                publisherActorFactory.props(connectionId(), getTargetsOrEmptyList(), connectionFactory, getSelf(), dryRun));
         pendingStatusReportsFromStreams.add(kafkaPublisherActor);
     }
 
@@ -164,10 +164,6 @@ public final class KafkaClientActor extends BaseClientActor {
 
     private void stopKafkaPublisher() {
         if (kafkaPublisherActor != null) {
-            // TODO: since we started the actor inside kafkaPublisherActor using Sink.newActorRef,
-            //  we need to send a Status.Success or Status.Failure to it first. it will then push all remaining messages
-            //  i think and then stop the actor. Otherwise the Source will keep consuming even if the actor was killed.
-            //  We will also need to fix this for MQTT and maybe the others, too.
             log.debug("Stopping child actor <{}>.", kafkaPublisherActor.path());
             // shutdown using a message, so the actor can clean up first
             kafkaPublisherActor.tell(KafkaPublisherActor.GracefulStop.INSTANCE, getSelf());
