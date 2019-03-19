@@ -164,7 +164,7 @@ public class KafkaAuthenticationSpecificConfigTest {
         final ProducerSettings<String, String> settings = kafkaAuthenticationSpecificConfig.apply(DEFAULT_PRODUCER_SETTINGS, connection);
         assertThat(settings.properties().get(SaslConfigs.SASL_MECHANISM).get()).isEqualTo(mechanism);
         assertThat(settings.properties().get(SaslConfigs.SASL_JAAS_CONFIG).get()).isEqualTo(
-                "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"" + KNOWN_USER + "\" password=\"" + KNOWN_PASSWORD + "\""
+                "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"" + KNOWN_USER + "\" password=\"" + KNOWN_PASSWORD + "\";"
         );
     }
 
@@ -173,7 +173,7 @@ public class KafkaAuthenticationSpecificConfigTest {
         final ProducerSettings<String, String> settings = kafkaAuthenticationSpecificConfig.apply(DEFAULT_PRODUCER_SETTINGS, connection);
         assertThat(settings.properties().get(SaslConfigs.SASL_MECHANISM).get()).isEqualTo(mechanism);
         assertThat(settings.properties().get(SaslConfigs.SASL_JAAS_CONFIG).get()).isEqualTo(
-                "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"" + KNOWN_USER + "\" password=\"" + KNOWN_PASSWORD + "\""
+                "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"" + KNOWN_USER + "\" password=\"" + KNOWN_PASSWORD + "\";"
         );
     }
 
