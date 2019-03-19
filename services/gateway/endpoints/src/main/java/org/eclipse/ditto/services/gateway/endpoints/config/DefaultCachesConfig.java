@@ -46,7 +46,7 @@ public final class DefaultCachesConfig implements CachesConfig, Serializable {
      */
     public static DefaultCachesConfig of(final Config config) {
         final DefaultScopedConfig cacheScopedConfig = DefaultScopedConfig.newInstance(config, CONFIG_PATH);
-        return new DefaultCachesConfig(DefaultCacheConfig.getInstance(cacheScopedConfig, "publickeys"));
+        return new DefaultCachesConfig(DefaultCacheConfig.of(cacheScopedConfig, "publickeys"));
     }
 
     @Override

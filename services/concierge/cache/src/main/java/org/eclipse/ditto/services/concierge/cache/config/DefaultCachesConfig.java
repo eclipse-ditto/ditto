@@ -39,8 +39,8 @@ public final class DefaultCachesConfig implements CachesConfig, Serializable {
 
     private DefaultCachesConfig(final ScopedConfig config) {
         askTimeout = config.getDuration(CachesConfigValue.ASK_TIMEOUT.getConfigPath());
-        idCacheConfig = DefaultCacheConfig.getInstance(config, "id");
-        enforcerCacheConfig = DefaultCacheConfig.getInstance(config, "enforcer");
+        idCacheConfig = DefaultCacheConfig.of(config, "id");
+        enforcerCacheConfig = DefaultCacheConfig.of(config, "enforcer");
     }
 
     /**

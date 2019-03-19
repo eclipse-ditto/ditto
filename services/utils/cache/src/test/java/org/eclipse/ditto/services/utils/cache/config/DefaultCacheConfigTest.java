@@ -60,7 +60,7 @@ public final class DefaultCacheConfigTest {
 
     @Test
     public void testSerializationAndDeserialization() throws IOException, ClassNotFoundException {
-        final DefaultCacheConfig underTest = DefaultCacheConfig.getInstance(cacheTestConfig, KNOWN_CONFIG_PATH);
+        final DefaultCacheConfig underTest = DefaultCacheConfig.of(cacheTestConfig, KNOWN_CONFIG_PATH);
 
         final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         final ObjectOutput objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
@@ -78,7 +78,7 @@ public final class DefaultCacheConfigTest {
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
-        final DefaultCacheConfig underTest = DefaultCacheConfig.getInstance(ConfigFactory.empty(), KNOWN_CONFIG_PATH);
+        final DefaultCacheConfig underTest = DefaultCacheConfig.of(ConfigFactory.empty(), KNOWN_CONFIG_PATH);
 
         assertThat(underTest.getMaximumSize())
                 .as("maximumSize")
@@ -90,7 +90,7 @@ public final class DefaultCacheConfigTest {
 
     @Test
     public void underTestReturnsValuesOfConfigFile() {
-        final DefaultCacheConfig underTest = DefaultCacheConfig.getInstance(cacheTestConfig, KNOWN_CONFIG_PATH);
+        final DefaultCacheConfig underTest = DefaultCacheConfig.of(cacheTestConfig, KNOWN_CONFIG_PATH);
 
         assertThat(underTest.getMaximumSize())
                 .as("maximumSize")

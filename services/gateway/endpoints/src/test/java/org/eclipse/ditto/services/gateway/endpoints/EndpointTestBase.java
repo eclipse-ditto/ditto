@@ -99,7 +99,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         messageConfig = DefaultMessageConfig.of(gatewayScopedConfig);
         claimMessageConfig = DefaultClaimMessageConfig.of(gatewayScopedConfig);
         authConfig = DefaultAuthenticationConfig.of(gatewayScopedConfig);
-        cacheConfig = DefaultCacheConfig.getInstance(gatewayScopedConfig, "cache.publickeys");
+        cacheConfig = DefaultCacheConfig.of(gatewayScopedConfig, "cache.publickeys");
         webSocketConfig = DefaultWebSocketConfig.of(gatewayScopedConfig);
         publicHealthConfig = DefaultPublicHealthConfig.of(gatewayScopedConfig);
         protocolConfig = DefaultProtocolConfig.of(dittoScopedConfig);
