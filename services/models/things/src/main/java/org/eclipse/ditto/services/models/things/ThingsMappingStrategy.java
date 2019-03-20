@@ -26,7 +26,7 @@ import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
-import org.eclipse.ditto.signals.events.things.ThingEventRegistry;
+import org.eclipse.ditto.signals.events.base.GlobalEventRegistry;
 
 /**
  * {@link MappingStrategy} for the Things service containing all {@link Jsonifiable} types known to Things.
@@ -47,7 +47,7 @@ public final class ThingsMappingStrategy implements MappingStrategy {
     }
 
     private static void addThingsStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(ThingEventRegistry.newInstance())
+        builder.add(GlobalEventRegistry.getInstance())
                 .add(Thing.class,
                         (jsonObject) -> ThingsModelFactory.newThing(jsonObject)) // do not replace with lambda!
                 .add(ThingTag.class, jsonObject -> ThingTag.fromJson(jsonObject))  // do not replace with lambda!

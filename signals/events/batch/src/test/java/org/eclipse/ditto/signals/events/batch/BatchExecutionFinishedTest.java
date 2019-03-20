@@ -129,8 +129,7 @@ public final class BatchExecutionFinishedTest {
     @Test
     public void createInstanceFromValidJson() {
         final BatchExecutionFinished underTest =
-                BatchExecutionFinished.fromJson(KNOWN_JSON.toString(), DittoHeaders.empty(),
-                        GlobalCommandResponseRegistry.getInstance());
+                BatchExecutionFinished.fromJson(KNOWN_JSON.toString(), DittoHeaders.empty());
 
         assertThat(underTest).isNotNull();
         assertThat(underTest.getBatchId()).isEqualTo(KNOWN_BATCH_ID);
@@ -140,8 +139,7 @@ public final class BatchExecutionFinishedTest {
     @Test
     public void retrieveEventName() {
         final String name =
-                BatchExecutionFinished.fromJson(KNOWN_JSON.toString(), DittoHeaders.empty(),
-                        GlobalCommandResponseRegistry.getInstance()).getName();
+                BatchExecutionFinished.fromJson(KNOWN_JSON.toString(), DittoHeaders.empty()).getName();
         assertThat(name).isEqualTo(BatchExecutionFinished.NAME);
     }
 

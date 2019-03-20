@@ -27,7 +27,7 @@ import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
-import org.eclipse.ditto.signals.events.policies.PolicyEventRegistry;
+import org.eclipse.ditto.signals.events.base.GlobalEventRegistry;
 
 /**
  * {@link MappingStrategy} for the Policies service containing all {@link Jsonifiable} types known to Policies.
@@ -48,7 +48,7 @@ public final class PoliciesMappingStrategy implements MappingStrategy {
     }
 
     private static void addPoliciesStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(PolicyEventRegistry.newInstance())
+        builder.add(GlobalEventRegistry.getInstance())
                 .add(Policy.class, (Function<JsonObject, Jsonifiable<?>>) PoliciesModelFactory::newPolicy)
                 .add(PolicyTag.class, jsonObject -> PolicyTag.fromJson(jsonObject))  // do not replace with lambda!
                 .add(BatchedEntityIdWithRevisions.typeOf(PolicyTag.class),

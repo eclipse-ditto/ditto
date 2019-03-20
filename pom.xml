@@ -400,6 +400,18 @@
                             <skipPomModules>true</skipPomModules>
                             <htmlTitle>${project.name} :: Binary Compatibility Report</htmlTitle>
                             <excludes>
+                                <exclude>org.eclipse.ditto.signals.events.base.AbstractEventRegistry</exclude>
+                                <exclude>org.eclipse.ditto.signals.events.policies.PolicyEventRegistry</exclude>
+                                <exclude>org.eclipse.ditto.signals.events.things.ThingEventRegistry</exclude>
+                                <exclude>org.eclipse.ditto.signals.events.batch.BatchEventRegistry</exclude>
+                                <exclude>org.eclipse.ditto.signals.events.batch.BatchCommandExecuted#fromJson(java.lang.String,org.eclipse.ditto.model.base.headers.DittoHeaders,org.eclipse.ditto.signals.commands.base.CommandResponseRegistry)</exclude>
+                                <exclude>org.eclipse.ditto.signals.events.batch.BatchCommandExecuted#fromJson(org.eclipse.ditto.json.JsonObject,org.eclipse.ditto.model.base.headers.DittoHeaders,org.eclipse.ditto.signals.commands.base.CommandResponseRegistry)</exclude>
+                                <exclude>org.eclipse.ditto.signals.events.batch.BatchExecutionFinished#fromJson(java.lang.String,org.eclipse.ditto.model.base.headers.DittoHeaders,org.eclipse.ditto.signals.commands.base.CommandResponseRegistry)</exclude>
+                                <exclude>org.eclipse.ditto.signals.events.batch.BatchExecutionFinished#fromJson(org.eclipse.ditto.json.JsonObject,org.eclipse.ditto.model.base.headers.DittoHeaders,org.eclipse.ditto.signals.commands.base.CommandResponseRegistry)</exclude>
+                                <exclude>org.eclipse.ditto.signals.events.batch.BatchExecutionStarted#fromJson(java.lang.String,org.eclipse.ditto.model.base.headers.DittoHeaders,org.eclipse.ditto.signals.commands.base.CommandRegistry)</exclude>
+                                <exclude>org.eclipse.ditto.signals.events.batch.BatchExecutionStarted#fromJson(org.eclipse.ditto.json.JsonObject,org.eclipse.ditto.model.base.headers.DittoHeaders,org.eclipse.ditto.signals.commands.base.CommandRegistry)</exclude>
+                                <exclude>org.eclipse.ditto.signals.events.connectivity.ConnectivityEventRegistry</exclude>
+
                                 <exclude>org.eclipse.ditto.signals.commands.base.AbstractCommandResponseRegistry</exclude>
                                 <exclude>org.eclipse.ditto.signals.commands.policies.PolicyCommandResponseRegistry</exclude>
                                 <exclude>org.eclipse.ditto.signals.commands.things.ThingCommandResponseRegistry</exclude>

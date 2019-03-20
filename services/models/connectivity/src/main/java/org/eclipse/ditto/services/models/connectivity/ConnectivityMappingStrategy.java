@@ -28,7 +28,7 @@ import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
-import org.eclipse.ditto.signals.events.connectivity.ConnectivityEventRegistry;
+import org.eclipse.ditto.signals.events.base.GlobalEventRegistry;
 
 /**
  * {@link MappingStrategy} for the Connectivity service containing all
@@ -62,7 +62,7 @@ public final class ConnectivityMappingStrategy implements MappingStrategy {
                 .add(GlobalCommandRegistry.getInstance())
                 .add(GlobalErrorRegistry.getInstance())
                 .add(GlobalCommandResponseRegistry.getInstance())
-                .add(ConnectivityEventRegistry.newInstance())
+                .add(GlobalEventRegistry.getInstance())
                 .add(Connection.class, jsonObject ->
                         ConnectivityModelFactory.connectionFromJson(jsonObject)) // do not replace with lambda!
                 .add("ImmutableConnection", jsonObject ->

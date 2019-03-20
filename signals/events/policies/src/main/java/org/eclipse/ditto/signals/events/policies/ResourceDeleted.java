@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.ResourceKey;
@@ -38,6 +39,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a {@link org.eclipse.ditto.model.policies.Resource} was deleted.
  */
 @Immutable
+@JsonParsableEvent(name = ResourceDeleted.NAME, typePrefix= ResourceDeleted.TYPE_PREFIX)
 public final class ResourceDeleted extends AbstractPolicyEvent<ResourceDeleted>
         implements PolicyEvent<ResourceDeleted> {
 

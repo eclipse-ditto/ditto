@@ -25,7 +25,7 @@ import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
-import org.eclipse.ditto.signals.events.batch.BatchEventRegistry;
+import org.eclipse.ditto.signals.events.base.GlobalEventRegistry;
 
 /**
  * {@link MappingStrategy} for all {@link Jsonifiable} types required for ditto batch processing.
@@ -44,7 +44,7 @@ public final class BatchMappingStrategy implements MappingStrategy {
         builder.add(GlobalErrorRegistry.getInstance());
         builder.add(globalCommandRegistry);
         builder.add(globalCommandResponseRegistry);
-        builder.add(BatchEventRegistry.newInstance(globalCommandRegistry, globalCommandResponseRegistry));
+        builder.add(GlobalEventRegistry.getInstance());
 
         return builder.build();
     }
