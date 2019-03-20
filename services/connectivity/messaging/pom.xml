@@ -176,11 +176,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-stream-kafka-testkit_${scala.version}</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>com.github.dnvriend</groupId>
             <artifactId>akka-persistence-inmemory_${scala.version}</artifactId>
             <scope>test</scope>

@@ -26,12 +26,12 @@ import org.awaitility.Awaitility;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
+import org.mockito.Mockito;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.kafka.ProducerMessage;
-import akka.kafka.testkit.ProducerResultFactory;
 import akka.stream.javadsl.Flow;
 import akka.testkit.TestProbe;
 
@@ -42,9 +42,10 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
 
     private static final String OUTBOUND_ADDRESS = "anyTopic/keyA";
 
+    private final List<ProducerMessage.Message<String, String, Object>> received = new LinkedList<>();
     private TestProbe clientActor;
     private KafkaConnectionFactory connectionFactory;
-    private List<ProducerMessage.Message<String, String, Object>> received = new LinkedList<>();
+
 
     @Override
     protected void setupMocks(final TestProbe probe) throws Exception {
@@ -56,8 +57,15 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
                             final ProducerMessage.Message<String, String, Object> message =
                                     (ProducerMessage.Message<String, String, Object>) envelope;
                             received.add(message);
-                            return ProducerResultFactory.result(message);
+                            return createResult(message);
                         }));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static ProducerMessage.Results<String, String, Object> createResult(final ProducerMessage.Message<String, String, Object> message) {
+        final ProducerMessage.Results<String, String, Object> resultMock = Mockito.mock(ProducerMessage.Results.class);
+        when(resultMock.passThrough()).thenReturn(message.passThrough());
+        return resultMock;
     }
 
     @Override

@@ -373,11 +373,6 @@
                 <artifactId>akka-stream-kafka_${scala.version}</artifactId>
                 <version>${akka-stream-kafka.version}</version>
             </dependency>
-            <dependency>
-                <groupId>com.typesafe.akka</groupId>
-                <artifactId>akka-stream-kafka-testkit_${scala.version}</artifactId>
-                <version>${akka-stream-kafka.version}</version>
-            </dependency>
 
             <dependency>
                 <groupId>io.netty</groupId>
