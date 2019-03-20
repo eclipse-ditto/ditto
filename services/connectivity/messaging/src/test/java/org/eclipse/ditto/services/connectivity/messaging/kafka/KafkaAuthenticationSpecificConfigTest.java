@@ -40,12 +40,22 @@ import akka.kafka.ProducerSettings;
 /**
  * Unit test for {@link KafkaAuthenticationSpecificConfig}.
  */
+@SuppressWarnings("squid:S2068")
 public class KafkaAuthenticationSpecificConfigTest {
+
+    private static final String KNOWN_PLAIN_SASL_MECHANISM = "PLAIN";
+    private static final String KNOWN_SHA256_SASL_MECHANISM = "SCRAM-SHA-256";
+    private static final String KNOWN_SHA512_SASL_MECHANISM = "SCRAM-SHA-512";
+    private static final String KNOWN_UNSUPPORTED_GSSAPI_SASL_MECHANISM = "GSSAPI";
+    private static final String KNOWN_UNSUPPORTED_OAUTHBEARER_SASL_MECHANISM = "OAUTHBEARER";
+    private static final String UNKNOWN_SASL_MECHANISM = "ANYTHING-ELSE";
     private static final DittoHeaders HEADERS = DittoHeaders.empty();
     private static final String DEFAULT_HOST = "localhost:1883";
     private static final Map<String, String> DEFAULT_SPECIFIC_CONFIG = new HashMap<>();
-    private static final Config CONFIG = ConnectionConfigReader.fromRawConfig(TestConstants.CONFIG).kafka().internalProducerSettings();
-    private static final ProducerSettings<String, String> DEFAULT_PRODUCER_SETTINGS = ProducerSettings.create(CONFIG, new StringSerializer(), new StringSerializer());
+    private static final Config CONFIG =
+            ConnectionConfigReader.fromRawConfig(TestConstants.CONFIG).kafka().internalProducerSettings();
+    private static final ProducerSettings<String, String> DEFAULT_PRODUCER_SETTINGS =
+            ProducerSettings.create(CONFIG, new StringSerializer(), new StringSerializer());
 
     static {
         DEFAULT_SPECIFIC_CONFIG.put("bootstrapServers", DEFAULT_HOST);
@@ -54,7 +64,8 @@ public class KafkaAuthenticationSpecificConfigTest {
     private static final String KNOWN_USER = "knownUser";
     private static final String KNOWN_PASSWORD = "knownPassword";
 
-    private final KafkaAuthenticationSpecificConfig kafkaAuthenticationSpecificConfig = KafkaAuthenticationSpecificConfig.getInstance();
+    private final KafkaAuthenticationSpecificConfig kafkaAuthenticationSpecificConfig =
+            KafkaAuthenticationSpecificConfig.getInstance();
 
     @Test
     public void shouldBeApplicableIfCredentialsExist() {
@@ -63,7 +74,7 @@ public class KafkaAuthenticationSpecificConfigTest {
 
     @Test
     public void shouldNotBeApplicableIfCredentialsAreMissing() {
-        shouldNotBeApplicable(connectionWithUsernameAndPassword(null, null));
+        shouldNotBeApplicable(connectionWithoutUsernameAndPassword());
     }
 
     private void shouldBeApplicable(final Connection connection) {
@@ -81,16 +92,16 @@ public class KafkaAuthenticationSpecificConfigTest {
 
     @Test
     public void shouldBeValidIfContainsSupportedSaslMechanism() {
-        shouldBeValid(connectionWithSaslMechanism("PLAIN"));
-        shouldBeValid(connectionWithSaslMechanism("SCRAM-SHA-256"));
-        shouldBeValid(connectionWithSaslMechanism("SCRAM-SHA-512"));
+        shouldBeValid(connectionWithSaslMechanism(KNOWN_PLAIN_SASL_MECHANISM));
+        shouldBeValid(connectionWithSaslMechanism(KNOWN_SHA256_SASL_MECHANISM));
+        shouldBeValid(connectionWithSaslMechanism(KNOWN_SHA512_SASL_MECHANISM));
     }
 
     @Test
     public void shouldBeInvalidIfContainsUnsupportedSaslMechanism() {
-        shouldNotBeValid(connectionWithSaslMechanism("OAUTHBEARER"));
-        shouldNotBeValid(connectionWithSaslMechanism("GSSAPI"));
-        shouldNotBeValid(connectionWithSaslMechanism("anything else"));
+        shouldNotBeValid(connectionWithSaslMechanism(KNOWN_UNSUPPORTED_OAUTHBEARER_SASL_MECHANISM));
+        shouldNotBeValid(connectionWithSaslMechanism(KNOWN_UNSUPPORTED_GSSAPI_SASL_MECHANISM));
+        shouldNotBeValid(connectionWithSaslMechanism(UNKNOWN_SASL_MECHANISM));
     }
 
     private void shouldBeValid(final Connection connection) {
@@ -108,16 +119,16 @@ public class KafkaAuthenticationSpecificConfigTest {
 
     @Test
     public void shouldValidateIfContainsSupportedSaslMechanism() {
-        shouldValidate(connectionWithSaslMechanism("PLAIN"));
-        shouldValidate(connectionWithSaslMechanism("SCRAM-SHA-256"));
-        shouldValidate(connectionWithSaslMechanism("SCRAM-SHA-512"));
+        shouldValidate(connectionWithSaslMechanism(KNOWN_PLAIN_SASL_MECHANISM));
+        shouldValidate(connectionWithSaslMechanism(KNOWN_SHA256_SASL_MECHANISM));
+        shouldValidate(connectionWithSaslMechanism(KNOWN_SHA512_SASL_MECHANISM));
     }
 
     @Test
     public void shouldThrowOnValidationIfContainsUnsupportedSaslMechanism() {
-        shouldNotValidate(connectionWithSaslMechanism("OAUTHBEARER"));
-        shouldNotValidate(connectionWithSaslMechanism("GSSAPI"));
-        shouldNotValidate(connectionWithSaslMechanism("anything else"));
+        shouldNotValidate(connectionWithSaslMechanism(KNOWN_UNSUPPORTED_OAUTHBEARER_SASL_MECHANISM));
+        shouldNotValidate(connectionWithSaslMechanism(KNOWN_UNSUPPORTED_GSSAPI_SASL_MECHANISM));
+        shouldNotValidate(connectionWithSaslMechanism(UNKNOWN_SASL_MECHANISM));
     }
 
     private void shouldValidate(final Connection connection) {
@@ -131,49 +142,57 @@ public class KafkaAuthenticationSpecificConfigTest {
 
     @Test
     public void shouldNotAddSaslConfigurationIfCredentialsAreMissingg() {
-        shouldNotContainSaslMechanism(connectionWithUsernameAndPassword(null, null));
+        shouldNotContainSaslMechanism(connectionWithoutUsernameAndPassword());
     }
+
     @Test
     public void shouldAddDefaultSaslConfigurationIfSaslMechanismIsMissing() {
-        shouldContainPlainSaslMechanism(connectionWithSaslMechanism(null), "PLAIN");
+        shouldContainPlainSaslMechanism(connectionWithSaslMechanism(null));
     }
 
     @Test
     public void shouldNotAddSaslConfigurationIfSaslMechanismIsUnsupported() {
-        shouldNotContainSaslMechanism(connectionWithSaslMechanism("OAUTHBEARER"));
-        shouldNotContainSaslMechanism(connectionWithSaslMechanism("GSSAPI"));
-        shouldNotContainSaslMechanism(connectionWithSaslMechanism("anything else"));
+        shouldNotContainSaslMechanism(connectionWithSaslMechanism(KNOWN_UNSUPPORTED_OAUTHBEARER_SASL_MECHANISM));
+        shouldNotContainSaslMechanism(connectionWithSaslMechanism(KNOWN_UNSUPPORTED_GSSAPI_SASL_MECHANISM));
+        shouldNotContainSaslMechanism(connectionWithSaslMechanism(UNKNOWN_SASL_MECHANISM));
     }
 
     @Test
     public void shouldAddSaslConfigurationIfSaslMechanismIsSupported() {
-        shouldContainPlainSaslMechanism(connectionWithSaslMechanism("PLAIN"), "PLAIN");
-        shouldContainScramSaslMechanism(connectionWithSaslMechanism("SCRAM-SHA-256"), "SCRAM-SHA-256");
-        shouldContainScramSaslMechanism(connectionWithSaslMechanism("SCRAM-SHA-512"), "SCRAM-SHA-512");
+        shouldContainPlainSaslMechanism(connectionWithSaslMechanism(KNOWN_PLAIN_SASL_MECHANISM));
+        shouldContainScramSaslMechanism(connectionWithSaslMechanism(KNOWN_SHA256_SASL_MECHANISM),
+                KNOWN_SHA256_SASL_MECHANISM);
+        shouldContainScramSaslMechanism(connectionWithSaslMechanism(KNOWN_SHA512_SASL_MECHANISM),
+                KNOWN_SHA512_SASL_MECHANISM);
 
     }
 
     private void shouldNotContainSaslMechanism(final Connection connection) {
-        final ProducerSettings<String, String> settings = kafkaAuthenticationSpecificConfig.apply(DEFAULT_PRODUCER_SETTINGS, connection);
+        final ProducerSettings<String, String> settings =
+                kafkaAuthenticationSpecificConfig.apply(DEFAULT_PRODUCER_SETTINGS, connection);
         assertThat(settings.properties().get(SaslConfigs.SASL_MECHANISM).isDefined()).isFalse();
         assertThat(settings.properties().get(SaslConfigs.SASL_JAAS_CONFIG).isDefined()).isFalse();
     }
 
-    private void shouldContainPlainSaslMechanism(final Connection connection, final String mechanism) {
+    private void shouldContainPlainSaslMechanism(final Connection connection) {
 
-        final ProducerSettings<String, String> settings = kafkaAuthenticationSpecificConfig.apply(DEFAULT_PRODUCER_SETTINGS, connection);
-        assertThat(settings.properties().get(SaslConfigs.SASL_MECHANISM).get()).isEqualTo(mechanism);
+        final ProducerSettings<String, String> settings =
+                kafkaAuthenticationSpecificConfig.apply(DEFAULT_PRODUCER_SETTINGS, connection);
+        assertThat(settings.properties().get(SaslConfigs.SASL_MECHANISM).get()).isEqualTo(KNOWN_PLAIN_SASL_MECHANISM);
         assertThat(settings.properties().get(SaslConfigs.SASL_JAAS_CONFIG).get()).isEqualTo(
-                "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"" + KNOWN_USER + "\" password=\"" + KNOWN_PASSWORD + "\";"
+                "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"" + KNOWN_USER +
+                        "\" password=\"" + KNOWN_PASSWORD + "\";"
         );
     }
 
     private void shouldContainScramSaslMechanism(final Connection connection, final String mechanism) {
 
-        final ProducerSettings<String, String> settings = kafkaAuthenticationSpecificConfig.apply(DEFAULT_PRODUCER_SETTINGS, connection);
+        final ProducerSettings<String, String> settings =
+                kafkaAuthenticationSpecificConfig.apply(DEFAULT_PRODUCER_SETTINGS, connection);
         assertThat(settings.properties().get(SaslConfigs.SASL_MECHANISM).get()).isEqualTo(mechanism);
         assertThat(settings.properties().get(SaslConfigs.SASL_JAAS_CONFIG).get()).isEqualTo(
-                "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"" + KNOWN_USER + "\" password=\"" + KNOWN_PASSWORD + "\";"
+                "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"" + KNOWN_USER +
+                        "\" password=\"" + KNOWN_PASSWORD + "\";"
         );
     }
 
@@ -185,16 +204,18 @@ public class KafkaAuthenticationSpecificConfigTest {
         return connection(KNOWN_USER, KNOWN_PASSWORD, specificConfigWithSaslMechanism(saslMechanism));
     }
 
-    private static Connection connectionWithUsernameAndPassword(@Nullable final String username, @Nullable final String password) {
-        return connection(username, password, DEFAULT_SPECIFIC_CONFIG);
+    private static Connection connectionWithoutUsernameAndPassword() {
+        return connection(null, null, DEFAULT_SPECIFIC_CONFIG);
     }
 
-    private static Connection connection(@Nullable final String username, @Nullable final String password, final Map<String, String> specificConfig){
+    private static Connection connection(@Nullable final String username, @Nullable final String password,
+            final Map<String, String> specificConfig) {
         final String uri = uriWithUserAndPassword(username, password);
         return ConnectivityModelFactory.newConnectionBuilder("kafka", ConnectionType.KAFKA,
                 ConnectivityStatus.OPEN, uri)
                 .targets(singletonList(
-                        org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget("target", AUTHORIZATION_CONTEXT, null, 1, Topic.LIVE_EVENTS)))
+                        org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget("target",
+                                AUTHORIZATION_CONTEXT, null, 1, Topic.LIVE_EVENTS)))
                 .specificConfig(specificConfig)
                 .build();
     }
@@ -221,4 +242,5 @@ public class KafkaAuthenticationSpecificConfigTest {
         configWithSasl.put("saslMechanism", saslMechanism);
         return configWithSasl;
     }
+
 }

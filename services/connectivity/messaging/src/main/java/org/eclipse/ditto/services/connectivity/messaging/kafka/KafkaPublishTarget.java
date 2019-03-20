@@ -22,9 +22,8 @@ import org.apache.kafka.common.internals.Topic;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.services.connectivity.messaging.PublishTarget;
 
-
 /**
- * A Kafka target.
+ * A Kafka target to which messages can be published.
  */
 @Immutable
 final class KafkaPublishTarget implements PublishTarget {
@@ -52,7 +51,7 @@ final class KafkaPublishTarget implements PublishTarget {
         return fromTargetAddressWithOnlyTopic(targetAddress);
     }
 
-    private static boolean containsKey(final String targetAddress) {
+    static boolean containsKey(final String targetAddress) {
         final int index = targetAddress.indexOf(KEY_SEPARATOR);
         return index > 0 && index < targetAddress.length();
     }
@@ -69,7 +68,7 @@ final class KafkaPublishTarget implements PublishTarget {
         return key.isEmpty() ? null : key;
     }
 
-    private static boolean containsPartition(final String targetAddress) {
+    static boolean containsPartition(final String targetAddress) {
         final int index = targetAddress.indexOf(PARTITION_SEPARATOR);
         return index > 0 && index < targetAddress.length();
     }

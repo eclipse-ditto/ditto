@@ -44,9 +44,10 @@ public class ProducerSettingsFactoryTest {
             "baz:789"
     };
     private static final String ADDITIONAL_BOOTSTRAP_SERVERS = Arrays.stream(BOOTSTRAP_SERVERS)
-            .limit(BOOTSTRAP_SERVERS.length - 1)
+            .limit(BOOTSTRAP_SERVERS.length - 1L)
             .collect(Collectors.joining(","));
     private static final String USERNAME = "user";
+    @SuppressWarnings("squid:S2068")
     private static final String PASSWORD = "pw";
     private static final String URI = "tcp://" + USERNAME + ":" + PASSWORD + "@" + BOOTSTRAP_SERVERS[BOOTSTRAP_SERVERS.length - 1];
     private static final String TARGET_ADDRESS = "events";
@@ -81,4 +82,5 @@ public class ProducerSettingsFactoryTest {
                 .specificConfig(SPECIFIC_CONFIG)
                 .build();
     }
+
 }

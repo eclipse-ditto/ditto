@@ -61,10 +61,9 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
     private final ActorRef kafkaClientActor;
     private final KafkaConnectionFactory connectionFactory;
     private final boolean dryRun;
+
     private boolean shuttingDown = false;
-
     private ActorRef sourceActor;
-
 
     private KafkaPublisherActor(final String connectionId, final List<Target> targets,
             final KafkaConnectionFactory factory,
@@ -78,22 +77,6 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
         this.startInternalKafkaProducer();
         this.reportInitialConnectionState();
     }
-
-    /*
-      TODO: test cases:
-      1.0 what happens if the topic is missing -> org.apache.kafka.common.errors.TimeoutException: Topic <topic> not present in metadata after 10000 ms.
-      1.1 what happens if the partition is not available -> org.apache.kafka.common.errors.TimeoutException: Topic test not present in metadata after 10000 ms.
-      2. what happens if authentication is unsuccessful -> org.apache.kafka.common.errors.SaslAuthenticationException: Authentication failed: Invalid username or password
-                                                         The internal NetworkClient of the used library will start logging failures repeatedly:
-                                                         o.a.k.c.NetworkClient  - [Producer clientId=producer-3] Connection to node -1 (localhost/127.0.0.1:9092) failed authentication due to: Authentication failed: Invalid username or password
-                                                         todo: we should therefore definitely stop the producer and ourselves
-      3. what happens if authorization is unsuccessful -> org.apache.kafka.common.errors.TopicAuthorizationException: Not authorized to access topics: [test]
-                                                         todo: we should therefore definitely stop the producer and orselves. but the timeoutexception is a problem :/
-      4. what happens if the port is closed -> timeout
-      5. what happens if kafka is stopped -> timeout probably and a lot of network client problems:
-                                            Error while fetching metadata with correlation id 81 : {test=LEADER_NOT_AVAILABLE} (org.apache.kafka.clients.NetworkClient)
-      6. how to handle poisonpill to us? -> graceful shutdown
-     */
 
     /**
      * Creates Akka configuration object {@link akka.actor.Props} for this {@code BasePublisherActor}.
@@ -204,7 +187,7 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
         return "";
     }
 
-    private Done handleCompletionOrFailure(final Done done, final Throwable throwable) {
+    private Done handleCompletionOrFailure(final Done done, @Nullable final Throwable throwable) {
         // when getting here, the Kafka producer will have finished its work either because it got an exception or because
         // the stream (it is built upon) is finished. Since the stream is never expected to finish, we will try to
         // restart the producer most of the times. Only when it was intentionally stopped (#shuttingDown), we will not
@@ -290,6 +273,9 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
         getContext().stop(getSelf());
     }
 
+    /**
+     * Message that allows gracefully stopping the publisher actor.
+     */
     static class GracefulStop {
 
         static final GracefulStop INSTANCE = new GracefulStop();

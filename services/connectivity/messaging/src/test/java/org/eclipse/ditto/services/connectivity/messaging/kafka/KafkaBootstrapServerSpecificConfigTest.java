@@ -47,6 +47,8 @@ import akka.kafka.ProducerSettings;
  */
 public class KafkaBootstrapServerSpecificConfigTest {
 
+    private static final String FAIL_MESSAGE_TEMPLATE = "bootstrapServers: %s";
+
     private static final DittoHeaders HEADERS = DittoHeaders.empty();
     private static final Config CONFIG =
             ConnectionConfigReader.fromRawConfig(TestConstants.CONFIG).kafka().internalProducerSettings();
@@ -60,6 +62,7 @@ public class KafkaBootstrapServerSpecificConfigTest {
     private static final String DEFAULT_URI = "tcp://user:pw@" + DEFAULT_SERVER;
     private static final String[] BOOTSTRAP_SERVERS_ARRAY = {DEFAULT_SERVER, DEFAULT_SERVER_2, DEFAULT_SERVER_3};
     private static final String BOOTSTRAP_SERVERS = String.join(",", BOOTSTRAP_SERVERS_ARRAY);
+    private static final String BOOTSTRAP_SERVERS_CONFIG_KEY = "bootstrapServers";
 
     private static final Set<Connection> CONNECTIONS_WITH_EMPTY_SERVERS = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(
@@ -79,7 +82,8 @@ public class KafkaBootstrapServerSpecificConfigTest {
                     connectionWithBootstrapServers(BOOTSTRAP_SERVERS)
             )));
 
-    private final KafkaBootstrapServerSpecificConfig config = KafkaBootstrapServerSpecificConfig.getInstance();
+    private final KafkaBootstrapServerSpecificConfig bootstrapServerSpecificConfig =
+            KafkaBootstrapServerSpecificConfig.getInstance();
 
     @Test
     public void shouldAlwaysBeApplicable() {
@@ -89,8 +93,9 @@ public class KafkaBootstrapServerSpecificConfigTest {
     }
 
     private void shouldBeApplicable(final Connection connection) {
-        assertThat(config.isApplicable(connection))
-                .withFailMessage("bootstrapServers: %s", connection.getSpecificConfig().get("bootstrapServers"))
+        assertThat(bootstrapServerSpecificConfig.isApplicable(connection))
+                .withFailMessage(FAIL_MESSAGE_TEMPLATE,
+                        connection.getSpecificConfig().get(BOOTSTRAP_SERVERS_CONFIG_KEY))
                 .isTrue();
     }
 
@@ -112,14 +117,16 @@ public class KafkaBootstrapServerSpecificConfigTest {
     }
 
     private void shouldBeValid(final Connection connection) {
-        assertThat(config.isValid(connection))
-                .withFailMessage("bootstrapServers: %s", connection.getSpecificConfig().get("bootstrapServers"))
+        assertThat(bootstrapServerSpecificConfig.isValid(connection))
+                .withFailMessage(FAIL_MESSAGE_TEMPLATE,
+                        connection.getSpecificConfig().get(BOOTSTRAP_SERVERS_CONFIG_KEY))
                 .isTrue();
     }
 
     private void shouldNotBeValid(final Connection connection) {
-        assertThat(config.isValid(connection))
-                .withFailMessage("bootstrapServers: %s", connection.getSpecificConfig().get("bootstrapServers")).
+        assertThat(bootstrapServerSpecificConfig.isValid(connection))
+                .withFailMessage(FAIL_MESSAGE_TEMPLATE,
+                        connection.getSpecificConfig().get(BOOTSTRAP_SERVERS_CONFIG_KEY)).
                 isFalse();
     }
 
@@ -139,12 +146,12 @@ public class KafkaBootstrapServerSpecificConfigTest {
     }
 
     private void shouldValidate(final Connection connection) {
-        config.validateOrThrow(connection, HEADERS);
+        bootstrapServerSpecificConfig.validateOrThrow(connection, HEADERS);
     }
 
     private void shouldNotValidate(final Connection connection) {
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(() -> config.validateOrThrow(connection, HEADERS));
+                .isThrownBy(() -> bootstrapServerSpecificConfig.validateOrThrow(connection, HEADERS));
     }
 
     @Test
@@ -172,13 +179,15 @@ public class KafkaBootstrapServerSpecificConfigTest {
     }
 
     private void shouldOnlyContainDefaultBootstrapServer(final Connection connection) {
-        final ProducerSettings<String, String> settings = config.apply(DEFAULT_PRODUCER_SETTINGS, connection);
+        final ProducerSettings<String, String> settings =
+                bootstrapServerSpecificConfig.apply(DEFAULT_PRODUCER_SETTINGS, connection);
         final List<String> servers = getBootstrapServers(settings);
         assertThat(servers).isEqualTo(Collections.singletonList(DEFAULT_SERVER));
     }
 
     private void shouldContainBootstrapServers(final Connection connection) {
-        final ProducerSettings<String, String> settings = config.apply(DEFAULT_PRODUCER_SETTINGS, connection);
+        final ProducerSettings<String, String> settings =
+                bootstrapServerSpecificConfig.apply(DEFAULT_PRODUCER_SETTINGS, connection);
         final List<String> servers = getBootstrapServers(settings);
         assertThat(servers).containsExactlyInAnyOrder(BOOTSTRAP_SERVERS_ARRAY);
     }
@@ -190,7 +199,7 @@ public class KafkaBootstrapServerSpecificConfigTest {
     private static Connection connectionWithBootstrapServers(@Nullable final String bootstrapServers) {
         final Map<String, String> specificConfig = new HashMap<>();
         if (null != bootstrapServers) {
-            specificConfig.put("bootstrapServers", bootstrapServers);
+            specificConfig.put(BOOTSTRAP_SERVERS_CONFIG_KEY, bootstrapServers);
         }
         return ConnectivityModelFactory.newConnectionBuilder("kafka", ConnectionType.KAFKA,
                 ConnectivityStatus.OPEN, DEFAULT_URI)

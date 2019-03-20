@@ -94,29 +94,19 @@ public final class KafkaValidator extends AbstractProtocolValidator {
     }
 
     private void validateAddress(final String address, final DittoHeaders dittoHeaders, final String placeholderReplacement) {
-        if (containsKey(address)) {
+        if (KafkaPublishTarget.containsKey(address)) {
             validateTargetAddressWithKey(address, dittoHeaders, placeholderReplacement);
-        } else if (containsPartition(address)) {
+        } else if (KafkaPublishTarget.containsPartition(address)) {
             validateTargetAddressWithPartition(address, dittoHeaders, placeholderReplacement);
         } else {
             validateTopic(address, dittoHeaders, placeholderReplacement);
         }
     }
 
-    private static boolean containsKey(final String targetAddress) {
-        final int index = targetAddress.indexOf(KafkaPublishTarget.KEY_SEPARATOR);
-        return index > 0 && index < targetAddress.length();
-    }
-
     private void validateTargetAddressWithKey(final String targetAddress, final DittoHeaders dittoHeaders, final String placeholderReplacement) {
         final String[] split = targetAddress.split(KafkaPublishTarget.KEY_SEPARATOR, 2);
         validateTopic(split[0], dittoHeaders, placeholderReplacement);
         validateKey(split[1], dittoHeaders);
-    }
-
-    private static boolean containsPartition(final String targetAddress) {
-        final int index = targetAddress.indexOf(KafkaPublishTarget.PARTITION_SEPARATOR);
-        return index > 0 && index < targetAddress.length();
     }
 
     private void validateTargetAddressWithPartition(final String targetAddress,

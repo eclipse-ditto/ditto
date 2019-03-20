@@ -42,11 +42,11 @@ public class KafkaValidatorTest {
 
     @Test
     public void testSourcesAreInvalid() {
-        verifyConnectionConfigurationInvalidExceptionIsThrownForSource(source("any"));
+        verifyConnectionConfigurationInvalidExceptionIsThrownForSource(source());
     }
 
-    private Source source(final String address) {
-        return ConnectivityModelFactory.newSource(AUTHORIZATION_CONTEXT, address);
+    private Source source() {
+        return ConnectivityModelFactory.newSource(AUTHORIZATION_CONTEXT, "any");
     }
 
     private void verifyConnectionConfigurationInvalidExceptionIsThrownForSource(final Source source) {

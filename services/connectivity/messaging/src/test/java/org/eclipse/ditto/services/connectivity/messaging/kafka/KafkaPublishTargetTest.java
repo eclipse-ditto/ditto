@@ -25,11 +25,13 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public class KafkaPublishTargetTest {
 
+    private static final String DEFAULT_TOPIC = "events";
+
     @Test
     public void extractsSimpleTopicName() {
-        final KafkaPublishTarget target = KafkaPublishTarget.fromTargetAddress("events");
+        final KafkaPublishTarget target = KafkaPublishTarget.fromTargetAddress(DEFAULT_TOPIC);
 
-        assertThat(target.getTopic()).isEqualTo("events");
+        assertThat(target.getTopic()).isEqualTo(DEFAULT_TOPIC);
         assertThat(target.getKey()).isEmpty();
         assertThat(target.getPartition()).isEmpty();
     }
@@ -38,7 +40,7 @@ public class KafkaPublishTargetTest {
     public void extractsTopicAndKey() {
         final KafkaPublishTarget target = KafkaPublishTarget.fromTargetAddress("events/anyRandomKey");
 
-        assertThat(target.getTopic()).isEqualTo("events");
+        assertThat(target.getTopic()).isEqualTo(DEFAULT_TOPIC);
         assertThat(target.getKey()).contains("anyRandomKey");
         assertThat(target.getPartition()).isEmpty();
     }
@@ -48,7 +50,7 @@ public class KafkaPublishTargetTest {
         final String keyWithSpecialChars = "anyRandom/key#withSpecial*chars";
         final KafkaPublishTarget target = KafkaPublishTarget.fromTargetAddress("events/" + keyWithSpecialChars);
 
-        assertThat(target.getTopic()).isEqualTo("events");
+        assertThat(target.getTopic()).isEqualTo(DEFAULT_TOPIC);
         assertThat(target.getKey()).contains(keyWithSpecialChars);
         assertThat(target.getPartition()).isEmpty();
     }
@@ -56,7 +58,7 @@ public class KafkaPublishTargetTest {
     @Test
     public void extractsTopicAndPartition() {
         final KafkaPublishTarget target = KafkaPublishTarget.fromTargetAddress("events#3");
-        assertThat(target.getTopic()).isEqualTo("events");
+        assertThat(target.getTopic()).isEqualTo(DEFAULT_TOPIC);
         assertThat(target.getKey()).isEmpty();
         assertThat(target.getPartition()).contains(3);
     }
@@ -65,7 +67,7 @@ public class KafkaPublishTargetTest {
     public void ignoresMissingKeyAfterSeparatorThrowsError() {
         final KafkaPublishTarget target = KafkaPublishTarget.fromTargetAddress("events/");
 
-        assertThat(target.getTopic()).isEqualTo("events");
+        assertThat(target.getTopic()).isEqualTo(DEFAULT_TOPIC);
         assertThat(target.getKey()).isEmpty();
         assertThat(target.getPartition()).isEmpty();
     }
@@ -74,7 +76,7 @@ public class KafkaPublishTargetTest {
     public void ignoresMissingPartitionAfterSeparatorThrowsError() {
         final KafkaPublishTarget target = KafkaPublishTarget.fromTargetAddress("events#");
 
-        assertThat(target.getTopic()).isEqualTo("events");
+        assertThat(target.getTopic()).isEqualTo(DEFAULT_TOPIC);
         assertThat(target.getKey()).isEmpty();
         assertThat(target.getPartition()).isEmpty();
     }
@@ -103,13 +105,9 @@ public class KafkaPublishTargetTest {
                 .verify();
     }
 
-    @Test
-    public void test() {
-        assertThat(KafkaPublishTarget.fromTargetAddress("events").getTopic()).isEqualTo("events");
-    }
-
     @Test(expected = NullPointerException.class)
     public void testNull() {
         KafkaPublishTarget.fromTargetAddress(null);
     }
+
 }

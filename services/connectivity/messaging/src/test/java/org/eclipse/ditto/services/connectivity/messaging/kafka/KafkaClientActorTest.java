@@ -66,7 +66,7 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Unit test for {@link org.eclipse.ditto.services.connectivity.messaging.kafka.KafkaClientActor}.
  */
-@SuppressWarnings("squid:S3599")
+@SuppressWarnings({"squid:S3599", "squid:S1171"})
 @RunWith(MockitoJUnitRunner.class)
 public class KafkaClientActorTest {
 
@@ -78,12 +78,10 @@ public class KafkaClientActorTest {
     private static final String TOPIC = "target";
     private static final Target TARGET = newTarget(TOPIC, AUTHORIZATION_CONTEXT, null, 0, Topic.TWIN_EVENTS);
     private static ActorSystem actorSystem;
+    private static ServerSocket mockServer;
 
     private String connectionId;
-    private static Connection connection;
-    private String serverHost;
-
-    private static ServerSocket mockServer;
+    private Connection connection;
 
     @Mock
     private KafkaPublisherActorFactory publisherActorFactory;
@@ -123,7 +121,7 @@ public class KafkaClientActorTest {
     public void initializeConnection() {
         connectionId = TestConstants.createRandomConnectionId();
         final String hostAndPort = HOST + ":" + mockServer.getLocalPort();
-        serverHost = "tcp://" + hostAndPort;
+        final String serverHost = "tcp://" + hostAndPort;
         final Map<String, String> specificConfig = specificConfigWithBootstrapServers(hostAndPort);
         connection = ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.KAFKA,
                 ConnectivityStatus.OPEN, serverHost)

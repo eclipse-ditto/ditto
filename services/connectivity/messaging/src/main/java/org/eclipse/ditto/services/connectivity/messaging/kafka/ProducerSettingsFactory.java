@@ -15,7 +15,6 @@ import java.util.Collection;
 import java.util.Collections;
 
 import org.apache.kafka.clients.CommonClientConfigs;
-import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -41,12 +40,7 @@ final class ProducerSettingsFactory {
     }
 
     ProducerSettings<String, String> createProducerSettings(final Connection connection, final KafkaConfigReader config) {
-        ProducerSettings<String, String> settings = ProducerSettings.create(config.internalProducerSettings(), KEY_SERIALIZER, VALUE_SERIALIZER)
-                .withProperty(ProducerConfig.MAX_BLOCK_MS_CONFIG, "10000"); // TODO blocking timeout, either due to missing metadata or due to full buffer, reset to 60.000
-//                .withCloseTimeout()
-//                .withDispatcher()
-//                .withEosCommitInterval()
-//                .withParallelism()
+        ProducerSettings<String, String> settings = ProducerSettings.create(config.internalProducerSettings(), KEY_SERIALIZER, VALUE_SERIALIZER);
 
         settings = addSecurityProtocol(connection, settings);
         settings = addSpecificConfigs(settings, connection);

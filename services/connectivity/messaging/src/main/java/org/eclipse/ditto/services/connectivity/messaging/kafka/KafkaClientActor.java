@@ -81,7 +81,7 @@ public final class KafkaClientActor extends BaseClientActor {
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inTestingState() {
         return super.inTestingState()
                 .event(Status.Status.class, (e, d) -> !Objects.equals(getSender(), getSelf()),
-                        this::handleStatusReportFromChildren)
+                        (status, data) -> this.handleStatusReportFromChildren(status))
                 .event(ClientConnected.class, BaseClientData.class, (event, data) -> {
                     final String url = data.getConnection().getUri();
                     final String message = "Kafka connection to " + url + " established successfully";
@@ -97,7 +97,7 @@ public final class KafkaClientActor extends BaseClientActor {
     @Override
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectingState() {
         return super.inConnectingState()
-                .event(Status.Status.class, this::handleStatusReportFromChildren);
+                .event(Status.Status.class, (status, data) -> this.handleStatusReportFromChildren(status));
     }
 
     @Override
@@ -118,7 +118,6 @@ public final class KafkaClientActor extends BaseClientActor {
 
     @Override
     protected ActorRef getPublisherActor() {
-        // TODO TJ check if we always create the producer!
         return kafkaPublisherActor;
     }
 
@@ -171,8 +170,7 @@ public final class KafkaClientActor extends BaseClientActor {
         }
     }
 
-    private State<BaseClientState, BaseClientData> handleStatusReportFromChildren(final Status.Status status,
-            final BaseClientData data) {
+    private State<BaseClientState, BaseClientData> handleStatusReportFromChildren(final Status.Status status) {
         if (pendingStatusReportsFromStreams.contains(getSender())) {
             pendingStatusReportsFromStreams.remove(getSender());
             if (status instanceof Status.Failure) {
@@ -197,4 +195,5 @@ public final class KafkaClientActor extends BaseClientActor {
             getSelf().tell(new Status.Failure(exception), getSelf());
         }
     }
+
 }
