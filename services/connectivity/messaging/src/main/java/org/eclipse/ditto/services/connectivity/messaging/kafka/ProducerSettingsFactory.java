@@ -19,17 +19,19 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.util.KafkaConfigReader;
+import org.eclipse.ditto.services.utils.config.ConfigUtil;
 
 import akka.kafka.ProducerSettings;
 
 /**
- * Creates {@link akka.kafka.ProducerSettings} from a given {@link
- * org.eclipse.ditto.model.connectivity.Connection} configuration.
+ * Creates {@link akka.kafka.ProducerSettings} from a given {@link org.eclipse.ditto.model.connectivity.Connection}
+ * configuration.
  */
 final class ProducerSettingsFactory {
 
     private static final Collection<KafkaSpecificConfig> SPECIFIC_CONFIGS =
-            Collections.unmodifiableList(Arrays.asList(KafkaAuthenticationSpecificConfig.getInstance(), KafkaBootstrapServerSpecificConfig.getInstance()));
+            Collections.unmodifiableList(Arrays.asList(KafkaAuthenticationSpecificConfig.getInstance(),
+                    KafkaBootstrapServerSpecificConfig.getInstance()));
 
     private static final ProducerSettingsFactory INSTANCE = new ProducerSettingsFactory();
     private static final Serializer<String> KEY_SERIALIZER = new StringSerializer();
@@ -39,13 +41,24 @@ final class ProducerSettingsFactory {
         return INSTANCE;
     }
 
-    ProducerSettings<String, String> createProducerSettings(final Connection connection, final KafkaConfigReader config) {
-        ProducerSettings<String, String> settings = ProducerSettings.create(config.internalProducerSettings(), KEY_SERIALIZER, VALUE_SERIALIZER);
+    ProducerSettings<String, String> createProducerSettings(final Connection connection,
+            final KafkaConfigReader config) {
+        ProducerSettings<String, String> settings =
+                ProducerSettings.create(config.internalProducerSettings(), KEY_SERIALIZER, VALUE_SERIALIZER);
 
+        settings = addMetadata(connection, settings);
         settings = addSecurityProtocol(connection, settings);
         settings = addSpecificConfigs(settings, connection);
 
         return settings;
+    }
+
+    private ProducerSettings<String, String> addMetadata(final Connection connection,
+            final ProducerSettings<String, String> settings) {
+        // identify the connected Kafka client by the connectionId followed by the instance index
+        // (in order to be able to differentiate if a clientCount >1 was configured):
+        return settings.withProperty(CommonClientConfigs.CLIENT_ID_CONFIG, connection.getId() + "-" +
+                ConfigUtil.instanceIdentifier());
     }
 
     private ProducerSettings<String, String> addSpecificConfigs(final ProducerSettings<String, String> settings,
@@ -57,7 +70,8 @@ final class ProducerSettingsFactory {
         return currentSettings;
     }
 
-    private ProducerSettings<String, String> addSecurityProtocol(final Connection connection, final ProducerSettings<String, String>  settings) {
+    private ProducerSettings<String, String> addSecurityProtocol(final Connection connection,
+            final ProducerSettings<String, String> settings) {
         if (isAuthenticatedConnection(connection)) {
             return addAuthenticatedSecurityProtocol(connection, settings);
         }
@@ -68,14 +82,16 @@ final class ProducerSettingsFactory {
         return KafkaAuthenticationSpecificConfig.getInstance().isApplicable(connection);
     }
 
-    private static ProducerSettings<String, String> addAuthenticatedSecurityProtocol(final Connection connection, final ProducerSettings<String, String>  settings) {
+    private static ProducerSettings<String, String> addAuthenticatedSecurityProtocol(final Connection connection,
+            final ProducerSettings<String, String> settings) {
         if (isSecureConnection(connection)) {
             return settings.withProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_SSL");
         }
         return settings.withProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT");
     }
 
-    private static ProducerSettings<String, String> addUnauthenticatedSecurityProtocol(final Connection connection, final ProducerSettings<String, String>  settings) {
+    private static ProducerSettings<String, String> addUnauthenticatedSecurityProtocol(final Connection connection,
+            final ProducerSettings<String, String> settings) {
         if (isSecureConnection(connection)) {
             return settings.withProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
         }

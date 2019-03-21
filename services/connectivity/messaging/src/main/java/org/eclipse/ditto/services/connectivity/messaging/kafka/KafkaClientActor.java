@@ -54,7 +54,8 @@ public final class KafkaClientActor extends BaseClientActor {
             final ActorRef conciergeForwarder,
             final KafkaPublisherActorFactory factory) {
         super(connection, desiredConnectionStatus, conciergeForwarder);
-        final KafkaConfigReader configReader = ConnectionConfigReader.fromRawConfig(getContext().system().settings().config()).kafka();
+        final KafkaConfigReader configReader =
+                ConnectionConfigReader.fromRawConfig(getContext().system().settings().config()).kafka();
         this.connectionFactory = KafkaConnectionFactory.of(connection, configReader);
         this.publisherActorFactory = factory;
         pendingStatusReportsFromStreams = new HashSet<>();
@@ -67,7 +68,8 @@ public final class KafkaClientActor extends BaseClientActor {
      * @param conciergeForwarder the actor used to send signals to the concierge service.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, final ActorRef conciergeForwarder, final KafkaPublisherActorFactory factory) {
+    public static Props props(final Connection connection, final ActorRef conciergeForwarder,
+            final KafkaPublisherActorFactory factory) {
         return Props.create(KafkaClientActor.class, validateConnection(connection), connection.getConnectionStatus(),
                 conciergeForwarder, factory);
     }
@@ -103,7 +105,8 @@ public final class KafkaClientActor extends BaseClientActor {
     @Override
     protected CompletionStage<Status.Status> doTestConnection(final Connection connection) {
         if (testConnectionFuture != null) {
-            final Exception error = new IllegalStateException("Can't test new connection since a test is already running.");
+            final Exception error =
+                    new IllegalStateException("Can't test new connection since a test is already running.");
             return CompletableFuture.completedFuture(new Status.Failure(error));
         }
         testConnectionFuture = new CompletableFuture<>();
@@ -132,8 +135,7 @@ public final class KafkaClientActor extends BaseClientActor {
     }
 
     /**
-     * Start Kafka publishers, expect "Status.Success" from each of them, then send "ClientConnected" to
-     * self.
+     * Start Kafka publishers, expect "Status.Success" from each of them, then send "ClientConnected" to self.
      *
      * @param dryRun if set to true, exchange no message between the broker and the Ditto cluster.
      */
@@ -149,7 +151,8 @@ public final class KafkaClientActor extends BaseClientActor {
         // ensure no previous publisher stays in memory
         stopKafkaPublisher();
         kafkaPublisherActor = startChildActorConflictFree(publisherActorFactory.name(),
-                publisherActorFactory.props(connectionId(), getTargetsOrEmptyList(), connectionFactory, getSelf(), dryRun));
+                publisherActorFactory.props(connectionId(), getTargetsOrEmptyList(), connectionFactory, getSelf(),
+                        dryRun));
         pendingStatusReportsFromStreams.add(kafkaPublisherActor);
     }
 
@@ -191,7 +194,8 @@ public final class KafkaClientActor extends BaseClientActor {
             testConnectionFuture.complete(testResult);
         } else {
             // no future; test failed.
-            final Exception exception = new IllegalStateException("Could not complete testing connection since the test was already completed or wasn't started.");
+            final Exception exception = new IllegalStateException(
+                    "Could not complete testing connection since the test was already completed or wasn't started.");
             getSelf().tell(new Status.Failure(exception), getSelf());
         }
     }

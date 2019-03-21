@@ -38,9 +38,12 @@ public final class KafkaAuthenticationSpecificConfig implements KafkaSpecificCon
     private static KafkaAuthenticationSpecificConfig instance;
 
     private KafkaAuthenticationSpecificConfig() {
-        SASL_MECHANISMS_WITH_LOGIN_MODULE.put(PLAIN_SASL_MECHANISM, "org.apache.kafka.common.security.plain.PlainLoginModule");
-        SASL_MECHANISMS_WITH_LOGIN_MODULE.put("SCRAM-SHA-256", "org.apache.kafka.common.security.scram.ScramLoginModule");
-        SASL_MECHANISMS_WITH_LOGIN_MODULE.put("SCRAM-SHA-512", "org.apache.kafka.common.security.scram.ScramLoginModule");
+        SASL_MECHANISMS_WITH_LOGIN_MODULE.put(PLAIN_SASL_MECHANISM,
+                "org.apache.kafka.common.security.plain.PlainLoginModule");
+        SASL_MECHANISMS_WITH_LOGIN_MODULE.put("SCRAM-SHA-256",
+                "org.apache.kafka.common.security.scram.ScramLoginModule");
+        SASL_MECHANISMS_WITH_LOGIN_MODULE.put("SCRAM-SHA-512",
+                "org.apache.kafka.common.security.scram.ScramLoginModule");
     }
 
     public static KafkaAuthenticationSpecificConfig getInstance() {
@@ -58,8 +61,10 @@ public final class KafkaAuthenticationSpecificConfig implements KafkaSpecificCon
     @Override
     public void validateOrThrow(final Connection connection, final DittoHeaders dittoHeaders) {
         if (!isValid(connection)) {
-            final String message = MessageFormat.format("The connection configuration contains an invalid value for SASL mechanisms: <{0}>. Allowed " +
-                    "mechanisms are: <{1}>", getSaslMechanismOrDefault(connection), SASL_MECHANISMS_WITH_LOGIN_MODULE.keySet());
+            final String message = MessageFormat.format(
+                    "The connection configuration contains an invalid value for SASL mechanisms: <{0}>. Allowed " +
+                            "mechanisms are: <{1}>", getSaslMechanismOrDefault(connection),
+                    SASL_MECHANISMS_WITH_LOGIN_MODULE.keySet());
             throw ConnectionConfigurationInvalidException.newBuilder(message)
                     .dittoHeaders(dittoHeaders)
                     .build();

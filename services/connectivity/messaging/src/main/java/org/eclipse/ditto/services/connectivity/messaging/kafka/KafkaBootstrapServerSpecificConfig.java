@@ -27,8 +27,8 @@ import org.slf4j.LoggerFactory;
 import akka.kafka.ProducerSettings;
 
 /**
- * Handles all bootstrap server related configuration. Expects the specific config of a connection to contain
- * a non-empty list of bootstrap servers. The list will be merged with the server found in the connection uri.
+ * Handles all bootstrap server related configuration. Expects the specific config of a connection to contain a
+ * non-empty list of bootstrap servers. The list will be merged with the server found in the connection uri.
  */
 public final class KafkaBootstrapServerSpecificConfig implements KafkaSpecificConfig {
 
@@ -63,7 +63,8 @@ public final class KafkaBootstrapServerSpecificConfig implements KafkaSpecificCo
     @Override
     public void validateOrThrow(final Connection connection, final DittoHeaders dittoHeaders) {
         if (!isValid(connection)) {
-            final String message = MessageFormat.format(INVALID_BOOTSTRAP_SERVERS, getBootstrapServersFromSpecificConfig(connection));
+            final String message =
+                    MessageFormat.format(INVALID_BOOTSTRAP_SERVERS, getBootstrapServersFromSpecificConfig(connection));
             throw ConnectionConfigurationInvalidException.newBuilder(message)
                     .dittoHeaders(dittoHeaders)
                     .build();
@@ -82,13 +83,15 @@ public final class KafkaBootstrapServerSpecificConfig implements KafkaSpecificCo
         if (isValid(connection)) {
             final String bootstrapServerFromUri = getBootstrapServerFromUri(connection);
             final String additionalBootstrapServers = getBootstrapServersFromSpecificConfig(connection);
-            mergedBootstrapServers = mergeAdditionalBootstrapServers(bootstrapServerFromUri, additionalBootstrapServers);
+            mergedBootstrapServers =
+                    mergeAdditionalBootstrapServers(bootstrapServerFromUri, additionalBootstrapServers);
         } else {
             // basically we should never end in this else-branch, since the connection should always contain bootstrap servers.
             // so this is just a fallback is something bad happens.
-            LOG.warn("Kafka connection <{}> contains invalid configuration for its bootstrap servers. Either they are empty," +
-                    " or don't match the pattern <host:port[,host:port]>. This should never happen as the connection should" +
-                    " not have been stored with the invalid pattern.", connection.getId());
+            LOG.warn(
+                    "Kafka connection <{}> contains invalid configuration for its bootstrap servers. Either they are empty," +
+                            " or don't match the pattern <host:port[,host:port]>. This should never happen as the connection should" +
+                            " not have been stored with the invalid pattern.", connection.getId());
             mergedBootstrapServers = getBootstrapServerFromUri(connection);
         }
         return producerSettings.withBootstrapServers(mergedBootstrapServers);
@@ -106,7 +109,8 @@ public final class KafkaBootstrapServerSpecificConfig implements KafkaSpecificCo
                 && !bootstrapServers.trim().endsWith(",");
     }
 
-    private static String mergeAdditionalBootstrapServers(final String serverWithoutProtocol, final String additionalBootstrapServers) {
+    private static String mergeAdditionalBootstrapServers(final String serverWithoutProtocol,
+            final String additionalBootstrapServers) {
         final Set<String> additionalServers = Arrays.stream(additionalBootstrapServers.split(","))
                 .map(String::trim)
                 .collect(Collectors.toSet());

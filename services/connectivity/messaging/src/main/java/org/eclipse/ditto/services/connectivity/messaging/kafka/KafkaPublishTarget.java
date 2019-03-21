@@ -90,7 +90,7 @@ final class KafkaPublishTarget implements PublishTarget {
 
     private static KafkaPublishTarget fromTargetAddressWithOnlyTopic(final String targetAddress) {
         validateTopic(targetAddress);
-        return new KafkaPublishTarget(targetAddress, null,null);
+        return new KafkaPublishTarget(targetAddress, null, null);
     }
 
     private static String validateTopic(final String topic) {
