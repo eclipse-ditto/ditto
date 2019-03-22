@@ -125,7 +125,7 @@ public final class AuthenticationChainTest {
         final RequestContext requestContextMock = mockRequestContextForAuthenticate();
         final String correlationId = getRandomUuid();
         final IllegalStateException expectedException = new IllegalStateException("No applicable authentication " +
-                "provider was found. Check with 'isApplicable' before calling 'authenticate'.");
+                "provider was found!");
         when(authenticationProviderA.isApplicable(requestContextMock)).thenReturn(false);
         when(authenticationProviderB.isApplicable(requestContextMock)).thenReturn(false);
         final AuthenticationChain underTest =
