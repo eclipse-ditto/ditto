@@ -32,34 +32,33 @@ final class JwtTestConstants {
     static final String KEY_ID = "pFXsMxGhnXJgzg9aO9xYUTYegCP4XsnuGhQEeQaAQrI";
     static final String ISSUER = "https://some-issuer.org/auth/realms/iot-suite";
 
-    static final PrivateKey PRIVATE_KEY;
     static final PublicKey PUBLIC_KEY;
+    static final PrivateKey PRIVATE_KEY;
 
     static {
         try {
-            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+            final KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
             keyGen.initialize(2048);
+
             final KeyPair keyPair = keyGen.generateKeyPair();
             PUBLIC_KEY = keyPair.getPublic();
             PRIVATE_KEY = keyPair.getPrivate();
 
             final KeyPair keyPair2 = keyGen.generateKeyPair();
-
             PUBLIC_KEY_2 = keyPair2.getPublic();
 
             VALID_JWT_TOKEN = createJwt();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new IllegalStateException(e);
         }
     }
 
     private static String createJwt() {
-        SignatureAlgorithm signatureAlgorithm = SignatureAlgorithm.RS256;
-
         return Jwts.builder()
                 .setHeaderParam("kid", KEY_ID)
                 .setIssuer(ISSUER)
-                .signWith(PRIVATE_KEY, signatureAlgorithm)
+                .signWith(PRIVATE_KEY, SignatureAlgorithm.RS256)
                 .compact();
     }
+
 }

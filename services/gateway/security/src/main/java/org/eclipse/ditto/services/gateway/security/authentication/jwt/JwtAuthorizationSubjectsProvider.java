@@ -17,10 +17,9 @@ import java.util.List;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 
 /**
- * A provider for {@link org.eclipse.ditto.model.base.auth.AuthorizationSubject}s contained in a
- * {@link org.eclipse.ditto.services.gateway.security.authentication.jwt.JsonWebToken}.
+ * A provider for {@link AuthorizationSubject}s contained in a {@link JsonWebToken}.
  */
-public interface AuthorizationSubjectsProvider {
+public interface JwtAuthorizationSubjectsProvider {
 
     /**
      * Returns the {@code AuthorizationSubjects} of the given {@code JsonWebToken}.
@@ -29,6 +28,6 @@ public interface AuthorizationSubjectsProvider {
      * @return the authorization subjects.
      * @throws java.lang.NullPointerException if {@code jsonWebToken} is {@code null}.
      */
-    List<AuthorizationSubject> getAuthorizationSubjects(final JsonWebToken jsonWebToken);
+    List<AuthorizationSubject> getAuthorizationSubjects(JsonWebToken jsonWebToken);
 
 }

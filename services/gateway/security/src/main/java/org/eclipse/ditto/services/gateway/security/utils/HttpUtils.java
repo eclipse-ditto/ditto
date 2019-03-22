@@ -23,6 +23,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.security.parser.RequestHeaders;
 
+import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.headers.Authorization;
 import akka.http.javadsl.model.headers.BasicHttpCredentials;
 import akka.http.javadsl.model.headers.Cookie;
@@ -33,7 +34,9 @@ public final class HttpUtils {
 
     private static final String BASIC = "basic";
 
-    private HttpUtils() {}
+    private HttpUtils() {
+        throw new AssertionError();
+    }
 
     /**
      * Gets the request header with the given name.
@@ -92,10 +95,14 @@ public final class HttpUtils {
     }
 
     public static boolean basicAuthUsernameMatches(final RequestContext requestContext, final Pattern uuidPattern) {
-        return requestContext.getRequest().getHeader(Authorization.class)
-                .filter(authorization -> authorization.credentials().scheme().equalsIgnoreCase(BASIC))
-                .map(authorization -> (BasicHttpCredentials) authorization.credentials())
-                .map(credentials -> credentials.username().matches(uuidPattern.toString()))
-                .orElse(Boolean.FALSE);
+        final HttpRequest httpRequest = requestContext.getRequest();
+        return httpRequest.getHeader(Authorization.class)
+                .map(Authorization::credentials)
+                .filter(credentials -> BASIC.equalsIgnoreCase(credentials.scheme()))
+                .map(BasicHttpCredentials.class::cast)
+                .map(BasicHttpCredentials::username)
+                .filter(username -> username.matches(uuidPattern.toString()))
+                .isPresent();
     }
+
 }

@@ -10,10 +10,10 @@
  */
 package org.eclipse.ditto.services.gateway.security.authentication;
 
-import java.util.Optional;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Future;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -36,43 +36,29 @@ import akka.http.javadsl.server.RequestContext;
 public abstract class TimeMeasuringAuthenticationProvider<R extends AuthenticationResult>
         implements AuthenticationProvider<R> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(TimeMeasuringAuthenticationProvider.class);
-
     private static final String AUTH_ERROR_TAG = TracingTags.AUTH_ERROR;
     private static final String AUTH_SUCCESS_TAG = TracingTags.AUTH_SUCCESS;
 
-    /**
-     * Authenticates the given {@link RequestContext request context} and measures the time it took to complete the
-     * authentication.
-     *
-     * @param requestContext the request context to authenticate.
-     * @param correlationId the correlation id of the request.
-     * @return A future resolving to an authentication result.
-     */
+    private static final Logger LOGGER = LoggerFactory.getLogger(TimeMeasuringAuthenticationProvider.class);
+
     @Override
-    public final R extractAuthentication(final RequestContext requestContext,
-            final String correlationId) {
-        final StartedTimer timer = TraceUtils
-                .newAuthFilterTimer(getType())
-                .build();
+    public final R authenticate(final RequestContext requestContext, final CharSequence correlationId) {
+        final StartedTimer timer = TraceUtils.newAuthFilterTimer(getType()).build();
         try {
-            final R authenticationResult = doExtractAuthentication(requestContext, correlationId);
-            final boolean isSuccess = authenticationResult.isSuccess();
-            if (!isSuccess) {
-                final Throwable reasonOfFailure = authenticationResult.getReasonOfFailure();
-                LOGGER.info("Authentication failed with Exception of type '{}' with message '{}'",
-                        reasonOfFailure.getClass().getName(), reasonOfFailure.getMessage());
-            }
-            timer.tag(AUTH_SUCCESS_TAG, isSuccess).stop();
+            final R authenticationResult = tryToAuthenticate(requestContext, correlationId);
+            timer.tag(AUTH_SUCCESS_TAG, authenticationResult.isSuccess());
             return authenticationResult;
-        } catch (Exception e) {
-            timer.tag(AUTH_SUCCESS_TAG, false).tag(AUTH_ERROR_TAG, true).stop();
+        } catch (final Exception e) {
+            timer.tag(AUTH_SUCCESS_TAG, false).tag(AUTH_ERROR_TAG, true);
             return toFailedAuthenticationResult(e, correlationId);
+        } finally {
+            timer.stop();
         }
     }
 
     /**
-     * Used to identify the authentication provider in order to distinguish measured metrics for this authentication provider.
+     * Used to identify the authentication provider in order to distinguish measured metrics for this authentication
+     * provider.
      *
      * @return the type of this authentication provider. For example "JWT".
      */
@@ -82,21 +68,20 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
      * Authenticates the given {@link RequestContext request context}.
      *
      * @param requestContext the request context to authenticate.
-     * @param correlationId the correlation id of the request.
-     * @return A future resolving to an authentication result.
+     * @param correlationId the correlation ID of the request.
+     * @return the authentication result.
      */
-    protected abstract R doExtractAuthentication(RequestContext requestContext, String correlationId);
+    protected abstract R tryToAuthenticate(RequestContext requestContext, CharSequence correlationId);
 
     /**
      * Creates failed authentication result with a {@link AuthenticationResult#getReasonOfFailure() reason of failure}
      * based on the given throwable.
      *
      * @param throwable the throwable that caused a failure.
-     * @param correlationId the correlationId to append to the failed result.
+     * @param correlationId the correlation ID to append to the failed result.
      * @return a failed authentication result holding the extracted reason of failure.
      */
-    protected abstract R toFailedAuthenticationResult(Throwable throwable, final String correlationId);
-
+    protected abstract R toFailedAuthenticationResult(Throwable throwable, CharSequence correlationId);
 
     /**
      * Converts the given {@link Throwable} to a {@link DittoRuntimeException} either by returning the
@@ -104,54 +89,64 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
      * {@link GatewayAuthenticationProviderUnavailableException} with the given throwable as cause (Unwrapped in case
      * the throwable is of type {@link CompletionException}).
      *
-     * @param throwable the throwable to convert to a ditto runtime exception.
-     * @param correlationId the correlation id of the request that caused the given throwable.
-     * @return the converted ditto runtime exception.
+     * @param throwable the throwable to convert to a {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException}.
+     * @param correlationId the correlation ID of the request that caused the given throwable.
+     * @return the converted exception.
      */
-    protected DittoRuntimeException toDittoRuntimeException(final Throwable throwable, final String correlationId) {
+    protected static DittoRuntimeException toDittoRuntimeException(final Throwable throwable,
+            final CharSequence correlationId) {
+
         final Throwable throwableToMap = unwrapCompletionException(throwable);
-        return unwrapDittoRuntimeException(throwableToMap, correlationId)
-                .orElse(buildInternalErrorException(throwableToMap, correlationId));
+
+        final DittoRuntimeException result = unwrapDittoRuntimeException(throwableToMap, correlationId);
+        if (null != result) {
+            return result;
+        }
+
+        LOGGER.warn("Failed to unwrap DittoRuntimeException from Throwable!", throwable);
+        return buildInternalErrorException(throwableToMap, correlationId);
     }
 
-    protected R waitForResult(final Future<R> authenticationResultFuture, final String correlationId) {
-        return AuthenticationResultWaiter.of(authenticationResultFuture, correlationId).get();
-    }
-
-    private Throwable unwrapCompletionException(final Throwable potentialExecutionException) {
-        if (potentialExecutionException instanceof CompletionException &&
-                potentialExecutionException.getCause() != null) {
-            return potentialExecutionException.getCause();
+    private static Throwable unwrapCompletionException(final Throwable potentialExecutionException) {
+        if (potentialExecutionException instanceof CompletionException) {
+            @Nullable final Throwable cause = potentialExecutionException.getCause();
+            if (null != cause) {
+                return cause;
+            }
         }
 
         return potentialExecutionException;
     }
 
-    private Optional<DittoRuntimeException> unwrapDittoRuntimeException(final Throwable throwable,
-            final String correlationId) {
-        if (throwable == null) {
-            return Optional.empty();
+    private static DittoRuntimeException unwrapDittoRuntimeException(final Throwable throwable,
+            final CharSequence correlationId) {
+
+        if (null == throwable) {
+            return null;
         }
 
         if (throwable instanceof DittoRuntimeException) {
             final DittoRuntimeException dre = (DittoRuntimeException) throwable;
             if (dre.getDittoHeaders().getCorrelationId().isPresent()) {
-                return Optional.of(dre);
+                return dre;
             }
-
-            final DittoRuntimeException dreWithEnsuredCorrelationId =
-                    dre.setDittoHeaders(dre.getDittoHeaders().toBuilder().correlationId(correlationId).build());
-            return Optional.of(dreWithEnsuredCorrelationId);
+            return dre.setDittoHeaders(dre.getDittoHeaders().toBuilder().correlationId(correlationId).build());
         }
 
         return unwrapDittoRuntimeException(throwable.getCause(), correlationId);
     }
 
+    protected R waitForResult(final Future<R> authenticationResultFuture, final CharSequence correlationId) {
+        return AuthenticationResultWaiter.of(authenticationResultFuture, correlationId).get();
+    }
+
     protected static DittoRuntimeException buildInternalErrorException(final Throwable cause,
-            final String correlationId) {
+            final CharSequence correlationId) {
+
         return GatewayAuthenticationProviderUnavailableException.newBuilder()
                 .dittoHeaders(DittoHeaders.newBuilder().correlationId(correlationId).build())
                 .cause(cause)
                 .build();
     }
+
 }

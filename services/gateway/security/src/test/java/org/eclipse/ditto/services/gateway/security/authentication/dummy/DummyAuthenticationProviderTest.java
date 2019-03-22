@@ -34,10 +34,10 @@ import akka.http.javadsl.server.RequestContext;
 import akka.japi.Pair;
 
 /**
- * Tests {@link DummyAuthenticationProvider}.
+ * Unit test {@link DummyAuthenticationProvider}.
  */
 @RunWith(MockitoJUnitRunner.class)
-public class DummyAuthenticationProviderTest {
+public final class DummyAuthenticationProviderTest {
 
     private static final String DUMMY_AUTH_HEADER_NAME =
             org.eclipse.ditto.services.gateway.security.HttpHeader.X_DITTO_DUMMY_AUTH.getName();
@@ -85,7 +85,7 @@ public class DummyAuthenticationProviderTest {
         final RequestContext requestContext = mockRequestContext(null, null);
 
         final DefaultAuthenticationResult authenticationResult =
-                underTest.doExtractAuthentication(requestContext, correlationId);
+                underTest.tryToAuthenticate(requestContext, correlationId);
 
         assertThat(authenticationResult.isSuccess()).isFalse();
     }
@@ -96,7 +96,7 @@ public class DummyAuthenticationProviderTest {
         final RequestContext requestContext = mockRequestContext(HttpHeader.parse(DUMMY_AUTH_HEADER_NAME, ""), null);
 
         final DefaultAuthenticationResult authenticationResult =
-                underTest.doExtractAuthentication(requestContext, correlationId);
+                underTest.tryToAuthenticate(requestContext, correlationId);
 
         assertThat(authenticationResult.isSuccess()).isFalse();
     }
@@ -108,7 +108,7 @@ public class DummyAuthenticationProviderTest {
                 mockRequestContext(null, Query.create(Pair.create(DUMMY_AUTH_HEADER_NAME, "")));
 
         final DefaultAuthenticationResult authenticationResult =
-                underTest.doExtractAuthentication(requestContext, correlationId);
+                underTest.tryToAuthenticate(requestContext, correlationId);
 
         assertThat(authenticationResult.isSuccess()).isFalse();
     }
@@ -119,7 +119,7 @@ public class DummyAuthenticationProviderTest {
         final RequestContext requestContext = mockRequestContext(DUMMY_AUTH_HEADER, null);
 
         final DefaultAuthenticationResult authenticationResult =
-                underTest.doExtractAuthentication(requestContext, correlationId);
+                underTest.tryToAuthenticate(requestContext, correlationId);
 
         assertThat(authenticationResult.isSuccess()).isTrue();
     }
@@ -130,7 +130,7 @@ public class DummyAuthenticationProviderTest {
         final RequestContext requestContext = mockRequestContext(null, DUMMY_AUTH_QUERY);
 
         final DefaultAuthenticationResult authenticationResult =
-                underTest.doExtractAuthentication(requestContext, correlationId);
+                underTest.tryToAuthenticate(requestContext, correlationId);
 
         assertThat(authenticationResult.isSuccess()).isTrue();
     }
@@ -141,7 +141,7 @@ public class DummyAuthenticationProviderTest {
         final RequestContext requestContext = mockRequestContext(DUMMY_AUTH_HEADER, DUMMY_AUTH_QUERY);
 
         final DefaultAuthenticationResult authenticationResult =
-                underTest.doExtractAuthentication(requestContext, correlationId);
+                underTest.tryToAuthenticate(requestContext, correlationId);
 
         assertThat(authenticationResult.isSuccess()).isTrue();
     }
@@ -178,7 +178,9 @@ public class DummyAuthenticationProviderTest {
         assertThat(type).isEqualTo("dummy");
     }
 
-    private RequestContext mockRequestContext(@Nullable final HttpHeader httpHeader, @Nullable final Query query) {
+    private static RequestContext mockRequestContext(@Nullable final HttpHeader httpHeader,
+            @Nullable final Query query) {
+
         Uri uri = Uri.create("someUri");
 
         if (query != null) {

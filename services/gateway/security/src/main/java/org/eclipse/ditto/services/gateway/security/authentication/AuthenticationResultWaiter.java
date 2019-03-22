@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
-import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationProviderUnavailableException;
@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
  * {@link GatewayAuthenticationProviderUnavailableException} as reason if this takes longer than defined in
  * {@link AuthenticationResultWaiter#AWAIT_AUTH_TIMEOUT}.
  */
-@Immutable
+@ThreadSafe
 public final class AuthenticationResultWaiter<R extends AuthenticationResult>
         implements Supplier<AuthenticationResult> {
 
@@ -38,26 +38,28 @@ public final class AuthenticationResultWaiter<R extends AuthenticationResult>
     private static final Duration AWAIT_AUTH_TIMEOUT = Duration.ofSeconds(5L);
 
     private final Future<R> authenticationResultFuture;
-    private final String correlationId;
+    private final CharSequence correlationId;
     private final Duration awaitAuthTimeout;
 
-    private AuthenticationResultWaiter(final Future<R> authenticationResultFuture,
-            final String correlationId, final Duration awaitAuthTimeout) {
+    private AuthenticationResultWaiter(final Future<R> authenticationResultFuture, final CharSequence correlationId,
+            final Duration awaitAuthTimeout) {
+
         this.authenticationResultFuture = authenticationResultFuture;
         this.correlationId = correlationId;
         this.awaitAuthTimeout = awaitAuthTimeout;
     }
 
     /**
-     * Creates a new instance of {@link AuthenticationResultWaiter} holding the given future.
+     * Returns an instance of this class holding the given future.
      *
-     * @param authenticationResultFuture the future that should eventually resolve to an authentication result.
-     * @param correlationId the correlation id for this authentication.
-     * @return the created instance of {@link AuthenticationResultWaiter}.
+     * @param authenticationResultFuture the Future that should eventually resolve to an authentication result.
+     * @param correlationId the correlation ID for this authentication.
+     * @return the created instance.
      */
-    public static <R extends AuthenticationResult> AuthenticationResultWaiter<R> of(Future<R> authenticationResultFuture,
-            final String correlationId) {
-        return new AuthenticationResultWaiter<R>(authenticationResultFuture, correlationId, AWAIT_AUTH_TIMEOUT);
+    public static <R extends AuthenticationResult> AuthenticationResultWaiter<R> of(
+            final Future<R> authenticationResultFuture, final CharSequence correlationId) {
+
+        return new AuthenticationResultWaiter<>(authenticationResultFuture, correlationId, AWAIT_AUTH_TIMEOUT);
     }
 
     /**
@@ -68,17 +70,26 @@ public final class AuthenticationResultWaiter<R extends AuthenticationResult>
      * {@link AuthenticationResultWaiter#awaitAuthTimeout}.
      */
     @Override
-    @SuppressWarnings("squid:S2142")
     public R get() {
+        return tryToGetResult();
+    }
+
+    @SuppressWarnings({"squid:S2142", "squid:S2139"})
+    private R tryToGetResult() {
         try {
-            LOGGER.debug("Waiting for authentication result");
-            return authenticationResultFuture.get(awaitAuthTimeout.getSeconds(), TimeUnit.SECONDS);
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            LOGGER.warn("Error while waiting for authentication result", e);
+            return getResult();
+        } catch (final InterruptedException | ExecutionException | TimeoutException e) {
+            LOGGER.warn("Error while waiting for authentication result!", e);
             throw GatewayAuthenticationProviderUnavailableException.newBuilder()
                     .dittoHeaders(DittoHeaders.newBuilder().correlationId(correlationId).build())
                     .cause(e)
                     .build();
         }
     }
+
+    private R getResult() throws InterruptedException, ExecutionException, TimeoutException {
+        LOGGER.debug("Waiting for authentication result ...");
+        return authenticationResultFuture.get(awaitAuthTimeout.getSeconds(), TimeUnit.SECONDS);
+    }
+
 }

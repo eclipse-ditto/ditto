@@ -13,6 +13,8 @@ package org.eclipse.ditto.services.gateway.starter.service.util;
 import java.net.InetSocketAddress;
 import java.util.concurrent.CompletionStage;
 
+import javax.annotation.Nullable;
+
 import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
@@ -29,7 +31,7 @@ import akka.stream.ActorMaterializer;
  */
 public final class DefaultHttpClientFacade implements HttpClientFacade {
 
-    private static DefaultHttpClientFacade INSTANCE;
+    @Nullable private static DefaultHttpClientFacade instance = null;
 
     private final ActorSystem actorSystem;
     private final ConnectionPoolSettings connectionPoolSettings;
@@ -69,11 +71,11 @@ public final class DefaultHttpClientFacade implements HttpClientFacade {
      * @param actorSystem the {@code ActorSystem} in which to create the DefaultHttpClientFacade.
      * @return the instance.
      */
-    static DefaultHttpClientFacade getInstance(final ActorSystem actorSystem) {
+    public static DefaultHttpClientFacade getInstance(final ActorSystem actorSystem) {
         final Config config = actorSystem.settings().config();
         // the HttpClientProvider is only configured at the very first invocation of getInstance(Config) as we can assume
         // that the config does not change during Runtime
-        if (null == INSTANCE) {
+        if (null == instance) {
             // this is the only non-null mandatory entry:
             final boolean proxyEnabled = config.getBoolean(ConfigKeys.AUTHENTICATION_HTTP_PROXY_ENABLED);
 
@@ -94,11 +96,11 @@ public final class DefaultHttpClientFacade implements HttpClientFacade {
             final String proxyPassword =
                     getFromConf(config, ConfigKeys.AUTHENTICATION_HTTP_PROXY_PASSWORD,
                             String.class);
-            INSTANCE = new DefaultHttpClientFacade(actorSystem, proxyEnabled, proxyHost, proxyPort, proxyUsername,
+            instance = new DefaultHttpClientFacade(actorSystem, proxyEnabled, proxyHost, proxyPort, proxyUsername,
                     proxyPassword);
         }
 
-        return INSTANCE;
+        return instance;
     }
 
     private static <T> T getFromConf(final Config config, final String configKey, final Class<T> expectedType) {

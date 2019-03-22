@@ -35,21 +35,21 @@ import org.slf4j.LoggerFactory;
 import akka.http.javadsl.server.RequestContext;
 
 @Immutable
-public final class DummyAuthenticationProvider extends
-        TimeMeasuringAuthenticationProvider<DefaultAuthenticationResult> {
+public final class DummyAuthenticationProvider
+        extends TimeMeasuringAuthenticationProvider<DefaultAuthenticationResult> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DummyAuthenticationProvider.class);
 
     private static final String AUTH_TYPE = "dummy";
 
-    private static final DummyAuthenticationProvider instance = new DummyAuthenticationProvider();
+    private static final DummyAuthenticationProvider INSTANCE = new DummyAuthenticationProvider();
 
     private DummyAuthenticationProvider() {
-        //No Op
+        super();
     }
 
     public static DummyAuthenticationProvider getInstance() {
-        return instance;
+        return INSTANCE;
     }
 
     @Override
@@ -59,9 +59,9 @@ public final class DummyAuthenticationProvider extends
     }
 
     @Override
-    protected DefaultAuthenticationResult doExtractAuthentication(
-            final RequestContext requestContext,
-            final String correlationId) {
+    protected DefaultAuthenticationResult tryToAuthenticate(final RequestContext requestContext,
+            final CharSequence correlationId) {
+
         final Optional<String> dummyAuthOpt = getDummyAuth(requestContext);
 
         if (!dummyAuthOpt.isPresent()) {
@@ -87,7 +87,8 @@ public final class DummyAuthenticationProvider extends
 
     @Override
     protected DefaultAuthenticationResult toFailedAuthenticationResult(final Throwable throwable,
-            final String correlationId) {
+            final CharSequence correlationId) {
+
         return DefaultAuthenticationResult.failed(toDittoRuntimeException(throwable, correlationId));
     }
 
@@ -96,7 +97,7 @@ public final class DummyAuthenticationProvider extends
         return AUTH_TYPE;
     }
 
-    private Optional<String> getDummyAuth(final RequestContext requestContext) {
+    private static Optional<String> getDummyAuth(final RequestContext requestContext) {
         final Optional<String> dummyAuthFromRequestHeader =
                 getRequestHeader(requestContext, HttpHeader.X_DITTO_DUMMY_AUTH.getName());
 
@@ -107,18 +108,18 @@ public final class DummyAuthenticationProvider extends
         return requestContext.getRequest().getUri().query().get(HttpHeader.X_DITTO_DUMMY_AUTH.getName());
     }
 
-    private List<AuthorizationSubject> extractAuthorizationSubjects(final String subjectsCommaSeparated) {
+    private static List<AuthorizationSubject> extractAuthorizationSubjects(final String subjectsCommaSeparated) {
         if (subjectsCommaSeparated != null && !subjectsCommaSeparated.isEmpty()) {
-            return Arrays.stream(subjectsCommaSeparated.split(",")) //
-                    .map(AuthorizationModelFactory::newAuthSubject) //
+            return Arrays.stream(subjectsCommaSeparated.split(","))
+                    .map(AuthorizationModelFactory::newAuthSubject)
                     .collect(Collectors.toList());
-        } else {
-            return Collections.emptyList();
         }
+        return Collections.emptyList();
     }
 
-    private DittoRuntimeException buildFailedToExtractAuthorizationSubjectsException(final String dummyAuth,
-            final String correlationId) {
+    private static DittoRuntimeException buildFailedToExtractAuthorizationSubjectsException(final String dummyAuth,
+            final CharSequence correlationId) {
+
         return GatewayAuthenticationFailedException.newBuilder(
                 "Failed to extract AuthorizationSubjects from " + HttpHeader.X_DITTO_DUMMY_AUTH.getName() +
                         " header value '" + dummyAuth + "'.")
@@ -126,9 +127,10 @@ public final class DummyAuthenticationProvider extends
                 .build();
     }
 
-    private DittoRuntimeException buildNotApplicableException(final String correlationId) {
+    private static DittoRuntimeException buildNotApplicableException(final CharSequence correlationId) {
         return GatewayAuthenticationFailedException.newBuilder("No Dummy authentication was provided.")
                 .dittoHeaders(DittoHeaders.newBuilder().correlationId(correlationId).build())
                 .build();
     }
+
 }

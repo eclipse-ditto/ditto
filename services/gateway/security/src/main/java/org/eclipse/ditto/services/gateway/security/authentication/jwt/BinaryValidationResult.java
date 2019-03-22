@@ -12,16 +12,19 @@ package org.eclipse.ditto.services.gateway.security.authentication.jwt;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
+import java.util.Objects;
 
-import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.NotThreadSafe;
 
 /**
  * Holds the result of a validation with binary outcome.
+ * <p>
+ * In general instances of this class can be regarded to be immutable.
+ * Technically immutability cannot be granted because the possibly existing {@link Throwable} is mutable.
+ * </p>
  */
-@Immutable
-@AllValuesAreNonnullByDefault
+@NotThreadSafe
 public final class BinaryValidationResult {
 
     @Nullable
@@ -32,40 +35,64 @@ public final class BinaryValidationResult {
     }
 
     /**
-     * Indicates whether the validation was successful or not.
+     * Creates an instance of a valid validation result.
      *
-     * @return True if validation was successful. False if not.
-     */
-    public boolean isValid() {
-        return reasonForInvalidity == null;
-    }
-
-    /**
-     * @return the reason for an invalid {@link BinaryValidationResult}. {@code null} if {@link #isValid()} is true.
-     */
-    @Nullable
-    public Throwable getReasonForInvalidity() {
-        return reasonForInvalidity;
-    }
-
-    /**
-     * Creates an instance of a {@link BinaryValidationResult valid result}.
-     *
-     * @return the created instance of {@link BinaryValidationResult}.
+     * @return the created instance.
      */
     public static BinaryValidationResult valid() {
         return new BinaryValidationResult(null);
     }
 
     /**
-     * Creates an instance of a {@link BinaryValidationResult invalid result} holding the given throwable as
-     * reason for invalidity.
+     * Creates an instance of an invalid validation result holding the given throwable as reason for invalidity.
      *
      * @param reasonForInvalidity the reason why the validation has failed.
-     * @return the created instance of {@link BinaryValidationResult}.
-     * @throws java.lang.NullPointerException if reasonForInvalidity is null.
+     * @return the created instance.
+     * @throws java.lang.NullPointerException if reasonForInvalidity is {@code null}.
      */
     public static BinaryValidationResult invalid(final Throwable reasonForInvalidity) {
         return new BinaryValidationResult(checkNotNull(reasonForInvalidity, "reasonForInvalidity"));
     }
+
+    /**
+     * Indicates whether the validation was successful or not.
+     *
+     * @return {@code true} if validation was successful, {@code false} if not.
+     */
+    public boolean isValid() {
+        return reasonForInvalidity == null;
+    }
+
+    /**
+     * @return the reason why {@link #isValid()} is {@code false} or {@code null} if the result is valid.
+     */
+    @Nullable
+    public Throwable getReasonForInvalidity() {
+        return reasonForInvalidity;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final BinaryValidationResult that = (BinaryValidationResult) o;
+        return Objects.equals(reasonForInvalidity, that.reasonForInvalidity);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(reasonForInvalidity);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "reasonForInvalidity=" + reasonForInvalidity +
+                "]";
+    }
+
 }

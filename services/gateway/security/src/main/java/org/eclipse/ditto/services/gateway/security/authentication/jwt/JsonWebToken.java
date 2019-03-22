@@ -79,13 +79,13 @@ public interface JsonWebToken {
     List<String> getSubjects();
 
     /**
-     * Checks if this json web token is valid in terms of not expired, well formed and correctly signed.
+     * Checks if this JSON web token is valid in terms of not expired, well formed and correctly signed.
      *
-     * @param publicKeyProvider The public key provider to provide the public key that should be used to sign this json
+     * @param publicKeyProvider the public key provider to provide the public key that should be used to sign this JSON
      * web token.
      * @return A Future resolving to a {@link BinaryValidationResult}.
      */
-    CompletableFuture<BinaryValidationResult> validate(final PublicKeyProvider publicKeyProvider);
+    CompletableFuture<BinaryValidationResult> validate(PublicKeyProvider publicKeyProvider);
 
     /**
      * An enumeration of the known {@link org.eclipse.ditto.json.JsonField}s of a JSON Web Token.
@@ -94,7 +94,7 @@ public interface JsonWebToken {
     final class JsonFields {
 
         /**
-         * JSON field containing the key id.
+         * JSON field containing the key ID.
          */
         public static final JsonFieldDefinition<String> KEY_ID =
                 JsonFactory.newStringFieldDefinition("kid", FieldType.REGULAR);

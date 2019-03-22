@@ -13,6 +13,9 @@ package org.eclipse.ditto.services.gateway.security.authentication.jwt;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
+import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
+import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Collections;
 
@@ -23,15 +26,21 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-
 /**
- * Tests {@link DefaultJwtAuthorizationContextProvider}.
+ * Unit test for {@link DefaultJwtAuthorizationContextProvider}.
  */
 @RunWith(MockitoJUnitRunner.class)
-public class DefaultJwtAuthorizationContextProviderTest {
+public final class DefaultJwtAuthorizationContextProviderTest {
 
     @Mock
-    private AuthorizationSubjectsProvider authorizationSubjectsProvider;
+    private JwtAuthorizationSubjectsProvider authorizationSubjectsProvider;
+
+    @Test
+    public void assertImmutability() {
+        assertInstancesOf(DefaultJwtAuthorizationContextProvider.class,
+                areImmutable(),
+                provided(JwtAuthorizationSubjectsProvider.class).isAlsoImmutable());
+    }
 
     @Test
     public void getAuthorizationContext() {
@@ -46,4 +55,5 @@ public class DefaultJwtAuthorizationContextProviderTest {
 
         assertThat(authorizationContext.getAuthorizationSubjects()).containsExactly(myTestSubj);
     }
+
 }

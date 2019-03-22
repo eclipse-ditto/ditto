@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.gateway.security.authentication.jwt;
 
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
@@ -19,7 +18,7 @@ import org.junit.Test;
 /**
  * Tests {@link BinaryValidationResult}.
  */
-public class BinaryValidationResultTest {
+public final class BinaryValidationResultTest {
 
     @Test
     public void isValid() {
@@ -31,7 +30,6 @@ public class BinaryValidationResultTest {
     @Test
     public void getReasonForInvalidity() {
         final IllegalStateException expectedReasonForInvalidity = new IllegalStateException("foo");
-
         final BinaryValidationResult underTest = BinaryValidationResult.invalid(expectedReasonForInvalidity);
 
         assertThat(underTest.getReasonForInvalidity()).isEqualTo(expectedReasonForInvalidity);
@@ -57,4 +55,5 @@ public class BinaryValidationResultTest {
                 .isThrownBy(() -> BinaryValidationResult.invalid(null))
                 .withMessage("The reasonForInvalidity must not be null!");
     }
+
 }

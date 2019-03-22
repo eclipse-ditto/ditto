@@ -30,4 +30,5 @@ public interface PublicKeyProvider {
      * @throws NullPointerException if any argument is {@code null}.
      */
     CompletableFuture<Optional<PublicKey>> getPublicKey(String issuer, String keyId);
+
 }

@@ -21,6 +21,7 @@ import java.util.Base64;
 import java.util.Objects;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -36,15 +37,15 @@ public final class ImmutableJsonWebKey implements JsonWebKey {
     private static final Base64.Decoder DECODER = Base64.getUrlDecoder();
 
     private final String type;
-    private final String algorithm;
-    private final String usage;
+    @Nullable private final String algorithm;
+    @Nullable private final String usage;
     private final String id;
     private final BigInteger modulus;
     private final BigInteger exponent;
 
     private ImmutableJsonWebKey(final String type,
-            final String algorithm,
-            final String usage,
+            @Nullable final String algorithm,
+            @Nullable final String usage,
             final String id,
             final BigInteger modulus,
             final BigInteger exponent) {
@@ -62,18 +63,18 @@ public final class ImmutableJsonWebKey implements JsonWebKey {
      * {@code modulus} and {@code exponent}.
      *
      * @param type the type of the JWK.
-     * @param algorithm the algorithm of the JWK.
-     * @param usage the usage of the JWK.
-     * @param id the id of the JWK.
+     * @param algorithm the algorithm of the JWK or {@code null}.
+     * @param usage the usage of the JWK or {@code null}.
+     * @param id the ID of the JWK.
      * @param modulus the modulus of the JWK.
      * @param exponent the exponent of the JWK.
      * @return the JsonWebKey.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if any argument but {@code algorithm} or {@code usage} is {@code null}.
      * @throws IllegalArgumentException if any {@code String} argument is empty.
      */
     public static JsonWebKey of(final String type,
-            final String algorithm,
-            final String usage,
+            @Nullable final String algorithm,
+            @Nullable final String usage,
             final String id,
             final BigInteger modulus,
             final BigInteger exponent) {
@@ -153,7 +154,7 @@ public final class ImmutableJsonWebKey implements JsonWebKey {
     }
 
     @Override
-    @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067", "OverlyComplexMethod"})
+    @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067"})
     public boolean equals(final Object o) {
         if (this == o) {
             return true;

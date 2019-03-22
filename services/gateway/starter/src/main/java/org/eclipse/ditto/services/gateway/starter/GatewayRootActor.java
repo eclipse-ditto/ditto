@@ -27,6 +27,7 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.RootRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.RouteFactory;
 import org.eclipse.ditto.services.gateway.proxy.actors.ProxyActor;
 import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
+import org.eclipse.ditto.services.gateway.starter.service.util.DefaultHttpClientFacade;
 import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
@@ -247,7 +248,8 @@ final class GatewayRootActor extends AbstractActor {
             final ActorRef proxyActor,
             final ActorRef streamingActor,
             final ActorRef healthCheckingActor) {
-        final HttpClientFacade httpClient = HttpClientFacade.getInstance(actorSystem);
+
+        final HttpClientFacade httpClient = DefaultHttpClientFacade.getInstance(actorSystem);
         final ClusterStatusSupplier clusterStateSupplier = new ClusterStatusSupplier(Cluster.get(actorSystem));
         final MessageDispatcher blockingDispatcher = actorSystem.dispatchers().lookup(BLOCKING_DISPATCHER_NAME);
         final DittoGatewayAuthenticationDirectiveFactory authenticationDirectiveFactory =

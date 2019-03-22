@@ -31,6 +31,7 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
+import org.eclipse.ditto.services.gateway.starter.service.util.DefaultHttpClientFacade;
 import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
 import org.junit.Before;
 import org.junit.Test;
@@ -87,7 +88,7 @@ public final class RootRouteTest extends EndpointTestBase {
     @Before
     public void setUp() {
         final Config config = system().settings().config();
-        final HttpClientFacade httpClient = HttpClientFacade.getInstance(system());
+        final HttpClientFacade httpClient = DefaultHttpClientFacade.getInstance(system());
         final DittoGatewayAuthenticationDirectiveFactory authenticationDirectiveFactory =
                 new DittoGatewayAuthenticationDirectiveFactory(config, httpClient, messageDispatcher);
         final RouteFactory routeFactory = RouteFactory.newInstance(system(),

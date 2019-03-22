@@ -23,7 +23,8 @@ public interface AuthenticationProvider<R extends AuthenticationResult> {
      * Indicates whether this authentication provider is applicable for the given request context.
      *
      * @param requestContext the request context to authenticate.
-     * @return true if this authentication provider is applicable for the given request context, false if not.
+     * @return {@code true} if this authentication provider is applicable for the given request context, {@code false}
+     * if not.
      */
     boolean isApplicable(RequestContext requestContext);
 
@@ -31,8 +32,9 @@ public interface AuthenticationProvider<R extends AuthenticationResult> {
      * Authenticates the given {@link RequestContext request context}.
      *
      * @param requestContext the request context to authenticate.
-     * @param correlationId the correlation id of the request.
+     * @param correlationId the correlation ID of the request.
      * @return the authentication result.
      */
-    R extractAuthentication(RequestContext requestContext, String correlationId);
+    R authenticate(RequestContext requestContext, CharSequence correlationId);
+
 }

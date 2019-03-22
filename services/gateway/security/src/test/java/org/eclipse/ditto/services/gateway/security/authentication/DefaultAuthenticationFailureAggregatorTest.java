@@ -25,43 +25,42 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Tests {@link DefaultAuthenticationFailureAggregator}.
+ * Unit test for {@link DefaultAuthenticationFailureAggregator}.
  */
-public class DefaultAuthenticationFailureAggregatorTest {
+public final class DefaultAuthenticationFailureAggregatorTest {
 
     private DefaultAuthenticationFailureAggregator underTest;
 
     @Before
     public void setup() {
-        this.underTest = DefaultAuthenticationFailureAggregator.getInstance();
+        underTest = DefaultAuthenticationFailureAggregator.getInstance();
     }
 
     @Test
     public void aggregateAuthenticationFailuresWithEmptyList() {
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(
-                () -> underTest.aggregateAuthenticationFailures(Collections.emptyList()));
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> underTest.aggregateAuthenticationFailures(Collections.emptyList()));
     }
 
     @Test
     public void aggregateAuthenticationFailuresWithoutDittoRuntimeExceptions() {
-        final IllegalStateException reasonOfFailure = new IllegalStateException("Not a DRE");
         final List<AuthenticationResult> authenticationResults =
-                Collections.singletonList(DefaultAuthenticationResult.failed(reasonOfFailure));
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(
-                () -> underTest.aggregateAuthenticationFailures(authenticationResults));
+                Collections.singletonList(DefaultAuthenticationResult.failed(new IllegalStateException("Not a DRE")));
+
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> underTest.aggregateAuthenticationFailures(authenticationResults));
     }
 
     @Test
     public void aggregateAuthenticationFailuresWitNestedDittoRuntimeExceptionWithoutDescription() {
         final DittoRuntimeException expectedException =
-                DittoRuntimeException.newBuilder("test:my.error", HttpStatusCode.UNAUTHORIZED)
-                        .build();
+                DittoRuntimeException.newBuilder("test:my.error", HttpStatusCode.UNAUTHORIZED).build();
         final IllegalStateException reasonOfFailure = new IllegalStateException("Not a DRE", expectedException);
         final List<AuthenticationResult> authenticationResults =
                 Collections.singletonList(DefaultAuthenticationResult.failed(reasonOfFailure));
 
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(
-                () -> underTest.aggregateAuthenticationFailures(authenticationResults));
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> underTest.aggregateAuthenticationFailures(authenticationResults));
     }
 
     @Test
@@ -140,4 +139,5 @@ public class DefaultAuthenticationFailureAggregatorTest {
 
         assertThat(dittoRuntimeException).isEqualTo(exceptionA);
     }
+
 }

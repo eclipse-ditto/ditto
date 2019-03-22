@@ -20,24 +20,26 @@ public interface AuthenticationResult {
     /**
      * Indicates whether the authentication was successful.
      *
-     * @return True if the authentication was succussful, false if not.
+     * @return {@code true} if the authentication was successful, {@code false} if not.
      */
     boolean isSuccess();
 
     /**
-     * Call this method only if {@link #isSuccess()} is true.
+     * Call this method only if {@link #isSuccess()} evaluates to {@code true}.
      *
      * @return the authorization context if the authentication was successful.
-     * @throws java.lang.RuntimeException the reason of failure if this method is called when {@link #isSuccess()} is
-     * false.
+     * @throws java.lang.RuntimeException the reason of failure if this method is called when {@link #isSuccess()}
+     * evaluates to {@code false}.
      */
     AuthorizationContext getAuthorizationContext();
 
     /**
-     * Call this method only if {@link #isSuccess()} is false.
+     * Call this method only if {@link #isSuccess()} evaluates to {@code false}.
      *
      * @return the reason why the authentication failed.
-     * @throws java.lang.IllegalStateException if this methods is called when {@link #isSuccess()} is true.
+     * @throws java.lang.IllegalStateException if this methods is called when {@link #isSuccess()} evaluates to
+     * {@code true}.
      */
     Throwable getReasonOfFailure();
+
 }

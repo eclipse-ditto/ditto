@@ -26,7 +26,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayJwtInvalidException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,10 +35,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 import io.jsonwebtoken.security.SignatureException;
 
 /**
- * Tests {@link AbstractJsonWebToken}.
+ * Unit test for {@link AbstractJsonWebToken}.
  */
 @RunWith(MockitoJUnitRunner.class)
-public class AbstractJsonWebTokenTest {
+public final class AbstractJsonWebTokenTest {
 
     @Mock
     private PublicKeyProvider publicKeyProvider;
@@ -76,9 +75,8 @@ public class AbstractJsonWebTokenTest {
 
         final String authorizationHeader = "Bearer " + base64(header) + "." + base64(payload);
 
-        assertThatExceptionOfType(GatewayJwtInvalidException.class).isThrownBy(() ->
-                new AbstractJsonWebTokenTestImplementation(authorizationHeader));
-
+        assertThatExceptionOfType(GatewayJwtInvalidException.class)
+                .isThrownBy(() -> new AbstractJsonWebTokenTestImplementation(authorizationHeader));
     }
 
     @Test
@@ -97,7 +95,7 @@ public class AbstractJsonWebTokenTest {
         assertThat(abstractJsonWebTokenTestImplementation.getSignature()).isEqualTo(base64(signature));
     }
 
-    private static class AbstractJsonWebTokenTestImplementation extends AbstractJsonWebToken {
+    private static final class AbstractJsonWebTokenTestImplementation extends AbstractJsonWebToken {
 
         private AbstractJsonWebTokenTestImplementation(final String authorizationString) {
             super(authorizationString);
@@ -109,7 +107,7 @@ public class AbstractJsonWebTokenTest {
         }
     }
 
-    private String base64(final String value) {
+    private static String base64(final String value) {
         return new String(Base64.getEncoder().encode(value.getBytes()));
     }
 

@@ -21,11 +21,11 @@ import java.util.concurrent.Executor;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.Uri;
 import akka.http.javadsl.server.RequestContext;
 
@@ -41,18 +41,18 @@ public final class AuthenticationChain {
     private final AuthenticationFailureAggregator authenticationFailureAggregator;
 
     private AuthenticationChain(final Collection<AuthenticationProvider> authenticationProviders,
-            final AuthenticationFailureAggregator authenticationFailureAggregator,
-            final Executor blockingDispatcher) {
+            final AuthenticationFailureAggregator authenticationFailureAggregator, final Executor blockingDispatcher) {
+
         checkNotNull(authenticationProviders, "authenticationProviders");
         argumentNotEmpty(authenticationProviders, "authenticationProviders");
-        this.authenticationProviderChain = authenticationProviders;
+        authenticationProviderChain = authenticationProviders;
         this.authenticationFailureAggregator =
                 checkNotNull(authenticationFailureAggregator, "authenticationFailureAggregator");
         this.blockingDispatcher = checkNotNull(blockingDispatcher, "blockingDispatcher");
     }
 
     /**
-     * Builds a new instance of {@link AuthenticationChain}.
+     * Returns an authentication chain instance.
      *
      * @param authenticationProviders the list of authentication providers that should be used in the given order.
      * @param authenticationFailureAggregator aggregates multiple failed authentication results to a single
@@ -60,27 +60,14 @@ public final class AuthenticationChain {
      * {@link AuthenticationProvider authentication providers} in the given collection of authentication providers were
      * applicable to a request and all of them failed.
      * @param blockingDispatcher dispatcher used for blocking calls.
-     * @return the new instance of {@link AuthenticationChain}.
+     * @return the instance.
+     * @throws NullPointerException if argument is {@code null}.
+     * @throws IllegalArgumentException if {@code authenticationProviders} is empty.
      */
     public static AuthenticationChain getInstance(final Collection<AuthenticationProvider> authenticationProviders,
-            final AuthenticationFailureAggregator authenticationFailureAggregator,
-            final Executor blockingDispatcher) {
-        return new AuthenticationChain(authenticationProviders, authenticationFailureAggregator, blockingDispatcher);
-    }
+            final AuthenticationFailureAggregator authenticationFailureAggregator, final Executor blockingDispatcher) {
 
-    /**
-     * Indicates whether this {@link AuthenticationChain authentication chain} contains any
-     * {@link AuthenticationProvider authentication provider} that
-     * {@link AuthenticationProvider#isApplicable(RequestContext) is applicable} for the given
-     * {@link RequestContext request context}.
-     *
-     * @param requestContext the request context that should be authenticated.
-     * @return true if this {@link AuthenticationChain authentication chain} contains any
-     * {@link AuthenticationProvider authentication provider}. False if not.
-     */
-    public boolean isApplicable(final RequestContext requestContext) {
-        return authenticationProviderChain.stream()
-                .anyMatch(authenticationProvider -> authenticationProvider.isApplicable(requestContext));
+        return new AuthenticationChain(authenticationProviders, authenticationFailureAggregator, blockingDispatcher);
     }
 
     /**
@@ -88,38 +75,39 @@ public final class AuthenticationChain {
      * {@link AuthenticationResult result}.
      *
      * @param requestContext the request context that should be authenticated.
-     * @param correlationId the correlation id of the request.
+     * @param correlationId the correlation ID of the request.
      * @return A future resolving to the {@link AuthenticationResult authentication result}.
      */
     public CompletableFuture<AuthenticationResult> authenticate(final RequestContext requestContext,
-            final String correlationId) {
+            final CharSequence correlationId) {
 
         return CompletableFuture
                 .runAsync(() -> LogUtil.enhanceLogWithCorrelationId(correlationId), blockingDispatcher)
                 .thenApply(voidValue -> doAuthenticate(requestContext, correlationId));
     }
 
-    private AuthenticationResult doAuthenticate(final RequestContext requestContext, final String correlationId) {
-        final Uri requestUri = requestContext.getRequest().getUri();
+    private AuthenticationResult doAuthenticate(final RequestContext requestContext, final CharSequence correlationId) {
+        final HttpRequest httpRequest = requestContext.getRequest();
+        final Uri requestUri = httpRequest.getUri();
 
         final List<AuthenticationResult> failedAuthenticationResults = new ArrayList<>();
 
-        for (AuthenticationProvider authenticationProvider : authenticationProviderChain) {
+        for (final AuthenticationProvider authenticationProvider : authenticationProviderChain) {
             if (!authenticationProvider.isApplicable(requestContext)) {
                 continue;
             }
 
-            LOGGER.debug("Applying authentication provider '{}' to URI '{}'",
+            LOGGER.debug("Applying authentication provider <{}> to URI <{}>.",
                     authenticationProvider.getClass().getSimpleName(), requestUri);
             final AuthenticationResult authenticationResult =
-                    authenticationProvider.extractAuthentication(requestContext, correlationId);
+                    authenticationProvider.authenticate(requestContext, correlationId);
 
             if (authenticationResult.isSuccess()) {
-                LOGGER.debug("Authentication using authentication provider '{}' to URI '{}' was successful.",
+                LOGGER.debug("Authentication using authentication provider <{}> to URI <{}> was successful.",
                         authenticationProvider.getClass().getSimpleName(), requestUri);
                 return authenticationResult;
             } else {
-                LOGGER.debug("Authentication using authentication provider '{}' to URI '{}' failed.",
+                LOGGER.debug("Authentication using authentication provider <{}> to URI <{}> failed.",
                         authenticationProvider.getClass().getSimpleName(), requestUri,
                         authenticationResult.getReasonOfFailure());
                 failedAuthenticationResults.add(authenticationResult);
@@ -128,19 +116,15 @@ public final class AuthenticationChain {
 
         if (failedAuthenticationResults.isEmpty()) {
             return DefaultAuthenticationResult.failed(
-                    new IllegalStateException("No applicable authentication provider was found. " +
-                            "Check with 'isApplicable' before calling 'authenticate'."));
+                    new IllegalStateException("No applicable authentication provider was found!"));
         }
 
-        if (failedAuthenticationResults.size() == 1) {
+        if (1 == failedAuthenticationResults.size()) {
             return failedAuthenticationResults.get(0);
         }
 
-        final DittoRuntimeException aggregatedAuthenticationFailures =
-                authenticationFailureAggregator.aggregateAuthenticationFailures(failedAuthenticationResults);
-
-        return DefaultAuthenticationResult.failed(aggregatedAuthenticationFailures);
+        return DefaultAuthenticationResult.failed(
+                authenticationFailureAggregator.aggregateAuthenticationFailures(failedAuthenticationResults));
     }
-
 
 }

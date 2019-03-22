@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.gateway.starter.service.util;
 
 import java.util.concurrent.CompletionStage;
 
-import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
 import akka.stream.ActorMaterializer;
@@ -22,24 +21,15 @@ import akka.stream.ActorMaterializer;
 public interface HttpClientFacade {
 
     /**
-     * Returns the http client facade.
-     *
-     * @param actorSystem the {@code ActorSystem} in which to create the http client facade.
-     * @return the instance.
-     */
-    static HttpClientFacade getInstance(ActorSystem actorSystem) {
-        return DefaultHttpClientFacade.getInstance(actorSystem);
-    }
-
-    /**
-     * Creates a CompletionStage for the passed {@link akka.http.javadsl.model.HttpRequest} containing the {@link akka.http.javadsl.model.HttpResponse}.
+     * Creates a CompletionStage for the passed {@link HttpRequest} containing the {@link HttpResponse}.
      *
      * @return the HttpResponse CompletionStage.
      */
     CompletionStage<HttpResponse> createSingleHttpRequest(HttpRequest request);
 
     /**
-     * @return an {@link akka.stream.ActorMaterializer} instance which can be used for stream execution.
+     * @return an {@link ActorMaterializer} instance which can be used for stream execution.
      */
     ActorMaterializer getActorMaterializer();
+
 }

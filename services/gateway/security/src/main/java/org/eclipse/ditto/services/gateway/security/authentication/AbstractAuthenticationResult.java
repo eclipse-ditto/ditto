@@ -12,7 +12,8 @@ package org.eclipse.ditto.services.gateway.security.authentication;
 
 import java.util.Objects;
 
-import javax.annotation.concurrent.Immutable;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 
@@ -20,54 +21,41 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
  * Abstract implementation of an authentication result that results in an authorization context extending
  * {@link AuthorizationContext}.
  *
- * @param <C> The concrete type of the authorization context that is the actual result of the authentication.
+ * @param <C> the type of the authorization context that is the actual result of the authentication.
  */
-@Immutable
+@NotThreadSafe
 public abstract class AbstractAuthenticationResult<C extends AuthorizationContext> implements AuthenticationResult {
 
-    private final C authorizationContext;
-    private final Throwable reasonOfFailure;
+    @Nullable private final C authorizationContext;
+    @Nullable private final Throwable reasonOfFailure;
 
-    protected AbstractAuthenticationResult(final C authorizationContext,
-            final Throwable reasonOfFailure) {
+    protected AbstractAuthenticationResult(@Nullable final C authorizationContext,
+            @Nullable final Throwable reasonOfFailure) {
 
         this.authorizationContext = authorizationContext;
         this.reasonOfFailure = reasonOfFailure;
     }
 
-    /**
-     * Indicates whether the authentication was successful or not.
-     *
-     * @return True if the authentication was successful and false if not.
-     */
+    @Override
     public boolean isSuccess() {
-        return authorizationContext != null;
+        return null != authorizationContext;
     }
 
-    /**
-     * Gets a {@link org.eclipse.ditto.model.base.auth.AuthorizationContext} if the authentication
-     * {@link #isSuccess() was successful}. Throws the reason of the authentication failure otherwise.
-     */
     @Override
     public C getAuthorizationContext() {
-        if (authorizationContext == null) {
+        if (null == authorizationContext) {
             if (reasonOfFailure instanceof RuntimeException) {
                 throw (RuntimeException) reasonOfFailure;
-            } else {
-                throw new IllegalStateException(reasonOfFailure);
             }
+            throw new IllegalStateException(reasonOfFailure);
         }
 
         return authorizationContext;
     }
 
-    /**
-     * Gets the {@link Throwable} which was the reason of failure if the authentication {@link #isSuccess()} wasn't
-     * successful. Throws {@link IllegalStateException} otherwise.
-     */
     @Override
     public Throwable getReasonOfFailure() {
-        if (reasonOfFailure == null) {
+        if (null == reasonOfFailure) {
             throw new IllegalStateException("Authentication was successful!");
         }
 
@@ -94,9 +82,10 @@ public abstract class AbstractAuthenticationResult<C extends AuthorizationContex
 
     @Override
     public String toString() {
-        return this.getClass().getSimpleName() + " [" +
+        return getClass().getSimpleName() + " [" +
                 "authorizationContext=" + authorizationContext +
                 ", reasonOfFailure=" + reasonOfFailure +
                 ']';
     }
+
 }

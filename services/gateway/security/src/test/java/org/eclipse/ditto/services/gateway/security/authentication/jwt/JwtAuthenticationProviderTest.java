@@ -30,6 +30,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.services.gateway.security.authentication.DefaultAuthenticationResult;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
 import org.junit.Before;
@@ -46,7 +47,7 @@ import akka.http.javadsl.server.RequestContext;
  * Tests {@link JwtAuthenticationProvider}.
  */
 @RunWith(MockitoJUnitRunner.class)
-public class JwtAuthenticationProviderTest {
+public final class JwtAuthenticationProviderTest {
 
     private static final HttpHeader VALID_AUTHORIZATION_HEADER =
             HttpHeader.parse("authorization", "Bearer " + VALID_JWT_TOKEN);
@@ -62,62 +63,54 @@ public class JwtAuthenticationProviderTest {
 
     @Before
     public void setup() {
-        this.underTest =
-                JwtAuthenticationProvider.getInstance(publicKeyProvider, authenticationContextProvider);
+        underTest = JwtAuthenticationProvider.getInstance(publicKeyProvider, authenticationContextProvider);
     }
 
     @Test
     public void isApplicable() {
         final RequestContext requestContext = mockRequestContext(VALID_AUTHORIZATION_HEADER);
 
-        final boolean applicable = this.underTest.isApplicable(requestContext);
-
-        assertThat(applicable).isTrue();
+        assertThat(underTest.isApplicable(requestContext)).isTrue();
     }
 
     @Test
     public void isApplicableWithoutAuthorizationHeader() {
         final RequestContext requestContext = mockRequestContext();
 
-        final boolean applicable = this.underTest.isApplicable(requestContext);
-
-        assertThat(applicable).isFalse();
+        assertThat(underTest.isApplicable(requestContext)).isFalse();
     }
 
     @Test
     public void isApplicableWithInvalidAuthorizationHeader() {
         final RequestContext requestContext = mockRequestContext(INVALID_AUTHORIZATION_HEADER);
 
-        final boolean applicable = this.underTest.isApplicable(requestContext);
-
-        assertThat(applicable).isFalse();
+        assertThat(underTest.isApplicable(requestContext)).isFalse();
     }
 
     @Test
-    public void doExtractAuthentication() throws JwtAuthorizationContextProviderException {
+    public void doExtractAuthentication() {
         when(publicKeyProvider.getPublicKey(ISSUER, KEY_ID)).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(PUBLIC_KEY)));
         when(authenticationContextProvider.getAuthorizationContext(any(JsonWebToken.class))).thenReturn(
                 AuthorizationContext.newInstance(AuthorizationSubject.newInstance("myAuthSubj")));
         final RequestContext requestContext = mockRequestContext(VALID_AUTHORIZATION_HEADER);
-        final String correlationId = UUID.randomUUID().toString();
+        final String correlationId = getRandomUuid();
         final DefaultAuthenticationResult authenticationResult =
-                underTest.doExtractAuthentication(requestContext, correlationId);
+                underTest.tryToAuthenticate(requestContext, correlationId);
 
         assertThat(authenticationResult.isSuccess()).isTrue();
     }
 
     @Test
-    public void doExtractAuthenticationWhenAuthorizationContextProviderErrors()
-            throws JwtAuthorizationContextProviderException {
+    public void doExtractAuthenticationWhenAuthorizationContextProviderErrors() {
         when(publicKeyProvider.getPublicKey(ISSUER, KEY_ID)).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(PUBLIC_KEY)));
         when(authenticationContextProvider.getAuthorizationContext(any(JsonWebToken.class)))
-                .thenThrow(new JwtAuthorizationContextProviderException("Something happened"));
+                .thenThrow(new RuntimeException("Something happened"));
         final RequestContext requestContext = mockRequestContext(VALID_AUTHORIZATION_HEADER);
-        final String correlationId = UUID.randomUUID().toString();
+        final String correlationId = getRandomUuid();
         final DefaultAuthenticationResult authenticationResult =
-                underTest.doExtractAuthentication(requestContext, correlationId);
+                underTest.tryToAuthenticate(requestContext, correlationId);
 
         verify(authenticationContextProvider).getAuthorizationContext(any(JsonWebToken.class));
         assertThat(authenticationResult.isSuccess()).isFalse();
@@ -133,10 +126,10 @@ public class JwtAuthenticationProviderTest {
     @Test
     public void doExtractAuthenticationWithMissingJwt() {
         final RequestContext requestContext = mockRequestContext();
-        final String correlationId = UUID.randomUUID().toString();
+        final String correlationId = getRandomUuid();
 
         final DefaultAuthenticationResult authenticationResult =
-                underTest.doExtractAuthentication(requestContext, correlationId);
+                underTest.tryToAuthenticate(requestContext, correlationId);
 
         assertThat(authenticationResult.isSuccess()).isFalse();
         assertThat(authenticationResult.getReasonOfFailure()).isInstanceOf(GatewayAuthenticationFailedException.class);
@@ -155,10 +148,10 @@ public class JwtAuthenticationProviderTest {
         when(publicKeyProvider.getPublicKey(ISSUER, KEY_ID)).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(PUBLIC_KEY_2)));
         final RequestContext requestContext = mockRequestContext(VALID_AUTHORIZATION_HEADER);
-        final String correlationId = UUID.randomUUID().toString();
+        final String correlationId = getRandomUuid();
 
-        final DefaultAuthenticationResult authenticationResult =
-                underTest.doExtractAuthentication(requestContext, correlationId);
+        final AuthenticationResult authenticationResult =
+                underTest.tryToAuthenticate(requestContext, correlationId);
 
         assertThat(authenticationResult.isSuccess()).isFalse();
         assertThat(authenticationResult.getReasonOfFailure()).isInstanceOf(GatewayAuthenticationFailedException.class);
@@ -170,10 +163,9 @@ public class JwtAuthenticationProviderTest {
         assertThat(reasonOfFailureDre.getDittoHeaders().getCorrelationId()).contains(correlationId);
     }
 
-
     @Test
     public void toFailedAuthenticationResultExtractsDittoRuntimeExceptionFromCause() {
-        final String correlationId = UUID.randomUUID().toString();
+        final String correlationId = getRandomUuid();
         final DittoRuntimeException dre =
                 DittoRuntimeException.newBuilder("none", HttpStatusCode.INTERNAL_SERVER_ERROR).build();
         final IllegalStateException illegalStateException = new IllegalStateException("notExpected", dre);
@@ -186,14 +178,13 @@ public class JwtAuthenticationProviderTest {
 
     @Test
     public void toFailedAuthenticationResult() {
-        final String correlationId = UUID.randomUUID().toString();
+        final String correlationId = getRandomUuid();
         final DittoRuntimeException dre =
                 DittoRuntimeException.newBuilder("none", HttpStatusCode.INTERNAL_SERVER_ERROR).build();
 
-        final Throwable reasonOfFailure =
-                underTest.toFailedAuthenticationResult(dre, correlationId).getReasonOfFailure();
+        final AuthenticationResult authenticationResult = underTest.toFailedAuthenticationResult(dre, correlationId);
 
-        assertThat(reasonOfFailure).isEqualTo(dre);
+        assertThat(authenticationResult.getReasonOfFailure()).isEqualTo(dre);
     }
 
     @Test
@@ -204,11 +195,16 @@ public class JwtAuthenticationProviderTest {
         assertThat(underTest.getType()).isEqualTo("JWT");
     }
 
-    private RequestContext mockRequestContext(final HttpHeader... httpHeaders) {
+    private static String getRandomUuid() {
+        return UUID.randomUUID().toString();
+    }
+
+    private static RequestContext mockRequestContext(final HttpHeader... httpHeaders) {
         final HttpRequest httpRequest = HttpRequest.create().addHeaders(Arrays.asList(httpHeaders));
 
         final RequestContext requestContext = mock(RequestContext.class);
         when(requestContext.getRequest()).thenReturn(httpRequest);
         return requestContext;
     }
+
 }

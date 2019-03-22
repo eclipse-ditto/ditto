@@ -37,17 +37,15 @@ import akka.event.Logging;
 public final class LogUtil {
 
     /**
-     * Name of the Header for the global Ditto correlation id.
+     * Name of the Header for the global Ditto correlation ID.
      */
     public static final String X_CORRELATION_ID = "x-correlation-id";
-
-    private static Integer akkaClusterInstanceIndex;
 
     /*
      * Inhibit instantiation of this utility class.
      */
     private LogUtil() {
-        // no-op
+        throw new AssertionError();
     }
 
     /**
@@ -65,11 +63,12 @@ public final class LogUtil {
      * {@code withDittoHeaders}. Invokes the passed in {@code logConsumer} around the MDC setting/removing.
      *
      * @param slf4jLogger the SLF4J logger to log with.
-     * @param withDittoHeaders where to extract a possible correlationId from.
+     * @param withDittoHeaders where to extract a possible correlation ID from.
      * @param logConsumer the consumer with which the caller must log.
      */
     public static void logWithCorrelationId(final Logger slf4jLogger, final WithDittoHeaders<?> withDittoHeaders,
             final Consumer<Logger> logConsumer) {
+
         logWithCorrelationId(slf4jLogger, withDittoHeaders.getDittoHeaders(), logConsumer);
     }
 
@@ -78,12 +77,15 @@ public final class LogUtil {
      * {@code withDittoHeaders}. Invokes the passed in {@code logConsumer} around the MDC setting/removing.
      *
      * @param slf4jLogger the SLF4J logger to log with.
-     * @param withDittoHeaders where to extract a possible correlationId from.
+     * @param withDittoHeaders where to extract a possible correlation ID from.
      * @param additionalMdcFields additional fields which should bet set to the MDC.
      * @param logConsumer the consumer with which the caller must log.
      */
-    public static void logWithCorrelationId(final Logger slf4jLogger, final WithDittoHeaders<?> withDittoHeaders,
-            final Map<String, String> additionalMdcFields, final Consumer<Logger> logConsumer) {
+    public static void logWithCorrelationId(final Logger slf4jLogger,
+            final WithDittoHeaders<?> withDittoHeaders,
+            final Map<String, String> additionalMdcFields,
+            final Consumer<Logger> logConsumer) {
+
         logWithCorrelationId(slf4jLogger, withDittoHeaders.getDittoHeaders(), additionalMdcFields, logConsumer);
     }
 
@@ -92,11 +94,12 @@ public final class LogUtil {
      * {@code dittoHeaders}. Invokes the passed in {@code logConsumer} around the MDC setting/removing.
      *
      * @param slf4jLogger the SLF4J logger to log with.
-     * @param dittoHeaders where to extract a possible correlationId from.
+     * @param dittoHeaders where to extract a possible correlation ID from.
      * @param logConsumer the consumer with which the caller must log.
      */
     public static void logWithCorrelationId(final Logger slf4jLogger, final DittoHeaders dittoHeaders,
             final Consumer<Logger> logConsumer) {
+
         logWithCorrelationId(slf4jLogger, dittoHeaders.getCorrelationId(), logConsumer);
     }
 
@@ -105,12 +108,15 @@ public final class LogUtil {
      * {@code dittoHeaders}. Invokes the passed in {@code logConsumer} around the MDC setting/removing.
      *
      * @param slf4jLogger the SLF4J logger to log with.
-     * @param dittoHeaders where to extract a possible correlationId from.
+     * @param dittoHeaders where to extract a possible correlation ID from.
      * @param additionalMdcFields additional fields which should bet set to the MDC.
      * @param logConsumer the consumer with which the caller must log.
      */
-    public static void logWithCorrelationId(final Logger slf4jLogger, final DittoHeaders dittoHeaders,
-            final Map<String, String> additionalMdcFields, final Consumer<Logger> logConsumer) {
+    public static void logWithCorrelationId(final Logger slf4jLogger,
+            final DittoHeaders dittoHeaders,
+            final Map<String, String> additionalMdcFields,
+            final Consumer<Logger> logConsumer) {
+
         logWithCorrelationId(slf4jLogger, dittoHeaders.getCorrelationId(), additionalMdcFields, logConsumer);
     }
 
@@ -119,11 +125,12 @@ public final class LogUtil {
      * Invokes the passed in {@code logConsumer} around the MDC setting/removing.
      *
      * @param slf4jLogger the SLF4J logger to log with.
-     * @param correlationId the correlationId to put onto the MDC.
+     * @param correlationId the correlation ID to put onto the MDC.
      * @param logConsumer the consumer with which the caller must log.
      */
     public static void logWithCorrelationId(final Logger slf4jLogger, final Optional<String> correlationId,
             final Consumer<Logger> logConsumer) {
+
         logWithCorrelationId(slf4jLogger, correlationId.orElse(null), logConsumer);
     }
 
@@ -132,12 +139,15 @@ public final class LogUtil {
      * Invokes the passed in {@code logConsumer} around the MDC setting/removing.
      *
      * @param slf4jLogger the SLF4J logger to log with.
-     * @param correlationId the correlationId to put onto the MDC.
+     * @param correlationId the correlation ID to put onto the MDC.
      * @param additionalMdcFields additional fields which should bet set to the MDC.
      * @param logConsumer the consumer with which the caller must log.
      */
-    public static void logWithCorrelationId(final Logger slf4jLogger, final Optional<String> correlationId,
-            final Map<String, String> additionalMdcFields, final Consumer<Logger> logConsumer) {
+    public static void logWithCorrelationId(final Logger slf4jLogger,
+            final Optional<String> correlationId,
+            final Map<String, String> additionalMdcFields,
+            final Consumer<Logger> logConsumer) {
+
         logWithCorrelationId(slf4jLogger, correlationId.orElse(null), additionalMdcFields, logConsumer);
     }
 
@@ -146,34 +156,37 @@ public final class LogUtil {
      * Invokes the passed in {@code logConsumer} around the MDC setting/removing.
      *
      * @param slf4jLogger the SLF4J logger to log with.
-     * @param correlationId the correlationId to put onto the MDC.
+     * @param correlationId the correlation ID to put onto the MDC.
      * @param logConsumer the consumer with which the caller must log.
      */
-    public static void logWithCorrelationId(final Logger slf4jLogger, @Nullable final String correlationId,
+    public static void logWithCorrelationId(final Logger slf4jLogger, @Nullable final CharSequence correlationId,
             final Consumer<Logger> logConsumer) {
+
         logWithCorrelationId(slf4jLogger, correlationId, Collections.emptyMap(), logConsumer);
     }
 
     /**
      * Enhances the MDC around the passed SLF4J {@code Logger} with the {@code correlation-id}.
      * Invokes the passed in {@code logConsumer} around the MDC setting/removing.
-     *
-     * @param slf4jLogger the SLF4J logger to log with.
-     * @param correlationId the correlationId to put onto the MDC.
+     *  @param slf4jLogger the SLF4J logger to log with.
+     * @param correlationId the correlation ID to put onto the MDC.
      * @param additionalMdcFields additional fields which should bet set to the MDC.
      * @param logConsumer the consumer with which the caller must log.
      */
-    public static void logWithCorrelationId(final Logger slf4jLogger, @Nullable final String correlationId,
-            final Map<String, String> additionalMdcFields, final Consumer<Logger> logConsumer) {
+    public static void logWithCorrelationId(final Logger slf4jLogger,
+            @Nullable final CharSequence correlationId,
+            final Map<String, String> additionalMdcFields,
+            final Consumer<Logger> logConsumer) {
+
         final Map<String, String> originalContext = MDC.getCopyOfContextMap();
-        if (correlationId != null) {
-            MDC.put(X_CORRELATION_ID, correlationId);
+        if (null != correlationId) {
+            MDC.put(X_CORRELATION_ID, correlationId.toString());
         }
         additionalMdcFields.forEach(MDC::put);
         try {
             logConsumer.accept(slf4jLogger);
         } finally {
-            if (originalContext != null) {
+            if (null != originalContext) {
                 MDC.setContextMap(originalContext);
             } else {
                 MDC.clear();
@@ -186,10 +199,11 @@ public final class LogUtil {
      * {@code correlationId} of the passed {@code withDittoHeaders} (if present).
      *
      * @param loggingAdapter the DiagnosticLoggingAdapter to set the "MDC" on.
-     * @param withDittoHeaders where to extract a possible correlationId from.
+     * @param withDittoHeaders where to extract a possible correlation ID from.
      */
     public static void enhanceLogWithCorrelationId(final DiagnosticLoggingAdapter loggingAdapter,
             final WithDittoHeaders<?> withDittoHeaders) {
+
         loggingAdapter.clearMDC();
         withDittoHeaders.getDittoHeaders()
                 .getCorrelationId()
@@ -201,14 +215,13 @@ public final class LogUtil {
      * {@code correlationId} of the passed {@code dittoHeaders} (if present).
      *
      * @param loggingAdapter the DiagnosticLoggingAdapter to set the "MDC" on.
-     * @param dittoHeaders where to extract a possible correlationId from.
+     * @param dittoHeaders where to extract a possible correlation ID from.
      */
     public static void enhanceLogWithCorrelationId(final DiagnosticLoggingAdapter loggingAdapter,
             final DittoHeaders dittoHeaders) {
+
         loggingAdapter.clearMDC();
-        dittoHeaders
-                .getCorrelationId()
-                .ifPresent(s -> enhanceLogWithCorrelationId(loggingAdapter, s));
+        dittoHeaders.getCorrelationId().ifPresent(s -> enhanceLogWithCorrelationId(loggingAdapter, s));
     }
 
     /**
@@ -216,10 +229,11 @@ public final class LogUtil {
      * (if present).
      *
      * @param loggingAdapter the DiagnosticLoggingAdapter to set the "MDC" on.
-     * @param correlationId the optional correlationId to set.
+     * @param correlationId the optional correlation ID to set.
      */
     public static void enhanceLogWithCorrelationId(final DiagnosticLoggingAdapter loggingAdapter,
             final Optional<String> correlationId) {
+
         loggingAdapter.clearMDC();
         correlationId.ifPresent(s -> enhanceLogWithCorrelationId(loggingAdapter, s));
     }
@@ -229,12 +243,13 @@ public final class LogUtil {
      * (if present).
      *
      * @param loggingAdapter the DiagnosticLoggingAdapter to set the "MDC" on.
-     * @param correlationId the optional correlationId to set.
+     * @param correlationId the optional correlation ID to set.
      */
     public static void enhanceLogWithCorrelationId(final DiagnosticLoggingAdapter loggingAdapter,
-            final String correlationId) {
+            final CharSequence correlationId) {
+
         loggingAdapter.clearMDC();
-        if (correlationId != null && !correlationId.isEmpty()) {
+        if (null != correlationId && 0 < correlationId.length()) {
             final Map<String, Object> mdcMap = new HashMap<>();
             mdcMap.put(X_CORRELATION_ID, correlationId);
             loggingAdapter.setMDC(mdcMap);
@@ -251,7 +266,8 @@ public final class LogUtil {
      */
     public static void enhanceLogWithCustomField(final DiagnosticLoggingAdapter loggingAdapter,
             final String fieldName, @Nullable final String fieldValue) {
-        if (fieldValue != null && !fieldValue.isEmpty()) {
+
+        if (null != fieldValue && !fieldValue.isEmpty()) {
             final Map<String, Object> mdcMap = new HashMap<>(loggingAdapter.getMDC());
             mdcMap.put(fieldName, fieldValue);
             loggingAdapter.setMDC(mdcMap);
@@ -262,7 +278,7 @@ public final class LogUtil {
      * Enhances the default slf4j {@link org.slf4j.MDC} with a {@code correlationId} of the passed
      * {@code withDittoHeaders} (if present).
      *
-     * @param withDittoHeaders where to extract a possible correlationId from.
+     * @param withDittoHeaders where to extract a possible correlation ID from.
      */
     public static void enhanceLogWithCorrelationId(final WithDittoHeaders<?> withDittoHeaders) {
         withDittoHeaders.getDittoHeaders()
@@ -274,19 +290,17 @@ public final class LogUtil {
      * Enhances the default slf4j {@link org.slf4j.MDC} with a {@code correlationId} of the passed
      * {@code dittoHeaders} (if present).
      *
-     * @param dittoHeaders where to extract a possible correlationId from.
+     * @param dittoHeaders where to extract a possible correlation ID from.
      */
     public static void enhanceLogWithCorrelationId(final DittoHeaders dittoHeaders) {
-        dittoHeaders
-                .getCorrelationId()
-                .ifPresent(LogUtil::enhanceLogWithCorrelationId);
+        dittoHeaders.getCorrelationId().ifPresent(LogUtil::enhanceLogWithCorrelationId);
     }
 
     /**
      * Enhances the default slf4j {@link org.slf4j.MDC} with a {@code correlationId} of the passed
-     * {@code withDittoHeaders} (if present), else a random correlation id.
+     * {@code withDittoHeaders} (if present), else a random correlation ID.
      *
-     * @param withDittoHeaders where to extract a possible correlationId from.
+     * @param withDittoHeaders where to extract a possible correlation ID from.
      */
     public static void enhanceLogWithCorrelationIdOrRandom(final WithDittoHeaders<?> withDittoHeaders) {
         LogUtil.enhanceLogWithCorrelationIdOrRandom(withDittoHeaders.getDittoHeaders());
@@ -294,22 +308,23 @@ public final class LogUtil {
 
     /**
      * Enhances the default slf4j {@link org.slf4j.MDC} with a {@code correlationId} of the passed
-     * {@code dittoHeaders} (if present), else a random correlation id.
+     * {@code dittoHeaders} (if present), else a random correlation ID.
      *
-     * @param dittoHeaders where to extract a possible correlationId from.
+     * @param dittoHeaders where to extract a possible correlation ID from.
      */
     public static void enhanceLogWithCorrelationIdOrRandom(final DittoHeaders dittoHeaders) {
-        LogUtil.enhanceLogWithCorrelationId(dittoHeaders.getCorrelationId().orElse(UUID.randomUUID().toString()));
+        LogUtil.enhanceLogWithCorrelationId(
+                dittoHeaders.getCorrelationId().orElseGet(() -> UUID.randomUUID().toString()));
     }
 
     /**
      * Enhances the default slf4j {@link org.slf4j.MDC} with a {@code correlationId}.
      *
-     * @param correlationId the optional correlationId to set.
+     * @param correlationId the optional correlation ID to set.
      */
-    public static void enhanceLogWithCorrelationId(final String correlationId) {
-        if (correlationId != null && !correlationId.isEmpty()) {
-            MDC.put(X_CORRELATION_ID, correlationId);
+    public static void enhanceLogWithCorrelationId(final CharSequence correlationId) {
+        if (null != correlationId && 0 < correlationId.length()) {
+            MDC.put(X_CORRELATION_ID, correlationId.toString());
         }
     }
 
@@ -329,12 +344,11 @@ public final class LogUtil {
     /**
      * Gets the {@code correlationId} from the default slf4j {@link org.slf4j.MDC}.
      *
-     * @param defaultCorrelationIdSupplier supplies a default correlation id if none could be found inside {@link org.slf4j.MDC}.
+     * @param defaultCorrelationIdSupplier supplies a default correlation ID if none could be found inside {@link org.slf4j.MDC}.
      * @return The {@code correlationId} from {@link org.slf4j.MDC} or from {@code defaultCorrelationIdSupplier} if it didn't exist.
      */
     public static String getCorrelationId(final Supplier<String> defaultCorrelationIdSupplier) {
-        return getCorrelationId()
-                .orElseGet(defaultCorrelationIdSupplier);
+        return getCorrelationId().orElseGet(defaultCorrelationIdSupplier);
     }
 
     /**

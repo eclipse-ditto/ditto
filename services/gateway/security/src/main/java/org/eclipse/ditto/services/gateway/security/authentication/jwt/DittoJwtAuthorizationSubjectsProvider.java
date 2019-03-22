@@ -26,16 +26,14 @@ import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayJwtIssuerNotSupportedException;
 
 /**
- * Implementation of
- * {@link AuthorizationSubjectsProvider} for Google
- * JWTs.
+ * Implementation of {@link JwtAuthorizationSubjectsProvider} for Google JWTs.
  */
 @Immutable
-public final class DittoAuthorizationSubjectsProvider implements AuthorizationSubjectsProvider {
+public final class DittoJwtAuthorizationSubjectsProvider implements JwtAuthorizationSubjectsProvider {
 
     private final JwtSubjectIssuersConfig jwtSubjectIssuersConfig;
 
-    private DittoAuthorizationSubjectsProvider(final JwtSubjectIssuersConfig jwtSubjectIssuersConfig) {
+    private DittoJwtAuthorizationSubjectsProvider(final JwtSubjectIssuersConfig jwtSubjectIssuersConfig) {
         this.jwtSubjectIssuersConfig = jwtSubjectIssuersConfig;
     }
 
@@ -46,9 +44,9 @@ public final class DittoAuthorizationSubjectsProvider implements AuthorizationSu
      * @return the DittoAuthorizationSubjectsProvider.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static DittoAuthorizationSubjectsProvider of(final JwtSubjectIssuersConfig jwtSubjectIssuersConfig) {
+    public static DittoJwtAuthorizationSubjectsProvider of(final JwtSubjectIssuersConfig jwtSubjectIssuersConfig) {
         checkNotNull(jwtSubjectIssuersConfig);
-        return new DittoAuthorizationSubjectsProvider(jwtSubjectIssuersConfig);
+        return new DittoJwtAuthorizationSubjectsProvider(jwtSubjectIssuersConfig);
     }
 
     @Override
@@ -59,7 +57,8 @@ public final class DittoAuthorizationSubjectsProvider implements AuthorizationSu
         final JwtSubjectIssuerConfig jwtSubjectIssuerConfig = jwtSubjectIssuersConfig.getConfigItem(issuer)
                 .orElseThrow(() -> GatewayJwtIssuerNotSupportedException.newBuilder(issuer).build());
 
-        return jsonWebToken.getSubjects().stream()
+        return jsonWebToken.getSubjects()
+                .stream()
                 .map(subject -> SubjectId.newInstance(jwtSubjectIssuerConfig.getSubjectIssuer(), subject))
                 .map(AuthorizationSubject::newInstance)
                 .collect(Collectors.toList());
@@ -67,9 +66,13 @@ public final class DittoAuthorizationSubjectsProvider implements AuthorizationSu
 
     @Override
     public boolean equals(@Nullable final Object o) {
-        if (this == o) {return true;}
-        if (o == null || getClass() != o.getClass()) {return false;}
-        final DittoAuthorizationSubjectsProvider that = (DittoAuthorizationSubjectsProvider) o;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final DittoJwtAuthorizationSubjectsProvider that = (DittoJwtAuthorizationSubjectsProvider) o;
         return Objects.equals(jwtSubjectIssuersConfig, that.jwtSubjectIssuersConfig);
     }
 

@@ -24,35 +24,37 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 @Immutable
 public final class DefaultJwtAuthorizationContextProvider implements JwtAuthorizationContextProvider {
 
-    private final AuthorizationSubjectsProvider authorizationSubjectsProvider;
+    private final JwtAuthorizationSubjectsProvider authorizationSubjectsProvider;
 
-    private DefaultJwtAuthorizationContextProvider(final AuthorizationSubjectsProvider authorizationSubjectsProvider) {
+    private DefaultJwtAuthorizationContextProvider(final JwtAuthorizationSubjectsProvider authorizationSubjectsProvider) {
         this.authorizationSubjectsProvider = authorizationSubjectsProvider;
     }
 
     /**
-     * Creates a new instance of {@link DefaultJwtAuthorizationContextProvider} with the given authorization subjects
-     * provider.
+     * Creates a new instance of the default JWT context provider with the given authorization subjects provider.
      *
      * @param authorizationSubjectsProvider used to extract authorization subjects from each {@link JsonWebToken JWT}
      * passed to {@link #getAuthorizationContext(JsonWebToken)}.
      * @return the created instance.
      */
     public static DefaultJwtAuthorizationContextProvider getInstance(
-            final AuthorizationSubjectsProvider authorizationSubjectsProvider) {
+            final JwtAuthorizationSubjectsProvider authorizationSubjectsProvider) {
+
         return new DefaultJwtAuthorizationContextProvider(authorizationSubjectsProvider);
     }
 
     /**
      * Extracts an {@link AuthorizationContext authorization context} out of a given
-     * {@link JsonWebToken json web token}.
+     * {@link JsonWebToken JSON web token}.
      *
-     * @param jwt the json web token that contains the information to be extracted into an authorization context.
-     * @return the authorization context based on the given json web token.
+     * @param jwt the JSON web token that contains the information to be extracted into an authorization context.
+     * @return the authorization context based on the given JSON web token.
+     * @throws NullPointerException if {@code jwt} is {@code null}.
      */
     @Override
     public AuthorizationContext getAuthorizationContext(final JsonWebToken jwt) {
         final List<AuthorizationSubject> authSubjects = authorizationSubjectsProvider.getAuthorizationSubjects(jwt);
         return AuthorizationModelFactory.newAuthContext(authSubjects);
     }
+
 }

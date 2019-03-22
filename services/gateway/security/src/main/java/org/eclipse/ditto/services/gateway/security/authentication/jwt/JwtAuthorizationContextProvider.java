@@ -14,18 +14,19 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 
 /**
  * Responsible for extraction of an {@link AuthorizationContext authorization context} out of a
- * {@link JsonWebToken json web token}.
+ * {@link JsonWebToken JSON web token}.
  */
 @FunctionalInterface
 public interface JwtAuthorizationContextProvider {
 
     /**
      * Extracts an {@link AuthorizationContext authorization context} out of a given
-     * {@link JsonWebToken json web token}.
+     * {@link JsonWebToken JSON web token}.
      *
-     * @param jwt the json web token that contains the information to be extracted into an authorization context.
-     * @return the authorization context based on the given json web token.
-     * @throws JwtAuthorizationContextProviderException when an error occurs during extraction.
+     * @param jwt the JSON web token that contains the information to be extracted into an authorization context.
+     * @return the authorization context based on the given JSON web token.
+     * @throws NullPointerException if {@code jwt} is {@code null}.
      */
-    AuthorizationContext getAuthorizationContext(JsonWebToken jwt) throws JwtAuthorizationContextProviderException;
+    AuthorizationContext getAuthorizationContext(JsonWebToken jwt);
+
 }

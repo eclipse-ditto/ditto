@@ -16,7 +16,8 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.nio.charset.StandardCharsets;
-import java.security.PublicKey;
+import java.security.Key;
+import java.text.MessageFormat;
 import java.util.Base64;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -24,13 +25,13 @@ import java.util.concurrent.CompletableFuture;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.utils.jwt.JjwtDeserializer;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayJwtInvalidException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 
 /**
@@ -136,39 +137,38 @@ public abstract class AbstractJsonWebToken implements JsonWebToken {
         return signature;
     }
 
-    /**
-     * Checks if this JSON web token is valid in terms of not expired, well formed and correctly signed.
-     *
-     * @param publicKeyProvider the public key provider to provide the public key that should be used to sign this JSON
-     * web token.
-     * @return {@code true} if the JSON web token is valid, {@code false} if not.
-     */
     @Override
     public CompletableFuture<BinaryValidationResult> validate(final PublicKeyProvider publicKeyProvider) {
         final String issuer = getIssuer();
         final String keyId = getKeyId();
         return publicKeyProvider.getPublicKey(issuer, keyId)
                 .thenApply(publicKeyOpt -> publicKeyOpt
-                        .map(this::doValidate)
-                        .orElse(BinaryValidationResult.invalid(buildPublicKeyNotFoundException(issuer, keyId))));
+                        .map(this::tryToValidatePublicKey)
+                        .orElseGet(() -> {
+                            final String msgPattern = "Public Key of issuer <{0}> with key ID <{1}> not found!";
+                            final String msg = MessageFormat.format(msgPattern, issuer, keyId);
+                            final Exception exception = GatewayAuthenticationFailedException.newBuilder(msg).build();
+                            return BinaryValidationResult.invalid(exception);
+                        }));
     }
 
-    private BinaryValidationResult doValidate(final PublicKey publicKey) {
+    private BinaryValidationResult tryToValidatePublicKey(final Key publicKey) {
         try {
-            Jwts.parser().deserializeJsonWith(JjwtDeserializer.getInstance())
-                    .setSigningKey(publicKey)
-                    .parse(getToken());
-
-            return BinaryValidationResult.valid();
+            return validatePublicKey(publicKey);
         } catch (final Exception e) {
-            LOGGER.info("Got Exception '{}' during parsing JWT: {}", e.getClass().getSimpleName(), e.getMessage());
+            LOGGER.info("Failed to parse JWT!", e);
             return BinaryValidationResult.invalid(e);
         }
     }
 
-    private static DittoRuntimeException buildPublicKeyNotFoundException(final String issuer, final String keyId) {
-        final String message = String.format("Public Key of issuer '%s' with key id '%s' not found", issuer, keyId);
-        return GatewayAuthenticationFailedException.newBuilder(message).build();
+    @SuppressWarnings("unchecked")
+    private BinaryValidationResult validatePublicKey(final Key publicKey) {
+        final JwtParser jwtParser = Jwts.parser();
+        jwtParser.deserializeJsonWith(JjwtDeserializer.getInstance())
+                    .setSigningKey(publicKey)
+                    .parse(getToken());
+
+            return BinaryValidationResult.valid();
     }
 
     @Override
