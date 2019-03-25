@@ -15,7 +15,7 @@ permalink: basic-connections.html
 
 You can integrate your Ditto instance with external messaging services such as 
 [Eclipse Hono](https://eclipse.org/hono/), a [RabbitMQ](https://www.rabbitmq.com/) broker or an 
-[Apache Kafka](https://kafka.apache.org/) via custom "connections".
+[Apache Kafka](https://kafka.apache.org/) broker via custom "connections".
 
 A connection represents a communication channel for the exchange of messages between any service and Ditto. It 
 requires a transport protocol, which is used to transmit [Ditto Protocol](protocol-overview.html) messages. Ditto supports one-way and two-way
@@ -55,8 +55,8 @@ Source messages can be of the following type:
 Sources contain:
 * several addresses (depending on the [connection type](#connection-types) those are interpreted differently, e.g. as queues, topics, etc.)
 * a consumer count defining how many consumers should be attached to each source address
-* an authorization context (see [authorization](#authorization)) specifying in the context of which [authorization subject](basic-acl.html#authorization-subject) messages from the source are authorized
-* enforcement information defining that only specific messages consumed in this source are processed
+* an authorization context (see [authorization](#authorization)) specifying which [authorization subject](basic-acl.html#authorization-subject) is used to authorize messages from the source 
+* enforcement information that allows filtering the messages that are consumed in this source
 * [header mapping](connectivity-header-mapping.html) for mapping headers of source messages to internal headers
 
 #### Source enforcement
@@ -66,11 +66,10 @@ the default mapping for [Ditto Protocol](protocol-overview.html) messages.
 
 During this mapping the digital twin of the device is determined i.e. 
 which Thing is accessed or modified as a result of the message. By default no sanity check is done if this target Thing 
-corresponds to the device that originally sent the message. In some use case this might be valid, but in other scenarios 
+corresponds to the device that originally sent the message. In some use cases this might be valid, but in other scenarios 
 you might want to enforce that a device only sends data to its digital twin. Note that this could also be achieved by 
 assigning a specific policy to each device and use [placeholders](#placeholders) in the 
-authorization subject, but this can get 
-cumbersome to maintain for a large number of devices.
+authorization subject, but this can get cumbersome to maintain for a large number of devices.
 
 With an enforcement you can use a single policy for all devices 
 and still make sure that a device only modifies its associated digital twin. Enforcement is only feasible if the message
@@ -140,9 +139,9 @@ Target messages can be of the following type:
 * [live commands/responses/events](protocol-twinlive.html)
 
 Targets contain:
-* one address (depending on the [connection type](#connection-types) this is interpreted differently, e.g. as queue, topic, etc.)
-* [topics](#target-topics-and-filtering) to which subscribe in a target
-* an authorization context (see [authorization](#authorization)) specifying in the context of which [authorization subject](basic-acl.html#authorization-subject) messages to the target are authorized
+* one address (that is interpreted differently depending on the [connection type](#connection-types), e.g. as queue, topic, etc.)
+* [topics](#target-topics-and-filtering) that will be sent to the target
+* an authorization context (see [authorization](#authorization)) specifying which [authorization subject](basic-acl.html#authorization-subject) is used to authorize messages to the target 
 * [header mapping](connectivity-header-mapping.html) for mapping headers internal headers to target headers
 
 #### Target topics and filtering
@@ -208,6 +207,9 @@ self-assigned authorization subjects. Before a connection can access a Ditto res
 `authorizationSubject`s must be granted the access rights by an authorization mechanism such as
 [ACLs](basic-acl.html) or [Policies](basic-policy.html).
 
+A connection target can only send data for Things to which it has READ rights, as data flows from a Thing to a target. 
+A connection source can only receive data for Things to which it has WRITE rights, as data flows from a source to a Thing.
+
 ### Specific config
 
 Some [connection types](#connection-types) require specific configuration which are not supported for other connection types.
@@ -215,7 +217,7 @@ Those are put into the `specificConfig` field.
 
 ### Mapping context
 
-For more information on the `mappingContext` see the corresponding [Payload Mapping Documentation](connectivity-mapping.html)
+For more information on the `mappingContext` see the corresponding [Payload Mapping Documentation](connectivity-mapping.html).
 
 ## Placeholders
 
@@ -271,7 +273,7 @@ For a Thing with the ID _org.eclipse.ditto:device-123_ these placeholders would 
 | `thing:namespace`  | Namespace (i.e. first part of an ID)  | _org.eclipse.ditto_ |
 | `thing:name` | Name (i.e. second part of an ID ) | _device-123_ |
 
-Event more than those above, all mentioned [connection placeholders](basic-placeholders.html#scope-connections) may be
+Even more than the ones above, all mentioned [connection placeholders](basic-placeholders.html#scope-connections) may be
 used in target addresses. 
 
 Example:

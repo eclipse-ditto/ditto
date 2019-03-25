@@ -21,7 +21,7 @@ as well. Following are some specifics for Apache Kafka 2.x connections:
 
 ### Source format
 
-{% include warning.html content="Connecting to Kafka and consuming from topics via sources are not yet supported by Ditto." %}
+{% include warning.html content="Connecting to Kafka and consuming from topics via sources is not yet supported by Ditto." %}
 
 ### Target format
 
@@ -29,7 +29,7 @@ A Kafka 2.x connection requires the protocol configuration target object to have
 This property may have different formats:
 
 * `topic`: Contains a Kafka topic - a partition will be assigned in a round-robin fashion.
-* `topic/key`: Contains a Kafka topic and a key - a partition will be chosen using a hash of the key.
+* `topic/key`: Contains a Kafka topic and a key - Kafka ensures that messages with the same key end up in the same partition.
 * `topic#partitionNumber`: Contains a Kafka topic and a specific partition number - that partition will be used when sending records. 
 
 The target address may contain placeholders; see
@@ -57,7 +57,8 @@ have READ permission on the Thing that is associated with a message.
 
 The specific configuration properties contain the following keys:
 * `bootstrapServers` (required): contains a comma separated list of Kafka bootstrap servers to use for connecting to
-* `saslMechanism` (required): contains one of the following SASL mechanisms to use for authentication at Kafka:
+(in addition to the still required connection uri)
+* `saslMechanism` (required if connection uri contains username\/password): contains one of the following SASL mechanisms to use for authentication at Kafka:
     * `plain`
     * `scram-sha-256`
     * `scram-sha-512`

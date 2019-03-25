@@ -5,7 +5,7 @@ tags: [protocol, connectivity]
 permalink: connectivity-protocol-bindings-mqtt.html
 ---
 
-Consume messages from MQTT brokers via [sources](#source-format) and send messages to AMQP brokers via 
+Consume messages from MQTT brokers via [sources](#source-format) and send messages to MQTT brokers via 
 [targets](#target-format).
 
 ## Content-type
@@ -66,7 +66,7 @@ As MQTT 3.1.1 does not support headers in its protocol, headers may not be used 
 
 #### Source header mapping
 
-As MQTT 3.1.1 does not support headers in its protocol, a [header mapping](connectivity-header-mapping.html) is not possible to configure here.
+As MQTT 3.1.1 does not support headers in its protocol, it is not possible to configure a [header mapping](connectivity-header-mapping.html) here.
 
 
 ### Target format
