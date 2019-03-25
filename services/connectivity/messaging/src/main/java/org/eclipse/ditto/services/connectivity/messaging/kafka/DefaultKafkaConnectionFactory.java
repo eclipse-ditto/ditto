@@ -25,13 +25,11 @@ final class DefaultKafkaConnectionFactory implements KafkaConnectionFactory {
 
     private final Connection connection;
     private final ProducerSettings<String, String> settings;
-    private final org.apache.kafka.clients.producer.Producer<String, String> kafkaProducer;
 
     DefaultKafkaConnectionFactory(final Connection connection,
             final KafkaConfigReader config) {
         this.connection = connection;
         settings = ProducerSettingsFactory.getInstance().createProducerSettings(connection, config);
-        kafkaProducer = settings.createKafkaProducer();
     }
 
     @Override
@@ -41,7 +39,7 @@ final class DefaultKafkaConnectionFactory implements KafkaConnectionFactory {
 
     @Override
     public <T> Flow<ProducerMessage.Envelope<String, String, T>, ProducerMessage.Results<String, String, T>, akka.NotUsed> newFlow() {
-        return Producer.flexiFlow(settings, kafkaProducer);
+        return Producer.flexiFlow(settings);
     }
 
 }
