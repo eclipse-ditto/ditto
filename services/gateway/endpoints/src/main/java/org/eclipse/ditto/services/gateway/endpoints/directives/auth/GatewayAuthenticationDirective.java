@@ -80,7 +80,7 @@ public final class GatewayAuthenticationDirective {
      */
     public Route authenticate(final CharSequence correlationId, final Function<AuthorizationContext, Route> inner) {
         return extractRequestContext(
-                requestContext -> DirectivesLoggingUtils.enhanceLogWithCorrelationId(correlationId.toString(), () -> {
+                requestContext -> DirectivesLoggingUtils.enhanceLogWithCorrelationId(correlationId, () -> {
                     final Uri requestUri = requestContext.getRequest().getUri();
 
                     final CompletableFuture<AuthenticationResult> authenticationResult =
