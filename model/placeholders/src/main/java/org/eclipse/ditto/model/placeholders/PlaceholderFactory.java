@@ -121,6 +121,21 @@ public final class PlaceholderFactory {
         return newExpressionResolver(Collections.singletonList(newPlaceholderResolverForValidation(placeholder)));
     }
 
+    /**
+     * Creates a new ExpressionResolver instance for validation initialized with a single {@code placeholder}.
+     *
+     * @param placeholder the placeholder.
+     * @param stringUsedInPlaceholderReplacement the dummy value used as a replacement for the found placeholders.
+     * @return the created ExpressionResolver instance
+     */
+    public static ExpressionResolver newExpressionResolverForValidation(final Placeholder<?> placeholder, final String stringUsedInPlaceholderReplacement) {
+        return newExpressionResolver(Collections.singletonList(newPlaceholderResolverForValidation(placeholder)), stringUsedInPlaceholderReplacement);
+    }
+
+    private static ExpressionResolver newExpressionResolver(final List<PlaceholderResolver<?>> placeholderResolvers, final String stringUsedInPlaceholderValidation) {
+        return new ImmutableExpressionResolver(placeholderResolvers, stringUsedInPlaceholderValidation);
+    }
+
     private PlaceholderFactory() {
         throw new AssertionError();
     }

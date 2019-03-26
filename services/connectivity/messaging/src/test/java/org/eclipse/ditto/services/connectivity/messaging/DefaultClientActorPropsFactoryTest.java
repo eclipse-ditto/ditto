@@ -13,6 +13,8 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.connectivity.ConnectionType.AMQP_091;
 import static org.eclipse.ditto.model.connectivity.ConnectionType.AMQP_10;
+import static org.eclipse.ditto.model.connectivity.ConnectionType.KAFKA;
+import static org.eclipse.ditto.model.connectivity.ConnectionType.MQTT;
 
 import java.util.concurrent.TimeUnit;
 
@@ -60,7 +62,7 @@ public class DefaultClientActorPropsFactoryTest extends WithMockServers {
      */
     @Test
     public void amqp091ActorPropsIsSerializable() {
-        actorPropsIsSerializable(AMQP_091);
+        actorPropsIsSerializableAndEqualDeserializedObject(AMQP_091);
     }
 
     /**
@@ -69,17 +71,44 @@ public class DefaultClientActorPropsFactoryTest extends WithMockServers {
      */
     @Test
     public void amqp10ActorPropsIsSerializable() {
-        actorPropsIsSerializable(AMQP_10);
+        actorPropsIsSerializableAndEqualDeserializedObject(AMQP_10);
     }
 
+    /**
+     * Tests serialization of props of MQTT client actor. The props needs to be serializable because client actors
+     * may be created on a different connectivity service instance using a local connection object.
+     */
+    @Test
+    public void mqttActorPropsIsSerializable() {
+        actorPropsIsSerializableAndEqualDeserializedObject(MQTT);
+    }
+
+    /**
+     * Tests serialization of props of Kafka client actor. The props needs to be serializable because client actors
+     * may be created on a different connectivity service instance using a local connection object.
+     */
+    @Test
+    public void kafkaActorPropsIsSerializable() {
+        actorPropsIsSerializable(KAFKA);
+    }
 
     private void actorPropsIsSerializable(final ConnectionType connectionType) {
         final Props props = underTest.getActorPropsForType(randomConnection(connectionType), actorSystem.deadLetters());
         final Object objectToSerialize = wrapForSerialization(props);
-        final byte[] bytes = serialization.findSerializerFor(objectToSerialize).toBinary(objectToSerialize);
-        final Object deserializedObject = serialization.deserialize(bytes, objectToSerialize.getClass()).get();
+        serializeAndDeserialize(objectToSerialize);
+    }
+
+    private void actorPropsIsSerializableAndEqualDeserializedObject(final ConnectionType connectionType) {
+        final Props props = underTest.getActorPropsForType(randomConnection(connectionType), actorSystem.deadLetters());
+        final Object objectToSerialize = wrapForSerialization(props);
+        final Object deserializedObject = serializeAndDeserialize(objectToSerialize);
 
         assertThat(deserializedObject).isEqualTo(objectToSerialize);
+    }
+
+    private Object serializeAndDeserialize(final Object objectToSerialize) {
+        final byte[] bytes = serialization.findSerializerFor(objectToSerialize).toBinary(objectToSerialize);
+        return serialization.deserialize(bytes, objectToSerialize.getClass()).get();
     }
 
     /**

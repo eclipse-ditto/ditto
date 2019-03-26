@@ -41,7 +41,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.testkit.TestProbe;
 
-public class AmqpPublisherActorTest extends AbstractPublisherActorTest<JmsMessage> {
+public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
 
 
     private JmsSession session;

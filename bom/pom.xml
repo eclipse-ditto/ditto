@@ -40,6 +40,7 @@
         <akka-management.version>0.14.0</akka-management.version>
         <simple-akka-downing.version>0.9.2</simple-akka-downing.version>
         <alpakka-mqtt.version>0.20</alpakka-mqtt.version>
+        <akka-stream-kafka.version>1.0.1</akka-stream-kafka.version>
 
         <mongo-scala-driver.version>2.4.2</mongo-scala-driver.version>
         <mongo-java-driver.version>3.8.2</mongo-java-driver.version>
@@ -363,8 +364,14 @@
 
             <dependency>
                 <groupId>com.lightbend.akka</groupId>
-                <artifactId>akka-stream-alpakka-mqtt_2.12</artifactId>
+                <artifactId>akka-stream-alpakka-mqtt_${scala.version}</artifactId>
                 <version>${alpakka-mqtt.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.typesafe.akka</groupId>
+                <artifactId>akka-stream-kafka_${scala.version}</artifactId>
+                <version>${akka-stream-kafka.version}</version>
             </dependency>
 
             <dependency>
