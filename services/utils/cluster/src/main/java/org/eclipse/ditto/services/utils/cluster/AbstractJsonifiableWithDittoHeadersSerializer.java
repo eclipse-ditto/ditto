@@ -133,10 +133,14 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
             }
 
             jsonObjectBuilder.set(JSON_PAYLOAD, jsonValue);
+            final String jsonStr = jsonObjectBuilder.build().toString();
 
-            buf.put(UTF8_CHARSET.encode(jsonObjectBuilder.build()
-                    .toString())
-            );
+            try {
+                buf.put(UTF8_CHARSET.encode(jsonStr));
+            } catch (final BufferOverflowException e) {
+                LOG.warn("Could not put bytes of JSON string <{}> into ByteBuffer due to BufferOverflow", jsonStr, e);
+                throw e;
+            }
         } else {
             LOG.error("Could not serialize class <{}> as it does not implement <{}>!", object.getClass(),
                     Jsonifiable.WithPredicate.class);
