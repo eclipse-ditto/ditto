@@ -80,6 +80,14 @@
  * Source: https://github.com/jnr/jnr-x86asm
 
 
+## zstd-jni (1.3.7-1)
+
+ * Maven coordinates: `com.github.luben:zstd-jni:1.3.7-1`
+ * License: [BSD 2-Clause License](licenses/BSD 2-Clause License.txt)
+ * Project: https://github.com/luben/zstd-jni
+ * Source: https://github.com/luben/zstd-jni
+
+
 ## akka-persistence-mongo-common (2.2.4)
 
  * Maven coordinates: `com.github.scullxbones:akka-persistence-mongo-common_2.12:2.2.4`
@@ -286,6 +294,14 @@
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: http://akka.io/
  * Source: https://github.com/akka/akka
+
+
+## akka-stream-kafka (1.0.1)
+
+ * Maven coordinates: `com.typesafe.akka:akka-stream-kafka_2.12:1.0.1`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: https://doc.akka.io/docs/alpakka-kafka/current/
+ * Source: https://github.com/akka/alpakka-kafka
 
 
 ## akka-stream (2.5.1)
@@ -496,6 +512,14 @@
  * Source: https://svn.apache.org/viewcvs.cgi/geronimo/specs/tags/geronimo-jms_2.0_spec-1.0-alpha-2
 
 
+## Apache Kafka (2.1.1)
+
+ * Maven coordinates: `org.apache.kafka:kafka-clients:2.1.1`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: http://kafka.apache.org
+ * Source: not declared
+
+
 ## Proton-J (0.31.0)
 
  * Maven coordinates: `org.apache.qpid:proton-j:0.31.0`
@@ -542,6 +566,14 @@
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://github.com/lmdbjava/lmdbjava/lmdbjava
  * Source: https://github.com/lmdbjava/lmdbjava
+
+
+## LZ4 and xxHash (1.5.0)
+
+ * Maven coordinates: `org.lz4:lz4-java:1.5.0`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: https://github.com/lz4/lz4-java
+ * Source: https://github.com/lz4/lz4-java
 
 
 ## BSON (3.8.2)
@@ -750,5 +782,13 @@
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: http://webjars.org
  * Source: https://github.com/dcodeIO/long.js
+
+
+## snappy-java (1.1.7.2)
+
+ * Maven coordinates: `org.xerial.snappy:snappy-java:1.1.7.2`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: https://github.com/xerial/snappy-java
+ * Source: https://github.com/xerial/snappy-java
 
 
