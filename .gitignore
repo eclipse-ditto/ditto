@@ -17,3 +17,4 @@ dependencies.txt
 ajcore.*.txt
 *.mdb
 .env
+.DS_Store
