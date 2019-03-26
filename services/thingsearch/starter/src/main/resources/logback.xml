@@ -1,4 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+  ~
+  ~ All rights reserved. This program and the accompanying materials
+  ~ are made available under the terms of the Eclipse Public License v2.0
+  ~ which accompanies this distribution, and is available at
+  ~ https://www.eclipse.org/org/documents/epl-2.0/index.php
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
 <configuration>
     <statusListener class="ch.qos.logback.core.status.OnConsoleStatusListener"/>
 
@@ -18,19 +28,6 @@
         </filter>
     </appender>
 
-    <if condition='isDefined("LOGSTASH_SERVER")'>
-        <then>
-            <appender name="stash" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
-                <destination>${LOGSTASH_SERVER}</destination>
-
-                <!-- encoder is required -->
-                <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-                    <customFields>{"appname":"thingsearch","instance_index":"${INSTANCE_INDEX}"}</customFields>
-                </encoder>
-            </appender>
-        </then>
-    </if>
-
     <!-- do not print INFO cluster messages of mongo driver: -->
     <logger name="org.mongodb.driver" level="WARN"/>
 
@@ -41,21 +38,9 @@
     <logger name="org.eclipse.ditto" level="${LOG_LEVEL_APPLICATION:-INFO}"/>
 
     <root level="${LOG_LEVEL:-INFO}">
-        <!-- logging INFO messages can be disabled by setting environment variable -->
-        <if condition='isNull("DISABLE_SYSOUT_LOG")'>
-            <then>
-                <appender-ref ref="STDOUT"/>
-            </then>
-        </if>
-
+        <appender-ref ref="STDOUT"/>
         <!-- always log ERRORs to syserr -->
         <appender-ref ref="STDERR"/>
-
-        <if condition='isDefined("LOGSTASH_SERVER")'>
-            <then>
-                <appender-ref ref="stash"/>
-            </then>
-        </if>
     </root>
 
 </configuration>

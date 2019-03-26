@@ -121,7 +121,7 @@
             <artifactId>akka-discovery-kubernetes-api_${scala.version}</artifactId>
         </dependency>
 
-	<dependency>
+        <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
         </dependency>
@@ -203,8 +203,7 @@
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <manifestEntries>
-                                        <Main-Class>
-                                            org.eclipse.ditto.services.thingsearch.starter.SearchService
+                                        <Main-Class>org.eclipse.ditto.services.thingsearch.starter.SearchService
                                         </Main-Class>
                                     </manifestEntries>
                                 </transformer>
@@ -250,13 +249,12 @@
                     <autoPull>always</autoPull> <!-- always pull latest BaseImage -->
                     <images>
                         <image>
-                            <alias>${thingsearch.docker.image.name}</alias>
+                            <alias>${things-search.docker.image.name}</alias>
                             <name>
-                                ${docker.repository.things}/${thingsearch.docker.image.name}:${project.version}
+                                ${docker.repository}/${things-search.docker.image.name}:${project.version}
                             </name>
                             <build>
                                 <from>${docker.image.jdk}</from>
-                                <maintainer>${docker.maintainer}</maintainer>
                                 <tags>
                                     <tag>${docker.image.additional.tag}</tag>
                                 </tags>
@@ -267,21 +265,23 @@
                                     <HTTP_PORT>${docker.image.port}</HTTP_PORT>
                                     <HOSTING_ENVIRONMENT>Docker</HOSTING_ENVIRONMENT>
                                 </env>
-                                <cmd>
+                                <workdir>/opt/ditto</workdir>
+                                <entryPoint>
                                     <exec>
                                         <arg>java</arg>
+                                        <!-- TODO this required? -->
                                         <arg>-Djdk.nio.maxCachedBufferSize=${thingsearch.jdk.nio.maxCachedBufferSize}</arg>
                                         <arg>-XX:MaxDirectMemorySize=${thingsearch.max.direct.buffer.size}</arg>
                                         <arg>-jar</arg>
-                                        <arg>/starter.jar</arg>
+                                        <arg>/opt/ditto/starter.jar</arg>
                                     </exec>
-                                </cmd>
+                                </entryPoint>
                                 <assembly>
                                     <basedir>/</basedir>
                                     <descriptor>assembly.xml</descriptor>
                                 </assembly>
                                 <runCmds>
-                                    <runCmd>ln -s /${project.build.finalName}-allinone.jar /starter.jar</runCmd>
+                                    <runCmd>ln -s /opt/ditto/${project.build.finalName}-allinone.jar /opt/ditto/starter.jar</runCmd>
                                 </runCmds>
                             </build>
                         </image>

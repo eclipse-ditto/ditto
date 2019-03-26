@@ -20,8 +20,8 @@
     </parent>
 
     <artifactId>ditto-services-thingsearch</artifactId>
-    <name>Eclipse Ditto :: Services :: Thing Search </name>
     <packaging>pom</packaging>
+    <name>Eclipse Ditto :: Services :: Thing Search</name>
 
     <modules>
         <module>common</module>
