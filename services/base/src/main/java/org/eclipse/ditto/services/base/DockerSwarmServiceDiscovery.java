@@ -42,8 +42,6 @@ public final class DockerSwarmServiceDiscovery extends ServiceDiscovery {
 
     private final ExtendedActorSystem system;
 
-    private static final String MY_HOSTNAME = System.getenv("HOSTNAME");
-
     /**
      * Constructs a new instance of DockerSwarmServiceDiscovery.
      *
@@ -78,7 +76,7 @@ public final class DockerSwarmServiceDiscovery extends ServiceDiscovery {
                     .collect(Collectors.toList());
 
             final Resolved resolved = new Resolved(serviceName, JavaConverters.asScalaBuffer(resolvedTargets).toList());
-            system.log().info("[DockerSwarmServiceDiscovery] Resolved <{}> via InetAddress to: {}", lookup,
+            system.log().debug("[DockerSwarmServiceDiscovery] Resolved <{}> via InetAddress to: {}", lookup,
                             resolved);
             return resolved;
         }, system.dispatcher());
