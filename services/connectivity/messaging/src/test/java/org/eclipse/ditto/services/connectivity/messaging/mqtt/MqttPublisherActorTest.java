@@ -18,7 +18,6 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.qpid.jms.message.JmsMessage;
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -30,7 +29,7 @@ import akka.stream.alpakka.mqtt.MqttMessage;
 import akka.stream.javadsl.Sink;
 import akka.testkit.TestProbe;
 
-public class MqttPublisherActorTest extends AbstractPublisherActorTest<JmsMessage> {
+public class MqttPublisherActorTest extends AbstractPublisherActorTest {
 
     public static final String OUTBOUND_ADDRESS = "mqtt/eclipse/ditto";
     private TestProbe probe;

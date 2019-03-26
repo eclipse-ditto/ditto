@@ -24,7 +24,7 @@
     "connectionType": {
       "$id": "/properties/connectionType",
       "type": "string",
-      "enum": [ "amqp-091", "amqp-10", "mqtt" ],
+      "enum": [ "amqp-091", "amqp-10", "mqtt", "kafka" ],
       "title": "Connection type",
       "description": "The type determining the connection's underlying transport protocol",
       "examples": [

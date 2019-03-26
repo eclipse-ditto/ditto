@@ -12,10 +12,8 @@ That way the headers can be passed through Ditto or defined DittoHeaders like fo
 mapped to a header used for message correlation in the external system.
 
 A header mapping can be defined individually for every source and target of a connection. For examples of a definition 
-see [source header mapping](connectivity-protocol-bindings-amqp091.html#source-header-mapping) 
-and [target header mapping](connectivity-protocol-bindings-amqp091.html#target-header-mapping) for AMQP 0.9.1 connections
-or [source header mapping](connectivity-protocol-bindings-amqp10.html#source-header-mapping) 
-and [target header mapping](connectivity-protocol-bindings-amqp10.html#target-header-mapping) for AMQP 1.0 connections.
+see [source header mapping](basic-connections.html#source-header-mapping) 
+and [target header mapping](basic-connections.html#target-header-mapping).
 
 ## Supported placeholders
 

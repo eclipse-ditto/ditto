@@ -198,7 +198,11 @@ public class PolicySupervisorActor extends AbstractActor {
 
         @Override
         public void doApply(final Terminated message) {
-            log.info("Persistence actor for Policy with ID '{}' terminated abnormally", policyId);
+            log.warning("Persistence actor for Policy with ID <{}> terminated abnormally.", policyId);
+            if (message.getAddressTerminated()) {
+                log.error("Persistence actor for Policy with ID <{}> terminated abnormally " +
+                        "because it crashed or because of network failure!", policyId);
+            }
             child = null;
             final Duration restartDelay = calculateRestartDelay();
             getContext().system().scheduler()

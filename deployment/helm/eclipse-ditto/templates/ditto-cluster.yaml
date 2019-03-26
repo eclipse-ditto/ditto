@@ -2,10 +2,10 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: concierge
+  name: {{ .Values.concierge.name }}
   labels:
-    app: concierge
-    app.kubernetes.io/name: concierge
+    app: {{ .Values.concierge.name }}
+    app.kubernetes.io/name: {{ .Values.concierge.name }}
     app.kubernetes.io/part-of: {{ .Chart.Name }}
     app.kubernetes.io/version: "{{.Chart.Version}}"
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
@@ -15,14 +15,14 @@ spec:
   template:
     metadata:
       labels:
-        app: concierge
+        app: {{ .Values.concierge.name }}
         actorSystemName: ditto-cluster
     spec:
       restartPolicy: Always
       containers:
-        - name: concierge
+        - name: {{ .Values.concierge.name }}
           image: "{{ .Values.concierge.image.repository }}:{{ .Values.concierge.image.tag }}"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: {{ .Values.concierge.image.imagePullPolicy }}
           command: ["java"]
           args: ["-jar", "/opt/ditto/starter.jar"]
           ports:
@@ -60,7 +60,7 @@ spec:
             - name: DISCOVERY_METHOD
               value: "kubernetes-api"
             - name: TZ
-              value: "Europe/Berlin"
+              value: "{{ .Values.global.timezone }}"
             - name: IBM_JAVA_OPTIONS
               value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"           
             - name: MONGO_DB_SSL_ENABLED
@@ -74,10 +74,10 @@ spec:
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: connectivity
+  name: {{ .Values.connectivity.name }}
   labels:
-    app: connectivity
-    app.kubernetes.io/name: connectivity
+    app: {{ .Values.connectivity.name }}
+    app.kubernetes.io/name: {{ .Values.connectivity.name }}
     app.kubernetes.io/part-of: {{ .Chart.Name }}
     app.kubernetes.io/version: "{{.Chart.Version}}"
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
@@ -87,14 +87,14 @@ spec:
   template:
     metadata:
       labels:
-        app: connectivity
+        app: {{ .Values.connectivity.name }}
         actorSystemName: ditto-cluster
     spec:
       restartPolicy: Always
       containers:
-        - name: connectivity
+        - name: {{ .Values.connectivity.name }}
           image: "{{ .Values.connectivity.image.repository }}:{{ .Values.connectivity.image.tag }}"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: {{ .Values.connectivity.image.imagePullPolicy }}
           command: ["java"]
           args: ["-jar", "/opt/ditto/starter.jar"]
           ports:
@@ -132,7 +132,7 @@ spec:
             - name: DISCOVERY_METHOD
               value: "kubernetes-api"
             - name: TZ
-              value: "Europe/Berlin"
+              value: "{{ .Values.global.timezone }}"
             - name: IBM_JAVA_OPTIONS
               value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"         
             - name: MONGO_DB_SSL_ENABLED
@@ -146,10 +146,10 @@ spec:
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: things
+  name: {{ .Values.things.name }}
   labels:
-    app: things
-    app.kubernetes.io/name: things
+    app: {{ .Values.things.name }}
+    app.kubernetes.io/name: {{ .Values.things.name }}
     app.kubernetes.io/part-of: {{ .Chart.Name }}
     app.kubernetes.io/version: "{{.Chart.Version}}"
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
@@ -159,14 +159,14 @@ spec:
   template:
     metadata:
       labels:
-        app: things
+        app: {{ .Values.things.name }}
         actorSystemName: ditto-cluster
     spec:
       restartPolicy: Always
       containers:
-        - name: things
+        - name: {{ .Values.things.name }}
           image: "{{ .Values.things.image.repository }}:{{ .Values.things.image.tag }}"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: {{ .Values.things.image.imagePullPolicy }}
           command: ["java"]
           args: ["-jar", "/opt/ditto/starter.jar"]
           ports:
@@ -204,7 +204,7 @@ spec:
             - name: DISCOVERY_METHOD
               value: "kubernetes-api"
             - name: TZ
-              value: "Europe/Berlin"
+              value: "{{ .Values.global.timezone }}"
             - name: IBM_JAVA_OPTIONS
               value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
             - name: MONGO_DB_SSL_ENABLED
@@ -218,10 +218,10 @@ spec:
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: things-search
+  name: {{ .Values.search.name }}
   labels:
-    app: things-search
-    app.kubernetes.io/name: things-search
+    app: {{ .Values.search.name }}
+    app.kubernetes.io/name: {{ .Values.search.name }}
     app.kubernetes.io/part-of: {{ .Chart.Name }}
     app.kubernetes.io/version: "{{.Chart.Version}}"
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
@@ -231,13 +231,13 @@ spec:
   template:
     metadata:
       labels:
-        app: things-search
+        app: {{ .Values.search.name }}
         actorSystemName: ditto-cluster
     spec:
       containers:
-        - name: things-search
+        - name: {{ .Values.search.name }}
           image: "{{ .Values.search.image.repository }}:{{ .Values.search.image.tag }}"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: {{ .Values.search.image.imagePullPolicy }}
           command: ["java"]
           args: ["-jar", "/opt/ditto/starter.jar"]
           ports:
@@ -275,7 +275,7 @@ spec:
             - name: DISCOVERY_METHOD
               value: "kubernetes-api"
             - name: TZ
-              value: "Europe/Berlin"
+              value: "{{ .Values.global.timezone }}"
             - name: IBM_JAVA_OPTIONS
               value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
             - name: MONGO_DB_SSL_ENABLED
@@ -289,10 +289,10 @@ spec:
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: policies
+  name: {{ .Values.policies.name }}
   labels:
-    app: policies
-    app.kubernetes.io/name: policies
+    app: {{ .Values.policies.name }}
+    app.kubernetes.io/name: {{ .Values.policies.name }}
     app.kubernetes.io/part-of: {{ .Chart.Name }}
     app.kubernetes.io/version: "{{.Chart.Version}}"
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
@@ -302,13 +302,13 @@ spec:
   template:
     metadata:
       labels:
-        app: policies
+        app: {{ .Values.policies.name }}
         actorSystemName: ditto-cluster
     spec:
       containers:
-        - name: policies
+        - name: {{ .Values.policies.name }}
           image: "{{ .Values.policies.image.repository }}:{{ .Values.policies.image.tag }}"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: {{ .Values.policies.image.imagePullPolicy }}
           command: ["java"]
           args: ["-jar", "/opt/ditto/starter.jar"]
           ports:
@@ -346,7 +346,7 @@ spec:
             - name: DISCOVERY_METHOD
               value: "kubernetes-api"
             - name: TZ
-              value: "Europe/Berlin"
+              value: "{{ .Values.global.timezone }}"
             - name: IBM_JAVA_OPTIONS
               value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
             - name: MONGO_DB_SSL_ENABLED
@@ -360,10 +360,10 @@ spec:
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: gateway
+  name: {{ .Values.gateway.name }}
   labels:
-    app: gateway
-    app.kubernetes.io/name: gateway
+    app: {{ .Values.gateway.name }}
+    app.kubernetes.io/name: {{ .Values.gateway.name }}
     app.kubernetes.io/part-of: {{ .Chart.Name }}
     app.kubernetes.io/version: "{{.Chart.Version}}"
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
@@ -373,13 +373,13 @@ spec:
   template:
     metadata:
       labels:
-        app: gateway
+        app: {{ .Values.gateway.name }}
         actorSystemName: ditto-cluster
     spec:
       containers:
-        - name: gateway
+        - name: {{ .Values.gateway.name }}
           image: "{{ .Values.gateway.image.repository }}:{{ .Values.gateway.image.tag }}"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: {{ .Values.gateway.image.imagePullPolicy }}
           command: ["java"]
           args: ["-jar", "/opt/ditto/starter.jar"]
           ports:
@@ -419,16 +419,16 @@ spec:
             - name: DISCOVERY_METHOD
               value: "kubernetes-api"
             - name: TZ
-              value: "Europe/Berlin"
+              value: "{{ .Values.global.timezone }}"
             - name: IBM_JAVA_OPTIONS
               value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: gateway
+  name: {{ .Values.gateway.name }}
   labels:
-    app.kubernetes.io/name: gateway
+    app.kubernetes.io/name: {{ .Values.gateway.name }}
     app.kubernetes.io/part-of: {{ .Chart.Name }}
     app.kubernetes.io/version: "{{.Chart.Version}}"
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
@@ -441,4 +441,4 @@ spec:
       targetPort: 8080
       protocol: TCP
   selector:
-    app: gateway
+    app: {{ .Values.gateway.name }}

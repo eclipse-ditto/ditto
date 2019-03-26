@@ -18,7 +18,7 @@ import javax.net.ssl.X509TrustManager;
  * TrustManager that accepts any certificate.
  * This trust manager should only be used for local development and test systems !!
  */
-final public class AcceptAnyTrustManager implements X509TrustManager {
+public final class AcceptAnyTrustManager implements X509TrustManager {
 
     public X509Certificate[] getAcceptedIssuers() {
         return null;
