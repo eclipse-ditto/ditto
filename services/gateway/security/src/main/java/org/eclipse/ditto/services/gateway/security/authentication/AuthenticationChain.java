@@ -93,23 +93,24 @@ public final class AuthenticationChain {
         final List<AuthenticationResult> failedAuthenticationResults = new ArrayList<>();
 
         for (final AuthenticationProvider authenticationProvider : authenticationProviderChain) {
+            final String authProviderName = authenticationProvider.getClass().getSimpleName();
+
             if (!authenticationProvider.isApplicable(requestContext)) {
+                LOGGER.debug("AuthenticationProvider <{}> is not applicable. Trying next ...", authProviderName);
                 continue;
             }
 
-            LOGGER.debug("Applying authentication provider <{}> to URI <{}>.",
-                    authenticationProvider.getClass().getSimpleName(), requestUri);
+            LOGGER.debug("Applying authentication provider <{}> to URI <{}>.", authProviderName, requestUri);
             final AuthenticationResult authenticationResult =
                     authenticationProvider.authenticate(requestContext, correlationId);
 
             if (authenticationResult.isSuccess()) {
                 LOGGER.debug("Authentication using authentication provider <{}> to URI <{}> was successful.",
-                        authenticationProvider.getClass().getSimpleName(), requestUri);
+                        authProviderName, requestUri);
                 return authenticationResult;
             } else {
-                LOGGER.debug("Authentication using authentication provider <{}> to URI <{}> failed.",
-                        authenticationProvider.getClass().getSimpleName(), requestUri,
-                        authenticationResult.getReasonOfFailure());
+                LOGGER.debug("Authentication using authentication provider <{}> to URI <{}> failed.", authProviderName,
+                        requestUri, authenticationResult.getReasonOfFailure());
                 failedAuthenticationResults.add(authenticationResult);
             }
         }

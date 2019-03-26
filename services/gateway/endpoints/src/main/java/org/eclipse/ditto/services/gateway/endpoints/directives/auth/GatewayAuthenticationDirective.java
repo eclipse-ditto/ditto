@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.gateway.endpoints.directives.auth;
 
 import static akka.http.javadsl.server.Directives.extractRequestContext;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils.enhanceLogWithCorrelationId;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -21,7 +22,6 @@ import java.util.function.Function;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationChain;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
@@ -80,7 +80,7 @@ public final class GatewayAuthenticationDirective {
      */
     public Route authenticate(final CharSequence correlationId, final Function<AuthorizationContext, Route> inner) {
         return extractRequestContext(
-                requestContext -> DirectivesLoggingUtils.enhanceLogWithCorrelationId(correlationId, () -> {
+                requestContext -> enhanceLogWithCorrelationId(correlationId, () -> {
                     final Uri requestUri = requestContext.getRequest().getUri();
 
                     final CompletableFuture<AuthenticationResult> authenticationResult =
@@ -112,15 +112,17 @@ public final class GatewayAuthenticationDirective {
     private Route handleFailedAuthentication(final Throwable reasonOfFailure, final Uri requestUri,
             final CharSequence correlationId) {
 
-        if (reasonOfFailure instanceof DittoRuntimeException) {
-            LOGGER.debug("Authentication for URI <{}> failed. Rethrow DittoRuntimeException.", requestUri,
-                    reasonOfFailure);
-            throw (DittoRuntimeException) reasonOfFailure;
-        }
+        return enhanceLogWithCorrelationId(correlationId, () -> {
+            if (reasonOfFailure instanceof DittoRuntimeException) {
+                LOGGER.debug("Authentication for URI <{}> failed. Rethrow DittoRuntimeException.", requestUri,
+                        reasonOfFailure);
+                throw (DittoRuntimeException) reasonOfFailure;
+            }
 
-        LOGGER.debug("Unexpected error during authentication for URI <{}>! Applying unauthorizedDirective",
-                requestUri, reasonOfFailure);
-        throw defaultUnauthorizedExceptionFactory.apply(correlationId.toString());
+            LOGGER.debug("Unexpected error during authentication for URI <{}>! Applying unauthorizedDirective",
+                    requestUri, reasonOfFailure);
+            throw defaultUnauthorizedExceptionFactory.apply(correlationId.toString());
+        });
     }
 
 }
