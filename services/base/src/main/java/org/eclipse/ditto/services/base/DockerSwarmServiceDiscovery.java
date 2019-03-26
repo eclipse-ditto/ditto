@@ -74,13 +74,11 @@ public final class DockerSwarmServiceDiscovery extends ServiceDiscovery {
                         JavaConverters.<ResolvedTarget>asScalaBuffer(Collections.emptyList()).toList());
             }
             final List<ResolvedTarget> resolvedTargets = Arrays.stream(allResolvedHosts)
-                    .filter(a -> !a.getCanonicalHostName().equals(MY_HOSTNAME))
-                    .filter(a -> !a.getHostName().equals(MY_HOSTNAME))
                     .map(a -> new ResolvedTarget(a.getCanonicalHostName(), Option.empty(), Option.apply(a)))
                     .collect(Collectors.toList());
 
             final Resolved resolved = new Resolved(serviceName, JavaConverters.asScalaBuffer(resolvedTargets).toList());
-            system.log().info("[DockerSwarmServiceDiscovery] Resolved lookup <{}> via InetAddress to: {}", lookup,
+            system.log().info("[DockerSwarmServiceDiscovery] Resolved <{}> via InetAddress to: {}", lookup,
                             resolved);
             return resolved;
         }, system.dispatcher());
