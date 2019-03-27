@@ -2,7 +2,7 @@
 title: Release notes 0.9.0-M1
 tags: [release_notes]
 keywords: release notes, announcements, changelog
-summary: "Version 0.9.0-M1 of Eclipse Ditto, released on 27.03.2019"
+summary: "Version 0.9.0-M1 of Eclipse Ditto, released on 28.03.2019"
 permalink: release_notes_090-M1.html
 ---
 

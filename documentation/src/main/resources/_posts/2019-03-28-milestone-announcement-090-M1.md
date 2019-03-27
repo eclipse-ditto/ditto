@@ -1,7 +1,7 @@
 ---
 title: "Announcing Ditto Milestone 0.9.0-M1"
 published: true
-permalink: 2019-03-27-milestone-announcement-090-M1.html
+permalink: 2019-03-28-milestone-announcement-090-M1.html
 layout: post
 author: thomas_jaeckle
 tags: [blog]
