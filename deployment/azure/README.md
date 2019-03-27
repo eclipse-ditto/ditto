@@ -44,19 +44,36 @@ aks_cluster_name+="dittoaks"
 az aks get-credentials --resource-group $resourcegroup_name --name $aks_cluster_name
 ```
 
-Next deploy helm on your cluster as described [here](https://docs.microsoft.com/en-us/azure/aks/kubernetes-helm). It will take a moment until tiller is botted up. So maybe time again to get up and stretch a bit.
+Next deploy helm on your cluster. It will take a moment until tiller is booted up. So maybe time again to get up and stretch a bit.
 
 ```bash
 kubectl apply -f helm-rbac.yaml
 helm init --service-account tiller
 ```
 
-Now install Ditto with helm:
+(Optional): in case you want to use MongoDB with persistent storage as part of your setup we will need a k8s `StorageClass` with `Retain` policy.
+
+```bash
+kubectl apply -f managed-premium-retain.yaml
+```
+
+Now install Ditto with helm
 
 ```bash
 k8s_namespace=dittons
 
 kubectl create namespace $k8s_namespace
+```
+
+...either with persistent storage
+
+```bash
+helm upgrade ditto ../helm/eclipse-ditto/ --namespace $k8s_namespace --set service.type=LoadBalancer,mongodb.persistence.enabled=true,mongodb.persistence.storageClass=managed-premium-retain --wait --install
+```
+
+...or without
+
+```bash
 helm upgrade ditto ../helm/eclipse-ditto/ --namespace $k8s_namespace --set service.type=LoadBalancer --wait --install
 ```
 

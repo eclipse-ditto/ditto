@@ -55,24 +55,32 @@ gateway:
 nginx:
   version: 1.15
 
+##
+## MongoDB chart configuration
+##
 mongodb:
-  # Deployed as part of chart.
+## Disable in case an external MongoDB is used
   embedded:
-    version: 3.6
     enabled: true
+## https://github.com/helm/charts/blob/master/stable/mongodb/values.yaml
+  usePassword: false
+  image:
+    tag: 3.6
+  persistence:
+    enabled: false
   apps:
     concierge:
-      uri: mongodb://mongodb:27017/concierge
+      uri: mongodb://ditto-mongodb:27017/concierge
       ssl: "false"
     connectivity:
-      uri: mongodb://mongodb:27017/connectivity
+      uri: mongodb://ditto-mongodb:27017/connectivity
       ssl: "false"
     things:
-      uri: mongodb://mongodb:27017/things
+      uri: mongodb://ditto-mongodb:27017/things
       ssl: "false"
     searchDB:
-      uri: mongodb://mongodb:27017/searchDB
+      uri: mongodb://ditto-mongodb:27017/searchDB
       ssl: "false"
     policies:
-      uri: mongodb://mongodb:27017/policies
+      uri: mongodb://ditto-mongodb:27017/policies
       ssl: "false"
