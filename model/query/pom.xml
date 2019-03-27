@@ -60,6 +60,10 @@
             <plugin>
                 <groupId>com.github.siom79.japicmp</groupId>
                 <artifactId>japicmp-maven-plugin</artifactId>
+                <configuration>
+                    <!-- TODO enable after release -->
+                    <skip>true</skip>
+                </configuration>
             </plugin>
         </plugins>
     </build>
