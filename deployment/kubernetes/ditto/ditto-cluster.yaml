@@ -20,20 +20,22 @@ spec:
         command: ["java"]
         args: ["-jar", "/opt/ditto/starter.jar"]
         ports:
-        - name: akka-remoting
+        - name: remoting
           containerPort: 2551
           protocol: TCP
-        - name: akka-mgmt-http
+        - name: management
           containerPort: 8558
           protocol: TCP
         readinessProbe:
-          tcpSocket:
-            port: 8558
+          httpGet:
+            port: management
+            path: /ready
           initialDelaySeconds: 45
           periodSeconds: 10
         livenessProbe:
-          tcpSocket:
-            port: 2551
+          httpGet:
+            port: management
+            path: /alive
           initialDelaySeconds: 180
           periodSeconds: 10
           timeoutSeconds: 3
@@ -77,20 +79,22 @@ spec:
         command: ["java"]
         args: ["-jar", "/opt/ditto/starter.jar"]
         ports:
-        - name: akka-remoting
+        - name: remoting
           containerPort: 2551
           protocol: TCP
-        - name: akka-mgmt-http
+        - name: management
           containerPort: 8558
           protocol: TCP
         readinessProbe:
-          tcpSocket:
-            port: 8558
+          httpGet:
+            port: management
+            path: /ready
           initialDelaySeconds: 45
           periodSeconds: 10
         livenessProbe:
-          tcpSocket:
-            port: 2551
+          httpGet:
+            port: management
+            path: /alive
           initialDelaySeconds: 180
           periodSeconds: 10
           timeoutSeconds: 3
@@ -134,20 +138,22 @@ spec:
         command: ["java"]
         args: ["-jar", "/opt/ditto/starter.jar"]
         ports:
-        - name: akka-remoting
+        - name: remoting
           containerPort: 2551
           protocol: TCP
-        - name: akka-mgmt-http
+        - name: management
           containerPort: 8558
           protocol: TCP
         readinessProbe:
-          tcpSocket:
-            port: 8558
+          httpGet:
+            port: management
+            path: /ready
           initialDelaySeconds: 45
           periodSeconds: 10
         livenessProbe:
-          tcpSocket:
-            port: 2551
+          httpGet:
+            port: management
+            path: /alive
           initialDelaySeconds: 180
           periodSeconds: 10
           timeoutSeconds: 3
@@ -190,20 +196,22 @@ spec:
         command: ["java"]
         args: ["-jar", "/opt/ditto/starter.jar"]
         ports:
-        - name: akka-remoting
+        - name: remoting
           containerPort: 2551
           protocol: TCP
-        - name: akka-mgmt-http
+        - name: management
           containerPort: 8558
           protocol: TCP
         readinessProbe:
-          tcpSocket:
-            port: 8558
+          httpGet:
+            port: management
+            path: /ready
           initialDelaySeconds: 45
           periodSeconds: 10
         livenessProbe:
-          tcpSocket:
-            port: 2551
+          httpGet:
+            port: management
+            path: /alive
           initialDelaySeconds: 180
           periodSeconds: 10
           timeoutSeconds: 3
@@ -246,20 +254,22 @@ spec:
         command: ["java"]
         args: ["-jar", "/opt/ditto/starter.jar"]
         ports:
-        - name: akka-remoting
+        - name: remoting
           containerPort: 2551
           protocol: TCP
-        - name: akka-mgmt-http
+        - name: management
           containerPort: 8558
           protocol: TCP
         readinessProbe:
-          tcpSocket:
-            port: 8558
+          httpGet:
+            port: management
+            path: /ready
           initialDelaySeconds: 45
           periodSeconds: 10
         livenessProbe:
-          tcpSocket:
-            port: 2551
+          httpGet:
+            port: management
+            path: /alive
           initialDelaySeconds: 180
           periodSeconds: 10
           timeoutSeconds: 3
@@ -302,20 +312,22 @@ spec:
         command: ["java"]
         args: ["-jar", "/opt/ditto/starter.jar"]
         ports:
-        - name: akka-remoting
+        - name: remoting
           containerPort: 2551
           protocol: TCP
-        - name: akka-mgmt-http
+        - name: management
           containerPort: 8558
           protocol: TCP
         readinessProbe:
-          tcpSocket:
-            port: 8558
+          httpGet:
+            port: management
+            path: /ready
           initialDelaySeconds: 45
           periodSeconds: 10
         livenessProbe:
-          tcpSocket:
-            port: 2551
+          httpGet:
+            port: management
+            path: /alive
           initialDelaySeconds: 180
           periodSeconds: 10
           timeoutSeconds: 3
