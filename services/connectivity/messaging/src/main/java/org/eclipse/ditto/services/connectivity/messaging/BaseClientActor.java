@@ -754,7 +754,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         try (final Socket socket = new Socket()) {
             socket.connect(new InetSocketAddress(host, port), SOCKET_CHECK_TIMEOUT_MS);
             return true;
-        } catch (final IOException ex) {
+        } catch (final IOException | IllegalArgumentException ex) {
             LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
             log.warning("Socket could not be opened for <{}:{}> due to <{}:{}>", host, port,
                     ex.getClass().getCanonicalName(), ex.getMessage());

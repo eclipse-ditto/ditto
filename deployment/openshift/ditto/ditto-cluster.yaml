@@ -1,7 +1,6 @@
 ---
 # Note:
-# The K8S_NAMESPACE env variable relates to the namespace in which the Ditto service is running.
-# According to this the pod-reader-role have to be created in the same namespace.
+# According to the used k8s namespace the pod-reader-role have to be created in the same namespace.
 
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -25,20 +24,22 @@ spec:
         command: ["java"]
         args: ["-jar", "/opt/ditto/starter.jar"]
         ports:
-        - name: akka-remoting
+        - name: remoting
           containerPort: 2551
           protocol: TCP
-        - name: akka-mgmt-http
+        - name: management
           containerPort: 8558
           protocol: TCP
         readinessProbe:
-          tcpSocket:
-            port: 8558
+          httpGet:
+            port: management
+            path: /ready
           initialDelaySeconds: 45
           periodSeconds: 10
         livenessProbe:
-          tcpSocket:
-            port: 2551
+          httpGet:
+            port: management
+            path: /alive
           initialDelaySeconds: 180
           periodSeconds: 10
           timeoutSeconds: 3
@@ -64,8 +65,6 @@ spec:
         - name: DISCOVERY_METHOD
           value: "kubernetes-api"
           # namespace in which the Ditto service is running according to this the pod-reader-role have to be created in the same namespace
-        - name: K8S_NAMESPACE
-          value: "default"
         - name: TZ
           value: "Europe/Berlin"
         - name: OPENJ9_JAVA_OPTIONS
@@ -98,20 +97,22 @@ spec:
         command: ["java"]
         args: ["-jar", "/opt/ditto/starter.jar"]
         ports:
-        - name: akka-remoting
+        - name: remoting
           containerPort: 2551
           protocol: TCP
-        - name: akka-mgmt-http
+        - name: management
           containerPort: 8558
           protocol: TCP
         readinessProbe:
-          tcpSocket:
-            port: 8558
+          httpGet:
+            port: management
+            path: /ready
           initialDelaySeconds: 45
           periodSeconds: 10
         livenessProbe:
-          tcpSocket:
-            port: 2551
+          httpGet:
+            port: management
+            path: /alive
           initialDelaySeconds: 180
           periodSeconds: 10
           timeoutSeconds: 3
@@ -137,8 +138,6 @@ spec:
         - name: DISCOVERY_METHOD
           value: "kubernetes-api"
           # namespace in which the Ditto service is running according to this the pod-reader-role have to be created in the same namespace
-        - name: K8S_NAMESPACE
-          value: "default"
         - name: TZ
           value: "Europe/Berlin"
         - name: OPENJ9_JAVA_OPTIONS
@@ -171,20 +170,22 @@ spec:
         command: ["java"]
         args: ["-jar", "/opt/ditto/starter.jar"]
         ports:
-        - name: akka-remoting
+        - name: remoting
           containerPort: 2551
           protocol: TCP
-        - name: akka-mgmt-http
+        - name: management
           containerPort: 8558
           protocol: TCP
         readinessProbe:
-          tcpSocket:
-            port: 8558
+          httpGet:
+            port: management
+            path: /ready
           initialDelaySeconds: 45
           periodSeconds: 10
         livenessProbe:
-          tcpSocket:
-            port: 2551
+          httpGet:
+            port: management
+            path: /alive
           initialDelaySeconds: 180
           periodSeconds: 10
           timeoutSeconds: 3
@@ -210,8 +211,6 @@ spec:
         - name: DISCOVERY_METHOD
           value: "kubernetes-api"
           # namespace in which the Ditto service is running according to this the pod-reader-role have to be created in the same namespace
-        - name: K8S_NAMESPACE
-          value: "default"
         - name: TZ
           value: "Europe/Berlin"
         - name: OPENJ9_JAVA_OPTIONS
@@ -243,20 +242,22 @@ spec:
         command: ["java"]
         args: ["-jar", "/opt/ditto/starter.jar"]
         ports:
-        - name: akka-remoting
+        - name: remoting
           containerPort: 2551
           protocol: TCP
-        - name: akka-mgmt-http
+        - name: management
           containerPort: 8558
           protocol: TCP
         readinessProbe:
-          tcpSocket:
-            port: 8558
+          httpGet:
+            port: management
+            path: /ready
           initialDelaySeconds: 45
           periodSeconds: 10
         livenessProbe:
-          tcpSocket:
-            port: 2551
+          httpGet:
+            port: management
+            path: /alive
           initialDelaySeconds: 180
           periodSeconds: 10
           timeoutSeconds: 3
@@ -281,8 +282,6 @@ spec:
               fieldPath: status.podIP
         - name: DISCOVERY_METHOD
           value: "kubernetes-api"
-        - name: K8S_NAMESPACE
-          value: "default"
         - name: TZ
           value: "Europe/Berlin"
         - name: OPENJ9_JAVA_OPTIONS
@@ -314,20 +313,22 @@ spec:
         command: ["java"]
         args: ["-jar", "/opt/ditto/starter.jar"]
         ports:
-        - name: akka-remoting
+        - name: remoting
           containerPort: 2551
           protocol: TCP
-        - name: akka-mgmt-http
+        - name: management
           containerPort: 8558
           protocol: TCP
         readinessProbe:
-          tcpSocket:
-            port: 8558
+          httpGet:
+            port: management
+            path: /ready
           initialDelaySeconds: 45
           periodSeconds: 10
         livenessProbe:
-          tcpSocket:
-            port: 2551
+          httpGet:
+            port: management
+            path: /alive
           initialDelaySeconds: 180
           periodSeconds: 10
           timeoutSeconds: 3
@@ -353,8 +354,6 @@ spec:
         - name: DISCOVERY_METHOD
           value: "kubernetes-api"
           # namespace in which the Ditto service is running according to this the pod-reader-role have to be created in the same namespace
-        - name: K8S_NAMESPACE
-          value: "default"
         - name: TZ
           value: "Europe/Berlin"
         - name: OPENJ9_JAVA_OPTIONS
@@ -386,20 +385,22 @@ spec:
         command: ["java"]
         args: ["-jar", "/opt/ditto/starter.jar"]
         ports:
-        - name: akka-remoting
+        - name: remoting
           containerPort: 2551
           protocol: TCP
-        - name: akka-mgmt-http
+        - name: management
           containerPort: 8558
           protocol: TCP
         readinessProbe:
-          tcpSocket:
-            port: 8558
+          httpGet:
+            port: management
+            path: /ready
           initialDelaySeconds: 45
           periodSeconds: 10
         livenessProbe:
-          tcpSocket:
-            port: 2551
+          httpGet:
+            port: management
+            path: /alive
           initialDelaySeconds: 180
           periodSeconds: 10
           timeoutSeconds: 3
@@ -427,8 +428,6 @@ spec:
         - name: DISCOVERY_METHOD
           value: "kubernetes-api"
           # namespace in which the Ditto service is running according to this the pod-reader-role have to be created in the same namespace
-        - name: K8S_NAMESPACE
-          value: "default"
         - name: BIND_HOSTNAME
           value: 0.0.0.0
         - name: TZ

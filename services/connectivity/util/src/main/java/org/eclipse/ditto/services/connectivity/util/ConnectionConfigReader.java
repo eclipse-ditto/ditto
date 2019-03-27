@@ -79,6 +79,15 @@ public final class ConnectionConfigReader extends AbstractConfigReader {
         return new MqttConfigReader(getChildOrEmpty("mqtt"));
     }
 
+    /**
+     * Config specific to the protocol Kafka.
+     *
+     * @return the Kafka config reader.
+     */
+    public KafkaConfigReader kafka() {
+        return new KafkaConfigReader(getChildOrEmpty("kafka"));
+    }
+
     private void validate() {
         final int snapshotThreshold = snapshotThreshold();
         if (snapshotThreshold <= 0) {

@@ -183,6 +183,32 @@ public final class PlaceholderFilter {
         }
     }
 
+    /**
+     * Validates that the passed {@code template} is valid and that the placeholders in the passed {@code template}
+     * are completely replaceable by the provided {@code placeholders}. Each placeholder will be replaced by
+     * {@code stringUsedInPlaceholderReplacement} and the resolved template without any remaining placeholders will be returned.
+     *
+     * @param template a string potentially containing placeholders to replace
+     * @param stringUsedInPlaceholderReplacement the dummy value used as a replacement for the found placeholders.
+     * @param placeholders the {@link Placeholder}s to use for replacement
+     * @throws UnresolvedPlaceholderException in case the template's placeholders could not completely be resolved
+     * @throws PlaceholderFunctionTooComplexException thrown if the {@code template} contains a placeholder
+     * function chain which is too complex (e.g. too much chained function calls)
+     * @return the {@code template} with every placeholder replaced by {@code stringUsedInPlaceholderReplacement}.
+     */
+    public static String validateAndReplace(final String template, final String stringUsedInPlaceholderReplacement, final Placeholder<?>... placeholders) {
+        String replaced = template;
+        for (int i = 0; i < placeholders.length; i++) {
+            boolean isNotLastPlaceholder = i < placeholders.length - 1;
+            final Placeholder thePlaceholder = placeholders[i];
+            final ExpressionResolver expressionResolver = PlaceholderFactory
+                    .newExpressionResolverForValidation(thePlaceholder, stringUsedInPlaceholderReplacement);
+
+            replaced = doApply(replaced, expressionResolver, isNotLastPlaceholder);
+        }
+        return replaced;
+    }
+
     private static String doApply(final String template,
             final ExpressionResolver expressionResolver,
             final boolean allowUnresolved) {
