@@ -26,6 +26,4 @@ public interface FilterFieldExpressionVisitor<T> extends SortFieldExpressionVisi
 
     @Override
     T visitSimple(final String fieldName);
-
-    T visitAcl();
 }

@@ -29,7 +29,4 @@ public interface FieldExpressionVisitor<T>
 
     @Override
     T visitSimple(final String fieldName);
-
-    @Override
-    T visitAcl();
 }

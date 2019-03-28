@@ -48,8 +48,4 @@ public final class FilterThingPredicateVisitor implements FilterFieldExpressionV
         return predicateFunction.apply(fieldName);
     }
 
-    @Override
-    public Predicate<Thing> visitAcl() {
-        return predicateFunction.apply("/acl");
-    }
 }
