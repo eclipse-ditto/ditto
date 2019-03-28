@@ -564,6 +564,7 @@
                     </headerDefinitions>
                     <includes>
                         <include>**/*.java</include>
+                        <include>**/*.scala</include>
                         <include>**/*.sh</include>
                         <include>**/pom.xml</include>
                     </includes>
