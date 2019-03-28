@@ -65,13 +65,19 @@ k8s_namespace=dittons
 kubectl create namespace $k8s_namespace
 ```
 
-...either with persistent storage
+...and download charts Ditto depends on:
+
+```bash
+helm dependency update ../helm/eclipse-ditto/
+```
+
+...either with persistent storage:
 
 ```bash
 helm upgrade ditto ../helm/eclipse-ditto/ --namespace $k8s_namespace --set service.type=LoadBalancer,mongodb.persistence.enabled=true,mongodb.persistence.storageClass=managed-premium-retain --wait --install
 ```
 
-...or without
+...or without:
 
 ```bash
 helm upgrade ditto ../helm/eclipse-ditto/ --namespace $k8s_namespace --set service.type=LoadBalancer --wait --install
