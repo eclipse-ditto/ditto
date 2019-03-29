@@ -136,3 +136,7 @@ li.sidebarTitle {
     background-color: white;
     border-color: #3a8c9a;
 }
+
+.info-container .row .panel .panel-body {
+    height: 12em;
+}
