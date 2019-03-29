@@ -18,3 +18,4 @@ ajcore.*.txt
 *.mdb
 .env
 .DS_Store
+.factorypath
