@@ -24,16 +24,13 @@ import org.eclipse.ditto.services.models.connectivity.ConnectivityMappingStrateg
 import org.eclipse.ditto.services.models.policies.PoliciesMappingStrategy;
 import org.eclipse.ditto.services.models.things.ThingsMappingStrategy;
 import org.eclipse.ditto.services.models.thingsearch.ThingSearchMappingStrategy;
-import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
+import org.eclipse.ditto.services.utils.cluster.AbstractMappingStrategy;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
-import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
-import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
-import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 
 /**
  * {@link MappingStrategy} for the Gateway service containing all {@link Jsonifiable} types known to Gateway.
  */
-public final class GatewayMappingStrategy implements MappingStrategy {
+public final class GatewayMappingStrategy extends AbstractMappingStrategy {
 
     private final PoliciesMappingStrategy policiesMappingStrategy;
     private final ThingsMappingStrategy thingsMappingStrategy;
@@ -51,23 +48,17 @@ public final class GatewayMappingStrategy implements MappingStrategy {
     }
 
     @Override
-    public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy() {
+    protected Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> getIndividualStrategies() {
+
         final Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> combinedStrategy = new HashMap<>();
+
         combinedStrategy.putAll(policiesMappingStrategy.determineStrategy());
         combinedStrategy.putAll(thingSearchMappingStrategy.determineStrategy());
         combinedStrategy.putAll(connectivityMappingStrategy.determineStrategy());
         combinedStrategy.putAll(thingsMappingStrategy.determineStrategy());
+        combinedStrategy.put(StreamingAck.class.getSimpleName(),
+                (jsonObject, dittoHeaders) -> StreamingAck.fromJson(jsonObject));
 
-        final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
-
-        builder.add(StreamingAck.class,
-                jsonObject -> StreamingAck.fromJson(jsonObject)); // do not replace with lambda!
-
-        builder.add(GlobalErrorRegistry.getInstance());
-        builder.add(GlobalCommandRegistry.getInstance());
-        builder.add(GlobalCommandResponseRegistry.getInstance());
-
-        combinedStrategy.putAll(builder.build());
         return combinedStrategy;
     }
 }

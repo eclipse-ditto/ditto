@@ -19,27 +19,24 @@ import java.util.function.BiFunction;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.services.models.concierge.batch.BatchMappingStrategy;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMappingStrategy;
 import org.eclipse.ditto.services.models.policies.PoliciesMappingStrategy;
 import org.eclipse.ditto.services.models.things.ThingsMappingStrategy;
 import org.eclipse.ditto.services.models.thingsearch.ThingSearchMappingStrategy;
-import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
+import org.eclipse.ditto.services.utils.cluster.AbstractMappingStrategy;
+import org.eclipse.ditto.services.utils.cluster.DefaultMappingStrategy;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
-import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
-import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
-import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 
 /**
  * {@link MappingStrategy} for the concierge service.
  */
-public final class ConciergeMappingStrategy implements MappingStrategy {
+public final class ConciergeMappingStrategy extends AbstractMappingStrategy {
 
     private final PoliciesMappingStrategy policiesMappingStrategy;
     private final ThingsMappingStrategy thingsMappingStrategy;
     private final ConnectivityMappingStrategy connectivityMappingStrategy;
     private final ThingSearchMappingStrategy thingSearchMappingStrategy;
-    private final BatchMappingStrategy batchMappingStrategy;
+    private final DefaultMappingStrategy defaultMappingStrategy;
 
     /**
      * Constructs a new {@code ConciergeMappingStrategy} object.
@@ -49,25 +46,17 @@ public final class ConciergeMappingStrategy implements MappingStrategy {
         thingsMappingStrategy = new ThingsMappingStrategy();
         connectivityMappingStrategy = new ConnectivityMappingStrategy(thingsMappingStrategy);
         thingSearchMappingStrategy = new ThingSearchMappingStrategy();
-        batchMappingStrategy = new BatchMappingStrategy();
+        defaultMappingStrategy = new DefaultMappingStrategy();
     }
 
     @Override
-    public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy() {
+    protected Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> getIndividualStrategies() {
         final Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> combinedStrategy = new HashMap<>();
         combinedStrategy.putAll(policiesMappingStrategy.determineStrategy());
         combinedStrategy.putAll(thingSearchMappingStrategy.determineStrategy());
         combinedStrategy.putAll(connectivityMappingStrategy.determineStrategy());
         combinedStrategy.putAll(thingsMappingStrategy.determineStrategy());
-        combinedStrategy.putAll(batchMappingStrategy.determineStrategy());
-
-        final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
-
-        builder.add(GlobalErrorRegistry.getInstance());
-        builder.add(GlobalCommandRegistry.getInstance());
-        builder.add(GlobalCommandResponseRegistry.getInstance());
-
-        combinedStrategy.putAll(builder.build());
+        combinedStrategy.putAll(defaultMappingStrategy.determineStrategy());
         return combinedStrategy;
     }
 }

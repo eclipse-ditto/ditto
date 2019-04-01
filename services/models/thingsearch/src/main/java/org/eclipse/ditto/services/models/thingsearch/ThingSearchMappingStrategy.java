@@ -21,16 +21,13 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.services.models.policies.PoliciesMappingStrategy;
 import org.eclipse.ditto.services.models.things.ThingsMappingStrategy;
-import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
+import org.eclipse.ditto.services.utils.cluster.AbstractMappingStrategy;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
-import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
-import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
-import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 
 /**
  * {@link MappingStrategy} for the Thing Search service containing all {@link Jsonifiable} types known to Things Search.
  */
-public final class ThingSearchMappingStrategy implements MappingStrategy {
+public final class ThingSearchMappingStrategy extends AbstractMappingStrategy {
 
     private final PoliciesMappingStrategy policiesMappingStrategy;
     private final ThingsMappingStrategy thingsMappingStrategy;
@@ -44,18 +41,13 @@ public final class ThingSearchMappingStrategy implements MappingStrategy {
     }
 
     @Override
-    public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy() {
+    protected Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> getIndividualStrategies() {
+
         final Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> combinedStrategy = new HashMap<>();
+
         combinedStrategy.putAll(policiesMappingStrategy.determineStrategy());
         combinedStrategy.putAll(thingsMappingStrategy.determineStrategy());
 
-        final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
-
-        builder.add(GlobalErrorRegistry.getInstance());
-        builder.add(GlobalCommandRegistry.getInstance());
-        builder.add(GlobalCommandResponseRegistry.getInstance());
-
-        combinedStrategy.putAll(builder.build());
         return combinedStrategy;
     }
 }

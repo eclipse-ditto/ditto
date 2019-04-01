@@ -21,35 +21,25 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
+import org.eclipse.ditto.services.utils.cluster.AbstractMappingStrategy;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
-import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
-import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
-import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
-import org.eclipse.ditto.signals.events.base.GlobalEventRegistry;
 
 /**
  * {@link MappingStrategy} for the Things service containing all {@link Jsonifiable} types known to Things.
  */
-public final class ThingsMappingStrategy implements MappingStrategy {
+public final class ThingsMappingStrategy extends AbstractMappingStrategy {
 
     @Override
-    public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy() {
+    public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> getIndividualStrategies() {
         final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
 
-        builder.add(GlobalErrorRegistry.getInstance())
-                .add(GlobalCommandRegistry.getInstance())
-                .add(GlobalCommandResponseRegistry.getInstance())
-                .add(GlobalEventRegistry.getInstance());
-
-        return addThingsStrategies(builder).build();
-    }
-
-    private static MappingStrategiesBuilder addThingsStrategies(final MappingStrategiesBuilder builder) {
         return builder.add(Thing.class,
                 (jsonObject) -> ThingsModelFactory.newThing(jsonObject)) // do not replace with lambda!
                 .add(ThingTag.class, jsonObject -> ThingTag.fromJson(jsonObject))  // do not replace with lambda!
                 .add(BatchedEntityIdWithRevisions.typeOf(ThingTag.class),
-                        BatchedEntityIdWithRevisions.deserializer(jsonObject -> ThingTag.fromJson(jsonObject)));
+                        BatchedEntityIdWithRevisions.deserializer(jsonObject -> ThingTag.fromJson(jsonObject)))
+                .build();
     }
+
 }

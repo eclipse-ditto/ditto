@@ -22,38 +22,23 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
+import org.eclipse.ditto.services.utils.cluster.AbstractMappingStrategy;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
-import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
-import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
-import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
-import org.eclipse.ditto.signals.events.base.GlobalEventRegistry;
 
 /**
  * {@link MappingStrategy} for the Policies service containing all {@link Jsonifiable} types known to Policies.
  */
-public final class PoliciesMappingStrategy implements MappingStrategy {
+public final class PoliciesMappingStrategy extends AbstractMappingStrategy {
 
     @Override
-    public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy() {
-        final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
-
-        builder.add(GlobalErrorRegistry.getInstance());
-        builder.add(GlobalCommandRegistry.getInstance());
-        builder.add(GlobalCommandResponseRegistry.getInstance());
-
-        addPoliciesStrategies(builder);
-
-        return builder.build();
-    }
-
-    private static void addPoliciesStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(GlobalEventRegistry.getInstance())
+    protected Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> getIndividualStrategies() {
+        return MappingStrategiesBuilder.newInstance()
                 .add(Policy.class, (Function<JsonObject, Jsonifiable<?>>) PoliciesModelFactory::newPolicy)
                 .add(PolicyTag.class, jsonObject -> PolicyTag.fromJson(jsonObject))  // do not replace with lambda!
                 .add(BatchedEntityIdWithRevisions.typeOf(PolicyTag.class),
                         BatchedEntityIdWithRevisions.deserializer(jsonObject -> PolicyTag.fromJson(jsonObject)))
-                .add(PolicyReferenceTag.class,
-                        jsonObject -> PolicyReferenceTag.fromJson(jsonObject));  // do not replace with lambda!
+                .add(PolicyReferenceTag.class, jsonObject -> PolicyReferenceTag.fromJson(jsonObject))
+                .build();
     }
 }

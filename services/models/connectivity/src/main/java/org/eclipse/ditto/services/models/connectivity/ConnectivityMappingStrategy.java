@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.models.connectivity;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiFunction;
 
@@ -23,18 +22,15 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.services.models.things.ThingsMappingStrategy;
+import org.eclipse.ditto.services.utils.cluster.AbstractMappingStrategy;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
-import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
-import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
-import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
-import org.eclipse.ditto.signals.events.base.GlobalEventRegistry;
 
 /**
  * {@link MappingStrategy} for the Connectivity service containing all
  * {@link Jsonifiable} types known to this service.
  */
-public final class ConnectivityMappingStrategy implements MappingStrategy {
+public final class ConnectivityMappingStrategy extends AbstractMappingStrategy {
 
     private final ThingsMappingStrategy thingsMappingStrategy;
 
@@ -55,29 +51,24 @@ public final class ConnectivityMappingStrategy implements MappingStrategy {
     }
 
     @Override
-    public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy() {
-        final Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> combinedStrategy = new HashMap<>();
-
-        final MappingStrategiesBuilder strategiesBuilder = MappingStrategiesBuilder.newInstance()
-                .add(GlobalCommandRegistry.getInstance())
-                .add(GlobalErrorRegistry.getInstance())
-                .add(GlobalCommandResponseRegistry.getInstance())
-                .add(GlobalEventRegistry.getInstance())
-                .add(Connection.class, jsonObject ->
-                        ConnectivityModelFactory.connectionFromJson(jsonObject)) // do not replace with lambda!
-                .add("ImmutableConnection", jsonObject ->
-                        ConnectivityModelFactory.connectionFromJson(jsonObject)) // do not replace with lambda!
-                .add(OutboundSignal.class, jsonObject ->
-                        OutboundSignalFactory.outboundSignalFromJson(jsonObject, this)) // do not replace with lambda!
-                .add("UnmappedOutboundSignal", jsonObject ->
-                        OutboundSignalFactory.outboundSignalFromJson(jsonObject, this)) // do not replace with lambda!
-                .add(ResourceStatus.class, jsonObject ->
-                        ConnectivityModelFactory.resourceStatusFromJson(jsonObject)) // do not replace with lambda!
-                .add("ImmutableResourceStatus", jsonObject ->
-                        ConnectivityModelFactory.resourceStatusFromJson(jsonObject)) // do not replace with lambda!
-        ;
-
-        combinedStrategy.putAll(strategiesBuilder.build());
+    protected Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> getIndividualStrategies() {
+        final Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> combinedStrategy =
+                MappingStrategiesBuilder.newInstance()
+                        .add(Connection.class, jsonObject -> ConnectivityModelFactory.connectionFromJson(
+                                jsonObject)) // do not replace with lambda!
+                        .add("ImmutableConnection", jsonObject -> ConnectivityModelFactory.connectionFromJson(
+                                jsonObject)) // do not replace with lambda!
+                        .add(OutboundSignal.class,
+                                jsonObject -> OutboundSignalFactory.outboundSignalFromJson(jsonObject,
+                                        this)) // do not replace with lambda!
+                        .add("UnmappedOutboundSignal",
+                                jsonObject -> OutboundSignalFactory.outboundSignalFromJson(jsonObject,
+                                        this)) // do not replace with lambda!
+                        .add(ResourceStatus.class, jsonObject -> ConnectivityModelFactory.resourceStatusFromJson(
+                                jsonObject)) // do not replace with lambda!
+                        .add("ImmutableResourceStatus", jsonObject -> ConnectivityModelFactory.resourceStatusFromJson(
+                                jsonObject)) // do not replace with lambda!
+                        .build();
         combinedStrategy.putAll(thingsMappingStrategy.determineStrategy());
 
         return combinedStrategy;
