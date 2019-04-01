@@ -16,11 +16,11 @@ import org.slf4j.LoggerFactory;
 /**
  * Entry point for the Things Search service.
  */
-public class ThingsSearchService extends AbstractSearchService {
+public class SearchService extends AbstractSearchService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ThingsSearchService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SearchService.class);
 
-    private ThingsSearchService() {
+    private SearchService() {
         super(LOGGER);
     }
 
@@ -30,7 +30,7 @@ public class ThingsSearchService extends AbstractSearchService {
      * @param args command line arguments.
      */
     public static void main(final String[] args) {
-        final ThingsSearchService searchService = new ThingsSearchService();
+        final SearchService searchService = new SearchService();
         searchService.start();
     }
 }
