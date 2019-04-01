@@ -45,7 +45,7 @@ public final class DefaultCacheConfig implements CacheConfig, Serializable {
      * @return the instance.
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
-    public static DefaultCacheConfig getInstance(final Config config, final String configPath) {
+    public static DefaultCacheConfig of(final Config config, final String configPath) {
         return new DefaultCacheConfig(ConfigWithFallback.newInstance(config, configPath, CacheConfigValue.values()));
     }
 

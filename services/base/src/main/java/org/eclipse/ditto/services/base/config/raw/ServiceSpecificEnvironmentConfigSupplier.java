@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigRenderOptions;
 import com.typesafe.config.ConfigValue;
 import com.typesafe.config.ConfigValueFactory;
 
@@ -100,6 +101,7 @@ final class ServiceSpecificEnvironmentConfigSupplier implements Supplier<Config>
                 break;
         }
 
+        LOGGER.info("Using config: {}", result.root().render(ConfigRenderOptions.concise()));
         return result;
     }
 
