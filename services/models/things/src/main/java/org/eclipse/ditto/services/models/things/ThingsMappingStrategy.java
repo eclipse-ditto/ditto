@@ -37,22 +37,19 @@ public final class ThingsMappingStrategy implements MappingStrategy {
     public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy() {
         final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
 
-        builder.add(GlobalErrorRegistry.getInstance());
-        builder.add(GlobalCommandRegistry.getInstance());
-        builder.add(GlobalCommandResponseRegistry.getInstance());
+        builder.add(GlobalErrorRegistry.getInstance())
+                .add(GlobalCommandRegistry.getInstance())
+                .add(GlobalCommandResponseRegistry.getInstance())
+                .add(GlobalEventRegistry.getInstance());
 
-        addThingsStrategies(builder);
-
-        return builder.build();
+        return addThingsStrategies(builder).build();
     }
 
-    private static void addThingsStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(GlobalEventRegistry.getInstance())
-                .add(Thing.class,
-                        (jsonObject) -> ThingsModelFactory.newThing(jsonObject)) // do not replace with lambda!
+    private static MappingStrategiesBuilder addThingsStrategies(final MappingStrategiesBuilder builder) {
+        return builder.add(Thing.class,
+                (jsonObject) -> ThingsModelFactory.newThing(jsonObject)) // do not replace with lambda!
                 .add(ThingTag.class, jsonObject -> ThingTag.fromJson(jsonObject))  // do not replace with lambda!
                 .add(BatchedEntityIdWithRevisions.typeOf(ThingTag.class),
-                        BatchedEntityIdWithRevisions.deserializer(jsonObject -> ThingTag.fromJson(jsonObject)))
-                .build();
+                        BatchedEntityIdWithRevisions.deserializer(jsonObject -> ThingTag.fromJson(jsonObject)));
     }
 }
