@@ -71,13 +71,21 @@ kubectl create namespace $k8s_namespace
 helm dependency update ../helm/eclipse-ditto/
 ```
 
-...either with persistent storage:
+...either with persistent storage as part of the helm release (will be deleted with helm delete):
 
 ```bash
 helm upgrade ditto ../helm/eclipse-ditto/ --namespace $k8s_namespace --set service.type=LoadBalancer,mongodb.persistence.enabled=true,mongodb.persistence.storageClass=managed-premium-retain --wait --install
 ```
 
-...or without:
+...or with a custom K8s [PersistentVolumeClaim](https://kubernetes.io/docs/concepts/storage/persistent-volumes/) independent of the Helm release to ensure the data survives a helm delete:
+
+```bash
+echo "  storageClassName: managed-premium-retain" >> ../helm/ditto-mongodb-pvc.yaml
+kubectl apply -f ../helm/ditto-mongodb-pvc.yaml --namespace $k8s_namespace
+helm upgrade ditto ../helm/eclipse-ditto/ --namespace $k8s_namespace --set service.type=LoadBalancer,mongodb.persistence.enabled=true,mongodb.persistence.existingClaim=ditto-pvc --wait --install
+```
+
+...or without persistence for the MongoDB at all:
 
 ```bash
 helm upgrade ditto ../helm/eclipse-ditto/ --namespace $k8s_namespace --set service.type=LoadBalancer --wait --install
