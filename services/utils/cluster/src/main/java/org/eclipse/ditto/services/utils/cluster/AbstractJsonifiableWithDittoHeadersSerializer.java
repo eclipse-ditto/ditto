@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -133,10 +135,14 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
             }
 
             jsonObjectBuilder.set(JSON_PAYLOAD, jsonValue);
+            final String jsonStr = jsonObjectBuilder.build().toString();
 
-            buf.put(UTF8_CHARSET.encode(jsonObjectBuilder.build()
-                    .toString())
-            );
+            try {
+                buf.put(UTF8_CHARSET.encode(jsonStr));
+            } catch (final BufferOverflowException e) {
+                LOG.warn("Could not put bytes of JSON string <{}> into ByteBuffer due to BufferOverflow", jsonStr, e);
+                throw e;
+            }
         } else {
             LOG.error("Could not serialize class <{}> as it does not implement <{}>!", object.getClass(),
                     Jsonifiable.WithPredicate.class);

@@ -159,7 +159,9 @@ command, it requires a full connection configuration in the piggyback command.
     },
     "piggybackCommand": {
         "type": "connectivity.commands:testConnection",
-        "connection": {}
+        "connection": {
+           ... //Define connection configuration
+        }
     }
 }
 ```

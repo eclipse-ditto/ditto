@@ -20,3 +20,4 @@ ajcore.*.txt
 .DS_Store
 deployment/helm/eclipse-ditto/requirements.lock
 deployment/helm/eclipse-ditto/charts/*
+.factorypath
