@@ -25,9 +25,15 @@ a.navbar-ditto-home:hover {
 }
 
 .ditto-logo {
-    min-width: 18em;
+    min-width: 13em;
     padding-top: 3em;
-    padding-bottom: 4em;
+    padding-bottom: 2em;
+}
+
+.startpage h1 {
+    color: #3a8c9a;
+    font-size: 2em;
+    padding-bottom: 1em;
 }
 
 .startpage h1 a, .startpage h2 a, .startpage h3 a, .startpage h4 a {
@@ -1322,3 +1328,64 @@ h4.panel-title {
         display: none !important;
     }
 }
+
+.highlight.who {
+    text-align: center;
+    background-color: #3a8c9a;
+    color: #fff;
+    padding-bottom: 60px;
+}
+.highlight.who h2 {
+    font-size: 2.5em;
+    line-height: 1.5em;
+    color: #fff;
+    margin-top: 0.5em;
+    margin-bottom: 1em;
+}
+.highlight.who a {
+    color: #fff;
+}
+.highlight.who img {
+    /*margin: 25px 12.5px;*/
+    width: 180px;
+}
+
+@media (max-width: 990px) {
+    .highlight.who img {
+        width: 160px;
+    }
+}
+
+@media (max-width: 767px) {
+    .highlight.who img {
+        width: 120px;
+    }
+}
+
+@media (max-width: 500px) {
+    .highlight.who img {
+        width: 100px;
+    }
+}
+
+.highlight.who a::after {
+    content: none;
+}
+
+.highlight.who .user-logos {
+    display: table;
+    padding-left: 0;
+    padding-right: 0;
+    width: 100%;
+    table-layout: fixed;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.highlight.who .user-logo {
+    display: table-cell;
+    float: none!important;
+    vertical-align: middle;
+    width: 100%;
+}
+
