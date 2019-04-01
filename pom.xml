@@ -602,7 +602,7 @@
                     </validHeaders>
                     <aggregate>true</aggregate>
                     <quiet>false</quiet>
-                    <failIfMissing>true</failIfMissing>
+                    <failIfMissing>false</failIfMissing>
                     <strictCheck>false</strictCheck>
                     <headerDefinitions>
                         <headerDefinition>${project.basedir}/src/license-header-xml-def.xml</headerDefinition>
