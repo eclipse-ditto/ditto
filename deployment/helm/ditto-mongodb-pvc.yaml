@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: ditto-pvc
+  name: ditto-mongodb-pvc
 spec:
   accessModes:
     - ReadWriteOnce

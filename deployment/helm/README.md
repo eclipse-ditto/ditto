@@ -57,7 +57,7 @@ kubectl apply -f ditto-mongodb-pvc.yaml --namespace dittons
 ...in this case start Ditto with:
 
 ```bash
-helm upgrade ditto ./eclipse-ditto/ --namespace dittons --set mongodb.persistence.enabled=true,mongodb.persistence.existingClaim=ditto-pvc --wait --install
+helm upgrade ditto ./eclipse-ditto/ --namespace dittons --set mongodb.persistence.enabled=true,mongodb.persistence.existingClaim=ditto-mongodb-pvc --wait --install
 ```
 
 .. or else

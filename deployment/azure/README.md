@@ -82,7 +82,7 @@ helm upgrade ditto ../helm/eclipse-ditto/ --namespace $k8s_namespace --set servi
 ```bash
 echo "  storageClassName: managed-premium-retain" >> ../helm/ditto-mongodb-pvc.yaml
 kubectl apply -f ../helm/ditto-mongodb-pvc.yaml --namespace $k8s_namespace
-helm upgrade ditto ../helm/eclipse-ditto/ --namespace $k8s_namespace --set service.type=LoadBalancer,mongodb.persistence.enabled=true,mongodb.persistence.existingClaim=ditto-pvc --wait --install
+helm upgrade ditto ../helm/eclipse-ditto/ --namespace $k8s_namespace --set service.type=LoadBalancer,mongodb.persistence.enabled=true,mongodb.persistence.existingClaim=ditto-mongodb-pvc --wait --install
 ```
 
 ...or without persistence for the MongoDB at all:
