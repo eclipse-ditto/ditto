@@ -25,11 +25,6 @@
     <properties>
         <the.build.timestamp>${maven.build.timestamp}</the.build.timestamp>
         <maven.build.timestamp.format>yyyy-MM-dd HH:mm</maven.build.timestamp.format>
-
-        <!-- increase direct buffer size to fit more nio bytebuffers for MongoDB driver -->
-        <thingsearch.max.direct.buffer.size>512m</thingsearch.max.direct.buffer.size>
-        <!-- limit direct memory usage by Java NIO to avoid OutOfMemoryError -->
-        <thingsearch.jdk.nio.maxCachedBufferSize>262144</thingsearch.jdk.nio.maxCachedBufferSize>
     </properties>
 
     <dependencies>
@@ -265,9 +260,6 @@
                                 <entryPoint>
                                     <exec>
                                         <arg>java</arg>
-                                        <!-- TODO this required? -->
-                                        <arg>-Djdk.nio.maxCachedBufferSize=${thingsearch.jdk.nio.maxCachedBufferSize}</arg>
-                                        <arg>-XX:MaxDirectMemorySize=${thingsearch.max.direct.buffer.size}</arg>
                                         <arg>-jar</arg>
                                         <arg>/opt/ditto/starter.jar</arg>
                                     </exec>
