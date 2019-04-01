@@ -24,14 +24,12 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-
 import javax.annotation.Nullable;
 import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
 import javax.jms.MessageConsumer;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
-
 import org.apache.qpid.jms.JmsConnection;
 import org.apache.qpid.jms.JmsConnectionListener;
 import org.apache.qpid.jms.message.JmsInboundMessageDispatch;
@@ -53,7 +51,6 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConne
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
-
 import akka.actor.ActorRef;
 import akka.actor.FSM;
 import akka.actor.Props;
@@ -429,6 +426,9 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                         }
                     });
         }
+        
+        statusReport.getClosedProducer().ifPresent(p -> amqpPublisherActor.tell(statusReport, ActorRef.noSender()));
+        
         return stay().using(data);
     }
 
@@ -489,71 +489,6 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
         JmsDisconnected(@Nullable final ActorRef origin) {
             super(origin);
-        }
-    }
-
-    /**
-     * Message for status reporter.
-     */
-    private static final class StatusReport {
-
-        private final boolean consumedMessage;
-        private final boolean connectionRestored;
-        @Nullable private final ConnectionFailure failure;
-        @Nullable private final MessageConsumer closedConsumer;
-        @Nullable private final MessageProducer closedProducer;
-
-        private StatusReport(
-                final boolean consumedMessage,
-                final boolean connectionRestored,
-                @Nullable final ConnectionFailure failure,
-                @Nullable final MessageConsumer closedConsumer,
-                @Nullable final MessageProducer closedProducer) {
-            this.consumedMessage = consumedMessage;
-            this.connectionRestored = connectionRestored;
-            this.failure = failure;
-            this.closedConsumer = closedConsumer;
-            this.closedProducer = closedProducer;
-        }
-
-        private static StatusReport connectionRestored() {
-            return new StatusReport(false, true, null, null, null);
-        }
-
-        private static StatusReport failure(final ConnectionFailure failure) {
-            return new StatusReport(false, false, failure, null, null);
-        }
-
-        private static StatusReport consumedMessage() {
-            return new StatusReport(true, false, null, null, null);
-        }
-
-        private static StatusReport consumerClosed(final MessageConsumer consumer) {
-            return new StatusReport(false, false, null, consumer, null);
-        }
-
-        private static StatusReport producerClosed(final MessageProducer producer) {
-            return new StatusReport(false, false, null, null, producer);
-        }
-
-        private boolean hasConsumedMessage() {
-            return consumedMessage;
-        }
-
-        private boolean isConnectionRestored() {
-            return connectionRestored;
-        }
-
-        private Optional<ConnectionFailure> getFailure() {
-            return Optional.ofNullable(failure);
-        }
-
-        private Optional<MessageConsumer> getClosedConsumer() {
-            return Optional.ofNullable(closedConsumer);
-        }
-
-        private Optional<MessageProducer> getClosedProducer() {
-            return Optional.ofNullable(closedProducer);
         }
     }
 

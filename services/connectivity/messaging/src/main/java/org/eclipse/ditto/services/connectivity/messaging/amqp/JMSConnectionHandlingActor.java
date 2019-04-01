@@ -239,6 +239,10 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
      */
     private JmsConnection createJmsConnection() {
         try {
+            if (log.isDebugEnabled()) {
+                log.debug("Attempt to create connection {} for URI [{}]", connection.getId(), 
+                        ConnectionBasedJmsConnectionFactory.buildAmqpConnectionUriFromConnection(connection));
+            }
             return jmsConnectionFactory.createConnection(connection, exceptionListener);
         } catch (final JMSException | NamingException e) {
             throw ConnectionFailedException.newBuilder(connection.getId())

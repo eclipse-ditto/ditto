@@ -75,14 +75,7 @@ public abstract class AbstractPublisherActorTest {
             when(source.getId()).thenReturn(TestConstants.Things.THING_ID);
             when(source.getDittoHeaders()).thenReturn(DittoHeaders.empty());
             when(outboundSignal.getSource()).thenReturn(source);
-            final Target target =
-                    ConnectivityModelFactory.newTargetBuilder()
-                            .address(getOutboundAddress())
-                            .originalAddress(getOutboundAddress())
-                            .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
-                            .headerMapping(TestConstants.HEADER_MAPPING)
-                            .topics(Topic.TWIN_EVENTS)
-                            .build();
+            final Target target = createTestTarget();
             when(outboundSignal.getTargets()).thenReturn(Collections.singletonList(decorateTarget(target)));
 
 
@@ -102,6 +95,18 @@ public abstract class AbstractPublisherActorTest {
             verifyPublishedMessage();
         }};
 
+        
+
+    }
+        
+    protected Target createTestTarget() {
+        return ConnectivityModelFactory.newTargetBuilder()
+            .address(getOutboundAddress())
+            .originalAddress(getOutboundAddress())
+            .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+            .headerMapping(TestConstants.HEADER_MAPPING)
+            .topics(Topic.TWIN_EVENTS)
+            .build();
     }
 
     protected abstract String getOutboundAddress();
