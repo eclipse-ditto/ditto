@@ -45,7 +45,7 @@ helm init
 ```bash
 cd <DITTO_PATH>/deployment/helm/
 kubectl create namespace dittons
-helm update dependencies
+helm dependency update ./eclipse-ditto/
 ```
 
 (Optional) we recommend to define a K8s [PersistentVolumeClaim](https://kubernetes.io/docs/concepts/storage/persistent-volumes/) independent of the Helm release to ensure the data survives a helm delete:
