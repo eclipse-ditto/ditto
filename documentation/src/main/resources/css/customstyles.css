@@ -1330,6 +1330,8 @@ h4.panel-title {
 }
 
 .highlight.who {
+    margin-left: 0;
+    margin-right: 0;
     text-align: center;
     background-color: #3a8c9a;
     color: #fff;
