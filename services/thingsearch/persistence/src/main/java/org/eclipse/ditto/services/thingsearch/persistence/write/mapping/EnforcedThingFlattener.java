@@ -94,7 +94,7 @@ final class EnforcedThingFlattener implements JsonObjectVisitor<Stream<Document>
         return values
                 .reduce(Stream::concat)
                 .map(s -> maxArraySize < 0 ? s : s.limit(maxArraySize))
-                .orElseGet(() -> singleton(key, JsonArray.empty()));
+                .orElseGet(() -> singleton(key, JsonObject.empty()));
     }
 
     @Override

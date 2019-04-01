@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -59,6 +60,7 @@ public final class ExistsIT extends AbstractReadPersistenceITBase {
     private static final String TAGS2 = "tags2";
     private static final String TAGS3 = "tags3";
     private static final String TAGS4 = "tags4";
+    private static final String TAGS5 = "tags5";
 
     private final CriteriaFactory cf = new CriteriaFactoryImpl();
     private final ThingsFieldExpressionFactory ef = new ThingsFieldExpressionFactoryImpl();
@@ -106,14 +108,14 @@ public final class ExistsIT extends AbstractReadPersistenceITBase {
 
     @Test
     public void nullAndEmptyValuesExist() {
-        final List<List<String>> results = Stream.of(TAGS1, TAGS2, TAGS3, TAGS4)
+        final List<List<String>> results = Stream.of(TAGS1, TAGS2, TAGS3, TAGS4, TAGS5)
                 .map(tagName -> cf.existsCriteria(ef.existsByAttribute(tagName)))
                 .map(this::findForCriteria)
                 .map(ArrayList::new)
                 .collect(Collectors.toList());
 
         final List<List<String>> expected = Stream.generate(() -> THING1_ID)
-                .limit(4L)
+                .limit(5L)
                 .map(Collections::singletonList)
                 .collect(Collectors.toList());
 
@@ -154,6 +156,7 @@ public final class ExistsIT extends AbstractReadPersistenceITBase {
                 .set(TAGS2, JsonFactory.nullLiteral())
                 .set(TAGS3, JsonObject.newBuilder().set("foo", JsonFactory.nullLiteral()).build())
                 .set(TAGS4, JsonObject.newBuilder().set("foo", JsonObject.empty()).build())
+                .set(TAGS5, JsonArray.empty())
                 .build();
     }
 }
