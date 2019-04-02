@@ -13,33 +13,32 @@
 package org.eclipse.ditto.services.models.things;
 
 import java.util.Map;
-import java.util.function.BiFunction;
 
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
-import org.eclipse.ditto.services.utils.cluster.AbstractMappingStrategy;
+import org.eclipse.ditto.services.utils.cluster.AbstractGlobalMappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 
 /**
- * {@link MappingStrategy} for the Things service containing all {@link Jsonifiable} types known to Things.
+ * {@link org.eclipse.ditto.services.utils.cluster.MappingStrategies} for the Things service containing all {@link Jsonifiable} types known to Things.
  */
-public final class ThingsMappingStrategy extends AbstractMappingStrategy {
+public final class ThingsMappingStrategies extends AbstractGlobalMappingStrategies {
 
-    @Override
-    public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> getIndividualStrategies() {
-        final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
+    public ThingsMappingStrategies() {
+        super(getThingsMappingStrategies());
+    }
 
-        return builder.add(Thing.class,
-                (jsonObject) -> ThingsModelFactory.newThing(jsonObject)) // do not replace with lambda!
+    private static Map<String, MappingStrategy> getThingsMappingStrategies() {
+        return MappingStrategiesBuilder.newInstance()
+                .add(Thing.class,
+                        (jsonObject) -> ThingsModelFactory.newThing(jsonObject)) // do not replace with lambda!
                 .add(ThingTag.class, jsonObject -> ThingTag.fromJson(jsonObject))  // do not replace with lambda!
                 .add(BatchedEntityIdWithRevisions.typeOf(ThingTag.class),
                         BatchedEntityIdWithRevisions.deserializer(jsonObject -> ThingTag.fromJson(jsonObject)))
-                .build();
+                .build().getStrategies();
     }
 
 }

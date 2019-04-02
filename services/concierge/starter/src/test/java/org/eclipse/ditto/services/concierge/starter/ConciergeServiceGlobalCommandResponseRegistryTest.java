@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.gateway.starter;
+package org.eclipse.ditto.services.concierge.starter;
 
 import java.util.Arrays;
 

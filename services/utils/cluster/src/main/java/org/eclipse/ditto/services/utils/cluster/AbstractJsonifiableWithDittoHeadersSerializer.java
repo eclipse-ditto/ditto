@@ -20,10 +20,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
@@ -73,14 +70,15 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
             JsonFactory.newJsonValueFieldDefinition("payload");
 
     private static final String CONFIG_DIRECT_BUFFER_SIZE = "akka.actor.serializers-json.direct-buffer-size";
-    private static final String CONFIG_DIRECT_BUFFER_POOL_LIMIT = "akka.actor.serializers-json.direct-buffer-pool-limit";
+    private static final String CONFIG_DIRECT_BUFFER_POOL_LIMIT =
+            "akka.actor.serializers-json.direct-buffer-pool-limit";
 
     private static final Config FALLBACK_CONF = ConfigFactory.empty()
             .withValue(CONFIG_DIRECT_BUFFER_SIZE, ConfigValueFactory.fromAnyRef("64 KiB"))
             .withValue(CONFIG_DIRECT_BUFFER_POOL_LIMIT, ConfigValueFactory.fromAnyRef("500"));
 
     private final int identifier;
-    private final Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> mappingStrategies;
+    private final MappingStrategies mappingStrategies;
     private final Function<Object, String> manifestProvider;
     private final BufferPool byteBufferPool;
     private final Long defaultBufferSize;
@@ -93,10 +91,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
 
         this.identifier = identifier;
 
-        final MappingStrategy mappingStrategy = MappingStrategy.loadMappingStrategy(actorSystem);
-
-        mappingStrategies = new HashMap<>();
-        mappingStrategies.putAll(requireNonNull(mappingStrategy.determineStrategy(), "mapping strategy"));
+        mappingStrategies = MappingStrategies.loadMappingStrategy(actorSystem);
         this.manifestProvider = requireNonNull(manifestProvider, "manifest provider");
 
         defaultBufferSize = actorSystem.settings().config().withFallback(FALLBACK_CONF)
@@ -211,8 +206,9 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
     private Jsonifiable createJsonifiableFrom(final String manifest, final String json)
             throws NotSerializableException {
 
-        final BiFunction<JsonObject, DittoHeaders, Jsonifiable> mappingFunction = mappingStrategies.get(manifest);
-        if (null == mappingFunction) {
+        final Optional<MappingStrategy> mappingStrategy = this.mappingStrategies.getMappingStrategyFor(manifest);
+
+        if (!mappingStrategy.isPresent()) {
             LOG.warn("No strategy found to map manifest <{}> to a Jsonifiable.WithPredicate!", manifest);
             throw new NotSerializableException(manifest);
         }
@@ -225,7 +221,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
                 .map(DittoHeaders::newBuilder)
                 .orElseGet(DittoHeaders::newBuilder);
 
-        return mappingFunction.apply(payload, dittoHeadersBuilder.build());
+        return mappingStrategy.get().map(payload, dittoHeadersBuilder.build());
     }
 
     private static JsonObject getPayload(final JsonObject sourceJsonObject) {

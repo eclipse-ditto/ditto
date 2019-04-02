@@ -13,22 +13,19 @@
 package org.eclipse.ditto.services.gateway.starter.service.util;
 
 import java.util.Map;
-import java.util.function.BiFunction;
 
 import org.assertj.core.api.AbstractMapAssert;
 import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.messages.AuthorizationSubjectBlockedException;
 import org.eclipse.ditto.model.messages.MessageFormatInvalidException;
 import org.eclipse.ditto.model.messages.MessageSendNotAllowedException;
 import org.eclipse.ditto.model.messages.MessageTimeoutException;
 import org.eclipse.ditto.model.messages.SubjectInvalidException;
 import org.eclipse.ditto.model.messages.TimeoutInvalidException;
-import org.eclipse.ditto.services.models.policies.PoliciesMappingStrategy;
-import org.eclipse.ditto.services.models.things.ThingsMappingStrategy;
-import org.eclipse.ditto.services.models.thingsearch.ThingSearchMappingStrategy;
+import org.eclipse.ditto.services.models.policies.PoliciesMappingStrategies;
+import org.eclipse.ditto.services.models.things.ThingsMappingStrategies;
+import org.eclipse.ditto.services.models.thingsearch.ThingSearchMappingStrategies;
+import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.signals.commands.devops.ChangeLogLevel;
 import org.eclipse.ditto.signals.commands.devops.ChangeLogLevelResponse;
@@ -48,31 +45,30 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.gateway.starter.service.util.GatewayMappingStrategy}.
+ * Unit test for {@link GatewayMappingStrategies}.
  */
-public final class GatewayMappingStrategyTest {
+public final class GatewayMappingStrategiesTest {
 
-    private Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> strategy;
+    private MappingStrategies underTest;
 
     @Before
     public void setUp() {
-        final MappingStrategy underTest = new GatewayMappingStrategy();
-        strategy = underTest.determineStrategy();
+        underTest = new GatewayMappingStrategies();
     }
 
     @Test
     public void allThingSearchStrategiesAreKnown() {
-        assertThatStrategy().knowsAllOf(new ThingSearchMappingStrategy());
+        assertThatStrategy().knowsAllOf(new ThingSearchMappingStrategies());
     }
 
     @Test
     public void allPoliciesMappingStrategiesAreKnown() {
-        assertThatStrategy().knowsAllOf(new PoliciesMappingStrategy());
+        assertThatStrategy().knowsAllOf(new PoliciesMappingStrategies());
     }
 
     @Test
     public void allThingsMappingStrategiesAreKnown() {
-        assertThatStrategy().knowsAllOf(new ThingsMappingStrategy());
+        assertThatStrategy().knowsAllOf(new ThingsMappingStrategies());
     }
 
     @Test
@@ -106,18 +102,17 @@ public final class GatewayMappingStrategyTest {
     }
 
     private StrategyAssert assertThatStrategy() {
-        return new StrategyAssert(strategy);
+        return new StrategyAssert(underTest);
     }
 
-    private static final class StrategyAssert extends AbstractMapAssert<StrategyAssert,
-            Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>>,
-            String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> {
+    private static final class StrategyAssert
+            extends AbstractMapAssert<StrategyAssert, Map<String, MappingStrategy>, String, MappingStrategy> {
 
-        public StrategyAssert(final Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> strategy) {
-            super(strategy, StrategyAssert.class);
+        StrategyAssert(final MappingStrategies strategies) {
+            super(strategies.getStrategies(), StrategyAssert.class);
         }
 
-        public StrategyAssert knows(final String key) {
+        StrategyAssert knows(final String key) {
             Assertions.assertThat(actual)
                     .as("Strategy for <%s> is available", key)
                     .overridingErrorMessage("Strategy did not contain a mapping function for <%s>", key)
@@ -125,8 +120,8 @@ public final class GatewayMappingStrategyTest {
             return myself;
         }
 
-        public StrategyAssert knowsAllOf(final MappingStrategy mappingStrategy) {
-            final Map<String, ?> determinedStrategy = mappingStrategy.determineStrategy();
+        StrategyAssert knowsAllOf(final MappingStrategies mappingStrategies) {
+            final Map<String, ?> determinedStrategy = mappingStrategies.getStrategies();
 
             determinedStrategy.keySet().forEach(this::knows);
             return myself;

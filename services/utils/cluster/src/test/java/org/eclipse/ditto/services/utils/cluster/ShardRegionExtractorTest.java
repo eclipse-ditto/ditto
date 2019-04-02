@@ -14,20 +14,12 @@ package org.eclipse.ditto.services.utils.cluster;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.BiFunction;
-
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
-import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
-import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
@@ -57,19 +49,7 @@ public final class ShardRegionExtractorTest {
 
     @Before
     public void setUp() throws Exception {
-        final Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> mappingStrategies = new HashMap<>();
-
-        final GlobalErrorRegistry globalErrorRegistry = GlobalErrorRegistry.getInstance();
-        globalErrorRegistry.getTypes().forEach(type -> mappingStrategies.put(type, globalErrorRegistry::parse));
-
-        final GlobalCommandRegistry globalCommandRegistry = GlobalCommandRegistry.getInstance();
-        globalCommandRegistry.getTypes().forEach(type -> mappingStrategies.put(type, globalCommandRegistry::parse));
-
-        final GlobalCommandResponseRegistry commandResponseRegistry = GlobalCommandResponseRegistry.getInstance();
-        commandResponseRegistry.getTypes()
-                .forEach(type -> mappingStrategies.put(type, commandResponseRegistry::parse));
-
-        underTest = ShardRegionExtractor.of(NUMBER_OF_SHARDS, mappingStrategies);
+        underTest = ShardRegionExtractor.of(NUMBER_OF_SHARDS, new GlobalMappingStrategies());
     }
 
 

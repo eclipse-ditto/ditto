@@ -20,10 +20,8 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -31,11 +29,11 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.devops.LoggerConfig;
 import org.eclipse.ditto.model.devops.LoggingFacade;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -80,7 +78,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
     private final String serviceName;
     private final String instance;
     private final ActorRef pubSubMediator;
-    private final Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> serviceMappingStrategy;
+    private final MappingStrategies serviceMappingStrategy;
 
     private DevOpsCommandsActor(final LoggingFacade loggingFacade, final String serviceName, final String instance) {
         this.loggingFacade = loggingFacade;
@@ -88,7 +86,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
         this.instance = instance;
 
         pubSubMediator = DistributedPubSub.get(getContext().system()).mediator();
-        serviceMappingStrategy = MappingStrategy.loadMappingStrategy(getContext().getSystem()).determineStrategy();
+        serviceMappingStrategy = MappingStrategies.loadMappingStrategy(getContext().getSystem());
         getContext().actorOf(
                 PubSubSubscriberActor.props(pubSubMediator, serviceName, instance,
                         RetrieveLoggerConfig.TYPE,
@@ -271,10 +269,13 @@ public final class DevOpsCommandsActor extends AbstractActor {
 
         final JsonObject piggybackCommandJson = command.getPiggybackCommand();
         final String piggybackCommandType = piggybackCommandJson.getValue(Command.JsonFields.TYPE).orElse(null);
-        if (serviceMappingStrategy.containsKey(piggybackCommandType)) {
+        final Optional<MappingStrategy> mappingFunction =
+                serviceMappingStrategy.getMappingStrategyFor(piggybackCommandType);
+
+        if (mappingFunction.isPresent()) {
             try {
-                final Jsonifiable jsonifiable = serviceMappingStrategy.get(piggybackCommandType)
-                        .apply(piggybackCommandJson, command.getDittoHeaders());
+                final Jsonifiable jsonifiable = mappingFunction.get()
+                        .map(piggybackCommandJson, command.getDittoHeaders());
                 onSuccess.accept(jsonifiable);
             } catch (final DittoRuntimeException e) {
                 log.warning("Got DittoRuntimeException while parsing piggybackCommand <{}>: {}", piggybackCommandType,

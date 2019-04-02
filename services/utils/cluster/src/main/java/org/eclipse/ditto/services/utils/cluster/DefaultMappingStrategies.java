@@ -12,12 +12,15 @@
   */
  package org.eclipse.ditto.services.utils.cluster;
 
- import org.eclipse.ditto.json.JsonObject;
- import org.eclipse.ditto.model.base.headers.DittoHeaders;
- import org.eclipse.ditto.model.base.json.Jsonifiable;
+ import java.util.Map;
 
- @FunctionalInterface
- public interface MappingStrategy {
+ public final class DefaultMappingStrategies extends AbstractMappingStrategies {
 
-     Jsonifiable map(final JsonObject jsonObject, final DittoHeaders dittoHeaders);
+     private DefaultMappingStrategies(final Map<String, MappingStrategy> strategies) {
+         super(strategies);
+     }
+
+     public static DefaultMappingStrategies of(final Map<String, MappingStrategy> strategies) {
+         return new DefaultMappingStrategies(strategies);
+     }
  }

@@ -16,7 +16,7 @@ import java.util.List;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
+import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.signals.base.Signal;
 
 /**
@@ -56,7 +56,7 @@ public final class OutboundSignalFactory {
      * Returns an immutable {@link OutboundSignal} based on the given JSON object.
      *
      * @param jsonObject a JSON object which provides the data for the OutboundSignal to be created.
-     * @param mappingStrategy the {@link MappingStrategy} to use in order to parse the in the JSON included
+     * @param mappingStrategy the {@link org.eclipse.ditto.services.utils.cluster.MappingStrategies} to use in order to parse the in the JSON included
      * {@code source} Signal
      * @return a new OutboundSignal which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
@@ -64,7 +64,7 @@ public final class OutboundSignalFactory {
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
     public static OutboundSignal outboundSignalFromJson(final JsonObject jsonObject,
-            final MappingStrategy mappingStrategy) {
+            final MappingStrategies mappingStrategy) {
         return UnmappedOutboundSignal.fromJson(jsonObject, mappingStrategy);
     }
 }

@@ -13,32 +13,34 @@
 package org.eclipse.ditto.services.models.policies;
 
 import java.util.Map;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
-import org.eclipse.ditto.services.utils.cluster.AbstractMappingStrategy;
+import org.eclipse.ditto.services.utils.cluster.AbstractGlobalMappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 
 /**
- * {@link MappingStrategy} for the Policies service containing all {@link Jsonifiable} types known to Policies.
+ * {@link org.eclipse.ditto.services.utils.cluster.MappingStrategies} for the Policies service containing all {@link Jsonifiable} types known to Policies.
  */
-public final class PoliciesMappingStrategy extends AbstractMappingStrategy {
+public final class PoliciesMappingStrategies extends AbstractGlobalMappingStrategies {
 
-    @Override
-    protected Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> getIndividualStrategies() {
+    public PoliciesMappingStrategies() {
+        super(getPoliciesMappingStrategies());
+    }
+
+    private static Map<String, MappingStrategy> getPoliciesMappingStrategies() {
         return MappingStrategiesBuilder.newInstance()
                 .add(Policy.class, (Function<JsonObject, Jsonifiable<?>>) PoliciesModelFactory::newPolicy)
                 .add(PolicyTag.class, jsonObject -> PolicyTag.fromJson(jsonObject))  // do not replace with lambda!
                 .add(BatchedEntityIdWithRevisions.typeOf(PolicyTag.class),
                         BatchedEntityIdWithRevisions.deserializer(jsonObject -> PolicyTag.fromJson(jsonObject)))
                 .add(PolicyReferenceTag.class, jsonObject -> PolicyReferenceTag.fromJson(jsonObject))
-                .build();
+                .build()
+                .getStrategies();
     }
 }
