@@ -14,11 +14,14 @@ import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 
+import javax.annotation.concurrent.Immutable;
+
 import com.typesafe.config.Config;
 
 /**
  * This class is the default implementation of {@link HealthCheckConfig}.
  */
+@Immutable
 public final class DefaultHealthCheckConfig implements HealthCheckConfig, Serializable {
 
     private static final long serialVersionUID = 5197182470324016557L;
