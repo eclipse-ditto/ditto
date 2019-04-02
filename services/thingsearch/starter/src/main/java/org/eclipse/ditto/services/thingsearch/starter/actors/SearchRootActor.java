@@ -32,6 +32,14 @@ import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.base.config.HttpConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
+import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
+import org.eclipse.ditto.services.thingsearch.common.util.RootSupervisorStrategyFactory;
+import org.eclipse.ditto.services.thingsearch.persistence.query.QueryParser;
+import org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence;
+import org.eclipse.ditto.services.thingsearch.persistence.read.ThingsSearchPersistence;
+import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQueryBuilderFactory;
+import org.eclipse.ditto.services.thingsearch.starter.actors.health.SearchHealthCheckingActorFactory;
+import org.eclipse.ditto.services.thingsearch.updater.actors.SearchUpdaterRootActor;
 import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
@@ -67,15 +75,6 @@ import akka.http.javadsl.server.Route;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.ActorMaterializer;
-
-import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
-import org.eclipse.ditto.services.thingsearch.common.util.RootSupervisorStrategyFactory;
-import org.eclipse.ditto.services.thingsearch.persistence.query.QueryParser;
-import org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence;
-import org.eclipse.ditto.services.thingsearch.persistence.read.ThingsSearchPersistence;
-import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQueryBuilderFactory;
-import org.eclipse.ditto.services.thingsearch.starter.actors.health.SearchHealthCheckingActorFactory;
-import org.eclipse.ditto.services.thingsearch.updater.actors.SearchUpdaterRootActor;
 
 /**
  * Our "Parent" Actor which takes care of supervision of all other Actors in our system.
@@ -133,7 +132,7 @@ public final class SearchRootActor extends AbstractActor {
 
         final Config rawConfig = configReader.getRawConfig();
         final ThingsSearchPersistence thingsSearchPersistence =
-                new MongoThingsSearchPersistence(database, getContext().system());
+                initializeSearchPersistence(database, getContext().getSystem(), rawConfig);
 
         final boolean indexInitializationEnabled = rawConfig.getBoolean(ConfigKeys.INDEX_INITIALIZATION_ENABLED);
         if (indexInitializationEnabled) {
@@ -150,6 +149,21 @@ public final class SearchRootActor extends AbstractActor {
         final Props searchActorProps = SearchActor.props(queryFactory, thingsSearchPersistence);
 
         return startChildActor(SearchActor.ACTOR_NAME, searchActorProps);
+    }
+
+    private ThingsSearchPersistence initializeSearchPersistence(final MongoDatabase db, final ActorSystem actorSystem,
+            final Config config) {
+
+        // TODO: refactor config.
+        final String hintsConfigKey = "ditto.things-search.mongo-hints-by-namespace";
+        final MongoThingsSearchPersistence persistence = new MongoThingsSearchPersistence(db, actorSystem);
+        if (config.hasPath(hintsConfigKey)) {
+            final String mongoHints = config.getString(hintsConfigKey);
+            log.info("Applying MongoDB hints: {}", mongoHints);
+            return persistence.withHintsByNamespace(mongoHints);
+        } else {
+            return persistence;
+        }
     }
 
     private ActorRef initializeHealthCheckActor(final ServiceConfigReader configReader,

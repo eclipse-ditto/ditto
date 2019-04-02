@@ -11,7 +11,10 @@
 package org.eclipse.ditto.services.thingsearch.persistence.read;
 
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceReportResult;
@@ -64,9 +67,23 @@ public interface ThingsSearchPersistence {
      *
      * @param query the query for matching.
      * @param authorizationSubjectIds authorization subject IDs.
+     * @param namespaces namespaces to execute searches in, or null to search in all namespaces.
      * @return an {@link Source} which emits the IDs.
      * @throws NullPointerException if {@code query} is {@code null}.
      */
-    Source<ResultList<String>, NotUsed> findAll(Query query, List<String> authorizationSubjectIds);
+    Source<ResultList<String>, NotUsed> findAll(Query query, List<String> authorizationSubjectIds,
+            @Nullable Set<String> namespaces);
+
+    /**
+     * Returns the IDs for all found documents.
+     *
+     * @param query the query for matching.
+     * @param authorizationSubjectIds authorization subject IDs.
+     * @return an {@link Source} which emits the IDs.
+     * @throws NullPointerException if {@code query} is {@code null}.
+     */
+    default Source<ResultList<String>, NotUsed> findAll(final Query query, final List<String> authorizationSubjectIds) {
+        return findAll(query, authorizationSubjectIds, null);
+    }
 
 }

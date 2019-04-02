@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
@@ -64,6 +65,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
 
     private final IndexInitializer indexInitializer;
     private final Duration maxQueryTime;
+    private final MongoHints hints;
 
     /**
      * Initializes the things search persistence with a passed in {@code persistence}.
@@ -81,6 +83,32 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
         final ActorMaterializer materializer = ActorMaterializer.create(actorSystem);
         indexInitializer = IndexInitializer.of(database, materializer);
         maxQueryTime = MongoConfig.of(actorSystem.settings().config()).getMaxQueryTime();
+        hints = MongoHints.empty();
+    }
+
+    private MongoThingsSearchPersistence(
+            final MongoCollection<Document> collection,
+            final LoggingAdapter log,
+            final IndexInitializer indexInitializer,
+            final Duration maxQueryTime,
+            final MongoHints hints) {
+
+        this.collection = collection;
+        this.log = log;
+        this.indexInitializer = indexInitializer;
+        this.maxQueryTime = maxQueryTime;
+        this.hints = hints;
+    }
+
+    /**
+     * Create a copy of this object with configurable hints for each namespace.
+     *
+     * @param jsonString JSON representation of hints for queries of each namespace.
+     * @return copy of this object with hints configured.
+     */
+    public MongoThingsSearchPersistence withHintsByNamespace(final String jsonString) {
+        final MongoHints hints = MongoHints.byNamespace(jsonString);
+        return new MongoThingsSearchPersistence(collection, log, indexInitializer, maxQueryTime, hints);
     }
 
     @Override
@@ -144,7 +172,8 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
 
     @Override
     public Source<ResultList<String>, NotUsed> findAll(final Query query,
-            @Nullable final List<String> authorizationSubjectIds) {
+            @Nullable final List<String> authorizationSubjectIds,
+            @Nullable final Set<String> namespaces) {
 
         checkNotNull(query, "query");
 
@@ -161,6 +190,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
 
         return Source.fromPublisher(
                 collection.find(queryFilter, Document.class)
+                        .hint(hints.getHint(namespaces).orElse(null))
                         .sort(sortOptions)
                         .limit(limit + 1)
                         .skip(skip)

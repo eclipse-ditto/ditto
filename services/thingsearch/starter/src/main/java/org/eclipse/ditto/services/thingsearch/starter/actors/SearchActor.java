@@ -12,6 +12,7 @@ package org.eclipse.ditto.services.thingsearch.starter.actors;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -28,6 +29,9 @@ import org.eclipse.ditto.model.thingsearch.SearchModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchResult;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoRetrieveNamespaceReport;
+import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
+import org.eclipse.ditto.services.thingsearch.persistence.query.QueryParser;
+import org.eclipse.ditto.services.thingsearch.persistence.read.ThingsSearchPersistence;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
@@ -54,10 +58,6 @@ import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import scala.concurrent.ExecutionContextExecutor;
-
-import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
-import org.eclipse.ditto.services.thingsearch.persistence.query.QueryParser;
-import org.eclipse.ditto.services.thingsearch.persistence.read.ThingsSearchPersistence;
 
 /**
  * Actor handling all supported {@link ThingSearchCommand}s. Currently those are {@link CountThings} and {@link
@@ -212,6 +212,7 @@ public final class SearchActor extends AbstractActor {
         final StartedTimer queryParsingTimer = searchTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
 
         final ActorRef sender = getSender();
+        final Set<String> namespaces = queryThings.getNamespaces().orElse(null);
 
         final Source<Object, ?> replySource = createQuerySource(queryParser::parse, queryThings)
                 .flatMapConcat(query -> {
@@ -221,7 +222,7 @@ public final class SearchActor extends AbstractActor {
                             searchTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
 
                     final List<String> subjectIds = queryThings.getDittoHeaders().getAuthorizationSubjects();
-                    return processSearchPersistenceResult(searchPersistence.findAll(query, subjectIds),
+                    return processSearchPersistenceResult(searchPersistence.findAll(query, subjectIds, namespaces),
                             dittoHeaders)
                             .via(Flow.fromFunction(result -> {
                                 stopTimer(databaseAccessTimer);
