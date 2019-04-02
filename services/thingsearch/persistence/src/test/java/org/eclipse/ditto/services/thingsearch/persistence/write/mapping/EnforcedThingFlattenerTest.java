@@ -306,7 +306,7 @@ public final class EnforcedThingFlattenerTest {
         DittoJsonAssertions.assertThat(result).contains(flattened("/attributes/tag2", JsonValue.nullLiteral()));
         DittoJsonAssertions.assertThat(result).contains(flattened("/attributes/tag3/foo", JsonValue.nullLiteral()));
         DittoJsonAssertions.assertThat(result).contains(flattened("/attributes/tag4/foo", JsonObject.empty()));
-        DittoJsonAssertions.assertThat(result).contains(flattened("/attributes/tag5", JsonArray.empty()));
+        DittoJsonAssertions.assertThat(result).contains(flattened("/attributes/tag5", JsonObject.empty()));
     }
 
     private JsonValue flattened(final String path, JsonValue value) {

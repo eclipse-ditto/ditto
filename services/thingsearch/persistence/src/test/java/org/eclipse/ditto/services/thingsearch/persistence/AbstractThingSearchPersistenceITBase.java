@@ -15,7 +15,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 
@@ -29,6 +28,10 @@ import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
 import org.eclipse.ditto.services.base.config.DittoLimitsConfigReader;
+import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
+import org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence;
+import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQueryBuilderFactory;
+import org.eclipse.ditto.services.thingsearch.persistence.write.streaming.TestSearchUpdaterStream;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.test.mongo.MongoDbResource;
@@ -50,11 +53,6 @@ import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.testkit.javadsl.TestKit;
 
-import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
-import org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence;
-import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQueryBuilderFactory;
-import org.eclipse.ditto.services.thingsearch.persistence.write.streaming.TestSearchUpdaterStream;
-
 
 /**
  * Abstract base class for search persistence tests.
@@ -62,9 +60,6 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.streaming.TestSe
 public abstract class AbstractThingSearchPersistenceITBase {
 
     protected static final List<String> KNOWN_SUBJECTS = Collections.singletonList("abc:mySid");
-    protected static final List<String> KNOWN_SUBJECTS_2 = Arrays.asList("some:mySid", "some:unknown");
-    protected static final String KNOWN_ATTRIBUTE_1 = "attribute1";
-    protected static final String KNOWN_NEW_VALUE = "newValue";
 
     protected static final CriteriaFactory cf = new CriteriaFactoryImpl();
     protected static final ThingsFieldExpressionFactory fef = new ThingsFieldExpressionFactoryImpl();
@@ -105,12 +100,8 @@ public abstract class AbstractThingSearchPersistenceITBase {
     private MongoThingsSearchPersistence provideReadPersistence() {
         final MongoThingsSearchPersistence mongoThingsSearchPersistence =
                 new MongoThingsSearchPersistence(mongoClient.getDefaultDatabase(), actorSystem);
-        try {
-            // explicitly trigger CompletableFuture to make sure that indices are created before test runs
-            mongoThingsSearchPersistence.initializeIndices().toCompletableFuture().get();
-        } catch (final Exception e) {
-            throw new IllegalStateException(e);
-        }
+        // explicitly trigger CompletableFuture to make sure that indices are created before test runs
+        mongoThingsSearchPersistence.initializeIndices().toCompletableFuture().join();
         return mongoThingsSearchPersistence;
     }
 
@@ -120,7 +111,8 @@ public abstract class AbstractThingSearchPersistenceITBase {
 
     private static DittoMongoClient provideClientWrapper() {
         return MongoClientWrapper.getBuilder()
-                .connectionString("mongodb://" + mongoResource.getBindIp() + ":" + mongoResource.getPort() + "/testSearchDB")
+                .connectionString(
+                        "mongodb://" + mongoResource.getBindIp() + ":" + mongoResource.getPort() + "/testSearchDB")
                 .connectionPoolMaxSize(100)
                 .connectionPoolMaxWaitQueueSize(500000)
                 .connectionPoolMaxWaitTime(Duration.ofSeconds(30))
@@ -209,27 +201,6 @@ public abstract class AbstractThingSearchPersistenceITBase {
         }
     }
 
-    void runBlocking(final Source<?, NotUsed> publisher) {
-        final List<Source<?, NotUsed>> publishers = Collections.singletonList(publisher);
-
-        runBlocking(publishers);
-    }
-
-    private void runBlocking(final List<Source<?, NotUsed>> publishers) {
-        publishers.stream()
-                .map(p -> p.runWith(Sink.ignore(), actorMaterializer))
-                .map(CompletionStage::toCompletableFuture)
-                .forEach(this::finishCompletableFuture);
-    }
-
-    private void finishCompletableFuture(final CompletableFuture future) {
-        try {
-            future.get();
-        } catch (final Exception e) {
-            throw mapAsRuntimeException(e);
-        }
-    }
-
     protected <T> T runBlockingWithReturn(final Source<T, NotUsed> publisher) {
         final CompletionStage<T> done = publisher.runWith(Sink.last(), actorMaterializer);
         try {
@@ -263,16 +234,9 @@ public abstract class AbstractThingSearchPersistenceITBase {
     }
 
     private <T> List<T> waitFor(final Source<T, ?> source) {
-        try {
-            return source
-                    .limit(1) //
-                    .runWith(Sink.seq(), actorMaterializer) //
-                    .toCompletableFuture() //
-                    .get();
-
-        } catch (final Exception e) {
-            throw mapAsRuntimeException(e);
-        }
+        return source.runWith(Sink.seq(), actorMaterializer)
+                .toCompletableFuture()
+                .join();
     }
 
     @SuppressWarnings("squid:S2925")
