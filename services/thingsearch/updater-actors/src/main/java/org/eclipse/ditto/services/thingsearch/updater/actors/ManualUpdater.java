@@ -44,20 +44,26 @@ public final class ManualUpdater extends AbstractActor {
     /**
      * Name of the collection to trigger updates.
      */
-    public static final String COLLECTION_NAME = "searchThingsManualUpdates";
+    static final String COLLECTION_NAME = "searchThingsManualUpdates";
 
     /**
      * Field containing ID of the thing in the collection to trigger updates.
      */
-    public static final String ID_FIELD = "id";
+    static final String ID_FIELD = "id";
 
     /**
      * Field containing revision of the thing in the collection to trigger updates.
      */
-    public static final String REVISION = "revision";
+    static final String REVISION = "revision";
 
+    /**
+     * Interval at which to process the elements in the collection.
+     */
     private static final Duration DELAY_PER_ELEMENT = Duration.ofSeconds(1L);
 
+    /**
+     * Interval at which to check for new elements in the collection.
+     */
     private static final Duration DELAY_PER_CURSOR = Duration.ofMinutes(1L);
 
     private static final Duration MIN_BACKOFF = Duration.ofSeconds(1L);
@@ -115,19 +121,22 @@ public final class ManualUpdater extends AbstractActor {
 
         return Source.fromPublisher(db.getCollection(COLLECTION_NAME).findOneAndDelete(new Document()))
                 .buffer(1, OverflowStrategy.backpressure())
-                .map(ManualUpdater::convertToThingTag)
+                .map(this::convertToThingTag)
                 .orElse(Source.single(Optional.<ThingTag>empty()).initialDelay(delayPerCursor))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .log("ManualUpdater", log);
     }
 
-    private static Optional<ThingTag> convertToThingTag(final Document document) {
+    private Optional<ThingTag> convertToThingTag(final Document document) {
         try {
             final String id = document.getString(ID_FIELD);
             final long revision = document.getLong(REVISION);
             return Optional.of(ThingTag.of(id, revision));
         } catch (final ClassCastException | NullPointerException e) {
+            log.debug("Failed to convert doc '{}' to ThingTag: [{}] {}",
+                    document != null ? document.toString() : "<null>",
+                    e.getClass().getName(), e.getMessage());
             return Optional.empty();
         }
     }
