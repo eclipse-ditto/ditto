@@ -34,15 +34,15 @@ Other services can communicate with the things-search service via:
 
 ## Persistence
 
-The things-search service maintains its own persistence in which it stores `Things` in an optimized way in order to 
+The Things-Search service maintains its own persistence in which it stores `Things` in an optimized way in order to 
 provide a full search on arbitrary `Thing` data. 
 
 Things-Search creates the following MongoDB collections:
 
 * `searchThings`: The search index.
-* `searchThingsSyncThings`: A single-document capped collection containing the instant until which thing-events are
+* `searchThingsSyncThings`: A single-document capped collection containing the instant until which `Thing` events are
 indexed for sure; expected to be 30 minutes before the current time.
-* `searchThingsSyncPolicies`: A single-document capped collection containing the instant until which policy-events
+* `searchThingsSyncPolicies`: A single-document capped collection containing the instant until which `Policy` events
 are indexed for sure; expected to be 30 minutes before the current time.
 
 ## Migration from Ditto 0.9.0-M1
@@ -58,13 +58,12 @@ db.getCollection('policyBasedSearchIndex').drop();
 db.getCollection('thingsSearchSyncStatePolicies').drop();
 ```
 
-2. *Before* starting the upgraded Ditto cluster, write into `searchThingsSyncThings` the timestamp when the Ditto
-cluster started for the first time:
+2. *Before* starting the upgraded Ditto cluster, write into `searchThingsSyncThings` the timestamp when the Ditto cluster started for the first time:
 ```javascript
-var startingTimestamp = new Date(TIMESTAMP-WHEN-DITTO-CLUSTER-STARTED-FOR-THE-FIRST-TIME);
+var startingTimestamp = new Date(TIMESTAMP-WHEN-DITTO-CLUSTER-STARTED-FOR-THE-FIRST-TIME); // e.g. new Date('2019-01-01T00:00:00.000Z')
 db.getCollection('thingsSearchSyncStateThings').renameCollection('searchThingsSyncThings');
 db.getCollection('searchThingsSyncThings').insert({'ts':startingTimestamp});
 ```
 
-3. Start the upgraded Ditto cluster. All thing-events persisted after the timestamp in `searchThingsSyncThings` will be
-indexed in the background.
+3. Start the upgraded Ditto cluster. All `Thing` events persisted after the timestamp in `searchThingsSyncThings` 
+will be indexed in the background.
