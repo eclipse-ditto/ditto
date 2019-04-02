@@ -124,6 +124,10 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                         searchUpdaterPersistence);
         startClusterSingletonActor(PolicyEventForwarder.ACTOR_NAME, policyEventForwarderProps);
 
+        // start manual updater as cluster singleton
+        final Props manualUpdaterProps = ManualUpdater.props(dittoMongoClient.getDefaultDatabase(), thingsUpdaterActor);
+        startClusterSingletonActor(ManualUpdater.ACTOR_NAME, manualUpdaterProps);
+
         // TODO: refactor config.
         // start namespace ops actor as cluster singleton
         if (config.getBoolean("ditto.things-search.delete.namespace")) {
