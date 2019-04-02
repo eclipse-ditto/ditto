@@ -11,14 +11,15 @@
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
 /**
-* This interface represents a service that has a Index Initializer configuration.
+* This interface represents a service that has a index initializer configuration.
 */
 public interface WithIndexInitialization {
 
     /**
-     * Returns the MongoDB configuration of this service.
+     * Returns the index initialization configuration settings of this service.
      *
-     * @return the MongoDB configuration.
+     * @return the config.
      */
     IndexInitializationConfig getIndexInitializationConfig();
+
 }

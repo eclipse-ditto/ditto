@@ -18,7 +18,10 @@ import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 
-public class DefaultIndexInitializationConfig implements IndexInitializationConfig, Serializable {
+/**
+ * This class is the default implementation of {@link IndexInitializationConfig}.
+ */
+public final class DefaultIndexInitializationConfig implements IndexInitializationConfig, Serializable {
 
     private static final String CONFIG_PATH = "index-initialization";
 
@@ -27,18 +30,20 @@ public class DefaultIndexInitializationConfig implements IndexInitializationConf
     private final boolean indexInitializationEnabled;
 
     private DefaultIndexInitializationConfig(final ScopedConfig config) {
-        indexInitializationEnabled = config.getBoolean(IndexInitializerConfigValue.ENABLED.getConfigPath());;
+        indexInitializationEnabled = config.getBoolean(IndexInitializerConfigValue.ENABLED.getConfigPath());
     }
 
     /**
-     * Returns an instance of {@code IndexInitializationConfig} which tries to obtain its properties from the given Config.
+     * Returns an instance of DefaultIndexInitializationConfig which tries to obtain its properties from the given
+     * config.
      *
      * @param config the Config which contains nested MongoDB settings at path {@value #CONFIG_PATH}.
      * @return the instance.
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultIndexInitializationConfig of(final Config config) {
-        return new DefaultIndexInitializationConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH, IndexInitializerConfigValue.values()));
+        return new DefaultIndexInitializationConfig(
+                ConfigWithFallback.newInstance(config, CONFIG_PATH, IndexInitializerConfigValue.values()));
     }
 
     @Override
@@ -69,5 +74,6 @@ public class DefaultIndexInitializationConfig implements IndexInitializationConf
                 "indexInitializationEnabled=" + indexInitializationEnabled +
                 "]";
     }
+
 }
 

@@ -30,7 +30,10 @@ public interface IndexInitializationConfig {
      */
     boolean isIndexInitializationConfigEnabled();
 
-
+    /**
+     * An enumeration of the known config path expressions and their associated default values for
+     * IndexInitializationConfig.
+     */
     enum IndexInitializerConfigValue implements KnownConfigValue {
 
         /**
@@ -58,4 +61,5 @@ public interface IndexInitializationConfig {
         }
 
     }
+
 }
