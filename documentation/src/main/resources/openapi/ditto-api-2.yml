@@ -3335,17 +3335,6 @@ paths:
 
 
 
-        There can also be searched for feature properties using the following syntax:
-
-
-
-        ``eq(features/*/properties/temperature,38)``
-
-
-        The '*' indicates that there is searched on all available features for a property named 'temperature'.
-
-
-
         Attention, at the moment we do not support search on array fields.
 
 
@@ -3455,17 +3444,6 @@ paths:
 
 
         ```eq(attributes/location,"kitchen")```
-
-
-
-        There can also be searched for feature properties using the following syntax:
-
-
-
-        ``eq(features/*/properties/temperature,38)``
-
-
-        The '*' indicates that there is searched on all available features for a property named 'temperature'.
 
 
 
