@@ -123,10 +123,7 @@ public abstract class DittoServiceTng<C extends ServiceSpecificConfig> {
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code serviceName} or {@code rootActorName} is empty.
      */
-    protected DittoServiceTng(final Logger logger,
-            final String serviceName,
-            final String rootActorName) {
-
+    protected DittoServiceTng(final Logger logger, final String serviceName, final String rootActorName) {
         this.logger = checkNotNull(logger, "logger");
         this.serviceName = argumentNotEmpty(serviceName, "service name");
         this.rootActorName = argumentNotEmpty(rootActorName, "root actor name");
