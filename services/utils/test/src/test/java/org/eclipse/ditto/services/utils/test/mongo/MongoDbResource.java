@@ -56,6 +56,7 @@ public final class MongoDbResource extends ExternalResource {
     private static final String MONGO_PORT_ENV_KEY = "MONGO_PORT";
 
     private final String bindIp;
+    private final Integer defaultPort;
     private final Logger logger;
 
     /**
@@ -74,7 +75,7 @@ public final class MongoDbResource extends ExternalResource {
      * @param bindIp the IP to bind the DB on
      */
     public MongoDbResource(final String bindIp) {
-        this(bindIp, null);
+        this(bindIp, null, null);
     }
 
     /**
@@ -84,7 +85,19 @@ public final class MongoDbResource extends ExternalResource {
      * @param logger the logger used for mongod output, may be {@code null} (logging turned off)
      */
     public MongoDbResource(final String bindIp, final Logger logger) {
+        this(bindIp, null, logger);
+    }
+
+    /**
+     * Constructs a new {@code MongoDbResource} object.
+     *
+     * @param bindIp the IP to bind the DB on
+     * @param defaultPort the default listening port. Bind a random port if it is {@code null}.
+     * @param logger the logger used for mongod output, may be {@code null} (logging turned off)
+     */
+    public MongoDbResource(final String bindIp, final Integer defaultPort, final Logger logger) {
         this.bindIp = bindIp;
+        this.defaultPort = defaultPort;
         this.logger = logger;
         mongodExecutable = null;
         mongodProcess = null;
@@ -108,12 +121,13 @@ public final class MongoDbResource extends ExternalResource {
                 .map(proxyURI -> ((IProxyFactory) new HttpProxyFactory(
                         proxyURI.getHost(), proxyURI.getPort())))
                 .orElse(new NoProxyFactory());
-        final int mongoDbPort;
-        if (System.getenv(MONGO_PORT_ENV_KEY) != null) {
-            mongoDbPort = Integer.parseInt(System.getenv(MONGO_PORT_ENV_KEY));
-        } else {
-            mongoDbPort = findFreePort();
-        }
+
+        final int mongoDbPort = defaultPort != null
+                ? defaultPort
+                : System.getenv(MONGO_PORT_ENV_KEY) != null
+                ? Integer.parseInt(System.getenv(MONGO_PORT_ENV_KEY))
+                : findFreePort();
+
         mongodExecutable = tryToConfigureMongoDb(bindIp, mongoDbPort, proxyFactory, logger);
         mongodProcess = tryToStartMongoDb(mongodExecutable);
         Assume.assumeTrue("MongoDBResource failed to start.", isHealthy());

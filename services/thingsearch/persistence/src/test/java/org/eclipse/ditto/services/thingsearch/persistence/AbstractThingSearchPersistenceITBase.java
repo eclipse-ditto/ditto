@@ -116,12 +116,8 @@ public abstract class AbstractThingSearchPersistenceITBase {
 
     private MongoThingsSearchPersistence provideReadPersistence() {
         final MongoThingsSearchPersistence result = new MongoThingsSearchPersistence(mongoClient, actorSystem);
-        try {
-            // explicitly trigger CompletableFuture to make sure that indices are created before test runs
-            result.initializeIndices().toCompletableFuture().get();
-        } catch (final InterruptedException | ExecutionException e) {
-            throw new IllegalStateException(e);
-        }
+        // explicitly trigger CompletableFuture to make sure that indices are created before test runs
+        result.initializeIndices().toCompletableFuture().join();
         return result;
     }
 
