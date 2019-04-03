@@ -129,6 +129,7 @@ public abstract class DittoServiceTng<C extends ServiceSpecificConfig> {
         this.rootActorName = argumentNotEmpty(rootActorName, "root actor name");
         rawConfig = determineRawConfig();
         serviceSpecificConfig = getServiceSpecificConfig(tryToGetDittoConfigOrEmpty(rawConfig));
+        logger.debug("Using service specific config: <{}>.", serviceSpecificConfig);
     }
 
     /**
