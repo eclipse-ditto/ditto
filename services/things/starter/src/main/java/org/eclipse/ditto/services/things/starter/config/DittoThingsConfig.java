@@ -13,20 +13,21 @@ package org.eclipse.ditto.services.things.starter.config;
 import java.io.Serializable;
 import java.util.Objects;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.base.config.DittoServiceWithMongoDbConfig;
+import org.eclipse.ditto.services.base.config.DittoServiceConfig;
 import org.eclipse.ditto.services.base.config.HttpConfig;
 import org.eclipse.ditto.services.base.config.LimitsConfig;
 import org.eclipse.ditto.services.things.persistence.config.DefaultThingConfig;
 import org.eclipse.ditto.services.things.persistence.config.ThingConfig;
+import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.services.utils.health.config.DefaultHealthCheckConfig;
 import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultTagsConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.TagsConfig;
-
-import com.typesafe.config.Config;
 
 /**
  * This class implements the config of the Ditto Things service.
@@ -38,18 +39,20 @@ public final class DittoThingsConfig implements ThingsConfig, Serializable {
 
     private static final long serialVersionUID = -7526956068560224469L;
 
-    private final DittoServiceWithMongoDbConfig basicConfig;
+    private final DittoServiceConfig serviceSpecificConfig;
     private final boolean logIncomingMessages;
+    private final MongoDbConfig mongoDbConfig;
     private final HealthCheckConfig healthCheckConfig;
     private final TagsConfig tagsConfig;
     private final ThingConfig thingConfig;
 
-    private DittoThingsConfig(final DittoServiceWithMongoDbConfig dittoServiceConfig) {
-        basicConfig = dittoServiceConfig;
-        logIncomingMessages = dittoServiceConfig.getBoolean(ThingsConfigValue.LOG_INCOMING_MESSAGES.getConfigPath());
-        healthCheckConfig = DefaultHealthCheckConfig.of(dittoServiceConfig);
-        tagsConfig = DefaultTagsConfig.of(dittoServiceConfig);
-        thingConfig = DefaultThingConfig.of(dittoServiceConfig);
+    private DittoThingsConfig(final DittoServiceConfig thingsScopedConfig) {
+        serviceSpecificConfig = thingsScopedConfig;
+        logIncomingMessages = thingsScopedConfig.getBoolean(ThingsConfigValue.LOG_INCOMING_MESSAGES.getConfigPath());
+        mongoDbConfig = DefaultMongoDbConfig.of(thingsScopedConfig);
+        healthCheckConfig = DefaultHealthCheckConfig.of(thingsScopedConfig);
+        tagsConfig = DefaultTagsConfig.of(thingsScopedConfig);
+        thingConfig = DefaultThingConfig.of(thingsScopedConfig);
     }
 
     /**
@@ -60,33 +63,33 @@ public final class DittoThingsConfig implements ThingsConfig, Serializable {
      * @return the instance.
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
-    public static DittoThingsConfig of(final Config dittoScopedConfig) {
-        return new DittoThingsConfig(DittoServiceWithMongoDbConfig.of(dittoScopedConfig, CONFIG_PATH));
+    public static DittoThingsConfig of(final ScopedConfig dittoScopedConfig) {
+        return new DittoThingsConfig(DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH));
     }
 
     @Override
     public ClusterConfig getClusterConfig() {
-        return basicConfig.getClusterConfig();
+        return serviceSpecificConfig.getClusterConfig();
     }
 
     @Override
     public LimitsConfig getLimitsConfig() {
-        return basicConfig.getLimitsConfig();
+        return serviceSpecificConfig.getLimitsConfig();
     }
 
     @Override
     public HttpConfig getHttpConfig() {
-        return basicConfig.getHttpConfig();
+        return serviceSpecificConfig.getHttpConfig();
     }
 
     @Override
     public MetricsConfig getMetricsConfig() {
-        return basicConfig.getMetricsConfig();
+        return serviceSpecificConfig.getMetricsConfig();
     }
 
     @Override
     public MongoDbConfig getMongoDbConfig() {
-        return basicConfig.getMongoDbConfig();
+        return mongoDbConfig;
     }
 
     @Override
@@ -110,7 +113,7 @@ public final class DittoThingsConfig implements ThingsConfig, Serializable {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
@@ -119,7 +122,8 @@ public final class DittoThingsConfig implements ThingsConfig, Serializable {
         }
         final DittoThingsConfig that = (DittoThingsConfig) o;
         return logIncomingMessages == that.logIncomingMessages &&
-                Objects.equals(basicConfig, that.basicConfig) &&
+                Objects.equals(serviceSpecificConfig, that.serviceSpecificConfig) &&
+                Objects.equals(mongoDbConfig, that.mongoDbConfig) &&
                 Objects.equals(healthCheckConfig, that.healthCheckConfig) &&
                 Objects.equals(tagsConfig, that.tagsConfig) &&
                 Objects.equals(thingConfig, that.thingConfig);
@@ -127,14 +131,16 @@ public final class DittoThingsConfig implements ThingsConfig, Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(basicConfig, logIncomingMessages, healthCheckConfig, tagsConfig, thingConfig);
+        return Objects.hash(serviceSpecificConfig, logIncomingMessages, mongoDbConfig, healthCheckConfig, tagsConfig,
+                thingConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "basicConfig=" + basicConfig +
+                "serviceSpecificConfig=" + serviceSpecificConfig +
                 ", logIncomingMessages=" + logIncomingMessages +
+                ", mongoDbConfig=" + mongoDbConfig +
                 ", healthCheckConfig=" + healthCheckConfig +
                 ", tagsConfig=" + tagsConfig +
                 ", thingConfig=" + thingConfig +

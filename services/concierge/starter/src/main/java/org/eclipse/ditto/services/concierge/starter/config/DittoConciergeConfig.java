@@ -13,9 +13,10 @@ package org.eclipse.ditto.services.concierge.starter.config;
 import java.io.Serializable;
 import java.util.Objects;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.base.config.DittoServiceWithMongoDbConfig;
+import org.eclipse.ditto.services.base.config.DittoServiceConfig;
 import org.eclipse.ditto.services.base.config.HttpConfig;
 import org.eclipse.ditto.services.base.config.LimitsConfig;
 import org.eclipse.ditto.services.concierge.cache.config.CachesConfig;
@@ -26,6 +27,7 @@ import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.services.utils.config.WithConfigPath;
 import org.eclipse.ditto.services.utils.health.config.DefaultHealthCheckConfig;
 import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 
 /**
@@ -38,40 +40,31 @@ public final class DittoConciergeConfig implements ConciergeConfig, Serializable
 
     private static final String CONFIG_PATH = "concierge";
 
-    private final DittoServiceWithMongoDbConfig serviceSpecificConfig;
+    private final DittoServiceConfig serviceSpecificConfig;
+    private final MongoDbConfig mongoDbConfig;
     private final HealthCheckConfig healthCheckConfig;
     private final EnforcementConfig enforcementConfig;
     private final CachesConfig cachesConfig;
     private final ThingsAggregatorConfig thingsAggregatorConfig;
 
-    private DittoConciergeConfig(final DittoServiceWithMongoDbConfig serviceSpecificConfig,
-            final HealthCheckConfig healthCheckConfig,
-            final EnforcementConfig enforcementConfig,
-            final CachesConfig cachesConfig,
-            final ThingsAggregatorConfig thingsAggregatorConfig) {
-
-        this.serviceSpecificConfig = serviceSpecificConfig;
-        this.healthCheckConfig = healthCheckConfig;
-        this.enforcementConfig = enforcementConfig;
-        this.cachesConfig = cachesConfig;
-        this.thingsAggregatorConfig = thingsAggregatorConfig;
+    private DittoConciergeConfig(final DittoServiceConfig conciergeScopedConfig) {
+        serviceSpecificConfig = conciergeScopedConfig;
+        mongoDbConfig = DefaultMongoDbConfig.of(conciergeScopedConfig);
+        healthCheckConfig = DefaultHealthCheckConfig.of(conciergeScopedConfig);
+        enforcementConfig = DefaultEnforcementConfig.of(conciergeScopedConfig);
+        cachesConfig = DefaultCachesConfig.of(conciergeScopedConfig);
+        thingsAggregatorConfig = DefaultThingsAggregatorConfig.of(conciergeScopedConfig);
     }
 
     /**
-     * Returns an instance of {@code DittoConciergeConfig} based on the settings of the specified Config.
+     * Returns an instance of DittoConciergeConfig based on the settings of the specified Config.
      *
      * @param config is supposed to provide the settings of the Concierge service config at {@value #CONFIG_PATH}.
      * @return the instance.
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DittoConciergeConfig of(final ScopedConfig config) {
-        final DittoServiceWithMongoDbConfig dittoServiceConfig = DittoServiceWithMongoDbConfig.of(config, CONFIG_PATH);
-
-        return new DittoConciergeConfig(dittoServiceConfig,
-                DefaultHealthCheckConfig.of(dittoServiceConfig),
-                DefaultEnforcementConfig.of(dittoServiceConfig),
-                DefaultCachesConfig.of(dittoServiceConfig),
-                DefaultThingsAggregatorConfig.of(dittoServiceConfig));
+        return new DittoConciergeConfig(DittoServiceConfig.of(config, CONFIG_PATH));
     }
 
     @Override
@@ -116,7 +109,7 @@ public final class DittoConciergeConfig implements ConciergeConfig, Serializable
 
     @Override
     public MongoDbConfig getMongoDbConfig() {
-        return serviceSpecificConfig.getMongoDbConfig();
+        return mongoDbConfig;
     }
 
     @Override
@@ -125,7 +118,7 @@ public final class DittoConciergeConfig implements ConciergeConfig, Serializable
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
@@ -134,6 +127,7 @@ public final class DittoConciergeConfig implements ConciergeConfig, Serializable
         }
         final DittoConciergeConfig that = (DittoConciergeConfig) o;
         return serviceSpecificConfig.equals(that.serviceSpecificConfig) &&
+                mongoDbConfig.equals(that.mongoDbConfig) &&
                 healthCheckConfig.equals(that.healthCheckConfig) &&
                 enforcementConfig.equals(that.enforcementConfig) &&
                 cachesConfig.equals(that.cachesConfig) &&
@@ -142,7 +136,7 @@ public final class DittoConciergeConfig implements ConciergeConfig, Serializable
 
     @Override
     public int hashCode() {
-        return Objects.hash(serviceSpecificConfig, healthCheckConfig, enforcementConfig, cachesConfig,
+        return Objects.hash(serviceSpecificConfig, mongoDbConfig, healthCheckConfig, enforcementConfig, cachesConfig,
                 thingsAggregatorConfig);
     }
 
@@ -150,6 +144,7 @@ public final class DittoConciergeConfig implements ConciergeConfig, Serializable
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "serviceSpecificConfig=" + serviceSpecificConfig +
+                ", mongoDbConfig=" + mongoDbConfig +
                 ", healthCheckConfig=" + healthCheckConfig +
                 ", enforcementConfig=" + enforcementConfig +
                 ", cachesConfig=" + cachesConfig +

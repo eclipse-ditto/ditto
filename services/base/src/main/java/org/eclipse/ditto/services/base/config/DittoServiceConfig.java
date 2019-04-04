@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.services.utils.config.DittoConfigError;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
@@ -63,7 +64,25 @@ public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificCo
     /**
      * Returns an instance of {@code DittoServiceConfig} based on the settings of the specified Config.
      *
-     * @param config is supposed to provide the settings of the Concierge service config at the specified config path.
+     * @param scopedConfig is supposed to provide the settings of the service at the appropriate config path.
+     * @return the instance.
+     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config}
+     * <ul>
+     * <li>is {@code null} or</li>
+     * <li>did not contain a nested Config at path {@code configPath}.</li>
+     * </ul>
+     */
+    public static DittoServiceConfig of(final ScopedConfig scopedConfig) {
+        if (null == scopedConfig) {
+            throw new DittoConfigError("The argument 'scopedConfig' must not be null!");
+        }
+        return new DittoServiceConfig(scopedConfig, DefaultLimitsConfig.of(scopedConfig));
+    }
+
+    /**
+     * Returns an instance of {@code DittoServiceConfig} based on the settings of the specified Config.
+     *
+     * @param config is supposed to provide the settings of the service config at the specified config path.
      * @param configPath the path of the nested Config within {@code config} that provides the service specific config
      * settings.
      * Mostly this value is the service name.
@@ -76,10 +95,7 @@ public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificCo
      * </ul>
      */
     public static DittoServiceConfig of(final Config config, final String configPath) {
-        final DefaultScopedConfig scopedConfig = DefaultScopedConfig.newInstance(config, configPath);
-        final LimitsConfig limitsConfig = DefaultLimitsConfig.of(config);
-
-        return new DittoServiceConfig(scopedConfig, limitsConfig);
+        return of(DefaultScopedConfig.newInstance(config, configPath));
     }
 
     @Override

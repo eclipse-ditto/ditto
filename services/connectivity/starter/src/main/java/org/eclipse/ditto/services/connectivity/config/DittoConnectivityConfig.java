@@ -13,9 +13,10 @@ package org.eclipse.ditto.services.connectivity.config;
 import java.io.Serializable;
 import java.util.Objects;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.base.config.DittoServiceWithMongoDbConfig;
+import org.eclipse.ditto.services.base.config.DittoServiceConfig;
 import org.eclipse.ditto.services.base.config.HttpConfig;
 import org.eclipse.ditto.services.base.config.LimitsConfig;
 import org.eclipse.ditto.services.connectivity.mapping.DefaultMappingConfig;
@@ -29,6 +30,7 @@ import org.eclipse.ditto.services.connectivity.messaging.config.ReconnectConfig;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.services.utils.health.config.DefaultHealthCheckConfig;
 import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.protocol.config.DefaultProtocolConfig;
 import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
@@ -43,7 +45,8 @@ public final class DittoConnectivityConfig implements ConnectivityConfig, Serial
 
     private static final long serialVersionUID = 1833682803547451513L;
 
-    private final DittoServiceWithMongoDbConfig serviceSpecificConfig;
+    private final DittoServiceConfig serviceSpecificConfig;
+    private final MongoDbConfig mongoDbConfig;
     private final HealthCheckConfig healthCheckConfig;
     private final ConnectionConfig connectionConfig;
     private final MappingConfig mappingConfig;
@@ -51,10 +54,11 @@ public final class DittoConnectivityConfig implements ConnectivityConfig, Serial
     private final ClientConfig clientConfig;
     private final ProtocolConfig protocolConfig;
 
-    private DittoConnectivityConfig(final DittoServiceWithMongoDbConfig connectivityScopedConfig,
+    private DittoConnectivityConfig(final DittoServiceConfig connectivityScopedConfig,
             final ProtocolConfig protocolConfig) {
 
         serviceSpecificConfig = connectivityScopedConfig;
+        mongoDbConfig = DefaultMongoDbConfig.of(connectivityScopedConfig);
         healthCheckConfig = DefaultHealthCheckConfig.of(connectivityScopedConfig);
         connectionConfig = DefaultConnectionConfig.of(connectivityScopedConfig);
         mappingConfig = DefaultMappingConfig.of(connectivityScopedConfig);
@@ -64,7 +68,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig, Serial
     }
 
     /**
-     * Returns an instance of {@code DittoConnectivityConfig} based on the settings of the specified Config.
+     * Returns an instance of DittoConnectivityConfig based on the settings of the specified Config.
      *
      * @param dittoScopedConfig is supposed to provide the settings of the Connectivity service config at
      * {@value #CONFIG_PATH}.
@@ -72,7 +76,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig, Serial
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DittoConnectivityConfig of(final ScopedConfig dittoScopedConfig) {
-        return new DittoConnectivityConfig(DittoServiceWithMongoDbConfig.of(dittoScopedConfig, CONFIG_PATH),
+        return new DittoConnectivityConfig(DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH),
                 DefaultProtocolConfig.of(dittoScopedConfig));
     }
 
@@ -123,7 +127,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig, Serial
 
     @Override
     public MongoDbConfig getMongoDbConfig() {
-        return serviceSpecificConfig.getMongoDbConfig();
+        return mongoDbConfig;
     }
 
     @Override
@@ -131,8 +135,9 @@ public final class DittoConnectivityConfig implements ConnectivityConfig, Serial
         return protocolConfig;
     }
 
+    @SuppressWarnings("OverlyComplexMethod")
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
@@ -141,6 +146,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig, Serial
         }
         final DittoConnectivityConfig that = (DittoConnectivityConfig) o;
         return Objects.equals(serviceSpecificConfig, that.serviceSpecificConfig) &&
+                Objects.equals(mongoDbConfig, that.mongoDbConfig) &&
                 Objects.equals(healthCheckConfig, that.healthCheckConfig) &&
                 Objects.equals(connectionConfig, that.connectionConfig) &&
                 Objects.equals(mappingConfig, that.mappingConfig) &&
@@ -151,14 +157,15 @@ public final class DittoConnectivityConfig implements ConnectivityConfig, Serial
 
     @Override
     public int hashCode() {
-        return Objects.hash(serviceSpecificConfig, healthCheckConfig, connectionConfig, mappingConfig, reconnectConfig,
-                clientConfig, protocolConfig);
+        return Objects.hash(serviceSpecificConfig, mongoDbConfig, healthCheckConfig, connectionConfig, mappingConfig,
+                reconnectConfig, clientConfig, protocolConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "serviceSpecificConfig=" + serviceSpecificConfig +
+                ", mongoDbConfig=" + mongoDbConfig +
                 ", healthCheckConfig=" + healthCheckConfig +
                 ", connectionConfig=" + connectionConfig +
                 ", mappingConfig=" + mappingConfig +

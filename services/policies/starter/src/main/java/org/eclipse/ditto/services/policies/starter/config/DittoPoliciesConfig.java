@@ -13,20 +13,21 @@ package org.eclipse.ditto.services.policies.starter.config;
 import java.io.Serializable;
 import java.util.Objects;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.base.config.DittoServiceWithMongoDbConfig;
+import org.eclipse.ditto.services.base.config.DittoServiceConfig;
 import org.eclipse.ditto.services.base.config.HttpConfig;
 import org.eclipse.ditto.services.base.config.LimitsConfig;
 import org.eclipse.ditto.services.policies.persistence.config.DefaultPolicyConfig;
 import org.eclipse.ditto.services.policies.persistence.config.PolicyConfig;
+import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.services.utils.health.config.DefaultHealthCheckConfig;
 import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultTagsConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.TagsConfig;
-
-import com.typesafe.config.Config;
 
 /**
  * This class implements the config of the Ditto Policies service.
@@ -38,16 +39,18 @@ public final class DittoPoliciesConfig implements PoliciesConfig, Serializable {
 
     private static final long serialVersionUID = -9097093192571860894L;
 
-    private final DittoServiceWithMongoDbConfig dittoServiceConfig;
+    private final DittoServiceConfig serviceSpecificConfig;
+    private final MongoDbConfig mongoDbConfig;
     private final HealthCheckConfig healthCheckConfig;
     private final PolicyConfig policyConfig;
     private final TagsConfig tagsConfig;
 
-    private DittoPoliciesConfig(final DittoServiceWithMongoDbConfig dittoServiceConfig) {
-        this.dittoServiceConfig = dittoServiceConfig;
-        healthCheckConfig = DefaultHealthCheckConfig.of(dittoServiceConfig);
-        policyConfig = DefaultPolicyConfig.of(dittoServiceConfig);
-        tagsConfig = DefaultTagsConfig.of(dittoServiceConfig);
+    private DittoPoliciesConfig(final DittoServiceConfig policiesScopedConfig) {
+        serviceSpecificConfig = policiesScopedConfig;
+        mongoDbConfig = DefaultMongoDbConfig.of(policiesScopedConfig);
+        healthCheckConfig = DefaultHealthCheckConfig.of(policiesScopedConfig);
+        policyConfig = DefaultPolicyConfig.of(policiesScopedConfig);
+        tagsConfig = DefaultTagsConfig.of(policiesScopedConfig);
     }
 
     /**
@@ -58,33 +61,33 @@ public final class DittoPoliciesConfig implements PoliciesConfig, Serializable {
      * @return the instance.
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
-    public static DittoPoliciesConfig of(final Config dittoScopedConfig) {
-        return new DittoPoliciesConfig(DittoServiceWithMongoDbConfig.of(dittoScopedConfig, CONFIG_PATH));
+    public static DittoPoliciesConfig of(final ScopedConfig dittoScopedConfig) {
+        return new DittoPoliciesConfig(DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH));
     }
 
     @Override
     public ClusterConfig getClusterConfig() {
-        return dittoServiceConfig.getClusterConfig();
+        return serviceSpecificConfig.getClusterConfig();
     }
 
     @Override
     public LimitsConfig getLimitsConfig() {
-        return dittoServiceConfig.getLimitsConfig();
+        return serviceSpecificConfig.getLimitsConfig();
     }
 
     @Override
     public HttpConfig getHttpConfig() {
-        return dittoServiceConfig.getHttpConfig();
+        return serviceSpecificConfig.getHttpConfig();
     }
 
     @Override
     public MetricsConfig getMetricsConfig() {
-        return dittoServiceConfig.getMetricsConfig();
+        return serviceSpecificConfig.getMetricsConfig();
     }
 
     @Override
     public MongoDbConfig getMongoDbConfig() {
-        return dittoServiceConfig.getMongoDbConfig();
+        return mongoDbConfig;
     }
 
     @Override
@@ -103,7 +106,7 @@ public final class DittoPoliciesConfig implements PoliciesConfig, Serializable {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
@@ -111,7 +114,8 @@ public final class DittoPoliciesConfig implements PoliciesConfig, Serializable {
             return false;
         }
         final DittoPoliciesConfig that = (DittoPoliciesConfig) o;
-        return Objects.equals(dittoServiceConfig, that.dittoServiceConfig) &&
+        return Objects.equals(serviceSpecificConfig, that.serviceSpecificConfig) &&
+                Objects.equals(mongoDbConfig, that.mongoDbConfig) &&
                 Objects.equals(healthCheckConfig, that.healthCheckConfig) &&
                 Objects.equals(policyConfig, that.policyConfig) &&
                 Objects.equals(tagsConfig, that.tagsConfig);
@@ -119,13 +123,14 @@ public final class DittoPoliciesConfig implements PoliciesConfig, Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(dittoServiceConfig, healthCheckConfig, policyConfig, tagsConfig);
+        return Objects.hash(serviceSpecificConfig, mongoDbConfig, healthCheckConfig, policyConfig, tagsConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "dittoServiceConfig=" + dittoServiceConfig +
+                "serviceSpecificConfig=" + serviceSpecificConfig +
+                ", mongoDbConfig=" + mongoDbConfig +
                 ", healthCheckConfig=" + healthCheckConfig +
                 ", policyConfig=" + policyConfig +
                 ", tagsConfig=" + tagsConfig +
