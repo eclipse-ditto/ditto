@@ -57,6 +57,7 @@ import akka.stream.SinkShape;
  */
 public abstract class AbstractEnforcement<T extends Signal> {
 
+    // TODO: make context a part of the argument.
     private final Context context;
 
     protected AbstractEnforcement(final Context context) {
@@ -329,6 +330,11 @@ public abstract class AbstractEnforcement<T extends Signal> {
             this.entityId = entityId;
             this.log = log;
             this.self = self;
+        }
+
+        static <T> Context of(final Contextual<T> c) {
+            return new Context(c.getPubSubMediator(), c.getAskTimeout(), c.getConciergeForwarder(),
+                    c.getEnforcerExecutor(), c.getEntityId().orElse(null), c.getLog(), c.getSelf());
         }
 
         /**

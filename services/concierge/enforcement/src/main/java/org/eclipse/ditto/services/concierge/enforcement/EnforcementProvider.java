@@ -12,14 +12,20 @@
  */
 package org.eclipse.ditto.services.concierge.enforcement;
 
+import java.util.Optional;
+
 import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.services.utils.akka.controlflow.Pipe;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
 import org.eclipse.ditto.signals.base.Signal;
 
 import akka.NotUsed;
+import akka.stream.FanOutShape2;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
+import akka.stream.SinkShape;
+import akka.stream.javadsl.GraphDSL;
+import akka.stream.javadsl.Sink;
 
 /**
  * Provider interface for {@link AbstractEnforcement}.
@@ -64,5 +70,31 @@ public interface EnforcementProvider<T extends Signal> {
 
         return Pipe.joinFilteredSink(Filter.of(getCommandClass(), this::isApplicable),
                 createEnforcement(context).toGraph());
+    }
+
+    /**
+     * Convert this enforcement provider into a stream of contextual messages.
+     *
+     * @return the stream.
+     */
+    default Graph<FlowShape<Contextual<Object>, Contextual<Object>>, NotUsed> toContextualFlow() {
+        final Sink<Contextual<T>, ?> sink = Sink.foreach(contextual ->
+                createEnforcement(AbstractEnforcement.Context.of(contextual))
+                        .enforce(contextual.getMessage(), contextual.getSender(), contextual.getLog()));
+
+        final Graph<FanOutShape2<Contextual<Object>, Contextual<T>, Contextual<Object>>, NotUsed> multiplexer =
+                Pipe.multiplexBy(contextual ->
+                        contextual.tryToMapMessage(message -> getCommandClass().isInstance(message)
+                                ? Optional.of(getCommandClass().cast(message))
+                                : Optional.empty()));
+
+        return GraphDSL.create(builder -> {
+            final FanOutShape2<Contextual<Object>, Contextual<T>, Contextual<Object>> fanout = builder.add(multiplexer);
+            final SinkShape<Contextual<T>> handler = builder.add(sink);
+
+            builder.from(fanout.out0()).to(handler);
+
+            return FlowShape.of(fanout.in(), fanout.out1());
+        });
     }
 }
