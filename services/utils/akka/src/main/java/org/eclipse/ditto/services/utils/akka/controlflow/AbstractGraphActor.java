@@ -29,9 +29,7 @@ import akka.stream.javadsl.Source;
 public abstract class AbstractGraphActor<T> extends AbstractActor {
 
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-    protected final ActorMaterializer materializer = ActorMaterializer.create(getContext());
 
-    private final Sink<T, NotUsed> messageHandler = MergeHub.of(getMessageClass()).to(getHandler()).run(materializer);
 
     protected abstract Class<T> getMessageClass();
 
@@ -41,6 +39,9 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
 
     @Override
     public Receive createReceive() {
+        final ActorMaterializer materializer = ActorMaterializer.create(getContext());
+        final Sink<T, NotUsed> messageHandler =
+                MergeHub.of(getMessageClass(), 1).to(getHandler()).run(materializer);
         return ReceiveBuilder.create()
                 .matchAny(message -> {
                     log.debug("Received message: <{}>.", message);

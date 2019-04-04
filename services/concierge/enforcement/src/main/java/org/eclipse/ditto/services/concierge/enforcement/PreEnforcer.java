@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.concierge.enforcement;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
@@ -35,11 +36,13 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.event.Logging;
 import akka.stream.Attributes;
+import akka.stream.FanOutShape2;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
 import akka.stream.SinkShape;
 import akka.stream.SourceShape;
 import akka.stream.javadsl.Flow;
+import akka.stream.javadsl.GraphDSL;
 import akka.stream.javadsl.Source;
 import akka.stream.stage.GraphStage;
 
@@ -69,6 +72,51 @@ public final class PreEnforcer {
             final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> processor) {
 
         return PreEnforcer.fromFunction(ActorRef.noSender(), processor);
+    }
+
+    static Graph<FlowShape<Contextual<Object>, Contextual<Object>>, NotUsed> fromFunctionWithContext(
+            final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> processor) {
+
+        @SuppressWarnings("unchecked")
+        final Graph<FanOutShape2<Contextual<Object>, Contextual<WithDittoHeaders>, Contextual<Object>>, NotUsed>
+                multiplexer =
+                Pipe.multiplexBy(c -> c.getMessage() instanceof WithDittoHeaders
+                        ? Optional.of((Contextual<WithDittoHeaders>) (Object) c)
+                        : Optional.empty());
+
+        final Flow<Contextual<WithDittoHeaders>, Contextual<Object>, NotUsed> preEnforcementFlow =
+                Flow.<Contextual<WithDittoHeaders>>create()
+                        .flatMapConcat(contextual -> {
+                            final Supplier<CompletionStage<Object>> futureSupplier = () ->
+                                    processor.apply(contextual.getMessage())
+                                            .thenApply(result -> WithSender.of(result, contextual.getSender()));
+
+                            final CompletionStage<Object> futureResult =
+                                    handleErrorNowOrLater(futureSupplier, contextual, contextual.getSelf());
+
+                            return Source.fromCompletionStage(futureResult)
+                                    .log("PreEnforcer")
+                                    .flatMapConcat(PreEnforcer::keepResultAndLogErrors)
+                                    .map(WithSender::getMessage)
+                                    .map(contextual::withMessage);
+                        });
+
+        return GraphDSL.create(builder -> {
+
+            final FanOutShape2<Contextual<Object>, Contextual<WithDittoHeaders>, Contextual<Object>> fanout =
+                    builder.add(multiplexer);
+
+            final FlowShape<Contextual<WithDittoHeaders>, Contextual<Object>> enforce = builder.add(preEnforcementFlow);
+
+            final SinkShape<Contextual<Object>> logUnhandled =
+                    builder.add(Flow.<Contextual<Object>, WithSender>fromFunction(x -> x).to(unhandled()));
+
+            builder.from(fanout.out0()).toInlet(enforce.in());
+            builder.from(fanout.out1()).to(logUnhandled);
+
+            return FlowShape.of(fanout.in(), enforce.out());
+        });
+
     }
 
     /**
@@ -143,7 +191,7 @@ public final class PreEnforcer {
             sender.tell(rootCause, self);
         } else {
             FALLBACK_LOGGER.error("Unexpected non-DittoRuntimeException error - responding with " +
-                    "GatewayInternalErrorException: {} - {} - {}", error.getClass().getSimpleName(), error.getMessage(),
+                            "GatewayInternalErrorException: {} - {} - {}", error.getClass().getSimpleName(), error.getMessage(),
                     error);
             final GatewayInternalErrorException responseEx =
                     GatewayInternalErrorException.newBuilder()

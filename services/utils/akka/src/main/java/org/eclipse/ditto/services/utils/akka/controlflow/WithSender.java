@@ -21,15 +21,27 @@ import akka.actor.ActorRef;
  *
  * @param <T> type of message.
  */
-public final class WithSender<T> {
+// TODO: remove after refactoring enforcements to operate on contextual messages only
+public interface WithSender<T> {
 
-    private final T message;
-    private final ActorRef sender;
+    /**
+     * @return the message.
+     */
+    T getMessage();
 
-    private WithSender(final T message, final ActorRef sender) {
-        this.message = message;
-        this.sender = sender;
-    }
+    /**
+     * @return the sender.
+     */
+    ActorRef getSender();
+
+    /**
+     * Replace the message.
+     *
+     * @param newMessage the new message.
+     * @param <S> type of the new message.
+     * @return copy of this object with message replaced.
+     */
+    <S> WithSender<S> withMessage(final S newMessage);
 
     /**
      * Create a message with sender.
@@ -39,54 +51,55 @@ public final class WithSender<T> {
      * @param <T> type of message.
      * @return message and sender bundled together.
      */
-    public static <T> WithSender<T> of(final T message, final ActorRef sender) {
-        return new WithSender<>(message, sender);
+    static <T> WithSender<T> of(final T message, final ActorRef sender) {
+        return new WithSenderImpl<>(message, sender);
     }
 
-    /**
-     * @return the message.
-     */
-    public T getMessage() {
-        return message;
-    }
+    final class WithSenderImpl<T> implements WithSender<T> {
 
-    /**
-     * @return the sender.
-     */
-    public ActorRef getSender() {
-        return sender;
-    }
+        private final T message;
+        private final ActorRef sender;
 
-    /**
-     * Replace the message.
-     *
-     * @param newMessage the new message.
-     * @param <S> type of the new message.
-     * @return copy of this object with message replaced.
-     */
-    public <S> WithSender<S> withMessage(final S newMessage) {
-        return of(newMessage, sender);
-    }
-
-    @Override
-    public boolean equals(final Object o) {
-        if (o instanceof WithSender) {
-            final WithSender that = (WithSender) o;
-            return Objects.equals(sender, that.sender) && Objects.equals(message, that.message);
-        } else {
-            return false;
+        private WithSenderImpl(final T message, final ActorRef sender) {
+            this.message = message;
+            this.sender = sender;
         }
-    }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(message, sender);
-    }
+        @Override
+        public T getMessage() {
+            return message;
+        }
 
-    @Override
-    public String toString() {
-        return getClass().getSimpleName() + " [message=" + message +
-                ", sender=" + sender +
-                "]";
+        @Override
+        public ActorRef getSender() {
+            return sender;
+        }
+
+        @Override
+        public <S> WithSender<S> withMessage(final S newMessage) {
+            return of(newMessage, sender);
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            if (o instanceof WithSenderImpl) {
+                final WithSenderImpl that = (WithSenderImpl) o;
+                return Objects.equals(sender, that.sender) && Objects.equals(message, that.message);
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(message, sender);
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " [message=" + message +
+                    ", sender=" + sender +
+                    "]";
+        }
     }
 }

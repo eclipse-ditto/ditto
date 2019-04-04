@@ -20,6 +20,7 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.models.concierge.EntityId;
+import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
 
 import akka.actor.ActorRef;
 import akka.event.DiagnosticLoggingAdapter;
@@ -27,7 +28,7 @@ import akka.event.DiagnosticLoggingAdapter;
 /**
  * A message together with contextual information about the actor processing it.
  */
-final class Contextual<T> {
+final class Contextual<T> implements WithSender<T> {
 
     private final T message;
 
@@ -63,16 +64,23 @@ final class Contextual<T> {
         this.entityId = entityId;
     }
 
-    T getMessage() {
+    @Override
+    public T getMessage() {
         return message;
+    }
+
+    @Override
+    public ActorRef getSender() {
+        return sender;
+    }
+
+    @Override
+    public <S> Contextual<S> withMessage(final S message) {
+        return withReceivedMessage(message, sender);
     }
 
     ActorRef getSelf() {
         return self;
-    }
-
-    ActorRef getSender() {
-        return sender;
     }
 
     ActorRef getPubSubMediator() {
@@ -100,8 +108,23 @@ final class Contextual<T> {
     }
 
     <S> Optional<Contextual<S>> tryToMapMessage(final Function<T, Optional<S>> f) {
-        return f.apply(getMessage())
-                .map(message -> new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder,
-                        enforcerExecutor, askTimeout, log, entityId));
+        return f.apply(getMessage()).map(this::withMessage);
+    }
+
+    <S> Contextual<S> withReceivedMessage(final S message, final ActorRef sender) {
+        return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, enforcerExecutor, askTimeout,
+                log, entityId);
+    }
+
+    @Override
+    public String toString() {
+        return String.format(
+                "Contextual[message=%s,self=%s,sender=%s,pubSubMediator=%s,conciergeForwarder=%s,entityId=%s]",
+                message.toString(),
+                self.toString(),
+                sender.toString(),
+                pubSubMediator.toString(),
+                conciergeForwarder.toString(),
+                getEntityId().map(Object::toString).orElse("null"));
     }
 }

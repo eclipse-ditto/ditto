@@ -14,23 +14,16 @@ package org.eclipse.ditto.services.concierge.enforcement;
 
 import java.time.Duration;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.services.utils.akka.controlflow.GraphActor;
-import org.eclipse.ditto.services.utils.akka.controlflow.Pipe;
-import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
-import org.eclipse.ditto.services.utils.akka.controlflow.components.ActivityChecker;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.stream.javadsl.Flow;
 
 /**
  * Creator for Actors that enforce authorization.
@@ -62,7 +55,6 @@ public final class EnforcerActorCreator {
                 null, null);
     }
 
-
     /**
      * Creates Akka configuration object Props for this EnforcerActor.
      *
@@ -75,6 +67,7 @@ public final class EnforcerActorCreator {
      * @param activityCheckInterval how often to check for actor activity for termination after an idle period.
      * @return the Akka configuration Props object.
      */
+    // TODO: consolidate with EnforcerActor.
     public static Props props(final ActorRef pubSubMediator,
             final Set<EnforcementProvider<?>> enforcementProviders,
             final Duration askTimeout,
@@ -83,21 +76,8 @@ public final class EnforcerActorCreator {
             @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
             @Nullable final Duration activityCheckInterval) {
 
-        final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcerFunction =
-                preEnforcer != null ? preEnforcer : CompletableFuture::completedFuture;
-
-        return GraphActor.partial((actorContext, log) -> {
-            final AbstractEnforcement.Context enforcementContext =
-                    new AbstractEnforcement.Context(pubSubMediator, askTimeout, conciergeForwarder, enforcerExecutor)
-                            .with(actorContext, log, enforcerExecutor);
-
-            return Flow.<WithSender>create()
-                    .via(ActivityChecker.ofNullable(activityCheckInterval, actorContext.self()))
-                    .via(PreEnforcer.fromFunction(actorContext.self(), preEnforcerFunction))
-                    .via(Pipe.joinFlows(enforcementProviders.stream()
-                            .map(provider -> provider.toGraph(enforcementContext))
-                            .collect(Collectors.toList())));
-        });
+        return EnforcerActor.props(pubSubMediator, enforcementProviders, askTimeout, conciergeForwarder,
+                enforcerExecutor, preEnforcer, activityCheckInterval);
     }
 
 }

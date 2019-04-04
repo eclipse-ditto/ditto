@@ -352,7 +352,7 @@ public abstract class AbstractEnforcement<T extends Signal> {
                     decodeEntityId(contextSelf), log, contextSelf);
         }
 
-        private static EntityId decodeEntityId(final ActorRef self) {
+        static EntityId decodeEntityId(final ActorRef self) {
             final String name = self.path().name();
             try {
                 final String typeWithPath = URLDecoder.decode(name, StandardCharsets.UTF_8.name());

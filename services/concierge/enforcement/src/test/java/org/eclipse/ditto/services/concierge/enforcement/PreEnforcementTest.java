@@ -75,8 +75,7 @@ public final class PreEnforcementTest {
     @Test
     public void acceptWhenPreEnforcementIsSuccessful() {
         final JsonObject thingWithAcl = newThing()
-                .setPermissions(
-                        AclEntry.newInstance(SUBJECT, READ, WRITE, ADMINISTRATE))
+                .setPermissions(AclEntry.newInstance(SUBJECT, READ, WRITE, ADMINISTRATE))
                 .build()
                 .toJson(V_1, FieldType.all());
         final SudoRetrieveThingResponse response =

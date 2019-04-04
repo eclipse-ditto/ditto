@@ -85,7 +85,7 @@ public interface EnforcementProvider<T extends Signal> {
         final Graph<FanOutShape2<Contextual<Object>, Contextual<T>, Contextual<Object>>, NotUsed> multiplexer =
                 Pipe.multiplexBy(contextual ->
                         contextual.tryToMapMessage(message -> getCommandClass().isInstance(message)
-                                ? Optional.of(getCommandClass().cast(message))
+                                ? Optional.of(getCommandClass().cast(message)).filter(this::isApplicable)
                                 : Optional.empty()));
 
         return GraphDSL.create(builder -> {
