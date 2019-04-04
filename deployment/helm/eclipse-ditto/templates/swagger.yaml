@@ -2,8 +2,13 @@ apiVersion: v1
 kind: Service
 metadata:
   name: swagger-ui
+  labels:
+    app.kubernetes.io/part-of: {{ .Chart.Name }}
+    app.kubernetes.io/version: "{{ .Values.nginx.version }}"
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
-  clusterIP: None
   ports:
   - port: 8080
     targetPort: 8080
@@ -15,6 +20,14 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: swagger-ui
+  labels:
+    app: swagger-ui
+    app.kubernetes.io/name: swagger-ui
+    app.kubernetes.io/part-of: {{ .Chart.Name }}
+    app.kubernetes.io/version: "{{ .Values.nginx.version }}"
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
   template:
     metadata:
