@@ -5,7 +5,7 @@ tags: [signal]
 permalink: basic-signals-event.html
 ---
 
-Events report that something took place in a **Digital Twin** in Ditto. Important is the "past tense" here; it took
+Events report that something took place in a **digital twin** in Ditto. Important is the "past tense" here; it took
 already place (it was for example persisted into the data store) and cannot be reversed or stopped.
 
 Events are one of the centerpieces of Ditto:

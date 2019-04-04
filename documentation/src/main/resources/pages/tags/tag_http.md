@@ -1,5 +1,5 @@
 ---
-title: "HTTP"
+title: "HTTP topics"
 tagName: http
 search: exclude
 permalink: tag_http.html

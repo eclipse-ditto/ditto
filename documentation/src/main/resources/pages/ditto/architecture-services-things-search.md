@@ -22,7 +22,7 @@ It however contains a model which can transform an <a href="#" data-toggle="tool
 search query into a Java domain model which is defined here:
 
 
-* [rql parser ast](https://github.com/eclipse/ditto/tree/master/model/thingsearch-parser/src/main/java/org/eclipse/ditto/model/thingsearchparser/predicates/ast)
+* [rql parser ast](https://github.com/eclipse/ditto/tree/master/model/rql/src/main/java/org/eclipse/ditto/model/rql/predicates/ast)
 
 ## Signals
 
