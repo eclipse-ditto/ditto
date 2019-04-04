@@ -78,9 +78,10 @@ public interface EnforcementProvider<T extends Signal> {
      * @return the stream.
      */
     default Graph<FlowShape<Contextual<Object>, Contextual<Object>>, NotUsed> toContextualFlow() {
+
         final Sink<Contextual<T>, ?> sink = Sink.foreach(contextual ->
                 createEnforcement(AbstractEnforcement.Context.of(contextual))
-                        .enforce(contextual.getMessage(), contextual.getSender(), contextual.getLog()));
+                        .enforceSafely(contextual.getMessage(), contextual.getSender(), contextual.getLog()));
 
         final Graph<FanOutShape2<Contextual<Object>, Contextual<T>, Contextual<Object>>, NotUsed> multiplexer =
                 Pipe.multiplexBy(contextual ->

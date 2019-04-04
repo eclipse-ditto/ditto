@@ -83,9 +83,24 @@ public abstract class AbstractEnforcement<T extends Signal> {
      */
     public abstract CompletionStage<Void> enforce(T signal, ActorRef sender, DiagnosticLoggingAdapter log);
 
+    /**
+     * Performs authorization enforcement for the passed {@code signal}.
+     * If the signal is authorized, the implementation chooses to which target to forward. If it is not authorized, the
+     * passed {@code sender} will get an authorization error response.
+     *
+     * @param signal the signal to authorize.
+     * @param sender sender of the signal.
+     * @param log the logger to use for logging.
+     * @return future after enforcement was performed.
+     */
+    public CompletionStage<Void> enforceSafely(final T signal, final ActorRef sender,
+            final DiagnosticLoggingAdapter log) {
+
+        return enforce(signal, sender, log).whenComplete(handleEnforcementCompletion(signal, sender));
+    }
+
     Graph<SinkShape<WithSender<T>>, NotUsed> toGraph() {
-        return Consume.of((signal, sender) ->
-                enforce(signal, sender, context.log).whenComplete(handleEnforcementCompletion(signal, sender)));
+        return Consume.of((signal, sender) -> enforceSafely(signal, sender, context.log));
     }
 
     private BiConsumer<Void, Throwable> handleEnforcementCompletion(final T signal, final ActorRef sender) {
