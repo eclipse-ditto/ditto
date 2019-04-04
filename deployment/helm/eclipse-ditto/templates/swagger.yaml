@@ -29,6 +29,7 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
+  replicas: {{ .Values.swagger.replicaCount }}
   template:
     metadata:
       labels:
@@ -36,7 +37,7 @@ spec:
     spec:
       containers:
       - name: swagger-ui
-        image: docker.io/swaggerapi/swagger-ui:3.17.4
+        image: docker.io/swaggerapi/swagger-ui:{{ .Values.swagger.version }}
         volumeMounts:
         - name: swagger-ui-api
           mountPath: /usr/share/nginx/html/openapi
