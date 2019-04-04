@@ -114,7 +114,7 @@ abstract class AbstractActorWithDiscardOldStash extends AbstractActor {
     private void enqueueFirst(final Envelope envelope) {
         mailbox.enqueueFirst(getSelf(), envelope);
         if (envelope.message() instanceof Terminated) {
-            actorCell.terminatedQueuedFor(((Terminated) envelope.message()).getActor());
+            actorCell.terminatedQueuedFor(((Terminated) envelope.message()).getActor(), Option.empty());
         }
     }
 
