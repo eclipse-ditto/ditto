@@ -19,7 +19,6 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.enforcers.AclEnforcer;
@@ -34,7 +33,6 @@ import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cache.Cache;
-import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -47,8 +45,6 @@ import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleEx
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
-
 import akka.actor.ActorRef;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 
@@ -57,10 +53,7 @@ import akka.cluster.pubsub.DistributedPubSubMediator;
  */
 public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
 
-    private static final int CACHE_TIMEOUT_SECONDS = 2 * 60;
-
     private final EnforcerRetriever enforcerRetriever;
-
     private final Cache<String, ActorRef> responseReceivers;
 
     private LiveSignalEnforcement(final Contextual<Signal> context, final Cache<EntityId, Entry<EntityId>> thingIdCache,
@@ -73,9 +66,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
         requireNonNull(aclEnforcerCache);
         enforcerRetriever =
                 PolicyOrAclEnforcerRetrieverFactory.create(thingIdCache, policyEnforcerCache, aclEnforcerCache);
-        final Caffeine<Object, Object> caffeine = Caffeine.newBuilder()
-                .expireAfterWrite(CACHE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        responseReceivers = CaffeineCache.of(caffeine);
+        responseReceivers = context.getResponseReceivers();
     }
 
     /**
@@ -114,7 +105,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
         }
 
         @Override
-        public AbstractEnforcement<Signal> createEnforcement(final Contextual context) {
+        public AbstractEnforcement<Signal> createEnforcement(final Contextual<Signal> context) {
             return new LiveSignalEnforcement(context, thingIdCache, policyEnforcerCache, aclEnforcerCache);
         }
 

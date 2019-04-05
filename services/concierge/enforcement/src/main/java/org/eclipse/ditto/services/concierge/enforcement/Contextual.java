@@ -19,6 +19,7 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
+import org.eclipse.ditto.services.utils.cache.Cache;
 
 import akka.actor.ActorRef;
 import akka.event.DiagnosticLoggingAdapter;
@@ -46,10 +47,14 @@ public final class Contextual<T> implements WithSender<T> {
 
     private final EntityId entityId;
 
+    // for live signal enforcement
+    private final Cache<String, ActorRef> responseReceivers;
+
     Contextual(final T message, final ActorRef self, final ActorRef sender,
             final ActorRef pubSubMediator, final ActorRef conciergeForwarder,
             final Executor enforcerExecutor, final Duration askTimeout, final DiagnosticLoggingAdapter log,
-            final EntityId entityId) {
+            final EntityId entityId,
+            final Cache<String, ActorRef> responseReceivers) {
         this.message = message;
         this.self = self;
         this.sender = sender;
@@ -59,6 +64,7 @@ public final class Contextual<T> implements WithSender<T> {
         this.askTimeout = askTimeout;
         this.log = log;
         this.entityId = entityId;
+        this.responseReceivers = responseReceivers;
     }
 
     @Override
@@ -104,13 +110,17 @@ public final class Contextual<T> implements WithSender<T> {
         return entityId;
     }
 
+    Cache<String, ActorRef> getResponseReceivers() {
+        return responseReceivers;
+    }
+
     <S> Optional<Contextual<S>> tryToMapMessage(final Function<T, Optional<S>> f) {
         return f.apply(getMessage()).map(this::withMessage);
     }
 
     <S> Contextual<S> withReceivedMessage(final S message, final ActorRef sender) {
         return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, enforcerExecutor, askTimeout,
-                log, entityId);
+                log, entityId, responseReceivers);
     }
 
     @Override

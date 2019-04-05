@@ -17,9 +17,14 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
+import org.eclipse.ditto.services.utils.cache.Cache;
+import org.eclipse.ditto.services.utils.cache.CaffeineCache;
+
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -51,7 +56,8 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
 
         contextual = new Contextual<>(NotUsed.getInstance(), getSelf(), getContext().getSystem().deadLetters(),
                 pubSubMediator, conciergeForwarder, enforcerExecutor, askTimeout, log,
-                decodeEntityId(getSelf()));
+                decodeEntityId(getSelf()),
+                createResponseReceiversCache());
     }
 
     @Override
@@ -77,5 +83,9 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
         } catch (final UnsupportedEncodingException e) {
             throw new IllegalStateException("Unsupported encoding", e);
         }
+    }
+
+    private static Cache<String, ActorRef> createResponseReceiversCache() {
+        return CaffeineCache.of(Caffeine.newBuilder().expireAfterWrite(120, TimeUnit.SECONDS));
     }
 }
