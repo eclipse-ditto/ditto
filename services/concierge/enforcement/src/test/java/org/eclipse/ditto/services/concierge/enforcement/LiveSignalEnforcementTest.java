@@ -30,6 +30,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -48,8 +49,10 @@ import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessage;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
+import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.EventSendNotAllowedException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureNotModifiableException;
@@ -68,6 +71,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.testkit.TestActorRef;
+import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 @SuppressWarnings({"squid:S3599", "squid:S1171"})
@@ -318,6 +322,33 @@ public final class LiveSignalEnforcementTest {
     }
 
     @Test
+    public void acceptMessageCommandResponseByAcl() {
+        final JsonObject thingWithAcl = newThing()
+                .setPermissions(AclEntry.newInstance(SUBJECT, READ, WRITE, ADMINISTRATE))
+                .build()
+                .toJson(V_1, FieldType.all());
+        final SudoRetrieveThingResponse response =
+                SudoRetrieveThingResponse.of(thingWithAcl, DittoHeaders.empty());
+
+        new TestKit(system) {{
+            mockEntitiesActorInstance.setReply(THING_SUDO, response);
+
+            final TestProbe responseProbe = TestProbe.apply(system);
+
+            final ActorRef underTest = newEnforcerActor(getRef());
+            final MessageCommand msgCommand = thingMessageCommand();
+            mockEntitiesActorInstance.setReply(msgCommand);
+            underTest.tell(msgCommand, responseProbe.ref());
+            final DistributedPubSubMediator.Publish publish = expectMsgClass(DistributedPubSubMediator.Publish.class);
+            assertThat(publish.topic()).isEqualTo(StreamingType.MESSAGES.getDistributedPubSubTopic());
+
+            underTest.tell(thingMessageCommandResponse((MessageCommand) publish.msg()), getRef());
+            responseProbe.expectMsg(thingMessageCommandResponse((MessageCommand) publish.msg()));
+            assertThat(responseProbe.lastSender()).isEqualTo(getRef());
+        }};
+    }
+
+    @Test
     public void acceptFeatureMessageCommandByPolicy() {
         final String policyId = "policy:id";
         final JsonObject thingWithPolicy = newThingWithPolicyId(policyId);
@@ -484,13 +515,18 @@ public final class LiveSignalEnforcementTest {
     }
 
     private static MessageCommand thingMessageCommand() {
-        final Message<?> message = Message.newBuilder(
+        final Message<Object> message = Message.newBuilder(
                 MessageBuilder.newHeadersBuilder(MessageDirection.TO, THING_ID, "my-subject")
                         .contentType("text/plain")
                         .build())
                 .payload("Hello you!")
                 .build();
         return SendThingMessage.of(THING_ID, message, headers(V_2));
+    }
+
+    private static MessageCommandResponse thingMessageCommandResponse(final MessageCommand<?, ?> command) {
+        return SendThingMessageResponse.of(command.getThingId(), command.getMessage(),
+                HttpStatusCode.VARIANT_ALSO_NEGOTIATES, command.getDittoHeaders());
     }
 
     private static MessageCommand featureMessageCommand() {
