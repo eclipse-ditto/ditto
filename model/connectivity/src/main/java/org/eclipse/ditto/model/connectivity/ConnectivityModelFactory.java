@@ -676,4 +676,16 @@ public final class ConnectivityModelFactory {
         return new ImmutableHeaderMapping(mapping);
     }
 
+    /**
+     * Creates a new {@link org.eclipse.ditto.model.connectivity.LogEntry} object from the specified JSON object.
+     *
+     * @param jsonObject a JSON object which provides the data for the LogEntry to be created.
+     * @return a new LogEntry which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
+     */
+    public static LogEntry logEntryFromJson(final JsonObject jsonObject) {
+        return ImmutableLogEntry.fromJson(jsonObject);
+    }
+
 }

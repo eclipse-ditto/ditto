@@ -24,9 +24,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -38,6 +40,11 @@ import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
+import org.eclipse.ditto.model.connectivity.ImmutableLogEntry;
+import org.eclipse.ditto.model.connectivity.LogCategory;
+import org.eclipse.ditto.model.connectivity.LogEntry;
+import org.eclipse.ditto.model.connectivity.LogLevel;
+import org.eclipse.ditto.model.connectivity.LogType;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.Measurement;
 import org.eclipse.ditto.model.connectivity.MetricType;
@@ -206,6 +213,57 @@ public final class TestConstants {
         }
     }
 
+    public static class Logs {
+
+        public static String CORRELATION_ID = UUID.randomUUID().toString();
+        public static Instant TIMESTAMP_1 = Instant.now().minusSeconds(1);
+        public static Instant TIMESTAMP_2 = Instant.now();
+        public static LogCategory CATEGORY = LogCategory.TARGET;
+        public static LogType TYPE_1 = LogType.MAPPED;
+        public static LogType TYPE_2 = LogType.PUBLISHED;
+        public static LogLevel LEVEL = LogLevel.SUCCESS;
+        public static String MESSAGE_1 = "Message was successfully mapped.";
+        public static String MESSAGE_2 = "Message was successfully published.";
+        public static String ADDRESS = "test-topic";
+        public static String THING_ID = "org.eclipse.ditto.connection.logs:loggedThing";
+
+        public static LogEntry ENTRY_1 = ImmutableLogEntry.getBuilder(CORRELATION_ID, TIMESTAMP_1, CATEGORY, TYPE_1, LEVEL, MESSAGE_1, ADDRESS, THING_ID)
+                .build();
+        public static LogEntry ENTRY_2 = ImmutableLogEntry.getBuilder(CORRELATION_ID, TIMESTAMP_2, CATEGORY, TYPE_2, LEVEL, MESSAGE_2, ADDRESS, THING_ID)
+                .build();
+
+        public static List<LogEntry> ENTRIES = Arrays.asList(ENTRY_1, ENTRY_2);
+
+        public static class Json {
+
+            public static final JsonObject ENTRY_1_JSON = JsonFactory.newObjectBuilder()
+                    .set(LogEntry.JsonFields.CORRELATION_ID, CORRELATION_ID)
+                    .set(LogEntry.JsonFields.TIMESTAMP, TIMESTAMP_1.toString())
+                    .set(LogEntry.JsonFields.CATEGORY, CATEGORY.getName())
+                    .set(LogEntry.JsonFields.TYPE, TYPE_1.getType())
+                    .set(LogEntry.JsonFields.MESSAGE, MESSAGE_1)
+                    .set(LogEntry.JsonFields.LEVEL, LEVEL.getLevel())
+                    .set(LogEntry.JsonFields.ADDRESS, ADDRESS)
+                    .set(LogEntry.JsonFields.THING_ID, THING_ID)
+                    .build();
+            public static final JsonObject ENTRY_2_JSON = JsonFactory.newObjectBuilder()
+                    .set(LogEntry.JsonFields.CORRELATION_ID, CORRELATION_ID)
+                    .set(LogEntry.JsonFields.TIMESTAMP, TIMESTAMP_2.toString())
+                    .set(LogEntry.JsonFields.CATEGORY, CATEGORY.getName())
+                    .set(LogEntry.JsonFields.TYPE, TYPE_2.getType())
+                    .set(LogEntry.JsonFields.MESSAGE, MESSAGE_2)
+                    .set(LogEntry.JsonFields.LEVEL, LEVEL.getLevel())
+                    .set(LogEntry.JsonFields.ADDRESS, ADDRESS)
+                    .set(LogEntry.JsonFields.THING_ID, THING_ID)
+                    .build();
+
+            public static final JsonArray ENTRIES_JSON = JsonFactory.newArrayBuilder()
+                    .add(ENTRY_1_JSON, ENTRY_2_JSON)
+                    .build();
+
+        }
+
+    }
 
     private static <K, V> Map.Entry<K, V> entry(K interval, V count) {
         return new AbstractMap.SimpleImmutableEntry<>(interval, count);
