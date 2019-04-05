@@ -61,22 +61,20 @@ final class UnmappedOutboundSignal implements OutboundSignal {
      * Creates a new {@code OutboundSignal} object from the specified JSON object.
      *
      * @param jsonObject a JSON object which provides the data for the OutboundSignal to be created.
-     * @param mappingStrategies the {@link org.eclipse.ditto.services.utils.cluster.MappingStrategies} to use in order to parse the in the JSON included
-     * {@code source} Signal
+     * @param mappingStrategies the {@link org.eclipse.ditto.services.utils.cluster.MappingStrategies} to use in order
+     * to parse the in the JSON included {@code source} Signal.
      * @return a new OutboundSignal which is initialised with the extracted data from {@code jsonObject}.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @throws NullPointerException if {@code mappingStrategies} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
     public static OutboundSignal fromJson(final JsonObject jsonObject, final MappingStrategies mappingStrategies) {
-
         final JsonObject readSourceObj = jsonObject.getValueOrThrow(JsonFields.SOURCE);
         final String commandType = readSourceObj.getValueOrThrow(Command.JsonFields.TYPE);
         final Optional<MappingStrategy> mappingStrategy = mappingStrategies.getMappingStrategyFor(commandType);
 
         if (!mappingStrategy.isPresent()) {
-            final String pattern = "There is no mapping strategy available for the signal of type {0}!";
-            final String message = MessageFormat.format(pattern, commandType);
+            final String msgPattern = "There is no mapping strategy available for the signal of type <{0}>!";
+            final String message = MessageFormat.format(msgPattern, commandType);
             LOGGER.error(message);
             throw new IllegalStateException(message);
         }

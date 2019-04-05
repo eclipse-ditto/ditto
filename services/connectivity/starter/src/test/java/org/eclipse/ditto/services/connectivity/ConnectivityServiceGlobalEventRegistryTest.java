@@ -12,22 +12,19 @@
  */
 package org.eclipse.ditto.services.connectivity;
 
-import java.util.Arrays;
-
 import org.eclipse.ditto.services.utils.test.GlobalEventRegistryTestCases;
 import org.eclipse.ditto.signals.events.batch.BatchExecutionFinished;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionCreated;
 import org.eclipse.ditto.signals.events.policies.ResourceDeleted;
 import org.eclipse.ditto.signals.events.things.FeatureDeleted;
 
-public class ConnectivityServiceGlobalEventRegistryTest extends GlobalEventRegistryTestCases {
+public final class ConnectivityServiceGlobalEventRegistryTest extends GlobalEventRegistryTestCases {
 
     public ConnectivityServiceGlobalEventRegistryTest() {
-        super(Arrays.asList(
-                BatchExecutionFinished.class,
+        super(BatchExecutionFinished.class,
                 ConnectionCreated.class,
                 ResourceDeleted.class,
-                FeatureDeleted.class
-        ));
+                FeatureDeleted.class);
     }
+
 }

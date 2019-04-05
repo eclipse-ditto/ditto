@@ -42,8 +42,8 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  */
 @Immutable
 @JsonParsableCommandResponse(type = RetrievePolicyResponse.TYPE)
-public final class RetrievePolicyResponse extends AbstractCommandResponse<RetrievePolicyResponse> implements
-        PolicyQueryCommandResponse<RetrievePolicyResponse> {
+public final class RetrievePolicyResponse extends AbstractCommandResponse<RetrievePolicyResponse>
+        implements PolicyQueryCommandResponse<RetrievePolicyResponse> {
 
     /**
      * Type of this response.
@@ -124,14 +124,12 @@ public final class RetrievePolicyResponse extends AbstractCommandResponse<Retrie
      * format.
      */
     public static RetrievePolicyResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<RetrievePolicyResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String policyId =
-                            jsonObject.getValueOrThrow(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID);
-                    final JsonObject extractedPolicy = jsonObject.getValueOrThrow(JSON_POLICY);
+        return new CommandResponseJsonDeserializer<RetrievePolicyResponse>(TYPE, jsonObject).deserialize(statusCode -> {
+            final String policyId = jsonObject.getValueOrThrow(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID);
+            final JsonObject extractedPolicy = jsonObject.getValueOrThrow(JSON_POLICY);
 
-                    return of(policyId, extractedPolicy, dittoHeaders);
-                });
+            return of(policyId, extractedPolicy, dittoHeaders);
+        });
     }
 
     @Override
@@ -192,7 +190,9 @@ public final class RetrievePolicyResponse extends AbstractCommandResponse<Retrie
             return false;
         }
         final RetrievePolicyResponse that = (RetrievePolicyResponse) o;
-        return that.canEqual(this) && Objects.equals(policyId, that.policyId) && Objects.equals(policy, that.policy) &&
+        return that.canEqual(this) &&
+                Objects.equals(policyId, that.policyId) &&
+                Objects.equals(policy, that.policy) &&
                 super.equals(o);
     }
 

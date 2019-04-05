@@ -37,8 +37,8 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  */
 @Immutable
 @JsonParsableCommandResponse(type = DeletePolicyResponse.TYPE)
-public final class DeletePolicyResponse extends AbstractCommandResponse<DeletePolicyResponse> implements
-        PolicyModifyCommandResponse<DeletePolicyResponse> {
+public final class DeletePolicyResponse extends AbstractCommandResponse<DeletePolicyResponse>
+        implements PolicyModifyCommandResponse<DeletePolicyResponse> {
 
     /**
      * Type of this response.
@@ -93,7 +93,7 @@ public final class DeletePolicyResponse extends AbstractCommandResponse<DeletePo
      */
     public static DeletePolicyResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<DeletePolicyResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
+                .deserialize(statusCode -> {
                     final String policyId =
                             jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
 

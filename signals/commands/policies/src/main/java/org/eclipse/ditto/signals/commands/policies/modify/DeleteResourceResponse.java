@@ -42,8 +42,8 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  */
 @Immutable
 @JsonParsableCommandResponse(type = DeleteResourceResponse.TYPE)
-public final class DeleteResourceResponse extends AbstractCommandResponse<DeleteResourceResponse> implements
-        PolicyModifyCommandResponse<DeleteResourceResponse> {
+public final class DeleteResourceResponse extends AbstractCommandResponse<DeleteResourceResponse>
+        implements PolicyModifyCommandResponse<DeleteResourceResponse> {
 
     /**
      * Type of this response.
@@ -117,7 +117,7 @@ public final class DeleteResourceResponse extends AbstractCommandResponse<Delete
      */
     public static DeleteResourceResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<DeleteResourceResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
+                .deserialize(statusCode -> {
                     final String policyId =
                             jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
                     final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
@@ -185,8 +185,10 @@ public final class DeleteResourceResponse extends AbstractCommandResponse<Delete
             return false;
         }
         final DeleteResourceResponse that = (DeleteResourceResponse) o;
-        return that.canEqual(this) && Objects.equals(policyId, that.policyId)
-                && Objects.equals(label, that.label) && Objects.equals(resourceKey, that.resourceKey) &&
+        return that.canEqual(this) &&
+                Objects.equals(policyId, that.policyId) &&
+                Objects.equals(label, that.label) &&
+                Objects.equals(resourceKey, that.resourceKey) &&
                 super.equals(o);
     }
 

@@ -42,8 +42,8 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  */
 @Immutable
 @JsonParsableCommandResponse(type = RetrievePolicyEntryResponse.TYPE)
-public final class RetrievePolicyEntryResponse extends AbstractCommandResponse<RetrievePolicyEntryResponse> implements
-        PolicyQueryCommandResponse<RetrievePolicyEntryResponse> {
+public final class RetrievePolicyEntryResponse extends AbstractCommandResponse<RetrievePolicyEntryResponse>
+        implements PolicyQueryCommandResponse<RetrievePolicyEntryResponse> {
 
     /**
      * Type of this response.
@@ -138,7 +138,7 @@ public final class RetrievePolicyEntryResponse extends AbstractCommandResponse<R
             final DittoHeaders dittoHeaders) {
 
         return new CommandResponseJsonDeserializer<RetrievePolicyEntryResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
+                .deserialize(statusCode -> {
                     final String policyId =
                             jsonObject.getValueOrThrow(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID);
                     final String extractedLabel = jsonObject.getValueOrThrow(JSON_LABEL);
@@ -208,9 +208,11 @@ public final class RetrievePolicyEntryResponse extends AbstractCommandResponse<R
             return false;
         }
         final RetrievePolicyEntryResponse that = (RetrievePolicyEntryResponse) o;
-        return that.canEqual(this) && Objects.equals(policyId, that.policyId)
-                && Objects.equals(policyEntryLabel, that.policyEntryLabel)
-                && Objects.equals(policyEntry, that.policyEntry) && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(policyId, that.policyId) &&
+                Objects.equals(policyEntryLabel, that.policyEntryLabel) &&
+                Objects.equals(policyEntry, that.policyEntry) &&
+                super.equals(o);
     }
 
     @Override

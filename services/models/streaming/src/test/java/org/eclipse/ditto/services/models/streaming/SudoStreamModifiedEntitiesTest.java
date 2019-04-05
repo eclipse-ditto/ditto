@@ -82,16 +82,14 @@ public final class SudoStreamModifiedEntitiesTest {
         assertThat(underTest).isEqualTo(expectedCommand);
     }
 
-
     @Test
     public void parseWithRegistry() {
         final SudoStreamModifiedEntities expected =
                 SudoStreamModifiedEntities.fromJson(KNOWN_JSON, EMPTY_DITTO_HEADERS);
 
-        final Jsonifiable parsed =
-                GlobalCommandRegistry.getInstance().parse(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
+        final Jsonifiable parsed = GlobalCommandRegistry.getInstance().parse(KNOWN_JSON, EMPTY_DITTO_HEADERS);
 
-        assertThat(expected).isEqualTo(parsed);
+        assertThat(parsed).isEqualTo(expected);
     }
 
 }

@@ -69,7 +69,6 @@ public final class SudoRetrieveThingsTest {
                 JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build());
     }
 
-    /** */
     @Test
     public void assertImmutability() {
         assertInstancesOf(SudoRetrieveThings.class,
@@ -77,7 +76,6 @@ public final class SudoRetrieveThingsTest {
                 provided(AuthorizationContext.class, JsonFieldSelector.class).isAlsoImmutable());
     }
 
-    /** */
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(SudoRetrieveThings.class)
@@ -85,7 +83,6 @@ public final class SudoRetrieveThingsTest {
                 .verify();
     }
 
-    /** */
     @Test
     public void toJsonReturnsExpected() {
         final SudoRetrieveThings underTest = SudoRetrieveThings.of(getThingIds(), EMPTY_DITTO_HEADERS);
@@ -94,7 +91,6 @@ public final class SudoRetrieveThingsTest {
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
 
-    /** */
     @Test
     public void createInstanceFromValidJson() {
         final SudoRetrieveThings underTest = SudoRetrieveThings.fromJson(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
@@ -104,7 +100,6 @@ public final class SudoRetrieveThingsTest {
         assertThat(underTest.getSelectedFields()).isEqualTo(Optional.empty());
     }
 
-    /** */
     @Test
     public void jsonSerializationWorksAsExpectedWithSelectedFields() {
         final SudoRetrieveThings underTest =
@@ -114,7 +109,6 @@ public final class SudoRetrieveThingsTest {
         assertThat(actualJson).isEqualTo(KNOWN_JSON_WITH_FIELD_SELECTION);
     }
 
-    /** */
     @Test
     public void createInstanceFromValidJsonWithSelectedFields() {
         final SudoRetrieveThings underTest =
@@ -125,14 +119,12 @@ public final class SudoRetrieveThingsTest {
         assertThat(underTest.getSelectedFields()).isEqualTo(Optional.of(getJsonFieldSelector()));
     }
 
-    /** */
     @Test
     public void checkSudoCommandTypeWorks() {
         final SudoRetrieveThings sudoRetrieveThings =
                 SudoRetrieveThings.fromJson(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
 
-        final Command sudoCommand = GlobalCommandRegistry.getInstance()
-                .parse(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
+        final Command sudoCommand = GlobalCommandRegistry.getInstance().parse(KNOWN_JSON, EMPTY_DITTO_HEADERS);
 
         assertThat(sudoRetrieveThings).isEqualTo(sudoCommand);
     }

@@ -20,7 +20,7 @@ import org.eclipse.ditto.signals.base.AbstractJsonParsableRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
 
 public abstract class AbstractEventRegistry<T extends Event> extends AbstractJsonParsableRegistry<T>
-        implements EventRegistry<T>{
+        implements EventRegistry<T> {
 
     protected AbstractEventRegistry(final Map<String, JsonParsable<T>> parseStrategies) {
         super(parseStrategies);
@@ -33,4 +33,5 @@ public abstract class AbstractEventRegistry<T extends Event> extends AbstractJso
                         .fieldName(Event.JsonFields.TYPE.getPointer().toString())
                         .build());
     }
+
 }

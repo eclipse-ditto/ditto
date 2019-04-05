@@ -86,7 +86,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
         this.instance = instance;
 
         pubSubMediator = DistributedPubSub.get(getContext().system()).mediator();
-        serviceMappingStrategy = MappingStrategies.loadMappingStrategy(getContext().getSystem());
+        serviceMappingStrategy = MappingStrategies.loadMappingStrategies(getContext().getSystem());
         getContext().actorOf(
                 PubSubSubscriberActor.props(pubSubMediator, serviceName, instance,
                         RetrieveLoggerConfig.TYPE,

@@ -22,7 +22,7 @@ import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 import org.junit.Before;
 import org.junit.Test;
 
-public class GlobalCommandResponseRegistryTest {
+public final class GlobalCommandResponseRegistryTest {
 
     private GlobalCommandResponseRegistry underTest;
     private DittoHeaders headers;
@@ -40,7 +40,6 @@ public class GlobalCommandResponseRegistryTest {
 
     @Test
     public void globalCommandRegistryParsesTestJsonObject() {
-
         final JsonObject testObject = JsonObject.newBuilder()
                 .set("type", TestCommandResponse.TYPE)
                 .build();
@@ -69,4 +68,5 @@ public class GlobalCommandResponseRegistryTest {
         assertThatExceptionOfType(JsonTypeNotParsableException.class)
                 .isThrownBy(() -> underTest.parse(testObject, headers));
     }
+
 }

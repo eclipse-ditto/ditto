@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.services.policies.starter;
 
-import java.util.Arrays;
-
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.utils.test.GlobalCommandResponseRegistryTestCases;
@@ -27,11 +25,10 @@ import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertyResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
 
-public class PoliciesServiceGlobalCommandResponseRegistryTest extends GlobalCommandResponseRegistryTestCases {
+public final class PoliciesServiceGlobalCommandResponseRegistryTest extends GlobalCommandResponseRegistryTestCases {
 
-    public PoliciesServiceGlobalCommandResponseRegistryTest () {
-        super(Arrays.asList(
-                SudoRetrieveThingResponse.class,
+    public PoliciesServiceGlobalCommandResponseRegistryTest() {
+        super(SudoRetrieveThingResponse.class,
                 SudoRetrievePolicyResponse.class,
                 RetrieveFeatureResponse.class,
                 ModifyFeaturePropertyResponse.class,
@@ -41,7 +38,7 @@ public class PoliciesServiceGlobalCommandResponseRegistryTest extends GlobalComm
                 DeleteSubjectResponse.class,
                 ThingErrorResponse.class,
                 PolicyErrorResponse.class,
-                RetrieveLoggerConfigResponse.class
-        ));
+                RetrieveLoggerConfigResponse.class);
     }
+
 }

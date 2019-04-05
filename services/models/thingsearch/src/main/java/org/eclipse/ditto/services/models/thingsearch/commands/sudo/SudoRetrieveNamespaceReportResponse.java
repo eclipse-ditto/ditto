@@ -37,8 +37,8 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  */
 @Immutable
 @JsonParsableCommandResponse(type = SudoRetrieveNamespaceReportResponse.TYPE)
-public final class SudoRetrieveNamespaceReportResponse extends
-        AbstractCommandResponse<SudoRetrieveNamespaceReportResponse>
+public final class SudoRetrieveNamespaceReportResponse
+        extends AbstractCommandResponse<SudoRetrieveNamespaceReportResponse>
         implements ThingSearchSudoCommandResponse<SudoRetrieveNamespaceReportResponse> {
 
     /**
@@ -50,6 +50,7 @@ public final class SudoRetrieveNamespaceReportResponse extends
 
     private SudoRetrieveNamespaceReportResponse(final SearchNamespaceReportResult namespaceReportResult,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, HttpStatusCode.OK, dittoHeaders);
         this.namespaceReportResult = namespaceReportResult;
     }
@@ -64,13 +65,14 @@ public final class SudoRetrieveNamespaceReportResponse extends
      */
     public static SudoRetrieveNamespaceReportResponse of(final SearchNamespaceReportResult namespaceReportResult,
             final DittoHeaders dittoHeaders) {
+
         checkNotNull(namespaceReportResult, "namespace report result");
 
         return new SudoRetrieveNamespaceReportResponse(namespaceReportResult, dittoHeaders);
     }
 
     /**
-     * Creates a response to a {@link SudoRetrieveNamespaceReportResponse} command from a JSON string.
+     * Creates a response to a {@code SudoRetrieveNamespaceReportResponse} command from a JSON string.
      *
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the command which caused this response.
@@ -85,7 +87,7 @@ public final class SudoRetrieveNamespaceReportResponse extends
     }
 
     /**
-     * Creates a response to a {@link SudoRetrieveNamespaceReportResponse} command from a JSON object.
+     * Creates a response to a {@code SudoRetrieveNamespaceReportResponse} command from a JSON object.
      *
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the command which caused this response.
@@ -96,7 +98,7 @@ public final class SudoRetrieveNamespaceReportResponse extends
     public static SudoRetrieveNamespaceReportResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<SudoRetrieveNamespaceReportResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
+                .deserialize(statusCode -> {
                     final JsonObject namespaceReportJson = jsonObject.getValueOrThrow(JsonFields.PAYLOAD).asObject();
                     final SearchNamespaceReportResult namespaceReportResult =
                             SearchNamespaceReportResult.fromJson(namespaceReportJson);
@@ -117,6 +119,7 @@ public final class SudoRetrieveNamespaceReportResponse extends
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JsonFields.PAYLOAD, namespaceReportResult.toJson(schemaVersion, thePredicate), predicate);
     }
@@ -152,13 +155,14 @@ public final class SudoRetrieveNamespaceReportResponse extends
             return false;
         }
         final SudoRetrieveNamespaceReportResponse that = (SudoRetrieveNamespaceReportResponse) o;
-        return that.canEqual(this) && Objects.equals(namespaceReportResult, that.namespaceReportResult) && super
-                .equals(that);
+        return that.canEqual(this) &&
+                Objects.equals(namespaceReportResult, that.namespaceReportResult) &&
+                super.equals(that);
     }
 
     @Override
     protected boolean canEqual(final Object other) {
-        return (other instanceof SudoRetrieveNamespaceReportResponse);
+        return other instanceof SudoRetrieveNamespaceReportResponse;
     }
 
     @Override

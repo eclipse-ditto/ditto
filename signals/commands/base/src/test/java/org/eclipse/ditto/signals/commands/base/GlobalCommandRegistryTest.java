@@ -14,6 +14,8 @@ package org.eclipse.ditto.signals.commands.base;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
+import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
@@ -22,8 +24,10 @@ import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 import org.junit.Before;
 import org.junit.Test;
 
-
-public class GlobalCommandRegistryTest {
+/**
+ * Unit test for {@link GlobalCommandRegistry}.
+ */
+public final class GlobalCommandRegistryTest {
 
     private GlobalCommandRegistry underTest;
     private DittoHeaders headers;
@@ -35,13 +39,17 @@ public class GlobalCommandRegistryTest {
     }
 
     @Test
+    public void assertImmutability() {
+        assertInstancesOf(GlobalCommandRegistry.class, areImmutable());
+    }
+
+    @Test
     public void globalCommandRegistryKnowsJsonTypeTestCommand() {
         assertThat(underTest.getTypes()).contains(TestCommand.TYPE);
     }
 
     @Test
     public void globalCommandRegistryParsesTestJsonObject() {
-
         final JsonObject testObject = JsonObject.newBuilder()
                 .set("type", TestCommand.TYPE)
                 .build();
@@ -70,4 +78,5 @@ public class GlobalCommandRegistryTest {
         assertThatExceptionOfType(JsonTypeNotParsableException.class)
                 .isThrownBy(() -> underTest.parse(testObject, headers));
     }
+
 }

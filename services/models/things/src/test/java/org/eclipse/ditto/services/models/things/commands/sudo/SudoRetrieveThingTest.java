@@ -46,7 +46,6 @@ public final class SudoRetrieveThingTest {
 
     private static final DittoHeaders EMPTY_DITTO_HEADERS = DittoHeaders.empty();
 
-    /** */
     @Test
     public void assertImmutability() {
         assertInstancesOf(SudoRetrieveThing.class,
@@ -54,7 +53,6 @@ public final class SudoRetrieveThingTest {
                 provided(JsonFieldSelector.class).isAlsoImmutable());
     }
 
-    /** */
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(SudoRetrieveThing.class)
@@ -62,7 +60,6 @@ public final class SudoRetrieveThingTest {
                 .verify();
     }
 
-    /** */
     @Test
     public void toJsonReturnsExpected() {
         final SudoRetrieveThing underTest = SudoRetrieveThing.of(THING_ID, EMPTY_DITTO_HEADERS);
@@ -71,7 +68,6 @@ public final class SudoRetrieveThingTest {
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
 
-    /** */
     @Test
     public void createInstanceFromValidJson() {
         final SudoRetrieveThing underTest = SudoRetrieveThing.fromJson(KNOWN_JSON, EMPTY_DITTO_HEADERS);
@@ -82,19 +78,16 @@ public final class SudoRetrieveThingTest {
         assertThat(underTest.useOriginalSchemaVersion()).isFalse();
     }
 
-    /** */
     @Test
     public void checkSudoCommandRegistryWorks() {
         final SudoRetrieveThing sudoRetrieveThing =
                 SudoRetrieveThing.fromJson(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
 
-        final Command sudoCommand =
-                GlobalCommandRegistry.getInstance().parse(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
+        final Command sudoCommand = GlobalCommandRegistry.getInstance().parse(KNOWN_JSON, EMPTY_DITTO_HEADERS);
 
         assertThat(sudoRetrieveThing).isEqualTo(sudoCommand);
     }
 
-    /** */
     @Test
     public void toJsonWithUsingOriginalSchemaVersionReturnsExpected() {
         final SudoRetrieveThing sudoRetrieveThing =
@@ -105,7 +98,6 @@ public final class SudoRetrieveThingTest {
         assertThat(jsonObject).contains(SudoRetrieveThing.JSON_USE_ORIGINAL_SCHEMA_VERSION, JsonFactory.newValue(true));
     }
 
-    /** */
     @Test
     public void fromJsonWithUseOriginalSchemaVersionTrueReturnsExpected() {
         final JsonObject jsonObject = KNOWN_JSON.toBuilder()

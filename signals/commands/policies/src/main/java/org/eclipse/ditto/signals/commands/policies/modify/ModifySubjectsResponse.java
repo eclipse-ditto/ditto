@@ -41,8 +41,8 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  */
 @Immutable
 @JsonParsableCommandResponse(type = ModifySubjectsResponse.TYPE)
-public final class ModifySubjectsResponse extends AbstractCommandResponse<ModifySubjectsResponse> implements
-        PolicyModifyCommandResponse<ModifySubjectsResponse> {
+public final class ModifySubjectsResponse extends AbstractCommandResponse<ModifySubjectsResponse>
+        implements PolicyModifyCommandResponse<ModifySubjectsResponse> {
 
     /**
      * Type of this response.
@@ -106,14 +106,12 @@ public final class ModifySubjectsResponse extends AbstractCommandResponse<Modify
      * format.
      */
     public static ModifySubjectsResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<ModifySubjectsResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String policyId =
-                            jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
-                    final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
+        return new CommandResponseJsonDeserializer<ModifySubjectsResponse>(TYPE, jsonObject).deserialize(statusCode -> {
+            final String policyId = jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
+            final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
 
-                    return new ModifySubjectsResponse(policyId, label, statusCode, dittoHeaders);
-                });
+            return new ModifySubjectsResponse(policyId, label, statusCode, dittoHeaders);
+        });
     }
 
     @Override
@@ -167,8 +165,10 @@ public final class ModifySubjectsResponse extends AbstractCommandResponse<Modify
             return false;
         }
         final ModifySubjectsResponse that = (ModifySubjectsResponse) o;
-        return that.canEqual(this) && Objects.equals(policyId, that.policyId) && Objects.equals(label, that.label)
-                && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(policyId, that.policyId) &&
+                Objects.equals(label, that.label) &&
+                super.equals(o);
     }
 
     @Override

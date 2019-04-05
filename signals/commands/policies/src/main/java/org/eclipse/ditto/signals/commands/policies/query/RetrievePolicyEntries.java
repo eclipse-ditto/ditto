@@ -35,8 +35,8 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  */
 @Immutable
 @JsonParsableCommand(typePrefix = RetrievePolicyEntries.TYPE_PREFIX, name = RetrievePolicyEntries.NAME)
-public final class RetrievePolicyEntries extends AbstractCommand<RetrievePolicyEntries> implements
-        PolicyQueryCommand<RetrievePolicyEntries> {
+public final class RetrievePolicyEntries extends AbstractCommand<RetrievePolicyEntries>
+        implements PolicyQueryCommand<RetrievePolicyEntries> {
 
     /**
      * Name of the retrieve "Retrieve Policy Entries" command.
@@ -81,9 +81,7 @@ public final class RetrievePolicyEntries extends AbstractCommand<RetrievePolicyE
      * format.
      */
     public static RetrievePolicyEntries fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        final JsonObject jsonObject = JsonFactory.newObject(jsonString);
-
-        return fromJson(jsonObject, dittoHeaders);
+        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
     /**

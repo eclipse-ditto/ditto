@@ -20,12 +20,13 @@ import org.eclipse.ditto.signals.events.batch.BatchEvent;
 import akka.actor.ExtendedActorSystem;
 
 /**
- * EventAdapter for {@link BatchEvent}s persisted into akka-persistence event-journal. Converts Events to MongoDB BSON
- * objects and vice versa.
+ * EventAdapter for {@link BatchEvent}s persisted into akka-persistence event-journal.
+ * Converts Events to MongoDB BSON objects and vice versa.
  */
 public final class MongoBatchEventAdapter extends AbstractMongoEventAdapter<Event> {
 
     public MongoBatchEventAdapter(final ExtendedActorSystem system) {
         super(system, GlobalEventRegistry.getInstance());
     }
+
 }

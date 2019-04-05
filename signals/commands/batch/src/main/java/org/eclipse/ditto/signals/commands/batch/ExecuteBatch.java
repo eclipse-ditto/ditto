@@ -49,8 +49,6 @@ import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 @JsonParsableCommand(typePrefix = ExecuteBatch.TYPE_PREFIX, name = ExecuteBatch.NAME)
 public final class ExecuteBatch extends AbstractCommand<ExecuteBatch> implements BatchCommand<ExecuteBatch> {
 
-    private static final GlobalCommandRegistry GLOBAL_COMMAND_REGISTRY = GlobalCommandRegistry.getInstance();
-
     /**
      * Name of this command.
      */
@@ -140,7 +138,8 @@ public final class ExecuteBatch extends AbstractCommand<ExecuteBatch> implements
                     .map(json -> {
                         final DittoHeaders headers =
                                 DittoHeaders.newBuilder(json.getValueOrThrow(JSON_DITTO_HEADERS)).build();
-                        return GLOBAL_COMMAND_REGISTRY.parse(json.getValueOrThrow(JSON_COMMAND), headers);
+                        final GlobalCommandRegistry globalCommandRegistry = GlobalCommandRegistry.getInstance();
+                        return globalCommandRegistry.parse(json.getValueOrThrow(JSON_COMMAND), headers);
                     })
                     .collect(Collectors.toList());
 

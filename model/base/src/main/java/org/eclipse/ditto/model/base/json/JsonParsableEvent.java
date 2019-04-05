@@ -29,8 +29,18 @@ import org.atteo.classindex.IndexAnnotated;
 @IndexAnnotated
 public @interface JsonParsableEvent {
 
+    /**
+     * Returns the name of the command.
+     *
+     * @return the name.
+     */
     String name();
 
+    /**
+     * Returns the type prefix of the event.
+     *
+     * @return the prefix.
+     */
     String typePrefix();
 
     /**

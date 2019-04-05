@@ -22,7 +22,8 @@ import org.eclipse.ditto.services.utils.cluster.AbstractGlobalMappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 
 /**
- * {@link org.eclipse.ditto.services.utils.cluster.MappingStrategies} for the Thing Search service containing all {@link Jsonifiable} types known to Things Search.
+ * {@link org.eclipse.ditto.services.utils.cluster.MappingStrategies} for the Thing Search service containing all
+ * {@link Jsonifiable} types known to Things Search.
  */
 public final class ThingSearchMappingStrategies extends AbstractGlobalMappingStrategies {
 
@@ -34,12 +35,11 @@ public final class ThingSearchMappingStrategies extends AbstractGlobalMappingStr
     }
 
     private static Map<String, MappingStrategy> getThingSearchMappingStrategies() {
-
         final Map<String, MappingStrategy> combinedStrategy = new HashMap<>();
-
         combinedStrategy.putAll(new PoliciesMappingStrategies().getStrategies());
         combinedStrategy.putAll(new ThingsMappingStrategies().getStrategies());
 
         return combinedStrategy;
     }
+
 }

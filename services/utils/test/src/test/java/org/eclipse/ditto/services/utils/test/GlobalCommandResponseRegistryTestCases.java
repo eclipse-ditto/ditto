@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.utils.test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -37,22 +38,26 @@ public abstract class GlobalCommandResponseRegistryTestCases {
     private final List<Class<?>> samples;
     private List<Class<?>> jsonParsableCommandResponses;
 
+    /**
+     * Creates a new instance of test cases.
+     * The given classes should contain at least one command of each package containing a CommandResponse in the
+     * classpath of the respective service.
+     *
+     * @param sample a class that is annotated with {@link JsonParsableCommandResponse}.
+     * @param furtherSamples further classes that are annotated with {@link JsonParsableCommandResponse}.
+     */
+    protected GlobalCommandResponseRegistryTestCases(final Class<?> sample, final Class<?> ... furtherSamples) {
+        samples = new ArrayList<>(1 + furtherSamples.length);
+        samples.add(sample);
+        Collections.addAll(samples, furtherSamples);
+    }
+
     @Before
     public void setup() {
         jsonParsableCommandResponses =
                 StreamSupport.stream(ClassIndex.getAnnotated(JsonParsableCommandResponse.class).spliterator(), true)
-                        .filter(c -> !c.getSimpleName().equals("TestCommandResponse"))
+                        .filter(c -> !"TestCommandResponse".equals(c.getSimpleName()))
                         .collect(Collectors.toList());
-    }
-
-    /**
-     * Creates a new instance of test cases.
-     *
-     * @param samples a List of classes that are annotated with {@link JsonParsableCommandResponse}. This list should contain
-     * at least one command of each package containing a CommandResponse in the classpath of the respective service.
-     */
-    protected GlobalCommandResponseRegistryTestCases(final List<Class<?>> samples) {
-        this.samples = new ArrayList<>(samples);
     }
 
     /**
@@ -96,7 +101,6 @@ public abstract class GlobalCommandResponseRegistryTestCases {
 
     @Test
     public void allRegisteredCommandResponsesContainAMethodToParseFromJson() throws NoSuchMethodException {
-
         for (final Class<?> jsonParsableCommand : jsonParsableCommandResponses) {
             final JsonParsableCommandResponse annotation =
                     jsonParsableCommand.getAnnotation(JsonParsableCommandResponse.class);
@@ -106,8 +110,10 @@ public abstract class GlobalCommandResponseRegistryTestCases {
 
     private static void assertAnnotationIsValid(final JsonParsableCommandResponse annotation, final Class<?> cls)
             throws NoSuchMethodException {
+
         assertThat(cls.getMethod(annotation.method(), JsonObject.class, DittoHeaders.class))
-                .as("Check that JsonParsableCommandResponse of '%s' has correct methodName.", cls.getName())
+                .as("Check that JsonParsableCommandResponse of '%s' has correct method name.", cls.getName())
                 .isNotNull();
     }
+
 }

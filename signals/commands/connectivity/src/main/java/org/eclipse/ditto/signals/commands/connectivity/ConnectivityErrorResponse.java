@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.signals.commands.connectivity;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -40,8 +40,8 @@ import org.eclipse.ditto.signals.commands.base.ErrorResponse;
  */
 @Immutable
 @JsonParsableCommandResponse(type = ConnectivityErrorResponse.TYPE)
-public final class ConnectivityErrorResponse extends AbstractCommandResponse<ConnectivityErrorResponse> implements
-        ConnectivityCommandResponse<ConnectivityErrorResponse>, ErrorResponse<ConnectivityErrorResponse> {
+public final class ConnectivityErrorResponse extends AbstractCommandResponse<ConnectivityErrorResponse>
+        implements ConnectivityCommandResponse<ConnectivityErrorResponse>, ErrorResponse<ConnectivityErrorResponse> {
 
     /**
      * Type of this response.
@@ -54,8 +54,9 @@ public final class ConnectivityErrorResponse extends AbstractCommandResponse<Con
 
     private ConnectivityErrorResponse(final DittoRuntimeException dittoRuntimeException,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, dittoRuntimeException.getStatusCode(), dittoHeaders);
-        this.dittoRuntimeException = requireNonNull(dittoRuntimeException, "The CR Runtime Exception must not be null");
+        this.dittoRuntimeException = checkNotNull(dittoRuntimeException, "CR Runtime Exception");
     }
 
     /**
@@ -79,6 +80,7 @@ public final class ConnectivityErrorResponse extends AbstractCommandResponse<Con
      */
     public static ConnectivityErrorResponse of(final DittoRuntimeException dittoRuntimeException,
             final DittoHeaders dittoHeaders) {
+
         return new ConnectivityErrorResponse(dittoRuntimeException, dittoHeaders);
     }
 
@@ -136,6 +138,7 @@ public final class ConnectivityErrorResponse extends AbstractCommandResponse<Con
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(
                 ConnectivityCommandResponse.JsonFields.PAYLOAD,
@@ -150,7 +153,7 @@ public final class ConnectivityErrorResponse extends AbstractCommandResponse<Con
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof ConnectivityErrorResponse);
+        return other instanceof ConnectivityErrorResponse;
     }
 
     @Override

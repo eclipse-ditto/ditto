@@ -40,8 +40,8 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  */
 @Immutable
 @JsonParsableCommand(typePrefix = RetrievePolicyEntry.TYPE_PREFIX, name = RetrievePolicyEntry.NAME)
-public final class RetrievePolicyEntry extends AbstractCommand<RetrievePolicyEntry> implements
-        PolicyQueryCommand<RetrievePolicyEntry> {
+public final class RetrievePolicyEntry extends AbstractCommand<RetrievePolicyEntry>
+        implements PolicyQueryCommand<RetrievePolicyEntry> {
 
     /**
      * Name of the retrieve "Retrieve Policy Entry" command.
@@ -92,9 +92,7 @@ public final class RetrievePolicyEntry extends AbstractCommand<RetrievePolicyEnt
      * format.
      */
     public static RetrievePolicyEntry fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        final JsonObject jsonObject = JsonFactory.newObject(jsonString);
-
-        return fromJson(jsonObject, dittoHeaders);
+        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
     /**
@@ -165,8 +163,10 @@ public final class RetrievePolicyEntry extends AbstractCommand<RetrievePolicyEnt
             return false;
         }
         final RetrievePolicyEntry that = (RetrievePolicyEntry) obj;
-        return that.canEqual(this) && Objects.equals(policyId, that.policyId) && Objects.equals(label, that.label)
-                && super.equals(that);
+        return that.canEqual(this) &&
+                Objects.equals(policyId, that.policyId) &&
+                Objects.equals(label, that.label) &&
+                super.equals(that);
     }
 
     @Override

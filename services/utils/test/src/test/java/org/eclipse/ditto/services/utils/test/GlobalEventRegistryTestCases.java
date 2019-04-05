@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.utils.test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -32,31 +33,36 @@ import org.junit.Test;
 import org.mutabilitydetector.internal.javassist.Modifier;
 
 @Immutable
-public class GlobalEventRegistryTestCases {
+public abstract class GlobalEventRegistryTestCases {
 
     private final List<Class<?>> samples;
     private List<Class<?>> jsonParsableEvents;
 
+    /**
+     * Creates a new instance of test cases.
+     * The given events should contain at least one command of each package containing an Event in the classpath of the
+     * respective service.
+     *
+     * @param sample a class that is annotated with {@link JsonParsableEvent}.
+     * @param furtherSamples further classes that are annotated with {@link JsonParsableEvent}.
+     */
+    protected GlobalEventRegistryTestCases(final Class<?> sample, final Class<?> ... furtherSamples) {
+        samples = new ArrayList<>(1 + furtherSamples.length);
+        samples.add(sample);
+        Collections.addAll(samples, furtherSamples);
+    }
+
     @Before
     public void setup() {
         jsonParsableEvents = StreamSupport.stream(ClassIndex.getAnnotated(JsonParsableEvent.class).spliterator(), true)
-                .filter(c -> !c.getSimpleName().equals("TestEvent"))
+                .filter(c -> !"TestEvent".equals(c.getSimpleName()))
                 .collect(Collectors.toList());
     }
 
     /**
-     * Creates a new instance of test cases.
-     *
-     * @param samples a List of classes that are annotated with {@link JsonParsableEvent}. This list should contain
-     * at least one command of each package containing an Event in the classpath of the respective service.
-     */
-    protected GlobalEventRegistryTestCases(final List<Class<?>> samples) {
-        this.samples = new ArrayList<>(samples);
-    }
-
-    /**
-     * This test should verify that all modules containing events that need to be deserialized
-     * in this service are still in the classpath. Therefore one sample of each module is placed in {@code samples}.
+     * This test should verify that all modules containing events that need to be deserialized in this service are
+     * still in the classpath.
+     * Therefore one sample of each module is placed in {@code samples}.
      */
     @Test
     public void sampleCheckForEventFromEachModule() {
@@ -100,8 +106,9 @@ public class GlobalEventRegistryTestCases {
 
     private static void assertAnnotationIsValid(final JsonParsableEvent annotation, final Class<?> cls)
             throws NoSuchMethodException {
+
         assertThat(cls.getMethod(annotation.method(), JsonObject.class, DittoHeaders.class))
-                .as("Check that JsonParsableEvent of '%s' has correct methodName.", cls.getName())
+                .as("Check that JsonParsableEvent of '%s' has correct method name.", cls.getName())
                 .isNotNull();
     }
 
@@ -112,4 +119,5 @@ public class GlobalEventRegistryTestCases {
                     return !(Modifier.isAbstract(m) || Modifier.isInterface(m));
                 }).collect(Collectors.toList());
     }
+
 }

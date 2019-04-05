@@ -74,4 +74,5 @@ public final class TestCommand extends AbstractCommand<TestCommand> {
     public static TestCommand fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new TestCommand(dittoHeaders);
     }
+
 }

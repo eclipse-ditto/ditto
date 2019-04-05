@@ -25,20 +25,19 @@ import org.eclipse.ditto.services.utils.cluster.AbstractGlobalMappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 
 /**
- * {@link org.eclipse.ditto.services.utils.cluster.MappingStrategies} for the Gateway service containing all {@link Jsonifiable} types known to Gateway.
+ * {@link org.eclipse.ditto.services.utils.cluster.MappingStrategies} for the Gateway service containing all
+ * {@link Jsonifiable} types known to Gateway.
  */
 public final class GatewayMappingStrategies extends AbstractGlobalMappingStrategies {
 
-
     /**
-     * Constructs a new {@code GatewayMappingStrategy} object.
+     * Constructs a new {@code GatewayMappingStrategies} object.
      */
     public GatewayMappingStrategies() {
         super(getIndividualStrategies());
     }
 
     private static Map<String, MappingStrategy> getIndividualStrategies() {
-
         final Map<String, MappingStrategy> combinedStrategy = new HashMap<>();
         final ThingsMappingStrategies thingsMappingStrategy = new ThingsMappingStrategies();
         combinedStrategy.putAll(new PoliciesMappingStrategies().getStrategies());
@@ -50,4 +49,5 @@ public final class GatewayMappingStrategies extends AbstractGlobalMappingStrateg
 
         return combinedStrategy;
     }
+
 }

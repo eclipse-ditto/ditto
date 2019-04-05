@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.cluster;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
 import java.util.Objects;
@@ -36,10 +36,9 @@ public final class ShardRegionExtractor implements ShardRegion.MessageExtractor 
     private final int numberOfShards;
     private final MappingStrategies mappingStrategies;
 
-    private ShardRegionExtractor(final int numberOfShards,
-            final MappingStrategies mappingStrategies) {
+    private ShardRegionExtractor(final int numberOfShards, final MappingStrategies mappingStrategies) {
         this.numberOfShards = numberOfShards;
-        this.mappingStrategies = requireNonNull(mappingStrategies, "mapping strategy");
+        this.mappingStrategies = checkNotNull(mappingStrategies, "mapping strategies");
     }
 
     /**
@@ -50,14 +49,13 @@ public final class ShardRegionExtractor implements ShardRegion.MessageExtractor 
      * @param actorSystem the ActorSystem to use for looking up the MappingStrategy.
      */
     public static ShardRegionExtractor of(final int numberOfShards, final ActorSystem actorSystem) {
-
-        final MappingStrategies mappingStrategy = MappingStrategies.loadMappingStrategy(actorSystem);
-        return new ShardRegionExtractor(numberOfShards, mappingStrategy);
+        final MappingStrategies mappingStrategies = MappingStrategies.loadMappingStrategies(actorSystem);
+        return new ShardRegionExtractor(numberOfShards, mappingStrategies);
     }
 
     /**
-     * Returns a new {@code ShardRegionExtractor} with the given {@code numberOfShards} and a specific Map of {@code
-     * mappingStrategies}.
+     * Returns a new {@code ShardRegionExtractor} with the given {@code numberOfShards} and a specific Map of
+     * {@code mappingStrategies}.
      *
      * @param numberOfShards the amount of shards to use.
      * @param mappingStrategy the strategy for parsing incoming messages.
@@ -143,4 +141,5 @@ public final class ShardRegionExtractor implements ShardRegion.MessageExtractor 
         return getClass().getSimpleName() + " [" + "numberOfShards=" + numberOfShards + ", mappingStrategy="
                 + mappingStrategies + "]";
     }
+
 }

@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.starter;
 
-import java.util.Arrays;
-
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoRetrieveNamespaceReportResponse;
@@ -34,11 +32,10 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThingsResponse;
 
-public class GatewayServiceGlobalCommandResponseRegistryTest extends GlobalCommandResponseRegistryTestCases {
+public final class GatewayServiceGlobalCommandResponseRegistryTest extends GlobalCommandResponseRegistryTestCases {
 
-    public GatewayServiceGlobalCommandResponseRegistryTest () {
-        super(Arrays.asList(
-                SudoRetrieveThingResponse.class,
+    public GatewayServiceGlobalCommandResponseRegistryTest() {
+        super(SudoRetrieveThingResponse.class,
                 SudoRetrievePolicyResponse.class,
                 QueryThingsResponse.class,
                 RetrieveConnectionResponse.class,
@@ -55,7 +52,7 @@ public class GatewayServiceGlobalCommandResponseRegistryTest extends GlobalComma
                 PolicyErrorResponse.class,
                 RetrieveLoggerConfigResponse.class,
                 ConnectivityErrorResponse.class,
-                SudoRetrieveNamespaceReportResponse.class
-        ));
+                SudoRetrieveNamespaceReportResponse.class);
     }
+
 }

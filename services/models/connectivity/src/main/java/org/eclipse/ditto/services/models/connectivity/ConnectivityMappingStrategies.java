@@ -54,11 +54,10 @@ public final class ConnectivityMappingStrategies implements MappingStrategies {
         strategies = Collections.unmodifiableMap(getConnectivityMappingStrategies(thingsMappingStrategy));
     }
 
-    private Map<String, MappingStrategy> getConnectivityMappingStrategies(
-            final ThingsMappingStrategies thingsMappingStrategy) {
+    private Map<String, MappingStrategy> getConnectivityMappingStrategies(final MappingStrategies mappingStrategies) {
         final Map<String, MappingStrategy> combinedStrategies = new HashMap<>();
 
-        MappingStrategies strategies = MappingStrategiesBuilder.newInstance()
+        final MappingStrategies strategies = MappingStrategiesBuilder.newInstance()
                 .add(GlobalCommandRegistry.getInstance())
                 .add(GlobalCommandResponseRegistry.getInstance())
                 .add(GlobalEventRegistry.getInstance())
@@ -80,7 +79,7 @@ public final class ConnectivityMappingStrategies implements MappingStrategies {
                 .build();
 
         combinedStrategies.putAll(strategies.getStrategies());
-        combinedStrategies.putAll(thingsMappingStrategy.getStrategies());
+        combinedStrategies.putAll(mappingStrategies.getStrategies());
 
         return combinedStrategies;
     }
@@ -99,4 +98,5 @@ public final class ConnectivityMappingStrategies implements MappingStrategies {
     public Map<String, MappingStrategy> getStrategies() {
         return strategies;
     }
+
 }

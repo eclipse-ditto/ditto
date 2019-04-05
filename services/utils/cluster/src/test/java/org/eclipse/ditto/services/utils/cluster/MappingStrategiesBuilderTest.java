@@ -30,7 +30,7 @@ import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.junit.Test;
 import org.mutabilitydetector.internal.com.google.common.collect.Sets;
 
-public class MappingStrategiesBuilderTest {
+public final class MappingStrategiesBuilderTest {
 
     private static final JsonObject KNOWN_OBJECT = JsonFactory.newObject(MyJsonifiable.INSTANCE.toJsonString());
     private static final Jsonifiable KNOWN_JSONIFIABLE = MyJsonifiable.INSTANCE;
@@ -131,28 +131,29 @@ public class MappingStrategiesBuilderTest {
     private static final class MyJsonifiable implements Jsonifiable {
 
         private static final MyJsonifiable INSTANCE = new MyJsonifiable();
-        private static final JsonValue innerValue =
-                JsonFactory.newObject().setValue("text", "i am json value");
+        private static final JsonValue INNER_VALUE =
+                JsonFactory.newObject().setValue("text", "I am JSON value");
 
         private static MyJsonifiable fromJson(final JsonObject jsonObject) {
-            assertThat(innerValue).isEqualTo(jsonObject);
+            assertThat(INNER_VALUE).isEqualTo(jsonObject);
             return INSTANCE;
         }
 
         private static MyJsonifiable fromJsonWithHeaders(final JsonObject jsonObject, final DittoHeaders headers) {
-            assertThat(innerValue).isEqualTo(jsonObject);
+            assertThat(INNER_VALUE).isEqualTo(jsonObject);
             return INSTANCE;
         }
 
         @Override
         public JsonValue toJson() {
-            return innerValue;
+            return INNER_VALUE;
         }
 
         @Override
         public boolean equals(final Object obj) {
             return super.equals(obj);
         }
+
     }
 
 }

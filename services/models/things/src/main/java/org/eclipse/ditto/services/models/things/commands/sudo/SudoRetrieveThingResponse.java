@@ -42,8 +42,8 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  */
 @Immutable
 @JsonParsableCommandResponse(type = SudoRetrieveThingResponse.TYPE)
-public final class SudoRetrieveThingResponse extends AbstractCommandResponse<SudoRetrieveThingResponse> implements
-        SudoCommandResponse<SudoRetrieveThingResponse> {
+public final class SudoRetrieveThingResponse extends AbstractCommandResponse<SudoRetrieveThingResponse>
+        implements SudoCommandResponse<SudoRetrieveThingResponse> {
 
     /**
      * Name of the response.
@@ -63,6 +63,7 @@ public final class SudoRetrieveThingResponse extends AbstractCommandResponse<Sud
 
     private SudoRetrieveThingResponse(final HttpStatusCode statusCode, final JsonObject thing,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
         this.thing = checkNotNull(thing, "Thing");
     }

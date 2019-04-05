@@ -22,4 +22,5 @@ public final class GlobalMappingStrategies extends AbstractGlobalMappingStrategi
     protected GlobalMappingStrategies() {
         super(Collections.emptyMap());
     }
+
 }

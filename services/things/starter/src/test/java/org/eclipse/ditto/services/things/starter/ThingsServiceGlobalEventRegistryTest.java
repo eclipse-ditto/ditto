@@ -12,16 +12,13 @@
  */
 package org.eclipse.ditto.services.things.starter;
 
-import java.util.Arrays;
-
 import org.eclipse.ditto.services.utils.test.GlobalEventRegistryTestCases;
 import org.eclipse.ditto.signals.events.things.FeatureDeleted;
 
-public class ThingsServiceGlobalEventRegistryTest extends GlobalEventRegistryTestCases {
+public final class ThingsServiceGlobalEventRegistryTest extends GlobalEventRegistryTestCases {
 
     public ThingsServiceGlobalEventRegistryTest() {
-        super(Arrays.asList(
-                FeatureDeleted.class
-        ));
+        super(FeatureDeleted.class);
     }
+
 }

@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.utils.test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -37,13 +38,6 @@ public abstract class GlobalCommandRegistryTestCases {
     private final List<Class<?>> samples;
     private List<Class<?>> jsonParsableCommands;
 
-    @Before
-    public void setup() {
-        jsonParsableCommands = StreamSupport.stream(ClassIndex.getAnnotated(JsonParsableCommand.class).spliterator(), true)
-                .filter(c -> !c.getSimpleName().equals("TestCommand"))
-                .collect(Collectors.toList());
-    }
-
     /**
      * Creates a new instance of test cases.
      *
@@ -55,8 +49,30 @@ public abstract class GlobalCommandRegistryTestCases {
     }
 
     /**
+     * Creates a new instance of test cases.
+     * The given samples should contain at least one command response of each package containing a CommandResponse in
+     * the classpath of the respective service.
+     *
+     * @param sample a class that is annotated with {@link JsonParsableCommand}.
+     * @param furtherSamples further classes that are annotated with {@link JsonParsableCommand}.
+     */
+    protected GlobalCommandRegistryTestCases(final Class<?> sample, final Class<?> ... furtherSamples) {
+        samples = new ArrayList<>(1 + furtherSamples.length);
+        samples.add(sample);
+        Collections.addAll(samples, furtherSamples);
+    }
+
+    @Before
+    public void setup() {
+        jsonParsableCommands = StreamSupport.stream(ClassIndex.getAnnotated(JsonParsableCommand.class).spliterator(), true)
+                .filter(c -> !c.getSimpleName().equals("TestCommand"))
+                .collect(Collectors.toList());
+    }
+
+    /**
      * This test should verify that all modules containing commands that need to be deserialized
-     * in this service are still in the classpath. Therefore one sample of each module is placed in {@code samples}.
+     * in this service are still in the classpath.
+     * Therefore one sample of each module is placed in {@code samples}.
      */
     @Test
     public void sampleCheckForCommandFromEachModule() {
@@ -95,7 +111,6 @@ public abstract class GlobalCommandRegistryTestCases {
 
     @Test
     public void allRegisteredCommandsContainAMethodToParseFromJson() throws NoSuchMethodException {
-
         for (final Class<?> jsonParsableCommand : jsonParsableCommands) {
             final JsonParsableCommand annotation = jsonParsableCommand.getAnnotation(JsonParsableCommand.class);
             assertAnnotationIsValid(annotation, jsonParsableCommand);
@@ -104,8 +119,10 @@ public abstract class GlobalCommandRegistryTestCases {
 
     private static void assertAnnotationIsValid(final JsonParsableCommand annotation, final Class<?> cls)
             throws NoSuchMethodException {
+
         assertThat(cls.getMethod(annotation.method(), JsonObject.class, DittoHeaders.class))
-                .as("Check that JsonParsableCommand of '%s' has correct methodName.", cls.getName())
+                .as("Check that JsonParsableCommand of '%s' has correct method name.", cls.getName())
                 .isNotNull();
     }
+
 }

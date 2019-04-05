@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.signals.commands.batch;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -37,8 +37,8 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  */
 @Immutable
 @JsonParsableCommandResponse(type = ExecuteBatchResponse.TYPE)
-public final class ExecuteBatchResponse extends AbstractCommandResponse<ExecuteBatchResponse> implements
-        BatchCommandResponse<ExecuteBatchResponse> {
+public final class ExecuteBatchResponse extends AbstractCommandResponse<ExecuteBatchResponse>
+        implements BatchCommandResponse<ExecuteBatchResponse> {
 
     /**
      * Type of this response.
@@ -47,10 +47,11 @@ public final class ExecuteBatchResponse extends AbstractCommandResponse<ExecuteB
 
     private final String batchId;
 
-    private ExecuteBatchResponse(final HttpStatusCode statusCode,
-            final String batchId, final DittoHeaders dittoHeaders) {
+    private ExecuteBatchResponse(final HttpStatusCode statusCode, final String batchId,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
-        this.batchId = batchId;
+        this.batchId = checkNotNull(batchId, "batch ID");
     }
 
     /**
@@ -62,8 +63,6 @@ public final class ExecuteBatchResponse extends AbstractCommandResponse<ExecuteB
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static ExecuteBatchResponse of(final String batchId, final DittoHeaders dittoHeaders) {
-        requireNonNull(batchId);
-        requireNonNull(dittoHeaders);
         return new ExecuteBatchResponse(HttpStatusCode.OK, batchId, dittoHeaders);
     }
 
@@ -93,11 +92,10 @@ public final class ExecuteBatchResponse extends AbstractCommandResponse<ExecuteB
      * format.
      */
     public static ExecuteBatchResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<ExecuteBatchResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String batchId = jsonObject.getValueOrThrow(BatchCommandResponse.JsonFields.BATCH_ID);
-                    return of(batchId, dittoHeaders);
-                });
+        return new CommandResponseJsonDeserializer<ExecuteBatchResponse>(TYPE, jsonObject).deserialize(statusCode -> {
+            final String batchId = jsonObject.getValueOrThrow(BatchCommandResponse.JsonFields.BATCH_ID);
+            return of(batchId, dittoHeaders);
+        });
     }
 
     @Override
@@ -118,6 +116,7 @@ public final class ExecuteBatchResponse extends AbstractCommandResponse<ExecuteB
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(BatchCommandResponse.JsonFields.BATCH_ID, batchId, predicate);
     }
@@ -148,4 +147,5 @@ public final class ExecuteBatchResponse extends AbstractCommandResponse<ExecuteB
                 "batchId=" + batchId +
                 "]";
     }
+
 }

@@ -27,9 +27,9 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.signals.base.AbstractJsonParsableRegistry;
+import org.eclipse.ditto.signals.base.DeserializationStrategyNotFoundError;
 import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
-
 
 /**
  * Contains all strategies to deserialize subclasses of {@link Command} from a combination of
@@ -50,9 +50,9 @@ public final class GlobalCommandRegistry extends AbstractJsonParsableRegistry<Co
     }
 
     /**
-     * Gets an instance of {@link GlobalCommandRegistry}.
+     * Gets an instance of GlobalCommandRegistry.
      *
-     * @return the instance of {@link GlobalCommandRegistry}.
+     * @return the instance.
      */
     public static GlobalCommandRegistry getInstance() {
         return INSTANCE;
@@ -78,14 +78,11 @@ public final class GlobalCommandRegistry extends AbstractJsonParsableRegistry<Co
                     final String methodName = fromJsonAnnotation.method();
                     final String typePrefix = fromJsonAnnotation.typePrefix();
                     final String name = fromJsonAnnotation.name();
-                    final Method method = parsableCommand
-                            .getMethod(methodName, JSON_OBJECT_PARAMETER, DITTO_HEADERS_PARAMETER);
+                    final Method method = parsableCommand.getMethod(methodName, JSON_OBJECT_PARAMETER, DITTO_HEADERS_PARAMETER);
 
                     appendMethodToParseStrategies(typePrefix, name, method);
                 } catch (final NoSuchMethodException e) {
-                    final String message = String.format("Could not create deserializing strategy for '%s'.",
-                            parsableCommand.getName());
-                    throw new Error(message, e);
+                    throw new DeserializationStrategyNotFoundError(parsableCommand, e);
                 }
             });
         }
@@ -93,14 +90,15 @@ public final class GlobalCommandRegistry extends AbstractJsonParsableRegistry<Co
         private void appendMethodToParseStrategies(final String typePrefix, final String name, final Method method) {
             final String type = typePrefix + name;
             nameToTypePrefixMap.put(name, typePrefix);
-            parseRegistries.put(type, ((jsonObject, dittoHeaders) -> {
+            parseRegistries.put(type, (jsonObject, dittoHeaders) -> {
                 try {
                     return (Command) method.invoke(null, jsonObject, dittoHeaders);
                 } catch (final IllegalAccessException | InvocationTargetException e) {
                     throw JsonTypeNotParsableException.newBuilder(type, getClass().getSimpleName())
-                            .dittoHeaders(dittoHeaders).build();
+                            .dittoHeaders(dittoHeaders)
+                            .build();
                 }
-            }));
+            });
         }
 
         private Map<String, JsonParsable<Command>> getParseRegistries() {
@@ -110,6 +108,7 @@ public final class GlobalCommandRegistry extends AbstractJsonParsableRegistry<Co
         private Map<String, String> getNameToTypePrefixMap() {
             return new HashMap<>(nameToTypePrefixMap);
         }
+
     }
 
     @Override
@@ -127,4 +126,5 @@ public final class GlobalCommandRegistry extends AbstractJsonParsableRegistry<Co
     private Optional<String> extractTypeV1(final JsonObject jsonObject) {
         return jsonObject.getValue(Command.JsonFields.ID).map(event -> nameToTypePrefixMap.get(event) + event);
     }
+
 }

@@ -27,6 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.signals.base.AbstractJsonParsableRegistry;
+import org.eclipse.ditto.signals.base.DeserializationStrategyNotFoundError;
 import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 
@@ -108,9 +109,7 @@ public final class GlobalEventRegistry extends AbstractJsonParsableRegistry<Even
 
                     appendMethodToParseStrategies(typePrefix, name, method);
                 } catch (final NoSuchMethodException e) {
-                    final String message = String.format("Could not create deserializing strategy for '%s'.",
-                            parsableEvent.getName());
-                    throw new Error(message, e);
+                    throw new DeserializationStrategyNotFoundError(parsableEvent, e);
                 }
             });
         }
@@ -137,5 +136,7 @@ public final class GlobalEventRegistry extends AbstractJsonParsableRegistry<Even
         private Map<String, String> getNameToTypePrefixMap() {
             return new HashMap<>(nameToTypePrefixMap);
         }
+
     }
+
 }

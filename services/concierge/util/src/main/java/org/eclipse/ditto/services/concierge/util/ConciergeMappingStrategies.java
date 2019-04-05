@@ -45,4 +45,5 @@ public final class ConciergeMappingStrategies extends AbstractGlobalMappingStrat
 
         return combinedStrategy;
     }
+
 }

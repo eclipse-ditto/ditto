@@ -27,7 +27,6 @@ public abstract class AbstractGlobalMappingStrategies extends AbstractMappingStr
     }
 
     private static Map<String, MappingStrategy> withGlobalStrategies(final Map<String, MappingStrategy> strategies) {
-
         final Map<String, MappingStrategy> combinedStrategies = new HashMap<>();
 
         final MappingStrategies mappingStrategies = MappingStrategiesBuilder.newInstance()

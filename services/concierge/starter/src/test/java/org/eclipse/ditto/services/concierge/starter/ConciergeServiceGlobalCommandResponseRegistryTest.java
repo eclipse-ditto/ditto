@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.services.concierge.starter;
 
-import java.util.Arrays;
-
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoRetrieveNamespaceReportResponse;
@@ -34,11 +32,10 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThingsResponse;
 
-public class ConciergeServiceGlobalCommandResponseRegistryTest extends GlobalCommandResponseRegistryTestCases {
+public final class ConciergeServiceGlobalCommandResponseRegistryTest extends GlobalCommandResponseRegistryTestCases {
 
-    public ConciergeServiceGlobalCommandResponseRegistryTest () {
-        super(Arrays.asList(
-                SudoRetrieveThingResponse.class,
+    public ConciergeServiceGlobalCommandResponseRegistryTest() {
+        super(SudoRetrieveThingResponse.class,
                 SudoRetrievePolicyResponse.class,
                 QueryThingsResponse.class,
                 RetrieveConnectionResponse.class,
@@ -56,6 +53,7 @@ public class ConciergeServiceGlobalCommandResponseRegistryTest extends GlobalCom
                 RetrieveLoggerConfigResponse.class,
                 ConnectivityErrorResponse.class,
                 SudoRetrieveNamespaceReportResponse.class
-        ));
+        );
     }
+
 }

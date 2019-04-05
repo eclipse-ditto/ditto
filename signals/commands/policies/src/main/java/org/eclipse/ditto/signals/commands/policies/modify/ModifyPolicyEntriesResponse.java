@@ -37,8 +37,8 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  */
 @Immutable
 @JsonParsableCommandResponse(type = ModifyPolicyEntriesResponse.TYPE)
-public final class ModifyPolicyEntriesResponse extends AbstractCommandResponse<ModifyPolicyEntriesResponse> implements
-        PolicyModifyCommandResponse<ModifyPolicyEntriesResponse> {
+public final class ModifyPolicyEntriesResponse extends AbstractCommandResponse<ModifyPolicyEntriesResponse>
+        implements PolicyModifyCommandResponse<ModifyPolicyEntriesResponse> {
 
     /**
      * Type of this response.
@@ -95,7 +95,7 @@ public final class ModifyPolicyEntriesResponse extends AbstractCommandResponse<M
             final DittoHeaders dittoHeaders) {
 
         return new CommandResponseJsonDeserializer<ModifyPolicyEntriesResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
+                .deserialize(statusCode -> {
                     final String policyId =
                             jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
 
@@ -116,6 +116,7 @@ public final class ModifyPolicyEntriesResponse extends AbstractCommandResponse<M
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID, policyId, predicate);
     }

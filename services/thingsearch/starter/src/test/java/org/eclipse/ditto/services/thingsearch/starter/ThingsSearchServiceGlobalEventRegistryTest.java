@@ -12,20 +12,15 @@
  */
 package org.eclipse.ditto.services.thingsearch.starter;
 
-import java.util.Arrays;
-
 import org.eclipse.ditto.services.utils.test.GlobalEventRegistryTestCases;
 import org.eclipse.ditto.signals.events.batch.BatchExecutionFinished;
 import org.eclipse.ditto.signals.events.policies.ResourceDeleted;
 import org.eclipse.ditto.signals.events.things.FeatureDeleted;
 
-public class ThingsSearchServiceGlobalEventRegistryTest extends GlobalEventRegistryTestCases {
+public final class ThingsSearchServiceGlobalEventRegistryTest extends GlobalEventRegistryTestCases {
 
     public ThingsSearchServiceGlobalEventRegistryTest() {
-        super(Arrays.asList(
-                BatchExecutionFinished.class,
-                ResourceDeleted.class,
-                FeatureDeleted.class
-        ));
+        super(BatchExecutionFinished.class, ResourceDeleted.class, FeatureDeleted.class);
     }
+
 }

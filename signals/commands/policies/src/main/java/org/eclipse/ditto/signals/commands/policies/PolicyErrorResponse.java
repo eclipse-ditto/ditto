@@ -39,8 +39,8 @@ import org.eclipse.ditto.signals.commands.base.ErrorResponse;
  */
 @Immutable
 @JsonParsableCommandResponse(type = PolicyErrorResponse.TYPE)
-public final class PolicyErrorResponse extends AbstractCommandResponse<PolicyErrorResponse> implements
-        PolicyCommandResponse<PolicyErrorResponse>, ErrorResponse<PolicyErrorResponse> {
+public final class PolicyErrorResponse extends AbstractCommandResponse<PolicyErrorResponse>
+        implements PolicyCommandResponse<PolicyErrorResponse>, ErrorResponse<PolicyErrorResponse> {
 
     /**
      * Type of this response.

@@ -61,4 +61,5 @@ public final class TestCommandResponse extends  AbstractCommandResponse<TestComm
     public static TestCommandResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new TestCommandResponse(dittoHeaders);
     }
+
 }

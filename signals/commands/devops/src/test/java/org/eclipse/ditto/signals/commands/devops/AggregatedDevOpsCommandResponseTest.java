@@ -13,15 +13,14 @@
 
 package org.eclipse.ditto.signals.commands.devops;
 
+import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Arrays;
 
-import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -30,7 +29,7 @@ import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
-public class AggregatedDevOpsCommandResponseTest {
+public final class AggregatedDevOpsCommandResponseTest {
 
     private static final String RESPONSES_TYPE = DevOpsCommandResponse.TYPE_PREFIX + ":" + ExecutePiggybackCommand.NAME;
     private final GlobalCommandResponseRegistry underTest = GlobalCommandResponseRegistry.getInstance();
@@ -50,7 +49,6 @@ public class AggregatedDevOpsCommandResponseTest {
 
     @Test
     public void testAggregatedPiggybackCommandResponseFromListOfCommandResponsesSerialization() {
-
         final ChangeLogLevelResponse changeLogLevelResponseForThings1 =
                 ChangeLogLevelResponse.of("things", "1", true, DittoHeaders.empty());
         final ChangeLogLevelResponse changeLogLevelResponseForThings2 =
@@ -68,7 +66,8 @@ public class AggregatedDevOpsCommandResponseTest {
 
         final CommandResponse parsedCommandResponse = underTest.parse(responseToJson, DittoHeaders.empty());
 
-        Assertions.assertThat(parsedCommandResponse).isEqualTo(aggregatedDevOpsCommandResponse);
-        DittoJsonAssertions.assertThat(parsedCommandResponse.toJson()).isEqualTo(responseToJson);
+        assertThat(parsedCommandResponse).isEqualTo(aggregatedDevOpsCommandResponse);
+        assertThat(parsedCommandResponse.toJson()).isEqualTo(responseToJson);
     }
+
 }

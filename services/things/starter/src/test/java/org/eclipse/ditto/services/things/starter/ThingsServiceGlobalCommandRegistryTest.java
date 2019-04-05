@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.services.things.starter;
 
-import java.util.Arrays;
-
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.utils.test.GlobalCommandRegistryTestCases;
@@ -26,10 +24,10 @@ import org.eclipse.ditto.signals.commands.policies.query.RetrieveResource;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
 
-public class ThingsServiceGlobalCommandRegistryTest extends GlobalCommandRegistryTestCases {
+public final class ThingsServiceGlobalCommandRegistryTest extends GlobalCommandRegistryTestCases {
+
     public ThingsServiceGlobalCommandRegistryTest() {
-        super(Arrays.asList(
-                SudoStreamModifiedEntities.class,
+        super(SudoStreamModifiedEntities.class,
                 SudoRetrieveThing.class,
                 RetrieveFeature.class,
                 ModifyFeatureProperty.class,
@@ -38,7 +36,7 @@ public class ThingsServiceGlobalCommandRegistryTest extends GlobalCommandRegistr
                 Shutdown.class,
                 PurgeNamespace.class,
                 RetrieveResource.class,
-                DeleteSubject.class
-        ));
+                DeleteSubject.class);
     }
+
 }

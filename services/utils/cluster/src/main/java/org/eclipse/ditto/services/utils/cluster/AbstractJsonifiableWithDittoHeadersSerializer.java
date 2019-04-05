@@ -46,6 +46,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
+import akka.actor.ActorSystem;
 import akka.actor.ExtendedActorSystem;
 import akka.io.BufferPool;
 import akka.io.DirectByteBufferPool;
@@ -91,13 +92,13 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
 
         this.identifier = identifier;
 
-        mappingStrategies = MappingStrategies.loadMappingStrategy(actorSystem);
+        mappingStrategies = MappingStrategies.loadMappingStrategies(actorSystem);
         this.manifestProvider = requireNonNull(manifestProvider, "manifest provider");
 
-        defaultBufferSize = actorSystem.settings().config().withFallback(FALLBACK_CONF)
-                .getBytes(CONFIG_DIRECT_BUFFER_SIZE);
-        final int maxPoolEntries = actorSystem.settings().config().withFallback(FALLBACK_CONF)
-                .getInt(CONFIG_DIRECT_BUFFER_POOL_LIMIT);
+        final ActorSystem.Settings settings = actorSystem.settings();
+        final Config config = settings.config();
+        defaultBufferSize = config.withFallback(FALLBACK_CONF).getBytes(CONFIG_DIRECT_BUFFER_SIZE);
+        final int maxPoolEntries = config.withFallback(FALLBACK_CONF).getInt(CONFIG_DIRECT_BUFFER_POOL_LIMIT);
         byteBufferPool = new DirectByteBufferPool(defaultBufferSize.intValue(), maxPoolEntries);
     }
 

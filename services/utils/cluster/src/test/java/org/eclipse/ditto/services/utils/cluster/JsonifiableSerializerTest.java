@@ -59,7 +59,7 @@ public final class JsonifiableSerializerTest {
     private JsonifiableSerializer underTestForThingCommands;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         final ExtendedActorSystem actorSystem =
                 (ExtendedActorSystem) ExtendedActorSystem.create("test", ConfigFactory.empty()
                         .withValue("ditto.mapping-strategy.implementation",

@@ -28,28 +28,29 @@ import scala.util.Try;
 
 /**
  * Implementations define the mapping strategies for both persistence (JsonifiableSerializer) as well as Cluster
- * Sharding Mapping Strategies. As all {@code Command}s, {@code CommandResponse}s, {@code Event}s and {@code
- * DittoRuntimeException}s are {@link Jsonifiable} and transmitted in the cluster as JSON messages, this is needed in
- * each service which wants to participate in cluster communication.
+ * Sharding Mapping Strategies.
+ * As all {@code Command}s, {@code CommandResponse}s, {@code Event}s and {@code DittoRuntimeException}s are
+ * {@link Jsonifiable} and transmitted in the cluster as JSON messages, this is needed in each service which wants to
+ * participate in cluster communication.
  */
 public interface MappingStrategies {
 
     String CONFIGKEY_DITTO_MAPPING_STRATEGY_IMPLEMENTATION = "ditto.mapping-strategy.implementation";
 
-    Optional<MappingStrategy> getMappingStrategyFor(final String key);
+    Optional<MappingStrategy> getMappingStrategyFor(String key);
 
-    boolean containsMappingStrategyFor(final String key);
+    boolean containsMappingStrategyFor(String key);
 
     Map<String, MappingStrategy> getStrategies();
 
     /**
-     * Loads the {@link MappingStrategies} in the passed ActorSystem this is running in by looking up the config key
+     * Loads the MappingStrategies in the passed ActorSystem this is running in by looking up the config key
      * {@value CONFIGKEY_DITTO_MAPPING_STRATEGY_IMPLEMENTATION}.
      *
      * @param actorSystem the ActorSystem we are running in.
      * @return the resolved MappingStrategy.
      */
-    static MappingStrategies loadMappingStrategy(final ActorSystem actorSystem) {
+    static MappingStrategies loadMappingStrategies(final ActorSystem actorSystem) {
         // load via config the class implementing MappingStrategies:
         final String mappingStrategyClass =
                 actorSystem.settings().config().getString(CONFIGKEY_DITTO_MAPPING_STRATEGY_IMPLEMENTATION);

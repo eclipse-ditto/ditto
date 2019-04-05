@@ -41,8 +41,8 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 @Immutable
 @AllValuesAreNonnullByDefault
 @JsonParsableCommand(typePrefix = SudoRetrieveThing.TYPE_PREFIX, name = SudoRetrieveThing.NAME)
-public final class SudoRetrieveThing extends AbstractCommand<SudoRetrieveThing> implements
-        SudoCommand<SudoRetrieveThing> {
+public final class SudoRetrieveThing extends AbstractCommand<SudoRetrieveThing>
+        implements SudoCommand<SudoRetrieveThing> {
 
     /**
      * Name of the "Sudo Retrieve Thing" command.

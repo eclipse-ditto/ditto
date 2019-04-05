@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.services.concierge.starter;
 
-import java.util.Arrays;
-
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
@@ -32,10 +30,10 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 
-public class ConciergeServiceGlobalCommandRegistryTest extends GlobalCommandRegistryTestCases {
+public final class ConciergeServiceGlobalCommandRegistryTest extends GlobalCommandRegistryTestCases {
+
     public ConciergeServiceGlobalCommandRegistryTest() {
-        super(Arrays.asList(
-                SudoStreamModifiedEntities.class,
+        super(SudoStreamModifiedEntities.class,
                 SudoRetrieveThing.class,
                 SudoRetrievePolicy.class,
                 SudoCountThings.class,
@@ -51,6 +49,7 @@ public class ConciergeServiceGlobalCommandRegistryTest extends GlobalCommandRegi
                 PurgeNamespace.class,
                 RetrieveResource.class,
                 DeleteSubject.class
-        ));
+        );
     }
+
 }

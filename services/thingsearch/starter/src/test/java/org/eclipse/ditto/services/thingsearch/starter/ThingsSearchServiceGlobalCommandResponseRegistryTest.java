@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.services.thingsearch.starter;
 
-import java.util.Arrays;
-
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoRetrieveNamespaceReportResponse;
@@ -31,11 +29,10 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThingsResponse;
 
-public class ThingsSearchServiceGlobalCommandResponseRegistryTest extends GlobalCommandResponseRegistryTestCases {
+public final class ThingsSearchServiceGlobalCommandResponseRegistryTest extends GlobalCommandResponseRegistryTestCases {
 
-    public ThingsSearchServiceGlobalCommandResponseRegistryTest () {
-        super(Arrays.asList(
-                SudoRetrieveThingResponse.class,
+    public ThingsSearchServiceGlobalCommandResponseRegistryTest() {
+        super(SudoRetrieveThingResponse.class,
                 SudoRetrievePolicyResponse.class,
                 QueryThingsResponse.class,
                 ExecuteBatchResponse.class,
@@ -49,7 +46,7 @@ public class ThingsSearchServiceGlobalCommandResponseRegistryTest extends Global
                 ThingErrorResponse.class,
                 PolicyErrorResponse.class,
                 RetrieveLoggerConfigResponse.class,
-                SudoRetrieveNamespaceReportResponse.class
-        ));
+                SudoRetrieveNamespaceReportResponse.class);
     }
+
 }

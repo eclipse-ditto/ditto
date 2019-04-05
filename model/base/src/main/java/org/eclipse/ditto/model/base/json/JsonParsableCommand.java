@@ -29,9 +29,19 @@ import org.atteo.classindex.IndexAnnotated;
 @IndexAnnotated
 public @interface JsonParsableCommand {
 
-    String typePrefix();
-
+    /**
+     * Returns the name of the command.
+     *
+     * @return the name.
+     */
     String name();
+
+    /**
+     * Returns the type prefix of the command.
+     *
+     * @return the prefix.
+     */
+    String typePrefix();
 
     /**
      * The name of the method accepting a {@link org.eclipse.ditto.json.JsonObject} as first argument and
@@ -41,4 +51,5 @@ public @interface JsonParsableCommand {
      * @return the name of this method.
      */
     String method() default "fromJson";
+
 }
