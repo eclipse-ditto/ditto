@@ -54,13 +54,14 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
     private final GatewayAuthenticationDirective gatewayAuthenticationDirective;
 
     public DittoGatewayAuthenticationDirectiveFactory(final Config config, final HttpClientFacade httpClient,
-            final Executor blockingDispatcher) {
+            final Executor authenticationDispatcher) {
 
         checkNotNull(config, "Config");
         checkNotNull(httpClient, "HTTP client");
-        checkNotNull(blockingDispatcher, "blocking dispatcher");
+        checkNotNull(authenticationDispatcher, "authentication dispatcher");
 
-        gatewayAuthenticationDirective = generateGatewayAuthenticationDirective(config, httpClient, blockingDispatcher);
+        gatewayAuthenticationDirective =
+                generateGatewayAuthenticationDirective(config, httpClient, authenticationDispatcher);
     }
 
     @Override
@@ -74,7 +75,7 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
     }
 
     private static GatewayAuthenticationDirective generateGatewayAuthenticationDirective(final Config config,
-            final HttpClientFacade httpClient, final Executor blockingDispatcher) {
+            final HttpClientFacade httpClient, final Executor authenticationDispatcher) {
 
         final boolean dummyAuthEnabled = config.getBoolean(ConfigKeys.AUTHENTICATION_DUMMY_ENABLED);
 
@@ -103,7 +104,7 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
 
         final AuthenticationChain authenticationChain =
                 AuthenticationChain.getInstance(authenticationProviders, authenticationFailureAggregator,
-                        blockingDispatcher);
+                        authenticationDispatcher);
 
         return new GatewayAuthenticationDirective(authenticationChain);
     }

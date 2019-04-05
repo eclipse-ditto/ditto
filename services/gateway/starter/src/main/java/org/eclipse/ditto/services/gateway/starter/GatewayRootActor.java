@@ -82,7 +82,7 @@ final class GatewayRootActor extends AbstractActor {
      */
     static final String ACTOR_NAME = "gatewayRoot";
 
-    private static final String BLOCKING_DISPATCHER_NAME = "blocking-dispatcher";
+    private static final String AUTHENTICATION_DISPATCHER_NAME = "authentication-dispatcher";
 
     private static final String CHILD_RESTART_INFO_MSG = "Restarting child...";
 
@@ -251,9 +251,10 @@ final class GatewayRootActor extends AbstractActor {
 
         final HttpClientFacade httpClient = DefaultHttpClientFacade.getInstance(actorSystem);
         final ClusterStatusSupplier clusterStateSupplier = new ClusterStatusSupplier(Cluster.get(actorSystem));
-        final MessageDispatcher blockingDispatcher = actorSystem.dispatchers().lookup(BLOCKING_DISPATCHER_NAME);
+        final MessageDispatcher authenticationDispatcher = actorSystem.dispatchers().lookup(
+                AUTHENTICATION_DISPATCHER_NAME);
         final DittoGatewayAuthenticationDirectiveFactory authenticationDirectiveFactory =
-                new DittoGatewayAuthenticationDirectiveFactory(config, httpClient, blockingDispatcher);
+                new DittoGatewayAuthenticationDirectiveFactory(config, httpClient, authenticationDispatcher);
         final RouteFactory routeFactory = RouteFactory.newInstance(actorSystem, proxyActor, streamingActor,
                 healthCheckingActor, clusterStateSupplier, authenticationDirectiveFactory);
 

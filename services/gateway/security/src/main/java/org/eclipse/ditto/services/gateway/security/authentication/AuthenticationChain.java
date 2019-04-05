@@ -39,18 +39,19 @@ public final class AuthenticationChain {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticationChain.class);
     private final Collection<AuthenticationProvider> authenticationProviderChain;
-    private final Executor blockingDispatcher;
+    private final Executor authenticationDispatcher;
     private final AuthenticationFailureAggregator authenticationFailureAggregator;
 
     private AuthenticationChain(final Collection<AuthenticationProvider> authenticationProviders,
-            final AuthenticationFailureAggregator authenticationFailureAggregator, final Executor blockingDispatcher) {
+            final AuthenticationFailureAggregator authenticationFailureAggregator,
+            final Executor authenticationDispatcher) {
 
         checkNotNull(authenticationProviders, "authenticationProviders");
         argumentNotEmpty(authenticationProviders, "authenticationProviders");
         authenticationProviderChain = authenticationProviders;
         this.authenticationFailureAggregator =
                 checkNotNull(authenticationFailureAggregator, "authenticationFailureAggregator");
-        this.blockingDispatcher = checkNotNull(blockingDispatcher, "blockingDispatcher");
+        this.authenticationDispatcher = checkNotNull(authenticationDispatcher, "authenticationDispatcher");
     }
 
     /**
@@ -61,15 +62,17 @@ public final class AuthenticationChain {
      * {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException ditto runtime exception } in case multiple
      * {@link AuthenticationProvider authentication providers} in the given collection of authentication providers were
      * applicable to a request and all of them failed.
-     * @param blockingDispatcher dispatcher used for blocking calls.
+     * @param authenticationDispatcher dispatcher used for blocking calls.
      * @return the instance.
      * @throws NullPointerException if argument is {@code null}.
      * @throws IllegalArgumentException if {@code authenticationProviders} is empty.
      */
     public static AuthenticationChain getInstance(final Collection<AuthenticationProvider> authenticationProviders,
-            final AuthenticationFailureAggregator authenticationFailureAggregator, final Executor blockingDispatcher) {
+            final AuthenticationFailureAggregator authenticationFailureAggregator,
+            final Executor authenticationDispatcher) {
 
-        return new AuthenticationChain(authenticationProviders, authenticationFailureAggregator, blockingDispatcher);
+        return new AuthenticationChain(authenticationProviders, authenticationFailureAggregator,
+                authenticationDispatcher);
     }
 
     /**
@@ -84,7 +87,7 @@ public final class AuthenticationChain {
             final CharSequence correlationId) {
 
         return CompletableFuture
-                .runAsync(() -> LogUtil.enhanceLogWithCorrelationId(correlationId), blockingDispatcher)
+                .runAsync(() -> LogUtil.enhanceLogWithCorrelationId(correlationId), authenticationDispatcher)
                 .thenApply(voidValue -> doAuthenticate(requestContext, correlationId));
     }
 
