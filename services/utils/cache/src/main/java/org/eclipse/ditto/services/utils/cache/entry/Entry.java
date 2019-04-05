@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.models.concierge.cache;
+package org.eclipse.ditto.services.utils.cache.entry;
 
 /**
  * Cache entry for authorization.

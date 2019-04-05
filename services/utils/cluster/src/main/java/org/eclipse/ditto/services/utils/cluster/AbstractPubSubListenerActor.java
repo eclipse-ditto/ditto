@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.base.actors;
+package org.eclipse.ditto.services.utils.cluster;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
