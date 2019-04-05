@@ -39,7 +39,7 @@ import org.eclipse.ditto.services.concierge.enforcement.ThingCommandEnforcement;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.PlaceholderSubstitution;
 import org.eclipse.ditto.services.concierge.enforcement.validators.CommandWithOptionalEntityValidator;
 import org.eclipse.ditto.services.concierge.starter.actors.CachedNamespaceInvalidator;
-import org.eclipse.ditto.services.concierge.starter.actors.DispatcherActorCreator;
+import org.eclipse.ditto.services.concierge.starter.actors.DispatcherActor;
 import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.EntityId;
@@ -145,8 +145,8 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
                 ConciergeMessagingConstants.BLOCKED_NAMESPACES_UPDATER_NAME,
                 blockedNamespacesUpdaterProps);
 
-        context.actorOf(DispatcherActorCreator.props(configReader, pubSubMediator, enforcerShardRegion),
-                DispatcherActorCreator.ACTOR_NAME);
+        context.actorOf(DispatcherActor.props(configReader, pubSubMediator, enforcerShardRegion),
+                DispatcherActor.ACTOR_NAME);
 
         return enforcerShardRegion;
     }
