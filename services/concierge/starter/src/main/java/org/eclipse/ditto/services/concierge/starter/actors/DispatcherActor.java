@@ -24,7 +24,7 @@ import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommand;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
-import org.eclipse.ditto.services.utils.akka.controlflow.Pipe;
+import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
@@ -150,7 +150,7 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Di
     }
 
     private static Graph<FanOutShape2<Dispatch, Dispatch, Dispatch>, NotUsed> multiplexBy(final Class<?>... classes) {
-        return Pipe.multiplexBy(dispatch ->
+        return Filter.multiplexBy(dispatch ->
                 Arrays.stream(classes).anyMatch(clazz -> clazz.isInstance(dispatch.getMessage()))
                         ? Optional.of(dispatch)
                         : Optional.empty());

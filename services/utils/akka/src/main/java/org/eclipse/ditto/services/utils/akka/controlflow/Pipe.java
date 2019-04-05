@@ -13,17 +13,12 @@
 package org.eclipse.ditto.services.utils.akka.controlflow;
 
 import java.util.Collection;
-import java.util.Optional;
-import java.util.function.Function;
 
 import akka.NotUsed;
-import akka.japi.Pair;
 import akka.stream.FanOutShape2;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
 import akka.stream.SinkShape;
-import akka.stream.UniformFanOutShape;
-import akka.stream.javadsl.Broadcast;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.GraphDSL;
 
@@ -34,27 +29,6 @@ public final class Pipe {
 
     private Pipe() {
         throw new AssertionError();
-    }
-
-    /**
-     * Join a flow into a sink.
-     *
-     * @param step1 the flow.
-     * @param step2 the sink.
-     * @param <A> type of input.
-     * @param <B> type of intermediate messages.
-     * @return joined sink.
-     */
-    public static <A, B> Graph<SinkShape<A>, NotUsed> joinSink(
-            final Graph<FlowShape<A, B>, NotUsed> step1,
-            final Graph<SinkShape<B>, NotUsed> step2) {
-
-        return GraphDSL.create(builder -> {
-            final FlowShape<A, B> shape1 = builder.add(step1);
-            final SinkShape<B> shape2 = builder.add(step2);
-            builder.from(shape1.out()).to(shape2);
-            return SinkShape.of(shape1.in());
-        });
     }
 
     /**
@@ -140,37 +114,4 @@ public final class Pipe {
         return overallFlow;
     }
 
-    /**
-     * Multiplex messages by an optional mapper.
-     *
-     * @param mapper partial mapper of messages.
-     * @param <A> type of messages.
-     * @return graph with 1 inlet for messages and 2 outlets, the first outlet for messages mapped successfully
-     * and the second outlet for other messages.
-     */
-    public static <A, B> Graph<FanOutShape2<A, B, A>, NotUsed> multiplexBy(final Function<A, Optional<B>> mapper) {
-
-        return GraphDSL.create(builder -> {
-            final FlowShape<A, Pair<A, Optional<B>>> testPredicate =
-                    builder.add(Flow.fromFunction(x -> Pair.create(x, mapper.apply(x))));
-
-            final UniformFanOutShape<Pair<A, Optional<B>>, Pair<A, Optional<B>>> broadcast =
-                    builder.add(Broadcast.create(2));
-
-            final FlowShape<Pair<A, Optional<B>>, B> filterTrue =
-                    builder.add(Flow.<Pair<A, Optional<B>>, Optional<B>>fromFunction(Pair::second)
-                            .filter(Optional::isPresent)
-                            .map(Optional::get));
-
-            final FlowShape<Pair<A, Optional<B>>, A> filterFalse =
-                    builder.add(Flow.<Pair<A, Optional<B>>>create()
-                            .filter(pair -> !pair.second().isPresent())
-                            .map(Pair::first));
-
-            builder.from(testPredicate.out()).toInlet(broadcast.in());
-            builder.from(broadcast.out(0)).toInlet(filterTrue.in());
-            builder.from(broadcast.out(1)).toInlet(filterFalse.in());
-            return new FanOutShape2<>(testPredicate.in(), filterTrue.out(), filterFalse.out());
-        });
-    }
 }

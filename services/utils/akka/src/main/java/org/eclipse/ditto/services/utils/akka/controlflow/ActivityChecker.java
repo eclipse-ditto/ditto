@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.akka.controlflow.components;
+package org.eclipse.ditto.services.utils.akka.controlflow;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -22,7 +22,6 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
 import akka.event.LoggingAdapter;
-import akka.stream.FanInShape2;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
 import akka.stream.SourceShape;
@@ -37,31 +36,12 @@ import scala.util.Right;
 
 /**
  * Terminate a graph actor after a period of inactivity.
+ * Start the activity checker by sending it any message.
  */
 public final class ActivityChecker {
 
     private ActivityChecker() {
         throw new AssertionError();
-    }
-
-    /**
-     * Create an Akka stream graph to terminate an actor after a period of inactivity.
-     *
-     * @param interval how often to check for activity.
-     * @param self reference to the actor.
-     * @param <A> type of messages that prevents actor termination.
-     * @return an activity checker.
-     */
-    public static <A> Graph<FlowShape<A, A>, NotUsed> of(final Duration interval, final ActorRef self) {
-        return GraphDSL.create(builder -> {
-            final SourceShape<Tick> ticker = builder.add(Source.tick(interval, interval, new Tick()));
-            final FanInShape2<A, Tick, A> killer = builder.add(PipeWithIdleRoutine.of((tick, log) -> {
-                log.debug("Terminating actor after <{}> of inactivity: <{}>", interval, self);
-                self.tell(PoisonPill.getInstance(), ActorRef.noSender());
-            }));
-            builder.from(ticker).toInlet(killer.in1());
-            return FlowShape.of(killer.in0(), killer.out());
-        });
     }
 
     /**
@@ -91,20 +71,6 @@ public final class ActivityChecker {
 
             return FlowShape.of(receiver.in(), killer.out());
         });
-    }
-
-    /**
-     * Create an activity checker if duration is not null and a pipe otherwise.
-     *
-     * @param interval how often to check for activity.
-     * @param self reference to the actor.
-     * @param <A> type of messages that prevents actor termination.
-     * @return an activity checker.
-     */
-    public static <A> Graph<FlowShape<A, A>, NotUsed> ofNullable(@Nullable final Duration interval,
-            final ActorRef self) {
-
-        return interval == null ? Flow.create() : of(interval, self);
     }
 
     /**

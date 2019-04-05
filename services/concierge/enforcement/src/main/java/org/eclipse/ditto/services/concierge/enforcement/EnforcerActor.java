@@ -24,7 +24,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.akka.controlflow.Pipe;
-import org.eclipse.ditto.services.utils.akka.controlflow.components.ActivityChecker;
+import org.eclipse.ditto.services.utils.akka.controlflow.ActivityChecker;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;

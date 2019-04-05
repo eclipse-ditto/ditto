@@ -80,7 +80,7 @@ public final class PreEnforcer {
         @SuppressWarnings("unchecked")
         final Graph<FanOutShape2<Contextual<Object>, Contextual<WithDittoHeaders>, Contextual<Object>>, NotUsed>
                 multiplexer =
-                Pipe.multiplexBy(c -> c.getMessage() instanceof WithDittoHeaders
+                Filter.multiplexBy(c -> c.getMessage() instanceof WithDittoHeaders
                         ? Optional.of((Contextual<WithDittoHeaders>) (Object) c)
                         : Optional.empty());
 
@@ -211,7 +211,7 @@ public final class PreEnforcer {
         return t;
     }
 
-    private static GraphStage<SinkShape<WithSender>> unhandled() {
+    private static Graph<SinkShape<WithSender>, NotUsed> unhandled() {
         return Consume.untyped(wrapped ->
                 FALLBACK_LOGGER.warn("Unexpected message <{}> from <{}>", wrapped.getMessage(), wrapped.getSender()));
     }

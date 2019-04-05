@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.concierge.enforcement;
 
 import java.util.Optional;
 
-import org.eclipse.ditto.services.utils.akka.controlflow.Pipe;
+import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.signals.base.Signal;
 
 import akka.NotUsed;
@@ -67,7 +67,7 @@ public interface EnforcementProvider<T extends Signal> {
         final Sink<Contextual<T>, ?> sink = Sink.foreach(contextual -> createEnforcement(contextual).enforceSafely());
 
         final Graph<FanOutShape2<Contextual<Object>, Contextual<T>, Contextual<Object>>, NotUsed> multiplexer =
-                Pipe.multiplexBy(contextual ->
+                Filter.multiplexBy(contextual ->
                         contextual.tryToMapMessage(message -> getCommandClass().isInstance(message)
                                 ? Optional.of(getCommandClass().cast(message)).filter(this::isApplicable)
                                 : Optional.empty()));
