@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.model.things;
 
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FEATURES;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_ID;
@@ -93,16 +94,16 @@ public final class ImmutableThingFromCopyBuilderTest {
         assertThat(thing).isEqualTo(TestConstants.Thing.THING_V2);
     }
 
-    @Test(expected = JsonParseException.class)
+    @Test
     public void builderOfJsonObjectThrowsCorrectExceptionForDateTimeParseException() {
-        underTestV1 =
-                ImmutableThingFromCopyBuilder.of(
+        assertThatExceptionOfType(JsonParseException.class)
+                .isThrownBy(() -> ImmutableThingFromCopyBuilder.of(
                         TestConstants.Thing.THING_V1.toJson(JsonSchemaVersion.V_1, FieldType.regularOrSpecial())
-                        .toBuilder()
-                        .set(Thing.JsonFields.MODIFIED, "10.10.2016 13:37")
-                        .build());
-
-        underTestV1.build();
+                                .toBuilder()
+                                .set(Thing.JsonFields.MODIFIED, "10.10.2016 13:37")
+                                .build()))
+                .withMessage("The JSON object's field <%s> is not in ISO-8601 format as expected!",
+                        Thing.JsonFields.MODIFIED.getPointer());
     }
 
     @Test(expected = NullPointerException.class)

@@ -114,7 +114,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
         try {
             return Instant.parse(dateTime);
         } catch (final DateTimeParseException e) {
-            final String msgPattern ="The JSON object's field <{0>' is not in ISO-8601 format as expected!";
+            final String msgPattern = "The JSON object''s field <{0}> is not in ISO-8601 format as expected!";
             throw JsonParseException.newBuilder()
                     .message(MessageFormat.format(msgPattern, Thing.JsonFields.MODIFIED.getPointer()))
                     .cause(e)

@@ -89,7 +89,7 @@ public final class ImmutableLogEntry implements LogEntry {
         try {
             return Instant.parse(dateTime);
         } catch (final DateTimeParseException e) {
-            final String msgPattern = "The JSON object's field <{0>' is not in ISO-8601 format as expected!";
+            final String msgPattern = "The JSON object''s field <{0}> is not in ISO-8601 format as expected!";
             throw JsonParseException.newBuilder()
                     .message(MessageFormat.format(msgPattern, JsonFields.TIMESTAMP.getPointer()))
                     .cause(e)

@@ -22,6 +22,7 @@ import java.time.Instant;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonParseException;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -156,6 +157,15 @@ public class ImmutableLogEntryTest {
     public void fromJsonReturnsExpected() {
         final LogEntry actual = ImmutableLogEntry.fromJson(LOG_ENTRY_JSON);
         assertThat(actual).isEqualTo(LOG_ENTRY);
+    }
+
+    @Test
+    public void fromJsonWithIllegalDate() {
+        final JsonObject json = LOG_ENTRY_JSON.set(LogEntry.JsonFields.TIMESTAMP, "not-a-date");
+        assertThatExceptionOfType(JsonParseException.class)
+                .isThrownBy(() -> ImmutableLogEntry.fromJson(json))
+                .withMessage("The JSON object's field <%s> is not in ISO-8601 format as expected!",
+                        LogEntry.JsonFields.TIMESTAMP.getPointer());
     }
 
     @Test
