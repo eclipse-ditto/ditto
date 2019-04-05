@@ -14,9 +14,7 @@ package org.eclipse.ditto.services.concierge.enforcement;
 
 import java.util.Optional;
 
-import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.services.utils.akka.controlflow.Pipe;
-import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
 import org.eclipse.ditto.signals.base.Signal;
 
 import akka.NotUsed;
@@ -57,20 +55,7 @@ public interface EnforcementProvider<T extends Signal> {
      * @param context the context.
      * @return the {@link AbstractEnforcement}.
      */
-    AbstractEnforcement<T> createEnforcement(final AbstractEnforcement.Context context);
-
-    /**
-     * Create a processing unit of Akka stream graph. Unhandled messages are passed downstream.
-     *
-     * @param context the enforcement context.
-     * @return a processing unit.
-     */
-    default Graph<FlowShape<WithSender, WithSender>, NotUsed> toGraph(
-            final AbstractEnforcement.Context context) {
-
-        return Pipe.joinFilteredSink(Filter.of(getCommandClass(), this::isApplicable),
-                createEnforcement(context).toGraph());
-    }
+    AbstractEnforcement<T> createEnforcement(final Contextual<T> context);
 
     /**
      * Convert this enforcement provider into a stream of contextual messages.
@@ -79,9 +64,7 @@ public interface EnforcementProvider<T extends Signal> {
      */
     default Graph<FlowShape<Contextual<Object>, Contextual<Object>>, NotUsed> toContextualFlow() {
 
-        final Sink<Contextual<T>, ?> sink = Sink.foreach(contextual ->
-                createEnforcement(AbstractEnforcement.Context.of(contextual))
-                        .enforceSafely(contextual.getMessage(), contextual.getSender(), contextual.getLog()));
+        final Sink<Contextual<T>, ?> sink = Sink.foreach(contextual -> createEnforcement(contextual).enforceSafely());
 
         final Graph<FanOutShape2<Contextual<Object>, Contextual<T>, Contextual<Object>>, NotUsed> multiplexer =
                 Pipe.multiplexBy(contextual ->

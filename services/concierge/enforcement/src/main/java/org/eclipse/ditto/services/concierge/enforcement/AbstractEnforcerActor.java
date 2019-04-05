@@ -12,9 +12,13 @@
  */
 package org.eclipse.ditto.services.concierge.enforcement;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.concurrent.Executor;
 
+import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 
 import akka.NotUsed;
@@ -47,7 +51,7 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
 
         contextual = new Contextual<>(NotUsed.getInstance(), getSelf(), getContext().getSystem().deadLetters(),
                 pubSubMediator, conciergeForwarder, enforcerExecutor, askTimeout, log,
-                AbstractEnforcement.Context.decodeEntityId(getSelf()));
+                decodeEntityId(getSelf()));
     }
 
     @Override
@@ -63,5 +67,15 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     @Override
     protected Source<Contextual<Object>, ?> mapMessage(final Object message) {
         return Source.single(contextual.withReceivedMessage(message, getSender()));
+    }
+
+    private static EntityId decodeEntityId(final ActorRef self) {
+        final String name = self.path().name();
+        try {
+            final String typeWithPath = URLDecoder.decode(name, StandardCharsets.UTF_8.name());
+            return EntityId.readFrom(typeWithPath);
+        } catch (final UnsupportedEncodingException e) {
+            throw new IllegalStateException("Unsupported encoding", e);
+        }
     }
 }

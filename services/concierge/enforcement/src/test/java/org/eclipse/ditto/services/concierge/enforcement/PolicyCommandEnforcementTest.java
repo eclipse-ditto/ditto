@@ -72,7 +72,7 @@ import akka.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link PolicyCommandEnforcement} and {@link PolicyEnforcerCacheLoader} in context of an
- * {@link EnforcerActorCreator}.
+ * {@link EnforcerActor}.
  */
 public class PolicyCommandEnforcementTest {
 
@@ -502,7 +502,7 @@ public class PolicyCommandEnforcementTest {
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
         enforcementProviders.add(enforcementProvider);
 
-        return system.actorOf(EnforcerActorCreator.props(pubSubMediator, enforcementProviders, Duration.ofSeconds(10),
+        return system.actorOf(EnforcerActor.props(pubSubMediator, enforcementProviders, Duration.ofSeconds(10),
                 conciergeForwarder, system.dispatcher()),
                 ENTITY_ID.toString());
     }

@@ -17,8 +17,6 @@ import java.util.Optional;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
 
@@ -28,7 +26,7 @@ import akka.event.DiagnosticLoggingAdapter;
 /**
  * A message together with contextual information about the actor processing it.
  */
-final class Contextual<T> implements WithSender<T> {
+public final class Contextual<T> implements WithSender<T> {
 
     private final T message;
 
@@ -46,13 +44,12 @@ final class Contextual<T> implements WithSender<T> {
 
     private final DiagnosticLoggingAdapter log;
 
-    @Nullable
     private final EntityId entityId;
 
     Contextual(final T message, final ActorRef self, final ActorRef sender,
             final ActorRef pubSubMediator, final ActorRef conciergeForwarder,
             final Executor enforcerExecutor, final Duration askTimeout, final DiagnosticLoggingAdapter log,
-            @Nullable final EntityId entityId) {
+            final EntityId entityId) {
         this.message = message;
         this.self = self;
         this.sender = sender;
@@ -103,8 +100,8 @@ final class Contextual<T> implements WithSender<T> {
         return log;
     }
 
-    Optional<EntityId> getEntityId() {
-        return Optional.ofNullable(entityId);
+    EntityId getEntityId() {
+        return entityId;
     }
 
     <S> Optional<Contextual<S>> tryToMapMessage(final Function<T, Optional<S>> f) {
@@ -125,6 +122,6 @@ final class Contextual<T> implements WithSender<T> {
                 sender.toString(),
                 pubSubMediator.toString(),
                 conciergeForwarder.toString(),
-                getEntityId().map(Object::toString).orElse("null"));
+                entityId.toString());
     }
 }

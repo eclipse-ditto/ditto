@@ -51,7 +51,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 
 import akka.actor.ActorRef;
 import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.event.DiagnosticLoggingAdapter;
 
 /**
  * Enforces live commands (including message commands) and live events.
@@ -64,7 +63,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
 
     private final Cache<String, ActorRef> responseReceivers;
 
-    private LiveSignalEnforcement(final Context context, final Cache<EntityId, Entry<EntityId>> thingIdCache,
+    private LiveSignalEnforcement(final Contextual<Signal> context, final Cache<EntityId, Entry<EntityId>> thingIdCache,
             final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
             final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache) {
 
@@ -115,103 +114,107 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
         }
 
         @Override
-        public AbstractEnforcement<Signal> createEnforcement(final Context context) {
+        public AbstractEnforcement<Signal> createEnforcement(final Contextual context) {
             return new LiveSignalEnforcement(context, thingIdCache, policyEnforcerCache, aclEnforcerCache);
         }
 
     }
 
     @Override
-    public CompletionStage<Void> enforce(final Signal signal, final ActorRef sender,
-            final DiagnosticLoggingAdapter log) {
-        LogUtil.enhanceLogWithCorrelationIdOrRandom(signal);
+    public CompletionStage<Void> enforce() {
+
+        final Signal liveSignal = signal();
+        final ActorRef sender = sender();
+        LogUtil.enhanceLogWithCorrelationIdOrRandom(liveSignal);
         return enforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             if (enforcerEntry.exists()) {
                 final Enforcer enforcer = enforcerEntry.getValue();
 
-                final String correlationId = signal.getDittoHeaders().getCorrelationId().get();
-                if (signal instanceof SendClaimMessage) {
+                final String correlationId = liveSignal.getDittoHeaders().getCorrelationId().get();
+                if (liveSignal instanceof SendClaimMessage) {
                     // claim messages require no enforcement, publish them right away:
-                    publishMessageCommand((SendClaimMessage) signal, enforcer, sender);
-                    if (signal.getDittoHeaders().isResponseRequired()) {
+                    publishMessageCommand((SendClaimMessage) liveSignal, enforcer);
+                    if (liveSignal.getDittoHeaders().isResponseRequired()) {
                         responseReceivers.put(correlationId, sender);
                     }
-                } else if (signal instanceof CommandResponse) {
+                } else if (liveSignal instanceof CommandResponse) {
                     // no enforcement for responses required - the original sender will get the answer:
                     final Optional<ActorRef> responseReceiver = responseReceivers.getBlocking(correlationId);
                     if (responseReceiver.isPresent()) {
-                        responseReceiver.get().tell(signal, sender);
+                        responseReceiver.get().tell(liveSignal, sender);
                         responseReceivers.invalidate(correlationId);
                     } else {
-                        log(signal).warning("No outstanding responses receiver for CommandResponse <{}>",
-                                signal.getType());
+                        log(liveSignal).warning("No outstanding responses receiver for CommandResponse <{}>",
+                                liveSignal.getType());
                     }
-                } else if (signal instanceof Command) {
+                } else if (liveSignal instanceof Command) {
                     // enforce both Live Commands and MessageCommands
-                    if (signal instanceof MessageCommand) {
+                    if (liveSignal instanceof MessageCommand) {
 
-                        final boolean wasPublished = enforceMessageCommand((MessageCommand) signal, enforcer, sender);
-                        if (wasPublished && signal.getDittoHeaders().isResponseRequired()) {
+                        final boolean wasPublished = enforceMessageCommand((MessageCommand) liveSignal, enforcer);
+                        if (wasPublished && liveSignal.getDittoHeaders().isResponseRequired()) {
                             responseReceivers.put(correlationId, sender);
                         }
-                    } else if (signal instanceof ThingCommand) {
+                    } else if (liveSignal instanceof ThingCommand) {
                         // enforce Live Thing Commands
                         final boolean authorized;
                         if (enforcer instanceof AclEnforcer) {
-                            authorized = ThingCommandEnforcement.authorizeByAcl(enforcer, (ThingCommand<?>) signal)
+                            authorized = ThingCommandEnforcement.authorizeByAcl(enforcer, (ThingCommand<?>) liveSignal)
                                     .isPresent();
                         } else {
-                            authorized = ThingCommandEnforcement.authorizeByPolicy(enforcer, (ThingCommand<?>) signal)
-                                    .isPresent();
+                            authorized =
+                                    ThingCommandEnforcement.authorizeByPolicy(enforcer, (ThingCommand<?>) liveSignal)
+                                            .isPresent();
                         }
 
                         if (authorized) {
                             final Command<?> withReadSubjects =
-                                    addReadSubjectsToThingSignal((Command<?>) signal, enforcer);
+                                    addReadSubjectsToThingSignal((Command<?>) liveSignal, enforcer);
                             log(withReadSubjects).info("Live Command was authorized: <{}>", withReadSubjects);
                             publishToMediator(withReadSubjects, StreamingType.LIVE_COMMANDS.getDistributedPubSubTopic(),
                                     sender);
-                            if (signal.getDittoHeaders().isResponseRequired()) {
+                            if (liveSignal.getDittoHeaders().isResponseRequired()) {
                                 responseReceivers.put(correlationId, sender);
                             }
                         } else {
-                            log(signal).info("Live Command was NOT authorized: <{}>", signal);
-                            ThingCommandEnforcement.respondWithError((ThingCommand) signal, sender, self());
+                            log(liveSignal).info("Live Command was NOT authorized: <{}>", liveSignal);
+                            ThingCommandEnforcement.respondWithError((ThingCommand) liveSignal, sender, self());
                         }
                     } else {
-                        log(signal).error("Ignoring unsupported live signal: <{}>", signal);
+                        log(liveSignal).error("Ignoring unsupported live signal: <{}>", liveSignal);
                     }
 
-                } else if (signal instanceof ThingEvent) {
+                } else if (liveSignal instanceof ThingEvent) {
                     // enforce Live Events
                     final boolean authorized = enforcer.hasUnrestrictedPermissions(
                             // only check access to root resource for now
                             PoliciesResourceType.thingResource("/"),
-                            signal.getDittoHeaders().getAuthorizationContext(),
+                            liveSignal.getDittoHeaders().getAuthorizationContext(),
                             WRITE);
                     if (authorized) {
-                        log(signal).info("Live Event was authorized: <{}>", signal);
-                        final Event<?> withReadSubjects = addReadSubjectsToThingSignal((Event<?>) signal, enforcer);
+                        log(liveSignal).info("Live Event was authorized: <{}>", liveSignal);
+                        final Event<?> withReadSubjects = addReadSubjectsToThingSignal((Event<?>) liveSignal, enforcer);
                         publishToMediator(withReadSubjects, StreamingType.LIVE_EVENTS.getDistributedPubSubTopic(),
                                 sender);
                     } else {
                         final EventSendNotAllowedException eventSendNotAllowedException =
-                                EventSendNotAllowedException.newBuilder(((ThingEvent) signal).getThingId())
-                                        .dittoHeaders(signal.getDittoHeaders())
+                                EventSendNotAllowedException.newBuilder(((ThingEvent) liveSignal).getThingId())
+                                        .dittoHeaders(liveSignal.getDittoHeaders())
                                         .build();
-                        log(signal).info("Live Event was NOT authorized: <{}>", signal);
-                        replyToSender(eventSendNotAllowedException, sender);
+                        log(liveSignal).info("Live Event was NOT authorized: <{}>", liveSignal);
+                        replyToSender(eventSendNotAllowedException);
                     }
                 }
             } else {
                 // drop live command to nonexistent things and respond with error.
-                log(signal).info("Command of type <{}> with ID <{}> could not be dispatched as no enforcer could be" +
-                                " looked up! Answering with ThingNotAccessibleException.", signal.getType(),
-                        signal.getId());
+                log(liveSignal).info(
+                        "Command of type <{}> with ID <{}> could not be dispatched as no enforcer could be" +
+                                " looked up! Answering with ThingNotAccessibleException.", liveSignal.getType(),
+                        liveSignal.getId());
                 final ThingNotAccessibleException error = ThingNotAccessibleException.newBuilder(entityId().getId())
-                        .dittoHeaders(signal.getDittoHeaders())
+                        .dittoHeaders(liveSignal.getDittoHeaders())
                         .build();
-                replyToSender(error, sender);
+                replyToSender(error);
             }
         });
     }
@@ -226,18 +229,17 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
         return signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
     }
 
-    private boolean enforceMessageCommand(final MessageCommand command, final Enforcer enforcer,
-            final ActorRef sender) {
+    private boolean enforceMessageCommand(final MessageCommand command, final Enforcer enforcer) {
         if (isAuthorized(command, enforcer)) {
-            publishMessageCommand(command, enforcer, sender);
+            publishMessageCommand(command, enforcer);
             return true;
         } else {
-            rejectMessageCommand(command, sender);
+            rejectMessageCommand(command);
             return false;
         }
     }
 
-    private void publishMessageCommand(final MessageCommand command, final Enforcer enforcer, final ActorRef sender) {
+    private void publishMessageCommand(final MessageCommand command, final Enforcer enforcer) {
 
         final ResourceKey resourceKey =
                 ResourceKey.newInstance(MessageCommand.RESOURCE_TYPE, command.getResourcePath());
@@ -251,14 +253,14 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
 
         final MessageCommand commandWithReadSubjects = command.setDittoHeaders(headersWithReadSubjects);
 
-        publishToMediator(commandWithReadSubjects, commandWithReadSubjects.getTypePrefix(), sender);
+        publishToMediator(commandWithReadSubjects, commandWithReadSubjects.getTypePrefix(), sender());
 
         // answer the sender immediately for fire-and-forget message commands.
         getResponseForFireAndForgetMessage(commandWithReadSubjects)
-                .ifPresent(response -> replyToSender(response, sender));
+                .ifPresent(this::replyToSender);
     }
 
-    private void rejectMessageCommand(final MessageCommand command, final ActorRef sender) {
+    private void rejectMessageCommand(final MessageCommand command) {
         final MessageSendNotAllowedException error =
                 MessageSendNotAllowedException.newBuilder(command.getThingId())
                         .dittoHeaders(command.getDittoHeaders())
@@ -268,7 +270,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
                 "The command <{}> was not forwarded due to insufficient rights {}: {} - AuthorizationSubjects: {}",
                 command.getType(), error.getClass().getSimpleName(), error.getMessage(),
                 command.getDittoHeaders().getAuthorizationSubjects());
-        replyToSender(error, sender);
+        replyToSender(error);
     }
 
     private void publishToMediator(final Signal<?> command, final String pubSubTopic, final ActorRef sender) {
