@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -23,16 +25,7 @@ import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.Prot
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.STOP_SEND_LIVE_EVENTS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.STOP_SEND_MESSAGES;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -54,8 +47,6 @@ import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.ResponsePublished;
-import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
-import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
 import org.eclipse.ditto.services.gateway.streaming.actors.CommandSubscriber;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;

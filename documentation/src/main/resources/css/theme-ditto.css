@@ -136,3 +136,25 @@ li.sidebarTitle {
     background-color: white;
     border-color: #3a8c9a;
 }
+
+.info-container .row .panel .panel-body {
+    height: 12em;
+}
+
+@media (max-width: 1199px) {
+    .info-container .row .panel .panel-body {
+        height: 14em;
+    }
+}
+
+@media (max-width: 990px) {
+    .info-container .row .panel .panel-body {
+        height: 12em;
+    }
+}
+
+@media (max-width: 767px) {
+    .info-container .row .panel .panel-body {
+        height: auto;
+    }
+}

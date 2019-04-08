@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -25,6 +27,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.signals.base.WithFeatureId;
@@ -35,6 +38,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  *
  * @param <T> the type of the message's payload.
  */
+@JsonParsableCommandResponse(type = SendFeatureMessageResponse.TYPE)
 public final class SendFeatureMessageResponse<T> extends AbstractMessageCommandResponse<T, SendFeatureMessageResponse>
         implements WithFeatureId {
 
@@ -172,7 +176,7 @@ public final class SendFeatureMessageResponse<T> extends AbstractMessageCommandR
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof SendFeatureMessageResponse);
+        return other instanceof SendFeatureMessageResponse;
     }
 
     @Override

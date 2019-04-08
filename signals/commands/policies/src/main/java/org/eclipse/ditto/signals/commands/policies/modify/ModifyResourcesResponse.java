@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -27,6 +29,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
@@ -37,8 +40,9 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  * Response to a {@link ModifyResources} command.
  */
 @Immutable
-public final class ModifyResourcesResponse extends AbstractCommandResponse<ModifyResourcesResponse> implements
-        PolicyModifyCommandResponse<ModifyResourcesResponse> {
+@JsonParsableCommandResponse(type = ModifyResourcesResponse.TYPE)
+public final class ModifyResourcesResponse extends AbstractCommandResponse<ModifyResourcesResponse>
+        implements PolicyModifyCommandResponse<ModifyResourcesResponse> {
 
     /**
      * Type of this response.
@@ -103,7 +107,7 @@ public final class ModifyResourcesResponse extends AbstractCommandResponse<Modif
      */
     public static ModifyResourcesResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyResourcesResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
+                .deserialize(statusCode -> {
                     final String policyId =
                             jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
                     final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
@@ -163,8 +167,10 @@ public final class ModifyResourcesResponse extends AbstractCommandResponse<Modif
             return false;
         }
         final ModifyResourcesResponse that = (ModifyResourcesResponse) o;
-        return that.canEqual(this) && Objects.equals(policyId, that.policyId) && Objects.equals(label, that.label)
-                && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(policyId, that.policyId) &&
+                Objects.equals(label, that.label) &&
+                super.equals(o);
     }
 
     @Override

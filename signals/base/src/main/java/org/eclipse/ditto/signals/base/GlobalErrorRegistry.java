@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -35,7 +37,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableException;
 @Immutable
 public final class GlobalErrorRegistry extends AbstractErrorRegistry<DittoRuntimeException> {
 
-    private static final GlobalErrorRegistry instance = new GlobalErrorRegistry();
+    private static final GlobalErrorRegistry INSTANCE = new GlobalErrorRegistry();
 
     private GlobalErrorRegistry() {
         super(getParseRegistries());
@@ -49,21 +51,13 @@ public final class GlobalErrorRegistry extends AbstractErrorRegistry<DittoRuntim
         return parseRegistries;
     }
 
-    @Override
-    protected String resolveType(final JsonObject jsonObject) {
-        return jsonObject.getValue(DittoRuntimeException.JsonFields.ERROR_CODE)
-                .orElseThrow(() -> JsonMissingFieldException.newBuilder()
-                        .fieldName(DittoRuntimeException.JsonFields.ERROR_CODE.getPointer().toString())
-                        .build());
-    }
-
     /**
-     * Gets an instance of {@link GlobalErrorRegistry}.
+     * Gets an instance of GlobalErrorRegistry.
      *
-     * @return the instance of {@link GlobalErrorRegistry}.
+     * @return the instance.
      */
     public static GlobalErrorRegistry getInstance() {
-        return instance;
+        return INSTANCE;
     }
 
 
@@ -71,12 +65,11 @@ public final class GlobalErrorRegistry extends AbstractErrorRegistry<DittoRuntim
      * Contains all strategies to deserialize {@link DittoJsonException} from a combination of
      * {@link JsonObject} and {@link DittoHeaders}.
      */
-    private static class DittoJsonExceptionRegistry {
+    private static final class DittoJsonExceptionRegistry {
 
         private final Map<String, JsonParsable<DittoRuntimeException>> dittoJsonParseRegistries = new HashMap<>();
 
         private DittoJsonExceptionRegistry() {
-
             dittoJsonParseRegistries.put(JsonParseException.ERROR_CODE,
                     (jsonObject, dittoHeaders) -> new DittoJsonException(
                             JsonParseException.newBuilder().message(getMessage(jsonObject)).build(), dittoHeaders));
@@ -113,13 +106,12 @@ public final class GlobalErrorRegistry extends AbstractErrorRegistry<DittoRuntim
      * Contains all strategies to deserialize {@link DittoRuntimeException} annotated with {@link JsonParsableException}
      * from a combination of {@link JsonObject} and {@link DittoHeaders}.
      */
-    private static class JsonParsableExceptionRegistry {
+    private static final class JsonParsableExceptionRegistry {
 
         private static final Class<?> JSON_OBJECT_PARAMETER = JsonObject.class;
         private static final Class<?> DITTO_HEADERS_PARAMETER = DittoHeaders.class;
 
         private final Map<String, JsonParsable<DittoRuntimeException>> parseRegistries = new HashMap<>();
-
 
         private JsonParsableExceptionRegistry() {
 
@@ -134,31 +126,28 @@ public final class GlobalErrorRegistry extends AbstractErrorRegistry<DittoRuntim
                             .getMethod(methodName, JSON_OBJECT_PARAMETER, DITTO_HEADERS_PARAMETER);
 
                     appendMethodToParseStrategies(errorCode, method);
-
-                } catch (NoSuchMethodException e) {
-                    final String message = String.format("Could not create deserializing strategy for '%s'.",
-                            parsableException.getName());
-
-                    throw new Error(message, e);
+                } catch (final NoSuchMethodException e) {
+                    throw new DeserializationStrategyNotFoundError(parsableException, e);
                 }
             });
         }
 
         private void appendMethodToParseStrategies(final String errorCode, final Method method) {
-            parseRegistries.put(errorCode,
-                    (jsonObject, dittoHeaders) -> {
-                        try {
-                            return (DittoRuntimeException) method.invoke(null, jsonObject, dittoHeaders);
-                        } catch (IllegalAccessException | InvocationTargetException e) {
-                            throw JsonTypeNotParsableException.newBuilder(errorCode, getClass().getSimpleName())
-                                    .dittoHeaders(dittoHeaders)
-                                    .build();
-                        }
-                    });
+            parseRegistries.put(errorCode, (jsonObject, dittoHeaders) -> {
+                try {
+                    return (DittoRuntimeException) method.invoke(null, jsonObject, dittoHeaders);
+                } catch (final IllegalAccessException | InvocationTargetException e) {
+                    throw JsonTypeNotParsableException.newBuilder(errorCode, getClass().getSimpleName())
+                            .dittoHeaders(dittoHeaders)
+                            .build();
+                }
+            });
         }
 
         private Map<String, JsonParsable<DittoRuntimeException>> getParseRegistries() {
             return new HashMap<>(parseRegistries);
         }
+
     }
+
 }

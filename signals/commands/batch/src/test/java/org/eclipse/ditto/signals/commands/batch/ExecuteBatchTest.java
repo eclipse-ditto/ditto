@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -27,7 +29,6 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.things.ThingCommandRegistry;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.junit.Test;
 
@@ -126,8 +127,7 @@ public final class ExecuteBatchTest {
 
     @Test
     public void createInstanceFromValidJson() {
-        final ExecuteBatch underTest = ExecuteBatch.fromJson(KNOWN_JSON.toString(), DittoHeaders.empty(),
-                ThingCommandRegistry.newInstance());
+        final ExecuteBatch underTest = ExecuteBatch.fromJson(KNOWN_JSON.toString(), DittoHeaders.empty());
 
         assertThat(underTest).isNotNull();
         assertThat(underTest.getBatchId()).isEqualTo(KNOWN_BATCH_ID);
@@ -137,8 +137,7 @@ public final class ExecuteBatchTest {
     @Test
     public void retrieveCommandName() {
         final String name =
-                ExecuteBatch.fromJson(KNOWN_JSON.toString(), DittoHeaders.empty(),
-                        ThingCommandRegistry.newInstance()).getName();
+                ExecuteBatch.fromJson(KNOWN_JSON.toString(), DittoHeaders.empty()).getName();
         assertThat(name).isEqualTo(ExecuteBatch.NAME);
     }
 

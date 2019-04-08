@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -30,6 +32,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Permissions;
@@ -41,6 +44,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  * Response to a {@link ModifyAclEntry} command.
  */
 @Immutable
+@JsonParsableCommandResponse(type = ModifyAclEntryResponse.TYPE)
 public final class ModifyAclEntryResponse extends AbstractCommandResponse<ModifyAclEntryResponse> implements
         ThingModifyCommandResponse<ModifyAclEntryResponse> {
 

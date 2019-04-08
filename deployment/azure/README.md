@@ -44,19 +44,50 @@ aks_cluster_name+="dittoaks"
 az aks get-credentials --resource-group $resourcegroup_name --name $aks_cluster_name
 ```
 
-Next deploy helm on your cluster as described [here](https://docs.microsoft.com/en-us/azure/aks/kubernetes-helm). It will take a moment until tiller is botted up. So maybe time again to get up and stretch a bit.
+Next deploy helm on your cluster. It will take a moment until tiller is booted up. So maybe time again to get up and stretch a bit.
 
 ```bash
 kubectl apply -f helm-rbac.yaml
 helm init --service-account tiller
 ```
 
-Now install Ditto with helm:
+(Optional): in case you want to use MongoDB with persistent storage as part of your setup we will need a k8s `StorageClass` with `Retain` policy.
+
+```bash
+kubectl apply -f managed-premium-retain.yaml
+```
+
+Now install Ditto with helm
 
 ```bash
 k8s_namespace=dittons
 
 kubectl create namespace $k8s_namespace
+```
+
+...and download charts Ditto depends on:
+
+```bash
+helm dependency update ../helm/eclipse-ditto/
+```
+
+...either with persistent storage as part of the helm release (will be deleted with helm delete):
+
+```bash
+helm upgrade ditto ../helm/eclipse-ditto/ --namespace $k8s_namespace --set service.type=LoadBalancer,mongodb.persistence.enabled=true,mongodb.persistence.storageClass=managed-premium-retain --wait --install
+```
+
+...or with a custom K8s [PersistentVolumeClaim](https://kubernetes.io/docs/concepts/storage/persistent-volumes/) independent of the Helm release to ensure the data survives a helm delete:
+
+```bash
+echo "  storageClassName: managed-premium-retain" >> ../helm/ditto-mongodb-pvc.yaml
+kubectl apply -f ../helm/ditto-mongodb-pvc.yaml --namespace $k8s_namespace
+helm upgrade ditto ../helm/eclipse-ditto/ --namespace $k8s_namespace --set service.type=LoadBalancer,mongodb.persistence.enabled=true,mongodb.persistence.existingClaim=ditto-mongodb-pvc --wait --install
+```
+
+...or without persistence for the MongoDB at all:
+
+```bash
 helm upgrade ditto ../helm/eclipse-ditto/ --namespace $k8s_namespace --set service.type=LoadBalancer --wait --install
 ```
 

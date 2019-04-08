@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -42,7 +44,7 @@ public final class MappingStrategiesBuilder {
      * Failure message when json deserialization function is null.
      */
     private static final String ERROR_MESSAGE_JSON_DESERIALIZATION_FUNCTION = "JSON deserialization function";
-    private final Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> strategies;
+    private final Map<String, MappingStrategy> strategies;
 
     private MappingStrategiesBuilder() {
         strategies = new HashMap<>();
@@ -163,7 +165,7 @@ public final class MappingStrategiesBuilder {
      * @return the Map.
      */
     @Nonnull
-    public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> build() {
-        return strategies;
+    public MappingStrategies build() {
+        return DefaultMappingStrategies.of(strategies);
     }
 }

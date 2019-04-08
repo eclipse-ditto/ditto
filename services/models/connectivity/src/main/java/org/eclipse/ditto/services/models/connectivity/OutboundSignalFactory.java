@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -14,7 +16,7 @@ import java.util.List;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
+import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.signals.base.Signal;
 
 /**
@@ -38,8 +40,8 @@ public final class OutboundSignalFactory {
     }
 
     /**
-     * Creates a OutboundSignal wrapping an existing {@code outboundSignal} which also is aware of the {@link
-     * ExternalMessage} that was mapped from the outbound signal.
+     * Creates a OutboundSignal wrapping an existing {@code outboundSignal} which also is aware of the
+     * {@link ExternalMessage} that was mapped from the outbound signal.
      *
      * @param outboundSignal the OutboundSignal to wrap.
      * @param externalMessage the mapped ExternalMessage.
@@ -47,6 +49,7 @@ public final class OutboundSignalFactory {
      */
     public static OutboundSignal.WithExternalMessage newMappedOutboundSignal(final OutboundSignal outboundSignal,
             final ExternalMessage externalMessage) {
+
         return new MappedOutboundSignal(outboundSignal, externalMessage);
     }
 
@@ -54,15 +57,16 @@ public final class OutboundSignalFactory {
      * Returns an immutable {@link OutboundSignal} based on the given JSON object.
      *
      * @param jsonObject a JSON object which provides the data for the OutboundSignal to be created.
-     * @param mappingStrategy the {@link MappingStrategy} to use in order to parse the in the JSON included
-     * {@code source} Signal
+     * @param mappingStrategy the {@link org.eclipse.ditto.services.utils.cluster.MappingStrategies} to use in order to
+     * parse the in the JSON included {@code source} Signal.
      * @return a new OutboundSignal which is initialised with the extracted data from {@code jsonObject}.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @throws NullPointerException if {@code mappingStrategy} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
     public static OutboundSignal outboundSignalFromJson(final JsonObject jsonObject,
-            final MappingStrategy mappingStrategy) {
+            final MappingStrategies mappingStrategy) {
+
         return UnmappedOutboundSignal.fromJson(jsonObject, mappingStrategy);
     }
+
 }

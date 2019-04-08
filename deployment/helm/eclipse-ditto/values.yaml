@@ -20,59 +20,67 @@ concierge:
   image:
     repository: docker.io/eclipse/ditto-concierge
     imagePullPolicy: IfNotPresent
-    tag: 0.8.0
+    tag: 0.9.0-M1
 connectivity:
   name: connectivity
   image:
     repository: docker.io/eclipse/ditto-connectivity
     imagePullPolicy: IfNotPresent
-    tag: 0.8.0
+    tag: 0.9.0-M1
 things:
   name: things
   image:
     repository: docker.io/eclipse/ditto-things
     imagePullPolicy: IfNotPresent
-    tag: 0.8.0
+    tag: 0.9.0-M1
 search:
   name: things-search
   image:
     repository: docker.io/eclipse/ditto-things-search
     imagePullPolicy: IfNotPresent
-    tag: 0.8.0
+    tag: 0.9.0-M1
 policies:
   name: policies
   image:
     repository: docker.io/eclipse/ditto-policies
     imagePullPolicy: IfNotPresent
-    tag: 0.8.0
+    tag: 0.9.0-M1
 gateway:
   name: gateway
   image:
     repository: docker.io/eclipse/ditto-gateway
     imagePullPolicy: IfNotPresent
-    tag: 0.8.0
+    tag: 0.9.0-M1
 
 nginx:
   version: 1.15
 
+##
+## MongoDB chart configuration
+##
 mongodb:
-  # Deployed as part of chart.
+## Disable in case an external MongoDB is used
   embedded:
-    version: 3.6
     enabled: true
+## https://github.com/helm/charts/blob/master/stable/mongodb/values.yaml
+  usePassword: false
+  image:
+    tag: 3.6
+  persistence:
+    enabled: false
   apps:
     concierge:
-      uri: mongodb://mongodb:27017/concierge
+      uri: mongodb://ditto-mongodb:27017/concierge
       ssl: "false"
     connectivity:
-      uri: mongodb://mongodb:27017/connectivity
+      uri: mongodb://ditto-mongodb:27017/connectivity
       ssl: "false"
     things:
-      uri: mongodb://mongodb:27017/things
+      uri: mongodb://ditto-mongodb:27017/things
       ssl: "false"
     searchDB:
-      uri: mongodb://mongodb:27017/searchDB
+      uri: mongodb://ditto-mongodb:27017/searchDB
       ssl: "false"
     policies:
-      uri: mongodb://mongodb:27017/policies
+      uri: mongodb://ditto-mongodb:27017/policies
       ssl: "false"

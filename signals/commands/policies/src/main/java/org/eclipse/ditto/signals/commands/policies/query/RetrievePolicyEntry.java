@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -26,6 +28,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PolicyIdValidator;
@@ -36,8 +39,9 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * Command which retrieves the Policy entry of a {@code Policy} based on the passed in Policy ID and Label.
  */
 @Immutable
-public final class RetrievePolicyEntry extends AbstractCommand<RetrievePolicyEntry> implements
-        PolicyQueryCommand<RetrievePolicyEntry> {
+@JsonParsableCommand(typePrefix = RetrievePolicyEntry.TYPE_PREFIX, name = RetrievePolicyEntry.NAME)
+public final class RetrievePolicyEntry extends AbstractCommand<RetrievePolicyEntry>
+        implements PolicyQueryCommand<RetrievePolicyEntry> {
 
     /**
      * Name of the retrieve "Retrieve Policy Entry" command.
@@ -88,9 +92,7 @@ public final class RetrievePolicyEntry extends AbstractCommand<RetrievePolicyEnt
      * format.
      */
     public static RetrievePolicyEntry fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        final JsonObject jsonObject = JsonFactory.newObject(jsonString);
-
-        return fromJson(jsonObject, dittoHeaders);
+        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
     /**
@@ -161,8 +163,10 @@ public final class RetrievePolicyEntry extends AbstractCommand<RetrievePolicyEnt
             return false;
         }
         final RetrievePolicyEntry that = (RetrievePolicyEntry) obj;
-        return that.canEqual(this) && Objects.equals(policyId, that.policyId) && Objects.equals(label, that.label)
-                && super.equals(that);
+        return that.canEqual(this) &&
+                Objects.equals(policyId, that.policyId) &&
+                Objects.equals(label, that.label) &&
+                super.equals(that);
     }
 
     @Override
