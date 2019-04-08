@@ -13,6 +13,7 @@
 package org.eclipse.ditto.model.query;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.eclipse.ditto.model.query.criteria.Criteria;
 
@@ -40,5 +41,10 @@ public interface Query {
      * @return the number of results which are discarded from the beginning of this query.
      */
     int getSkip();
+
+    /**
+     * @return cursor for range-based paging if it exists.
+     */
+    Optional<String> getCursor();
 
 }

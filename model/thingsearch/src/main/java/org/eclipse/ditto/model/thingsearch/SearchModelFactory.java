@@ -18,6 +18,7 @@ import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJso
 import java.util.Collections;
 import java.util.List;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -51,7 +52,21 @@ public final class SearchModelFactory {
      * @throws NullPointerException if {@code items} is {@code null}.
      */
     public static SearchResult newSearchResult(final JsonArray items, final long nextPageOffset) {
-        return ImmutableSearchResult.of(items, nextPageOffset);
+        return ImmutableSearchResult.of(items, nextPageOffset, null);
+    }
+
+    /**
+     * Creates a new {@link SearchResult}.
+     *
+     * @param items the items.
+     * @param nextPageOffset the offset of the next page or {@code null}.
+     * @param cursor cursor of the next page or {@code null}.
+     * @return the new immutable search results object.
+     * @throws NullPointerException if {@code items} is {@code null}.
+     */
+    public static SearchResult newSearchResult(final JsonArray items, @Nullable final Long nextPageOffset,
+            @Nullable final String cursor) {
+        return ImmutableSearchResult.of(items, nextPageOffset, cursor);
     }
 
     /**

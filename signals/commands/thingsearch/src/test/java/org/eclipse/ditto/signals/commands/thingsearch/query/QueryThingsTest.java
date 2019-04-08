@@ -39,28 +39,30 @@ public final class QueryThingsTest {
 
     private static final String JSON_ALL_FIELDS_V2 = JsonFactory.newObjectBuilder()
             .set(ThingSearchCommand.JsonFields.TYPE, QueryThings.TYPE)
-            .set(QueryThings.JSON_FILTER, TestConstants.Search.KNOWN_FILTER_STR)
+            .set(QueryThings.JSON_FILTER, TestConstants.KNOWN_FILTER_STR)
             .set(QueryThings.JSON_OPTIONS, JsonFactory.newArrayBuilder()
-                    .add(TestConstants.Search.KNOWN_OPT_1)
-                    .add(TestConstants.Search.KNOWN_OPT_2)
+                    .add(TestConstants.KNOWN_OPT_1)
+                    .add(TestConstants.KNOWN_OPT_2)
                     .build())
             .set(QueryThings.JSON_FIELDS, KNOWN_FIELDS)
-            .set(CountThings.JSON_NAMESPACES, JsonFactory.newArrayBuilder()
-                    .add(TestConstants.Search.KNOWN_NAMESPACE)
+            .set(QueryThings.JSON_NAMESPACES, JsonFactory.newArrayBuilder()
+                    .add(TestConstants.KNOWN_NAMESPACE)
                     .build())
+            .set(QueryThings.JSON_CURSOR, TestConstants.CURSOR)
             .build().toString();
 
     private static final String JSON_ALL_FIELDS_V1 = JsonFactory.newObjectBuilder()
             .set(ThingSearchCommand.JsonFields.ID, QueryThings.NAME)
-            .set(QueryThings.JSON_FILTER, TestConstants.Search.KNOWN_FILTER_STR)
+            .set(QueryThings.JSON_FILTER, TestConstants.KNOWN_FILTER_STR)
             .set(QueryThings.JSON_OPTIONS, JsonFactory.newArrayBuilder()
-                    .add(TestConstants.Search.KNOWN_OPT_1)
-                    .add(TestConstants.Search.KNOWN_OPT_2)
+                    .add(TestConstants.KNOWN_OPT_1)
+                    .add(TestConstants.KNOWN_OPT_2)
                     .build())
             .set(QueryThings.JSON_FIELDS, KNOWN_FIELDS)
-            .set(CountThings.JSON_NAMESPACES, JsonFactory.newArrayBuilder()
-                    .add(TestConstants.Search.KNOWN_NAMESPACE)
+            .set(QueryThings.JSON_NAMESPACES, JsonFactory.newArrayBuilder()
+                    .add(TestConstants.KNOWN_NAMESPACE)
                     .build())
+            .set(QueryThings.JSON_CURSOR, TestConstants.CURSOR)
             .build().toString();
 
     private static final String JSON_MINIMAL_V2 = JsonFactory.newObjectBuilder()
@@ -92,10 +94,11 @@ public final class QueryThingsTest {
     @Test
     public void toJsonWithAllFieldsSetV2() {
         final QueryThings command = QueryThings
-                .of(TestConstants.Search.KNOWN_FILTER_STR,
-                        Arrays.asList(TestConstants.Search.KNOWN_OPT_1, TestConstants.Search.KNOWN_OPT_2),
+                .of(TestConstants.KNOWN_FILTER_STR,
+                        Arrays.asList(TestConstants.KNOWN_OPT_1, TestConstants.KNOWN_OPT_2),
                         JsonFactory.newFieldSelector(KNOWN_FIELDS, TestConstants.JSON_PARSE_OPTIONS),
-                        TestConstants.Search.KNOWN_NAMESPACES_SET,
+                        TestConstants.KNOWN_NAMESPACES_SET,
+                        TestConstants.CURSOR,
                         DittoHeaders.empty());
 
         final String json = command.toJsonString();
@@ -106,10 +109,11 @@ public final class QueryThingsTest {
     @Test
     public void toJsonWithAllFieldsSetV1() {
         final QueryThings command = QueryThings
-                .of(TestConstants.Search.KNOWN_FILTER_STR,
-                        Arrays.asList(TestConstants.Search.KNOWN_OPT_1, TestConstants.Search.KNOWN_OPT_2),
+                .of(TestConstants.KNOWN_FILTER_STR,
+                        Arrays.asList(TestConstants.KNOWN_OPT_1, TestConstants.KNOWN_OPT_2),
                         JsonFactory.newFieldSelector(KNOWN_FIELDS, TestConstants.JSON_PARSE_OPTIONS),
-                        TestConstants.Search.KNOWN_NAMESPACES_SET,
+                        TestConstants.KNOWN_NAMESPACES_SET,
+                        TestConstants.CURSOR,
                         DittoHeaders.empty());
 
         final String json = command.toJsonString(JsonSchemaVersion.V_1, FieldType.regularOrSpecial());
@@ -150,9 +154,9 @@ public final class QueryThingsTest {
 
     private static void assertAllFieldsSet(final QueryThings command) {
         assertThat(command).isNotNull();
-        assertThat(command.getFilter()).contains(TestConstants.Search.KNOWN_FILTER_STR);
+        assertThat(command.getFilter()).contains(TestConstants.KNOWN_FILTER_STR);
         assertThat(command.getOptions()).contains(
-                Arrays.asList(TestConstants.Search.KNOWN_OPT_1, TestConstants.Search.KNOWN_OPT_2));
+                Arrays.asList(TestConstants.KNOWN_OPT_1, TestConstants.KNOWN_OPT_2));
         assertThat(command.getFields()).contains(
                 JsonFactory.newFieldSelector(KNOWN_FIELDS, TestConstants.JSON_PARSE_OPTIONS));
     }

@@ -35,7 +35,12 @@ public enum ThingSearchParameter {
     /**
      * Request parameter for namespaces to apply.
      */
-    NAMESPACES("namespaces");
+    NAMESPACES("namespaces"),
+
+    /**
+     * Request parameter for cursor to the next page of an ongoing search.
+     */
+    CURSOR("cursor");
 
     private final String parameterValue;
 

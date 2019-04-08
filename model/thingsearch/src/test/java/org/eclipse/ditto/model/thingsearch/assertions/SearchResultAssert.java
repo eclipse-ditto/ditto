@@ -36,7 +36,7 @@ public final class SearchResultAssert extends AbstractIterableAssert<SearchResul
 
     public SearchResultAssert hasNextPageOffset(final long expectedNextPageOffset) {
         isNotNull();
-        final long actualNextPageOffset = actual.getNextPageOffset();
+        final Long actualNextPageOffset = actual.getNextPageOffset().orElse(null);
         Assertions.assertThat(actualNextPageOffset) //
                 .overridingErrorMessage("Expected SearchResult to have next page offset \n<%s> but it had \n<%s>",
                         expectedNextPageOffset, actualNextPageOffset) //
@@ -46,7 +46,7 @@ public final class SearchResultAssert extends AbstractIterableAssert<SearchResul
 
     public SearchResultAssert hasNoNextPage() {
         isNotNull();
-        final long actualNextPageOffset = actual.getNextPageOffset();
+        final Long actualNextPageOffset = actual.getNextPageOffset().orElse(null);
         Assertions.assertThat(actualNextPageOffset) //
                 .overridingErrorMessage("Expected SearchResult not to have a next page offset but it had <%s>",
                         actualNextPageOffset) //

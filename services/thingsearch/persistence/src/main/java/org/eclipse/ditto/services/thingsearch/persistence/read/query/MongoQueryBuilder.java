@@ -12,12 +12,13 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.read.query;
 
-import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ID;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ID;
 
 import java.util.Collections;
 import java.util.List;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.query.Query;
@@ -54,7 +55,11 @@ final class MongoQueryBuilder implements QueryBuilder {
     private int skip;
     private List<SortOption> sortOptions;
 
+    @Nullable
+    private String cursor;
+
     private MongoQueryBuilder(final Criteria criteria, final int maxLimit, final int defaultLimit) {
+
         this.criteria = checkNotNull(criteria, "criteria");
         this.maxLimit = maxLimit;
         limit = defaultLimit;
@@ -103,8 +108,14 @@ final class MongoQueryBuilder implements QueryBuilder {
     }
 
     @Override
+    public QueryBuilder cursor(final String cursor) {
+        this.cursor = cursor;
+        return this;
+    }
+
+    @Override
     public Query build() {
-        return new MongoQuery(criteria, sortOptions, limit, skip);
+        return new MongoQuery(criteria, sortOptions, limit, skip, cursor);
     }
 
 }

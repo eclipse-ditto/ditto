@@ -86,7 +86,7 @@ public final class MongoQueryTest {
     @Test
     public void criteriaIsCorrectlySet() {
         final MongoQuery query = new MongoQuery(KNOWN_CRIT, knownSortOptions, defaultPageSizeFromConfig,
-                MongoQueryBuilder.DEFAULT_SKIP);
+                MongoQueryBuilder.DEFAULT_SKIP, null);
 
         assertThat(query.getCriteria()).isEqualTo(KNOWN_CRIT);
     }
@@ -94,7 +94,7 @@ public final class MongoQueryTest {
     @Test
     public void emptySortOptions() {
         final MongoQuery query = new MongoQuery(KNOWN_CRIT, Collections.emptyList(), defaultPageSizeFromConfig,
-                MongoQueryBuilder.DEFAULT_SKIP);
+                MongoQueryBuilder.DEFAULT_SKIP, null);
 
         assertThat(query.getCriteria()).isEqualTo(KNOWN_CRIT);
         assertThat(query.getSortOptions()).isEmpty();
@@ -104,7 +104,7 @@ public final class MongoQueryTest {
     @Test
     public void sortOptionsAreCorrectlySet() {
         final MongoQuery query = new MongoQuery(KNOWN_CRIT, knownSortOptions, defaultPageSizeFromConfig,
-                MongoQueryBuilder.DEFAULT_SKIP);
+                MongoQueryBuilder.DEFAULT_SKIP, null);
 
         assertThat(query.getCriteria()).isEqualTo(KNOWN_CRIT);
         assertThat(query.getSortOptions()).isEqualTo(knownSortOptions);
