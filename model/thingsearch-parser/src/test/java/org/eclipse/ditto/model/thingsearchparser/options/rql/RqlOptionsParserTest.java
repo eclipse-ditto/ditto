@@ -148,6 +148,16 @@ public final class RqlOptionsParserTest {
         ).isTrue();
     }
 
+    @Test
+    public void parseAndUnparseAreInverseOfEachOther() throws ParserException {
+        final String input = "limit(0,1),sort(-attributes/username)";
+        final List<Option> parsed = parser.parse(input);
+        final String unparsed = RqlOptionParser.unparse(parsed);
+        final List<Option> reParsed = parser.parse(unparsed);
+
+        assertThat(reParsed).isEqualTo(parsed);
+    }
+
     @Test(expected = ParserException.class)
     public void invalidLimitArgumentsExceedsLong() throws ParserException {
         parser.parse("limit(100000000000000000000,10)");
