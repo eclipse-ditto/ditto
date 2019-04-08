@@ -64,6 +64,19 @@
             <plugin>
                 <groupId>com.github.siom79.japicmp</groupId>
                 <artifactId>japicmp-maven-plugin</artifactId>
+                <configuration>
+                    <parameter>
+                        <excludes>
+                            <exclude>org.eclipse.ditto.signals.commands.base.AbstractCommandRegistry</exclude>
+                            <exclude>org.eclipse.ditto.signals.commands.base.AbstractCommandResponseRegistry</exclude>
+                            <exclude>org.eclipse.ditto.signals.commands.base.CommandResponseRegistry</exclude>
+                            <exclude>org.eclipse.ditto.signals.commands.base.CommonErrorRegistry</exclude>
+                            <exclude>org.eclipse.ditto.signals.commands.base.ErrorRegistry</exclude>
+                            <exclude>org.eclipse.ditto.signals.commands.base.JsonParsable</exclude>
+                            <exclude>org.eclipse.ditto.signals.commands.base.JsonParsableCommandRegistry</exclude>
+                        </excludes>
+                    </parameter>
+                </configuration>
             </plugin>
 
             <plugin>
