@@ -39,7 +39,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.signals.events.base.Event;
-import org.eclipse.ditto.signals.events.base.EventRegistry;
+import org.eclipse.ditto.signals.events.base.GlobalEventRegistry;
 import org.eclipse.ditto.signals.events.things.AclEntryCreated;
 import org.eclipse.ditto.signals.events.things.AttributeCreated;
 import org.eclipse.ditto.signals.events.things.AttributesCreated;
@@ -53,7 +53,6 @@ import org.eclipse.ditto.signals.events.things.FeaturePropertyModified;
 import org.eclipse.ditto.signals.events.things.FeaturesCreated;
 import org.eclipse.ditto.signals.events.things.FeaturesModified;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
-import org.eclipse.ditto.signals.events.things.ThingEventRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,11 +93,11 @@ public final class ThingMongoEventAdapter implements EventAdapter {
 
     private final Map<String, Function<JsonObject, JsonObject>> migrationMappings;
     private final ExtendedActorSystem system;
-    private final EventRegistry<ThingEvent> eventRegistry;
+    private final GlobalEventRegistry eventRegistry;
 
     public ThingMongoEventAdapter(@Nullable final ExtendedActorSystem system) {
         this.system = system;
-        eventRegistry = ThingEventRegistry.newInstance();
+        eventRegistry = GlobalEventRegistry.getInstance();
 
         migrationMappings = new HashMap<>();
         migrationMappings.put(FeatureModified.NAME,

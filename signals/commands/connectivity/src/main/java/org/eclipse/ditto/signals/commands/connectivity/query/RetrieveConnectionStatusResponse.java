@@ -37,6 +37,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -51,6 +52,7 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandRespon
  * Response to a {@link RetrieveConnection} command.
  */
 @Immutable
+@JsonParsableCommandResponse(type = RetrieveConnectionStatusResponse.TYPE)
 public final class RetrieveConnectionStatusResponse extends AbstractCommandResponse<RetrieveConnectionStatusResponse>
         implements ConnectivityQueryCommandResponse<RetrieveConnectionStatusResponse> {
 

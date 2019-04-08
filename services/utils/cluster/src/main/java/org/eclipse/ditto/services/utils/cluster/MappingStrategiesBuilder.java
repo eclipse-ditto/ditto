@@ -44,7 +44,7 @@ public final class MappingStrategiesBuilder {
      * Failure message when json deserialization function is null.
      */
     private static final String ERROR_MESSAGE_JSON_DESERIALIZATION_FUNCTION = "JSON deserialization function";
-    private final Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> strategies;
+    private final Map<String, MappingStrategy> strategies;
 
     private MappingStrategiesBuilder() {
         strategies = new HashMap<>();
@@ -165,7 +165,7 @@ public final class MappingStrategiesBuilder {
      * @return the Map.
      */
     @Nonnull
-    public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> build() {
-        return strategies;
+    public MappingStrategies build() {
+        return DefaultMappingStrategies.of(strategies);
     }
 }

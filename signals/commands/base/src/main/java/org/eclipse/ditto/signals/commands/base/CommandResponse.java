@@ -16,6 +16,7 @@ import java.util.function.Predicate;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.atteo.classindex.IndexSubclasses;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -32,6 +33,7 @@ import org.eclipse.ditto.signals.base.Signal;
  *
  * @param <T> the type of the implementing class.
  */
+@IndexSubclasses
 public interface CommandResponse<T extends CommandResponse> extends Signal<T> {
 
     /**

@@ -15,6 +15,7 @@ package org.eclipse.ditto.signals.events.base;
 import java.time.Instant;
 import java.util.Optional;
 
+import org.atteo.classindex.IndexSubclasses;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
@@ -28,6 +29,7 @@ import org.eclipse.ditto.signals.base.WithOptionalEntity;
  *
  * @param <T> the type of the implementing class.
  */
+@IndexSubclasses
 public interface Event<T extends Event> extends Signal<T>, WithOptionalEntity {
 
     /**

@@ -31,6 +31,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
@@ -41,6 +42,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  * Response to a {@link ModifyAttributes} command.
  */
 @Immutable
+@JsonParsableCommandResponse(type = ModifyAttributesResponse.TYPE)
 public final class ModifyAttributesResponse extends AbstractCommandResponse<ModifyAttributesResponse>
         implements ThingModifyCommandResponse<ModifyAttributesResponse> {
 

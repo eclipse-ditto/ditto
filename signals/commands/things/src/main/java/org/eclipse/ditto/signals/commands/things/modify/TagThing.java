@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 
@@ -31,6 +32,7 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommand;
  * Command that requests a Thing to take a permanent snapshot of itself.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = TagThing.TYPE_PREFIX, name = TagThing.NAME)
 public final class TagThing extends AbstractCommand<TagThing> implements ThingModifyCommand<TagThing> {
 
     /**

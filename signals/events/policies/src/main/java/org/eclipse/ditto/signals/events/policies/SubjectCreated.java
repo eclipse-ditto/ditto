@@ -31,6 +31,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
@@ -41,6 +42,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a {@link Subject} was created.
  */
 @Immutable
+@JsonParsableEvent(name = SubjectCreated.NAME, typePrefix= SubjectCreated.TYPE_PREFIX)
 public final class SubjectCreated extends AbstractPolicyEvent<SubjectCreated> implements PolicyEvent<SubjectCreated> {
 
     /**

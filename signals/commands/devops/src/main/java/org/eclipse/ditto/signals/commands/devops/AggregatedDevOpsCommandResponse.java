@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -39,6 +40,7 @@ import org.eclipse.ditto.signals.commands.base.WithEntity;
  * A {@link DevOpsCommandResponse} aggregating multiple {@link CommandResponse}s.
  */
 @Immutable
+@JsonParsableCommandResponse(type = AggregatedDevOpsCommandResponse.TYPE)
 public final class AggregatedDevOpsCommandResponse
         extends AbstractDevOpsCommandResponse<AggregatedDevOpsCommandResponse>
         implements WithEntity<AggregatedDevOpsCommandResponse> {
@@ -105,9 +107,8 @@ public final class AggregatedDevOpsCommandResponse
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
      */
-    public static AggregatedDevOpsCommandResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders,
-            final Map<String, JsonParsable<DevOpsCommandResponse>> parseStrategies) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders, parseStrategies);
+    public static AggregatedDevOpsCommandResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
+        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
     /**
@@ -121,7 +122,7 @@ public final class AggregatedDevOpsCommandResponse
      * format.
      */
     public static AggregatedDevOpsCommandResponse fromJson(final JsonObject jsonObject,
-            final DittoHeaders dittoHeaders, final Map<String, JsonParsable<DevOpsCommandResponse>> parseStrategies) {
+            final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<AggregatedDevOpsCommandResponse>(TYPE, jsonObject)
                 .deserialize((statusCode) -> {
                     final String theResponsesType = jsonObject.getValueOrThrow(JSON_RESPONSES_TYPE);

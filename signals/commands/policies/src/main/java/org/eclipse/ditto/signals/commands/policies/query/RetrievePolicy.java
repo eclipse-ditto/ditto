@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyIdValidator;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
@@ -34,6 +35,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * Command which retrieves one {@link org.eclipse.ditto.model.policies.Policy} based on the the passed in Policy ID.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = RetrievePolicy.TYPE_PREFIX, name = RetrievePolicy.NAME)
 public final class RetrievePolicy extends AbstractCommand<RetrievePolicy>
         implements PolicyQueryCommand<RetrievePolicy> {
 

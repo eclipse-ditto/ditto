@@ -31,6 +31,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
@@ -43,8 +44,9 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  * Response to a {@link ModifyResource} command.
  */
 @Immutable
-public final class ModifyResourceResponse extends AbstractCommandResponse<ModifyResourceResponse> implements
-        PolicyModifyCommandResponse<ModifyResourceResponse> {
+@JsonParsableCommandResponse(type = ModifyResourceResponse.TYPE)
+public final class ModifyResourceResponse extends AbstractCommandResponse<ModifyResourceResponse>
+        implements PolicyModifyCommandResponse<ModifyResourceResponse> {
 
     /**
      * Type of this response.
@@ -135,26 +137,23 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
      * format.
      */
     public static ModifyResourceResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<ModifyResourceResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String policyId =
-                            jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
+        return new CommandResponseJsonDeserializer<ModifyResourceResponse>(TYPE, jsonObject).deserialize(statusCode -> {
+            final String policyId = jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
 
-                    final String stringLabel = jsonObject.getValueOrThrow(JSON_LABEL);
-                    final Label label = PoliciesModelFactory.newLabel(stringLabel);
+            final String stringLabel = jsonObject.getValueOrThrow(JSON_LABEL);
+            final Label label = PoliciesModelFactory.newLabel(stringLabel);
 
-                    final Optional<ResourceKey> extractedResourceKey = jsonObject.getValue(JSON_RESOURCE_KEY)
-                            .map(ResourceKey::newInstance);
+            final Optional<ResourceKey> extractedResourceKey = jsonObject.getValue(JSON_RESOURCE_KEY)
+                    .map(ResourceKey::newInstance);
 
-                    final Resource extractedResourceCreated = jsonObject.getValue(JSON_RESOURCE)
-                            .map(JsonValue::asObject)
-                            .map(obj -> extractedResourceKey.map(
-                                    resourceKey -> PoliciesModelFactory.newResource(resourceKey, obj)).orElse(null))
-                            .orElse(null);
+            final Resource extractedResourceCreated = jsonObject.getValue(JSON_RESOURCE)
+                    .map(JsonValue::asObject)
+                    .map(obj -> extractedResourceKey.map(
+                            resourceKey -> PoliciesModelFactory.newResource(resourceKey, obj)).orElse(null))
+                    .orElse(null);
 
-                    return new ModifyResourceResponse(policyId, label, extractedResourceCreated, statusCode,
-                            dittoHeaders);
-                });
+            return new ModifyResourceResponse(policyId, label, extractedResourceCreated, statusCode, dittoHeaders);
+        });
     }
 
     @Override
@@ -206,8 +205,9 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
 
     @Override
     public ModifyResourceResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return (null != resourceCreated) ? created(policyId, label, resourceCreated, dittoHeaders) :
-                modified(policyId, label, dittoHeaders);
+        return null != resourceCreated
+                ? created(policyId, label, resourceCreated, dittoHeaders)
+                : modified(policyId, label, dittoHeaders);
     }
 
     @Override
@@ -224,8 +224,11 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
             return false;
         }
         final ModifyResourceResponse that = (ModifyResourceResponse) o;
-        return that.canEqual(this) && Objects.equals(policyId, that.policyId) && Objects.equals(label, that.label)
-                && Objects.equals(resourceCreated, that.resourceCreated) && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(policyId, that.policyId) &&
+                Objects.equals(label, that.label) &&
+                Objects.equals(resourceCreated, that.resourceCreated) &&
+                super.equals(o);
     }
 
     @Override

@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.GlobalEventRegistry;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -108,6 +109,19 @@ public final class PolicyCreatedTest {
 
         assertThat(underTest).isNotNull();
         assertThat((Jsonifiable) underTest.getPolicy()).isEqualTo(TestConstants.Policy.POLICY);
+    }
+
+    @Test
+    public void parsePolicyCreatedEvent() {
+        final GlobalEventRegistry eventRegistry = GlobalEventRegistry.getInstance();
+
+        final PolicyCreated event = PolicyCreated.of(TestConstants.Policy.POLICY, TestConstants.Policy.REVISION_NUMBER,
+                TestConstants.DITTO_HEADERS);
+        final JsonObject jsonObject = event.toJson(FieldType.regularOrSpecial());
+
+        final Event parsedEvent = eventRegistry.parse(jsonObject, TestConstants.DITTO_HEADERS);
+
+        assertThat(parsedEvent).isEqualTo(event);
     }
 
 }

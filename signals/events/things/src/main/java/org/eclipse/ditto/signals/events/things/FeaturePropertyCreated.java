@@ -31,6 +31,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
@@ -40,6 +41,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * created.
  */
 @Immutable
+@JsonParsableEvent(name = FeaturePropertyCreated.NAME, typePrefix= FeaturePropertyCreated.TYPE_PREFIX)
 public final class FeaturePropertyCreated extends AbstractThingEvent<FeaturePropertyCreated> implements
         ThingModifiedEvent<FeaturePropertyCreated>, WithFeatureId {
 

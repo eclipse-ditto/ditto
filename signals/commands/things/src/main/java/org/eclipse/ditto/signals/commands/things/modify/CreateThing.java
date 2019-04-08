@@ -31,6 +31,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.Placeholders;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
@@ -46,6 +47,7 @@ import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
  * generated.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = CreateThing.TYPE_PREFIX, name = CreateThing.NAME)
 public final class CreateThing extends AbstractCommand<CreateThing> implements ThingModifyCommand<CreateThing> {
 
     /**

@@ -27,6 +27,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 
@@ -34,6 +35,7 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
  * Actor message sent in response to the {@link TagThing} command indicating success.
  */
 @Immutable
+@JsonParsableCommandResponse(type = TagThingResponse.TYPE)
 public final class TagThingResponse extends AbstractCommandResponse<TagThingResponse> implements
         ThingModifyCommandResponse<TagThingResponse> {
 

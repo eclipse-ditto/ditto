@@ -27,6 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -49,6 +50,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * </pre>
  */
 @Immutable
+@JsonParsableCommand(typePrefix = ExecutePiggybackCommand.TYPE_PREFIX, name = ExecutePiggybackCommand.NAME)
 public final class ExecutePiggybackCommand extends AbstractDevOpsCommand<ExecutePiggybackCommand> {
 
     /**

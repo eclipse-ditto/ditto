@@ -28,6 +28,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PolicyIdValidator;
@@ -38,6 +39,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * Command which retrieves the {@code Subjects} based on the passed in Policy ID and the Label.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = RetrieveSubjects.TYPE_PREFIX, name = RetrieveSubjects.NAME)
 public final class RetrieveSubjects extends AbstractCommand<RetrieveSubjects>
         implements PolicyQueryCommand<RetrieveSubjects> {
 

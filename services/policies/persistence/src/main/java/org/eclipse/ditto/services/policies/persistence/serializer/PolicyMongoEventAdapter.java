@@ -36,9 +36,8 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.signals.base.WithType;
 import org.eclipse.ditto.signals.events.base.Event;
-import org.eclipse.ditto.signals.events.base.EventRegistry;
+import org.eclipse.ditto.signals.events.base.GlobalEventRegistry;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
-import org.eclipse.ditto.signals.events.policies.PolicyEventRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,11 +65,11 @@ public final class PolicyMongoEventAdapter implements EventAdapter {
 
     private final Map<String, Function<JsonObject, JsonObject>> migrationMappings;
     @Nullable private final ExtendedActorSystem system;
-    private final EventRegistry<PolicyEvent> eventRegistry;
+    private final GlobalEventRegistry eventRegistry;
 
     public PolicyMongoEventAdapter(@Nullable final ExtendedActorSystem system) {
         this.system = system;
-        eventRegistry = PolicyEventRegistry.newInstance();
+        eventRegistry = GlobalEventRegistry.getInstance();
         migrationMappings = new HashMap<>();
     }
 
@@ -118,7 +117,7 @@ public final class PolicyMongoEventAdapter implements EventAdapter {
     }
 
     @Nullable
-    private PolicyEvent tryToCreateEventFrom(final JsonValue json) {
+    private Event tryToCreateEventFrom(final JsonValue json) {
         try {
             return createEventFrom(json);
         } catch (final JsonParseException | DittoRuntimeException e) {
@@ -132,7 +131,7 @@ public final class PolicyMongoEventAdapter implements EventAdapter {
         }
     }
 
-    private PolicyEvent createEventFrom(final JsonValue json) {
+    private Event createEventFrom(final JsonValue json) {
         final JsonObject jsonObject = json.asObject()
                 .setValue(Event.JsonFields.REVISION.getPointer(), Event.DEFAULT_REVISION);
         return eventRegistry.parse(migrateComplex(migratePayload(jsonObject)), DittoHeaders.empty());
