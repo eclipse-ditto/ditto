@@ -95,7 +95,7 @@ public final class EnforcerRetriever {
             } else {
                 final Entry<EntityId> enforcerKeyEntry = enforcerKeyEntryOptional.get();
                 if (enforcerKeyEntry.exists()) {
-                    final EntityId enforcerKey = enforcerKeyEntry.getValue();
+                    final EntityId enforcerKey = enforcerKeyEntry.getValueOrThrow();
                     final String resourceType = enforcerKey.getResourceType();
                     final Cache<EntityId, Entry<Enforcer>> enforcerCache =
                             enforcerCacheFunction.apply(resourceType);

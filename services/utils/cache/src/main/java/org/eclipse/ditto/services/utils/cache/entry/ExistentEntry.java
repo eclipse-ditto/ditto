@@ -36,7 +36,7 @@ final class ExistentEntry<T> implements Entry<T> {
     }
 
     @Override
-    public T getValue() {
+    public T getValueOrThrow() {
         return value;
     }
 
@@ -54,8 +54,7 @@ final class ExistentEntry<T> implements Entry<T> {
             return false;
         }
         final ExistentEntry<?> that = (ExistentEntry<?>) o;
-        return revision == that.revision &&
-                Objects.equals(value, that.value);
+        return revision == that.revision && Objects.equals(value, that.value);
     }
 
     @Override
@@ -70,4 +69,5 @@ final class ExistentEntry<T> implements Entry<T> {
                 ", value=" + value +
                 "]";
     }
+
 }

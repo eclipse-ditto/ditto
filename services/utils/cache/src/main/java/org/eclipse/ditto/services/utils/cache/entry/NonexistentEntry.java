@@ -30,7 +30,7 @@ final class NonexistentEntry<T> implements Entry<T> {
     }
 
     @Override
-    public T getValue() {
+    public T getValueOrThrow() {
         throw new NoSuchElementException();
     }
 

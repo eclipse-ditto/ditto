@@ -172,10 +172,10 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             if (!enforcerEntry.exists()) {
                 enforceThingCommandByNonexistentEnforcer(enforcerKeyEntry, signal, sender);
             } else if (isAclEnforcer(enforcerKeyEntry)) {
-                enforceThingCommandByAclEnforcer(signal, enforcerEntry.getValue(), sender);
+                enforceThingCommandByAclEnforcer(signal, enforcerEntry.getValueOrThrow(), sender);
             } else {
-                final String policyId = enforcerKeyEntry.getValue().getId();
-                enforceThingCommandByPolicyEnforcer(signal, policyId, enforcerEntry.getValue(), sender);
+                final String policyId = enforcerKeyEntry.getValueOrThrow().getId();
+                enforceThingCommandByPolicyEnforcer(signal, policyId, enforcerEntry.getValueOrThrow(), sender);
             }
         });
     }
@@ -277,7 +277,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         if (enforcerKeyEntry.exists()) {
             // Thing exists but its policy is deleted.
             final String thingId = thingCommand.getThingId();
-            final String policyId = enforcerKeyEntry.getValue().getId();
+            final String policyId = enforcerKeyEntry.getValueOrThrow().getId();
             final DittoRuntimeException error = errorForExistingThingWithDeletedPolicy(thingCommand, thingId, policyId);
             log(thingCommand).info("Enforcer was not existing for Thing <{}>, responding with: {}", thingId, error);
             replyToSender(error, sender);
@@ -638,7 +638,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         final EntityId policyEntityId = EntityId.of(PolicyCommand.RESOURCE_TYPE, policyId);
         policyEnforcerRetriever.retrieve(policyEntityId, (policyIdEntry, policyEnforcerEntry) -> {
             if (policyEnforcerEntry.exists()) {
-                enforceThingCommandByPolicyEnforcer(createThing, policyId, policyEnforcerEntry.getValue(), sender);
+                enforceThingCommandByPolicyEnforcer(createThing, policyId, policyEnforcerEntry.getValueOrThrow(), sender);
             } else {
                 final DittoRuntimeException error =
                         errorForExistingThingWithDeletedPolicy(createThing, createThing.getThingId(), policyId);
@@ -779,7 +779,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
      */
     private static boolean isAclEnforcer(final Entry<EntityId> enforcerKeyEntry) {
         return enforcerKeyEntry.exists() &&
-                Objects.equals(ThingCommand.RESOURCE_TYPE, enforcerKeyEntry.getValue().getResourceType());
+                Objects.equals(ThingCommand.RESOURCE_TYPE, enforcerKeyEntry.getValueOrThrow().getResourceType());
     }
 
     /**

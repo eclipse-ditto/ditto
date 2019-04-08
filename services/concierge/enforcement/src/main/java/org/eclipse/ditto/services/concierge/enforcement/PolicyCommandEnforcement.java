@@ -165,7 +165,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
         LogUtil.enhanceLogWithCorrelationIdOrRandom(signal);
         return enforcerRetriever.retrieve(entityId(), (idEntry, enforcerEntry) -> {
             if (enforcerEntry.exists()) {
-                enforcePolicyCommandByEnforcer(signal, enforcerEntry.getValue(), sender);
+                enforcePolicyCommandByEnforcer(signal, enforcerEntry.getValueOrThrow(), sender);
             } else {
                 enforcePolicyCommandByNonexistentEnforcer(signal, sender);
             }

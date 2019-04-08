@@ -127,7 +127,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
         LogUtil.enhanceLogWithCorrelationIdOrRandom(signal);
         return enforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             if (enforcerEntry.exists()) {
-                final Enforcer enforcer = enforcerEntry.getValue();
+                final Enforcer enforcer = enforcerEntry.getValueOrThrow();
 
                 final String correlationId = signal.getDittoHeaders().getCorrelationId().get();
                 if (signal instanceof SendClaimMessage) {

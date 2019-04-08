@@ -17,22 +17,6 @@ package org.eclipse.ditto.services.utils.cache.entry;
  */
 public interface Entry<T> {
 
-    /**
-     * Revision of the cache entry. An entry may only override those with smaller revisions.
-     *
-     * @return the revision number.
-     */
-    long getRevision();
-
-    /**
-     * Retrieve the value if present.
-     *
-     * @return the cached value if present.
-     */
-    T getValue();
-
-    boolean exists();
-
     static <T> Entry<T> permanent(final T value) {
         return new ExistentEntry<>(Long.MAX_VALUE, value);
     }
@@ -44,4 +28,24 @@ public interface Entry<T> {
     static <T> Entry<T> nonexistent() {
         return NonexistentEntry.getInstance();
     }
+
+    /**
+     * Returns the revision of the cache entry.
+     * An entry may only override those with smaller revisions.
+     *
+     * @return the revision number.
+     */
+    long getRevision();
+
+    boolean exists();
+
+    /**
+     * Retrieve the value if present.
+     *
+     * @return the cached value if present.
+     * @throws java.util.NoSuchElementException if this entry has no existing value.
+     * @see #exists()
+     */
+    T getValueOrThrow();
+
 }
