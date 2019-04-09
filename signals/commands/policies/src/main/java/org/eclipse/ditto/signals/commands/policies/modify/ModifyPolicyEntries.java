@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.signals.commands.policies.modify;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -30,6 +32,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyEntry;
@@ -42,8 +45,9 @@ import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
  * This command modifies {@link PolicyEntry}s.
  */
 @Immutable
-public final class ModifyPolicyEntries extends AbstractCommand<ModifyPolicyEntries> implements
-        PolicyModifyCommand<ModifyPolicyEntries> {
+@JsonParsableCommand(typePrefix = ModifyPolicyEntries.TYPE_PREFIX, name = ModifyPolicyEntries.NAME)
+public final class ModifyPolicyEntries extends AbstractCommand<ModifyPolicyEntries>
+        implements PolicyModifyCommand<ModifyPolicyEntries> {
 
     /**
      * Name of this command.
@@ -63,6 +67,7 @@ public final class ModifyPolicyEntries extends AbstractCommand<ModifyPolicyEntri
 
     private ModifyPolicyEntries(final String policyId, final Iterable<PolicyEntry> policyEntries,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, dittoHeaders);
         PolicyIdValidator.getInstance().accept(policyId, dittoHeaders);
         this.policyId = policyId;
@@ -89,8 +94,8 @@ public final class ModifyPolicyEntries extends AbstractCommand<ModifyPolicyEntri
     public static ModifyPolicyEntries of(final String policyId, final Iterable<PolicyEntry> policyEntries,
             final DittoHeaders dittoHeaders) {
 
-        Objects.requireNonNull(policyId, "The Policy identifier must not be null!");
-        Objects.requireNonNull(policyEntries, "The PolicyEntries must not be null!");
+        checkNotNull(policyId, "Policy identifier");
+        checkNotNull(policyEntries, "PolicyEntries");
         return new ModifyPolicyEntries(policyId, policyEntries, dittoHeaders);
     }
 
@@ -167,6 +172,7 @@ public final class ModifyPolicyEntries extends AbstractCommand<ModifyPolicyEntri
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
         jsonObjectBuilder.set(JSON_POLICY_ENTRIES, StreamSupport.stream(policyEntries.spliterator(), false)

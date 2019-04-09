@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
@@ -31,6 +32,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a Thing's {@link org.eclipse.ditto.model.things.Attributes} were deleted.
  */
 @Immutable
+@JsonParsableEvent(name = AttributesDeleted.NAME, typePrefix= AttributesDeleted.TYPE_PREFIX)
 public final class AttributesDeleted extends AbstractThingEvent<AttributesDeleted>
         implements ThingModifiedEvent<AttributesDeleted> {
 

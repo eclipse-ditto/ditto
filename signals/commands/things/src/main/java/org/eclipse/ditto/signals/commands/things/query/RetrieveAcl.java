@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingIdValidator;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
@@ -33,6 +34,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * Command which retrieves the ACL (all of them or a specific one) of a {@code Thing} based on the passed in ID.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = RetrieveAcl.TYPE_PREFIX, name = RetrieveAcl.NAME)
 public final class RetrieveAcl extends AbstractCommand<RetrieveAcl> implements ThingQueryCommand<RetrieveAcl> {
 
     /**

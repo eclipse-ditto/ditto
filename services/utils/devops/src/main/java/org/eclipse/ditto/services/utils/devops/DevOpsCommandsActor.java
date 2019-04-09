@@ -20,12 +20,12 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -36,6 +36,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.devops.LoggerConfig;
 import org.eclipse.ditto.model.devops.LoggingFacade;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -80,7 +81,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
     private final String serviceName;
     private final String instance;
     private final ActorRef pubSubMediator;
-    private final Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> serviceMappingStrategy;
+    private final MappingStrategies serviceMappingStrategy;
 
     private DevOpsCommandsActor(final LoggingFacade loggingFacade, final String serviceName, final String instance) {
         this.loggingFacade = loggingFacade;
@@ -88,7 +89,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
         this.instance = instance;
 
         pubSubMediator = DistributedPubSub.get(getContext().system()).mediator();
-        serviceMappingStrategy = MappingStrategy.loadMappingStrategy(getContext().getSystem()).determineStrategy();
+        serviceMappingStrategy = MappingStrategies.loadMappingStrategies(getContext().getSystem());
         getContext().actorOf(
                 PubSubSubscriberActor.props(pubSubMediator, serviceName, instance,
                         RetrieveLoggerConfig.TYPE,
@@ -138,7 +139,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
         final Supplier<ActorRef> responseCorrelationActor = () -> getContext().actorOf(
                 DevOpsCommandResponseCorrelationActor.props(getSender(), command),
                 command.getDittoHeaders().getCorrelationId()
-                        .orElseThrow(() -> new IllegalArgumentException("Missing correlation-id for DevOpsCommand")));
+                        .orElseThrow(() -> new IllegalArgumentException("Missing correlation-id for DevOpsCommand!")));
 
         if (isExecutePiggybackCommandToPubSubMediator(command)) {
             tryInterpretAsDirectPublication(command, publish -> {
@@ -148,8 +149,8 @@ public final class DevOpsCommandsActor extends AbstractActor {
                         publish.sendOneMessageToEachGroup());
                 pubSubMediator.tell(publish, responseCorrelationActor.get());
             }, devOpsErrorResponse -> {
-                log.warning("Dropping publishing command <{}>. Reason: <{}>",
-                        command, devOpsErrorResponse.getDittoRuntimeException());
+                log.warning("Dropping publishing command <{}>. Reason: <{}>", command,
+                        devOpsErrorResponse.getDittoRuntimeException());
                 getSender().tell(devOpsErrorResponse, getSelf());
             });
         } else {
@@ -176,48 +177,43 @@ public final class DevOpsCommandsActor extends AbstractActor {
             final ExecutePiggybackCommand executePiggyback = (ExecutePiggybackCommand) command;
             return Objects.equals(executePiggyback.getTargetActorSelection(),
                     pubSubMediator.path().toStringWithoutAddress());
-        } else {
-            return false;
         }
+        return false;
     }
 
-    private void tryInterpretAsDirectPublication(final DevOpsCommand<?> command,
-            final Consumer<Publish> onSuccess,
+    private void tryInterpretAsDirectPublication(final DevOpsCommand<?> command, final Consumer<Publish> onSuccess,
             final Consumer<DevOpsErrorResponse> onError) {
 
         if (command instanceof ExecutePiggybackCommand) {
             final ExecutePiggybackCommand executePiggyback = (ExecutePiggybackCommand) command;
+            final DittoHeaders dittoHeaders = executePiggyback.getDittoHeaders();
             deserializePiggybackCommand(executePiggyback,
                     jsonifiable -> {
                         final Optional<String> topic =
-                                Optional.ofNullable(executePiggyback.getDittoHeaders().get(TOPIC_HEADER))
+                                Optional.ofNullable(dittoHeaders.get(TOPIC_HEADER))
                                         .map(Optional::of)
                                         .orElseGet(() -> executePiggyback.getPiggybackCommand()
                                                 .getValue(Command.JsonFields.TYPE));
                         if (topic.isPresent()) {
-                            final String isGroupTopicValue =
-                                    executePiggyback.getDittoHeaders().get(IS_GROUP_TOPIC_HEADER);
+                            final String isGroupTopicValue = dittoHeaders.get(IS_GROUP_TOPIC_HEADER);
                             final boolean isGroupTopic =
                                     isGroupTopicValue != null && !"false".equalsIgnoreCase(isGroupTopicValue);
                             onSuccess.accept(new Publish(topic.get(), jsonifiable, isGroupTopic));
                         } else {
-                            final String message =
-                                    "No topic found for publishing. Did you set the ''topic'' header?";
-                            onError.accept(errorResponse(command, HttpStatusCode.BAD_REQUEST, message));
+                            onError.accept(getErrorResponse(command));
                         }
                     },
-                    dittoRuntimeException -> onError.accept(errorResponse(command, dittoRuntimeException.toJson())));
+                    dittoRuntimeException -> onError.accept(getErrorResponse(command, dittoRuntimeException.toJson())));
 
         } else {
             // this should not happen
             final JsonObject error =
                     GatewayInternalErrorException.newBuilder().dittoHeaders(command.getDittoHeaders()).build().toJson();
-            onError.accept(errorResponse(command, error));
+            onError.accept(getErrorResponse(command, error));
         }
     }
 
     private void handleDevOpsCommandViaPubSub(final DevOpsCommandViaPubSub devOpsCommandViaPubSub) {
-
         final DevOpsCommand wrappedCommand = devOpsCommandViaPubSub.wrappedCommand;
         if (wrappedCommand instanceof ChangeLogLevel) {
             handleChangeLogLevel((ChangeLogLevel) wrappedCommand);
@@ -229,7 +225,6 @@ public final class DevOpsCommandsActor extends AbstractActor {
     }
 
     private void handleChangeLogLevel(final ChangeLogLevel command) {
-
         final Boolean isApplied = loggingFacade.setLogLevel(command.getLoggerConfig());
         final ChangeLogLevelResponse changeLogLevelResponse =
                 ChangeLogLevelResponse.of(serviceName, instance, isApplied, command.getDittoHeaders());
@@ -237,7 +232,6 @@ public final class DevOpsCommandsActor extends AbstractActor {
     }
 
     private void handleRetrieveLoggerConfig(final RetrieveLoggerConfig command) {
-
         final List<LoggerConfig> loggerConfigs;
 
         if (command.isAllKnownLoggers()) {
@@ -252,7 +246,6 @@ public final class DevOpsCommandsActor extends AbstractActor {
     }
 
     private void handleExecutePiggyBack(final ExecutePiggybackCommand command) {
-
         LogUtil.enhanceLogWithCorrelationId(log, command);
 
         deserializePiggybackCommand(command,
@@ -271,20 +264,24 @@ public final class DevOpsCommandsActor extends AbstractActor {
 
         final JsonObject piggybackCommandJson = command.getPiggybackCommand();
         final String piggybackCommandType = piggybackCommandJson.getValue(Command.JsonFields.TYPE).orElse(null);
-        if (serviceMappingStrategy.containsKey(piggybackCommandType)) {
+        LogUtil.enhanceLogWithCorrelationId(log, command);
+        final Optional<MappingStrategy> mappingFunction =
+                serviceMappingStrategy.getMappingStrategyFor(piggybackCommandType);
+
+        if (mappingFunction.isPresent()) {
             try {
-                final Jsonifiable jsonifiable = serviceMappingStrategy.get(piggybackCommandType)
-                        .apply(piggybackCommandJson, command.getDittoHeaders());
+                final Jsonifiable jsonifiable = mappingFunction.get()
+                        .map(piggybackCommandJson, command.getDittoHeaders());
                 onSuccess.accept(jsonifiable);
             } catch (final DittoRuntimeException e) {
-                log.warning("Got DittoRuntimeException while parsing piggybackCommand <{}>: {}", piggybackCommandType,
+                log.warning("Got DittoRuntimeException while parsing PiggybackCommand <{}>: {}!", piggybackCommandType,
                         e.getMessage());
                 onError.accept(e);
             }
         } else {
             final String message =
-                    String.format("ExecutePiggybackCommand with piggybackCommand <%s> cannot be executed " +
-                            "by this service as there is no mappingStrategy for it.", piggybackCommandType);
+                    String.format("ExecutePiggybackCommand with PiggybackCommand <%s> cannot be executed " +
+                            "by this service as there is no mapping strategy for it!", piggybackCommandType);
             log.warning(message);
             final JsonTypeNotParsableException typeNotMappableException =
                     JsonTypeNotParsableException.fromMessage(message, command.getDittoHeaders());
@@ -292,22 +289,20 @@ public final class DevOpsCommandsActor extends AbstractActor {
         }
     }
 
-    private static DevOpsErrorResponse errorResponse(final DevOpsCommand<?> command, final JsonObject error) {
+    private static DevOpsErrorResponse getErrorResponse(final DevOpsCommand<?> command, final JsonObject error) {
         final String serviceName = command.getServiceName().orElse(null);
         final String instance = command.getInstance().map(String::valueOf).orElse(null);
         return DevOpsErrorResponse.of(serviceName, instance, error, command.getDittoHeaders());
     }
 
-    private static DevOpsErrorResponse errorResponse(final DevOpsCommand<?> command,
-            final HttpStatusCode status,
-            final String message) {
-
+    private static DevOpsErrorResponse getErrorResponse(final DevOpsCommand<?> command) {
         final JsonObject error = JsonFactory.newObjectBuilder()
-                .set(DittoRuntimeException.JsonFields.STATUS, status.toInt())
-                .set(DittoRuntimeException.JsonFields.MESSAGE, message)
+                .set(DittoRuntimeException.JsonFields.STATUS, HttpStatusCode.BAD_REQUEST.toInt())
+                .set(DittoRuntimeException.JsonFields.MESSAGE,
+                        "No topic found for publishing. Did you set the <topic> header?")
                 .build();
 
-        return errorResponse(command, error);
+        return getErrorResponse(command, error);
     }
 
     /**
@@ -321,26 +316,30 @@ public final class DevOpsCommandsActor extends AbstractActor {
                 final String... pubSubTopicsToSubscribeTo) {
 
             Arrays.stream(pubSubTopicsToSubscribeTo).forEach(topic ->
-                    subscribeToDevopsTopic(pubSubMediator, topic, serviceName, instance));
+                    subscribeToDevOpsTopic(pubSubMediator, topic, serviceName, instance));
         }
 
         /**
          * @return the Akka configuration Props object.
          */
-        static Props props(final ActorRef pubSubMediator, final String serviceName, final String instance,
+        static Props props(final ActorRef pubSubMediator,
+                final String serviceName,
+                final String instance,
                 final String... pubSubTopicsToSubscribeTo) {
+
             return Props.create(PubSubSubscriberActor.class,
                     (Creator<PubSubSubscriberActor>) () -> new PubSubSubscriberActor(pubSubMediator, serviceName,
                             instance, pubSubTopicsToSubscribeTo));
         }
 
-        private void subscribeToDevopsTopic(final ActorRef pubSubMediator, final String topic,
-                final String serviceName, final String instance) {
+        private void subscribeToDevOpsTopic(final ActorRef pubSubMediator,
+                final String topic,
+                final String serviceName,
+                final String instance) {
+
             pubSubMediator.tell(new Subscribe(topic, getSelf()), getSelf());
-            pubSubMediator.tell(new Subscribe(
-                    String.join(":", topic, serviceName), getSelf()), getSelf());
-            pubSubMediator.tell(new Subscribe(
-                    String.join(":", topic, serviceName, instance), getSelf()), getSelf());
+            pubSubMediator.tell(new Subscribe(String.join(":", topic, serviceName), getSelf()), getSelf());
+            pubSubMediator.tell(new Subscribe(String.join(":", topic, serviceName, instance), getSelf()), getSelf());
         }
 
         @Override
@@ -357,7 +356,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
         }
 
         private void handleSubscribeAck(final SubscribeAck subscribeAck) {
-            log.info("Successfully subscribed to distributed pub/sub on topic '{}'", subscribeAck.subscribe().topic());
+            log.info("Successfully subscribed to distributed pub/sub on topic <{}>.", subscribeAck.subscribe().topic());
         }
     }
 
@@ -365,12 +364,16 @@ public final class DevOpsCommandsActor extends AbstractActor {
 
         private final DevOpsCommand wrappedCommand;
 
-        private DevOpsCommandViaPubSub(final DevOpsCommand wrappedCommand) {this.wrappedCommand = wrappedCommand;}
+        private DevOpsCommandViaPubSub(final DevOpsCommand wrappedCommand) {
+            this.wrappedCommand = wrappedCommand;
+        }
+
     }
 
     /**
-     * Child actor correlating the {@link DevOpsCommandResponse}s. Waits for and collects responses until time runs out,
-     * then forwards all collected responses to the sender of the original DevOps command.
+     * Child actor correlating the {@link DevOpsCommandResponse}s.
+     * Waits for and collects responses until time runs out, then forwards all collected responses to the sender of the
+     * original DevOps command.
      */
     private static final class DevOpsCommandResponseCorrelationActor extends AbstractActor {
 
@@ -394,24 +397,35 @@ public final class DevOpsCommandsActor extends AbstractActor {
         private final ActorRef devOpsCommandSender;
         private final DevOpsCommand<?> devOpsCommand;
         private final List<CommandResponse<?>> commandResponses = new ArrayList<>();
-
-        private final Boolean aggregateResults;
+        private final boolean aggregateResults;
 
         private DevOpsCommandResponseCorrelationActor(final ActorRef devOpsCommandSender,
                 final DevOpsCommand<?> devOpsCommand) {
 
             this.devOpsCommandSender = devOpsCommandSender;
             this.devOpsCommand = devOpsCommand;
-            final Duration receiveTimeout =
-                    Optional.ofNullable(devOpsCommand.getDittoHeaders().get(TIMEOUT_HEADER))
-                            .map(Integer::parseInt)
-                            .map(Duration::ofMillis)
-                            .orElse(DEFAULT_RECEIVE_TIMEOUT);
-            aggregateResults = Optional.ofNullable(devOpsCommand.getDittoHeaders()
-                    .get(AGGREGATE_HEADER))
-                    .map(Boolean::valueOf)
-                    .orElse(DEFAULT_AGGREGATE);
-            getContext().setReceiveTimeout(receiveTimeout);
+
+            final DittoHeaders dittoHeaders = devOpsCommand.getDittoHeaders();
+            aggregateResults = isAggregateResults(dittoHeaders);
+            getContext().setReceiveTimeout(getReceiveTimeout(dittoHeaders));
+        }
+
+        private static boolean isAggregateResults(final DittoHeaders dittoHeaders) {
+            boolean result = DEFAULT_AGGREGATE;
+            final String aggregateHeaderValue = dittoHeaders.get(AGGREGATE_HEADER);
+            if (null != aggregateHeaderValue) {
+                result = Boolean.valueOf(aggregateHeaderValue);
+            }
+            return result;
+        }
+
+        private static Duration getReceiveTimeout(final DittoHeaders dittoHeaders) {
+            Duration result = DEFAULT_RECEIVE_TIMEOUT;
+            @Nullable final String timeoutHeaderValue = dittoHeaders.get(TIMEOUT_HEADER);
+            if (null != timeoutHeaderValue) {
+                result = Duration.ofMillis(Integer.parseInt(timeoutHeaderValue));
+            }
+            return result;
         }
 
         @Override
@@ -421,8 +435,8 @@ public final class DevOpsCommandsActor extends AbstractActor {
                     .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                     .match(ReceiveTimeout.class, receiveTimeout -> {
                         LogUtil.enhanceLogWithCorrelationId(log, getSelf().path().name());
-                        log.info(
-                                "Got ReceiveTimeout, answering with all aggregated DevOpsCommandResponses and stopping ourself..");
+                        log.info("Got ReceiveTimeout, answering with all aggregated DevOpsCommandResponses and " +
+                                "stopping ourselves ...");
                         sendCommandResponsesAndStop();
                     })
                     .matchAny(m -> {
@@ -449,8 +463,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
                         ((DevOpsCommandResponse<?>) commandResponse).getInstance().orElse("?"),
                         commandResponse.getType());
             } else {
-                log.debug("Received DevOpsCommandResponse from service/instance <?/?>: {}",
-                        commandResponse.getType());
+                log.debug("Received DevOpsCommandResponse from service/instance <?/?>: {}", commandResponse.getType());
             }
             addCommandResponse(commandResponse);
         }
@@ -458,8 +471,8 @@ public final class DevOpsCommandsActor extends AbstractActor {
         private void handleDittoRuntimeException(final DittoRuntimeException dittoRuntimeException) {
             LogUtil.enhanceLogWithCorrelationId(log, dittoRuntimeException);
 
-            log.warning("Received DittoRuntimeException {} from {}: {}", dittoRuntimeException.getClass().getName(),
-                    getSender(), dittoRuntimeException);
+            log.warning("Received DittoRuntimeException <{}> from <{}>: <{}>!",
+                    dittoRuntimeException.getClass().getName(), getSender(), dittoRuntimeException);
 
             addCommandResponse(DevOpsErrorResponse.of(null, null, dittoRuntimeException.toJson(),
                     dittoRuntimeException.getDittoHeaders()));
@@ -468,10 +481,11 @@ public final class DevOpsCommandsActor extends AbstractActor {
         private void addCommandResponse(final CommandResponse<?> commandResponse) {
             commandResponses.add(commandResponse);
             if (!aggregateResults) {
-                log.info("Do not aggregate send response immediately.");
+                log.info("Do not aggregate sent response immediately.");
                 sendCommandResponsesAndStop();
             }
         }
+
     }
 
 }

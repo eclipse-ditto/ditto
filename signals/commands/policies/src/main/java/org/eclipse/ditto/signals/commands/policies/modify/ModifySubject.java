@@ -28,6 +28,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
@@ -41,6 +42,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * org.eclipse.ditto.model.policies.Subjects}.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = ModifySubject.TYPE_PREFIX, name = ModifySubject.NAME)
 public final class ModifySubject extends AbstractCommand<ModifySubject> implements PolicyModifyCommand<ModifySubject> {
 
     /**

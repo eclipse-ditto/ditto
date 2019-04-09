@@ -29,6 +29,8 @@ import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.MissingThingIdsException;
@@ -200,5 +202,18 @@ public final class RetrieveThingsTest {
     @Test(expected = MissingThingIdsException.class)
     public void initializationWithEmptyThingIdsListThrowsMissingThingIdsException(){
         RetrieveThings.getBuilder(new ArrayList<>()).build();
+    }
+
+    @Test
+    public void parseRetrieveThingCommand() {
+        final GlobalCommandRegistry commandRegistry = GlobalCommandRegistry.getInstance();
+
+        final RetrieveThing command = RetrieveThing.of(
+                TestConstants.Thing.THING_ID, TestConstants.DITTO_HEADERS);
+        final JsonObject jsonObject = command.toJson(FieldType.regularOrSpecial());
+
+        final Command parsedCommand = commandRegistry.parse(jsonObject, TestConstants.DITTO_HEADERS);
+
+        assertThat(parsedCommand).isEqualTo(command);
     }
 }

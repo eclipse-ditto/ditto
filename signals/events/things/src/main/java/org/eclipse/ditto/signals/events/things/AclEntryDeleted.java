@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
@@ -36,6 +37,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a Thing ACL entry was deleted.
  */
 @Immutable
+@JsonParsableEvent(name = AclEntryDeleted.NAME, typePrefix= AclEntryDeleted.TYPE_PREFIX)
 public final class AclEntryDeleted extends AbstractThingEvent<AclEntryDeleted>
         implements ThingModifiedEvent<AclEntryDeleted> {
 

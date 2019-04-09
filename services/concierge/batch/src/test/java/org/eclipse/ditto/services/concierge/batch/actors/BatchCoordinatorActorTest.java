@@ -29,10 +29,10 @@ import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.base.JsonParsableRegistry;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.batch.ExecuteBatch;
 import org.eclipse.ditto.signals.commands.batch.ExecuteBatchResponse;
 import org.eclipse.ditto.signals.commands.batch.exceptions.BatchAlreadyExecutingException;
-import org.eclipse.ditto.signals.commands.things.ThingCommandRegistry;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes;
@@ -312,7 +312,7 @@ public final class BatchCoordinatorActorTest {
     private static final class SharedRegionProxyMock extends AbstractActor {
 
         private int modifyAttributesCount = 0;
-        private final JsonParsableRegistry<? extends Command> commandRegistry = ThingCommandRegistry.newInstance();
+        private final JsonParsableRegistry<? extends Command> commandRegistry = GlobalCommandRegistry.getInstance();
 
         SharedRegionProxyMock() {
         }

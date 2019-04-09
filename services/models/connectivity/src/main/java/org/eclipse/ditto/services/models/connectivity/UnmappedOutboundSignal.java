@@ -12,10 +12,12 @@
  */
 package org.eclipse.ditto.services.models.connectivity;
 
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -33,9 +35,12 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Represents an outbound signal before it was mapped to an {@link ExternalMessage}.
@@ -43,6 +48,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
 @Immutable
 final class UnmappedOutboundSignal implements OutboundSignal {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(UnmappedOutboundSignal.class);
     private final Signal<?> source;
     private final List<Target> targets;
 
@@ -55,19 +61,25 @@ final class UnmappedOutboundSignal implements OutboundSignal {
      * Creates a new {@code OutboundSignal} object from the specified JSON object.
      *
      * @param jsonObject a JSON object which provides the data for the OutboundSignal to be created.
-     * @param mappingStrategy the {@link MappingStrategy} to use in order to parse the in the JSON included
-     * {@code source} Signal
+     * @param mappingStrategies the {@link org.eclipse.ditto.services.utils.cluster.MappingStrategies} to use in order
+     * to parse the in the JSON included {@code source} Signal.
      * @return a new OutboundSignal which is initialised with the extracted data from {@code jsonObject}.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @throws NullPointerException if {@code mappingStrategy} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
-    public static OutboundSignal fromJson(final JsonObject jsonObject, final MappingStrategy mappingStrategy) {
-
+    public static OutboundSignal fromJson(final JsonObject jsonObject, final MappingStrategies mappingStrategies) {
         final JsonObject readSourceObj = jsonObject.getValueOrThrow(JsonFields.SOURCE);
         final String commandType = readSourceObj.getValueOrThrow(Command.JsonFields.TYPE);
-        final Jsonifiable signalJsonifiable = mappingStrategy.determineStrategy().get(commandType)
-                .apply(readSourceObj, DittoHeaders.empty());
+        final Optional<MappingStrategy> mappingStrategy = mappingStrategies.getMappingStrategyFor(commandType);
+
+        if (!mappingStrategy.isPresent()) {
+            final String msgPattern = "There is no mapping strategy available for the signal of type <{0}>!";
+            final String message = MessageFormat.format(msgPattern, commandType);
+            LOGGER.error(message);
+            throw new IllegalStateException(message);
+        }
+
+        final Jsonifiable signalJsonifiable = mappingStrategy.get().map(readSourceObj, DittoHeaders.empty());
 
         final JsonArray readTargetsArr = jsonObject.getValueOrThrow(JsonFields.TARGETS);
         final List<Target> targets = readTargetsArr.stream()

@@ -30,6 +30,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingIdValidator;
 import org.eclipse.ditto.signals.base.WithFeatureId;
@@ -40,6 +41,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * This command retrieves a {@link org.eclipse.ditto.model.things.Feature}'s properties.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = RetrieveFeatureProperties.TYPE_PREFIX, name = RetrieveFeatureProperties.NAME)
 public final class RetrieveFeatureProperties extends AbstractCommand<RetrieveFeatureProperties> implements
         ThingQueryCommand<RetrieveFeatureProperties>, WithFeatureId {
 

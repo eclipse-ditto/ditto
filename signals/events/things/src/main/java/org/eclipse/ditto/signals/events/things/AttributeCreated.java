@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
@@ -36,6 +37,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after an {@code Attribute} was created.
  */
 @Immutable
+@JsonParsableEvent(name = AttributeCreated.NAME, typePrefix= AttributeCreated.TYPE_PREFIX)
 public final class AttributeCreated extends AbstractThingEvent<AttributeCreated>
         implements ThingModifiedEvent<AttributeCreated> {
 

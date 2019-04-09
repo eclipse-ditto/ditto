@@ -28,6 +28,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingIdValidator;
 import org.eclipse.ditto.signals.base.WithFeatureId;
@@ -38,6 +39,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * This command deletes a {@link org.eclipse.ditto.model.things.Feature}'s Definition.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = DeleteFeatureDefinition.TYPE_PREFIX, name = DeleteFeatureDefinition.NAME)
 public final class DeleteFeatureDefinition extends AbstractCommand<DeleteFeatureDefinition>
         implements ThingModifyCommand<DeleteFeatureDefinition>, WithFeatureId {
 

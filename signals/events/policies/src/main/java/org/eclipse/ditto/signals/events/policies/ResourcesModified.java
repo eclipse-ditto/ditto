@@ -31,6 +31,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
@@ -39,6 +40,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
 
 @Immutable
+@JsonParsableEvent(name = ResourcesModified.NAME, typePrefix= ResourcesModified.TYPE_PREFIX)
 public final class ResourcesModified extends AbstractPolicyEvent<ResourcesModified>
         implements PolicyEvent<ResourcesModified> {
 

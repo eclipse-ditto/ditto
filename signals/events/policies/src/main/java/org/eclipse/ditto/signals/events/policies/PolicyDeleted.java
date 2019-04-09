@@ -26,6 +26,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
@@ -33,6 +34,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a {@link org.eclipse.ditto.model.policies.Policy} was deleted.
  */
 @Immutable
+@JsonParsableEvent(name = PolicyDeleted.NAME, typePrefix= PolicyDeleted.TYPE_PREFIX)
 public final class PolicyDeleted extends AbstractPolicyEvent<PolicyDeleted> implements PolicyEvent<PolicyDeleted> {
 
     /**

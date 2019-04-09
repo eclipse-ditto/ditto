@@ -31,6 +31,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
@@ -40,6 +41,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  * Response to a {@link ModifyPolicyId} command.
  */
 @Immutable
+@JsonParsableCommandResponse(type = ModifyPolicyIdResponse.TYPE)
 public final class ModifyPolicyIdResponse extends AbstractCommandResponse<ModifyPolicyIdResponse> implements
         ThingModifyCommandResponse<ModifyPolicyIdResponse> {
 

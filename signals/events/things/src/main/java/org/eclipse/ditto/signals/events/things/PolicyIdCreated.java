@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
@@ -38,6 +39,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * a Policy ID will create the Policy ID).
  */
 @Immutable
+@JsonParsableEvent(name = PolicyIdCreated.NAME, typePrefix = PolicyIdCreated.TYPE_PREFIX)
 public final class PolicyIdCreated extends AbstractThingEvent<PolicyIdCreated>
         implements ThingModifiedEvent<PolicyIdCreated> {
 

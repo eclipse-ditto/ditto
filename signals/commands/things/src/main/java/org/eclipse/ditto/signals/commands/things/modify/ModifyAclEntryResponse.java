@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Permissions;
@@ -43,6 +44,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  * Response to a {@link ModifyAclEntry} command.
  */
 @Immutable
+@JsonParsableCommandResponse(type = ModifyAclEntryResponse.TYPE)
 public final class ModifyAclEntryResponse extends AbstractCommandResponse<ModifyAclEntryResponse> implements
         ThingModifyCommandResponse<ModifyAclEntryResponse> {
 

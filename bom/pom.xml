@@ -49,7 +49,7 @@
         <mongo-reactivestreams.version>1.9.2</mongo-reactivestreams.version>
 
         <parboiled.version>2.1.4</parboiled.version>
-        <jjwt.version>0.10.1</jjwt.version>
+        <jjwt.version>0.10.6</jjwt.version>
         <asm.version>5.2</asm.version>
         <qpid-jms-client.version>0.40.0</qpid-jms-client.version>
         <newmotion-akka-rabbitmq.version>5.0.0</newmotion-akka-rabbitmq.version>
@@ -86,7 +86,7 @@
 
         <!-- ### Testing dependencies versions -->
         <junit.version>4.12</junit.version>
-        <assertj.version>3.8.0</assertj.version>
+        <assertj.version>3.11.1</assertj.version>
         <mutability-detector.version>0.9.6</mutability-detector.version>
         <equals-verifier.version>3.0.3</equals-verifier.version>
         <mockito.version>2.9.0</mockito.version>
@@ -873,6 +873,13 @@
                 <groupId>com.typesafe.akka</groupId>
                 <artifactId>akka-http-testkit_${scala.version}</artifactId>
                 <version>${akka-http.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-orgjson</artifactId>
+                <version>${jjwt.version}</version>
                 <scope>test</scope>
             </dependency>
             <!-- scalatest dependency leaked from akka-http-testkit -->

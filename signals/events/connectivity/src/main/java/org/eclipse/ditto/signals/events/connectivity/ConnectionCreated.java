@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -38,6 +39,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a {@link Connection} was created.
  */
 @Immutable
+@JsonParsableEvent(name = ConnectionCreated.NAME, typePrefix= ConnectionCreated.TYPE_PREFIX)
 public final class ConnectionCreated extends AbstractConnectivityEvent<ConnectionCreated>
         implements ConnectivityEvent<ConnectionCreated> {
 

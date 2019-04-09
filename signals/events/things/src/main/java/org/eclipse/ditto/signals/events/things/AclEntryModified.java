@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
@@ -38,6 +39,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a Thing ACL entry was modified.
  */
 @Immutable
+@JsonParsableEvent(name = AclEntryModified.NAME, typePrefix= AclEntryModified.TYPE_PREFIX)
 public final class AclEntryModified extends AbstractThingEvent<AclEntryModified>
         implements ThingModifiedEvent<AclEntryModified> {
 

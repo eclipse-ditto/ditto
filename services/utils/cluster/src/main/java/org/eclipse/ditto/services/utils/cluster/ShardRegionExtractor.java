@@ -12,13 +12,11 @@
  */
 package org.eclipse.ditto.services.utils.cluster;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
-import java.util.function.BiFunction;
+import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -36,38 +34,34 @@ import akka.cluster.sharding.ShardRegion;
 public final class ShardRegionExtractor implements ShardRegion.MessageExtractor {
 
     private final int numberOfShards;
-    private final Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> mappingStrategies;
+    private final MappingStrategies mappingStrategies;
 
-    private ShardRegionExtractor(final int numberOfShards,
-            final Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> mappingStrategies) {
+    private ShardRegionExtractor(final int numberOfShards, final MappingStrategies mappingStrategies) {
         this.numberOfShards = numberOfShards;
-        this.mappingStrategies = new HashMap<>();
-        this.mappingStrategies.putAll(requireNonNull(mappingStrategies, "mapping strategies"));
+        this.mappingStrategies = checkNotNull(mappingStrategies, "mapping strategies");
     }
 
     /**
-     * Returns a new {@code ShardRegionExtractor} by loading the {@link MappingStrategy} implementation to use via the
+     * Returns a new {@code ShardRegionExtractor} by loading the {@link MappingStrategies} implementation to use via the
      * passed {@code ActorSystem}.
      *
      * @param numberOfShards the amount of shards to use.
      * @param actorSystem the ActorSystem to use for looking up the MappingStrategy.
      */
     public static ShardRegionExtractor of(final int numberOfShards, final ActorSystem actorSystem) {
-
-        final MappingStrategy mappingStrategy = MappingStrategy.loadMappingStrategy(actorSystem);
-        return new ShardRegionExtractor(numberOfShards, mappingStrategy.determineStrategy());
+        final MappingStrategies mappingStrategies = MappingStrategies.loadMappingStrategies(actorSystem);
+        return new ShardRegionExtractor(numberOfShards, mappingStrategies);
     }
 
     /**
-     * Returns a new {@code ShardRegionExtractor} with the given {@code numberOfShards} and a specific Map of {@code
-     * mappingStrategies}.
+     * Returns a new {@code ShardRegionExtractor} with the given {@code numberOfShards} and a specific Map of
+     * {@code mappingStrategies}.
      *
      * @param numberOfShards the amount of shards to use.
-     * @param mappingStrategies the strategies for parsing incoming messages.
+     * @param mappingStrategy the strategy for parsing incoming messages.
      */
-    public static ShardRegionExtractor of(final int numberOfShards,
-            final Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> mappingStrategies) {
-        return new ShardRegionExtractor(numberOfShards, mappingStrategies);
+    public static ShardRegionExtractor of(final int numberOfShards, final MappingStrategies mappingStrategy) {
+        return new ShardRegionExtractor(numberOfShards, mappingStrategy);
     }
 
     @Override
@@ -115,8 +109,8 @@ public final class ShardRegionExtractor implements ShardRegion.MessageExtractor 
 
     private Jsonifiable createJsonifiableFrom(final ShardedMessageEnvelope messageEnvelope) {
         final String type = messageEnvelope.getType();
-        final BiFunction<JsonObject, DittoHeaders, Jsonifiable> mappingFunction = mappingStrategies.get(type);
-        if (null == mappingFunction) {
+        final Optional<MappingStrategy> mappingStrategy = mappingStrategies.getMappingStrategyFor(type);
+        if (!mappingStrategy.isPresent()) {
             final String pattern = "No strategy found to map type {0} to a Jsonifiable!";
             throw new IllegalStateException(MessageFormat.format(pattern, type));
         }
@@ -124,7 +118,7 @@ public final class ShardRegionExtractor implements ShardRegion.MessageExtractor 
         final JsonObject payload = messageEnvelope.getMessage();
         final DittoHeaders dittoHeaders = messageEnvelope.getDittoHeaders();
 
-        return mappingStrategies.get(type).apply(payload, dittoHeaders);
+        return mappingStrategy.get().map(payload, dittoHeaders);
     }
 
     @Override
@@ -144,7 +138,8 @@ public final class ShardRegionExtractor implements ShardRegion.MessageExtractor 
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" + "numberOfShards=" + numberOfShards + ", mappingStrategies="
+        return getClass().getSimpleName() + " [" + "numberOfShards=" + numberOfShards + ", mappingStrategy="
                 + mappingStrategies + "]";
     }
+
 }

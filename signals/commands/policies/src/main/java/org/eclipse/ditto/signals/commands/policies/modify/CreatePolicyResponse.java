@@ -31,6 +31,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
@@ -41,8 +42,9 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  * Response to a {@link CreatePolicy} command.
  */
 @Immutable
-public final class CreatePolicyResponse extends AbstractCommandResponse<CreatePolicyResponse> implements
-        PolicyModifyCommandResponse<CreatePolicyResponse> {
+@JsonParsableCommandResponse(type = CreatePolicyResponse.TYPE)
+public final class CreatePolicyResponse extends AbstractCommandResponse<CreatePolicyResponse>
+        implements PolicyModifyCommandResponse<CreatePolicyResponse> {
 
     /**
      * Type of this response.
@@ -107,17 +109,15 @@ public final class CreatePolicyResponse extends AbstractCommandResponse<CreatePo
      * format.
      */
     public static CreatePolicyResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<CreatePolicyResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String policyId =
-                            jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
-                    final Policy extractedPolicyCreated = jsonObject.getValue(JSON_POLICY)
-                            .map(JsonValue::asObject)
-                            .map(PoliciesModelFactory::newPolicy)
-                            .orElse(null);
+        return new CommandResponseJsonDeserializer<CreatePolicyResponse>(TYPE, jsonObject).deserialize(statusCode -> {
+            final String policyId = jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
+            final Policy extractedPolicyCreated = jsonObject.getValue(JSON_POLICY)
+                    .map(JsonValue::asObject)
+                    .map(PoliciesModelFactory::newPolicy)
+                    .orElse(null);
 
-                    return new CreatePolicyResponse(policyId, statusCode, extractedPolicyCreated, dittoHeaders);
-                });
+            return new CreatePolicyResponse(policyId, statusCode, extractedPolicyCreated, dittoHeaders);
+        });
     }
 
     @Override
@@ -162,7 +162,7 @@ public final class CreatePolicyResponse extends AbstractCommandResponse<CreatePo
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof CreatePolicyResponse);
+        return other instanceof CreatePolicyResponse;
     }
 
     @Override

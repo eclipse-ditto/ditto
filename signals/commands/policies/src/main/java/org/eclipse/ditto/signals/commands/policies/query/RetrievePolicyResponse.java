@@ -30,6 +30,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
@@ -40,8 +41,9 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  * Response to a {@link RetrievePolicy} command.
  */
 @Immutable
-public final class RetrievePolicyResponse extends AbstractCommandResponse<RetrievePolicyResponse> implements
-        PolicyQueryCommandResponse<RetrievePolicyResponse> {
+@JsonParsableCommandResponse(type = RetrievePolicyResponse.TYPE)
+public final class RetrievePolicyResponse extends AbstractCommandResponse<RetrievePolicyResponse>
+        implements PolicyQueryCommandResponse<RetrievePolicyResponse> {
 
     /**
      * Type of this response.
@@ -122,14 +124,12 @@ public final class RetrievePolicyResponse extends AbstractCommandResponse<Retrie
      * format.
      */
     public static RetrievePolicyResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<RetrievePolicyResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String policyId =
-                            jsonObject.getValueOrThrow(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID);
-                    final JsonObject extractedPolicy = jsonObject.getValueOrThrow(JSON_POLICY);
+        return new CommandResponseJsonDeserializer<RetrievePolicyResponse>(TYPE, jsonObject).deserialize(statusCode -> {
+            final String policyId = jsonObject.getValueOrThrow(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID);
+            final JsonObject extractedPolicy = jsonObject.getValueOrThrow(JSON_POLICY);
 
-                    return of(policyId, extractedPolicy, dittoHeaders);
-                });
+            return of(policyId, extractedPolicy, dittoHeaders);
+        });
     }
 
     @Override
@@ -190,7 +190,9 @@ public final class RetrievePolicyResponse extends AbstractCommandResponse<Retrie
             return false;
         }
         final RetrievePolicyResponse that = (RetrievePolicyResponse) o;
-        return that.canEqual(this) && Objects.equals(policyId, that.policyId) && Objects.equals(policy, that.policy) &&
+        return that.canEqual(this) &&
+                Objects.equals(policyId, that.policyId) &&
+                Objects.equals(policy, that.policy) &&
                 super.equals(o);
     }
 

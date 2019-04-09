@@ -31,6 +31,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
@@ -42,8 +43,9 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  * Response to a {@link ModifySubject} command.
  */
 @Immutable
-public final class ModifySubjectResponse extends AbstractCommandResponse<ModifySubjectResponse> implements
-        PolicyModifyCommandResponse<ModifySubjectResponse> {
+@JsonParsableCommandResponse(type = ModifySubjectResponse.TYPE)
+public final class ModifySubjectResponse extends AbstractCommandResponse<ModifySubjectResponse>
+        implements PolicyModifyCommandResponse<ModifySubjectResponse> {
 
     /**
      * Type of this response.
@@ -134,23 +136,20 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected format.
      */
     public static ModifySubjectResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<ModifySubjectResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String policyId =
-                            jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
-                    final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
+        return new CommandResponseJsonDeserializer<ModifySubjectResponse>(TYPE, jsonObject).deserialize(statusCode -> {
+            final String policyId = jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
+            final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
 
-                    final Optional<String> extractedSubjectId = jsonObject.getValue(JSON_SUBJECT_ID);
+            final Optional<String> extractedSubjectId = jsonObject.getValue(JSON_SUBJECT_ID);
 
-                    final Subject extractedSubjectCreated = jsonObject.getValue(JSON_SUBJECT)
-                            .map(JsonValue::asObject)
-                            .map(obj -> extractedSubjectId.map(s -> PoliciesModelFactory.newSubject(s, obj))
-                                    .orElse(null))
-                            .orElse(null);
+            final Subject extractedSubjectCreated = jsonObject.getValue(JSON_SUBJECT)
+                    .map(JsonValue::asObject)
+                    .map(obj -> extractedSubjectId.map(s -> PoliciesModelFactory.newSubject(s, obj))
+                            .orElse(null))
+                    .orElse(null);
 
-                    return new ModifySubjectResponse(policyId, label, extractedSubjectCreated, statusCode,
-                            dittoHeaders);
-                });
+            return new ModifySubjectResponse(policyId, label, extractedSubjectCreated, statusCode, dittoHeaders);
+        });
     }
 
     @Override
@@ -206,8 +205,9 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
 
     @Override
     public ModifySubjectResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return (subjectCreated != null) ? created(policyId, label, subjectCreated, dittoHeaders) :
-                modified(policyId, label, dittoHeaders);
+        return subjectCreated != null
+                ? created(policyId, label, subjectCreated, dittoHeaders)
+                : modified(policyId, label, dittoHeaders);
     }
 
     @Override
@@ -224,8 +224,11 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
             return false;
         }
         final ModifySubjectResponse that = (ModifySubjectResponse) o;
-        return that.canEqual(this) && Objects.equals(policyId, that.policyId) && Objects.equals(label, that.label)
-                && Objects.equals(subjectCreated, that.subjectCreated) && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(policyId, that.policyId) &&
+                Objects.equals(label, that.label) &&
+                Objects.equals(subjectCreated, that.subjectCreated) &&
+                super.equals(o);
     }
 
     @Override

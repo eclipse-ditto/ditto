@@ -26,6 +26,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -33,6 +34,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  * Response to the {@link ChangeLogLevel} command.
  */
 @Immutable
+@JsonParsableCommandResponse(type = ChangeLogLevelResponse.TYPE)
 public final class ChangeLogLevelResponse extends AbstractDevOpsCommandResponse<ChangeLogLevelResponse> {
 
     /**

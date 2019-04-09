@@ -23,7 +23,7 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.services.models.concierge.EntityId;
-import org.eclipse.ditto.services.models.concierge.cache.Entry;
+import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,7 +95,7 @@ public final class EnforcerRetriever {
             } else {
                 final Entry<EntityId> enforcerKeyEntry = enforcerKeyEntryOptional.get();
                 if (enforcerKeyEntry.exists()) {
-                    final EntityId enforcerKey = enforcerKeyEntry.getValue();
+                    final EntityId enforcerKey = enforcerKeyEntry.getValueOrThrow();
                     final String resourceType = enforcerKey.getResourceType();
                     final Cache<EntityId, Entry<Enforcer>> enforcerCache =
                             enforcerCacheFunction.apply(resourceType);

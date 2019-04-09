@@ -23,6 +23,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.junit.Test;
@@ -32,7 +34,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link RetrieveThingResponse}.
  */
-public class RetrieveThingResponseTest {
+public final class RetrieveThingResponseTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, RetrieveThingResponse.TYPE)
@@ -41,13 +43,11 @@ public class RetrieveThingResponseTest {
             .set(RetrieveThingResponse.JSON_THING_PLAIN_JSON, TestConstants.Thing.THING.toJsonString())
             .build();
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(RetrieveThingResponse.class, areImmutable(), provided(JsonObject.class).isAlsoImmutable(),
                 assumingFields("thing").areModifiedAsPartOfAnUnobservableCachingStrategy());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
@@ -56,18 +56,15 @@ public class RetrieveThingResponseTest {
                 .verify();
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThing() {
         RetrieveThingResponse.of(TestConstants.Thing.THING_ID, (Thing) null, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullJsonObject() {
         RetrieveThingResponse.of(TestConstants.Thing.THING_ID, (JsonObject) null, TestConstants.EMPTY_DITTO_HEADERS);
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
@@ -79,7 +76,6 @@ public class RetrieveThingResponseTest {
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
 
-
     @Test
     public void createInstanceFromValidJson() {
         final RetrieveThingResponse underTest =
@@ -87,6 +83,19 @@ public class RetrieveThingResponseTest {
 
         assertThat(underTest).isNotNull();
         assertThat(underTest.getThing().toJson()).isEqualTo(TestConstants.Thing.THING.toJson());
+    }
+
+    @Test
+    public void parseRetrieveThingCommandResponse() {
+        final RetrieveThingResponse commandResponse =
+                RetrieveThingResponse.of(TestConstants.Thing.THING_ID, TestConstants.Thing.THING,
+                        TestConstants.DITTO_HEADERS);
+        final JsonObject jsonObject = commandResponse.toJson(FieldType.regularOrSpecial());
+
+        final CommandResponse parsedCommandResponse =
+                GlobalCommandResponseRegistry.getInstance().parse(jsonObject, TestConstants.DITTO_HEADERS);
+
+        assertThat(parsedCommandResponse).isEqualTo(commandResponse);
     }
 
 }

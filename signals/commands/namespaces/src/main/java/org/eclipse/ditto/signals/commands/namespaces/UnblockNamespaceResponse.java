@@ -17,11 +17,13 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
 /**
  * Response to {@link UnblockNamespace}.
  */
+@JsonParsableCommandResponse(type = UnblockNamespaceResponse.TYPE)
 public final class UnblockNamespaceResponse extends AbstractNamespaceCommandResponse<UnblockNamespaceResponse> {
 
     /**
