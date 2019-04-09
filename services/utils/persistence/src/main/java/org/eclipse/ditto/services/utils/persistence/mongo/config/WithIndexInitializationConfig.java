@@ -13,7 +13,7 @@ package org.eclipse.ditto.services.utils.persistence.mongo.config;
 /**
 * This interface represents a service that has a index initializer configuration.
 */
-public interface WithIndexInitialization {
+public interface WithIndexInitializationConfig {
 
     /**
      * Returns the index initialization configuration settings of this service.
