@@ -92,7 +92,6 @@ public final class JsonExamplesProducer {
                         .withoutUrlDecoding()
                         .build()),
                 knownNamespaces,
-                "next-page-cursor",
                 DittoHeaders.empty());
 
         writeJson(commandsDir.resolve(Paths.get("query-things-command.json")), queryThingsCommand);

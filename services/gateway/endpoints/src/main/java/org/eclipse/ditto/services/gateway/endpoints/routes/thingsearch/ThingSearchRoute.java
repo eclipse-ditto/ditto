@@ -111,7 +111,6 @@ public final class ThingSearchRoute extends AbstractRoute {
                         AbstractRoute.calculateSelectedFields(params.get(FIELDS))
                                 .orElse(null),
                         calculateNamespaces(params.get(NAMESPACES)),
-                        params.get(ThingSearchParameter.CURSOR).orElse(null),
                         dittoHeaders))));
     }
 

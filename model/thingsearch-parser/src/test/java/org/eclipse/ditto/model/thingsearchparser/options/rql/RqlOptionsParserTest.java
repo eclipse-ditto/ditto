@@ -18,8 +18,10 @@ import java.util.List;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.rql.ParserException;
+import org.eclipse.ditto.model.thingsearch.CursorOption;
 import org.eclipse.ditto.model.thingsearch.LimitOption;
 import org.eclipse.ditto.model.thingsearch.Option;
+import org.eclipse.ditto.model.thingsearch.SizeOption;
 import org.eclipse.ditto.model.thingsearch.SortOption;
 import org.eclipse.ditto.model.thingsearch.SortOptionEntry;
 import org.eclipse.ditto.model.thingsearchparser.OptionParser;
@@ -128,8 +130,8 @@ public final class RqlOptionsParserTest {
 
     @Test
     public void parseOptionCombinations() throws ParserException {
-        final List<Option> options = parser.parse("limit(0,1),sort(-attributes/username)");
-        assertThat(options.size()).isEqualTo(2);
+        final List<Option> options = parser.parse("limit(0,1),sort(-attributes/username),cursor(ABC),size(463)");
+        assertThat(options.size()).isEqualTo(4);
 
         final LimitOption limitOption = (LimitOption) options.get(0);
         assertThat(limitOption.getCount()).isEqualTo(1);
@@ -146,6 +148,12 @@ public final class RqlOptionsParserTest {
                 .map(SortOptionEntry::getOrder)
                 .anyMatch(SortOptionEntry.SortOrder.DESC::equals)
         ).isTrue();
+
+        final CursorOption cursorOption = (CursorOption) options.get(2);
+        assertThat(cursorOption.getCursor()).isEqualTo("ABC");
+
+        final SizeOption sizeOption = (SizeOption) options.get(3);
+        assertThat(sizeOption.getSize()).isEqualTo(463);
     }
 
     @Test

@@ -33,6 +33,7 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
  * OptionVisitor for the parsed parameters. Goes through the list of option parameters and creates the persistence
  * specific output out of them.
  */
+// TODO: replace this.
 @AllValuesAreNonnullByDefault
 public final class ParameterOptionVisitor implements OptionVisitor {
 
@@ -82,7 +83,7 @@ public final class ParameterOptionVisitor implements OptionVisitor {
 
     @Override
     public void visit(final Option option) {
-        // not required yet
+        // TODO: not required; remove.
     }
 
     private SortOption mapSort(final SortOptionEntry entry) {

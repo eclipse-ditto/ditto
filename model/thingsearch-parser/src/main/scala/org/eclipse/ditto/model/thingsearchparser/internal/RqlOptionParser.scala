@@ -40,7 +40,9 @@ private class RqlOptionParser(override val input: ParserInput) extends RqlParser
   /**
     * @return the root for parsing RQL Options.
     */
-  def OptionsRoot: Rule1[Seq[thingsearch.Option]] = rule { WhiteSpace ~ Options ~ EOI }
+  def OptionsRoot: Rule1[Seq[thingsearch.Option]] = rule {
+    WhiteSpace ~ Options ~ EOI
+  }
 
   /**
     * Options                    = Option, { ',', Option }
@@ -50,10 +52,10 @@ private class RqlOptionParser(override val input: ParserInput) extends RqlParser
   }
 
   /**
-    * Option                     = Sort | Limit
+    * Option                     = Sort | Limit | Cursor | Size
     */
   private def Option: Rule1[thingsearch.Option] = rule {
-    Sort | Limit
+    Sort | Limit | Cursor | Size
   }
 
   /**
@@ -79,9 +81,11 @@ private class RqlOptionParser(override val input: ParserInput) extends RqlParser
   private def SortOrder: Rule1[SortOptionEntry.SortOrder] = rule {
     Asc | Desc
   }
+
   private def Asc: Rule1[SortOptionEntry.SortOrder] = rule {
     '+' ~ push(SortOptionEntry.SortOrder.ASC)
   }
+
   private def Desc: Rule1[SortOptionEntry.SortOrder] = rule {
     '-' ~ push(SortOptionEntry.SortOrder.DESC)
   }
@@ -92,6 +96,26 @@ private class RqlOptionParser(override val input: ParserInput) extends RqlParser
   private def Limit: Rule1[LimitOption] = rule {
     "limit" ~ '(' ~ LongLiteral ~ ',' ~ LongLiteral ~ ')' ~> ((offset: java.lang.Long, count: java.lang.Long) =>
       SearchModelFactory.newLimitOption(offset.toInt, count.toInt))
+  }
+
+  /**
+    * Cursor                      = "cursor", '(', StringLiteral, ')'
+    */
+  private def Cursor[CursorOption] = rule {
+    "cursor" ~ '(' ~ CursorString ~ ')' ~>
+      ((cursor: String) => SearchModelFactory.newCursorOption(cursor))
+  }
+
+  /**
+    * Size                        = "size", '(', IntegerLiteral, ')'
+    */
+  private def Size[SizeOption] = rule {
+    "size" ~ '(' ~ capture(Digits) ~ ')' ~>
+      ((size: String) => SearchModelFactory.newSizeOption(java.lang.Integer.valueOf(size)))
+  }
+
+  private def CursorString: Rule1[String] = rule {
+    capture(oneOrMore(CharPredicate.AlphaNum))
   }
 }
 
@@ -106,7 +130,7 @@ object RqlOptionParser extends OptionParser {
     * @param input the input that should be parsed.
     * @return the AST RootNode representing the root of the AST.
     * @throws NullPointerException if input is null.
-    * @throws ParserException if input could not be parsed.
+    * @throws ParserException      if input could not be parsed.
     */
   override def parse(input: String): util.List[Option] = parseOptions(input)
 

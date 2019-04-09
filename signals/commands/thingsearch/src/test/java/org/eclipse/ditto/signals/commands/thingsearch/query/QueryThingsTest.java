@@ -48,7 +48,6 @@ public final class QueryThingsTest {
             .set(QueryThings.JSON_NAMESPACES, JsonFactory.newArrayBuilder()
                     .add(TestConstants.KNOWN_NAMESPACE)
                     .build())
-            .set(QueryThings.JSON_CURSOR, TestConstants.CURSOR)
             .build().toString();
 
     private static final String JSON_ALL_FIELDS_V1 = JsonFactory.newObjectBuilder()
@@ -62,7 +61,6 @@ public final class QueryThingsTest {
             .set(QueryThings.JSON_NAMESPACES, JsonFactory.newArrayBuilder()
                     .add(TestConstants.KNOWN_NAMESPACE)
                     .build())
-            .set(QueryThings.JSON_CURSOR, TestConstants.CURSOR)
             .build().toString();
 
     private static final String JSON_MINIMAL_V2 = JsonFactory.newObjectBuilder()
@@ -98,7 +96,6 @@ public final class QueryThingsTest {
                         Arrays.asList(TestConstants.KNOWN_OPT_1, TestConstants.KNOWN_OPT_2),
                         JsonFactory.newFieldSelector(KNOWN_FIELDS, TestConstants.JSON_PARSE_OPTIONS),
                         TestConstants.KNOWN_NAMESPACES_SET,
-                        TestConstants.CURSOR,
                         DittoHeaders.empty());
 
         final String json = command.toJsonString();
@@ -113,7 +110,6 @@ public final class QueryThingsTest {
                         Arrays.asList(TestConstants.KNOWN_OPT_1, TestConstants.KNOWN_OPT_2),
                         JsonFactory.newFieldSelector(KNOWN_FIELDS, TestConstants.JSON_PARSE_OPTIONS),
                         TestConstants.KNOWN_NAMESPACES_SET,
-                        TestConstants.CURSOR,
                         DittoHeaders.empty());
 
         final String json = command.toJsonString(JsonSchemaVersion.V_1, FieldType.regularOrSpecial());
