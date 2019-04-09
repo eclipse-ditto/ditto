@@ -111,6 +111,12 @@ public interface JsonWebToken {
         public static final JsonFieldDefinition<String> USER_ID =
                 JsonFactory.newStringFieldDefinition("sub", FieldType.REGULAR);
 
+        /**
+         * JSON field containing the audience.
+         */
+        public static final JsonFieldDefinition<String> AUDIENCE =
+                JsonFactory.newStringFieldDefinition("aud", FieldType.REGULAR);
+
         private JsonFields() {
             throw new AssertionError();
         }
