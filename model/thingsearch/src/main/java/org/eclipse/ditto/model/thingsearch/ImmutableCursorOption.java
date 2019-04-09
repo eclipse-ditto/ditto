@@ -36,7 +36,7 @@ final class ImmutableCursorOption implements CursorOption {
 
     @Override
     public void accept(final OptionVisitor visitor) {
-        throw new IllegalStateException("TODO: replace this method");
+        visitor.visit(this);
     }
 
     @Override

@@ -41,7 +41,7 @@ final class ImmutableSizeOption implements SizeOption {
 
     @Override
     public void accept(final OptionVisitor visitor) {
-        throw new IllegalStateException("TODO: replace this method");
+        visitor.visit(this);
     }
 
     @Override

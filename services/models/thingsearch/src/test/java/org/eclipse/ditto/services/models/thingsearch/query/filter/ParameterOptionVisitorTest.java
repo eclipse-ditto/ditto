@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.models.thingsearch.query.filter;
 
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -24,6 +25,7 @@ import org.eclipse.ditto.model.query.SortDirection;
 import org.eclipse.ditto.model.query.expression.FieldExpressionFactory;
 import org.eclipse.ditto.model.query.expression.SortFieldExpression;
 import org.eclipse.ditto.model.thingsearch.LimitOption;
+import org.eclipse.ditto.model.thingsearch.Option;
 import org.eclipse.ditto.model.thingsearch.SearchModelFactory;
 import org.eclipse.ditto.model.thingsearch.SortOption;
 import org.eclipse.ditto.model.thingsearch.SortOptionEntry;
@@ -54,7 +56,9 @@ public final class ParameterOptionVisitorTest {
 
     private ParameterOptionVisitor visitor;
 
-    /** */
+    /**
+     *
+     */
     @Before
     public void before() {
         qbMock = Mockito.mock(QueryBuilder.class, new AnswerWithSelf());
@@ -63,19 +67,25 @@ public final class ParameterOptionVisitorTest {
         when(exprFactoryMock.sortBy(Mockito.any(String.class))).thenReturn(exprMock);
     }
 
-    /** */
+    /**
+     *
+     */
     @Test(expected = NullPointerException.class)
     public void constructorWithNullExpressionFactory() {
         new ParameterOptionVisitor(null, qbMock);
     }
 
-    /** */
+    /**
+     *
+     */
     @Test(expected = NullPointerException.class)
     public void constructorWithNullQueryBuilder() {
         new ParameterOptionVisitor(exprFactoryMock, null);
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void visitLimitOption() {
         // test
@@ -86,7 +96,9 @@ public final class ParameterOptionVisitorTest {
         verify(qbMock).limit(KNOWN_LIMIT);
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void visitSortOptionWithSingleSortOption() {
         // prepare
@@ -102,7 +114,9 @@ public final class ParameterOptionVisitorTest {
                         SortDirection.ASC)));
     }
 
-    /** */
+    /**
+     *
+     */
     @Test(expected = IllegalArgumentException.class)
     public void visitUnsupportedSortExpression() {
         // prepare
@@ -117,7 +131,9 @@ public final class ParameterOptionVisitorTest {
         visitor.visitAll(Collections.singletonList(sortOption));
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void visitSortOptionMultiple() {
         // prepare
@@ -139,7 +155,9 @@ public final class ParameterOptionVisitorTest {
     }
 
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void visitLimitOptionAndSortOption() {
         // test
@@ -157,6 +175,19 @@ public final class ParameterOptionVisitorTest {
         verify(qbMock).sort(
                 Collections.singletonList(new org.eclipse.ditto.model.query.SortOption(exprMock,
                         SortDirection.ASC)));
+    }
+
+    @Test
+    public void visitCursorAndSizeOptions() {
+        final Option cursorOption = SearchModelFactory.newCursorOption("cursor");
+        final Option sizeOption = SearchModelFactory.newSizeOption(123);
+
+        visitor.visitAll(Arrays.asList(cursorOption, sizeOption));
+
+        verify(qbMock).skip(0);
+        verify(qbMock).limit(123);
+        verify(qbMock).cursor("cursor");
+        verifyNoMoreInteractions(qbMock);
     }
 
 }
