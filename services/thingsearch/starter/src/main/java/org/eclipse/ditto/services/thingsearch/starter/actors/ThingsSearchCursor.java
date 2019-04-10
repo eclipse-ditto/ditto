@@ -65,6 +65,7 @@ import akka.util.ByteString;
 /**
  * Package-private evaluator and generator of opaque cursors.
  */
+// TODO: document and test.
 final class ThingsSearchCursor {
 
     private static final SortOptionEntry DEFAULT_SORT_OPTION_ENTRY =
@@ -72,7 +73,7 @@ final class ThingsSearchCursor {
 
     private static final Base64.Encoder BASE64_URL_ENCODER_WITHOUT_PADDING = Base64.getUrlEncoder().withoutPadding();
 
-    // fields in string representation
+    // secret fields in JSON representation
     private static final JsonFieldDefinition<String> FILTER = JsonFactory.newStringFieldDefinition("F");
     private static final JsonFieldDefinition<String> JSON_FIELD_SELECTOR = JsonFactory.newStringFieldDefinition("J");
     private static final JsonFieldDefinition<String> CORRELATION_ID = JsonFactory.newStringFieldDefinition("C");

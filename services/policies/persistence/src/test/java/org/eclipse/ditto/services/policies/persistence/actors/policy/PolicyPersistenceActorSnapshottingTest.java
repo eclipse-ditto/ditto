@@ -368,9 +368,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         };
     }
 
-    /**
-     *
-     */
+
     @Test
     public void snapshotsAreNotCreatedTwiceIfSnapshotHasBeenAlreadyBeenCreatedDueToThresholdAndSnapshotIntervalHasPassed() {
         final int snapshotIntervalSecs = 3;
@@ -416,9 +414,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         };
     }
 
-    /**
-     *
-     */
+
     @Test
     public void actorCannotBeStartedWithNegativeSnapshotThreshold() {
         final Config customConfig = createNewDefaultTestConfig().

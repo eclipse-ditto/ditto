@@ -56,9 +56,7 @@ public final class ParameterOptionVisitorTest {
 
     private ParameterOptionVisitor visitor;
 
-    /**
-     *
-     */
+
     @Before
     public void before() {
         qbMock = Mockito.mock(QueryBuilder.class, new AnswerWithSelf());
@@ -67,25 +65,19 @@ public final class ParameterOptionVisitorTest {
         when(exprFactoryMock.sortBy(Mockito.any(String.class))).thenReturn(exprMock);
     }
 
-    /**
-     *
-     */
+
     @Test(expected = NullPointerException.class)
     public void constructorWithNullExpressionFactory() {
         new ParameterOptionVisitor(null, qbMock);
     }
 
-    /**
-     *
-     */
+
     @Test(expected = NullPointerException.class)
     public void constructorWithNullQueryBuilder() {
         new ParameterOptionVisitor(exprFactoryMock, null);
     }
 
-    /**
-     *
-     */
+
     @Test
     public void visitLimitOption() {
         // test
@@ -96,9 +88,7 @@ public final class ParameterOptionVisitorTest {
         verify(qbMock).limit(KNOWN_LIMIT);
     }
 
-    /**
-     *
-     */
+
     @Test
     public void visitSortOptionWithSingleSortOption() {
         // prepare
@@ -114,9 +104,7 @@ public final class ParameterOptionVisitorTest {
                         SortDirection.ASC)));
     }
 
-    /**
-     *
-     */
+
     @Test(expected = IllegalArgumentException.class)
     public void visitUnsupportedSortExpression() {
         // prepare
@@ -131,9 +119,7 @@ public final class ParameterOptionVisitorTest {
         visitor.visitAll(Collections.singletonList(sortOption));
     }
 
-    /**
-     *
-     */
+
     @Test
     public void visitSortOptionMultiple() {
         // prepare
@@ -155,9 +141,7 @@ public final class ParameterOptionVisitorTest {
     }
 
 
-    /**
-     *
-     */
+
     @Test
     public void visitLimitOptionAndSortOption() {
         // test
