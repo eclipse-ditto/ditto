@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -120,7 +120,7 @@ public abstract class AbstractEnforcement<T extends Signal> {
      */
     protected void reportError(final String hint, final Throwable error) {
         if (error instanceof DittoRuntimeException) {
-            log().info("{}: {}", hint, error);
+            log().info("{} - {}: {}", hint, error.getClass().getSimpleName(), error.getMessage());
             sender().tell(error, self());
         } else {
             reportUnexpectedError(hint, error);
@@ -131,7 +131,8 @@ public abstract class AbstractEnforcement<T extends Signal> {
      * Report unexpected error.
      */
     protected void reportUnexpectedError(final String hint, final Throwable error) {
-        log().error(error, "Unexpected error {}", hint);
+        log().error(error, "Unexpected error {} - {}: {}", hint, error.getClass().getSimpleName(),
+                error.getMessage());
 
         sender().tell(mapToExternalException(error), self());
     }
@@ -150,7 +151,7 @@ public abstract class AbstractEnforcement<T extends Signal> {
             return (GatewayInternalErrorException) error;
         } else {
             log().error(error, "Unexpected non-DittoRuntimeException error - responding with " +
-                    "GatewayInternalErrorException: {} {}", error.getClass().getSimpleName(), error.getMessage());
+                    "GatewayInternalErrorException - {} :{}", error.getClass().getSimpleName(), error.getMessage());
             return GatewayInternalErrorException.newBuilder()
                     .cause(error)
                     .dittoHeaders(dittoHeaders())
@@ -262,18 +263,30 @@ public abstract class AbstractEnforcement<T extends Signal> {
         return context.getSelf();
     }
 
+    /**
+     * @return the sender of the sent {@link #signal()}
+     */
     protected ActorRef sender() {
         return context.getSender();
     }
 
+    /**
+     * @return the sent Signal of subtype {@code <T>}
+     */
     protected T signal() {
         return context.getMessage();
     }
 
+    /**
+     * @return the DittoHeaders of the sent {@link #signal()}
+     */
     protected DittoHeaders dittoHeaders() {
         return signal().getDittoHeaders();
     }
 
+    /**
+     * @return the {@link org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor} reference
+     */
     protected ActorRef conciergeForwarder() {
         return context.getConciergeForwarder();
     }

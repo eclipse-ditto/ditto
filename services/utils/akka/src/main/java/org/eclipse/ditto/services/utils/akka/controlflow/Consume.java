@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -24,9 +24,11 @@ import akka.stream.javadsl.Sink;
 /**
  * An Akka stream sink from a consumer of messages with sender.
  */
-public class Consume {
+public final class Consume {
 
-    private Consume() {}
+    private Consume() {
+        throw new AssertionError();
+    }
 
     /**
      * Create sink from consumer of {@code WithSender}.

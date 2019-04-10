@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -55,7 +55,7 @@ public interface EnforcementProvider<T extends Signal> {
      * @param context the context.
      * @return the {@link AbstractEnforcement}.
      */
-    AbstractEnforcement<T> createEnforcement(final Contextual<T> context);
+    AbstractEnforcement<T> createEnforcement(Contextual<T> context);
 
     /**
      * Convert this enforcement provider into a stream of contextual messages.

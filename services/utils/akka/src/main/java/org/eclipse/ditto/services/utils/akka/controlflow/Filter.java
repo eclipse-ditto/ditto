@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -48,7 +48,9 @@ import akka.stream.javadsl.GraphDSL;
  */
 public final class Filter {
 
-    private Filter() {}
+    private Filter() {
+        throw new AssertionError();
+    }
 
     /**
      * Create a filter stage from a class and a predicate.

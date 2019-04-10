@@ -37,7 +37,7 @@ import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
 import akka.actor.ActorRef;
 import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.pattern.PatternsCS;
+import akka.pattern.Patterns;
 
 /**
  * Asynchronous cache loader that loads a value by asking an actor provided by a "Entity-Region-Provider".
@@ -50,7 +50,7 @@ public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<EntityI
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ActorAskCacheLoader.class);
 
-    private final long askTimeoutMillis;
+    private final Duration askTimeout;
     private final Function<String, ActorRef> entityRegionProvider;
     private final Map<String, Function<String, T>> commandCreatorMap;
     private final Map<String, Function<Object, Entry<V>>> responseTransformerMap;
@@ -59,7 +59,7 @@ public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<EntityI
             final Function<String, ActorRef> entityRegionProvider,
             final Map<String, Function<String, T>> commandCreatorMap,
             final Map<String, Function<Object, Entry<V>>> responseTransformerMap) {
-        this.askTimeoutMillis = requireNonNull(askTimeout).toMillis();
+        this.askTimeout = requireNonNull(askTimeout);
         this.entityRegionProvider = requireNonNull(entityRegionProvider);
         this.commandCreatorMap = Collections.unmodifiableMap(new HashMap<>(requireNonNull(commandCreatorMap)));
         this.responseTransformerMap =
@@ -161,7 +161,7 @@ public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<EntityI
         }, executor).thenCompose(command -> {
             final ActorRef entityRegion = getEntityRegion(key.getResourceType());
             LOGGER.debug("Going to retrieve cache entry for key <{}> with command <{}>: ", key, command);
-            return PatternsCS.ask(entityRegion, command, askTimeoutMillis)
+            return Patterns.ask(entityRegion, command, askTimeout)
                     .thenApply(response -> transformResponse(resourceType, response))
                     .toCompletableFuture();
         });

@@ -17,32 +17,35 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.services.utils.akka.controlflow.ActivityChecker;
 import org.eclipse.ditto.services.utils.akka.controlflow.Pipe;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.japi.pf.PFBuilder;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
+import akka.stream.SourceShape;
 import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.Sink;
+import akka.stream.javadsl.Source;
 
 /**
  * Actor to authorize signals by enforcing policies or ACLs on signals.
  */
 public final class EnforcerActor extends AbstractEnforcerActor {
 
-    private final Sink<Contextual<Object>, ?> handler;
+    private final Flow<Contextual<Object>, Contextual<Object>, NotUsed> handler;
 
     private EnforcerActor(final ActorRef pubSubMediator, final ActorRef conciergeForwarder,
-            final Executor enforcerExecutor, final Duration askTimeout, final Sink<Contextual<Object>, ?> handler) {
+            final Executor enforcerExecutor, final Duration askTimeout,
+            final Flow<Contextual<Object>, Contextual<Object>, NotUsed> handler) {
         super(pubSubMediator, conciergeForwarder, enforcerExecutor, askTimeout);
         this.handler = handler;
 
@@ -71,7 +74,7 @@ public final class EnforcerActor extends AbstractEnforcerActor {
             @Nullable final Duration activityCheckInterval) {
 
         // create the sink exactly once per props and share it across all actors to not waste memory
-        final Sink<Contextual<Object>, ?> messageHandler =
+        final Flow<Contextual<Object>, Contextual<Object>, NotUsed> messageHandler =
                 assembleHandler(enforcementProviders, preEnforcer, activityCheckInterval);
 
         return Props.create(EnforcerActor.class, () ->
@@ -100,22 +103,38 @@ public final class EnforcerActor extends AbstractEnforcerActor {
     }
 
     @Override
-    protected Sink<Contextual<Object>, ?> getHandler() {
+    protected Flow<Contextual<Object>, Contextual<Object>, NotUsed> getHandler() {
         return handler;
     }
 
     /**
      * Create the sink that defines the behavior of this enforcer actor. Do NOT call this or similar methods inside an
-     * actor instance; otherwise the steam components will waste huge amounts of heap space.
+     * actor instance; otherwise the stream components will waste huge amounts of heap space.
+     *
+     * @param enforcementProviders a set of {@link EnforcementProvider}s.
+     * @param preEnforcer a function executed before actual enforcement, may be {@code null}.
+     * @param activityCheckInterval how often to check for actor activity for termination after an idle period.
+     * @return a handler as {@link Flow} of {@link Contextual} messages.
      */
-    private static Sink<Contextual<Object>, ?> assembleHandler(final Set<EnforcementProvider<?>> enforcementProviders,
+    private static Flow<Contextual<Object>, Contextual<Object>, NotUsed> assembleHandler(
+            final Set<EnforcementProvider<?>> enforcementProviders,
             @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
             @Nullable final Duration activityCheckInterval) {
 
-        final Graph<FlowShape<Contextual<Object>, Contextual<Object>>, NotUsed> activityChecker =
-                Flow.<Contextual<Object>>create()
-                        .via(ActivityChecker.ofNullable(activityCheckInterval, Contextual::getSelf, Contextual::getLog))
-                        .filter(ctx -> !(ctx.getMessage() instanceof NotUsed));
+        final Flow<Contextual<Object>, Contextual<Object>, NotUsed> activityChecker;
+        if (activityCheckInterval != null) {
+            activityChecker = Flow.<Contextual<Object>>create()
+                    .filterNot(ctx -> ctx.getMessage() instanceof NotUsed)
+                    .idleTimeout(activityCheckInterval)
+                    .recoverWithRetries(1,
+                            new PFBuilder<Throwable, Graph<SourceShape<Contextual<Object>>, NotUsed>>()
+                                    .match(TimeoutException.class,
+                                            timeout -> Source.empty()) // complete the source on timeout
+                                    .build());
+        } else {
+            activityChecker = Flow.<Contextual<Object>>create()
+                    .filterNot(ctx -> ctx.getMessage() instanceof NotUsed);
+        }
 
         final Graph<FlowShape<Contextual<Object>, Contextual<Object>>, NotUsed> preEnforcerFlow =
                 Optional.ofNullable(preEnforcer).map(PreEnforcer::fromFunctionWithContext).orElseGet(Flow::create);
@@ -127,7 +146,6 @@ public final class EnforcerActor extends AbstractEnforcerActor {
 
         return Flow.fromGraph(activityChecker)
                 .via(preEnforcerFlow)
-                .via(enforcerFlow)
-                .to(Sink.foreach(ctx -> ctx.getLog().warning("unhandled: <{}>", ctx.getMessage())));
+                .via(enforcerFlow);
     }
 }

@@ -28,6 +28,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
+import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 
@@ -61,7 +62,7 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     }
 
     @Override
-    protected abstract Sink<Contextual<Object>, ?> getHandler();
+    protected abstract Flow<Contextual<Object>, Contextual<Object>, NotUsed> getHandler();
 
     @Override
     @SuppressWarnings("unchecked")
@@ -71,7 +72,7 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     }
 
     @Override
-    protected Source<Contextual<Object>, ?> mapMessage(final Object message) {
+    protected Source<Contextual<Object>, NotUsed> mapMessage(final Object message) {
         return Source.single(contextual.withReceivedMessage(message, getSender()));
     }
 

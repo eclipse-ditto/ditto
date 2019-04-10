@@ -19,10 +19,11 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.services.concierge.util.config.AbstractConciergeConfigReader;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommand;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
@@ -33,7 +34,6 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.stream.FanOutShape2;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
@@ -46,41 +46,39 @@ import akka.stream.javadsl.Source;
 /**
  * Actor that dispatches signals not authorized by any entity meaning signals without entityId.
  */
-public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Dispatch> {
+public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.ImmutableDispatch> {
 
     /**
      * The name of this actor.
      */
     public static final String ACTOR_NAME = "dispatcherActor";
 
-    private final Sink<Dispatch, ?> handler;
+    private final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> handler;
     private final ActorRef thingsAggregatorActor;
-    private DiagnosticLoggingAdapter log;
 
     private DispatcherActor(final AbstractConciergeConfigReader configReader,
             final ActorRef enforcerShardRegion,
             final ActorRef pubSubMediator,
-            final Sink<Dispatch, ?> handler) {
+            final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> handler) {
         this.handler = handler;
         final Props props = ThingsAggregatorActor.props(configReader, enforcerShardRegion);
         thingsAggregatorActor = getContext().actorOf(props, ThingsAggregatorActor.ACTOR_NAME);
-        log = LogUtil.obtain(this);
 
         initActor(getSelf(), pubSubMediator);
     }
 
     @Override
-    protected Class<Dispatch> getMessageClass() {
-        return Dispatch.class;
+    protected Class<ImmutableDispatch> getMessageClass() {
+        return ImmutableDispatch.class;
     }
 
     @Override
-    protected Source<Dispatch, ?> mapMessage(final Object message) {
-        return Source.single(new Dispatch(message, getSender(), thingsAggregatorActor, log));
+    protected Source<ImmutableDispatch, NotUsed> mapMessage(final Object message) {
+        return Source.single(new ImmutableDispatch(message, getSender(), thingsAggregatorActor));
     }
 
     @Override
-    protected Sink<Dispatch, ?> getHandler() {
+    protected Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> getHandler() {
         return handler;
     }
 
@@ -112,11 +110,10 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Di
             final ActorRef enforcerShardRegion,
             final Graph<FlowShape<WithSender, WithSender>, ?> preEnforcer) {
 
-        final Graph<FlowShape<Dispatch, Dispatch>, NotUsed> dispatchFlow = createDispatchFlow(pubSubMediator);
+        final Graph<FlowShape<ImmutableDispatch, ImmutableDispatch>, NotUsed> dispatchFlow = createDispatchFlow(pubSubMediator);
 
-        final Sink<Dispatch, NotUsed> handler = asContextualFlow(preEnforcer)
-                .via(dispatchFlow)
-                .to(Sink.foreach(dispatch -> dispatch.log.warning("Unhandled: <{}>", dispatch.message)));
+        final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> handler = asContextualFlow(preEnforcer)
+                .via(dispatchFlow);
 
         return Props.create(DispatcherActor.class,
                 () -> new DispatcherActor(configReader, enforcerShardRegion, pubSubMediator, handler));
@@ -128,18 +125,18 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Di
      * @param pubSubMediator Akka pub-sub-mediator.
      * @return stream to dispatch search and thing commands.
      */
-    private static Graph<FlowShape<Dispatch, Dispatch>, NotUsed> createDispatchFlow(final ActorRef pubSubMediator) {
+    private static Graph<FlowShape<ImmutableDispatch, ImmutableDispatch>, NotUsed> createDispatchFlow(final ActorRef pubSubMediator) {
         return GraphDSL.create(builder -> {
 
-            final FanOutShape2<Dispatch, Dispatch, Dispatch> multiplexSearch =
+            final FanOutShape2<ImmutableDispatch, ImmutableDispatch, ImmutableDispatch> multiplexSearch =
                     builder.add(multiplexBy(ThingSearchCommand.class, ThingSearchSudoCommand.class));
 
-            final FanOutShape2<Dispatch, Dispatch, Dispatch> multiplexRetrieveThings =
+            final FanOutShape2<ImmutableDispatch, ImmutableDispatch, ImmutableDispatch> multiplexRetrieveThings =
                     builder.add(multiplexBy(RetrieveThings.class, SudoRetrieveThings.class));
 
-            final SinkShape<Dispatch> forwardToSearchActor = builder.add(searchActorSink(pubSubMediator));
+            final SinkShape<ImmutableDispatch> forwardToSearchActor = builder.add(searchActorSink(pubSubMediator));
 
-            final SinkShape<Dispatch> forwardToThingsAggregator = builder.add(thingsAggregatorSink());
+            final SinkShape<ImmutableDispatch> forwardToThingsAggregator = builder.add(thingsAggregatorSink());
 
             builder.from(multiplexSearch.out0()).to(forwardToSearchActor);
             builder.from(multiplexRetrieveThings.out0()).to(forwardToThingsAggregator);
@@ -149,28 +146,28 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Di
         });
     }
 
-    private static Graph<FanOutShape2<Dispatch, Dispatch, Dispatch>, NotUsed> multiplexBy(final Class<?>... classes) {
+    private static Graph<FanOutShape2<ImmutableDispatch, ImmutableDispatch, ImmutableDispatch>, NotUsed> multiplexBy(final Class<?>... classes) {
         return Filter.multiplexBy(dispatch ->
                 Arrays.stream(classes).anyMatch(clazz -> clazz.isInstance(dispatch.getMessage()))
                         ? Optional.of(dispatch)
                         : Optional.empty());
     }
 
-    private static Sink<Dispatch, ?> searchActorSink(final ActorRef pubSubMediator) {
+    private static Sink<ImmutableDispatch, ?> searchActorSink(final ActorRef pubSubMediator) {
         return Sink.foreach(dispatch -> pubSubMediator.tell(
                 new DistributedPubSubMediator.Send(SEARCH_ACTOR_PATH, dispatch.getMessage()),
                 dispatch.getSender()));
     }
 
-    private static Sink<Dispatch, ?> thingsAggregatorSink() {
+    private static Sink<ImmutableDispatch, ?> thingsAggregatorSink() {
         return Sink.foreach(dispatch ->
                 dispatch.thingsAggregatorActor.tell(dispatch.getMessage(), dispatch.getSender()));
     }
 
-    private static Flow<Dispatch, Dispatch, NotUsed> asContextualFlow(
+    private static Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> asContextualFlow(
             final Graph<FlowShape<WithSender, WithSender>, ?> preEnforcer) {
 
-        return Flow.<Dispatch>create().flatMapConcat(dispatch ->
+        return Flow.<ImmutableDispatch>create().flatMapConcat(dispatch ->
                 Source.<WithSender>single(dispatch).via(preEnforcer).map(dispatch::replaceMessage));
     }
 
@@ -204,19 +201,21 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Di
         pubSubMediator.tell(new DistributedPubSubMediator.Put(self), self);
     }
 
-    public static final class Dispatch implements WithSender<Object> {
+    /**
+     * Local immutable implementation of {@link WithSender} containing an additional {@code thingsAggregatorActor}
+     * reference.
+     */
+    @Immutable
+    static final class ImmutableDispatch implements WithSender<Object> {
 
         private final Object message;
         private final ActorRef sender;
         private final ActorRef thingsAggregatorActor;
-        private final DiagnosticLoggingAdapter log;
 
-        private Dispatch(final Object message, final ActorRef sender, final ActorRef thingsAggregatorActor,
-                final DiagnosticLoggingAdapter log) {
+        private ImmutableDispatch(final Object message, final ActorRef sender, final ActorRef thingsAggregatorActor) {
             this.message = message;
             this.sender = sender;
             this.thingsAggregatorActor = thingsAggregatorActor;
-            this.log = log;
         }
 
         @Override
@@ -229,14 +228,43 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Di
             return sender;
         }
 
-        private Dispatch replaceMessage(final WithSender withSender) {
-            return new Dispatch(withSender.getMessage(), sender, thingsAggregatorActor, log);
+        private ImmutableDispatch replaceMessage(final WithSender withSender) {
+            return new ImmutableDispatch(withSender.getMessage(), sender, thingsAggregatorActor);
         }
 
         @Override
         @SuppressWarnings("unchecked")
         public <S> WithSender<S> withMessage(final S newMessage) {
-            return (WithSender<S>) new Dispatch(newMessage, sender, thingsAggregatorActor, log);
+            return (WithSender<S>) new ImmutableDispatch(newMessage, sender, thingsAggregatorActor);
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (!(o instanceof ImmutableDispatch)) {
+                return false;
+            }
+            final ImmutableDispatch that = (ImmutableDispatch) o;
+            return Objects.equals(message, that.message) &&
+                    Objects.equals(sender, that.sender) &&
+                    Objects.equals(thingsAggregatorActor, that.thingsAggregatorActor);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(message, sender, thingsAggregatorActor);
+        }
+
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " [" +
+                    "message=" + message +
+                    ", sender=" + sender +
+                    ", thingsAggregatorActor=" + thingsAggregatorActor +
+                    "]";
         }
     }
 }

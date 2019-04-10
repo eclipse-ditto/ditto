@@ -15,30 +15,13 @@ package org.eclipse.ditto.services.utils.akka.controlflow;
 import akka.actor.ActorRef;
 
 /**
- * A message packed together with sender.
- *
- * @param <T> type of message.
+ * Factory for building "controlflow" objects.
  */
-public interface WithSender<T> {
+final class ControlFlowFactory {
 
-    /**
-     * @return the message.
-     */
-    T getMessage();
-
-    /**
-     * @return the sender.
-     */
-    ActorRef getSender();
-
-    /**
-     * Replace the message.
-     *
-     * @param newMessage the new message.
-     * @param <S> type of the new message.
-     * @return copy of this object with message replaced.
-     */
-    <S> WithSender<S> withMessage(S newMessage);
+    private ControlFlowFactory() {
+        throw new AssertionError();
+    }
 
     /**
      * Create a message with sender.
@@ -48,8 +31,7 @@ public interface WithSender<T> {
      * @param <T> type of message.
      * @return message and sender bundled together.
      */
-    static <T> WithSender<T> of(final T message, final ActorRef sender) {
-        return ControlFlowFactory.messageWithSender(message, sender);
+    static <T> WithSender<T> messageWithSender(final T message, final ActorRef sender) {
+        return new ImmutableWithSender<>(message, sender);
     }
-
 }
