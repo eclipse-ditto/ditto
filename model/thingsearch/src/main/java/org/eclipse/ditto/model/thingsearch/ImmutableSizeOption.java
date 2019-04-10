@@ -14,7 +14,6 @@ package org.eclipse.ditto.model.thingsearch;
 
 import javax.annotation.concurrent.Immutable;
 
-// TODO: test
 @Immutable
 final class ImmutableSizeOption implements SizeOption {
 

@@ -12,9 +12,10 @@
  */
 package org.eclipse.ditto.model.thingsearch;
 
+import java.util.Objects;
+
 import javax.annotation.concurrent.Immutable;
 
-// TODO: test
 @Immutable
 final class ImmutableCursorOption implements CursorOption {
 
@@ -43,7 +44,7 @@ final class ImmutableCursorOption implements CursorOption {
     public boolean equals(final Object o) {
         if (o instanceof ImmutableCursorOption) {
             final ImmutableCursorOption that = (ImmutableCursorOption) o;
-            return cursor == that.cursor;
+            return Objects.equals(cursor, that.cursor);
         } else {
             return false;
         }
@@ -56,7 +57,7 @@ final class ImmutableCursorOption implements CursorOption {
 
     @Override
     public int hashCode() {
-        return cursor.hashCode();
+        return Objects.hash(cursor);
     }
 
     @Override
