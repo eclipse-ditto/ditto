@@ -224,8 +224,9 @@ public final class SearchActor extends AbstractActor {
                             searchTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
 
                     final List<String> subjectIds = queryThings.getDittoHeaders().getAuthorizationSubjects();
-                    return processSearchPersistenceResult(searchPersistence.findAll(query, subjectIds, namespaces),
-                            dittoHeaders)
+                    final Source<ResultList<String>, NotUsed> findAllResult =
+                            searchPersistence.findAll(query, subjectIds, namespaces);
+                    return processSearchPersistenceResult(findAllResult, dittoHeaders)
                             .via(Flow.fromFunction(result -> {
                                 stopTimer(databaseAccessTimer);
                                 return result;
