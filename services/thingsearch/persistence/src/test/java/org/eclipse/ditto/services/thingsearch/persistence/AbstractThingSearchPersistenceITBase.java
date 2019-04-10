@@ -191,16 +191,10 @@ public abstract class AbstractThingSearchPersistenceITBase {
     }
 
     protected ResultList<String> findAll(final Query query, final List<String> subjectIds) {
-        try {
-            return readPersistence.findAll(query, subjectIds)
-                    .limit(1)
-                    .runWith(Sink.seq(), actorMaterializer)
-                    .toCompletableFuture()
-                    .get()
-                    .get(0);
-        } catch (final Exception e) {
-            throw mapAsRuntimeException(e);
-        }
+        return readPersistence.findAll(query, subjectIds)
+                .runWith(Sink.head(), actorMaterializer)
+                .toCompletableFuture()
+                .join();
     }
 
     protected <T> T runBlockingWithReturn(final Source<T, NotUsed> publisher) {

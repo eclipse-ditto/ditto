@@ -204,6 +204,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
                         .projection(projection)
                         .maxTime(maxQueryTime.getSeconds(), TimeUnit.SECONDS))
                 .grouped(limitPlusOne)
+                .orElse(Source.single(Collections.emptyList()))
                 .map(resultsPlus0ne -> toResultList(resultsPlus0ne, skip, limit, query.getSortOptions()))
                 .mapError(handleMongoExecutionTimeExceededException())
                 .log("findAll");
