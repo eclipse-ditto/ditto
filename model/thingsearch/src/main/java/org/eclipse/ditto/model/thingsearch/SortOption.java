@@ -24,6 +24,17 @@ import javax.annotation.concurrent.Immutable;
 public interface SortOption extends Option, Iterable<SortOptionEntry> {
 
     /**
+     * Returns a new instance of {@code SortOption} with the given entries.
+     *
+     * @param entries the entries of the returned sort option.
+     * @return the new sort option.
+     * @throws NullPointerException if {@code entries} is {@code null}.
+     */
+    static SortOption of(final List<SortOptionEntry> entries) {
+        return ImmutableSortOption.of(entries);
+    }
+
+    /**
      * Returns an unmodifiable List containing the entries of this sort option.
      *
      * @return the entries of this sort option.

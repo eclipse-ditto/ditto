@@ -69,6 +69,13 @@ public final class QueryFilterCriteriaFactory {
         return null == filter ? criteriaFactory.any() : mapCriteria(filter, headers);
     }
 
+    /**
+     * @return the criteria factory.
+     */
+    public CriteriaFactory toCriteriaFactory() {
+        return criteriaFactory;
+    }
+
     private Criteria restrictByNamespace(final Set<String> namespaces, Criteria filterCriteria) {
         return criteriaFactory.and(Arrays.asList(namespaceFilterCriteria(namespaces), filterCriteria));
     }

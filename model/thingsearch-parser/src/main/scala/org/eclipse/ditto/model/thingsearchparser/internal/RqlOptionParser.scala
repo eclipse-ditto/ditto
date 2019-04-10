@@ -115,7 +115,7 @@ private class RqlOptionParser(override val input: ParserInput) extends RqlParser
   }
 
   private def CursorString: Rule1[String] = rule {
-    capture(oneOrMore(CharPredicate.AlphaNum))
+    capture(oneOrMore(CharPredicate.from(_ != ')')))
   }
 }
 
