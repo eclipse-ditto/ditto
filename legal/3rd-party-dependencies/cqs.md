@@ -84,7 +84,6 @@
 |org.ow2.asm|asm|5.2| [16325](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16325) |
 |org.ow2.asm|asm-tree|5.2| [16323](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16323) |
 |org.ow2.asm|asm-util|5.2| [16324](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16324) |
-|org.parboiled|parboiled_2.12|2.1.4| [16334](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16334) |
 |org.reactivestreams|reactive-streams|1.0.2| [16332](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16332) |
 |org.scala-lang.modules|scala-java8-compat_2.12|0.8.0| [14402](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14402) |
 |org.scala-lang.modules|scala-parser-combinators_2.12|1.1.0| [16341](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16341) |
