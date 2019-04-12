@@ -17,43 +17,54 @@ global:
 
 concierge:
   name: concierge
+  replicaCount: 1
   image:
     repository: docker.io/eclipse/ditto-concierge
     imagePullPolicy: IfNotPresent
     tag: 0.9.0-M1
 connectivity:
   name: connectivity
+  replicaCount: 1
   image:
     repository: docker.io/eclipse/ditto-connectivity
     imagePullPolicy: IfNotPresent
     tag: 0.9.0-M1
 things:
   name: things
+  replicaCount: 1
   image:
     repository: docker.io/eclipse/ditto-things
     imagePullPolicy: IfNotPresent
     tag: 0.9.0-M1
 search:
   name: things-search
+  replicaCount: 1
   image:
     repository: docker.io/eclipse/ditto-things-search
     imagePullPolicy: IfNotPresent
     tag: 0.9.0-M1
 policies:
   name: policies
+  replicaCount: 1
   image:
     repository: docker.io/eclipse/ditto-policies
     imagePullPolicy: IfNotPresent
     tag: 0.9.0-M1
 gateway:
   name: gateway
+  replicaCount: 1
   image:
     repository: docker.io/eclipse/ditto-gateway
     imagePullPolicy: IfNotPresent
     tag: 0.9.0-M1
 
 nginx:
+  replicaCount: 1
   version: 1.15
+swagger:
+  replicaCount: 1
+  version: 3.17.4
+
 
 ##
 ## MongoDB chart configuration
