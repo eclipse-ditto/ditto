@@ -206,3 +206,6 @@ Manual step by sending mail to Eclipse IP team - this is a collection of depende
 |io.netty|netty-transport-native-epoll|linux-x86_64| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
 |io.netty|netty-transport-native-kqueue|osx-x86_64| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
 |io.netty|netty-transport-native-unix-common|4.1.27.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
+|com.chuusai|shapeless_2.12|2.3.2| [16295](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16295) |
+|org.parboiled|parboiled_2.12|2.1.4| [16334](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16334) |
+|org.typelevel|macro-compat_2.12|1.1.1| [16326](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16326) |
