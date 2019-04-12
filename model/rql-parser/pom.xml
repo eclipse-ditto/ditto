@@ -35,7 +35,13 @@
 
         <dependency>
             <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-http_${scala.version}</artifactId>
+            <artifactId>akka-parsing_${scala.version}</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.typesafe.akka</groupId>
+                    <artifactId>akka-actor_${scala.version}</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- ### Testing ### -->
