@@ -381,9 +381,13 @@ public final class RootRoute {
                 authorizationContext, dittoDefaultHeaders);
     }
 
-    private Map<String, String> getFilteredExternalHeaders(final HttpMessage httpRequest, final String correlationId ) {
+    private Map<String, String> getFilteredExternalHeaders(final HttpMessage httpRequest, final String correlationId) {
         Map<String, String> externalHeaders =
                 StreamSupport.stream(httpRequest.getHeaders().spliterator(), false)
+                        .filter(header ->
+                                org.eclipse.ditto.services.gateway.security.HttpHeader.fromName(header.lowercaseName())
+                                        .map(org.eclipse.ditto.services.gateway.security.HttpHeader::shouldRetain)
+                                        .orElse(true))
                         .collect(Collectors.toMap(HttpHeader::name, HttpHeader::value, (dv1, dv2) -> {
                             throw GatewayDuplicateHeaderException
                                     .newBuilder()

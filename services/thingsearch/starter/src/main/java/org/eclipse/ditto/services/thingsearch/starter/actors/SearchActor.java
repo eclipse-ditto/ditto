@@ -202,10 +202,8 @@ public final class SearchActor extends AbstractActor {
     }
 
     private void query(final QueryThings queryThings) {
-        final DittoHeaders dittoHeaders = queryThings.getDittoHeaders();
-        final Optional<String> correlationIdOpt = dittoHeaders.getCorrelationId();
-        LogUtil.enhanceLogWithCorrelationId(log, correlationIdOpt);
-        log.info("Processing QueryThings command: {}", queryThings);
+        LogUtil.enhanceLogWithCorrelationId(log, queryThings.getDittoHeaders().getCorrelationId());
+        log.debug("Starting to process QueryThings command: {}", queryThings);
         final JsonSchemaVersion version = queryThings.getImplementedSchemaVersion();
 
         final String queryType = "query";
@@ -219,17 +217,20 @@ public final class SearchActor extends AbstractActor {
                 ThingsSearchCursor.extractCursor(queryThings, materializer);
 
         final Source<Object, ?> replySource = cursorSource.flatMapConcat(cursor -> {
-            final QueryThings commandToParse =
+            final QueryThings command =
                     cursor.map(c -> c.toQueryThings(queryParser.getCriteriaFactory()))
                             .orElse(queryThings);
-            return createQuerySource(queryParser::parse, commandToParse)
+            final DittoHeaders dittoHeaders = command.getDittoHeaders();
+            final Optional<String> correlationIdOpt = dittoHeaders.getCorrelationId();
+            LogUtil.enhanceLogWithCorrelationId(log, correlationIdOpt);
+            log.info("Processing QueryThings command: {}", queryThings);
+            return createQuerySource(queryParser::parse, command)
                     .flatMapConcat(query -> {
-                        LogUtil.enhanceLogWithCorrelationId(log, correlationIdOpt);
                         stopTimer(queryParsingTimer);
                         final StartedTimer databaseAccessTimer =
                                 searchTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
 
-                        final List<String> subjectIds = queryThings.getDittoHeaders().getAuthorizationSubjects();
+                        final List<String> subjectIds = command.getDittoHeaders().getAuthorizationSubjects();
                         final Source<ResultList<String>, NotUsed> findAllResult =
                                 searchPersistence.findAll(query, subjectIds, namespaces);
                         return processSearchPersistenceResult(findAllResult, dittoHeaders)
@@ -237,7 +238,7 @@ public final class SearchActor extends AbstractActor {
                                     stopTimer(databaseAccessTimer);
                                     return result;
                                 }))
-                                .map(ids -> toQueryThingsResponse(queryThings, cursor.orElse(null), ids));
+                                .map(ids -> toQueryThingsResponse(command, cursor.orElse(null), ids));
                     })
                     .map(result -> {
                         stopTimer(searchTimer);

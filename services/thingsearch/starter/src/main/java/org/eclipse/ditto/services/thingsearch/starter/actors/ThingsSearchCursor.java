@@ -36,6 +36,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.criteria.Predicate;
@@ -67,6 +68,8 @@ import akka.util.ByteString;
  */
 // TODO: document and test.
 final class ThingsSearchCursor {
+
+    private static final String CORRELATION_ID_DELIMITER = ":";
 
     private static final SortOptionEntry DEFAULT_SORT_OPTION_ENTRY =
             SortOptionEntry.asc(Thing.JsonFields.ID.getPointer());
@@ -139,7 +142,7 @@ final class ThingsSearchCursor {
                 queryThings.getFields().map(JsonFieldSelector::toString).orElse(this.jsonFieldSelector);
         final List<Option> newOptions =
                 new OptionsBuilder().visitAll(options).visitAll(inputOptions).withSortOption(sortOption).build();
-        final DittoHeaders newHeaders = dittoHeaders.toBuilder().putHeaders(queryThings.getDittoHeaders()).build();
+        final DittoHeaders newHeaders = overrideHeaders(dittoHeaders, queryThings.getDittoHeaders());
         return new ThingsSearchCursor(newSelector, namespaces, newHeaders, newOptions, filter, values);
     }
 
@@ -401,6 +404,16 @@ final class ThingsSearchCursor {
             return Objects.equals(sortOptionEntries.get(i), commandSortOptionEntries.get(i)) &&
                     areCompatible(sortOptionEntries, commandSortOptionEntries, i + 1);
         }
+    }
+
+    private static DittoHeaders overrideHeaders(final DittoHeaders encodedHeaders, final DittoHeaders newHeaders) {
+        final Optional<String> correlationId = encodedHeaders.getCorrelationId()
+                .map(encodedCID -> newHeaders.getCorrelationId()
+                        .map(newCID -> encodedCID + CORRELATION_ID_DELIMITER + newCID)
+                        .orElse(encodedCID));
+        final DittoHeadersBuilder builder = encodedHeaders.toBuilder().putHeaders(newHeaders);
+        correlationId.ifPresent(builder::correlationId);
+        return builder.build();
     }
 
     private static final class OptionsBuilder implements OptionVisitor {
