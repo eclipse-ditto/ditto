@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.concierge.enforcement;
 
 import java.util.Optional;
 
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.signals.base.Signal;
 
@@ -62,18 +63,18 @@ public interface EnforcementProvider<T extends Signal> {
      *
      * @return the stream.
      */
-    default Graph<FlowShape<Contextual<Object>, Contextual<Object>>, NotUsed> toContextualFlow() {
+    default Graph<FlowShape<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>>, NotUsed> toContextualFlow() {
 
         final Sink<Contextual<T>, ?> sink = Sink.foreach(contextual -> createEnforcement(contextual).enforceSafely());
 
-        final Graph<FanOutShape2<Contextual<Object>, Contextual<T>, Contextual<Object>>, NotUsed> multiplexer =
+        final Graph<FanOutShape2<Contextual<WithDittoHeaders>, Contextual<T>, Contextual<WithDittoHeaders>>, NotUsed> multiplexer =
                 Filter.multiplexBy(contextual ->
                         contextual.tryToMapMessage(message -> getCommandClass().isInstance(message)
                                 ? Optional.of(getCommandClass().cast(message)).filter(this::isApplicable)
                                 : Optional.empty()));
 
         return GraphDSL.create(builder -> {
-            final FanOutShape2<Contextual<Object>, Contextual<T>, Contextual<Object>> fanout = builder.add(multiplexer);
+            final FanOutShape2<Contextual<WithDittoHeaders>, Contextual<T>, Contextual<WithDittoHeaders>> fanout = builder.add(multiplexer);
             final SinkShape<Contextual<T>> handler = builder.add(sink);
 
             builder.from(fanout.out0()).to(handler);

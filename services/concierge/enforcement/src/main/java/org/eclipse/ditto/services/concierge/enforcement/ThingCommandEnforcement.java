@@ -67,6 +67,7 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.concierge.cache.IdentityCache;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.references.PolicyIdReferencePlaceholderResolver;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.references.ReferencePlaceholder;
+import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.models.concierge.cache.Entry;
 import org.eclipse.ditto.services.models.policies.Permission;
@@ -108,6 +109,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
+import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.pattern.AskTimeoutException;
 import akka.pattern.Patterns;
 
@@ -574,11 +576,21 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         final EntityId entityId = EntityId.of(ThingCommand.RESOURCE_TYPE, thingId);
         thingIdCache.invalidate(entityId);
         aclEnforcerCache.invalidate(entityId);
+        pubSubMediator().tell(new DistributedPubSubMediator.SendToAll(
+                        ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
+                        new InvalidateCacheEntry(entityId),
+                        true),
+                self());
     }
 
     private void invalidatePolicyCache(final String policyId) {
         final EntityId entityId = EntityId.of(PolicyCommand.RESOURCE_TYPE, policyId);
         policyEnforcerCache.invalidate(entityId);
+        pubSubMediator().tell(new DistributedPubSubMediator.SendToAll(
+                        ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
+                        new InvalidateCacheEntry(entityId),
+                        true),
+                self());
     }
 
     /**
@@ -723,7 +735,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
         try {
             return policyIdCompletionStage.toCompletableFuture().get(getAskTimeout().toMillis(), TimeUnit.MILLISECONDS);
-        } catch (InterruptedException | TimeoutException e) {
+        } catch (final InterruptedException | TimeoutException e) {
             log(createThing).error(e, "An error occurred when trying to resolve policy id.");
             throw GatewayServiceTimeoutException.newBuilder().dittoHeaders(createThing.getDittoHeaders()).build();
         } catch (ExecutionException e) {

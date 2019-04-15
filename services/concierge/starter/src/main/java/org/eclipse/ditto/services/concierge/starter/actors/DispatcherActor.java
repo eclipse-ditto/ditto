@@ -21,6 +21,7 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.concierge.util.config.AbstractConciergeConfigReader;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommand;
@@ -34,6 +35,7 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
+import akka.japi.pf.ReceiveBuilder;
 import akka.stream.FanOutShape2;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
@@ -57,11 +59,11 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
     private final ActorRef thingsAggregatorActor;
 
     private DispatcherActor(final AbstractConciergeConfigReader configReader,
-            final ActorRef enforcerShardRegion,
+            final ActorRef enforcerActor,
             final ActorRef pubSubMediator,
             final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> handler) {
         this.handler = handler;
-        final Props props = ThingsAggregatorActor.props(configReader, enforcerShardRegion);
+        final Props props = ThingsAggregatorActor.props(configReader, enforcerActor);
         thingsAggregatorActor = getContext().actorOf(props, ThingsAggregatorActor.ACTOR_NAME);
 
         initActor(getSelf(), pubSubMediator);
@@ -73,7 +75,7 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
     }
 
     @Override
-    protected Source<ImmutableDispatch, NotUsed> mapMessage(final Object message) {
+    protected Source<ImmutableDispatch, NotUsed> mapMessage(final WithDittoHeaders<?> message) {
         return Source.single(new ImmutableDispatch(message, getSender(), thingsAggregatorActor));
     }
 
@@ -82,18 +84,23 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
         return handler;
     }
 
+    @Override
+    protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
+        // no-op
+    }
+
     /**
      * Create Akka actor configuration Props object without pre-enforcer.
      *
      * @param configReader the configReader for the concierge service.
      * @param pubSubMediator Akka pub-sub mediator.
-     * @param enforcerShardRegion shard region of enforcer actors.
+     * @param enforcerActor address of the enforcer actor.
      * @return the Props object.
      */
     public static Props props(final AbstractConciergeConfigReader configReader, final ActorRef pubSubMediator,
-            final ActorRef enforcerShardRegion) {
+            final ActorRef enforcerActor) {
 
-        return props(configReader, pubSubMediator, enforcerShardRegion, Flow.create());
+        return props(configReader, pubSubMediator, enforcerActor, Flow.create());
     }
 
     /**
@@ -101,13 +108,13 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
      *
      * @param configReader the configReader for the concierge service.
      * @param pubSubMediator Akka pub-sub mediator.
-     * @param enforcerShardRegion shard region of enforcer actors.
+     * @param enforcerActor the address of the enforcer actor.
      * @param preEnforcer the pre-enforcer as graph.
      * @return the Props object.
      */
     public static Props props(final AbstractConciergeConfigReader configReader,
             final ActorRef pubSubMediator,
-            final ActorRef enforcerShardRegion,
+            final ActorRef enforcerActor,
             final Graph<FlowShape<WithSender, WithSender>, ?> preEnforcer) {
 
         final Graph<FlowShape<ImmutableDispatch, ImmutableDispatch>, NotUsed> dispatchFlow = createDispatchFlow(pubSubMediator);
@@ -116,7 +123,7 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
                 .via(dispatchFlow);
 
         return Props.create(DispatcherActor.class,
-                () -> new DispatcherActor(configReader, enforcerShardRegion, pubSubMediator, handler));
+                () -> new DispatcherActor(configReader, enforcerActor, pubSubMediator, handler));
     }
 
     /**
@@ -206,20 +213,20 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
      * reference.
      */
     @Immutable
-    static final class ImmutableDispatch implements WithSender<Object> {
+    static final class ImmutableDispatch implements WithSender<WithDittoHeaders> {
 
-        private final Object message;
+        private final WithDittoHeaders message;
         private final ActorRef sender;
         private final ActorRef thingsAggregatorActor;
 
-        private ImmutableDispatch(final Object message, final ActorRef sender, final ActorRef thingsAggregatorActor) {
+        private ImmutableDispatch(final WithDittoHeaders message, final ActorRef sender, final ActorRef thingsAggregatorActor) {
             this.message = message;
             this.sender = sender;
             this.thingsAggregatorActor = thingsAggregatorActor;
         }
 
         @Override
-        public Object getMessage() {
+        public WithDittoHeaders getMessage() {
             return message;
         }
 
@@ -234,7 +241,7 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
 
         @Override
         @SuppressWarnings("unchecked")
-        public <S> WithSender<S> withMessage(final S newMessage) {
+        public <S extends WithDittoHeaders> WithSender<S> withMessage(final S newMessage) {
             return (WithSender<S>) new ImmutableDispatch(newMessage, sender, thingsAggregatorActor);
         }
 

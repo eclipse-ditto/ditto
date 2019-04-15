@@ -17,40 +17,47 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.enforcers.Enforcer;
+import org.eclipse.ditto.services.models.concierge.EntityId;
+import org.eclipse.ditto.services.models.concierge.cache.Entry;
 import org.eclipse.ditto.services.utils.akka.controlflow.Pipe;
+import org.eclipse.ditto.services.utils.cache.Cache;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.japi.pf.PFBuilder;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
-import akka.stream.SourceShape;
 import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.Source;
 
 /**
  * Actor to authorize signals by enforcing policies or ACLs on signals.
  */
 public final class EnforcerActor extends AbstractEnforcerActor {
 
-    private final Flow<Contextual<Object>, Contextual<Object>, NotUsed> handler;
+    /**
+     * The name of this actor in the actorSystem.
+     */
+    public static final String ACTOR_NAME = "enforcer";
+
+    private final Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> handler;
 
     private EnforcerActor(final ActorRef pubSubMediator, final ActorRef conciergeForwarder,
-            final Executor enforcerExecutor, final Duration askTimeout,
-            final Flow<Contextual<Object>, Contextual<Object>, NotUsed> handler) {
-        super(pubSubMediator, conciergeForwarder, enforcerExecutor, askTimeout);
+            final Executor enforcerExecutor,
+            final Duration askTimeout,
+            final Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> handler,
+            @Nullable final Cache<EntityId, Entry<EntityId>> thingIdCache,
+            @Nullable final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache,
+            @Nullable final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache) {
+        super(pubSubMediator, conciergeForwarder, enforcerExecutor, askTimeout, thingIdCache, aclEnforcerCache,
+                policyEnforcerCache);
         this.handler = handler;
-
-        // send self the context to initialize activity checker.
-        getSelf().tell(NotUsed.getInstance(), getSelf());
     }
 
     /**
@@ -62,7 +69,9 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      * @param conciergeForwarder an actorRef to concierge forwarder.
      * @param enforcerExecutor the Executor to run async tasks on during enforcement.
      * @param preEnforcer a function executed before actual enforcement, may be {@code null}.
-     * @param activityCheckInterval how often to check for actor activity for termination after an idle period.
+     * @param thingIdCache
+     * @param aclEnforcerCache
+     * @param policyEnforcerCache
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
@@ -71,14 +80,17 @@ public final class EnforcerActor extends AbstractEnforcerActor {
             final ActorRef conciergeForwarder,
             final Executor enforcerExecutor,
             @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
-            @Nullable final Duration activityCheckInterval) {
+            @Nullable final Cache<EntityId, Entry<EntityId>> thingIdCache,
+            @Nullable final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache,
+            @Nullable final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache) {
 
         // create the sink exactly once per props and share it across all actors to not waste memory
-        final Flow<Contextual<Object>, Contextual<Object>, NotUsed> messageHandler =
-                assembleHandler(enforcementProviders, preEnforcer, activityCheckInterval);
+        final Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> messageHandler =
+                assembleHandler(enforcementProviders, preEnforcer);
 
         return Props.create(EnforcerActor.class, () ->
-                new EnforcerActor(pubSubMediator, conciergeForwarder, enforcerExecutor, askTimeout, messageHandler));
+                new EnforcerActor(pubSubMediator, conciergeForwarder, enforcerExecutor, askTimeout, messageHandler,
+                        thingIdCache, aclEnforcerCache, policyEnforcerCache));
     }
 
     /**
@@ -86,24 +98,30 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      * after a period of inactivity.
      *
      * @param pubSubMediator Akka pub sub mediator.
-     * @param enforcementProviders a set of {@link org.eclipse.ditto.services.concierge.enforcement.EnforcementProvider}s.
+     * @param enforcementProviders a set of {@link EnforcementProvider}s.
      * @param askTimeout the ask timeout duration: the duration to wait for entity shard regions.
      * @param conciergeForwarder an actorRef to concierge forwarder.
      * @param enforcerExecutor the Executor to run async tasks on during enforcement.
+     * @param thingIdCache
+     * @param aclEnforcerCache
+     * @param policyEnforcerCache
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
             final Set<EnforcementProvider<?>> enforcementProviders,
             final Duration askTimeout,
             final ActorRef conciergeForwarder,
-            final Executor enforcerExecutor) {
+            final Executor enforcerExecutor,
+            @Nullable final Cache<EntityId, Entry<EntityId>> thingIdCache,
+            @Nullable final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache,
+            @Nullable final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache) {
 
         return props(pubSubMediator, enforcementProviders, askTimeout, conciergeForwarder, enforcerExecutor,
-                null, null);
+                null, thingIdCache, aclEnforcerCache, policyEnforcerCache);
     }
 
     @Override
-    protected Flow<Contextual<Object>, Contextual<Object>, NotUsed> getHandler() {
+    protected Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> getHandler() {
         return handler;
     }
 
@@ -113,38 +131,21 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      *
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
      * @param preEnforcer a function executed before actual enforcement, may be {@code null}.
-     * @param activityCheckInterval how often to check for actor activity for termination after an idle period.
      * @return a handler as {@link Flow} of {@link Contextual} messages.
      */
-    private static Flow<Contextual<Object>, Contextual<Object>, NotUsed> assembleHandler(
+    private static Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> assembleHandler(
             final Set<EnforcementProvider<?>> enforcementProviders,
-            @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
-            @Nullable final Duration activityCheckInterval) {
+            @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer) {
 
-        final Flow<Contextual<Object>, Contextual<Object>, NotUsed> activityChecker;
-        if (activityCheckInterval != null) {
-            activityChecker = Flow.<Contextual<Object>>create()
-                    .filterNot(ctx -> ctx.getMessage() instanceof NotUsed)
-                    .idleTimeout(activityCheckInterval)
-                    .recoverWithRetries(1,
-                            new PFBuilder<Throwable, Graph<SourceShape<Contextual<Object>>, NotUsed>>()
-                                    .match(TimeoutException.class,
-                                            timeout -> Source.empty()) // complete the source on timeout
-                                    .build());
-        } else {
-            activityChecker = Flow.<Contextual<Object>>create()
-                    .filterNot(ctx -> ctx.getMessage() instanceof NotUsed);
-        }
-
-        final Graph<FlowShape<Contextual<Object>, Contextual<Object>>, NotUsed> preEnforcerFlow =
+        final Graph<FlowShape<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>>, NotUsed> preEnforcerFlow =
                 Optional.ofNullable(preEnforcer).map(PreEnforcer::fromFunctionWithContext).orElseGet(Flow::create);
 
-        final Graph<FlowShape<Contextual<Object>, Contextual<Object>>, NotUsed> enforcerFlow =
+        final Graph<FlowShape<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>>, NotUsed> enforcerFlow =
                 Pipe.joinFlows(enforcementProviders.stream()
                         .map(EnforcementProvider::toContextualFlow)
                         .collect(Collectors.toList()));
 
-        return Flow.fromGraph(activityChecker)
+        return Flow.<Contextual<WithDittoHeaders>>create()
                 .via(preEnforcerFlow)
                 .via(enforcerFlow);
     }

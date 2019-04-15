@@ -12,11 +12,9 @@
  */
 package org.eclipse.ditto.services.models.concierge;
 
-import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.messages.MessageCommand;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
+
+import akka.routing.ConsistentHashingRouter;
 
 /**
  * Wrap messages which are send to the concierge service.
@@ -28,26 +26,17 @@ public final class ConciergeWrapper {
     }
 
     /**
-     * Wrap a signal in a sharded message envelope addressed to the correct {@code EnforcerActor}.
+     * Wrap a signal in a sharded hashable envelope addressed to the correct {@code EnforcerActor}.
      *
      * @param signal the signal to wrap.
-     * @return the sharded message envelope.
+     * @return the message envelope.
      */
-    public static ShardedMessageEnvelope wrapForEnforcer(final Signal<?> signal) {
-        final EntityId entityId;
-        if (MessageCommand.RESOURCE_TYPE.equals(signal.getResourceType())) {
-            entityId = EntityId.of(ThingCommand.RESOURCE_TYPE, signal.getId());
-        } else {
-            entityId = EntityId.of(signal.getResourceType(), signal.getId());
-        }
-        return createEnvelope(entityId, signal);
+    public static ConsistentHashingRouter.ConsistentHashableEnvelope wrapForEnforcer(final Signal<?> signal) {
+        return new ConsistentHashingRouter.ConsistentHashableEnvelope(signal, hashFor(signal));
     }
 
-    private static ShardedMessageEnvelope createEnvelope(final EntityId entityId, final Signal<?> signal) {
-        return ShardedMessageEnvelope.of(
-                entityId.toString(),
-                signal.getType(),
-                signal.toJson(signal.getImplementedSchemaVersion(), FieldType.regularOrSpecial()),
-                signal.getDittoHeaders());
+    private static String hashFor(final Signal<?> signal) {
+        return EntityId.of(signal.getResourceType(), signal.getId()).toString();
     }
+
 }

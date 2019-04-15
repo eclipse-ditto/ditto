@@ -40,7 +40,7 @@ import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.PatternsCS;
+import akka.pattern.Patterns;
 import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.StreamRefs;
@@ -165,7 +165,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
                 .log("command-response", log)
                 .runWith(StreamRefs.sourceRef(), actorMaterializer);
 
-        PatternsCS.pipe(commandResponseSource, aggregatorDispatcher)
+        Patterns.pipe(commandResponseSource, aggregatorDispatcher)
                 .to(resultReceiver);
     }
 

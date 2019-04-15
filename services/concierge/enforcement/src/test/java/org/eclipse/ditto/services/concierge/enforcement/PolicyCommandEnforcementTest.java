@@ -503,7 +503,7 @@ public class PolicyCommandEnforcementTest {
         enforcementProviders.add(enforcementProvider);
 
         return system.actorOf(EnforcerActor.props(pubSubMediator, enforcementProviders, Duration.ofSeconds(10),
-                conciergeForwarder, system.dispatcher()),
+                conciergeForwarder, system.dispatcher(), null, null, null),
                 ENTITY_ID.toString());
     }
 

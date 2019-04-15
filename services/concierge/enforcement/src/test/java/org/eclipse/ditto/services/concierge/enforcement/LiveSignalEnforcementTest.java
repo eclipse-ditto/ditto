@@ -23,6 +23,7 @@ import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.POLICY_
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.SUBJECT;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.THING_ID;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.THING_SUDO;
+import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.fishForMsgClass;
 
 import java.util.UUID;
 
@@ -111,7 +112,7 @@ public final class LiveSignalEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(readCommand(), getRef());
-            expectMsgClass(ThingNotAccessibleException.class);
+            fishForMsgClass(this, ThingNotAccessibleException.class);
 
             underTest.tell(writeCommand(), getRef());
             expectMsgClass(FeatureNotModifiableException.class);
@@ -137,7 +138,7 @@ public final class LiveSignalEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(readCommand(), getRef());
-            expectMsgClass(ThingNotAccessibleException.class);
+            fishForMsgClass(this, ThingNotAccessibleException.class);
 
             underTest.tell(writeCommand(), getRef());
             expectMsgClass(FeatureNotModifiableException.class);
@@ -161,7 +162,7 @@ public final class LiveSignalEnforcementTest {
             final ThingCommand read = readCommand();
             mockEntitiesActorInstance.setReply(read);
             underTest.tell(read, getRef());
-            final DistributedPubSubMediator.Publish publish = expectMsgClass(DistributedPubSubMediator.Publish.class);
+            final DistributedPubSubMediator.Publish publish = fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.LIVE_COMMANDS.getDistributedPubSubTopic());
             assertThat(publish.msg()).isInstanceOf(ThingCommand.class);
             assertThat(((ThingCommand) publish.msg()).getId()).isEqualTo(read.getId());
@@ -204,7 +205,7 @@ public final class LiveSignalEnforcementTest {
             final ThingCommand write = writeCommand();
             mockEntitiesActorInstance.setReply(write);
             underTest.tell(write, getRef());
-            final DistributedPubSubMediator.Publish publish = expectMsgClass(DistributedPubSubMediator.Publish.class);
+            final DistributedPubSubMediator.Publish publish = fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.LIVE_COMMANDS.getDistributedPubSubTopic());
             assertThat(publish.msg()).isInstanceOf(ThingCommand.class);
             assertThat(((ThingCommand) publish.msg()).getId()).isEqualTo(write.getId());
@@ -236,7 +237,7 @@ public final class LiveSignalEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(thingMessageCommand(), getRef());
-            expectMsgClass(MessageSendNotAllowedException.class);
+            fishForMsgClass(this, MessageSendNotAllowedException.class);
         }};
     }
 
@@ -259,7 +260,7 @@ public final class LiveSignalEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(thingMessageCommand(), getRef());
-            expectMsgClass(MessageSendNotAllowedException.class);
+            fishForMsgClass(this, MessageSendNotAllowedException.class);
         }};
     }
 
@@ -280,7 +281,7 @@ public final class LiveSignalEnforcementTest {
             final MessageCommand msgCommand = thingMessageCommand();
             mockEntitiesActorInstance.setReply(msgCommand);
             underTest.tell(msgCommand, getRef());
-            final DistributedPubSubMediator.Publish publish = expectMsgClass(DistributedPubSubMediator.Publish.class);
+            final DistributedPubSubMediator.Publish publish = fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.MESSAGES.getDistributedPubSubTopic());
             assertThat(publish.msg()).isInstanceOf(MessageCommand.class);
             assertThat(((MessageCommand) publish.msg()).getId()).isEqualTo(msgCommand.getId());
@@ -314,7 +315,7 @@ public final class LiveSignalEnforcementTest {
             final MessageCommand msgCommand = thingMessageCommand();
             mockEntitiesActorInstance.setReply(msgCommand);
             underTest.tell(msgCommand, getRef());
-            final DistributedPubSubMediator.Publish publish = expectMsgClass(DistributedPubSubMediator.Publish.class);
+            final DistributedPubSubMediator.Publish publish = fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.MESSAGES.getDistributedPubSubTopic());
             assertThat(publish.msg()).isInstanceOf(MessageCommand.class);
             assertThat(((MessageCommand) publish.msg()).getId()).isEqualTo(msgCommand.getId());
@@ -339,7 +340,7 @@ public final class LiveSignalEnforcementTest {
             final MessageCommand msgCommand = thingMessageCommand();
             mockEntitiesActorInstance.setReply(msgCommand);
             underTest.tell(msgCommand, responseProbe.ref());
-            final DistributedPubSubMediator.Publish publish = expectMsgClass(DistributedPubSubMediator.Publish.class);
+            final DistributedPubSubMediator.Publish publish = fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.MESSAGES.getDistributedPubSubTopic());
 
             underTest.tell(thingMessageCommandResponse((MessageCommand) publish.msg()), getRef());
@@ -374,7 +375,7 @@ public final class LiveSignalEnforcementTest {
             final MessageCommand msgCommand = featureMessageCommand();
             mockEntitiesActorInstance.setReply(msgCommand);
             underTest.tell(msgCommand, getRef());
-            final DistributedPubSubMediator.Publish publish = expectMsgClass(DistributedPubSubMediator.Publish.class);
+            final DistributedPubSubMediator.Publish publish = fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.MESSAGES.getDistributedPubSubTopic());
             assertThat(publish.msg()).isInstanceOf(MessageCommand.class);
             assertThat(((MessageCommand) publish.msg()).getId()).isEqualTo(msgCommand.getId());
@@ -395,7 +396,7 @@ public final class LiveSignalEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(liveEvent(), getRef());
-            expectMsgClass(EventSendNotAllowedException.class);
+            fishForMsgClass(this, EventSendNotAllowedException.class);
         }};
     }
 
@@ -418,7 +419,7 @@ public final class LiveSignalEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(liveEvent(), getRef());
-            expectMsgClass(EventSendNotAllowedException.class);
+            fishForMsgClass(this, EventSendNotAllowedException.class);
         }};
     }
 
@@ -439,7 +440,7 @@ public final class LiveSignalEnforcementTest {
             final ThingEvent liveEvent = liveEvent();
             mockEntitiesActorInstance.setReply(liveEvent);
             underTest.tell(liveEvent, getRef());
-            final DistributedPubSubMediator.Publish publish = expectMsgClass(DistributedPubSubMediator.Publish.class);
+            final DistributedPubSubMediator.Publish publish = fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.LIVE_EVENTS.getDistributedPubSubTopic());
             assertThat(publish.msg()).isInstanceOf(Event.class);
             assertThat(((Event) publish.msg()).getId()).isEqualTo(liveEvent.getId());
@@ -473,7 +474,8 @@ public final class LiveSignalEnforcementTest {
             final ThingEvent liveEvent = liveEvent();
             mockEntitiesActorInstance.setReply(liveEvent);
             underTest.tell(liveEvent, getRef());
-            final DistributedPubSubMediator.Publish publish = expectMsgClass(DistributedPubSubMediator.Publish.class);
+
+            final DistributedPubSubMediator.Publish publish = fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.LIVE_EVENTS.getDistributedPubSubTopic());
             assertThat(publish.msg()).isInstanceOf(Event.class);
             assertThat(((Event) publish.msg()).getId()).isEqualTo(liveEvent.getId());

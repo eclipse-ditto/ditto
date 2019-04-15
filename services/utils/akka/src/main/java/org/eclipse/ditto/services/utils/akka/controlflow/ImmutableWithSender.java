@@ -16,6 +16,8 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+
 import akka.actor.ActorRef;
 
 /**
@@ -24,7 +26,7 @@ import akka.actor.ActorRef;
  * @param <T> type of message.
  */
 @Immutable
-final class ImmutableWithSender<T> implements WithSender<T> {
+final class ImmutableWithSender<T extends WithDittoHeaders> implements WithSender<T> {
 
     private final T message;
     private final ActorRef sender;
@@ -45,7 +47,7 @@ final class ImmutableWithSender<T> implements WithSender<T> {
     }
 
     @Override
-    public <S> WithSender<S> withMessage(final S newMessage) {
+    public <S extends WithDittoHeaders> WithSender<S> withMessage(final S newMessage) {
         return new ImmutableWithSender<>(newMessage, sender);
     }
 

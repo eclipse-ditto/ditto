@@ -19,6 +19,7 @@ import static org.eclipse.ditto.model.things.Permission.READ;
 import static org.eclipse.ditto.model.things.Permission.WRITE;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.SUBJECT;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.THING_SUDO;
+import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.fishForMsgClass;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.newThing;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.readCommand;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.writeCommand;
@@ -88,12 +89,12 @@ public final class PreEnforcementTest {
             final ThingCommand read = readCommand();
             mockEntitiesActorInstance.setReply(read);
             underTest.tell(read, getRef());
-            assertThat(expectMsgClass(read.getClass()).getId()).isEqualTo(read.getId());
+            assertThat(fishForMsgClass(this, read.getClass()).getId()).isEqualTo(read.getId());
 
             final ThingCommand write = writeCommand();
             mockEntitiesActorInstance.setReply(write);
             underTest.tell(write, getRef());
-            assertThat(expectMsgClass(write.getClass()).getId()).isEqualTo(write.getId());
+            assertThat(fishForMsgClass(this, write.getClass()).getId()).isEqualTo(write.getId());
         }};
     }
 
@@ -120,11 +121,11 @@ public final class PreEnforcementTest {
             }));
             final ThingCommand read = readCommand();
             underTest.tell(read, getRef());
-            assertThat(expectMsgClass(mockedEx.getClass())).isEqualTo(mockedEx);
+            assertThat(fishForMsgClass(this, mockedEx.getClass())).isEqualTo(mockedEx);
 
             final ThingCommand write = writeCommand();
             underTest.tell(write, getRef());
-            assertThat(expectMsgClass(mockedEx.getClass())).isEqualTo(mockedEx);
+            assertThat(fishForMsgClass(this, mockedEx.getClass())).isEqualTo(mockedEx);
         }};
     }
 
@@ -153,11 +154,11 @@ public final class PreEnforcementTest {
             }));
             final ThingCommand read = readCommand();
             underTest.tell(read, getRef());
-            expectMsgClass(unexpectedExceptionResultClass);
+            fishForMsgClass(this, unexpectedExceptionResultClass);
 
             final ThingCommand write = writeCommand();
             underTest.tell(write, getRef());
-            expectMsgClass(unexpectedExceptionResultClass);
+            fishForMsgClass(this, unexpectedExceptionResultClass);
         }};
     }
 

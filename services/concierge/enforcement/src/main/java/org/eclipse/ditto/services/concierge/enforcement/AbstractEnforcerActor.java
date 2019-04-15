@@ -12,14 +12,16 @@
  */
 package org.eclipse.ditto.services.concierge.enforcement;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.services.models.concierge.EntityId;
+import org.eclipse.ditto.services.models.concierge.cache.Entry;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
@@ -28,62 +30,96 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
+import akka.cluster.pubsub.DistributedPubSubMediator;
+import akka.japi.pf.ReceiveBuilder;
 import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 
 /**
  * Extensible actor to execute enforcement behavior.
  */
-public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextual<Object>> {
+public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextual<WithDittoHeaders>> {
 
     /**
      * Contextual information about this actor.
      */
-    protected final Contextual<NotUsed> contextual;
+    protected final Contextual<WithDittoHeaders> contextual;
+
+    @Nullable
+    private final Cache<EntityId, Entry<EntityId>> thingIdCache;
+    @Nullable
+    private final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache;
+    @Nullable
+    private final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache;
 
     /**
      * Create an instance of this actor.
-     *
-     * @param pubSubMediator Akka pub-sub-mediator.
+     *  @param pubSubMediator Akka pub-sub-mediator.
      * @param conciergeForwarder the concierge forwarder.
      * @param enforcerExecutor executor for enforcement steps.
      * @param askTimeout how long to wait for entity actors.
+     * @param thingIdCache TODO TJ javadoc
+     * @param aclEnforcerCache
+     * @param policyEnforcerCache
      */
     protected AbstractEnforcerActor(final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
             final Executor enforcerExecutor,
-            final Duration askTimeout) {
+            final Duration askTimeout,
+            @Nullable final Cache<EntityId, Entry<EntityId>> thingIdCache,
+            @Nullable final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache,
+            @Nullable final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache) {
 
-        contextual = new Contextual<>(NotUsed.getInstance(), getSelf(), getContext().getSystem().deadLetters(),
-                pubSubMediator, conciergeForwarder, enforcerExecutor, askTimeout, log,
-                decodeEntityId(getSelf()),
+        this.thingIdCache = thingIdCache;
+        this.aclEnforcerCache = aclEnforcerCache;
+        this.policyEnforcerCache = policyEnforcerCache;
+
+        contextual = new Contextual<>(null, getSelf(), getContext().getSystem().deadLetters(),
+                pubSubMediator, conciergeForwarder, enforcerExecutor, askTimeout, log, null,
                 createResponseReceiversCache());
+
+        // register for sending messages via pub/sub to this enforcer
+        // used for receiving cache invalidations from brother concierge nodes
+        pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
     }
 
     @Override
-    protected abstract Flow<Contextual<Object>, Contextual<Object>, NotUsed> getHandler();
+    protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
+        receiveBuilder.match(InvalidateCacheEntry.class, invalidateCacheEntry -> {
+            log.debug("received <{}>", invalidateCacheEntry);
+            final EntityId entityId = invalidateCacheEntry.getEntityId();
+            invalidateCaches(entityId);
+        });
+    }
+
+    private void invalidateCaches(final EntityId entityId) {
+        if (thingIdCache != null) {
+            final boolean invalidated = thingIdCache.invalidate(entityId);
+            log.debug("thingId cache for entity id <{}> was invalidated: {}", entityId, invalidated);
+        }
+        if (aclEnforcerCache != null) {
+            final boolean invalidated = aclEnforcerCache.invalidate(entityId);
+            log.debug("acl enforcer cache for entity id <{}> was invalidated: {}", entityId, invalidated);
+        }
+        if (policyEnforcerCache != null) {
+            final boolean invalidated = policyEnforcerCache.invalidate(entityId);
+            log.debug("policy enforcer cache for entity id <{}> was invalidated: {}", entityId, invalidated);
+        }
+    }
+
+    @Override
+    protected abstract Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> getHandler();
 
     @Override
     @SuppressWarnings("unchecked")
-    protected Class<Contextual<Object>> getMessageClass() {
+    protected Class<Contextual<WithDittoHeaders>> getMessageClass() {
         // trick Java type system into accepting the cast without it understanding the covariance of Contextual<>
-        return (Class<Contextual<Object>>) (Object) Contextual.class;
+        return (Class<Contextual<WithDittoHeaders>>) (Object) Contextual.class;
     }
 
     @Override
-    protected Source<Contextual<Object>, NotUsed> mapMessage(final Object message) {
+    protected Source<Contextual<WithDittoHeaders>, NotUsed> mapMessage(final WithDittoHeaders<?> message) {
         return Source.single(contextual.withReceivedMessage(message, getSender()));
-    }
-
-    private static EntityId decodeEntityId(final ActorRef self) {
-        final String name = self.path().name();
-        try {
-            final String typeWithPath = URLDecoder.decode(name, StandardCharsets.UTF_8.name());
-            return EntityId.readFrom(typeWithPath);
-        } catch (final UnsupportedEncodingException e) {
-            throw new IllegalStateException("Unsupported encoding", e);
-        }
     }
 
     private static Cache<String, ActorRef> createResponseReceiversCache() {

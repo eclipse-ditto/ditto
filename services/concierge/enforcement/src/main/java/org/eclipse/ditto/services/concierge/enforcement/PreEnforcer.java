@@ -44,7 +44,6 @@ import akka.stream.SourceShape;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.GraphDSL;
 import akka.stream.javadsl.Source;
-import akka.stream.stage.GraphStage;
 
 /**
  * Create processing units of Akka stream graph before enforcement from an asynchronous function that may abort
@@ -74,42 +73,39 @@ public final class PreEnforcer {
         return PreEnforcer.fromFunction(ActorRef.noSender(), processor);
     }
 
-    static Graph<FlowShape<Contextual<Object>, Contextual<Object>>, NotUsed> fromFunctionWithContext(
+    static Graph<FlowShape<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>>, NotUsed> fromFunctionWithContext(
             final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> processor) {
 
-        @SuppressWarnings("unchecked")
-        final Graph<FanOutShape2<Contextual<Object>, Contextual<WithDittoHeaders>, Contextual<Object>>, NotUsed>
+        final Graph<FanOutShape2<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>>, NotUsed>
                 multiplexer =
-                Filter.multiplexBy(c -> c.getMessage() instanceof WithDittoHeaders
-                        ? Optional.of((Contextual<WithDittoHeaders>) (Object) c)
-                        : Optional.empty());
+                Filter.multiplexBy(Optional::of);
 
-        final Flow<Contextual<WithDittoHeaders>, Contextual<Object>, NotUsed> preEnforcementFlow =
+        final Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> preEnforcementFlow =
                 Flow.<Contextual<WithDittoHeaders>>create()
                         .flatMapConcat(contextual -> {
-                            final Supplier<CompletionStage<Object>> futureSupplier = () ->
+                            final Supplier<CompletionStage<WithSender>> futureSupplier = () ->
                                     processor.apply(contextual.getMessage())
                                             .thenApply(result -> WithSender.of(result, contextual.getSender()));
 
-                            final CompletionStage<Object> futureResult =
-                                    handleErrorNowOrLater(futureSupplier, contextual, contextual.getSelf());
+                            final CompletionStage<WithSender> futureResult =
+                                    handleErrorNowOrLater(futureSupplier, contextual, contextual.getSender(), contextual.getSelf());
 
                             return Source.fromCompletionStage(futureResult)
                                     .log("PreEnforcer")
                                     .flatMapConcat(PreEnforcer::keepResultAndLogErrors)
                                     .map(WithSender::getMessage)
-                                    .map(contextual::withMessage);
+                                    .map(msg -> contextual.withMessage((WithDittoHeaders) msg));
                         });
 
         return GraphDSL.create(builder -> {
 
-            final FanOutShape2<Contextual<Object>, Contextual<WithDittoHeaders>, Contextual<Object>> fanout =
+            final FanOutShape2<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>> fanout =
                     builder.add(multiplexer);
 
-            final FlowShape<Contextual<WithDittoHeaders>, Contextual<Object>> enforce = builder.add(preEnforcementFlow);
+            final FlowShape<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>> enforce = builder.add(preEnforcementFlow);
 
-            final SinkShape<Contextual<Object>> logUnhandled =
-                    builder.add(Flow.<Contextual<Object>, WithSender>fromFunction(x -> x).to(unhandled()));
+            final SinkShape<Contextual<WithDittoHeaders>> logUnhandled =
+                    builder.add(Flow.<Contextual<WithDittoHeaders>, WithSender>fromFunction(x -> x).to(unhandled()));
 
             builder.from(fanout.out0()).toInlet(enforce.in());
             builder.from(fanout.out1()).to(logUnhandled);
@@ -126,7 +122,7 @@ public final class PreEnforcer {
      * @param processor function to call.
      * @return Akka stream graph.
      */
-    static Graph<FlowShape<WithSender, WithSender>, NotUsed> fromFunction(
+    private static Graph<FlowShape<WithSender, WithSender>, NotUsed> fromFunction(
             @Nullable final ActorRef self,
             final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> processor) {
 
@@ -136,11 +132,11 @@ public final class PreEnforcer {
         final Flow<WithSender<WithDittoHeaders>, WithSender, NotUsed> flow =
                 Flow.<WithSender<WithDittoHeaders>>create()
                         .mapAsync(1, wrapped -> {
-                            final Supplier<CompletionStage<Object>> futureSupplier = () ->
+                            final Supplier<CompletionStage<WithSender>> futureSupplier = () ->
                                     processor.apply(wrapped.getMessage())
-                                            .<Object>thenApply(result -> WithSender.of(result, wrapped.getSender()));
+                                            .thenApply(result -> WithSender.of(result, wrapped.getSender()));
 
-                            return handleErrorNowOrLater(futureSupplier, wrapped, self);
+                            return handleErrorNowOrLater(futureSupplier, wrapped, wrapped.getSender(), self);
                         })
                         .log("PreEnforcer")
                         .withAttributes(logLevels)
@@ -150,16 +146,17 @@ public final class PreEnforcer {
                 Pipe.joinFilteredFlow(Filter.of(WithDittoHeaders.class), flow), unhandled());
     }
 
-    private static CompletionStage<Object> handleErrorNowOrLater(
-            final Supplier<CompletionStage<Object>> futureSupplier,
-            final WithSender<WithDittoHeaders> wrapped,
-            final ActorRef self) {
+    private static CompletionStage<WithSender> handleErrorNowOrLater(
+            final Supplier<CompletionStage<WithSender>> futureSupplier,
+            final WithSender wrapped,
+            final ActorRef sender,
+            @Nullable final ActorRef self) {
 
         try {
             return futureSupplier.get()
-                    .exceptionally(error -> handleError(error, wrapped, self));
+                    .exceptionally(error -> WithSender.of(handleError(error, wrapped, self), sender));
         } catch (final RuntimeException ex) {
-            return CompletableFuture.completedFuture(handleError(ex, wrapped, self));
+            return CompletableFuture.completedFuture(WithSender.of(handleError(ex, wrapped, self), sender));
         }
     }
 
@@ -179,8 +176,8 @@ public final class PreEnforcer {
         }
     }
 
-    private static Object handleError(final Throwable error,
-            final WithSender<WithDittoHeaders> wrapped,
+    private static WithDittoHeaders handleError(final Throwable error,
+            final WithSender wrapped,
             @Nullable final ActorRef self) {
 
         final Throwable rootCause = extractRootCause(error);
@@ -189,6 +186,7 @@ public final class PreEnforcer {
 
         if (rootCause instanceof DittoRuntimeException) {
             sender.tell(rootCause, self);
+            return (WithDittoHeaders) rootCause;
         } else {
             FALLBACK_LOGGER.error("Unexpected non-DittoRuntimeException error - responding with " +
                             "GatewayInternalErrorException: {} - {} - {}", error.getClass().getSimpleName(), error.getMessage(),
@@ -199,9 +197,8 @@ public final class PreEnforcer {
                             .cause(rootCause)
                             .build();
             sender.tell(responseEx, self);
+            return responseEx;
         }
-
-        return rootCause;
     }
 
     private static Throwable extractRootCause(final Throwable t) {

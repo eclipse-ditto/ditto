@@ -15,6 +15,8 @@ package org.eclipse.ditto.services.utils.akka.controlflow;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.stream.Graph;
@@ -39,7 +41,7 @@ public final class Consume {
      * @return sink.
      */
     @SuppressWarnings("unchecked")
-    public static <S, T extends S> Graph<SinkShape<WithSender<T>>, NotUsed> of(final Consumer<WithSender<S>> consumer) {
+    public static <S extends WithDittoHeaders, T extends S> Graph<SinkShape<WithSender<T>>, NotUsed> of(final Consumer<WithSender<S>> consumer) {
         // need to cast WithSender<T> to WithSender<S> because java does not understand covariance
         return Sink.<WithSender<T>>foreach(w -> consumer.accept((WithSender<S>) w))
                 .mapMaterializedValue(x -> NotUsed.getInstance());
@@ -52,7 +54,7 @@ public final class Consume {
      * @param <T> type of messages.
      * @return sink.
      */
-    public static <T> Graph<SinkShape<WithSender<T>>, NotUsed> of(final BiConsumer<? super T, ActorRef> biConsumer) {
+    public static <T extends WithDittoHeaders> Graph<SinkShape<WithSender<T>>, NotUsed> of(final BiConsumer<? super T, ActorRef> biConsumer) {
         return of(withSender -> biConsumer.accept(withSender.getMessage(), withSender.getSender()));
     }
 

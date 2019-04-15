@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.utils.akka.controlflow;
 
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+
 import akka.actor.ActorRef;
 
 /**
@@ -19,7 +21,7 @@ import akka.actor.ActorRef;
  *
  * @param <T> type of message.
  */
-public interface WithSender<T> {
+public interface WithSender<T extends WithDittoHeaders> {
 
     /**
      * @return the message.
@@ -38,7 +40,7 @@ public interface WithSender<T> {
      * @param <S> type of the new message.
      * @return copy of this object with message replaced.
      */
-    <S> WithSender<S> withMessage(S newMessage);
+    <S extends WithDittoHeaders> WithSender<S> withMessage(S newMessage);
 
     /**
      * Create a message with sender.
@@ -48,7 +50,7 @@ public interface WithSender<T> {
      * @param <T> type of message.
      * @return message and sender bundled together.
      */
-    static <T> WithSender<T> of(final T message, final ActorRef sender) {
+    static <T extends WithDittoHeaders> WithSender<T> of(final T message, final ActorRef sender) {
         return ControlFlowFactory.messageWithSender(message, sender);
     }
 

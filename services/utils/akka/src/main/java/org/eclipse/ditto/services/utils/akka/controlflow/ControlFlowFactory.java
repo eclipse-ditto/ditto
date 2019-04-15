@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.utils.akka.controlflow;
 
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+
 import akka.actor.ActorRef;
 
 /**
@@ -31,7 +33,7 @@ final class ControlFlowFactory {
      * @param <T> type of message.
      * @return message and sender bundled together.
      */
-    static <T> WithSender<T> messageWithSender(final T message, final ActorRef sender) {
+    static <T extends WithDittoHeaders> WithSender<T> messageWithSender(final T message, final ActorRef sender) {
         return new ImmutableWithSender<>(message, sender);
     }
 }

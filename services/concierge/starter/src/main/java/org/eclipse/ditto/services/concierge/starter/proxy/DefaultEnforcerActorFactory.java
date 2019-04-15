@@ -17,7 +17,6 @@ import static org.eclipse.ditto.services.models.concierge.ConciergeMessagingCons
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
@@ -43,13 +42,13 @@ import org.eclipse.ditto.services.concierge.starter.actors.DispatcherActor;
 import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.EntityId;
+import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.models.concierge.cache.Entry;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
-import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
@@ -62,7 +61,6 @@ import akka.actor.ActorContext;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.cluster.sharding.ClusterSharding;
 
 /**
  * Ditto default implementation of {@link AbstractEnforcerActorFactory}.
@@ -119,14 +117,13 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
                 aclEnforcerCache));
 
         final Duration enforcementAskTimeout = configReader.enforcement().askTimeout();
-        // set activity check interval identical to cache retention
-        final Duration activityCheckInterval = configReader.caches().id().expireAfterWrite();
         final ActorRef conciergeForwarder = getInternalConciergeForwarder(context, configReader, pubSubMediator);
         final Executor enforcerExecutor = actorSystem.dispatchers().lookup(ENFORCER_DISPATCHER);
+
         final Props enforcerProps =
                 EnforcerActor.props(pubSubMediator, enforcementProviders, enforcementAskTimeout,
-                        conciergeForwarder, enforcerExecutor, preEnforcer, activityCheckInterval);
-        final ActorRef enforcerShardRegion = startShardRegion(context.system(), configReader.cluster(), enforcerProps);
+                        conciergeForwarder, enforcerExecutor, preEnforcer,
+                        thingIdCache, aclEnforcerCache, policyEnforcerCache); // passes in the caches to be able to invalidate cache entries
 
         // start cache updaters
         final String instanceIndex = ConfigUtil.instanceIdentifier();
@@ -145,10 +142,12 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
                 ConciergeMessagingConstants.BLOCKED_NAMESPACES_UPDATER_NAME,
                 blockedNamespacesUpdaterProps);
 
-        context.actorOf(DispatcherActor.props(configReader, pubSubMediator, enforcerShardRegion),
+        final ActorRef enforcerActor = context.actorOf(enforcerProps, EnforcerActor.ACTOR_NAME);
+
+        context.actorOf(DispatcherActor.props(configReader, pubSubMediator, enforcerActor),
                 DispatcherActor.ACTOR_NAME);
 
-        return enforcerShardRegion;
+        return enforcerActor;
     }
 
     private static Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> newPreEnforcer(
@@ -164,15 +163,12 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
 
     private ActorRef getInternalConciergeForwarder(final ActorContext actorContext,
             final ServiceConfigReader configReader, final ActorRef pubSubMediator) {
-        final ActorRef conciergeShardRegionProxy = ClusterSharding.get(actorContext.system())
-                .startProxy(ConciergeMessagingConstants.SHARD_REGION,
-                        Optional.of(ConciergeMessagingConstants.CLUSTER_ROLE),
 
-                        ShardRegionExtractor.of(configReader.cluster().numberOfShards(),
-                                actorContext.system()));
+        final ActorRef conciergeEnforcerRouter =
+                ConciergeEnforcerClusterRouterFactory.createConciergeEnforcerClusterRouter(actorContext,
+                        configReader.cluster().numberOfShards());
 
-        return actorContext.actorOf(
-                ConciergeForwarderActor.props(pubSubMediator, conciergeShardRegionProxy),
+        return actorContext.actorOf(ConciergeForwarderActor.props(pubSubMediator, conciergeEnforcerRouter),
                 "internal" + ConciergeForwarderActor.ACTOR_NAME);
     }
 

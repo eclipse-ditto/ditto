@@ -29,7 +29,7 @@ import org.eclipse.ditto.services.gateway.proxy.actors.ProxyActor;
 import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
 import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
-import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
+import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
@@ -152,13 +152,12 @@ final class GatewayRootActor extends AbstractActor {
                 DevOpsCommandsActor.props(LogbackLoggingFacade.newInstance(), GatewayService.SERVICE_NAME,
                         ConfigUtil.instanceIdentifier()));
 
-        final ActorRef conciergeShardRegionProxy = ClusterSharding.get(actorSystem)
-                .startProxy(ConciergeMessagingConstants.SHARD_REGION,
-                        Optional.of(ConciergeMessagingConstants.CLUSTER_ROLE),
-                        ShardRegionExtractor.of(numberOfShards, actorSystem));
+        final ActorRef conciergeEnforcerRouter =
+                ConciergeEnforcerClusterRouterFactory.createConciergeEnforcerClusterRouter(getContext(),
+                        configReader.cluster().numberOfShards());
 
         final ActorRef conciergeForwarder = startChildActor(ConciergeForwarderActor.ACTOR_NAME,
-                ConciergeForwarderActor.props(pubSubMediator, conciergeShardRegionProxy));
+                ConciergeForwarderActor.props(pubSubMediator, conciergeEnforcerRouter));
 
         final ActorRef proxyActor = startChildActor(ProxyActor.ACTOR_NAME,
                 ProxyActor.props(pubSubMediator, devOpsCommandsActor, conciergeForwarder));
