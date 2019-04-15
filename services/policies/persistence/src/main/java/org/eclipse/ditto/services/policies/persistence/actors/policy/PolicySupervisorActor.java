@@ -25,7 +25,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.services.base.actors.ShutdownNamespaceBehavior;
-import org.eclipse.ditto.services.base.config.supervision.SupervisorConfig;
+import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.services.policies.persistence.actors.AbstractReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.ReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.StrategyAwareReceiveBuilder;
@@ -60,7 +60,7 @@ public final class PolicySupervisorActor extends AbstractActor {
 
     private final Props persistenceActorProps;
     private final String policyId;
-    private final SupervisorConfig.ExponentialBackOffConfig exponentialBackOffConfig;
+    private final ExponentialBackOffConfig exponentialBackOffConfig;
     private final SupervisorStrategy supervisorStrategy;
     private final ShutdownNamespaceBehavior shutdownNamespaceBehavior;
 

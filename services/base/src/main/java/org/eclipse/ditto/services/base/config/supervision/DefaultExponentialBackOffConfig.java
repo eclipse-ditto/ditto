@@ -25,7 +25,7 @@ import com.typesafe.config.Config;
  * This class is the default implementation of the exponential back-off config.
  */
 @Immutable
-public final class DefaultExponentialBackOffConfig implements SupervisorConfig.ExponentialBackOffConfig, Serializable {
+public final class DefaultExponentialBackOffConfig implements ExponentialBackOffConfig, Serializable {
 
     private static final long serialVersionUID = -8907054359348063020L;
 
