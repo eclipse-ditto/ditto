@@ -26,33 +26,7 @@ public enum HttpHeader {
     /**
      * Authorization HTTP header.
      */
-    AUTHORIZATION("Authorization"),
-
-    /**
-     * WWW-Authenticate HTTP header.
-     */
-    WWW_AUTHENTICATE("WWW-Authenticate"),
-
-    /**
-     * Date HTTP header.
-     */
-    DATE("Date"),
-
-    /**
-     * Host HTTP header.
-     */
-    HOST("Host"),
-
-    /**
-     * Location HTTP header.
-     */
-    LOCATION("Location"),
-
-    /**
-     * Origin HTTP header.
-     */
-    ORIGIN("Origin"),
-
+    AUTHORIZATION("authorization"),
 
     /**
      * x-correlation-id HTTP header.
