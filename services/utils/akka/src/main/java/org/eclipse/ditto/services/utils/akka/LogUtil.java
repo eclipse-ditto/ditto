@@ -16,6 +16,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -268,7 +269,7 @@ public final class LogUtil {
     public static void enhanceLogWithCustomField(final DiagnosticLoggingAdapter loggingAdapter,
             final String fieldName, @Nullable final String fieldValue, final MdcField... additionalMdcFields) {
 
-        final Map<String, Object> mdcMap = loggingAdapter.getMDC();
+        final Map<String, Object> mdcMap = getMDC(loggingAdapter);
 
         enhanceMdcWithAdditionalField(mdcMap, fieldName, fieldValue);
         enhanceMdcWithAdditionalFields(mdcMap, additionalMdcFields);
@@ -397,7 +398,7 @@ public final class LogUtil {
      * Removes the {@code fieldName} from the default slf4j {@link org.slf4j.MDC}.
      */
     public static void removeCustomField(final DiagnosticLoggingAdapter loggingAdapter, final String fieldName) {
-        final Map<String, Object> mdc = loggingAdapter.getMDC();
+        final Map<String, Object> mdc = getMDC(loggingAdapter);
         mdc.remove(fieldName);
         loggingAdapter.setMDC(mdc);
     }
@@ -411,6 +412,13 @@ public final class LogUtil {
      */
     public static MdcField newMdcField(final String name, @Nullable final String value) {
         return new ImmutableMdcField(name, value);
+    }
+
+    /**
+     * @return a copy of the MDC of {@code loggingAdapter}.
+     */
+    private static Map<String, Object> getMDC(final DiagnosticLoggingAdapter loggingAdapter) {
+        return new HashMap<>(loggingAdapter.getMDC());
     }
 
     /**
