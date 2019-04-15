@@ -77,7 +77,7 @@ public final class DefaultLimitsConfig implements LimitsConfig, Serializable, Wi
     }
 
     @Override
-    public int thingsSearchMaxPageSize() {
+    public int getThingsSearchMaxPageSize() {
         return thingsSearchMaxPageSize;
     }
 

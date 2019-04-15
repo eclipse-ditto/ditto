@@ -56,7 +56,7 @@ public interface LimitsConfig {
      *
      * @return max pagination size.
      */
-    int thingsSearchMaxPageSize();
+    int getThingsSearchMaxPageSize();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for
