@@ -30,7 +30,7 @@ import akka.event.DiagnosticLoggingAdapter;
 /**
  * Unit test for {@link org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil}.
  */
-public class ConnectionLogUtilTest {
+public final class ConnectionLogUtilTest {
 
     private static final Map<String, Object> DEFAULT_MDC = new HashMap<>();
     private static final String KNOWN_KEY_1 = "key-1";

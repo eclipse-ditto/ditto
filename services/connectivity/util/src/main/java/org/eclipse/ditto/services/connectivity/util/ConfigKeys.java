@@ -14,6 +14,9 @@ package org.eclipse.ditto.services.connectivity.util;
 
 import javax.annotation.concurrent.Immutable;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+
 /**
  * This class encloses everything regarding configuration keys.
  */
@@ -189,6 +192,30 @@ public final class ConfigKeys {
         public static final String INIT_TIMEOUT = PREFIX + "init-timeout";
 
         private Client() {
+            throw new AssertionError();
+        }
+
+    }
+
+    /**
+     * TODO: this is just a workaround until issue #350 if finished.
+     *  Afterwards it should be possible to use a configreader (with AbstractConfigReader#getChildOrEmpty).
+     *
+     * Configuration keys for Monitoring.
+     */
+    @Immutable
+    public static final class Monitoring {
+
+        private static final String PREFIX = CONNECTIVITY_PREFIX + "monitoring";
+
+        public static MonitoringConfigReader fromRawConfig(final Config rawConfig) {
+            if (rawConfig.hasPath(PREFIX)) {
+                return new MonitoringConfigReader(rawConfig.getConfig(PREFIX));
+            }
+            return new MonitoringConfigReader(ConfigFactory.empty());
+        }
+
+        private Monitoring() {
             throw new AssertionError();
         }
 
