@@ -12,15 +12,19 @@
  */
 package org.eclipse.ditto.services.utils.akka;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -179,9 +183,8 @@ public final class LogUtil {
             final Consumer<Logger> logConsumer) {
 
         final Map<String, String> originalContext = MDC.getCopyOfContextMap();
-        if (null != correlationId) {
-            MDC.put(X_CORRELATION_ID, correlationId.toString());
-        }
+        enhanceLogWithCorrelationId(correlationId);
+
         additionalMdcFields.forEach(MDC::put);
         try {
             logConsumer.accept(slf4jLogger);
@@ -200,14 +203,12 @@ public final class LogUtil {
      *
      * @param loggingAdapter the DiagnosticLoggingAdapter to set the "MDC" on.
      * @param withDittoHeaders where to extract a possible correlation ID from.
+     * @param additionalMdcFields additional fields to add to the MDC.
      */
     public static void enhanceLogWithCorrelationId(final DiagnosticLoggingAdapter loggingAdapter,
-            final WithDittoHeaders<?> withDittoHeaders) {
+            final WithDittoHeaders<?> withDittoHeaders, final MdcField... additionalMdcFields) {
 
-        loggingAdapter.clearMDC();
-        withDittoHeaders.getDittoHeaders()
-                .getCorrelationId()
-                .ifPresent(s -> enhanceLogWithCorrelationId(loggingAdapter, s));
+        enhanceLogWithCorrelationId(loggingAdapter, withDittoHeaders.getDittoHeaders().getCorrelationId(), additionalMdcFields);
     }
 
     /**
@@ -216,12 +217,13 @@ public final class LogUtil {
      *
      * @param loggingAdapter the DiagnosticLoggingAdapter to set the "MDC" on.
      * @param dittoHeaders where to extract a possible correlation ID from.
+     * @param additionalMdcFields additional fields to add to the MDC.
      */
     public static void enhanceLogWithCorrelationId(final DiagnosticLoggingAdapter loggingAdapter,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders, final MdcField... additionalMdcFields) {
 
-        loggingAdapter.clearMDC();
-        dittoHeaders.getCorrelationId().ifPresent(s -> enhanceLogWithCorrelationId(loggingAdapter, s));
+        enhanceLogWithCorrelationId(loggingAdapter,
+        dittoHeaders.getCorrelationId(), additionalMdcFields);
     }
 
     /**
@@ -230,30 +232,28 @@ public final class LogUtil {
      *
      * @param loggingAdapter the DiagnosticLoggingAdapter to set the "MDC" on.
      * @param correlationId the optional correlation ID to set.
+     * @param additionalMdcFields additional fields to add to the MDC.
      */
     public static void enhanceLogWithCorrelationId(final DiagnosticLoggingAdapter loggingAdapter,
-            final Optional<String> correlationId) {
-
-        loggingAdapter.clearMDC();
-        correlationId.ifPresent(s -> enhanceLogWithCorrelationId(loggingAdapter, s));
-    }
-
-    /**
-     * Enhances the passed {@link DiagnosticLoggingAdapter} with an "MDC" map entry for the passed {@code correlationId}
-     * (if present).
-     *
-     * @param loggingAdapter the DiagnosticLoggingAdapter to set the "MDC" on.
-     * @param correlationId the optional correlation ID to set.
-     */
-    public static void enhanceLogWithCorrelationId(final DiagnosticLoggingAdapter loggingAdapter,
-            final CharSequence correlationId) {
-
-        loggingAdapter.clearMDC();
-        if (null != correlationId && 0 < correlationId.length()) {
-            final Map<String, Object> mdcMap = new HashMap<>();
-            mdcMap.put(X_CORRELATION_ID, correlationId);
-            loggingAdapter.setMDC(mdcMap);
+            final Optional<String> correlationId, final MdcField... additionalMdcFields) {
+        if (correlationId.isPresent()) {
+            enhanceLogWithCorrelationId(loggingAdapter, correlationId.get(), additionalMdcFields);
+        } else {
+            removeCorrelationId(loggingAdapter);
         }
+    }
+
+    /**
+     * Enhances the passed {@link DiagnosticLoggingAdapter} with an "MDC" map entry for the passed {@code correlationId}
+     * (if present).
+     *
+     * @param loggingAdapter the DiagnosticLoggingAdapter to set the "MDC" on.
+     * @param correlationId the optional correlation ID to set.
+     * @param additionalMdcFields additional fields to add to the MDC.
+     */
+    public static void enhanceLogWithCorrelationId(final DiagnosticLoggingAdapter loggingAdapter,
+            final String correlationId, final MdcField... additionalMdcFields) {
+        enhanceLogWithCustomField(loggingAdapter, X_CORRELATION_ID, correlationId, additionalMdcFields);
     }
 
     /**
@@ -263,14 +263,29 @@ public final class LogUtil {
      * @param loggingAdapter the DiagnosticLoggingAdapter to set the "MDC" on.
      * @param fieldName the field value to set in MDC.
      * @param fieldValue the optional value to set.
+     * @param additionalMdcFields additional fields to add to the MDC.
      */
     public static void enhanceLogWithCustomField(final DiagnosticLoggingAdapter loggingAdapter,
-            final String fieldName, @Nullable final String fieldValue) {
+            final String fieldName, @Nullable final String fieldValue, final MdcField... additionalMdcFields) {
 
-        if (null != fieldValue && !fieldValue.isEmpty()) {
-            final Map<String, Object> mdcMap = new HashMap<>(loggingAdapter.getMDC());
-            mdcMap.put(fieldName, fieldValue);
-            loggingAdapter.setMDC(mdcMap);
+        final Map<String, Object> mdcMap = loggingAdapter.getMDC();
+
+        enhanceMdcWithAdditionalField(mdcMap, fieldName, fieldValue);
+        enhanceMdcWithAdditionalFields(mdcMap, additionalMdcFields);
+
+        loggingAdapter.setMDC(mdcMap);
+    }
+
+    private static void enhanceMdcWithAdditionalFields(final Map<String, Object> mdc, final MdcField... additionalMdcFields) {
+        Arrays.stream(additionalMdcFields)
+                .forEach(field -> enhanceMdcWithAdditionalField(mdc, field.getName(), field.getValue()));
+    }
+
+    private static void enhanceMdcWithAdditionalField(final Map<String, Object> mdc, final String fieldName, @Nullable final String fieldValue) {
+        if (fieldValue != null && !fieldValue.isEmpty()) {
+            mdc.put(fieldName, fieldValue);
+        } else {
+            mdc.remove(fieldName);
         }
     }
 
@@ -281,9 +296,7 @@ public final class LogUtil {
      * @param withDittoHeaders where to extract a possible correlation ID from.
      */
     public static void enhanceLogWithCorrelationId(final WithDittoHeaders<?> withDittoHeaders) {
-        withDittoHeaders.getDittoHeaders()
-                .getCorrelationId()
-                .ifPresent(LogUtil::enhanceLogWithCorrelationId);
+        enhanceLogWithCorrelationId(withDittoHeaders.getDittoHeaders().getCorrelationId());
     }
 
     /**
@@ -293,7 +306,7 @@ public final class LogUtil {
      * @param dittoHeaders where to extract a possible correlation ID from.
      */
     public static void enhanceLogWithCorrelationId(final DittoHeaders dittoHeaders) {
-        dittoHeaders.getCorrelationId().ifPresent(LogUtil::enhanceLogWithCorrelationId);
+        enhanceLogWithCorrelationId(dittoHeaders.getCorrelationId());
     }
 
     /**
@@ -322,9 +335,24 @@ public final class LogUtil {
      *
      * @param correlationId the optional correlation ID to set.
      */
-    public static void enhanceLogWithCorrelationId(final CharSequence correlationId) {
-        if (null != correlationId && 0 < correlationId.length()) {
-            MDC.put(X_CORRELATION_ID, correlationId.toString());
+    public static void enhanceLogWithCorrelationId(final Optional<String> correlationId) {
+        if (correlationId.isPresent()) {
+            enhanceLogWithCorrelationId(correlationId.get());
+        } else {
+            removeCorrelationId();
+        }
+    }
+
+    /**
+     * Enhances the default slf4j {@link org.slf4j.MDC} with a {@code correlationId}.
+     *
+     * @param correlationId the optional correlation ID to set.
+     */
+    public static void enhanceLogWithCorrelationId(@Nullable final String correlationId) {
+        if (correlationId != null && !correlationId.isEmpty()) {
+            MDC.put(X_CORRELATION_ID, correlationId);
+        } else {
+            removeCorrelationId();
         }
     }
 
@@ -356,6 +384,106 @@ public final class LogUtil {
      */
     public static void removeCorrelationId() {
         MDC.remove(X_CORRELATION_ID);
+    }
+
+    /**
+     * Removes the correlation ID from the default slf4j {@link org.slf4j.MDC}.
+     */
+    private static void removeCorrelationId(final DiagnosticLoggingAdapter loggingAdapter) {
+        removeCustomField(loggingAdapter, X_CORRELATION_ID);
+    }
+
+    /**
+     * Removes the {@code fieldName} from the default slf4j {@link org.slf4j.MDC}.
+     */
+    public static void removeCustomField(final DiagnosticLoggingAdapter loggingAdapter, final String fieldName) {
+        final Map<String, Object> mdc = loggingAdapter.getMDC();
+        mdc.remove(fieldName);
+        loggingAdapter.setMDC(mdc);
+    }
+
+    /**
+     * Creates a new MDC field.
+     * @param name the name of the field.
+     * @param value the value of the field.
+     * @return the MDC field for name and value.
+     * @throws java.lang.NullPointerException if {@code name} is null.
+     */
+    public static MdcField newMdcField(final String name, @Nullable final String value) {
+        return new ImmutableMdcField(name, value);
+    }
+
+    /**
+     * Represents an MDC field that can be added to the MDC of a logger.
+     */
+    public interface MdcField {
+
+        /**
+         * Get the name of the MDC field.
+         * @return the name.
+         */
+        String getName();
+
+        /**
+         * Get the value of the MDC field.
+         * @return the value.
+         */
+        @Nullable
+        String getValue();
+    }
+
+    /**
+     * Immutable implementation of {@code MdcField}.
+     */
+    @Immutable
+    private static final class ImmutableMdcField implements MdcField  {
+
+        private final String name;
+        @Nullable private final String value;
+
+        private ImmutableMdcField(final String name, @Nullable final String value) {
+            this.name = checkNotNull(name);
+            this.value = value;
+        }
+
+
+        @Override
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        @Nullable
+        public String getValue() {
+            return value;
+        }
+
+        @Override
+        public boolean equals(@Nullable final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            final ImmutableMdcField that = (ImmutableMdcField) o;
+            return Objects.equals(name, that.name) &&
+                    Objects.equals(value, that.value);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(name, value);
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " [" +
+                    ", name=" + name +
+                    ", value=" + value +
+                    "]";
+        }
+
     }
 
 }
