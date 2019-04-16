@@ -30,8 +30,6 @@ import org.eclipse.ditto.signals.base.AbstractJsonParsableRegistry;
 import org.eclipse.ditto.signals.base.DeserializationStrategyNotFoundError;
 import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Contains all strategies to deserialize subclasses of {@link Event} from a combination of
@@ -39,8 +37,6 @@ import org.slf4j.LoggerFactory;
  */
 @Immutable
 public final class GlobalEventRegistry extends AbstractJsonParsableRegistry<Event> implements EventRegistry<Event> {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(GlobalEventRegistry.class);
 
     private static final GlobalEventRegistry INSTANCE = new GlobalEventRegistry(new JsonParsableEventRegistry());
 
@@ -124,7 +120,6 @@ public final class GlobalEventRegistry extends AbstractJsonParsableRegistry<Even
                 try {
                     return (Event) method.invoke(null, jsonObject, dittoHeaders);
                 } catch (final IllegalAccessException | InvocationTargetException e) {
-                    LOGGER.error("Exception occurred during parsing of json.", e);
                     throw JsonTypeNotParsableException.newBuilder(type, getClass().getSimpleName())
                             .dittoHeaders(dittoHeaders)
                             .cause(e)

@@ -30,8 +30,6 @@ import org.eclipse.ditto.signals.base.AbstractJsonParsableRegistry;
 import org.eclipse.ditto.signals.base.DeserializationStrategyNotFoundError;
 import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Contains all strategies to deserialize subclasses of {@link Command} from a combination of
@@ -40,8 +38,6 @@ import org.slf4j.LoggerFactory;
 @Immutable
 public final class GlobalCommandRegistry extends AbstractJsonParsableRegistry<Command>
         implements CommandRegistry<Command> {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(GlobalCommandRegistry.class);
 
     private static final GlobalCommandRegistry INSTANCE = new GlobalCommandRegistry(new JsonParsableCommandRegistry());
 
@@ -99,7 +95,6 @@ public final class GlobalCommandRegistry extends AbstractJsonParsableRegistry<Co
                 try {
                     return (Command) method.invoke(null, jsonObject, dittoHeaders);
                 } catch (final IllegalAccessException | InvocationTargetException e) {
-                    LOGGER.error("Exception occurred during parsing of json.", e);
                     throw JsonTypeNotParsableException.newBuilder(type, getClass().getSimpleName())
                             .dittoHeaders(dittoHeaders)
                             .cause(e)

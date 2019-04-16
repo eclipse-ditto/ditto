@@ -29,8 +29,6 @@ import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Contains all strategies to deserialize subclasses of {@link DittoRuntimeException} from a combination of
@@ -38,8 +36,6 @@ import org.slf4j.LoggerFactory;
  */
 @Immutable
 public final class GlobalErrorRegistry extends AbstractErrorRegistry<DittoRuntimeException> {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(GlobalErrorRegistry.class);
 
     private static final GlobalErrorRegistry INSTANCE = new GlobalErrorRegistry();
 
@@ -141,7 +137,6 @@ public final class GlobalErrorRegistry extends AbstractErrorRegistry<DittoRuntim
                 try {
                     return (DittoRuntimeException) method.invoke(null, jsonObject, dittoHeaders);
                 } catch (final IllegalAccessException | InvocationTargetException e) {
-                    LOGGER.error("Exception occurred during parsing of json.", e);
                     throw JsonTypeNotParsableException.newBuilder(errorCode, getClass().getSimpleName())
                             .dittoHeaders(dittoHeaders)
                             .cause(e)
