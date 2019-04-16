@@ -69,7 +69,7 @@ public final class ConnectionLogUtilTest {
         final String connectionId = "theConnection";
         final String correlationId = "theCorrelationId";
         final WithDittoHeaders<?> withDittoHeaders =
-                RetrieveThing.of("anyThing", DittoHeaders.newBuilder().correlationId(correlationId).build());
+                RetrieveThing.of("any:Thing", DittoHeaders.newBuilder().correlationId(correlationId).build());
 
         final Map<String, Object> expectedMap = new HashMap<>(DEFAULT_MDC);
 
