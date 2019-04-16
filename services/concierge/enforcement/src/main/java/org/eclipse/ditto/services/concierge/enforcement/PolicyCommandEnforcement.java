@@ -32,10 +32,11 @@ import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.services.concierge.cache.IdentityCache;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.EntityId;
-import org.eclipse.ditto.services.utils.cache.entry.Entry;
+import org.eclipse.ditto.services.models.concierge.InvalidateCacheEntry;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cache.Cache;
+import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.signals.commands.base.CommandToExceptionRegistry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyCommandToAccessExceptionRegistry;
@@ -227,7 +228,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
         enforcerCache.invalidate(entityId);
         pubSubMediator().tell(new DistributedPubSubMediator.SendToAll(
                         ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
-                        new InvalidateCacheEntry(entityId),
+                        InvalidateCacheEntry.of(entityId),
                         true),
                 self());
     }

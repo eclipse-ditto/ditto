@@ -21,10 +21,11 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.services.models.concierge.EntityId;
-import org.eclipse.ditto.services.models.concierge.cache.Entry;
+import org.eclipse.ditto.services.models.concierge.InvalidateCacheEntry;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
+import org.eclipse.ditto.services.utils.cache.entry.Entry;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 
@@ -54,13 +55,14 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
 
     /**
      * Create an instance of this actor.
-     *  @param pubSubMediator Akka pub-sub-mediator.
+     *
+     * @param pubSubMediator Akka pub-sub-mediator.
      * @param conciergeForwarder the concierge forwarder.
      * @param enforcerExecutor executor for enforcement steps.
      * @param askTimeout how long to wait for entity actors.
-     * @param thingIdCache TODO TJ javadoc
-     * @param aclEnforcerCache
-     * @param policyEnforcerCache
+     * @param thingIdCache the cache for Thing IDs to either ACL or Policy ID.
+     * @param aclEnforcerCache the ACL cache.
+     * @param policyEnforcerCache the Policy cache.
      */
     protected AbstractEnforcerActor(final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,

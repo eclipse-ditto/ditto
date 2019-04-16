@@ -69,12 +69,13 @@ import org.eclipse.ditto.services.concierge.enforcement.placeholders.references.
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.references.ReferencePlaceholder;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.EntityId;
-import org.eclipse.ditto.services.utils.cache.entry.Entry;
+import org.eclipse.ditto.services.models.concierge.InvalidateCacheEntry;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.models.policies.PoliciesAclMigrations;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cache.Cache;
+import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.signals.commands.base.CommandToExceptionRegistry;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceTimeoutException;
@@ -166,17 +167,16 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     }
 
     @Override
-    public CompletionStage<Void> enforce(final ThingCommand signal, final ActorRef sender,
-            final DiagnosticLoggingAdapter log) {
+    public CompletionStage<Void> enforce() {
         LogUtil.enhanceLogWithCorrelationIdOrRandom(signal());
         return thingEnforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             if (!enforcerEntry.exists()) {
                 enforceThingCommandByNonexistentEnforcer(enforcerKeyEntry);
             } else if (isAclEnforcer(enforcerKeyEntry)) {
-                enforceThingCommandByAclEnforcer(signal, enforcerEntry.getValueOrThrow(), sender);
+                enforceThingCommandByAclEnforcer(enforcerEntry.getValueOrThrow());
             } else {
                 final String policyId = enforcerKeyEntry.getValueOrThrow().getId();
-                enforceThingCommandByPolicyEnforcer(signal, policyId, enforcerEntry.getValueOrThrow(), sender);
+                enforceThingCommandByPolicyEnforcer(signal(), policyId, enforcerEntry.getValueOrThrow());
             }
         });
     }
@@ -187,11 +187,10 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
      *
      * @param enforcerKeyEntry cache entry in the entity ID cache for the enforcer cache key.
      */
-    private void enforceThingCommandByNonexistentEnforcer(final Entry<EntityId> enforcerKeyEntry,
-            final ThingCommand thingCommand, final ActorRef sender) {
+    private void enforceThingCommandByNonexistentEnforcer(final Entry<EntityId> enforcerKeyEntry) {
         if (enforcerKeyEntry.exists()) {
             // Thing exists but its policy is deleted.
-            final String thingId = thingCommand.getThingId();
+            final String thingId = signal().getThingId();
             final String policyId = enforcerKeyEntry.getValueOrThrow().getId();
             final DittoRuntimeException error = errorForExistingThingWithDeletedPolicy(signal(), thingId, policyId);
             log().info("Enforcer was not existing for Thing <{}>, responding with: {}", thingId, error);
@@ -208,8 +207,8 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
      *
      * @param enforcer the ACL enforcer.
      */
-    private void enforceThingCommandByAclEnforcer(final ThingCommand<?> thingCommand, final Enforcer enforcer,
-            final ActorRef sender) {
+    private void enforceThingCommandByAclEnforcer(final Enforcer enforcer) {
+        final ThingCommand<?> thingCommand = signal();
         final Optional<? extends ThingCommand> authorizedCommand = authorizeByAcl(enforcer, thingCommand);
 
         if (authorizedCommand.isPresent()) {
@@ -580,7 +579,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         aclEnforcerCache.invalidate(entityId);
         pubSubMediator().tell(new DistributedPubSubMediator.SendToAll(
                         ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
-                        new InvalidateCacheEntry(entityId),
+                        InvalidateCacheEntry.of(entityId),
                         true),
                 self());
     }
@@ -590,7 +589,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         policyEnforcerCache.invalidate(entityId);
         pubSubMediator().tell(new DistributedPubSubMediator.SendToAll(
                         ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
-                        new InvalidateCacheEntry(entityId),
+                        InvalidateCacheEntry.of(entityId),
                         true),
                 self());
     }
@@ -778,9 +777,9 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     private Policy awaitPolicyCompletionStage(final CompletionStage<Policy> policyCompletionStage) {
         try {
             return policyCompletionStage.toCompletableFuture().get(getAskTimeout().toMillis(), TimeUnit.MILLISECONDS);
-        } catch (InterruptedException | TimeoutException e) {
+        } catch (final InterruptedException | TimeoutException e) {
             log().error(e, "An error occurred when trying to retrieve policy.");
-            throw GatewayServiceTimeoutException.newBuilder().build();
+            throw GatewayServiceTimeoutException.newBuilder().cause(e).build();
         } catch (ExecutionException e) {
             if (e.getCause() instanceof DittoRuntimeException) {
                 throw (DittoRuntimeException) e.getCause();
@@ -1230,7 +1229,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
      */
     private static boolean isAclEnforcer(final Entry<EntityId> enforcerKeyEntry) {
         return enforcerKeyEntry.exists() &&
-                Objects.equals(ThingCommand.RESOURCE_TYPE, enforcerKeyEntry.getValue().getResourceType());
+                Objects.equals(ThingCommand.RESOURCE_TYPE, enforcerKeyEntry.getValueOrThrow().getResourceType());
     }
 
     /**

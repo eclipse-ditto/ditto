@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.concierge.util;
+package org.eclipse.ditto.services.models.concierge;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -20,6 +20,8 @@ import org.eclipse.ditto.services.models.policies.PoliciesMappingStrategies;
 import org.eclipse.ditto.services.models.things.ThingsMappingStrategies;
 import org.eclipse.ditto.services.models.thingsearch.ThingSearchMappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.AbstractGlobalMappingStrategies;
+import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
+import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 
 /**
@@ -42,6 +44,12 @@ public final class ConciergeMappingStrategies extends AbstractGlobalMappingStrat
         combinedStrategy.putAll(new ThingSearchMappingStrategies().getStrategies());
         combinedStrategy.putAll(new ConnectivityMappingStrategies(thingsMappingStrategy).getStrategies());
         combinedStrategy.putAll(thingsMappingStrategy.getStrategies());
+
+        final MappingStrategies strategies = MappingStrategiesBuilder.newInstance()
+                .add(InvalidateCacheEntry.class, jsonObject -> InvalidateCacheEntry.fromJson(jsonObject)) // do not replace with lambda!
+                .build();
+
+        combinedStrategy.putAll(strategies.getStrategies());
 
         return combinedStrategy;
     }

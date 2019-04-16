@@ -25,9 +25,9 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.services.models.concierge.EntityId;
-import org.eclipse.ditto.services.models.concierge.cache.Entry;
 import org.eclipse.ditto.services.utils.akka.controlflow.Pipe;
 import org.eclipse.ditto.services.utils.cache.Cache;
+import org.eclipse.ditto.services.utils.cache.entry.Entry;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -69,9 +69,9 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      * @param conciergeForwarder an actorRef to concierge forwarder.
      * @param enforcerExecutor the Executor to run async tasks on during enforcement.
      * @param preEnforcer a function executed before actual enforcement, may be {@code null}.
-     * @param thingIdCache
-     * @param aclEnforcerCache
-     * @param policyEnforcerCache
+     * @param thingIdCache the cache for Thing IDs to either ACL or Policy ID.
+     * @param aclEnforcerCache the ACL cache.
+     * @param policyEnforcerCache the Policy cache.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
@@ -102,9 +102,9 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      * @param askTimeout the ask timeout duration: the duration to wait for entity shard regions.
      * @param conciergeForwarder an actorRef to concierge forwarder.
      * @param enforcerExecutor the Executor to run async tasks on during enforcement.
-     * @param thingIdCache
-     * @param aclEnforcerCache
-     * @param policyEnforcerCache
+     * @param thingIdCache the cache for Thing IDs to either ACL or Policy ID.
+     * @param aclEnforcerCache the ACL cache.
+     * @param policyEnforcerCache the Policy cache.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
