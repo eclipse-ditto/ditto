@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
@@ -38,6 +39,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * deleted.
  */
 @Immutable
+@JsonParsableEvent(name = FeaturePropertyDeleted.NAME, typePrefix= FeaturePropertyDeleted.TYPE_PREFIX)
 public final class FeaturePropertyDeleted extends AbstractThingEvent<FeaturePropertyDeleted> implements
         ThingModifiedEvent<FeaturePropertyDeleted>, WithFeatureId {
 

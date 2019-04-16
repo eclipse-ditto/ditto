@@ -30,6 +30,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -41,6 +42,7 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandRespon
  * Response to a {@link ModifyConnection} command.
  */
 @Immutable
+@JsonParsableCommandResponse(type = ModifyConnectionResponse.TYPE)
 public final class ModifyConnectionResponse extends AbstractCommandResponse<ModifyConnectionResponse>
         implements ConnectivityModifyCommandResponse<ModifyConnectionResponse> {
 

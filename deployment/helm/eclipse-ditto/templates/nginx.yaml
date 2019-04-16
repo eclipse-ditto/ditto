@@ -30,6 +30,7 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
+  replicas: {{ .Values.nginx.replicaCount }}
   template:
     metadata:
       labels:

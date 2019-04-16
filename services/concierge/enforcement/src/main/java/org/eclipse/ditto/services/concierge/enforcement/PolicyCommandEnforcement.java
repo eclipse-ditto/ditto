@@ -32,7 +32,7 @@ import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.services.concierge.cache.IdentityCache;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.EntityId;
-import org.eclipse.ditto.services.models.concierge.cache.Entry;
+import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cache.Cache;
@@ -166,7 +166,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
         LogUtil.enhanceLogWithCorrelationIdOrRandom(command);
         return enforcerRetriever.retrieve(entityId(), (idEntry, enforcerEntry) -> {
             if (enforcerEntry.exists()) {
-                enforcePolicyCommandByEnforcer(enforcerEntry.getValue());
+                enforcePolicyCommandByEnforcer(enforcerEntry.getValueOrThrow());
             } else {
                 enforcePolicyCommandByNonexistentEnforcer();
             }

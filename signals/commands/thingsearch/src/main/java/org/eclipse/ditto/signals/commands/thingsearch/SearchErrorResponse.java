@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
@@ -39,6 +40,7 @@ import org.eclipse.ditto.signals.commands.base.ErrorResponse;
  * SearchCommand.
  */
 @Immutable
+@JsonParsableCommandResponse(type = SearchErrorResponse.TYPE)
 public final class SearchErrorResponse extends AbstractCommandResponse<SearchErrorResponse>
         implements ThingSearchCommandResponse<SearchErrorResponse>, ErrorResponse<SearchErrorResponse> {
 

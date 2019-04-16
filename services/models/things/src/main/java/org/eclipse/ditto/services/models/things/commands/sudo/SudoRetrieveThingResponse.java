@@ -30,6 +30,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
@@ -40,8 +41,9 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  * Response to a {@link SudoRetrieveThing} command.
  */
 @Immutable
-public final class SudoRetrieveThingResponse extends AbstractCommandResponse<SudoRetrieveThingResponse> implements
-        SudoCommandResponse<SudoRetrieveThingResponse> {
+@JsonParsableCommandResponse(type = SudoRetrieveThingResponse.TYPE)
+public final class SudoRetrieveThingResponse extends AbstractCommandResponse<SudoRetrieveThingResponse>
+        implements SudoCommandResponse<SudoRetrieveThingResponse> {
 
     /**
      * Name of the response.
@@ -61,6 +63,7 @@ public final class SudoRetrieveThingResponse extends AbstractCommandResponse<Sud
 
     private SudoRetrieveThingResponse(final HttpStatusCode statusCode, final JsonObject thing,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
         this.thing = checkNotNull(thing, "Thing");
     }

@@ -30,6 +30,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.ThingIdValidator;
@@ -41,6 +42,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * This command modifies a single ACL Entry of a Thing.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = ModifyAclEntry.TYPE_PREFIX, name = ModifyAclEntry.NAME)
 public final class ModifyAclEntry extends AbstractCommand<ModifyAclEntry>
         implements ThingModifyCommand<ModifyAclEntry> {
 

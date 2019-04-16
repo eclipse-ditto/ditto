@@ -28,6 +28,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
@@ -37,6 +38,7 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandRespon
  * Response to a {@link TestConnection} command.
  */
 @Immutable
+@JsonParsableCommandResponse(type = TestConnectionResponse.TYPE)
 public final class TestConnectionResponse extends AbstractCommandResponse<TestConnectionResponse>
         implements ConnectivityModifyCommandResponse<TestConnectionResponse> {
 

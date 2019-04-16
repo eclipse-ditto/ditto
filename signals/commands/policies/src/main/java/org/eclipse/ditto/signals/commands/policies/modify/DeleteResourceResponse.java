@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
@@ -40,8 +41,9 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  * Response to a {@link DeleteResource} command.
  */
 @Immutable
-public final class DeleteResourceResponse extends AbstractCommandResponse<DeleteResourceResponse> implements
-        PolicyModifyCommandResponse<DeleteResourceResponse> {
+@JsonParsableCommandResponse(type = DeleteResourceResponse.TYPE)
+public final class DeleteResourceResponse extends AbstractCommandResponse<DeleteResourceResponse>
+        implements PolicyModifyCommandResponse<DeleteResourceResponse> {
 
     /**
      * Type of this response.
@@ -115,7 +117,7 @@ public final class DeleteResourceResponse extends AbstractCommandResponse<Delete
      */
     public static DeleteResourceResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<DeleteResourceResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
+                .deserialize(statusCode -> {
                     final String policyId =
                             jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
                     final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
@@ -183,8 +185,10 @@ public final class DeleteResourceResponse extends AbstractCommandResponse<Delete
             return false;
         }
         final DeleteResourceResponse that = (DeleteResourceResponse) o;
-        return that.canEqual(this) && Objects.equals(policyId, that.policyId)
-                && Objects.equals(label, that.label) && Objects.equals(resourceKey, that.resourceKey) &&
+        return that.canEqual(this) &&
+                Objects.equals(policyId, that.policyId) &&
+                Objects.equals(label, that.label) &&
+                Objects.equals(resourceKey, that.resourceKey) &&
                 super.equals(o);
     }
 

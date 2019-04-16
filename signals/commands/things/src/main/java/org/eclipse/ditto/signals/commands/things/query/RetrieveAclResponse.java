@@ -30,6 +30,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AccessControlListModelFactory;
@@ -41,6 +42,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  * Response to a {@link RetrieveAcl} command.
  */
 @Immutable
+@JsonParsableCommandResponse(type = RetrieveAclResponse.TYPE)
 public final class RetrieveAclResponse extends AbstractCommandResponse<RetrieveAclResponse> implements
         ThingQueryCommandResponse<RetrieveAclResponse> {
 

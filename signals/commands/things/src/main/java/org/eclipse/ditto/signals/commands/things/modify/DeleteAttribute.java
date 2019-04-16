@@ -28,6 +28,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingIdValidator;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
@@ -37,6 +38,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * This command deletes a thing's attribute. Contains the key of the attribute to delete and the ID of the Thing.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = DeleteAttribute.TYPE_PREFIX, name = DeleteAttribute.NAME)
 public final class DeleteAttribute extends AbstractCommand<DeleteAttribute>
         implements ThingModifyCommand<DeleteAttribute> {
 

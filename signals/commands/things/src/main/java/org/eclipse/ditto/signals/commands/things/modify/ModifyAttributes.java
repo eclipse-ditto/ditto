@@ -30,6 +30,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.ThingIdValidator;
@@ -42,6 +43,7 @@ import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
  * This command modifies all {@code Thing}'s attributes at once.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = ModifyAttributes.TYPE_PREFIX, name = ModifyAttributes.NAME)
 public final class ModifyAttributes extends AbstractCommand<ModifyAttributes>
         implements ThingModifyCommand<ModifyAttributes> {
 

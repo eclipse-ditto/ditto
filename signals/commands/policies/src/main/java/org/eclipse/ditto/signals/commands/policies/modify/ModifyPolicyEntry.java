@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.signals.commands.policies.modify;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -28,6 +30,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyEntry;
@@ -40,8 +43,9 @@ import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
  * This command modifies a {@link PolicyEntry}.
  */
 @Immutable
-public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry> implements
-        PolicyModifyCommand<ModifyPolicyEntry> {
+@JsonParsableCommand(typePrefix = ModifyPolicyEntry.TYPE_PREFIX, name = ModifyPolicyEntry.NAME)
+public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry>
+        implements PolicyModifyCommand<ModifyPolicyEntry> {
 
     /**
      * NAME of this command.
@@ -84,8 +88,8 @@ public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry> 
     public static ModifyPolicyEntry of(final String policyId, final PolicyEntry policyEntry,
             final DittoHeaders dittoHeaders) {
 
-        Objects.requireNonNull(policyId, "The Policy identifier must not be null!");
-        Objects.requireNonNull(policyEntry, "The PolicyEntry must not be null!");
+        checkNotNull(policyId, "Policy identifier");
+        checkNotNull(policyEntry, "PolicyEntry");
         return new ModifyPolicyEntry(policyId, policyEntry, dittoHeaders);
     }
 
@@ -191,8 +195,10 @@ public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry> 
             return false;
         }
         final ModifyPolicyEntry that = (ModifyPolicyEntry) obj;
-        return that.canEqual(this) && Objects.equals(policyId, that.policyId)
-                && Objects.equals(policyEntry, that.policyEntry) && super.equals(obj);
+        return that.canEqual(this) &&
+                Objects.equals(policyId, that.policyId) &&
+                Objects.equals(policyEntry, that.policyEntry) &&
+                super.equals(obj);
     }
 
     @SuppressWarnings("squid:S109")

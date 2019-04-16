@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingIdValidator;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
@@ -38,6 +39,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  * Response to a {@link DeleteFeatureDefinition} command.
  */
 @Immutable
+@JsonParsableCommandResponse(type = DeleteFeatureDefinitionResponse.TYPE)
 public final class DeleteFeatureDefinitionResponse extends AbstractCommandResponse<DeleteFeatureDefinitionResponse>
         implements ThingModifyCommandResponse<DeleteFeatureDefinitionResponse> {
 

@@ -25,6 +25,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
@@ -37,6 +38,7 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
  * established {@link Connection}.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = RetrieveConnectionMetrics.TYPE_PREFIX, name = RetrieveConnectionMetrics.NAME)
 public final class RetrieveConnectionMetrics extends AbstractCommand<RetrieveConnectionMetrics>
         implements ConnectivityQueryCommand<RetrieveConnectionMetrics> {
 

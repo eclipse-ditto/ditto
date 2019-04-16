@@ -33,6 +33,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -40,6 +41,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * Command to retrieve the {@link org.eclipse.ditto.model.devops.LoggerConfig} for each configured Logger.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = RetrieveLoggerConfig.TYPE_PREFIX, name = RetrieveLoggerConfig.NAME)
 public final class RetrieveLoggerConfig extends AbstractDevOpsCommand<RetrieveLoggerConfig> {
 
     /**

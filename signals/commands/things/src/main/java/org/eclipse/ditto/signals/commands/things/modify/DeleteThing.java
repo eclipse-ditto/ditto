@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingIdValidator;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
@@ -35,6 +36,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * system, a response with status code {@code 404} (Not found) will be generated.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = DeleteThing.TYPE_PREFIX, name = DeleteThing.NAME)
 public final class DeleteThing extends AbstractCommand<DeleteThing> implements ThingModifyCommand<DeleteThing> {
 
     /**

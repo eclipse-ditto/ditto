@@ -69,7 +69,7 @@ import org.eclipse.ditto.services.concierge.enforcement.placeholders.references.
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.references.ReferencePlaceholder;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.EntityId;
-import org.eclipse.ditto.services.models.concierge.cache.Entry;
+import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.models.policies.PoliciesAclMigrations;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
@@ -166,16 +166,17 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     }
 
     @Override
-    public CompletionStage<Void> enforce() {
+    public CompletionStage<Void> enforce(final ThingCommand signal, final ActorRef sender,
+            final DiagnosticLoggingAdapter log) {
         LogUtil.enhanceLogWithCorrelationIdOrRandom(signal());
         return thingEnforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             if (!enforcerEntry.exists()) {
                 enforceThingCommandByNonexistentEnforcer(enforcerKeyEntry);
             } else if (isAclEnforcer(enforcerKeyEntry)) {
-                enforceThingCommandByAclEnforcer(enforcerEntry.getValue());
+                enforceThingCommandByAclEnforcer(signal, enforcerEntry.getValueOrThrow(), sender);
             } else {
-                final String policyId = enforcerKeyEntry.getValue().getId();
-                enforceThingCommandByPolicyEnforcer(signal(), policyId, enforcerEntry.getValue());
+                final String policyId = enforcerKeyEntry.getValueOrThrow().getId();
+                enforceThingCommandByPolicyEnforcer(signal, policyId, enforcerEntry.getValueOrThrow(), sender);
             }
         });
     }
@@ -186,11 +187,12 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
      *
      * @param enforcerKeyEntry cache entry in the entity ID cache for the enforcer cache key.
      */
-    private void enforceThingCommandByNonexistentEnforcer(final Entry<EntityId> enforcerKeyEntry) {
+    private void enforceThingCommandByNonexistentEnforcer(final Entry<EntityId> enforcerKeyEntry,
+            final ThingCommand thingCommand, final ActorRef sender) {
         if (enforcerKeyEntry.exists()) {
             // Thing exists but its policy is deleted.
-            final String thingId = signal().getThingId();
-            final String policyId = enforcerKeyEntry.getValue().getId();
+            final String thingId = thingCommand.getThingId();
+            final String policyId = enforcerKeyEntry.getValueOrThrow().getId();
             final DittoRuntimeException error = errorForExistingThingWithDeletedPolicy(signal(), thingId, policyId);
             log().info("Enforcer was not existing for Thing <{}>, responding with: {}", thingId, error);
             replyToSender(error);
@@ -206,8 +208,8 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
      *
      * @param enforcer the ACL enforcer.
      */
-    private void enforceThingCommandByAclEnforcer(final Enforcer enforcer) {
-        final ThingCommand<?> thingCommand = signal();
+    private void enforceThingCommandByAclEnforcer(final ThingCommand<?> thingCommand, final Enforcer enforcer,
+            final ActorRef sender) {
         final Optional<? extends ThingCommand> authorizedCommand = authorizeByAcl(enforcer, thingCommand);
 
         if (authorizedCommand.isPresent()) {
@@ -520,7 +522,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         final EntityId policyEntityId = EntityId.of(PolicyCommand.RESOURCE_TYPE, policyId);
         policyEnforcerRetriever.retrieve(policyEntityId, (policyIdEntry, policyEnforcerEntry) -> {
             if (policyEnforcerEntry.exists()) {
-                enforceThingCommandByPolicyEnforcer(command, policyId, policyEnforcerEntry.getValue());
+                enforceThingCommandByPolicyEnforcer(command, policyId, policyEnforcerEntry.getValueOrThrow());
             } else {
                 final DittoRuntimeException error =
                         errorForExistingThingWithDeletedPolicy(command, command.getThingId(), policyId);

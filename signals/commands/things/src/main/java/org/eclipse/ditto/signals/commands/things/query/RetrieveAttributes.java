@@ -28,6 +28,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingIdValidator;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
@@ -37,6 +38,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * Command which retrieves all attributes of a {@code Thing}.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = RetrieveAttributes.TYPE_PREFIX, name = RetrieveAttributes.NAME)
 public final class RetrieveAttributes extends AbstractCommand<RetrieveAttributes>
         implements ThingQueryCommand<RetrieveAttributes> {
 

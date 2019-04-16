@@ -27,6 +27,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.signals.base.WithFeatureId;
@@ -37,6 +38,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  *
  * @param <T> the type of the message's payload.
  */
+@JsonParsableCommandResponse(type = SendFeatureMessageResponse.TYPE)
 public final class SendFeatureMessageResponse<T> extends AbstractMessageCommandResponse<T, SendFeatureMessageResponse>
         implements WithFeatureId {
 
@@ -174,7 +176,7 @@ public final class SendFeatureMessageResponse<T> extends AbstractMessageCommandR
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof SendFeatureMessageResponse);
+        return other instanceof SendFeatureMessageResponse;
     }
 
     @Override

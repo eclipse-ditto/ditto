@@ -71,6 +71,10 @@
                     <parameter>
                         <excludes>
                             <exclude>org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants</exclude>
+                            <exclude>org.eclipse.ditto.services.models.concierge.cache.Entry</exclude>
+                            <exclude>org.eclipse.ditto.services.models.concierge.batch.BatchStepCommandRegistry</exclude>
+                            <exclude>org.eclipse.ditto.services.models.concierge.batch.BatchStepCommandResponseRegistry</exclude>
+                            <exclude>org.eclipse.ditto.services.models.concierge.batch.BatchMappingStrategy</exclude>
                             <exclude>org.eclipse.ditto.services.models.concierge.ConciergeWrapper#wrapForEnforcer(org.eclipse.ditto.signals.base.Signal)</exclude>
                         </excludes>
                     </parameter>

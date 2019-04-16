@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyIdValidator;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
@@ -33,6 +34,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * This command deletes a {@link org.eclipse.ditto.model.policies.Policy}.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = DeletePolicy.TYPE_PREFIX, name = DeletePolicy.NAME)
 public final class DeletePolicy extends AbstractCommand<DeletePolicy> implements PolicyModifyCommand<DeletePolicy> {
 
     /**

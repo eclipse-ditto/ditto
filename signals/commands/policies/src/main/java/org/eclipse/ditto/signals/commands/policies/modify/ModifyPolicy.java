@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
@@ -41,6 +42,7 @@ import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
  * This command modifies a {@link Policy}.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = ModifyPolicy.TYPE_PREFIX, name = ModifyPolicy.NAME)
 public final class ModifyPolicy extends AbstractCommand<ModifyPolicy> implements PolicyModifyCommand<ModifyPolicy> {
 
     /**

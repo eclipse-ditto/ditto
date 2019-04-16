@@ -59,4 +59,9 @@ public final class SearchResultAssert extends AbstractIterableAssert<SearchResul
         return DittoJsonAssertions.assertThat(value).as(description);
     }
 
+    @Override
+    protected SearchResultAssert newAbstractIterableAssert(final Iterable<? extends JsonValue> iterable) {
+        return new SearchResultAssert((SearchResult) iterable);
+    }
+
 }

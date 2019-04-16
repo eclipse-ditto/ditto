@@ -33,6 +33,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.devops.ImmutableLoggerConfig;
 import org.eclipse.ditto.model.devops.LoggerConfig;
@@ -43,6 +44,7 @@ import org.eclipse.ditto.signals.commands.base.WithEntity;
  * Response to the {@link RetrieveLoggerConfig} command.
  */
 @Immutable
+@JsonParsableCommandResponse(type = RetrieveLoggerConfigResponse.TYPE)
 public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandResponse<RetrieveLoggerConfigResponse>
     implements WithEntity<RetrieveLoggerConfigResponse> {
 

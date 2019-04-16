@@ -27,6 +27,7 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.RootRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.RouteFactory;
 import org.eclipse.ditto.services.gateway.proxy.actors.ProxyActor;
 import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
+import org.eclipse.ditto.services.gateway.starter.service.util.DefaultHttpClientFacade;
 import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
@@ -59,6 +60,7 @@ import akka.actor.SupervisorStrategy;
 import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ClusterSharding;
+import akka.dispatch.MessageDispatcher;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
@@ -79,6 +81,8 @@ final class GatewayRootActor extends AbstractActor {
      * The name of this Actor in the ActorSystem.
      */
     static final String ACTOR_NAME = "gatewayRoot";
+
+    private static final String AUTHENTICATION_DISPATCHER_NAME = "authentication-dispatcher";
 
     private static final String CHILD_RESTART_INFO_MSG = "Restarting child...";
 
@@ -243,10 +247,13 @@ final class GatewayRootActor extends AbstractActor {
             final ActorRef proxyActor,
             final ActorRef streamingActor,
             final ActorRef healthCheckingActor) {
-        final HttpClientFacade httpClient = HttpClientFacade.getInstance(actorSystem);
+
+        final HttpClientFacade httpClient = DefaultHttpClientFacade.getInstance(actorSystem);
         final ClusterStatusSupplier clusterStateSupplier = new ClusterStatusSupplier(Cluster.get(actorSystem));
+        final MessageDispatcher authenticationDispatcher = actorSystem.dispatchers().lookup(
+                AUTHENTICATION_DISPATCHER_NAME);
         final DittoGatewayAuthenticationDirectiveFactory authenticationDirectiveFactory =
-                new DittoGatewayAuthenticationDirectiveFactory(config, httpClient);
+                new DittoGatewayAuthenticationDirectiveFactory(config, httpClient, authenticationDispatcher);
         final RouteFactory routeFactory = RouteFactory.newInstance(actorSystem, proxyActor, streamingActor,
                 healthCheckingActor, clusterStateSupplier, authenticationDirectiveFactory);
 

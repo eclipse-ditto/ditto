@@ -12,6 +12,7 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
+  replicas: {{ .Values.concierge.replicaCount }}
   template:
     metadata:
       labels:
@@ -62,7 +63,7 @@ spec:
             - name: TZ
               value: "{{ .Values.global.timezone }}"
             - name: IBM_JAVA_OPTIONS
-              value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"           
+              value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
             - name: MONGO_DB_SSL_ENABLED
               value: "{{ .Values.mongodb.apps.concierge.ssl }}"
             - name: MONGO_DB_URI
@@ -84,6 +85,7 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
+  replicas: {{ .Values.connectivity.replicaCount }}
   template:
     metadata:
       labels:
@@ -134,7 +136,7 @@ spec:
             - name: TZ
               value: "{{ .Values.global.timezone }}"
             - name: IBM_JAVA_OPTIONS
-              value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"         
+              value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
             - name: MONGO_DB_SSL_ENABLED
               value: "{{ .Values.mongodb.apps.connectivity.ssl }}"
             - name: MONGO_DB_URI
@@ -156,6 +158,7 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
+  replicas: {{ .Values.things.replicaCount }}
   template:
     metadata:
       labels:
@@ -228,6 +231,7 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
+  replicas: {{ .Values.search.replicaCount }}
   template:
     metadata:
       labels:
@@ -299,6 +303,7 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
+  replicas: {{ .Values.policies.replicaCount }}
   template:
     metadata:
       labels:
@@ -370,6 +375,7 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
+  replicas: {{ .Values.gateway.replicaCount }}
   template:
     metadata:
       labels:
@@ -435,7 +441,6 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
-  clusterIP: None
   ports:
     - port: 8080
       targetPort: 8080

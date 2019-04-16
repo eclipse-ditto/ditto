@@ -31,6 +31,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
@@ -41,6 +42,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a {@link Feature} was created.
  */
 @Immutable
+@JsonParsableEvent(name = FeatureCreated.NAME, typePrefix= FeatureCreated.TYPE_PREFIX)
 public final class FeatureCreated extends AbstractThingEvent<FeatureCreated> implements
         ThingModifiedEvent<FeatureCreated>, WithFeatureId {
 
