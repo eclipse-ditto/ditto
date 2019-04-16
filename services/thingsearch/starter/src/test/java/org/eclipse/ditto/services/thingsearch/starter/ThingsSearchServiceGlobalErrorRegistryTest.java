@@ -23,7 +23,6 @@ import org.eclipse.ditto.services.utils.test.GlobalErrorRegistryTestCases;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
-import org.eclipse.ditto.signals.commands.batch.exceptions.BatchAlreadyExecutingException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyConflictException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInvalidException;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidNamespacesException;
@@ -41,7 +40,6 @@ public final class ThingsSearchServiceGlobalErrorRegistryTest extends GlobalErro
                 AclModificationInvalidException.class,
                 AuthorizationSubjectBlockedException.class,
                 JsonTypeNotParsableException.class,
-                BatchAlreadyExecutingException.class,
                 InvalidNamespacesException.class,
                 NamespaceBlockedException.class
         ));
