@@ -35,12 +35,17 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.criteria.Predicate;
+import org.eclipse.ditto.model.rql.ParserException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.thingsearch.CursorOption;
 import org.eclipse.ditto.model.thingsearch.LimitOption;
@@ -70,6 +75,8 @@ import akka.util.ByteString;
 final class ThingsSearchCursor {
 
     private static final String CORRELATION_ID_DELIMITER = ":";
+
+    private static final String LIMIT_OPTION_FORBIDDEN = "The options 'cursor' and 'limit' must not be used together.";
 
     private static final SortOptionEntry DEFAULT_SORT_OPTION_ENTRY =
             SortOptionEntry.asc(Thing.JsonFields.ID.getPointer());
@@ -107,7 +114,8 @@ final class ThingsSearchCursor {
         this.sortOption = findUniqueSortOption(options);
 
         if (sortOption.getSize() != values.getSize()) {
-            throw invalidCursor();
+            // Cursor corrupted. Offer no more information.
+            throw invalidCursorBuilder().build();
         }
     }
 
@@ -128,10 +136,11 @@ final class ThingsSearchCursor {
     }
 
     private ThingsSearchCursor override(final QueryThings queryThings, final List<Option> inputOptions) {
-        if (hasForbiddenFields(queryThings, inputOptions)) {
-            // TODO: specialize "has forbidden fields" error
-            throw invalidCursor();
-        }
+        checkCursorValidity(queryThings, inputOptions)
+                .ifPresent(error -> {
+                    throw error;
+                });
+
         final String newSelector =
                 queryThings.getFields().map(JsonFieldSelector::toString).orElse(this.jsonFieldSelector);
         final List<Option> newOptions =
@@ -140,13 +149,26 @@ final class ThingsSearchCursor {
         return new ThingsSearchCursor(newSelector, namespaces, newHeaders, newOptions, filter, values);
     }
 
-    private boolean hasForbiddenFields(final QueryThings queryThings, final List<Option> commandOptions) {
+    private Optional<DittoRuntimeException> checkCursorValidity(final QueryThings queryThings,
+            final List<Option> commandOptions) {
+
         // when a cursor is present, the command may only have an additional size option and a field selector.
         final boolean commandHasDifferentFilter =
                 queryThings.getFilter().filter(f -> !Objects.equals(f, filter)).isPresent();
-        return commandHasDifferentFilter ||
-                commandOptions.stream().anyMatch(LimitOption.class::isInstance) ||
-                hasIncompatibleSortOption(commandOptions);
+
+        final String description;
+
+        if (commandHasDifferentFilter) {
+            description = "The parameter 'filter' must not differ from the original query of the cursor.";
+        } else if (commandOptions.stream().anyMatch(LimitOption.class::isInstance)) {
+            description = LIMIT_OPTION_FORBIDDEN;
+        } else if (hasIncompatibleSortOption(commandOptions)) {
+            description = "The option 'sort' must not differ from the original query of the cursor.";
+        } else {
+            description = null;
+        }
+
+        return Optional.ofNullable(description).map(d -> invalidCursor(d, queryThings));
     }
 
     private boolean hasIncompatibleSortOption(final List<Option> commandOptions) {
@@ -170,7 +192,7 @@ final class ThingsSearchCursor {
         }
     }
 
-    QueryThings toQueryThings() {
+    private QueryThings toQueryThings() {
         final List<String> optionStrings = options.stream().map(Option::toString).collect(Collectors.toList());
         final JsonFieldSelector selector = Optional.ofNullable(jsonFieldSelector)
                 .map(JsonFieldSelector::newInstance)
@@ -178,7 +200,7 @@ final class ThingsSearchCursor {
         return QueryThings.of(filter, optionStrings, selector, namespaces, dittoHeaders);
     }
 
-    Query adjustQuery(final Query query, final CriteriaFactory cf) {
+    private Query adjustQuery(final Query query, final CriteriaFactory cf) {
         return query.withCritera(cf.and(Arrays.asList(query.getCriteria(),
                 getNextPageFilter(query.getSortOptions(), values, cf))));
     }
@@ -224,15 +246,27 @@ final class ThingsSearchCursor {
             final List<Option> options = getOptions(queryThings);
             final List<CursorOption> cursorOptions = findAll(CursorOption.class, options);
             final List<LimitOption> limitOptions = findAll(LimitOption.class, options);
-            if (cursorOptions.isEmpty()) {
+            final Optional<InvalidOptionException> sizeOptionError = checkSizeOption(options, queryThings);
+            if (sizeOptionError.isPresent()) {
+                return Source.failed(sizeOptionError.get());
+            } else if (cursorOptions.isEmpty()) {
                 return Source.single(Optional.empty());
-            } else if (limitOptions.isEmpty() && cursorOptions.size() == 1) {
+            } else if (cursorOptions.size() > 1) {
+                // there may not be 2 or more cursor options in 1 command.
+                return Source.failed(invalidCursor("There may not be more than 1 'cursor' option.", queryThings));
+            } else if (!limitOptions.isEmpty()) {
+                return Source.failed(invalidCursor(LIMIT_OPTION_FORBIDDEN, queryThings));
+            } else {
+                cursorOptions.size();
                 return Source.fromCompletionStage(decode(cursorOptions.get(0).getCursor(), materializer))
                         .map(cursor -> Optional.of(cursor.override(queryThings, options)));
-            } else {
-                // there may not be 2 or more cursor options in 1 command.
-                return Source.failed(invalidCursor());
             }
+        } catch (final ParserException | IllegalArgumentException e) {
+            return Source.failed(InvalidRqlExpressionException.newBuilder()
+                    .message(e.getMessage())
+                    .cause(e)
+                    .dittoHeaders(queryThings.getDittoHeaders())
+                    .build());
         } catch (final Throwable error) {
             return Source.failed(error);
         }
@@ -267,13 +301,27 @@ final class ThingsSearchCursor {
         if (sortOptions.size() == 1) {
             return sortOptions.get(0);
         } else {
-            throw invalidCursor();
+            // Cursor corrupted. Offer no more information.
+            throw invalidCursorBuilder().build();
         }
     }
 
-    private static InvalidOptionException invalidCursor() {
+    private static DittoRuntimeExceptionBuilder<InvalidOptionException> invalidCursorBuilder() {
         return InvalidOptionException.newBuilder()
-                .message("The option 'cursor' is invalid.")
+                .message("The option 'cursor' is not valid for the search request.");
+    }
+
+    private static InvalidOptionException invalidCursor(final String description,
+            final WithDittoHeaders withDittoHeaders) {
+
+        return invalidCursor(description, withDittoHeaders.getDittoHeaders());
+    }
+
+    private static InvalidOptionException invalidCursor(final String description,
+            final DittoHeaders dittoHeaders) {
+
+        return invalidCursorBuilder().description(description)
+                .dittoHeaders(dittoHeaders)
                 .build();
     }
 
@@ -359,7 +407,8 @@ final class ThingsSearchCursor {
             final CriteriaFactory cf) {
 
         if (sortOptions.size() != previousValues.getSize()) {
-            throw invalidCursor();
+            // this should not happen.
+            throw invalidCursorBuilder().build();
         }
         return getNextPageFilterImpl(sortOptions, previousValues, cf, 0);
     }
@@ -422,10 +471,12 @@ final class ThingsSearchCursor {
     private static boolean areCompatible(final List<SortOptionEntry> sortOptionEntries,
             final List<SortOptionEntry> commandSortOptionEntries,
             final int i) {
-        if (i >= sortOptionEntries.size()) {
+        if (i >= sortOptionEntries.size() && i >= commandSortOptionEntries.size()) {
             return true;
         } else if (i >= commandSortOptionEntries.size()) {
             return i + 1 == sortOptionEntries.size() && DEFAULT_SORT_OPTION_ENTRY.equals(sortOptionEntries.get(i));
+        } else if (i >= sortOptionEntries.size()) {
+            return false;
         } else {
             return Objects.equals(sortOptionEntries.get(i), commandSortOptionEntries.get(i)) &&
                     areCompatible(sortOptionEntries, commandSortOptionEntries, i + 1);
@@ -440,6 +491,25 @@ final class ThingsSearchCursor {
         final DittoHeadersBuilder builder = encodedHeaders.toBuilder().putHeaders(newHeaders);
         correlationId.ifPresent(builder::correlationId);
         return builder.build();
+    }
+
+    private static Optional<InvalidOptionException> checkSizeOption(final List<Option> options,
+            final WithDittoHeaders withDittoHeaders) {
+
+        final List<SizeOption> sizeOptions = findAll(SizeOption.class, options);
+        if (sizeOptions.size() > 1) {
+            return Optional.of(invalidCursorBuilder()
+                    .message("There may not be more than 1 'size' option.")
+                    .dittoHeaders(withDittoHeaders.getDittoHeaders())
+                    .build());
+        } else if (!sizeOptions.isEmpty() && sizeOptions.get(0).getSize() <= 0) {
+            return Optional.of(invalidCursorBuilder()
+                    .message("The option 'size' must be a positive integer.")
+                    .dittoHeaders(withDittoHeaders.getDittoHeaders())
+                    .build());
+        } else {
+            return Optional.empty();
+        }
     }
 
     private static final class OptionsBuilder implements OptionVisitor {
@@ -459,7 +529,8 @@ final class ThingsSearchCursor {
 
         @Override
         public void visit(final LimitOption limitOption) {
-            throw invalidCursor();
+            // should not happen
+            throw invalidCursorBuilder().build();
         }
 
         @Override
