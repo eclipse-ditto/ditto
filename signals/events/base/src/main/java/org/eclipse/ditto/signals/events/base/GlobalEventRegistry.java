@@ -122,6 +122,7 @@ public final class GlobalEventRegistry extends AbstractJsonParsableRegistry<Even
                 } catch (final IllegalAccessException | InvocationTargetException e) {
                     throw JsonTypeNotParsableException.newBuilder(type, getClass().getSimpleName())
                             .dittoHeaders(dittoHeaders)
+                            .cause(e)
                             .build();
                 }
             };
