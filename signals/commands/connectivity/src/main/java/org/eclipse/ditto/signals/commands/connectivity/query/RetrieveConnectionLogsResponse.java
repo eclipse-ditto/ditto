@@ -18,6 +18,7 @@ import java.text.MessageFormat;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -61,12 +62,12 @@ public final class RetrieveConnectionLogsResponse
     public static final String TYPE = ConnectivityCommandResponse.TYPE_PREFIX + RetrieveConnectionLogs.NAME;
 
     private final String connectionId;
-    private final List<LogEntry> connectionLogs;
+    private final Collection<LogEntry> connectionLogs;
 
     @Nullable private final Instant enabledSince;
     @Nullable private final Instant enabledUntil;
 
-    private RetrieveConnectionLogsResponse(final String connectionId, final List<LogEntry> connectionLogs,
+    private RetrieveConnectionLogsResponse(final String connectionId, final Collection<LogEntry> connectionLogs,
             @Nullable final Instant enabledSince, @Nullable final Instant enabledUntil,
             final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatusCode.OK, dittoHeaders);
@@ -86,16 +87,42 @@ public final class RetrieveConnectionLogsResponse
      * @param enabledUntil until when the logging will stay enabled.
      * @param dittoHeaders the headers of the request.
      * @return a new RetrieveConnectionLogsResponse response.
-     * @throws NullPointerException if {@code connectionId}, {@code connectionLogs} or {@code dittoHeaders} are {@code null}.
+     * @throws NullPointerException if {@code connectionId}, {@code connectionLogs} or {@code dittoHeaders} are {@code
+     * null}.
      */
     public static RetrieveConnectionLogsResponse of(final String connectionId,
-            final List<LogEntry> connectionLogs, @Nullable final Instant enabledSince,
+            final Collection<LogEntry> connectionLogs, @Nullable final Instant enabledSince,
             @Nullable final Instant enabledUntil, final DittoHeaders dittoHeaders) {
         checkNotNull(connectionId, "Connection ID");
         checkNotNull(connectionLogs, "Connection Logs");
 
         return new RetrieveConnectionLogsResponse(connectionId, connectionLogs, enabledSince,
                 enabledUntil, dittoHeaders);
+    }
+
+    /**
+     * Merges the passed in {@link RetrieveConnectionLogsResponse}s into each other returning a new {@link
+     * RetrieveConnectionLogsResponse} containing the merged information. The result will contain all logs of each
+     * response, the connection id and the ditto headers of the first response, as well as the timestamps of the first
+     * response (or {@code null} if they don't exist).
+     *
+     * @param first the first RetrieveConnectionMetricsResponse to merge.
+     * @param second the second RetrieveConnectionMetricsResponse to merge.
+     * @return the new merged RetrieveConnectionMetricsResponse.
+     */
+    public static RetrieveConnectionLogsResponse mergeRetrieveConnectionLogsResponse(
+            final RetrieveConnectionLogsResponse first,
+            final RetrieveConnectionLogsResponse second) {
+
+        final List<LogEntry> mergedEntries = new ArrayList<>();
+        mergedEntries.addAll(first.getConnectionLogs());
+        mergedEntries.addAll(second.getConnectionLogs());
+
+        return of(first.getConnectionId(),
+                mergedEntries,
+                first.getEnabledSince().orElse(null),
+                first.getEnabledUntil().orElse(null),
+                first.getDittoHeaders());
     }
 
     /**
@@ -140,25 +167,26 @@ public final class RetrieveConnectionLogsResponse
     }
 
     /**
-     *
      * @param jsonObject the object containing an instant.
      * @param fieldDefinition the definition where to find the instant in the {@code jsonObject}.
-     * @return the parsed {@link java.time.Instant} or {@code null} if the field was null or not part of the {@code jsonObject}.
-     *
-     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} contains a non-null field under {@code fieldDefinition}
-     * that is not in ISO-8601 format.
+     * @return the parsed {@link java.time.Instant} or {@code null} if the field was null or not part of the {@code
+     * jsonObject}.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} contains a non-null field under {@code
+     * fieldDefinition} that is not in ISO-8601 format.
      */
-    private static @Nullable Instant parseInstantOrNull(final JsonObject jsonObject, final JsonFieldDefinition<String> fieldDefinition) {
+    private static @Nullable
+    Instant parseInstantOrNull(final JsonObject jsonObject, final JsonFieldDefinition<String> fieldDefinition) {
         return jsonObject.getValue(fieldDefinition)
                 .map(field -> RetrieveConnectionLogsResponse.tryToParseInstant(field, fieldDefinition))
                 .orElse(null);
     }
 
-    private static Instant tryToParseInstant(final CharSequence dateTime, final JsonFieldDefinition<String> fieldDefinition) {
+    private static Instant tryToParseInstant(final CharSequence dateTime,
+            final JsonFieldDefinition<String> fieldDefinition) {
         try {
             return Instant.parse(dateTime);
         } catch (final DateTimeParseException e) {
-            final String msgPattern ="The JSON object''s field <{0}> is not in ISO-8601 format as expected!";
+            final String msgPattern = "The JSON object''s field <{0}> is not in ISO-8601 format as expected!";
             throw JsonParseException.newBuilder()
                     .message(MessageFormat.format(msgPattern, fieldDefinition.getPointer()))
                     .cause(e)
@@ -183,21 +211,21 @@ public final class RetrieveConnectionLogsResponse
     /**
      * @return the log entries for the connection.
      */
-    List<LogEntry> getConnectionLogs() {
+    public Collection<LogEntry> getConnectionLogs() {
         return connectionLogs;
     }
 
     /**
      * @return since when logging is enabled for the connection, or empty if it isn't enabled.
      */
-    Optional<Instant> getEnabledSince() {
+    public Optional<Instant> getEnabledSince() {
         return Optional.ofNullable(enabledSince);
     }
 
     /**
      * @return until when logging is enabled for the connection, or empty if it isn't enabled.
      */
-    Optional<Instant> getEnabledUntil() {
+    public Optional<Instant> getEnabledUntil() {
         return Optional.ofNullable(enabledUntil);
     }
 
@@ -210,8 +238,10 @@ public final class RetrieveConnectionLogsResponse
         jsonObjectBuilder.set(JsonFields.CONNECTION_LOGS, connectionLogs.stream()
                 .map(logEntry -> logEntry.toJson(schemaVersion, thePredicate))
                 .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
-        jsonObjectBuilder.set(JsonFields.ENABLED_SINCE, getEnabledSince().map(Instant::toString).orElse(null), predicate);
-        jsonObjectBuilder.set(JsonFields.ENABLED_UNTIL, getEnabledUntil().map(Instant::toString).orElse(null), predicate);
+        jsonObjectBuilder.set(JsonFields.ENABLED_SINCE, getEnabledSince().map(Instant::toString).orElse(null),
+                predicate);
+        jsonObjectBuilder.set(JsonFields.ENABLED_UNTIL, getEnabledUntil().map(Instant::toString).orElse(null),
+                predicate);
     }
 
     @Override
