@@ -20,6 +20,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.FieldType;
 
 /**
@@ -79,6 +80,13 @@ public interface JsonWebToken {
     List<String> getSubjects();
 
     /**
+     * Returns the audience of a JWT.
+     *
+     * @return the audience.
+     */
+    Audience getAudience();
+
+    /**
      * Checks if this JSON web token is valid in terms of not expired, well formed and correctly signed.
      *
      * @param publicKeyProvider the public key provider to provide the public key that should be used to sign this JSON
@@ -114,8 +122,8 @@ public interface JsonWebToken {
         /**
          * JSON field containing the audience.
          */
-        public static final JsonFieldDefinition<String> AUDIENCE =
-                JsonFactory.newStringFieldDefinition("aud", FieldType.REGULAR);
+        public static final JsonFieldDefinition<JsonValue> AUDIENCE =
+                JsonFactory.newJsonValueFieldDefinition("aud", FieldType.REGULAR);
 
         private JsonFields() {
             throw new AssertionError();
