@@ -217,15 +217,16 @@ public final class SearchActor extends AbstractActor {
                 ThingsSearchCursor.extractCursor(queryThings, materializer);
 
         final Source<Object, ?> replySource = cursorSource.flatMapConcat(cursor -> {
-            final QueryThings command =
-                    cursor.map(c -> c.toQueryThings(queryParser.getCriteriaFactory()))
-                            .orElse(queryThings);
+            final QueryThings command = ThingsSearchCursor.adjust(cursor, queryThings);
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
             final Optional<String> correlationIdOpt = dittoHeaders.getCorrelationId();
             LogUtil.enhanceLogWithCorrelationId(log, correlationIdOpt);
             log.info("Processing QueryThings command: {}", queryThings);
             return createQuerySource(queryParser::parse, command)
-                    .flatMapConcat(query -> {
+                    .flatMapConcat(parsedQuery -> {
+                        final Query query =
+                                ThingsSearchCursor.adjust(cursor, parsedQuery, queryParser.getCriteriaFactory());
+
                         stopTimer(queryParsingTimer);
                         final StartedTimer databaseAccessTimer =
                                 searchTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);

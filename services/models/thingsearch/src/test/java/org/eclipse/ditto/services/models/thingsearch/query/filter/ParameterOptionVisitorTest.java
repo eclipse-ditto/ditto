@@ -170,7 +170,6 @@ public final class ParameterOptionVisitorTest {
 
         verify(qbMock).skip(0);
         verify(qbMock).limit(123);
-        verify(qbMock).cursor("cursor");
         verifyNoMoreInteractions(qbMock);
     }
 

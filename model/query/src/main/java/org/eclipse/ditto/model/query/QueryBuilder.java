@@ -45,14 +45,6 @@ public interface QueryBuilder {
     QueryBuilder skip(long n);
 
     /**
-     * Set a cursor to retrieve the next batch of results.
-     *
-     * @param cursor string representation of the cursor
-     * @return this builder
-     */
-    QueryBuilder cursor(String cursor);
-
-    /**
      * Builds the Query.
      *
      * @return the Query

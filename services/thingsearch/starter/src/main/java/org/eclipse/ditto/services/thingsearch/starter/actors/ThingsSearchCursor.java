@@ -37,11 +37,10 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.criteria.Predicate;
-import org.eclipse.ditto.model.query.expression.FilterFieldExpression;
-import org.eclipse.ditto.model.query.expression.SimpleFieldExpressionImpl;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.thingsearch.CursorOption;
 import org.eclipse.ditto.model.thingsearch.LimitOption;
@@ -54,6 +53,7 @@ import org.eclipse.ditto.model.thingsearch.SortOption;
 import org.eclipse.ditto.model.thingsearch.SortOptionEntry;
 import org.eclipse.ditto.model.thingsearchparser.RqlOptionParser;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
+import org.eclipse.ditto.services.thingsearch.persistence.write.mapping.JsonToBson;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 
@@ -127,12 +127,6 @@ final class ThingsSearchCursor {
         }
     }
 
-    private String computeFilterString(final CriteriaFactory cf) {
-        return ToStringCriteriaVisitor.concatCriteria(
-                getNextPageFilter(sortOption, values, cf).accept(new ToStringCriteriaVisitor()),
-                filter);
-    }
-
     private ThingsSearchCursor override(final QueryThings queryThings, final List<Option> inputOptions) {
         if (hasForbiddenFields(queryThings, inputOptions)) {
             // TODO: specialize "has forbidden fields" error
@@ -176,12 +170,27 @@ final class ThingsSearchCursor {
         }
     }
 
-    QueryThings toQueryThings(final CriteriaFactory cf) {
+    QueryThings toQueryThings() {
         final List<String> optionStrings = options.stream().map(Option::toString).collect(Collectors.toList());
         final JsonFieldSelector selector = Optional.ofNullable(jsonFieldSelector)
                 .map(JsonFieldSelector::newInstance)
                 .orElse(null);
-        return QueryThings.of(computeFilterString(cf), optionStrings, selector, namespaces, dittoHeaders);
+        return QueryThings.of(filter, optionStrings, selector, namespaces, dittoHeaders);
+    }
+
+    Query adjustQuery(final Query query, final CriteriaFactory cf) {
+        return query.withCritera(cf.and(Arrays.asList(query.getCriteria(),
+                getNextPageFilter(query.getSortOptions(), values, cf))));
+    }
+
+    private JsonObject toJson() {
+        return JsonFactory.newObjectBuilder()
+                .set(FILTER, filter)
+                .set(JSON_FIELD_SELECTOR, jsonFieldSelector)
+                .set(CORRELATION_ID, dittoHeaders.getCorrelationId().orElse(null))
+                .set(OPTIONS, RqlOptionParser.unparse(options))
+                .set(VALUES, values)
+                .build();
     }
 
     private String encode() {
@@ -196,6 +205,16 @@ final class ThingsSearchCursor {
         final ByteString compressed = ByteString.fromArray(Base64.getUrlDecoder().decode(cursorString));
         return Coder.Deflate.decode(compressed, materializer)
                 .thenApply(decompressed -> fromJson(JsonFactory.newObject(decompressed.utf8String())));
+    }
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    static QueryThings adjust(final Optional<ThingsSearchCursor> cursor, final QueryThings queryThings) {
+        return cursor.map(ThingsSearchCursor::toQueryThings).orElse(queryThings);
+    }
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    static Query adjust(final Optional<ThingsSearchCursor> cursor, final Query query, final CriteriaFactory cf) {
+        return cursor.map(c -> c.adjustQuery(query, cf)).orElse(query);
     }
 
     static Source<Optional<ThingsSearchCursor>, NotUsed> extractCursor(final QueryThings queryThings,
@@ -234,16 +253,6 @@ final class ThingsSearchCursor {
             // compute new cursor, deliver both
             return searchResultWithNewCursor(queryThings, searchResult, resultList);
         }
-    }
-
-    private JsonObject toJson() {
-        return JsonFactory.newObjectBuilder()
-                .set(FILTER, filter)
-                .set(JSON_FIELD_SELECTOR, jsonFieldSelector)
-                .set(CORRELATION_ID, dittoHeaders.getCorrelationId().orElse(null))
-                .set(OPTIONS, RqlOptionParser.unparse(options))
-                .set(VALUES, values)
-                .build();
     }
 
     private static <T> List<T> findAll(final Class<T> clazz, final Collection<?> collection) {
@@ -345,48 +354,65 @@ final class ThingsSearchCursor {
         }
     }
 
-    private static Criteria getNextPageFilter(final SortOption sortOption,
+    private static Criteria getNextPageFilter(final List<org.eclipse.ditto.model.query.SortOption> sortOptions,
             final JsonArray previousValues,
             final CriteriaFactory cf) {
 
-        if (sortOption.getSize() != previousValues.getSize()) {
+        if (sortOptions.size() != previousValues.getSize()) {
             throw invalidCursor();
         }
-        return getNextPageFilterImpl(sortOption.getEntries(), previousValues, cf, 0);
+        return getNextPageFilterImpl(sortOptions, previousValues, cf, 0);
     }
 
-    private static Criteria getNextPageFilterImpl(final List<SortOptionEntry> sortOptionEntries,
-            final JsonArray previousValues, final CriteriaFactory cf, final int i) {
+    private static Criteria getNextPageFilterImpl(
+            final List<org.eclipse.ditto.model.query.SortOption> sortOptionEntries,
+            final JsonArray previousValues,
+            final CriteriaFactory cf, final int i) {
 
-        final SortOptionEntry sortOptionEntry = sortOptionEntries.get(i);
+        final org.eclipse.ditto.model.query.SortOption sortOption = sortOptionEntries.get(i);
         final JsonValue previousValue = previousValues.get(i).orElse(JsonFactory.nullLiteral());
-        final Criteria ithDimensionCriteria = cf.fieldCriteria(
-                toFieldExpression(sortOptionEntry.getPropertyPath()),
-                getPredicate(sortOptionEntry, previousValue, cf));
+        final Criteria ithDimensionCriteria = getDimensionLtCriteria(sortOption, previousValue, cf);
         if (i + 1 >= sortOptionEntries.size()) {
             return ithDimensionCriteria;
         } else {
-            final Criteria ithDimensionEq =
-                    cf.fieldCriteria(toFieldExpression(sortOptionEntry.getPropertyPath()), cf.eq(previousValue));
             final Criteria nextDimension = getNextPageFilterImpl(sortOptionEntries, previousValues, cf, i + 1);
-            return cf.or(Arrays.asList(ithDimensionCriteria, cf.and(Arrays.asList(ithDimensionEq, nextDimension))));
+            return getNextDimensionCriteria(ithDimensionCriteria, nextDimension, sortOption, previousValue, cf);
         }
     }
 
-    private static Predicate getPredicate(final SortOptionEntry sortOptionEntry,
+    private static Criteria getDimensionLtCriteria(final org.eclipse.ditto.model.query.SortOption entry,
             final JsonValue previousValue, final CriteriaFactory cf) {
 
-        switch (sortOptionEntry.getOrder()) {
-            case DESC:
-                return cf.lt(previousValue);
-            case ASC:
-            default:
-                return cf.gt(previousValue);
+        if (previousValue.isNull()) {
+            return cf.nor(cf.any()); // criteria of the final dimension with null value
+        } else {
+            return cf.fieldCriteria(entry.getSortExpression(), getPredicate(entry, previousValue, cf));
         }
     }
 
-    private static FilterFieldExpression toFieldExpression(final CharSequence pointer) {
-        return new SimpleFieldExpressionImpl(pointer.toString());
+    private static Criteria getNextDimensionCriteria(final Criteria thisDimensionCriteria, final Criteria nextDimension,
+            final org.eclipse.ditto.model.query.SortOption sortOption, final JsonValue previousValue,
+            final CriteriaFactory cf) {
+
+        if (previousValue.isNull()) {
+            return nextDimension;
+        } else {
+            final Criteria thisDimensionEq =
+                    cf.fieldCriteria(sortOption.getSortExpression(), cf.eq(JsonToBson.convert(previousValue)));
+            return cf.or(Arrays.asList(thisDimensionCriteria, cf.and(Arrays.asList(thisDimensionEq, nextDimension))));
+        }
+    }
+
+    private static Predicate getPredicate(final org.eclipse.ditto.model.query.SortOption sortOption,
+            final JsonValue previousValue, final CriteriaFactory cf) {
+
+        switch (sortOption.getSortDirection()) {
+            case DESC:
+                return cf.lt(JsonToBson.convert(previousValue));
+            case ASC:
+            default:
+                return cf.gt(JsonToBson.convert(previousValue));
+        }
     }
 
     private static boolean hasNextPage(final ResultList<?> resultList) {

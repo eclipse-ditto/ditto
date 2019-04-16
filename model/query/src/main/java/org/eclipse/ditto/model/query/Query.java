@@ -13,7 +13,6 @@
 package org.eclipse.ditto.model.query;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.eclipse.ditto.model.query.criteria.Criteria;
 
@@ -43,8 +42,12 @@ public interface Query {
     int getSkip();
 
     /**
-     * @return cursor for range-based paging if it exists.
+     * Replace criteria of this query by another.
+     *
+     * @param criteria the new criteria.
+     * @return a copy of this query with the new criteria.
      */
-    Optional<String> getCursor();
+    Query withCritera(Criteria criteria);
+
 
 }

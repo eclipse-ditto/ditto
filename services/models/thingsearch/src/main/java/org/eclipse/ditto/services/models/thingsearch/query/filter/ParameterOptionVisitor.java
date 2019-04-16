@@ -85,7 +85,7 @@ public final class ParameterOptionVisitor implements OptionVisitor {
 
     @Override
     public void visit(final CursorOption cursorOption) {
-        queryBuilder.cursor(cursorOption.getCursor());
+        // do nothing; cursor is processed elsewhere
     }
 
     @Override

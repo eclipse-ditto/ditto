@@ -59,9 +59,6 @@ final class MongoQueryBuilder implements QueryBuilder {
     private int skip;
     private List<SortOption> sortOptions;
 
-    @Nullable
-    private String cursor;
-
     private MongoQueryBuilder(final Criteria criteria, final int maxLimit, final int defaultLimit) {
 
         this.criteria = checkNotNull(criteria, "criteria");
@@ -120,14 +117,8 @@ final class MongoQueryBuilder implements QueryBuilder {
     }
 
     @Override
-    public QueryBuilder cursor(final String cursor) {
-        this.cursor = cursor;
-        return this;
-    }
-
-    @Override
     public Query build() {
-        return new MongoQuery(criteria, sortOptions, limit, skip, cursor);
+        return new MongoQuery(criteria, sortOptions, limit, skip);
     }
 
 }
