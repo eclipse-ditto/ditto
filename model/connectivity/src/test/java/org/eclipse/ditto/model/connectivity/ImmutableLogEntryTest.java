@@ -15,6 +15,7 @@ package org.eclipse.ditto.model.connectivity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -177,7 +178,7 @@ public class ImmutableLogEntryTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ImmutableLogEntry.class, areImmutable());
+        assertInstancesOf(ImmutableLogEntry.class, areImmutable(), provided(LogType.class).areAlsoImmutable());
     }
 
     private static JsonObject getLogEntryJson() {
