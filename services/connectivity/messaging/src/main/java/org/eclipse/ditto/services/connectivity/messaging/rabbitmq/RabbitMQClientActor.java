@@ -41,7 +41,7 @@ import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 
@@ -489,7 +489,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
         public void handleDelivery(final String consumerTag, final Envelope envelope,
                 final AMQP.BasicProperties properties, final byte[] body) {
 
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
             try {
                 consumerActor.tell(new Delivery(envelope, properties, body), RabbitMQClientActor.this.getSelf());
             } catch (final Exception e) {
@@ -506,7 +506,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
         @Override
         public void handleConsumeOk(final String consumerTag) {
             super.handleConsumeOk(consumerTag);
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
 
             final String consumingQueueByTag = consumedTagsToAddresses.get(consumerTag);
             if (null != consumingQueueByTag) {
@@ -519,7 +519,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
         @Override
         public void handleCancel(final String consumerTag) throws IOException {
             super.handleCancel(consumerTag);
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
 
             final String consumingQueueByTag = consumedTagsToAddresses.get(consumerTag);
             if (null != consumingQueueByTag) {
@@ -533,7 +533,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
         @Override
         public void handleShutdownSignal(final String consumerTag, final ShutdownSignalException sig) {
             super.handleShutdownSignal(consumerTag, sig);
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
 
             final String consumingQueueByTag = consumedTagsToAddresses.get(consumerTag);
             if (null != consumingQueueByTag) {
@@ -548,7 +548,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
         @Override
         public void handleRecoverOk(final String consumerTag) {
             super.handleRecoverOk(consumerTag);
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
 
             log.info("recovered OK for consumer with tag <{}> " + "on connection <{}>", consumerTag, connectionId());
 

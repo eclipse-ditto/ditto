@@ -51,6 +51,7 @@ import org.eclipse.ditto.services.connectivity.messaging.validation.CompoundConn
 import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.connectivity.messaging.validation.DittoConnectivityCommandValidator;
 import org.eclipse.ditto.services.connectivity.util.ConnectionConfigReader;
+import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -369,8 +370,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
     }
 
     private void enhanceLogUtil(final WithDittoHeaders<?> createConnection) {
-        LogUtil.enhanceLogWithCorrelationId(log, createConnection);
-        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, createConnection, connectionId);
     }
 
     private void performTask(final PerformTask performTask) {
@@ -1045,10 +1045,10 @@ public final class ConnectionActor extends AbstractPersistentActor {
                         getContext().setReceiveTimeout(
                                 Duration.create(timeout / 2.0, TimeUnit.MILLISECONDS));
                     })
-                    .match(ReceiveTimeout.class, timeout -> {
+                    .match(ReceiveTimeout.class, receiveTimeout ->
                         // send back (partially) gathered responses
-                        sendBackAggregatedResults();
-                    })
+                        sendBackAggregatedResults()
+                    )
                     .matchAny(any -> {
                         if (any instanceof Status.Status) {
                             aggregatedStatus.put(getSender().path().address().hostPort(),

@@ -20,6 +20,7 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.placeholders.EnforcementFactoryFactory;
 import org.eclipse.ditto.model.placeholders.EnforcementFilter;
@@ -27,6 +28,7 @@ import org.eclipse.ditto.model.placeholders.EnforcementFilterFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.BaseConsumerActor;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
+import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -109,6 +111,7 @@ public final class MqttConsumerActor extends BaseConsumerActor {
 
     private void handleMqttMessage(final MqttMessage message) {
         try {
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
             log.debug("Received MQTT message on topic {}: {}", message.topic(), message.payload().utf8String());
             final HashMap<String, String> headers = new HashMap<>();
             headers.put(MQTT_TOPIC_HEADER, message.topic());
@@ -141,6 +144,7 @@ public final class MqttConsumerActor extends BaseConsumerActor {
     }
 
     private void handleConsumerStreamMessage(final MqttClientActor.ConsumerStreamMessage message) {
+        ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
         switch (message) {
             case STREAM_STARTED:
                 replyStreamAck();

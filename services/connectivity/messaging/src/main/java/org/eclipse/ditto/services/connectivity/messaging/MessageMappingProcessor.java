@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELATION_ID;
 
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -29,10 +30,10 @@ import org.eclipse.ditto.services.connectivity.mapping.DefaultMessageMapperFacto
 import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperRegistry;
+import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.InboundExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.protocol.ProtocolConfigReader;
@@ -183,9 +184,7 @@ public final class MessageMappingProcessor {
     }
 
     private MessageMapper getMapper(final ExternalMessage message) {
-
-        LogUtil.enhanceLogWithCorrelationId(log, message.getHeaders().get("correlation-id"));
-        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, message.getHeaders().get(CORRELATION_ID.getKey()), connectionId);
 
         final Optional<String> contentTypeOpt = message.findContentType();
         if (contentTypeOpt.isPresent()) {
@@ -216,9 +215,7 @@ public final class MessageMappingProcessor {
     }
 
     private void enhanceLogFromAdaptable(final Adaptable adaptable) {
-        adaptable.getHeaders().flatMap(DittoHeaders::getCorrelationId)
-                .ifPresent(s -> LogUtil.enhanceLogWithCorrelationId(log, s));
-        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, adaptable, connectionId);
     }
 
     private <T> T withTimer(final StartedTimer timer, final Supplier<T> supplier) {

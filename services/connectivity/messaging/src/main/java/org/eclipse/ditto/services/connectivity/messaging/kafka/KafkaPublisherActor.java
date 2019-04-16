@@ -31,6 +31,7 @@ import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectionMetricsCollector;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
@@ -260,12 +261,12 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
 
     @Override
     protected DiagnosticLoggingAdapter log() {
-        return log;
+        return logWithConnectionId();
     }
 
     private DiagnosticLoggingAdapter logWithConnectionId() {
-        LogUtil.enhanceLogWithCustomField(log(), BaseClientData.MDC_CONNECTION_ID, connectionId);
-        return log();
+        ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
+        return log;
     }
 
     private void stopGracefully() {
