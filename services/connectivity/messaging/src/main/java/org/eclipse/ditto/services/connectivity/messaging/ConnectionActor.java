@@ -42,14 +42,18 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
 import org.eclipse.ditto.services.connectivity.messaging.kafka.KafkaValidator;
-import org.eclipse.ditto.services.connectivity.messaging.metrics.RetrieveConnectionMetricsAggregatorActor;
-import org.eclipse.ditto.services.connectivity.messaging.metrics.RetrieveConnectionStatusAggregatorActor;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.ImmutableConnectionMonitorRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.RetrieveConnectionMetricsAggregatorActor;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.RetrieveConnectionStatusAggregatorActor;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttValidator;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionMongoSnapshotAdapter;
 import org.eclipse.ditto.services.connectivity.messaging.rabbitmq.RabbitMQValidator;
 import org.eclipse.ditto.services.connectivity.messaging.validation.CompoundConnectivityCommandInterceptor;
 import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.connectivity.messaging.validation.DittoConnectivityCommandValidator;
+import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.connectivity.util.ConnectionConfigReader;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -90,6 +94,8 @@ import org.eclipse.ditto.signals.events.connectivity.ConnectionCreated;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionDeleted;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionModified;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionOpened;
+
+import com.typesafe.config.Config;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -170,6 +176,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private final java.time.Duration clientActorAskTimeout;
     @Nullable private Cancellable stopSelfIfDeletedTrigger;
 
+    private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
+
     private ConnectionActor(final String connectionId,
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
@@ -189,8 +197,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
             this.commandValidator = dittoCommandValidator;
         }
 
-        final ConnectionConfigReader configReader =
-                ConnectionConfigReader.fromRawConfig(getContext().system().settings().config());
+        final Config config = getContext().system().settings().config();
+        final ConnectionConfigReader configReader = ConnectionConfigReader.fromRawConfig(config);
         snapshotThreshold = configReader.snapshotThreshold();
         snapshotAdapter = new ConnectionMongoSnapshotAdapter();
         connectionCreatedBehaviour = createConnectionCreatedBehaviour();
@@ -199,7 +207,9 @@ public final class ConnectionActor extends AbstractPersistentActor {
         flushPendingResponsesTimeout = Duration.create(javaFlushTimeout.toMillis(), TimeUnit.MILLISECONDS);
         clientActorAskTimeout = configReader.clientActorAskTimeout();
 
-        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
+        connectionMonitorRegistry = ImmutableConnectionMonitorRegistry.fromConfig(ConfigKeys.Monitoring.fromRawConfig(config));
+
+        ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
     }
 
     /**
@@ -308,7 +318,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private void restoreConnection(@Nullable final Connection theConnection) {
         connection = theConnection;
         if (theConnection != null) {
-            signalFilter = new SignalFilter(theConnection);
+            signalFilter = new SignalFilter(theConnection, connectionMonitorRegistry);
         }
     }
 
@@ -359,10 +369,10 @@ public final class ConnectionActor extends AbstractPersistentActor {
                 .match(Status.Failure.class, f -> log.warning("Got failure in connectionCreated behaviour with " +
                         "cause {}: {}", f.cause().getClass().getSimpleName(), f.cause().getMessage()))
                 .match(PerformTask.class, this::performTask)
-                .matchEquals(STOP_SELF_IF_DELETED, msg -> {
+                .matchEquals(STOP_SELF_IF_DELETED, msg ->
                     // do nothing; this connection is not deleted.
-                    cancelStopSelfIfDeletedTrigger();
-                })
+                    cancelStopSelfIfDeletedTrigger()
+                )
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);

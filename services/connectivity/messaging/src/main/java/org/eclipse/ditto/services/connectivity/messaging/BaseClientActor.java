@@ -58,8 +58,12 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnecte
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
-import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLoggerRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ImmutableInfoProvider;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.ConnectivityCounterRegistry;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
+import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
+import org.eclipse.ditto.services.connectivity.util.MonitoringConfigReader;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
@@ -71,6 +75,8 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionMetrics;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionLogs;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionLogsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
@@ -110,6 +116,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final ActorRef conciergeForwarder;
+    private final ConnectionLoggerRegistry connectionLoggerRegistry;
+    private final ConnectivityCounterRegistry connectionCounterRegistry;
 
     @Nullable private ActorRef messageMappingProcessorActor;
 
@@ -120,7 +128,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             final ActorRef conciergeForwarder) {
 
         checkNotNull(connection, "connection");
-        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connection.getId());
+        ConnectionLogUtil.enhanceLogWithConnectionId(log, connection.getId());
 
         final Config config = getContext().getSystem().settings().config();
         final java.time.Duration javaInitTimeout = config.getDuration(ConfigKeys.Client.INIT_TIMEOUT);
@@ -149,15 +157,20 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         whenUnhandled(inAnyState().anyEvent(this::onUnknownEvent));
 
-        ConnectivityCounterRegistry.initCountersForConnection(connection);
+        final MonitoringConfigReader monitoringConfig =
+                ConfigKeys.Monitoring.fromRawConfig(getContext().system().settings().config());
+        this.connectionCounterRegistry = ConnectivityCounterRegistry.fromConfig(monitoringConfig.counter());
+        this.connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
+
+        this.connectionLoggerRegistry.initForConnection(connection);
+        this.connectionCounterRegistry.initForConnection(connection);
 
         initialize();
     }
 
     /**
-     * Handles {@link TestConnection} commands by returning a CompletionState of
-     * {@link akka.actor.Status.Status Status} which may be {@link akka.actor.Status.Success Success} or
-     * {@link akka.actor.Status.Failure Failure}.
+     * Handles {@link TestConnection} commands by returning a CompletionState of {@link akka.actor.Status.Status Status}
+     * which may be {@link akka.actor.Status.Success Success} or {@link akka.actor.Status.Failure Failure}.
      *
      * @param connection the Connection to test
      * @return the CompletionStage with the test result
@@ -198,8 +211,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     protected abstract void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin);
 
     /**
-     * Release any temporary resources allocated during a connection operation when the operation times out.
-     * Do nothing by default.
+     * Release any temporary resources allocated during a connection operation when the operation times out. Do nothing
+     * by default.
      *
      * @param state current state of the client actor.
      */
@@ -229,7 +242,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * @return an FSM function builder
      */
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inAnyState() {
-        return matchEvent(RetrieveConnectionMetrics.class, BaseClientData.class, this::retrieveConnectionMetrics)
+        return matchEvent(RetrieveConnectionMetrics.class, BaseClientData.class, (command, data) -> this.retrieveConnectionMetrics(command))
                 .event(RetrieveConnectionStatus.class, BaseClientData.class, this::retrieveConnectionStatus)
                 .event(ResetConnectionMetrics.class, BaseClientData.class, this::resetConnectionMetrics)
                 .event(OutboundSignal.class, BaseClientData.class, (signal, data) -> {
@@ -246,9 +259,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     /**
-     * Escapes the passed actorName in a actorName valid way.
-     * Actor name should be a valid URL with ASCII letters, see also {@code akka.actor.ActorPath#isValidPathElement},
-     * therefor we encode the name as an ASCII URL.
+     * Escapes the passed actorName in a actorName valid way. Actor name should be a valid URL with ASCII letters, see
+     * also {@code akka.actor.ActorPath#isValidPathElement}, therefor we encode the name as an ASCII URL.
      *
      * @param name the actorName to escape.
      * @return the escaped name.
@@ -274,7 +286,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         final CompletableFuture<T>[] futureArray = futures.map(CompletionStage::toCompletableFuture)
                 .toArray((IntFunction<CompletableFuture<T>[]>) CompletableFuture[]::new);
 
-        return CompletableFuture.allOf(futureArray).thenApply(_void ->
+        return CompletableFuture.allOf(futureArray).thenApply(unavailable->
                 Arrays.stream(futureArray)
                         .map(CompletableFuture::join)
                         .collect(Collectors.toList()));
@@ -382,7 +394,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * @param to the next State
      */
     private void onTransition(final BaseClientState from, final BaseClientState to) {
-        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+        ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
         log.debug("Transition: {} -> {}", from, to);
     }
 
@@ -409,8 +421,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     /**
-     * Creates the handler for messages in disconnected state.
-     * Overwrite and extend by additional matchers.
+     * Creates the handler for messages in disconnected state. Overwrite and extend by additional matchers.
      *
      * @return an FSM function builder
      */
@@ -420,20 +431,18 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     /**
-     * Creates the handler for messages in connecting state.
-     * Overwrite and extend by additional matchers.
+     * Creates the handler for messages in connecting state. Overwrite and extend by additional matchers.
      *
      * @return an FSM function builder
      */
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectingState() {
-        return matchEventEquals(StateTimeout(), BaseClientData.class, this::connectionTimedOut)
+        return matchEventEquals(StateTimeout(), BaseClientData.class, (event, data) -> this.connectionTimedOut(data))
                 .event(ConnectionFailure.class, BaseClientData.class, this::connectionFailure)
                 .event(ClientConnected.class, BaseClientData.class, this::clientConnected);
     }
 
     /**
-     * Creates the handler for messages in connected state.
-     * Overwrite and extend by additional matchers.
+     * Creates the handler for messages in connected state. Overwrite and extend by additional matchers.
      *
      * @return an FSM function builder
      */
@@ -442,20 +451,18 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     /**
-     * Creates the handler for messages in disconnected state.
-     * Overwrite and extend by additional matchers.
+     * Creates the handler for messages in disconnected state. Overwrite and extend by additional matchers.
      *
      * @return an FSM function builder
      */
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inDisconnectingState() {
-        return matchEventEquals(StateTimeout(), BaseClientData.class, this::connectionTimedOut)
+        return matchEventEquals(StateTimeout(), BaseClientData.class, (event, data) -> this.connectionTimedOut(data))
                 .event(ConnectionFailure.class, BaseClientData.class, this::connectionFailure)
                 .event(ClientDisconnected.class, BaseClientData.class, this::clientDisconnected);
     }
 
     /**
-     * Creates the handler for messages in testing state.
-     * Overwrite and extend by additional matchers.
+     * Creates the handler for messages in testing state. Overwrite and extend by additional matchers.
      *
      * @return an FSM function builder
      */
@@ -583,8 +590,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                         .setConnectionStatusDetails("Testing connection since " + Instant.now()));
     }
 
-    private FSM.State<BaseClientState, BaseClientData> connectionTimedOut(final Object event,
-            final BaseClientData data) {
+    private FSM.State<BaseClientState, BaseClientData> connectionTimedOut(final BaseClientData data) {
 
         data.getSessionSender().ifPresent(sender -> {
             final DittoRuntimeException error = ConnectionFailedException.newBuilder(connectionId())
@@ -603,7 +609,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             final BaseClientData data) {
 
         return ifEventUpToDate(clientConnected, () -> {
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
             allocateResourcesOnConnection(clientConnected);
             data.getSessionSender().ifPresent(origin -> origin.tell(new Status.Success(CONNECTED), getSelf()));
             return goTo(CONNECTED).using(data.resetSession()
@@ -616,7 +622,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             final BaseClientData data) {
 
         return ifEventUpToDate(event, () -> {
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
             cleanupResourcesForConnection();
             data.getSessionSender().ifPresent(sender -> sender.tell(new Status.Success(DISCONNECTED), getSelf()));
             return goTo(DISCONNECTED).using(data.resetSession()
@@ -628,7 +634,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private State<BaseClientState, BaseClientData> connectionFailure(final ConnectionFailure event,
             final BaseClientData data) {
         return ifEventUpToDate(event, () -> {
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
             cleanupResourcesForConnection();
             data.getSessionSender().ifPresent(sender -> sender.tell(getStatusToReport(event.getFailure()), getSelf()));
             return goTo(UNKNOWN).using(data.resetSession()
@@ -677,9 +683,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return stay();
     }
 
-    private FSM.State<BaseClientState, BaseClientData> retrieveConnectionMetrics(
-            final RetrieveConnectionMetrics command,
-            final BaseClientData data) {
+    private FSM.State<BaseClientState, BaseClientData> retrieveConnectionMetrics(final RetrieveConnectionMetrics command) {
 
         LogUtil.enhanceLogWithCorrelationId(log, command);
         log.debug("Received RetrieveConnectionMetrics message, gathering metrics.");
@@ -687,11 +691,11 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 .source(ConfigUtil.instanceIdentifier())
                 .build();
 
-        final SourceMetrics sourceMetrics = ConnectivityCounterRegistry.aggregateSourceMetrics(connectionId());
-        final TargetMetrics targetMetrics = ConnectivityCounterRegistry.aggregateTargetMetrics(connectionId());
+        final SourceMetrics sourceMetrics = connectionCounterRegistry.aggregateSourceMetrics(connectionId());
+        final TargetMetrics targetMetrics = connectionCounterRegistry.aggregateTargetMetrics(connectionId());
 
         final ConnectionMetrics connectionMetrics =
-                ConnectivityCounterRegistry.aggregateConnectionMetrics(sourceMetrics, targetMetrics);
+                connectionCounterRegistry.aggregateConnectionMetrics(sourceMetrics, targetMetrics);
 
         this.getSender().tell(
                 RetrieveConnectionMetricsResponse.of(connectionId(), connectionMetrics, sourceMetrics, targetMetrics,
@@ -706,8 +710,50 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         LogUtil.enhanceLogWithCorrelationId(log, command);
         log.debug("Received ResetConnectionMetrics message, resetting metrics.");
-        ConnectivityCounterRegistry.resetCountersForConnection(data.getConnection());
-        ConnectivityCounterRegistry.initCountersForConnection(data.getConnection());
+        //  TODO: think about just clearing the counters instead of completely rebuilding them
+        connectionCounterRegistry.resetForConnection(data.getConnection());
+        connectionCounterRegistry.initForConnection(data.getConnection());
+
+        return stay();
+    }
+
+    // TODO: call
+    private FSM.State<BaseClientState, BaseClientData> retrieveConnectionLogs(
+            final RetrieveConnectionLogs command,
+            final BaseClientData data) {
+
+        LogUtil.enhanceLogWithCorrelationId(log, command);
+        log.debug("Received RetrieveConnectionLogs message, gathering metrics.");
+        final DittoHeaders dittoHeaders = command.getDittoHeaders().toBuilder()
+                .source(ConfigUtil.instanceIdentifier())
+                .build();
+
+        final ConnectionLoggerRegistry.CollectionLogs collectionLogs =
+                connectionLoggerRegistry.aggregateLogs(connectionId());
+
+        getSender().tell(
+                RetrieveConnectionLogsResponse.of(connectionId(), collectionLogs.getLogs(),
+                        collectionLogs.getEnabledSince(),
+                        collectionLogs.getEnabledUntil(), dittoHeaders),
+                getSelf());
+
+        return stay();
+    }
+
+    // TODO: call
+    private FSM.State<BaseClientState, BaseClientData> resetConnectionLogs(
+            final ResetConnectionMetrics command,
+            final BaseClientData data) {
+
+        LogUtil.enhanceLogWithCorrelationId(log, command);
+        log.debug("Received ResetConnectionLogs message, resetting logs.");
+
+        //  TODO: think about just clearing the loggers instead of completely rebuilding them
+        this.connectionLoggerRegistry.resetForConnection(data.getConnection());
+        this.connectionLoggerRegistry.initForConnection(data.getConnection());
+
+        this.connectionLoggerRegistry.forConnection(data.getConnectionId())
+                .success(ImmutableInfoProvider.forSignal(command), "Successfully reset the logs.");
 
         return stay();
     }
@@ -757,7 +803,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             socket.connect(new InetSocketAddress(host, port), SOCKET_CHECK_TIMEOUT_MS);
             return true;
         } catch (final IOException | IllegalArgumentException ex) {
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
             log.warning("Socket could not be opened for <{}:{}> due to <{}:{}>", host, port,
                     ex.getClass().getCanonicalName(), ex.getMessage());
         }
@@ -775,8 +821,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     private void enhanceLogUtil(final WithDittoHeaders<?> signal) {
-        LogUtil.enhanceLogWithCorrelationId(log, signal);
-        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, signal, connectionId());
     }
 
     private Instant getInConnectionStatusSince() {
@@ -902,4 +947,5 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             return describeEventualCause(cause);
         }
     }
+
 }

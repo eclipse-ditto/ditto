@@ -38,7 +38,8 @@ import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.base.WithThingId;
@@ -61,18 +62,20 @@ final class SignalFilter {
 
     private final Connection connection;
     private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
+    private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
 
     /**
      * Constructs a new SignalFilter instance with the given {@code connection}.
      *
      * @param connection the connection to filter the signals on.
      */
-    SignalFilter(final Connection connection) {
+    SignalFilter(final Connection connection, final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry) {
         this.connection = connection;
         final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
         final ThingsFieldExpressionFactory fieldExpressionFactory =
                 new ModelBasedThingsFieldExpressionFactory();
         queryFilterCriteriaFactory = new QueryFilterCriteriaFactory(criteriaFactory, fieldExpressionFactory);
+        this.connectionMonitorRegistry = connectionMonitorRegistry;
     }
 
     /**
@@ -87,12 +90,12 @@ final class SignalFilter {
         return connection.getTargets().stream()
                 .filter(t -> isTargetAuthorized(t, signal)) // this is cheaper, so check this first
                 // count authorized targets
-                .peek(authorizedTarget -> ConnectivityCounterRegistry.getOutboundDispatchedCounter(connection.getId(),
-                        authorizedTarget.getAddress()).recordSuccess())
+                .peek(authorizedTarget -> connectionMonitorRegistry.forOutboundDispatched(connection.getId(), authorizedTarget.getAddress())
+                        .success(signal))
                 .filter(t -> isTargetSubscribedForTopic(t, signal))
                 // count authorized + filtered targets
-                .peek(filteredTarget -> ConnectivityCounterRegistry.getOutboundFilteredCounter(connection.getId(),
-                        filteredTarget.getAddress()).recordSuccess())
+                .peek(filteredTarget -> connectionMonitorRegistry.forOutboundFiltered(connection.getId(), filteredTarget.getAddress())
+                        .success(signal))
                 .collect(Collectors.toList());
     }
 

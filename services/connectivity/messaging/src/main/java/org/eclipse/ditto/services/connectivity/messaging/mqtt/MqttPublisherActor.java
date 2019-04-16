@@ -22,7 +22,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.common.CharsetDeterminer;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
-import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectionMetricsCollector;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -128,7 +128,8 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
 
     @Override
     protected void publishMessage(@Nullable final Target target, final MqttPublishTarget publishTarget,
-            final ExternalMessage message, final ConnectionMetricsCollector publishedCounter) {
+            final ExternalMessage message,
+            final ConnectionMonitor publishedMonitor) {
 
         final MqttQoS targetQoS;
         if (target == null) {
@@ -137,15 +138,15 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
             final int qos = target.getQos().orElse(DEFAULT_TARGET_QOS);
             targetQoS = MqttValidator.getQoS(qos);
         }
-        publishMessage(publishTarget, targetQoS, message, publishedCounter);
+        publishMessage(publishTarget, targetQoS, message, publishedMonitor);
     }
 
     private void publishMessage(final MqttPublishTarget publishTarget, final MqttQoS qos, final ExternalMessage message,
-            final ConnectionMetricsCollector publishedCounter) {
+            final ConnectionMonitor publishedMonitor) {
 
         final MqttMessage mqttMessage = mapExternalMessageToMqttMessage(publishTarget, qos, message);
         sourceActor.tell(mqttMessage, getSelf());
-        publishedCounter.recordSuccess();
+        publishedMonitor.success(message);
     }
 
     private boolean isDryRun(final Object message) {

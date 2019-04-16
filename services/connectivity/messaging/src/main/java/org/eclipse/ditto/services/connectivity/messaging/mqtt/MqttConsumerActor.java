@@ -110,10 +110,11 @@ public final class MqttConsumerActor extends BaseConsumerActor {
     }
 
     private void handleMqttMessage(final MqttMessage message) {
+        HashMap<String, String> headers = null;
         try {
             ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
             log.debug("Received MQTT message on topic {}: {}", message.topic(), message.payload().utf8String());
-            final HashMap<String, String> headers = new HashMap<>();
+            headers = new HashMap<>();
             headers.put(MQTT_TOPIC_HEADER, message.topic());
             final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers)
                     .withBytes(message.payload().toByteBuffer())
@@ -121,12 +122,16 @@ public final class MqttConsumerActor extends BaseConsumerActor {
                     .withEnforcement(getEnforcementFilter(message.topic()))
                     .withSourceAddress(sourceAddress)
                     .build();
-            inboundCounter.recordSuccess();
+            inboundMonitor.success(externalMessage);
+
             messageMappingProcessor.tell(externalMessage, getSelf());
             replyStreamAck();
-        } catch (final Exception e) {
-            inboundCounter.recordFailure();
+        } catch (final DittoRuntimeException e) {
             log.info("Failed to handle MQTT message: {}", e.getMessage());
+            inboundMonitor.failure(headers, e);
+        } catch (final Exception e) {
+            log.info("Failed to handle MQTT message: {}", e.getMessage());
+            inboundMonitor.exception(headers, e);
         }
     }
 

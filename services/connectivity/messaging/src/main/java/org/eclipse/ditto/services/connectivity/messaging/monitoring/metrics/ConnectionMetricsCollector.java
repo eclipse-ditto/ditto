@@ -10,20 +10,17 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging.metrics;
+package org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-import java.util.function.Supplier;
 
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Measurement;
 import org.eclipse.ditto.model.connectivity.MetricDirection;
 import org.eclipse.ditto.model.connectivity.MetricType;
-import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,13 +64,6 @@ public final class ConnectionMetricsCollector {
     }
 
     /**
-     * Reset all counts.
-     */
-    public void reset() {
-        counter.reset();
-    }
-
-    /**
      * @return the metricDirection this collector measures.
      */
     MetricDirection getMetricDirection() {
@@ -114,71 +104,6 @@ public final class ConnectionMetricsCollector {
                 counter.getLastFailureMeasurementAt());
     }
 
-    /**
-     * Executes the given {@link Runnable} and increments the success counter if no exception was thrown or the failed
-     * counter if a exception was caught.
-     *
-     * @param runnable the runnable to be executed
-     */
-    public void record(final Runnable runnable) {
-        try {
-            runnable.run();
-            recordSuccess();
-        } catch (final Exception e) {
-            recordFailure();
-            throw e;
-        }
-    }
-
-    /**
-     * Executes the passed {@code supplier} and increments the success counter if no exception was thrown or the failed
-     * counter if a exception was caught.
-     */
-    public <T> T record(final Supplier<T> supplier) {
-        try {
-            final T result = supplier.get();
-            recordSuccess();
-            return result;
-        } catch (final Exception e) {
-            recordFailure();
-            throw e;
-        }
-    }
-
-    /**
-     * Executes the passed {@code supplier} and increments the passed {@code success} counter if no exception was
-     * thrown or the passed {@code failed} counter if a exception was caught.
-     */
-    public static <T> T record(final Counter success, final Counter failure, final Supplier<T> supplier) {
-        try {
-            final T result = supplier.get();
-            success.increment();
-            return result;
-        } catch (final Exception e) {
-            failure.increment();
-            throw e;
-        }
-    }
-
-    /**
-     * Retrieves the result of the given {@link Supplier} and updates the given metrics accordingly.
-     *
-     * @param <T> the result type
-     * @param metrics the metrics that will be updated
-     * @param supplier the supplier to be executed
-     * @return the result of the supplier
-     */
-    public static <T> T record(final Set<ConnectionMetricsCollector> metrics, final Supplier<T> supplier) {
-        try {
-            final T result = supplier.get();
-            metrics.forEach(ConnectionMetricsCollector::recordSuccess);
-            return result;
-        } catch (final Exception e) {
-            metrics.forEach(ConnectionMetricsCollector::recordFailure);
-            throw e;
-        }
-    }
-
     @Override
     public boolean equals(final Object o) {
         if (this == o) {
@@ -208,4 +133,5 @@ public final class ConnectionMetricsCollector {
                 ", counter=" + counter +
                 "]";
     }
+
 }

@@ -155,7 +155,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                         .withEnforcement(headerEnforcementFilterFactory.getFilter(headers)).withHeaderMapping(headerMapping)
                         .withSourceAddress(sourceAddress)
                         .build();
-            inboundCounter.recordSuccess();
+            inboundMonitor.success(externalMessage);
 
             LogUtil.enhanceLogWithCorrelationId(log, externalMessage.findHeader(DittoHeaderDefinition.CORRELATION_ID.getKey()));
             if (log.isDebugEnabled()) {
@@ -164,15 +164,22 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
             }
             messageMappingProcessor.forward(externalMessage, getContext());
         } catch (final DittoRuntimeException e) {
-            inboundCounter.recordFailure();
             log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());
             if (headers != null) {
                 // forwarding to messageMappingProcessor only make sense if we were able to extract the headers,
                 // because we need a reply-to address to send the error response
+                inboundMonitor.failure(headers, e);
                 messageMappingProcessor.forward(e.setDittoHeaders(DittoHeaders.of(headers)), getContext());
+            } else {
+                inboundMonitor.failure(e);
             }
         } catch (final Exception e) {
-            inboundCounter.recordFailure();
+            if (null != headers) {
+                inboundMonitor.exception(headers, e);
+            } else {
+                inboundMonitor.exception(e);
+            }
+
             log.error(e, "Unexpected {}: {}", e.getClass().getName(), e.getMessage());
         } finally {
             try {

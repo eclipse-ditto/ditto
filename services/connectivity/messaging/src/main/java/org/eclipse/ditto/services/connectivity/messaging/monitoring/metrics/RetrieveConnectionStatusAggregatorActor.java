@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging.metrics;
+package org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -96,11 +96,11 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
     public Receive createReceive() {
         return receiveBuilder()
                 .match(ResourceStatus.class, this::handleResourceStatus)
-                .match(ReceiveTimeout.class, this::handleReceiveTimeout)
+                .match(ReceiveTimeout.class, receiveTimeout -> this.handleReceiveTimeout())
                 .matchAny(any -> log.info("Cannot handle {}", any.getClass())).build();
     }
 
-    private void handleReceiveTimeout(final ReceiveTimeout receiveTimeout) {
+    private void handleReceiveTimeout() {
         log.debug("RetrieveConnectionStatus timed out, sending (partial) response.");
         sendResponse();
         stopSelf();

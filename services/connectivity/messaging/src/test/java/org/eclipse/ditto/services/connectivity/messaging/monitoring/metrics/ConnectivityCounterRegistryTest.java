@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging.metrics;
+package org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics;
 
 import static java.util.stream.Collectors.toMap;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -45,6 +45,8 @@ import org.junit.Test;
  */
 public class ConnectivityCounterRegistryTest {
 
+    private static final ConnectivityCounterRegistry COUNTER_REGISTRY =
+            ConnectivityCounterRegistry.fromConfig(TestConstants.Metrics.MONITORING_CONFIG_READER.counter());
     private static final String CONNECTION_ID = "theConnection";
     private static final String SOURCE = "source1";
     private static final String TARGET = "target1";
@@ -60,12 +62,12 @@ public class ConnectivityCounterRegistryTest {
     @BeforeClass
     public static void setUp() {
         Stream.of(
-                ConnectivityCounterRegistry.getCounter(FIXED_CLOCK, CONNECTION_ID, CONSUMED, INBOUND, SOURCE),
-                ConnectivityCounterRegistry.getCounter(FIXED_CLOCK, CONNECTION_ID, MAPPED, INBOUND, SOURCE),
-                ConnectivityCounterRegistry.getCounter(FIXED_CLOCK, CONNECTION_ID, DISPATCHED, OUTBOUND, TARGET),
-                ConnectivityCounterRegistry.getCounter(FIXED_CLOCK, CONNECTION_ID, FILTERED, OUTBOUND, TARGET),
-                ConnectivityCounterRegistry.getCounter(FIXED_CLOCK, CONNECTION_ID, MAPPED, OUTBOUND, TARGET),
-                ConnectivityCounterRegistry.getCounter(FIXED_CLOCK, CONNECTION_ID, PUBLISHED, OUTBOUND, TARGET)
+                COUNTER_REGISTRY.getCounter(FIXED_CLOCK, CONNECTION_ID, CONSUMED, INBOUND, SOURCE),
+                COUNTER_REGISTRY.getCounter(FIXED_CLOCK, CONNECTION_ID, MAPPED, INBOUND, SOURCE),
+                COUNTER_REGISTRY.getCounter(FIXED_CLOCK, CONNECTION_ID, DISPATCHED, OUTBOUND, TARGET),
+                COUNTER_REGISTRY.getCounter(FIXED_CLOCK, CONNECTION_ID, FILTERED, OUTBOUND, TARGET),
+                COUNTER_REGISTRY.getCounter(FIXED_CLOCK, CONNECTION_ID, MAPPED, OUTBOUND, TARGET),
+                COUNTER_REGISTRY.getCounter(FIXED_CLOCK, CONNECTION_ID, PUBLISHED, OUTBOUND, TARGET)
         ).forEach(counter ->
                 // just to have some different values...
                 IntStream.rangeClosed(0, counter.getMetricType().ordinal()).forEach(i -> {
@@ -77,7 +79,7 @@ public class ConnectivityCounterRegistryTest {
     @Test
     public void testAggregateSourceMetrics() {
 
-        final SourceMetrics sourceMetrics = ConnectivityCounterRegistry.aggregateSourceMetrics(CONNECTION_ID);
+        final SourceMetrics sourceMetrics = COUNTER_REGISTRY.aggregateSourceMetrics(CONNECTION_ID);
 
         final Measurement[] expected = {
                 getMeasurement(MAPPED, true),
@@ -93,7 +95,7 @@ public class ConnectivityCounterRegistryTest {
     @Test
     public void testAggregateTargetMetrics() {
 
-        final TargetMetrics targetMetrics = ConnectivityCounterRegistry.aggregateTargetMetrics(CONNECTION_ID);
+        final TargetMetrics targetMetrics = COUNTER_REGISTRY.aggregateTargetMetrics(CONNECTION_ID);
 
         final Measurement[] expected = {
                 getMeasurement(MAPPED, true),
@@ -118,8 +120,9 @@ public class ConnectivityCounterRegistryTest {
     @Test
     public void mergeRetrieveConnectionMetricsResponses() {
 
-        final RetrieveConnectionMetricsResponse merged = ConnectivityCounterRegistry.mergeRetrieveConnectionMetricsResponse(
-                TestConstants.Metrics.METRICS_RESPONSE1, TestConstants.Metrics.METRICS_RESPONSE2);
+        final RetrieveConnectionMetricsResponse merged =
+                ConnectivityCounterRegistry.mergeRetrieveConnectionMetricsResponse(
+                        TestConstants.Metrics.METRICS_RESPONSE1, TestConstants.Metrics.METRICS_RESPONSE2);
 
         assertThat(merged.getConnectionId()).isEqualTo(TestConstants.Metrics.ID);
 
@@ -165,4 +168,5 @@ public class ConnectivityCounterRegistryTest {
         assertThat(merged.getTargetMetrics().getAddressMetrics().get("target3").getMeasurements())
                 .contains(TestConstants.Metrics.MAPPING, TestConstants.Metrics.OUTBOUND);
     }
+
 }

@@ -35,12 +35,13 @@ import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.message.facade.JmsMessageFacade;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsMessageFacade;
 import org.apache.qpid.proton.amqp.Symbol;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
-import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectionMetricsCollector;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
@@ -92,7 +93,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
      * Creates Akka configuration object {@link Props} for this {@code AmqpPublisherActor}.
      *
      * @param connectionId the id of the connection this publisher belongs to
-     * @param targets
+     * @param targets the targets.
      * @param session the jms session
      * @return the Akka configuration Props object.
      */
@@ -142,7 +143,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
     @Override
     protected void publishMessage(@Nullable final Target target, final AmqpTarget publishTarget,
-            final ExternalMessage message, ConnectionMetricsCollector publishedCounter) {
+            final ExternalMessage message, final ConnectionMonitor publishedMonitor) {
         try {
             final MessageProducer producer = getProducer(publishTarget.getJmsDestination());
             if (producer != null) {
@@ -152,18 +153,20 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                 log.debug("Attempt to send message {} with producer {}.", message, producer);
                 producer.send(jmsMessage, new CompletionListener() {
                     @Override
-                    public void onCompletion(final Message message) {
-                        publishedCounter.recordSuccess();
-                        log.debug("Message {} sent successfully.", message);
+                    public void onCompletion(final Message jmsMessage) {
+                        publishedMonitor.success(message);
+                        log.debug("Message {} sent successfully.", jmsMessage);
                     }
 
                     @Override
                     public void onException(final Message messageFailedToSend, final Exception exception) {
-                        handleSendException(message, exception, origin, publishedCounter);
+                        handleSendException(message, exception, origin, publishedMonitor);
                     }
                 });
             } else {
-                publishedCounter.recordFailure();
+                // TODO: find a description that the user can understand. I think it is our fault if the producer is
+                //  unavailable, therefore it's currently an exception
+                publishedMonitor.exception(message, "Failed to send message, no producer available.");
                 log.warning("No producer for destination {} available.", publishTarget);
                 final MessageSendingFailedException sendFailedException = MessageSendingFailedException.newBuilder()
                         .message("Failed to send message, no producer available.")
@@ -172,19 +175,29 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                 getSender().tell(sendFailedException, getSelf());
             }
         } catch (final JMSException e) {
-            handleSendException(message, e, getSender(), publishedCounter);
+            handleSendException(message, e, getSender(), publishedMonitor);
         }
     }
 
     private void handleSendException(final ExternalMessage message, final Exception e, final ActorRef sender,
-            final ConnectionMetricsCollector publishedCounter) {
+            final ConnectionMonitor publishedMonitor) {
+        monitorSendFailure(message, e, publishedMonitor);
+
         log.info("Failed to send JMS message: [{}] {}", e.getClass().getSimpleName(), e.getMessage());
         final MessageSendingFailedException sendFailedException = MessageSendingFailedException.newBuilder()
                 .cause(e)
                 .dittoHeaders(DittoHeaders.of(message.getHeaders()))
                 .build();
-        publishedCounter.recordFailure();
         sender.tell(sendFailedException, getSelf());
+    }
+
+    private void monitorSendFailure(final ExternalMessage message, final Exception exception,
+            final ConnectionMonitor publishedMonitor) {
+        if (exception instanceof DittoRuntimeException) {
+            publishedMonitor.failure(message, (DittoRuntimeException) exception);
+        } else {
+            publishedMonitor.exception(message, exception);
+        }
     }
 
     private Message toJmsMessage(final ExternalMessage externalMessage) throws JMSException {
@@ -274,4 +287,5 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         
         return String.format("[%s] %s", jmsException.getErrorCode(), jmsException.getMessage());
     }
+
 }

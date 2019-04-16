@@ -10,12 +10,12 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging.metrics;
+package org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.services.connectivity.messaging.metrics.MeasurementWindow.ONE_DAY;
-import static org.eclipse.ditto.services.connectivity.messaging.metrics.MeasurementWindow.ONE_HOUR;
-import static org.eclipse.ditto.services.connectivity.messaging.metrics.MeasurementWindow.ONE_MINUTE;
+import static org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.MeasurementWindow.ONE_DAY;
+import static org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.MeasurementWindow.ONE_HOUR;
+import static org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.MeasurementWindow.ONE_MINUTE;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -46,13 +46,15 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
+import org.eclipse.ditto.services.connectivity.util.MonitoringConfigReader;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 
 /**
  * This registry holds counters for the connectivity service. The counters are identified by the connection id, a {@link
  * MetricType}, a {@link MetricDirection} and an address.
  */
-public final class ConnectivityCounterRegistry {
+public final class ConnectivityCounterRegistry implements ConnectionMonitorRegistry<ConnectionMetricsCollector> {
 
     private static final ConcurrentMap<MapKey, ConnectionMetricsCollector> counters = new ConcurrentHashMap<>();
 
@@ -64,15 +66,22 @@ public final class ConnectivityCounterRegistry {
     private static final Clock CLOCK_UTC = Clock.systemUTC();
 
     private ConnectivityCounterRegistry() {
-        throw new AssertionError();
+        // intentionally empty
     }
+
+    public static ConnectivityCounterRegistry fromConfig(final MonitoringConfigReader.MonitoringCounterConfigReader config) {
+        checkNotNull(config);
+        return new ConnectivityCounterRegistry();
+    }
+
 
     /**
      * Initializes the global {@code counters} Map with the address information of the passed {@code connection}.
      *
      * @param connection the connection to initialize the global counters map with.
      */
-    public static void initCountersForConnection(final Connection connection) {
+    @Override
+    public void initForConnection(final Connection connection) {
 
         final String connectionId = connection.getId();
         connection.getSources().stream()
@@ -92,7 +101,8 @@ public final class ConnectivityCounterRegistry {
      *
      * @param connection the connection to initialize the global counters map with.
      */
-    public static void resetCountersForConnection(final Connection connection) {
+    @Override
+    public void resetForConnection(final Connection connection) {
 
         final String connectionId = connection.getId();
         counters.keySet().stream()
@@ -122,7 +132,7 @@ public final class ConnectivityCounterRegistry {
      * @param address the address
      * @return the counter
      */
-    public static ConnectionMetricsCollector getCounter(
+    public ConnectionMetricsCollector getCounter(
             final String connectionId,
             final MetricType metricType,
             final MetricDirection metricDirection,
@@ -141,7 +151,7 @@ public final class ConnectivityCounterRegistry {
      * @param address address e.g. source or target address
      * @return the counter
      */
-    static ConnectionMetricsCollector getCounter(
+    ConnectionMetricsCollector getCounter(
             final Clock clock,
             final String connectionId,
             final MetricType metricType,
@@ -162,7 +172,8 @@ public final class ConnectivityCounterRegistry {
      * @param target the target address
      * @return the counter
      */
-    public static ConnectionMetricsCollector getOutboundDispatchedCounter(String connectionId, String target) {
+    @Override
+    public ConnectionMetricsCollector forOutboundDispatched(String connectionId, String target) {
         return getCounter(connectionId, MetricType.DISPATCHED, MetricDirection.OUTBOUND, target);
     }
 
@@ -173,19 +184,9 @@ public final class ConnectivityCounterRegistry {
      * @param target the target
      * @return the outbound filtered counter
      */
-    public static ConnectionMetricsCollector getOutboundFilteredCounter(String connectionId, String target) {
+    @Override
+    public ConnectionMetricsCollector forOutboundFiltered(String connectionId, String target) {
         return getCounter(connectionId, MetricType.FILTERED, MetricDirection.OUTBOUND, target);
-    }
-
-    /**
-     * Gets counter for {@link MetricDirection#OUTBOUND}/{@link MetricType#MAPPED} messages.
-     *
-     * @param connectionId connection id
-     * @param target the target
-     * @return the outbound mapped counter
-     */
-    public static ConnectionMetricsCollector getOutboundMappedCounter(String connectionId, final String target) {
-        return getCounter(connectionId, MetricType.MAPPED, MetricDirection.OUTBOUND, target);
     }
 
     /**
@@ -195,7 +196,8 @@ public final class ConnectivityCounterRegistry {
      * @param target the target
      * @return the outbound published counter
      */
-    public static ConnectionMetricsCollector getOutboundPublishedCounter(String connectionId, String target) {
+    @Override
+    public ConnectionMetricsCollector forOutboundPublished(String connectionId, String target) {
         return getCounter(connectionId, MetricType.PUBLISHED, MetricDirection.OUTBOUND, target);
     }
 
@@ -206,7 +208,8 @@ public final class ConnectivityCounterRegistry {
      * @param source the source
      * @return the inbound counter
      */
-    public static ConnectionMetricsCollector getInboundConsumedCounter(String connectionId, String source) {
+    @Override
+    public ConnectionMetricsCollector forInboundConsumed(String connectionId, String source) {
         return getCounter(connectionId, MetricType.CONSUMED, MetricDirection.INBOUND, source);
     }
 
@@ -217,7 +220,8 @@ public final class ConnectivityCounterRegistry {
      * @param source the source
      * @return the inbound mapped counter
      */
-    public static ConnectionMetricsCollector getInboundMappedCounter(String connectionId, String source) {
+    @Override
+    public ConnectionMetricsCollector forInboundMapped(String connectionId, String source) {
         return getCounter(connectionId, MetricType.MAPPED, MetricDirection.INBOUND, source);
     }
 
@@ -228,7 +232,8 @@ public final class ConnectivityCounterRegistry {
      * @param source the source
      * @return the inbound enforced counter
      */
-    public static ConnectionMetricsCollector getInboundEnforcedCounter(String connectionId, String source) {
+    @Override
+    public ConnectionMetricsCollector forInboundEnforced(String connectionId, String source) {
         return getCounter(connectionId, MetricType.ENFORCED, MetricDirection.INBOUND, source);
     }
 
@@ -239,7 +244,8 @@ public final class ConnectivityCounterRegistry {
      * @param source the source
      * @return the inbound dropped counter
      */
-    public static ConnectionMetricsCollector getInboundDroppedCounter(String connectionId, String source) {
+    @Override
+    public ConnectionMetricsCollector forInboundDropped(String connectionId, String source) {
         return getCounter(connectionId, MetricType.DROPPED, MetricDirection.INBOUND, source);
     }
 
@@ -249,7 +255,8 @@ public final class ConnectivityCounterRegistry {
      * @param connectionId connection id
      * @return the response consumed counter
      */
-    public static ConnectionMetricsCollector getResponseDispatchedCounter(String connectionId) {
+    @Override
+    public ConnectionMetricsCollector forResponseDispatched(String connectionId) {
         return getCounter(connectionId, MetricType.DISPATCHED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
     }
 
@@ -259,7 +266,8 @@ public final class ConnectivityCounterRegistry {
      * @param connectionId connection id
      * @return the response dropped counter
      */
-    public static ConnectionMetricsCollector getResponseDroppedCounter(String connectionId) {
+    @Override
+    public ConnectionMetricsCollector forResponseDropped(String connectionId) {
         return getCounter(connectionId, MetricType.DROPPED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
     }
 
@@ -269,7 +277,8 @@ public final class ConnectivityCounterRegistry {
      * @param connectionId connection id
      * @return the response mapped counter
      */
-    public static ConnectionMetricsCollector getResponseMappedCounter(String connectionId) {
+    @Override
+    public ConnectionMetricsCollector forResponseMapped(String connectionId) {
         return getCounter(connectionId, MetricType.MAPPED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
     }
 
@@ -279,7 +288,8 @@ public final class ConnectivityCounterRegistry {
      * @param connectionId connection id
      * @return the response published counter
      */
-    public static ConnectionMetricsCollector getResponsePublishedCounter(String connectionId) {
+    @Override
+    public ConnectionMetricsCollector forResponsePublished(String connectionId) {
         return getCounter(connectionId, MetricType.PUBLISHED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
     }
 
@@ -315,7 +325,7 @@ public final class ConnectivityCounterRegistry {
      * @param connectionId connection id
      * @return the {@link SourceMetrics}
      */
-    public static SourceMetrics aggregateSourceMetrics(final String connectionId) {
+    public SourceMetrics aggregateSourceMetrics(final String connectionId) {
         return ConnectivityModelFactory.newSourceMetrics(aggregateMetrics(connectionId, MetricDirection.INBOUND));
     }
 
@@ -325,7 +335,7 @@ public final class ConnectivityCounterRegistry {
      * @param connectionId connection id
      * @return the {@link TargetMetrics}
      */
-    public static TargetMetrics aggregateTargetMetrics(final String connectionId) {
+    public TargetMetrics aggregateTargetMetrics(final String connectionId) {
         return ConnectivityModelFactory.newTargetMetrics(aggregateMetrics(connectionId, MetricDirection.OUTBOUND));
     }
 
@@ -379,7 +389,7 @@ public final class ConnectivityCounterRegistry {
      * @param targetMetrics the TargetMetrics to include in the ConnectionMetrics.
      * @return the combined new ConnectionMetrics.
      */
-    public static ConnectionMetrics aggregateConnectionMetrics(
+    public ConnectionMetrics aggregateConnectionMetrics(
             final SourceMetrics sourceMetrics, final TargetMetrics targetMetrics) {
         final AddressMetric fromSources = mergeAllMetrics(sourceMetrics.getAddressMetrics().values());
         final AddressMetric fromTargets = mergeAllMetrics(targetMetrics.getAddressMetrics().values());

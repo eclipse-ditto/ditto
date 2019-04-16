@@ -16,6 +16,8 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget;
 import static org.eclipse.ditto.services.connectivity.messaging.MockClientActor.mockClientActorPropsFactory;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -67,7 +69,11 @@ import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.ConnectivityCounterRegistry;
+import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
+import org.eclipse.ditto.services.connectivity.util.MonitoringConfigReader;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
@@ -77,6 +83,7 @@ import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
+import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -132,6 +139,7 @@ public class TestConstants {
         public static final String ID = "thing";
         public static final String THING_ID = NAMESPACE + ":" + ID;
         public static final Thing THING = Thing.newBuilder().setId(THING_ID).build();
+
     }
 
     public static class Authorization {
@@ -145,6 +153,7 @@ public class TestConstants {
                 AuthorizationSubject.newInstance(SOURCE_SUBJECT_ID));
         private static final AuthorizationContext UNAUTHORIZED_AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
                 AuthorizationSubject.newInstance(UNAUTHORIZED_SUBJECT_ID));
+
     }
 
     public static class Sources {
@@ -170,6 +179,7 @@ public class TestConstants {
                                 .consumerCount(1)
                                 .index(1)
                                 .build());
+
     }
 
     public static class Targets {
@@ -177,16 +187,19 @@ public class TestConstants {
         private static final HeaderMapping HEADER_MAPPING = null;
 
         public static final Target TARGET_WITH_PLACEHOLDER =
-                newTarget("target:{{ thing:namespace }}/{{thing:name}}@{{ topic:channel }}", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING,
+                newTarget("target:{{ thing:namespace }}/{{thing:name}}@{{ topic:channel }}",
+                        Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING,
                         null, Topic.TWIN_EVENTS);
         static final Target TWIN_TARGET =
                 newTarget("twinEventExchange/twinEventRoutingKey", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING,
                         null, Topic.TWIN_EVENTS);
         private static final Target TWIN_TARGET_UNAUTHORIZED =
-                newTarget("twin/key", Authorization.UNAUTHORIZED_AUTHORIZATION_CONTEXT, HEADER_MAPPING, null, Topic.TWIN_EVENTS);
+                newTarget("twin/key", Authorization.UNAUTHORIZED_AUTHORIZATION_CONTEXT, HEADER_MAPPING, null,
+                        Topic.TWIN_EVENTS);
         private static final Target LIVE_TARGET =
                 newTarget("live/key", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING, null, Topic.LIVE_EVENTS);
         private static final List<Target> TARGETS = asList(TWIN_TARGET, TWIN_TARGET_UNAUTHORIZED, LIVE_TARGET);
+
     }
 
     public static final class Certificates {
@@ -229,13 +242,46 @@ public class TestConstants {
                 throw new IllegalStateException(e);
             }
         }
+
+    }
+
+    public static class Monitoring {
+        public static ConnectionMonitorRegistry
+                MONITOR_REGISTRY_MOCK = Mockito.mock(ConnectionMonitorRegistry.class, Mockito.withSettings().stubOnly());
+        private static ConnectionMonitor
+                CONNECTION_MONITOR_MOCK = Mockito.mock(ConnectionMonitor.class, Mockito.withSettings().stubOnly());
+
+        static {
+            when(MONITOR_REGISTRY_MOCK.forInboundConsumed(anyString(), anyString())).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forInboundDropped(anyString(), anyString())).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forInboundEnforced(anyString(), anyString())).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forInboundMapped(anyString(), anyString())).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forOutboundDispatched(anyString(), anyString())).thenReturn(
+                    CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forOutboundFiltered(anyString(), anyString())).thenReturn(
+                    CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forOutboundPublished(anyString(), anyString())).thenReturn(
+                    CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forResponseDispatched(anyString())).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forResponseDropped(anyString())).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forResponseMapped(anyString())).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forResponsePublished(anyString())).thenReturn(CONNECTION_MONITOR_MOCK);
+        }
+
     }
 
     public static class Metrics {
 
         private static Instant LAST_MESSAGE_AT = Instant.now();
 
+        public static final MonitoringConfigReader MONITORING_CONFIG_READER =
+                ConfigKeys.Monitoring.fromRawConfig(CONFIG);
+
+        private static final ConnectivityCounterRegistry COUNTER_REGISTRY =
+                ConnectivityCounterRegistry.fromConfig(MONITORING_CONFIG_READER.counter());
+
         public static String ID = "myConnectionId";
+
 
         public static final Duration ONE_MINUTE = Duration.ofMinutes(1);
         public static final Duration ONE_HOUR = Duration.ofHours(1);
@@ -267,13 +313,14 @@ public class TestConstants {
 
         public static final AddressMetric
                 INBOUND_METRIC = ConnectivityModelFactory.newAddressMetric(asSet(INBOUND, MAPPING));
-        public static final AddressMetric OUTBOUND_METRIC = ConnectivityModelFactory.newAddressMetric(asSet(MAPPING, OUTBOUND));
+        public static final AddressMetric OUTBOUND_METRIC =
+                ConnectivityModelFactory.newAddressMetric(asSet(MAPPING, OUTBOUND));
 
         public static final SourceMetrics SOURCE_METRICS1 = ConnectivityModelFactory.newSourceMetrics(
                 asMap(entry("source1", INBOUND_METRIC), entry("source2", INBOUND_METRIC)));
         public static final TargetMetrics TARGET_METRICS1 = ConnectivityModelFactory.newTargetMetrics(
                 asMap(entry("target1", OUTBOUND_METRIC), entry("target2", OUTBOUND_METRIC)));
-        public static final ConnectionMetrics CONNECTION_METRICS1 = ConnectivityCounterRegistry
+        public static final ConnectionMetrics CONNECTION_METRICS1 = COUNTER_REGISTRY
                 .aggregateConnectionMetrics(SOURCE_METRICS1, TARGET_METRICS1);
 
         public static final RetrieveConnectionMetricsResponse METRICS_RESPONSE1 = RetrieveConnectionMetricsResponse
@@ -283,7 +330,7 @@ public class TestConstants {
                 asMap(entry("source2", INBOUND_METRIC), entry("source3", INBOUND_METRIC)));
         public static final TargetMetrics TARGET_METRICS2 = ConnectivityModelFactory.newTargetMetrics(
                 asMap(entry("target2", OUTBOUND_METRIC), entry("target3", OUTBOUND_METRIC)));
-        public static final ConnectionMetrics CONNECTION_METRICS2 = ConnectivityCounterRegistry
+        public static final ConnectionMetrics CONNECTION_METRICS2 = COUNTER_REGISTRY
                 .aggregateConnectionMetrics(SOURCE_METRICS2, TARGET_METRICS2);
 
         public static final RetrieveConnectionMetricsResponse METRICS_RESPONSE2 = RetrieveConnectionMetricsResponse
@@ -304,6 +351,7 @@ public class TestConstants {
             }
             return ConnectivityModelFactory.newMeasurement(type, success, result, Metrics.LAST_MESSAGE_AT);
         }
+
     }
 
     private static <K, V> Map.Entry<K, V> entry(K interval, V count) {
@@ -320,8 +368,8 @@ public class TestConstants {
     }
 
     /**
-     * Mock a listener on the server socket to fool connection client actors
-     * into not failing the connections immediately. Close the server socket to stop the mock server.
+     * Mock a listener on the server socket to fool connection client actors into not failing the connections
+     * immediately. Close the server socket to stop the mock server.
      *
      * @return server socket of the mock server.
      */
@@ -358,8 +406,8 @@ public class TestConstants {
     }
 
     /**
-     * Create a mock connection URI and start a mock server on the same port.
-     * Stop the mock servers by calling {@code stopMockServers()}.
+     * Create a mock connection URI and start a mock server on the same port. Stop the mock servers by calling {@code
+     * stopMockServers()}.
      */
     public static String getUriOfNewMockServer() {
         final ServerSocket serverSocket = newMockServer();
@@ -462,6 +510,7 @@ public class TestConstants {
                     .matchAny(m -> child.forward(m, getContext()))
                     .build();
         }
+
     }
 
     public static ThingModifiedEvent thingModified(final Collection<String> readSubjects) {
@@ -525,5 +574,7 @@ public class TestConstants {
                     .matchAny(o -> log.info("Received: ''{}'' from ''{}''", o, getSender()))
                     .build();
         }
+
     }
+
 }

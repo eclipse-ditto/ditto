@@ -23,8 +23,11 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
-import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectionMetricsCollector;
-import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.ImmutableConnectionMonitorRegistry;
+import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
+import org.eclipse.ditto.services.connectivity.util.MonitoringConfigReader;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 
 import akka.actor.AbstractActor;
@@ -39,22 +42,27 @@ public abstract class BaseConsumerActor extends AbstractActor {
     protected final ActorRef messageMappingProcessor;
     protected final AuthorizationContext authorizationContext;
     @Nullable protected final HeaderMapping headerMapping;
-    protected final ConnectionMetricsCollector inboundCounter;
+    protected final ConnectionMonitor inboundMonitor;
+    private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
+    protected final String connectionId;
 
     @Nullable protected ResourceStatus resourceStatus;
 
     protected BaseConsumerActor(final String connectionId, final String sourceAddress,
             final ActorRef messageMappingProcessor, final AuthorizationContext authorizationContext,
             @Nullable final HeaderMapping headerMapping) {
-        checkNotNull(connectionId, "connectionId");
+        this.connectionId = checkNotNull(connectionId, "connectionId");
         this.sourceAddress = checkNotNull(sourceAddress, "sourceAddress");
         this.messageMappingProcessor = checkNotNull(messageMappingProcessor, "messageMappingProcessor");
         this.authorizationContext = checkNotNull(authorizationContext, "authorizationContext");
         this.headerMapping = headerMapping;
         resourceStatus = ConnectivityModelFactory.newSourceStatus(ConfigUtil.instanceIdentifier(),
-                ConnectivityStatus.OPEN, sourceAddress,"Started at " + Instant.now());
+                ConnectivityStatus.OPEN, sourceAddress, "Started at " + Instant.now());
 
-        inboundCounter = ConnectivityCounterRegistry.getInboundConsumedCounter(connectionId, sourceAddress);
+        final MonitoringConfigReader monitoringConfig =
+                ConfigKeys.Monitoring.fromRawConfig(getContext().system().settings().config());
+        this.connectionMonitorRegistry = ImmutableConnectionMonitorRegistry.fromConfig(monitoringConfig);
+        inboundMonitor = connectionMonitorRegistry.forInboundConsumed(connectionId, sourceAddress);
     }
 
     protected ResourceStatus getCurrentSourceStatus() {
@@ -74,4 +82,5 @@ public abstract class BaseConsumerActor extends AbstractActor {
             this.resourceStatus = resourceStatus;
         }
     }
+
 }

@@ -19,6 +19,7 @@ import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.AuthenticationException;
@@ -27,9 +28,8 @@ import org.apache.kafka.common.errors.TimeoutException;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
-import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectionMetricsCollector;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -104,11 +104,14 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
         });
     }
 
-    private static Sink<ProducerMessage.Results<String, String, ConnectionMetricsCollector>, CompletionStage<Done>> publishSuccessSink() {
+    private static Sink<ProducerMessage.Results<String, String, PassThrough>, CompletionStage<Done>> publishSuccessSink() {
 
         // basically, we don't know if the 'publish' will succeed or fail. We would need to write our own
         // GraphStage actor for Kafka and MQTT, since alpakka doesn't provide this useful information for us.
-        return Sink.foreach(results -> results.passThrough().recordSuccess());
+        return Sink.foreach(results -> {
+            final ConnectionMonitor connectionMonitor = results.passThrough().connectionMonitor;
+            connectionMonitor.success(results.passThrough().externalMessage);
+        });
     }
 
     @Override
@@ -135,16 +138,16 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
 
     @Override
     protected void publishMessage(@Nullable final Target target, final KafkaPublishTarget publishTarget,
-            final ExternalMessage message, final ConnectionMetricsCollector publishedCounter) {
+            final ExternalMessage message, final ConnectionMonitor publishedMonitor) {
 
-        publishMessage(publishTarget, message, publishedCounter);
+        publishMessage(publishTarget, message, new PassThrough(publishedMonitor, message));
     }
 
     private void publishMessage(final KafkaPublishTarget publishTarget, final ExternalMessage message,
-            final ConnectionMetricsCollector publishedCounter) {
+            final PassThrough passThrough) {
 
-        final ProducerMessage.Envelope<String, String, ConnectionMetricsCollector> kafkaMessage =
-                mapExternalMessageToKafkaMessage(publishTarget, message, publishedCounter);
+        final ProducerMessage.Envelope<String, String, PassThrough> kafkaMessage =
+                mapExternalMessageToKafkaMessage(publishTarget, message, passThrough);
         sourceActor.tell(kafkaMessage, getSelf());
     }
 
@@ -152,10 +155,10 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
         return dryRun;
     }
 
-    private static ProducerMessage.Envelope<String, String, ConnectionMetricsCollector> mapExternalMessageToKafkaMessage(
+    private static ProducerMessage.Envelope<String, String, PassThrough> mapExternalMessageToKafkaMessage(
             final KafkaPublishTarget publishTarget,
             final ExternalMessage externalMessage,
-            final ConnectionMetricsCollector metricsCollector) {
+            final PassThrough passThrough) {
 
         final String payload = mapExternalMessagePayload(externalMessage);
         final Iterable<Header> headers = mapExternalMessageHeaders(externalMessage);
@@ -165,7 +168,7 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
                         publishTarget.getPartition().orElse(null),
                         publishTarget.getKey().orElse(null),
                         payload, headers);
-        return ProducerMessage.single(record, metricsCollector);
+        return ProducerMessage.single(record, passThrough);
     }
 
     private static Iterable<Header> mapExternalMessageHeaders(final ExternalMessage externalMessage) {
@@ -238,7 +241,7 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
     private ActorRef createInternalKafkaProducer(final KafkaConnectionFactory factory,
             final BiFunction<Done, Throwable, Done> completionOrFailureHandler) {
         final Pair<ActorRef, CompletionStage<Done>> materializedFlowedValues =
-                Source.<ProducerMessage.Envelope<String, String, ConnectionMetricsCollector>>actorRef(100,
+                Source.<ProducerMessage.Envelope<String, String, PassThrough>>actorRef(100,
                         OverflowStrategy.dropHead())
                         .via(factory.newFlow())
                         .toMat(KafkaPublisherActor.publishSuccessSink(), Keep.both())
@@ -287,6 +290,20 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
             // intentionally empty
         }
 
+    }
+
+    /**
+     * Class that is used as a <em>pass through</em> object when sending messages via alpakka to Kafka.
+     */
+    @Immutable
+    private static class PassThrough {
+        private final ConnectionMonitor connectionMonitor;
+        private final ExternalMessage externalMessage;
+
+        private PassThrough(final ConnectionMonitor connectionMonitor, final ExternalMessage message) {
+            this.connectionMonitor = connectionMonitor;
+            this.externalMessage = message;
+        }
     }
 
 }

@@ -141,18 +141,24 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
             externalMessageBuilder.withHeaderMapping(headerMapping);
             externalMessageBuilder.withSourceAddress(sourceAddress);
             final ExternalMessage externalMessage = externalMessageBuilder.build();
-            inboundCounter.recordSuccess();
+            inboundMonitor.success(externalMessage);
             messageMappingProcessor.forward(externalMessage, getContext());
         } catch (final DittoRuntimeException e) {
             log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage(), e);
-            inboundCounter.recordFailure();
             if (headers != null) {
                 // send response if headers were extracted successfully
                 messageMappingProcessor.forward(e.setDittoHeaders(DittoHeaders.of(headers)), getContext());
+                inboundMonitor.failure(headers, e);
+            } else {
+                inboundMonitor.failure(e);
             }
         } catch (final Exception e) {
             log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage(), e);
-            inboundCounter.recordFailure();
+            if (headers != null) {
+                inboundMonitor.exception(headers, e);
+            } else {
+                inboundMonitor.exception(e);
+            }
         }
     }
 
