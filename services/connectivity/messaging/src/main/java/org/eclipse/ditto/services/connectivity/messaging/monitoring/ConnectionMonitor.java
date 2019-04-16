@@ -29,9 +29,15 @@ import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.Conn
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.signals.base.Signal;
 
-// TODO: doc
+/**
+ * An abstraction for connection monitoring that currently encapsulates metrics and logging into one interface.
+ */
 public interface ConnectionMonitor {
 
+    /**
+     * Get the logger that is used by the monitor.
+     * @return the logger.
+     */
     ConnectionLogger getLogger();
 
     /**
@@ -40,104 +46,234 @@ public interface ConnectionMonitor {
      */
     ConnectionMetricsCounter getCounter();
 
+    /**
+     * Record a success event.
+     * @param signal that was processed during the success event.
+     */
     default void success(final Signal<?> signal) {
         success(ImmutableInfoProvider.forSignal(signal));
     }
 
+    /**
+     * Record a success event.
+     * @param externalMessage that was processed during the success event.
+     */
     default void success(final ExternalMessage externalMessage) {
         success(ImmutableInfoProvider.forExternalMessage(externalMessage));
     }
 
+    /**
+     * Record a success event.
+     * @param infoProvider that provides useful information for the success event.
+     */
     default void success(final InfoProvider infoProvider) {
         getLogger().success(infoProvider);
         getCounter().recordSuccess();
     }
 
+    /**
+     * Record a success event.
+     * @param signal that was processed during the success event.
+     * @param message a custom message that is used for logging the event.
+     * @param messageArguments additional message arguments that are part of {@code message}.
+     * {@link java.text.MessageFormat#format(String, Object...)} is used for applying message arguments to {@code message}.
+     */
     default void success(final Signal<?> signal, final String message, final Object... messageArguments) {
         getLogger().success(ImmutableInfoProvider.forSignal(signal), message, messageArguments);
         getCounter().recordSuccess();
     }
 
+    /**
+     * Record a failure event.
+     * @param signal that was processed during the failure.
+     */
     default void failure(final Signal<?> signal) {
         getLogger().failure(ImmutableInfoProvider.forSignal(signal));
         getCounter().recordFailure();
     }
 
+    /**
+     * Record a failure event.
+     * @param signal that was processed during the failure.
+     * @param dittoRuntimeException the exception that caused the failure. Its message will be used in the log message.
+     */
     default void failure(final Signal<?> signal, final DittoRuntimeException dittoRuntimeException) {
         failure(ImmutableInfoProvider.forSignal(signal), dittoRuntimeException);
     }
 
+    /**
+     * Record a failure event.
+     * @param infoProvider that provides useful information for the failure.
+     * @param dittoRuntimeException the exception that caused the failure. Its message will be used in the log message.
+     */
     default void failure(final InfoProvider infoProvider, final DittoRuntimeException dittoRuntimeException) {
         getLogger().failure(infoProvider, dittoRuntimeException);
         getCounter().recordFailure();
     }
 
+    /**
+     * Record a failure event.
+     * @param dittoRuntimeException the exception that caused the failure. Its message will be used in the log message.
+     */
     default void failure(final DittoRuntimeException dittoRuntimeException) {
         failure(ImmutableInfoProvider.empty(), dittoRuntimeException);
     }
 
+    /**
+     * Record a failure event.
+     * @param signal that was processed during the failure.
+     * @param message a custom message that is used for logging the event.
+     * @param messageArguments additional message arguments that are part of {@code message}.
+     * {@link java.text.MessageFormat#format(String, Object...)} is used for applying message arguments to {@code message}.
+     */
     default void failure(final Signal<?> signal, final String message, final Object... messageArguments) {
         getLogger().failure(ImmutableInfoProvider.forSignal(signal), message, messageArguments);
         getCounter().recordFailure();
     }
 
+    /**
+     * Record a failure event.
+     * @param headers that were processed during the failure.
+     * @param dittoRuntimeException the exception that caused the failure. Its message will be used in the log message.
+     */
     default void failure(final Map<String, String> headers, final DittoRuntimeException dittoRuntimeException) {
         failure(ImmutableInfoProvider.forHeaders(headers), dittoRuntimeException);
     }
 
+    /**
+     * Record a failure event.
+     * @param externalMessage that was processed during the failure.
+     * @param dittoRuntimeException the exception that caused the failure. Its message will be used in the log message.
+     */
     default void failure(final ExternalMessage externalMessage, final DittoRuntimeException dittoRuntimeException) {
         failure(ImmutableInfoProvider.forExternalMessage(externalMessage), dittoRuntimeException);
     }
 
+    /**
+     * Record a failure event.
+     * @param externalMessage that was processed during the failure.
+     * @param message a custom message that is used for logging the event.
+     * @param messageArguments additional message arguments that are part of {@code message}.
+     * {@link java.text.MessageFormat#format(String, Object...)} is used for applying message arguments to {@code message}.
+     */
     default void failure(final ExternalMessage externalMessage, final String message, final Object... messageArguments) {
         getLogger().failure(ImmutableInfoProvider.forExternalMessage(externalMessage), message, messageArguments);
         getCounter().recordFailure();
     }
 
+    /**
+     * Record an exception event.
+     * @param signal that was processed during the exception.
+     * @param exception the exception.
+     */
     default void exception(final Signal<?> signal, final Exception exception) {
         exception(ImmutableInfoProvider.forSignal(signal), exception);
     }
 
+    /**
+     * Record an exception event.
+     * @param exception the exception.
+     */
     default void exception(final Exception exception) {
         exception(ImmutableInfoProvider.empty(), exception);
     }
 
+    /**
+     * Record an exception event.
+     * @param headers that were processed during the exception.
+     * @param exception the exception.
+     */
     default void exception(final Map<String, String> headers, final Exception exception) {
         exception(ImmutableInfoProvider.forHeaders(headers), exception);
     }
 
+    /**
+     * Record an exception event.
+     * @param externalMessage that was processed during the success event.
+     * @param exception the exception that caused the failure.
+     */
     default void exception(final ExternalMessage externalMessage, final Exception exception) {
         exception(ImmutableInfoProvider.forExternalMessage(externalMessage), exception);
     }
 
+    /**
+     * Record an exception event.
+     * @param infoProvider that provides useful information for the success event.
+     * @param exception the exception that caused the failure.
+     */
     default void exception(final InfoProvider infoProvider, final Exception exception) {
         getLogger().exception(infoProvider, exception);
         getCounter().recordFailure();
     }
 
+    /**
+     * Record an exception event.
+     * @param externalMessage that was processed during the exception event.
+     * @param message a custom message that is used for logging the event.
+     * @param messageArguments additional message arguments that are part of {@code message}.
+     * {@link java.text.MessageFormat#format(String, Object...)} is used for applying message arguments to {@code message}.
+     */
     default void exception(final ExternalMessage externalMessage, final String message, final Object... messageArguments) {
         getLogger().exception(ImmutableInfoProvider.forExternalMessage(externalMessage), message, messageArguments);
         getCounter().recordFailure();
     }
 
+    /**
+     * Starts wrapping the execution of runnable code with additional information provided by {@code message}. It will
+     * monitor if the execution succeeded or failed.
+     *
+     * @param message that provides additional information for monitoring (i.e. the log messages that are generated).
+     * @return a wrapped monitor that can execute runnable code.
+     */
     default WrappedConnectionMonitor wrapExecution(final ExternalMessage message) {
         return wrapExecution(Collections.singleton(this), message);
     }
 
+    /**
+     * Starts wrapping the execution of runnable code with additional information provided by {@code signal}. It will
+     * monitor if the execution succeeded or failed.
+     *
+     * @param signal that provides additional information for monitoring (i.e. the log messages that are generated).
+     * @return a wrapped monitor that can execute runnable code.
+     */
     default WrappedConnectionMonitor wrapExecution(final Signal<?> signal) {
         return wrapExecution(Collections.singleton(this), signal);
     }
 
+    /**
+     * Starts wrapping the execution of runnable code with additional information provided by {@code signal}. It will
+     * monitor if the execution succeeded or failed.
+     *
+     * @param monitors that will monitor if execution succeeded or failed.
+     * @param signal that provides additional information for monitoring (i.e. the log messages that are generated).
+     * @return a wrapped monitor that can execute runnable code.
+     */
     static WrappedConnectionMonitor wrapExecution(final Collection<ConnectionMonitor> monitors,
             final Signal signal) {
         return wrapExecution(monitors, ImmutableInfoProvider.forSignal(signal));
     }
 
+    /**
+     * Starts wrapping the execution of runnable code with additional information provided by {@code message}. It will
+     * monitor if the execution succeeded or failed.
+     *
+     * @param monitors that will monitor if execution succeeded or failed.
+     * @param message that provides additional information for monitoring (i.e. the log messages that are generated).
+     * @return a wrapped monitor that can execute runnable code.
+     */
     static WrappedConnectionMonitor wrapExecution(final Collection<ConnectionMonitor> monitors,
             final ExternalMessage message) {
         return wrapExecution(monitors, ImmutableInfoProvider.forExternalMessage(message));
     }
 
+    /**
+     * Starts wrapping the execution of runnable code with additional information provided by {@code message}. It will
+     * monitor if the execution succeeded or failed.
+     *
+     * @param monitors that will monitor if execution succeeded or failed.
+     * @param infoProvider that provides additional information for monitoring (i.e. the log messages that are generated).
+     * @return a wrapped monitor that can execute runnable code.
+     */
     static WrappedConnectionMonitor wrapExecution(final Collection<ConnectionMonitor> monitors,
             final InfoProvider infoProvider) {
         return new WrappedConnectionMonitor() {
@@ -162,6 +298,16 @@ public interface ConnectionMonitor {
         };
     }
 
+    /**
+     * Wraps the execution of {@code runnable} and uses the given callbacks to inform about success, failure (if a
+     * {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException} happened) or exception (any other {@link java.lang.Exception})
+     * occured during execution.
+     *
+     * @param runnable that will be executed.
+     * @param onSuccess runnable that will be called if the execution succeeded without failure.
+     * @param onFailure consumer that will be called if a failure, caused by a {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException}, happened.
+     * @param onException consumer that will be called if an exception, caused by any other {@link java.lang.Exception}, happened.
+     */
     static void wrapExecution(final Runnable runnable,
             final Runnable onSuccess,
             final Consumer<DittoRuntimeException> onFailure,
@@ -178,6 +324,17 @@ public interface ConnectionMonitor {
         }
     }
 
+    /**
+     * Wraps the execution of {@code supplier} and uses the given callbacks to inform about success, failure (if a
+     * {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException} happened) or exception (any other {@link java.lang.Exception})
+     * occured during execution.
+     *
+     * @param supplier that will be executed.
+     * @param onSuccess runnable that will be called if the execution succeeded without failure.
+     * @param onFailure consumer that will be called if a failure, caused by a {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException}, happened.
+     * @param onException consumer that will be called if an exception, caused by any other {@link java.lang.Exception}, happened.
+     * @return the value returned by {@code supplier}.
+     */
     static <T> T wrapExecution(final Supplier<T> supplier,
             final Runnable onSuccess,
             final Consumer<DittoRuntimeException> onFailure,
@@ -195,27 +352,68 @@ public interface ConnectionMonitor {
         }
     }
 
-
+    /**
+     * Defines an connection monitor that wraps an execution and will monitor if execution succeeded or failed.
+     */
     interface WrappedConnectionMonitor {
 
+        /**
+         * Calls the supplier and returns its value. Also monitors if execution succeeded or failed. In case
+         * of a failure, the exception will be rethrown.
+         *
+         * @param supplier the supplier that will be called.
+         * @param <T> type of value that the supplier will return.
+         * @return the value returned by {@code supplier}.
+         * @throws org.eclipse.ditto.model.base.exceptions.DittoRuntimeException if the execution of {@code supplier}
+         * throws a {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException}.
+         * @throws java.lang.Exception if the execution of {@code supplier} throws an {@link java.lang.Exception}.
+         */
         <T> T execute(final Supplier<T> supplier);
 
+        /**
+         * Calls the runnable. Also monitors if execution succeeded or failed. In case of a failure, the exception
+         * will be rethrown.
+         *
+         * @param runnable the runnable that will be called.
+         * @throws org.eclipse.ditto.model.base.exceptions.DittoRuntimeException if the execution of {@code runnable}
+         * throws a {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException}.
+         * @throws java.lang.Exception if the execution of {@code runnable} throws an {@link java.lang.Exception}.
+         */
         void execute(final Runnable runnable);
 
     }
 
+    /**
+     * Builder for {@code ConnectionMonitor}.
+     */
     interface Builder {
 
+        /**
+         * Build the {@code ConnectionMonitor}.
+         * @return a new {@code ConnectionMonitor} instance.
+         */
         ConnectionMonitor build();
 
     }
 
+    /**
+     * Internal interface that is used for providing additional information for monitoring purposes.
+     */
     interface InfoProvider {
 
+        /**
+         * @return the correlation id of the monitoring event.
+         */
         String getCorrelationId();
 
+        /**
+         * @return the timestamp of the monitoring event.
+         */
         Instant getTimestamp();
 
+        /**
+         * @return the thing for which the monitoring event was thrown.
+         */
         @Nullable
         String getThingId();
 
