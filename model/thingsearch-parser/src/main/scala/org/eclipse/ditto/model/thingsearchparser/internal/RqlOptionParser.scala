@@ -14,12 +14,12 @@ package org.eclipse.ditto.model.thingsearchparser.internal
 
 import java.util
 
+import akka.parboiled2._
 import org.eclipse.ditto.model.rql.ParserException
 import org.eclipse.ditto.model.rqlparser.internal.RqlParserBase
 import org.eclipse.ditto.model.thingsearch
 import org.eclipse.ditto.model.thingsearch.{LimitOption, Option, SearchModelFactory, SortOption, SortOptionEntry}
 import org.eclipse.ditto.model.thingsearchparser.OptionParser
-import org.parboiled2._
 
 import scala.collection.JavaConverters
 import scala.util.{Failure, Success}
@@ -40,7 +40,9 @@ private class RqlOptionParser(override val input: ParserInput) extends RqlParser
   /**
     * @return the root for parsing RQL Options.
     */
-  def OptionsRoot: Rule1[Seq[thingsearch.Option]] = rule { WhiteSpace ~ Options ~ EOI }
+  def OptionsRoot: Rule1[Seq[thingsearch.Option]] = rule {
+    WhiteSpace ~ Options ~ EOI
+  }
 
   /**
     * Options                    = Option, { ',', Option }
@@ -79,9 +81,11 @@ private class RqlOptionParser(override val input: ParserInput) extends RqlParser
   private def SortOrder: Rule1[SortOptionEntry.SortOrder] = rule {
     Asc | Desc
   }
+
   private def Asc: Rule1[SortOptionEntry.SortOrder] = rule {
     '+' ~ push(SortOptionEntry.SortOrder.ASC)
   }
+
   private def Desc: Rule1[SortOptionEntry.SortOrder] = rule {
     '-' ~ push(SortOptionEntry.SortOrder.DESC)
   }
@@ -106,7 +110,7 @@ object RqlOptionParser extends OptionParser {
     * @param input the input that should be parsed.
     * @return the AST RootNode representing the root of the AST.
     * @throws NullPointerException if input is null.
-    * @throws ParserException if input could not be parsed.
+    * @throws ParserException      if input could not be parsed.
     */
   override def parse(input: String): util.List[Option] = parseOptions(input)
 
