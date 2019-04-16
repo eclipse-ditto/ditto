@@ -22,6 +22,7 @@ import org.eclipse.ditto.model.placeholders.PlaceholderFunctionSignatureInvalidE
 import org.eclipse.ditto.model.policies.PolicyEntryInvalidException;
 import org.eclipse.ditto.model.things.AclEntryInvalidException;
 import org.eclipse.ditto.protocoladapter.UnknownCommandException;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAudienceInvalidException;
 import org.eclipse.ditto.services.utils.test.GlobalErrorRegistryTestCases;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
@@ -51,7 +52,8 @@ public final class GatewayServiceGlobalErrorRegistryTest extends GlobalErrorRegi
                 BatchAlreadyExecutingException.class,
                 InvalidNamespacesException.class,
                 NamespaceBlockedException.class,
-                PlaceholderFunctionSignatureInvalidException.class
+                PlaceholderFunctionSignatureInvalidException.class,
+                JwtAudienceInvalidException.class
         ));
     }
 }

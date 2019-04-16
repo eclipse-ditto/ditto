@@ -20,11 +20,13 @@ import java.security.Key;
 import java.text.MessageFormat;
 import java.util.Base64;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.services.utils.jwt.JjwtDeserializer;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayJwtInvalidException;
@@ -138,6 +140,12 @@ public abstract class AbstractJsonWebToken implements JsonWebToken {
     }
 
     @Override
+    public Audience getAudience() {
+        final Optional<JsonValue> audience = body.getValue(JsonFields.AUDIENCE);
+        return audience.map(Audience::fromJson).orElseGet(Audience::empty);
+    }
+
+    @Override
     public CompletableFuture<BinaryValidationResult> validate(final PublicKeyProvider publicKeyProvider) {
         final String issuer = getIssuer();
         final String keyId = getKeyId();
@@ -165,10 +173,10 @@ public abstract class AbstractJsonWebToken implements JsonWebToken {
     private BinaryValidationResult validatePublicKey(final Key publicKey) {
         final JwtParser jwtParser = Jwts.parser();
         jwtParser.deserializeJsonWith(JjwtDeserializer.getInstance())
-                    .setSigningKey(publicKey)
-                    .parse(getToken());
+                .setSigningKey(publicKey)
+                .parse(getToken());
 
-            return BinaryValidationResult.valid();
+        return BinaryValidationResult.valid();
     }
 
     @Override
