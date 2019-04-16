@@ -54,9 +54,9 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionM
  * This registry holds counters for the connectivity service. The counters are identified by the connection id, a {@link
  * MetricType}, a {@link MetricDirection} and an address.
  */
-public final class ConnectivityCounterRegistry implements ConnectionMonitorRegistry<ConnectionMetricsCollector> {
+public final class ConnectivityCounterRegistry implements ConnectionMonitorRegistry<ConnectionMetricsCounter> {
 
-    private static final ConcurrentMap<MapKey, ConnectionMetricsCollector> counters = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<MapKey, DefaultConnectionMetricsCounter> counters = new ConcurrentHashMap<>();
 
     private static final MeasurementWindow[] DEFAULT_WINDOWS = {ONE_MINUTE, ONE_HOUR, ONE_DAY};
 
@@ -118,7 +118,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
                     final MapKey key = new MapKey(connectionId, metricType, metricDirection, address);
                     counters.computeIfAbsent(key, m -> {
                         final SlidingWindowCounter counter = new SlidingWindowCounter(CLOCK_UTC, DEFAULT_WINDOWS);
-                        return new ConnectionMetricsCollector(metricDirection, address, metricType, counter);
+                        return new DefaultConnectionMetricsCounter(metricDirection, address, metricType, counter);
                     });
                 });
     }
@@ -132,7 +132,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      * @param address the address
      * @return the counter
      */
-    public ConnectionMetricsCollector getCounter(
+    public ConnectionMetricsCounter getCounter(
             final String connectionId,
             final MetricType metricType,
             final MetricDirection metricDirection,
@@ -151,7 +151,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      * @param address address e.g. source or target address
      * @return the counter
      */
-    ConnectionMetricsCollector getCounter(
+    ConnectionMetricsCounter getCounter(
             final Clock clock,
             final String connectionId,
             final MetricType metricType,
@@ -161,7 +161,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
         final MapKey key = new MapKey(connectionId, metricType, metricDirection, address);
         return counters.computeIfAbsent(key, m -> {
             final SlidingWindowCounter counter = new SlidingWindowCounter(clock, DEFAULT_WINDOWS);
-            return new ConnectionMetricsCollector(metricDirection, address, metricType, counter);
+            return new DefaultConnectionMetricsCounter(metricDirection, address, metricType, counter);
         });
     }
 
@@ -173,7 +173,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      * @return the counter
      */
     @Override
-    public ConnectionMetricsCollector forOutboundDispatched(String connectionId, String target) {
+    public ConnectionMetricsCounter forOutboundDispatched(String connectionId, String target) {
         return getCounter(connectionId, MetricType.DISPATCHED, MetricDirection.OUTBOUND, target);
     }
 
@@ -185,7 +185,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      * @return the outbound filtered counter
      */
     @Override
-    public ConnectionMetricsCollector forOutboundFiltered(String connectionId, String target) {
+    public ConnectionMetricsCounter forOutboundFiltered(String connectionId, String target) {
         return getCounter(connectionId, MetricType.FILTERED, MetricDirection.OUTBOUND, target);
     }
 
@@ -197,7 +197,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      * @return the outbound published counter
      */
     @Override
-    public ConnectionMetricsCollector forOutboundPublished(String connectionId, String target) {
+    public ConnectionMetricsCounter forOutboundPublished(String connectionId, String target) {
         return getCounter(connectionId, MetricType.PUBLISHED, MetricDirection.OUTBOUND, target);
     }
 
@@ -209,7 +209,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      * @return the inbound counter
      */
     @Override
-    public ConnectionMetricsCollector forInboundConsumed(String connectionId, String source) {
+    public ConnectionMetricsCounter forInboundConsumed(String connectionId, String source) {
         return getCounter(connectionId, MetricType.CONSUMED, MetricDirection.INBOUND, source);
     }
 
@@ -221,7 +221,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      * @return the inbound mapped counter
      */
     @Override
-    public ConnectionMetricsCollector forInboundMapped(String connectionId, String source) {
+    public ConnectionMetricsCounter forInboundMapped(String connectionId, String source) {
         return getCounter(connectionId, MetricType.MAPPED, MetricDirection.INBOUND, source);
     }
 
@@ -233,7 +233,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      * @return the inbound enforced counter
      */
     @Override
-    public ConnectionMetricsCollector forInboundEnforced(String connectionId, String source) {
+    public ConnectionMetricsCounter forInboundEnforced(String connectionId, String source) {
         return getCounter(connectionId, MetricType.ENFORCED, MetricDirection.INBOUND, source);
     }
 
@@ -245,7 +245,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      * @return the inbound dropped counter
      */
     @Override
-    public ConnectionMetricsCollector forInboundDropped(String connectionId, String source) {
+    public ConnectionMetricsCounter forInboundDropped(String connectionId, String source) {
         return getCounter(connectionId, MetricType.DROPPED, MetricDirection.INBOUND, source);
     }
 
@@ -256,7 +256,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      * @return the response consumed counter
      */
     @Override
-    public ConnectionMetricsCollector forResponseDispatched(String connectionId) {
+    public ConnectionMetricsCounter forResponseDispatched(String connectionId) {
         return getCounter(connectionId, MetricType.DISPATCHED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
     }
 
@@ -267,7 +267,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      * @return the response dropped counter
      */
     @Override
-    public ConnectionMetricsCollector forResponseDropped(String connectionId) {
+    public ConnectionMetricsCounter forResponseDropped(String connectionId) {
         return getCounter(connectionId, MetricType.DROPPED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
     }
 
@@ -278,7 +278,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      * @return the response mapped counter
      */
     @Override
-    public ConnectionMetricsCollector forResponseMapped(String connectionId) {
+    public ConnectionMetricsCounter forResponseMapped(String connectionId) {
         return getCounter(connectionId, MetricType.MAPPED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
     }
 
@@ -289,11 +289,11 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      * @return the response published counter
      */
     @Override
-    public ConnectionMetricsCollector forResponsePublished(String connectionId) {
+    public ConnectionMetricsCounter forResponsePublished(String connectionId) {
         return getCounter(connectionId, MetricType.PUBLISHED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
     }
 
-    private static Stream<ConnectionMetricsCollector> streamFor(final String connectionId,
+    private static Stream<DefaultConnectionMetricsCounter> streamFor(final String connectionId,
             final MetricDirection metricDirection) {
 
         return counters.entrySet()

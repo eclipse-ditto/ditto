@@ -65,7 +65,7 @@ public final class ImmutableConnectionMonitorRegistry implements ConnectionMonit
 
     @Override
     public ConnectionMonitor forOutboundDispatched(final String connectionId, final String target) {
-        return ImmutableConnectionMonitor.builder(
+        return DefaultConnectionMonitor.builder(
                 connectionCounterRegistry.forOutboundDispatched(connectionId, target),
                 connectionLoggerRegistry.forOutboundDispatched(connectionId, target))
                 .build();
@@ -73,7 +73,7 @@ public final class ImmutableConnectionMonitorRegistry implements ConnectionMonit
 
     @Override
     public ConnectionMonitor forOutboundFiltered(final String connectionId, final String target) {
-        return ImmutableConnectionMonitor.builder(
+        return DefaultConnectionMonitor.builder(
                 connectionCounterRegistry.forOutboundFiltered(connectionId, target),
                 connectionLoggerRegistry.forOutboundFiltered(connectionId, target))
                 .build();
@@ -81,7 +81,7 @@ public final class ImmutableConnectionMonitorRegistry implements ConnectionMonit
 
     @Override
     public ConnectionMonitor forOutboundPublished(final String connectionId, final String target) {
-        return ImmutableConnectionMonitor.builder(
+        return DefaultConnectionMonitor.builder(
                 connectionCounterRegistry.forOutboundPublished(connectionId, target),
                 connectionLoggerRegistry.forOutboundPublished(connectionId, target))
                 .build();
@@ -89,7 +89,7 @@ public final class ImmutableConnectionMonitorRegistry implements ConnectionMonit
 
     @Override
     public ConnectionMonitor forInboundConsumed(final String connectionId, final String source) {
-        return ImmutableConnectionMonitor.builder(
+        return DefaultConnectionMonitor.builder(
                 connectionCounterRegistry.forInboundConsumed(connectionId, source),
                 connectionLoggerRegistry.forInboundConsumed(connectionId, source))
                 .build();
@@ -97,7 +97,7 @@ public final class ImmutableConnectionMonitorRegistry implements ConnectionMonit
 
     @Override
     public ConnectionMonitor forInboundMapped(final String connectionId, final String source) {
-        return ImmutableConnectionMonitor.builder(
+        return DefaultConnectionMonitor.builder(
                 connectionCounterRegistry.forInboundMapped(connectionId, source),
                 connectionLoggerRegistry.forInboundMapped(connectionId, source))
                 .build();
@@ -105,7 +105,7 @@ public final class ImmutableConnectionMonitorRegistry implements ConnectionMonit
 
     @Override
     public ConnectionMonitor forInboundEnforced(final String connectionId, final String source) {
-        return ImmutableConnectionMonitor.builder(
+        return DefaultConnectionMonitor.builder(
                 connectionCounterRegistry.forInboundEnforced(connectionId, source),
                 connectionLoggerRegistry.forInboundEnforced(connectionId, source))
                 .build();
@@ -113,7 +113,7 @@ public final class ImmutableConnectionMonitorRegistry implements ConnectionMonit
 
     @Override
     public ConnectionMonitor forInboundDropped(final String connectionId, final String source) {
-        return ImmutableConnectionMonitor.builder(
+        return DefaultConnectionMonitor.builder(
                 connectionCounterRegistry.forInboundDropped(connectionId, source),
                 connectionLoggerRegistry.forInboundDropped(connectionId, source))
                 .build();
@@ -121,7 +121,7 @@ public final class ImmutableConnectionMonitorRegistry implements ConnectionMonit
 
     @Override
     public ConnectionMonitor forResponseDispatched(final String connectionId) {
-        return ImmutableConnectionMonitor.builder(
+        return DefaultConnectionMonitor.builder(
                 connectionCounterRegistry.forResponseDispatched(connectionId),
                 connectionLoggerRegistry.forResponseDispatched(connectionId))
                 .build();
@@ -129,7 +129,7 @@ public final class ImmutableConnectionMonitorRegistry implements ConnectionMonit
 
     @Override
     public ConnectionMonitor forResponseDropped(final String connectionId) {
-        return ImmutableConnectionMonitor.builder(
+        return DefaultConnectionMonitor.builder(
                 connectionCounterRegistry.forResponseDropped(connectionId),
                 connectionLoggerRegistry.forResponseDropped(connectionId))
                 .build();
@@ -137,7 +137,7 @@ public final class ImmutableConnectionMonitorRegistry implements ConnectionMonit
 
     @Override
     public ConnectionMonitor forResponseMapped(final String connectionId) {
-        return ImmutableConnectionMonitor.builder(
+        return DefaultConnectionMonitor.builder(
                 connectionCounterRegistry.forResponseMapped(connectionId),
                 connectionLoggerRegistry.forResponseMapped(connectionId))
                 .build();
@@ -145,7 +145,7 @@ public final class ImmutableConnectionMonitorRegistry implements ConnectionMonit
 
     @Override
     public ConnectionMonitor forResponsePublished(final String connectionId) {
-        return ImmutableConnectionMonitor.builder(
+        return DefaultConnectionMonitor.builder(
                 connectionCounterRegistry.forResponsePublished(connectionId),
                 connectionLoggerRegistry.forResponsePublished(connectionId))
                 .build();
@@ -164,7 +164,7 @@ public final class ImmutableConnectionMonitorRegistry implements ConnectionMonit
     public ConnectionMonitor getMonitor(final String connectionId, final MetricType metricType,
             final MetricDirection metricDirection, final LogType logType, final LogCategory logCategory,
             final String address) {
-        return ImmutableConnectionMonitor.builder(
+        return DefaultConnectionMonitor.builder(
                 connectionCounterRegistry.getCounter(connectionId, metricType, metricDirection, address),
                 connectionLoggerRegistry.getLogger(connectionId, logCategory, logType, address))
                 .build();

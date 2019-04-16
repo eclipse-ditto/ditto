@@ -27,16 +27,16 @@ import org.slf4j.LoggerFactory;
 /**
  * Helper class to collect metrics.
  */
-public final class ConnectionMetricsCollector {
+public final class DefaultConnectionMetricsCounter implements ConnectionMetricsCounter {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ConnectionMetricsCollector.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultConnectionMetricsCounter.class);
 
     private final MetricDirection metricDirection;
     private final String address;
     private final MetricType metricType;
     private final SlidingWindowCounter counter;
 
-    ConnectionMetricsCollector(
+    DefaultConnectionMetricsCounter(
             final MetricDirection metricDirection,
             final String address,
             final MetricType metricType,
@@ -47,20 +47,21 @@ public final class ConnectionMetricsCollector {
         this.counter = counter;
     }
 
-    /**
-     * Record a successful operation.
-     */
+    @Override
     public void recordSuccess() {
         LOGGER.trace("Increment success counter ({},{},{})", metricDirection, address, metricType);
         counter.increment();
     }
 
-    /**
-     * Record a failed operation.
-     */
+    @Override
     public void recordFailure() {
         LOGGER.trace("Increment failure counter ({},{},{})", metricDirection, address, metricType);
         counter.increment(false);
+    }
+
+    @Override
+    public MetricType getMetricType() {
+        return metricType;
     }
 
     /**
@@ -70,15 +71,8 @@ public final class ConnectionMetricsCollector {
         return metricDirection;
     }
 
-    public String getAddress() {
+    String getAddress() {
         return address;
-    }
-
-    /**
-     * @return the metricType of this collector
-     */
-    MetricType getMetricType() {
-        return metricType;
     }
 
     /**
@@ -112,7 +106,7 @@ public final class ConnectionMetricsCollector {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final ConnectionMetricsCollector that = (ConnectionMetricsCollector) o;
+        final DefaultConnectionMetricsCounter that = (DefaultConnectionMetricsCounter) o;
         return metricDirection == that.metricDirection &&
                 Objects.equals(address, that.address) &&
                 metricType == that.metricType &&
