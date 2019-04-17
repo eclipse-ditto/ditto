@@ -94,7 +94,7 @@ public class SseThingsRoute extends AbstractRoute {
      */
     public SseThingsRoute(final ActorRef proxyActor, final ActorSystem actorSystem, final ActorRef streamingActor) {
         this(proxyActor, actorSystem, streamingActor,
-                EventSniffer.noOp(),
+                EventSniffer.metricsSniffer("sse", "out"),
                 new QueryFilterCriteriaFactory(new CriteriaFactoryImpl(),
                         new ModelBasedThingsFieldExpressionFactory()));
     }

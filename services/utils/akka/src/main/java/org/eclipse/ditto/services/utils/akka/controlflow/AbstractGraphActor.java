@@ -69,11 +69,10 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
                 .withSupervisionStrategy((Function<Throwable, Supervision.Directive>) exc -> {
                             if (exc instanceof DittoRuntimeException) {
                                 LogUtil.enhanceLogWithCorrelationId(log, (DittoRuntimeException) exc);
-                                log.info("DittoRuntimeException during materialization of AbstractGraphActor: [{}] {}",
+                                log.warning("DittoRuntimeException during materialization of AbstractGraphActor: [{}] {}",
                                         exc.getClass().getSimpleName(), exc.getMessage());
                             } else {
-                                log.warning("Exception during materialization of of AbstractGraphActor: {}", exc.getMessage(),
-                                        exc);
+                                log.error(exc,"Exception during materialization of of AbstractGraphActor: {}", exc.getMessage());
                             }
                             return Supervision.resume(); // in any case, resume!
                         }
@@ -84,6 +83,10 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
         final ReceiveBuilder receiveBuilder = ReceiveBuilder.create();
         preEnhancement(receiveBuilder);
         return receiveBuilder
+                .match(DittoRuntimeException.class, dittoRuntimeException -> {
+                    log.debug("Received DittoRuntimeException: <{}>", dittoRuntimeException);
+                    sender().tell(dittoRuntimeException, self());
+                })
                 .match(WithDittoHeaders.class, withDittoHeaders -> {
                     log.debug("Received WithDittoHeaders: <{}>", withDittoHeaders);
                     mapMessage(withDittoHeaders).runWith(messageHandler, materializer);
@@ -94,7 +97,7 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
                             GatewayInternalErrorException.newBuilder()
                                     .cause(unknownThrowable)
                                     .build();
-                    mapMessage(gatewayInternalError).runWith(messageHandler, materializer);
+                    sender().tell(gatewayInternalError, self());
                 })
                 .matchAny(message -> log.warning("Received unknown message: <{}>", message))
                 .build();

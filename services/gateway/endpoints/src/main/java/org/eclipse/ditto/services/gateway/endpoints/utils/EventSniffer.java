@@ -33,7 +33,7 @@ public interface EventSniffer<T> {
      * @param request the HTTP request that started the event stream.
      * @return sink to send events into.
      */
-    Sink<T, ?> createSink(final HttpRequest request);
+    Sink<T, ?> createSink(HttpRequest request);
 
     /**
      * Create an async flow for event sniffing.
@@ -49,33 +49,15 @@ public interface EventSniffer<T> {
     }
 
     /**
-     * Create an event sniffer that does not do anything.
+     * Create an event sniffer that gathers metrics.
      *
+     * @param streamingType the type of streaming metric, e.g. "ws" or "sse"
+     * @param direction the direction the message went, e.g. "in" or "out"
      * @param <T> type of events to sniff.
-     * @return an event sniffer that does not do anything.
+     * @return an event sniffer that gathers metrics.
      */
-    static <T> EventSniffer<T> noOp() {
-        return new NoOp<>();
-    }
-
-    /**
-     * An event sniffer that does not do anything.
-     *
-     * @param <T> Type of events to sniff.
-     */
-    final class NoOp<T> implements EventSniffer<T> {
-
-        private NoOp() {}
-
-        @Override
-        public Sink<T, ?> createSink(final HttpRequest request) {
-            return Sink.ignore();
-        }
-
-        @Override
-        public Flow<T, T, NotUsed> toAsyncFlow(final HttpRequest request) {
-            return Flow.create();
-        }
+    static <T> EventSniffer<T> metricsSniffer(final String streamingType, final String direction) {
+        return new MetricsEventSniffer<>(streamingType, direction);
     }
 
 }

@@ -139,6 +139,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
     }
 
     private static EntityId entityIdFor(final WithDittoHeaders<?> signal) {
+
         if (signal instanceof WithResource && signal instanceof WithId) {
             final EntityId entityId;
             if (MessageCommand.RESOURCE_TYPE.equals(((WithResource) signal).getResourceType())) {

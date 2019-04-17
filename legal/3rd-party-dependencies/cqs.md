@@ -160,52 +160,5 @@
 Manual step by sending mail to Eclipse IP team - this is a collection of dependencies to undeclare again:
 
 | Group ID  | Artifact ID  | Version  | CQ |
-|---|---|---|---|
-|com.github.nscala-time|nscala-time_2.12|2.14.0| [16310](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16310) |
-|com.github.scullxbones|akka-persistence-mongo-common_2.12|2.0.9| [16313](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16313) |
-|com.github.scullxbones|akka-persistence-mongo-casbah_2.12|2.0.9| [16312](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16312) |
-|io.dropwizard.metrics|metrics-core|3.1.2| [14465](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14465) |
-|io.dropwizard.metrics|metrics-healthchecks|3.1.2| [16317](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16317) |
-|io.prometheus|simpleclient_common|0.4.0| [16949](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16949) |
-|io.prometheus|simpleclient_dropwizard|0.4.0| [16950](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16950) |
-|io.prometheus|simpleclient|0.4.0| [16948](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16948) |
-|joda-time|joda-time|2.9.4| [14468](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14468) |
-|org.joda|joda-convert|1.2| [14472](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14472) |
-|org.mongodb|casbah_2.12|3.1.1| not required as only "pom" packaging |
-|org.mongodb|casbah-commons_2.12|3.1.1| [16337](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16337) |
-|org.mongodb|casbah-core_2.12|3.1.1| [16338](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16338) |
-|org.mongodb|casbah-gridfs_2.12|3.1.1| [16339](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16339) |
-|org.mongodb|casbah-query_2.12|3.1.1| [16340](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16340) |
-|com.lightbend.akka|akka-stream-alpakka-mqtt_2.12|0.20| [17357](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17357) |
-|com.lightbend.akka.discovery|akka-discovery_2.12|0.14.0| [16727](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16727) |
-|com.lightbend.akka.discovery|akka-discovery-dns_2.12|0.14.0| [16727](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16727) |
-|com.lightbend.akka.discovery|akka-discovery-kubernetes-api_2.12|0.14.0| [16727](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16727) |
-|com.lightbend.akka.management|akka-management_2.12|0.14.0| [16727](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16727) |
-|com.lightbend.akka.management|akka-management-cluster-bootstrap_2.12|0.14.0| [16727](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16727) |
-|com.typesafe.akka|akka-actor_2.12|2.5.13| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
-|com.typesafe.akka|akka-cluster_2.12|2.5.13| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
-|com.typesafe.akka|akka-cluster-sharding_2.12|2.5.13| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
-|com.typesafe.akka|akka-cluster-tools_2.12|2.5.13| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
-|com.typesafe.akka|akka-distributed-data_2.12|2.5.13| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
-|com.typesafe.akka|akka-persistence_2.12|2.5.13| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
-|com.typesafe.akka|akka-persistence-query_2.12|2.5.13| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
-|com.typesafe.akka|akka-protobuf_2.12|2.5.13| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
-|com.typesafe.akka|akka-remote_2.12|2.5.13| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
-|com.typesafe.akka|akka-slf4j_2.12|2.5.13| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
-|com.typesafe.akka|akka-stream_2.12|2.5.13| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
-|com.typesafe|ssl-config-core_2.12|0.2.4| [16314](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16314) |
-|io.aeron|aeron-client|1.9.3| [16553](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16553) |
-|io.aeron|aeron-driver|1.9.3| [16552](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16552) |
-|io.netty|netty-buffer|4.1.27.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
-|io.netty|netty-codec-http|4.1.27.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
-|io.netty|netty-codec|4.1.27.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
-|io.netty|netty-common|4.1.27.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
-|io.netty|netty-handler|4.1.27.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
-|io.netty|netty-resolver|4.1.27.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
-|io.netty|netty-transport|4.1.27.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
-|io.netty|netty-transport-native-epoll|linux-x86_64| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
-|io.netty|netty-transport-native-kqueue|osx-x86_64| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
-|io.netty|netty-transport-native-unix-common|4.1.27.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
-|com.chuusai|shapeless_2.12|2.3.2| [16295](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16295) |
-|org.parboiled|parboiled_2.12|2.1.4| [16334](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16334) |
-|org.typelevel|macro-compat_2.12|1.1.1| [16326](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16326) |
+|-----------|--------------|----------|----|
+|           |              |          |    |

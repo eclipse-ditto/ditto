@@ -127,7 +127,7 @@ public final class WebsocketRoute {
             final int publisherBackpressureBufferSize,
             final EventStream eventStream) {
         this(streamingActor, subscriberBackpressureQueueSize, publisherBackpressureBufferSize, eventStream,
-                EventSniffer.noOp(), EventSniffer.noOp());
+                EventSniffer.metricsSniffer("ws", "in"), EventSniffer.metricsSniffer("ws", "out"));
     }
 
     private WebsocketRoute(final ActorRef streamingActor,
