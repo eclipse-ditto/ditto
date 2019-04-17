@@ -16,6 +16,8 @@ package org.eclipse.ditto.services.connectivity.messaging.monitoring.logs;
 import java.util.Collection;
 import java.util.Queue;
 
+import javax.annotation.Nullable;
+
 /**
  * A queue with a maximum size that will automatically evict elements from the head of the queue when full.
  * @param <E> type of elements in the queue.
@@ -36,7 +38,7 @@ interface EvictingQueue<E> extends Queue<E> {
      *         prevents it from being added to this queue
      */
     @Override
-    boolean add(E e);
+    boolean add(@Nullable E e);
 
     /**
      * Will add the element {@code e} to the queue. If the queue would exceed the capacity after the insert, an
@@ -52,7 +54,7 @@ interface EvictingQueue<E> extends Queue<E> {
      *         prevents it from being added to this queue
      */
     @Override
-    boolean offer(E e);
+    boolean offer(@Nullable E e);
 
     /**
      * Will add all elements of {@code c} to the queue. If the queue would exceed the capacity after the insert,

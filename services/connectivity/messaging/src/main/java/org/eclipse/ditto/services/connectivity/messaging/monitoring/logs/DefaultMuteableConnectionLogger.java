@@ -25,8 +25,6 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.LogEntry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 
-// TODO: test
-
 /**
  * Default implementation of {@link org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.MuteableConnectionLogger}.
  */
@@ -103,6 +101,11 @@ final class DefaultMuteableConnectionLogger implements MuteableConnectionLogger 
         if (active) {
             delegate.exception(correlationId, timestamp, message, thingId);
         }
+    }
+
+    @Override
+    public void clear() {
+        delegate.clear();
     }
 
     @Override

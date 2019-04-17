@@ -85,6 +85,11 @@ public interface ConnectionLogger {
     void exception(final String correlationId, final Instant timestamp, final String message, @Nullable final String thingId);
 
     /**
+     * Clears the logs.
+     */
+    void clear();
+
+    /**
      * Log a success event.
      * @param infoProvider containing additional information on the event.
      * @param message a custom message that is used for logging the event.

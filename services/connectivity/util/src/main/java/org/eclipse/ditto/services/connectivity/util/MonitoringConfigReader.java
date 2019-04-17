@@ -56,7 +56,7 @@ public final class MonitoringConfigReader extends AbstractConfigReader {
     /**
      * Contains the configurations for the loggers used in monitoring.
      */
-    public static class MonitoringLoggerConfigReader extends AbstractConfigReader {
+    public static final class MonitoringLoggerConfigReader extends AbstractConfigReader {
 
         /**
          * Creates a MonitoringLoggerConfigReader.
@@ -84,7 +84,7 @@ public final class MonitoringConfigReader extends AbstractConfigReader {
     /**
      * Contains the configurations for the counters used in monitoring.
      */
-    public static class MonitoringCounterConfigReader extends AbstractConfigReader {
+    public static final class MonitoringCounterConfigReader extends AbstractConfigReader {
 
         /**
          * Creates a MonitoringCounterConfigReader.

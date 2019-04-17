@@ -22,7 +22,7 @@ import org.junit.Test;
 /**
  * Unit test for {@link org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLoggerFactory}.
  */
-public class ConnectionLoggerFactoryTest {
+public final class ConnectionLoggerFactoryTest {
 
     @Test
     @SuppressWarnings("squid:S2699")

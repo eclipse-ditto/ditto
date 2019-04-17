@@ -17,6 +17,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.TemporalAmount;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -25,6 +26,7 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -43,7 +45,6 @@ import org.eclipse.ditto.services.connectivity.util.MonitoringConfigReader;
  * org.eclipse.ditto.model.connectivity.LogType}, a {@link org.eclipse.ditto.model.connectivity.LogCategory} and an
  * address.
  */
-// TODO: test
 public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry<ConnectionLogger> {
 
     private static final ConcurrentMap<MapKey, MuteableConnectionLogger> loggers = new ConcurrentHashMap<>();
@@ -81,17 +82,33 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
      * @return the {@link org.eclipse.ditto.model.connectivity.LogEntry}s.
      */
     public CollectionLogs aggregateLogs(final String connectionId) {
-        // TODO: should we sort the log entries by date?
         // TODO: it does not make sense to refresh metadata for a connection id if the logger for the connection is muted! implement & test
         final LogMetadata timing = refreshMetadata(connectionId);
-        final Collection<LogEntry> logs = loggers.entrySet()
-                .stream()
-                .filter(e -> e.getKey().connectionId.equals(connectionId))
-                .map(Map.Entry::getValue)
+        final Collection<LogEntry> logs = streamLoggers(connectionId)
                 .map(ConnectionLogger::getLogs)
                 .flatMap(Collection::stream)
                 .collect(Collectors.toList());
+        // TODO: should we sort the log entries by date?
         return new CollectionLogs(timing.getEnabledSince(), timing.getEnabledUntil(), logs);
+    }
+
+    // TODO: doc, test and use
+    public void muteForConnection(final String connectionId) {
+        streamLoggers(connectionId)
+                .forEach(MuteableConnectionLogger::mute);
+    }
+
+    // TODO: doc, test and use
+    public void unmuteForConnection(final String connectionId) {
+        streamLoggers(connectionId)
+                .forEach(MuteableConnectionLogger::unmute);
+    }
+
+    private Stream<MuteableConnectionLogger> streamLoggers(final String connectionId) {
+        return loggers.entrySet()
+                .stream()
+                .filter(e -> e.getKey().connectionId.equals(connectionId))
+                .map(Map.Entry::getValue);
     }
 
     /**
@@ -274,17 +291,17 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
      * Helper class that stores logs together with information on when they were enabled and how long they will stay enabled.
      */
     @Immutable
-    public static class CollectionLogs {
+    public static final class CollectionLogs {
 
-        @Nullable private Instant enabledSince;
-        @Nullable private Instant enabledUntil;
-        private Collection<LogEntry> logs;
+        @Nullable private final Instant enabledSince;
+        @Nullable private final Instant enabledUntil;
+        private final Collection<LogEntry> logs;
 
         private CollectionLogs(@Nullable final Instant enabledSince, @Nullable final Instant enabledUntil,
                 final Collection<LogEntry> logs) {
             this.enabledSince = enabledSince;
             this.enabledUntil = enabledUntil;
-            this.logs = logs;
+            this.logs = Collections.unmodifiableCollection(new ArrayList<>(logs));
         }
 
         /**
@@ -352,7 +369,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
      * Helper class to build the map key of the registry.
      */
     @Immutable
-    private static class MapKey {
+    private static final class MapKey {
 
         private final String connectionId;
         private final String category;
@@ -372,8 +389,8 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
                 final LogType logType,
                 @Nullable final String address) {
             this.connectionId = checkNotNull(connectionId, "connectionId");
-            this.category = logCategory.getName();
-            this.type = logType.getType();
+            this.category = checkNotNull(logCategory, "log category").getName();
+            this.type = checkNotNull(logType, "log type").getType();
             this.address = address;
         }
 
@@ -415,8 +432,8 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     @Immutable
     private static final class LogMetadata {
 
-        private Instant enabledSince;
-        private Instant enabledUntil;
+        private final Instant enabledSince;
+        private final Instant enabledUntil;
 
         /**
          * A new LogMetadata.
@@ -425,6 +442,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
          * @param enabledUntil until when logging will stay enabled.
          */
         private LogMetadata(final Instant enabledSince, final Instant enabledUntil) {
+            // TODO: clarify if nullable or not
             this.enabledSince = enabledSince;
             this.enabledUntil = enabledUntil;
         }

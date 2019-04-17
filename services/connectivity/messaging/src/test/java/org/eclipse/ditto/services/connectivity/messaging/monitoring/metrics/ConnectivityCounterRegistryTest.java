@@ -178,9 +178,4 @@ public class ConnectivityCounterRegistryTest {
         assertInstancesOf(ConnectivityCounterRegistry.class, areImmutable());
     }
 
-    @Test
-    public void testEqualsAndHashcode() {
-        EqualsVerifier.forClass(ConnectivityCounterRegistry.class).verify();
-    }
-
 }

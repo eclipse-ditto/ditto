@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.connectivity.messaging.monitoring.logs;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Objects;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -25,7 +26,9 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithThingId;
 
-// TODO: doc & test
+/**
+ * Immutable implementation fo {@link org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor.InfoProvider}.
+ */
 @Immutable
 public final class ImmutableInfoProvider implements ConnectionMonitor.InfoProvider {
 
@@ -42,6 +45,11 @@ public final class ImmutableInfoProvider implements ConnectionMonitor.InfoProvid
         this.thingId = thingId;
     }
 
+    /**
+     * Creates a new info provider that uses {@code externalMessage} for getting a correlation ID.
+     * @param externalMessage the external message that might contain a correlation ID.
+     * @return an info provider with a correlation ID.
+     */
     public static ConnectionMonitor.InfoProvider forExternalMessage(final ExternalMessage externalMessage) {
         final String correlationId = extractCorrelationId(externalMessage.getHeaders());
         final Instant timestamp = Instant.now();
@@ -49,6 +57,11 @@ public final class ImmutableInfoProvider implements ConnectionMonitor.InfoProvid
         return new ImmutableInfoProvider(correlationId, timestamp, null);
     }
 
+    /**
+     * Creates a new info provider that uses {@code signal} for getting a correlation ID and thing ID.
+     * @param signal the signal that might contain a correlation ID and thing ID.
+     * @return an info provider with a correlation ID and maybe a thing ID.
+     */
     public static ConnectionMonitor.InfoProvider forSignal(final Signal<?> signal) {
         final String correlationId = extractCorrelationId(signal.getDittoHeaders());
         final Instant timestamp = Instant.now();
@@ -57,6 +70,11 @@ public final class ImmutableInfoProvider implements ConnectionMonitor.InfoProvid
         return new ImmutableInfoProvider(correlationId, timestamp, thingId);
     }
 
+    /**
+     * Creates a new info provider that uses {@code headers} for getting a correlation ID.
+     * @param headers the headers that might contain a correlation ID.
+     * @return an info provider with a correlation ID.
+     */
     public static ConnectionMonitor.InfoProvider forHeaders(final Map<String, String> headers) {
         final String correlationId = extractCorrelationId(headers);
         final Instant timestamp = Instant.now();
@@ -94,6 +112,34 @@ public final class ImmutableInfoProvider implements ConnectionMonitor.InfoProvid
     @Override
     public String getThingId() {
         return thingId;
+    }
+
+    @Override
+    public boolean equals(@Nullable final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final ImmutableInfoProvider that = (ImmutableInfoProvider) o;
+        return Objects.equals(correlationId, that.correlationId) &&
+                Objects.equals(timestamp, that.timestamp) &&
+                Objects.equals(thingId, that.thingId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(correlationId, timestamp, thingId);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                ", correlationId=" + correlationId +
+                ", timestamp=" + timestamp +
+                ", thingId=" + thingId +
+                "]";
     }
 
 }

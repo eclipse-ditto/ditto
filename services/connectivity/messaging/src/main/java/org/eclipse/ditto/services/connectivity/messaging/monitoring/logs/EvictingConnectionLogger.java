@@ -16,10 +16,10 @@ package org.eclipse.ditto.services.connectivity.messaging.monitoring.logs;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -32,9 +32,9 @@ import org.eclipse.ditto.model.connectivity.LogType;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 
 /**
- * Class for collecting connection logs.
+ * Implementation of {@link org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger} that
+ * has fixed capacity for its success and failure logs and will evict old logs when new logs are added.
  */
-// TODO: doc & test
 final class EvictingConnectionLogger implements ConnectionLogger {
 
     private static final String FALLBACK_EXCEPTION_TEXT = "not specified";
@@ -56,8 +56,8 @@ final class EvictingConnectionLogger implements ConnectionLogger {
         this.type = builder.type;
         this.address = builder.address;
 
-        this.successLogs = SynchronizedEvictingQueue.withCapacity(builder.successCapacity);
-        this.failureLogs = SynchronizedEvictingQueue.withCapacity(builder.failureCapacity);
+        this.successLogs = DefaultEvictingQueue.withCapacity(builder.successCapacity);
+        this.failureLogs = DefaultEvictingQueue.withCapacity(builder.failureCapacity);
 
         this.defaultSuccessMessage = builder.defaultSuccessMessage;
         this.defaultFailureMessage = builder.defaultFailureMessage;
@@ -65,11 +65,12 @@ final class EvictingConnectionLogger implements ConnectionLogger {
     }
 
     /**
-     * @param successCapacity
-     * @param failureCapacity
-     * @param category
-     * @param type
-     * @return
+     * Create a new builder.
+     * @param successCapacity how many success logs should be stored by the logger.
+     * @param failureCapacity how many failure logs should be stored by the logger.
+     * @param category category of logs stored by the logger.
+     * @param type type of logs stored by the logger.
+     * @return a new Builder for {@code EvictingConnectionLogger}.
      * @throws java.lang.NullPointerException if any non-nullable argument is {@code null}.
      */
     static Builder newBuilder(final int successCapacity, final int failureCapacity,
@@ -117,10 +118,17 @@ final class EvictingConnectionLogger implements ConnectionLogger {
     }
 
     @Override
+    public void clear() {
+        successLogs.clear();
+        failureLogs.clear();
+    }
+
+    @Override
     public Collection<LogEntry> getLogs() {
-        // TODO: how much does this cost. is new ArrayList().addAll(a).addAll(b) a better way?
-        return Stream.concat(successLogs.stream(), failureLogs.stream())
-                .collect(Collectors.toList());
+        final List<LogEntry> logs = new ArrayList<>(successLogs.size() + failureLogs.size());
+        logs.addAll(successLogs);
+        logs.addAll(failureLogs);
+        return logs;
     }
 
     @Override
@@ -169,6 +177,9 @@ final class EvictingConnectionLogger implements ConnectionLogger {
                 .build();
     }
 
+    /**
+     * Builder for {@code EvictingConnectionLogger}.
+     */
     static class Builder {
 
         private static final String DEFAULT_SUCCESS_MESSAGE = "Processed message.";
@@ -194,27 +205,54 @@ final class EvictingConnectionLogger implements ConnectionLogger {
             this.type = checkNotNull(type, "Logging type");
         }
 
+        /**
+         * Use the address for the built {@code EvictingConnectionLogger}.
+         * @param address the source or target address for which the logger stores logs.
+         * @return the builder for method chaining.
+         */
         Builder withAddress(@Nullable final String address) {
             this.address = address;
             return this;
         }
 
+        /**
+         * Use as default success message for the built {@code EvictingConnectionLogger}. It is used if no message
+         * is specified while logging.
+         * @param defaultSuccessMessage default message for success logs.
+         * @return the builder for method chaining.
+         */
         Builder withDefaultSuccessMessage(final String defaultSuccessMessage) {
             this.defaultSuccessMessage = checkNotNull(defaultSuccessMessage, "Default success message");
             return this;
         }
 
+        /**
+         * Use as default failure message for the built {@code EvictingConnectionLogger}. It is used if no message
+         * is specified while logging.
+         * @param defaultFailureMessage default message for failure logs.
+         * @return the builder for method chaining.
+         */
         Builder withDefaultFailureMessage(final String defaultFailureMessage) {
             this.defaultFailureMessage = checkNotNull(defaultFailureMessage, "Default failure message");
             return this;
         }
 
+        /**
+         * Use as default exception message for the built {@code EvictingConnectionLogger}. It is used if no message
+         * is specified while logging.
+         * @param defaultExceptionMessage default message for exception logs.
+         * @return the builder for method chaining.
+         */
         Builder withDefaultExceptionMessage(final String defaultExceptionMessage) {
             this.defaultExceptionMessage = checkNotNull(defaultExceptionMessage, "Default exception message");
             return this;
         }
 
-        public ConnectionLogger build() {
+        /**
+         * Build the logger.
+         * @return a new instance of {@code EvictingConnectionLogger}.
+         */
+        public EvictingConnectionLogger build() {
             return new EvictingConnectionLogger(this);
         }
 
