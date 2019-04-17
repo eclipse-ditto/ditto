@@ -25,6 +25,7 @@ public final class CacheConfigReader extends AbstractConfigReader {
 
     private static final String PATH_MAXIMUM_SIZE = "maximum-size";
     private static final String PATH_EXPIRE_AFTER_WRITE = "expire-after-write";
+    private static final String PATH_EXPIRE_AFTER_ACCESS = "expire-after-access";
 
     private CacheConfigReader(final Config config) {
         super(config);
@@ -44,12 +45,21 @@ public final class CacheConfigReader extends AbstractConfigReader {
     }
 
     /**
-     * Retrieve duration after which a cache entry expires.
+     * Retrieve duration after which a written cache entry expires.
      *
      * @return duration between write and expiration.
      */
     public Duration expireAfterWrite() {
         return config.getDuration(PATH_EXPIRE_AFTER_WRITE);
+    }
+
+    /**
+     * Retrieve duration after which an accessed cache entry expires.
+     *
+     * @return duration between last access and expiration.
+     */
+    public Duration expireAfterAccess() {
+        return config.getDuration(PATH_EXPIRE_AFTER_ACCESS);
     }
 
 }

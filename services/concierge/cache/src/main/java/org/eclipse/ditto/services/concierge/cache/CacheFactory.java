@@ -79,6 +79,7 @@ public final class CacheFactory {
         final Caffeine<Object, Object> caffeine = Caffeine.newBuilder();
         caffeine.maximumSize(cacheConfigReader.maximumSize());
         caffeine.expireAfterWrite(cacheConfigReader.expireAfterWrite());
+        caffeine.expireAfterAccess(cacheConfigReader.expireAfterAccess());
         caffeine.executor(executor);
         return caffeine;
     }
