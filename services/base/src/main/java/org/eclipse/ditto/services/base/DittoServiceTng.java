@@ -185,8 +185,8 @@ public abstract class DittoServiceTng<C extends ServiceSpecificConfig> {
      * @return the created ActorSystem during startup
      */
     protected ActorSystem doStart() {
-        final Config actorSystemConfig = appendAkkaPersistenceMongoUriToRawConfig();
         logRuntimeParameters();
+        final Config actorSystemConfig = appendAkkaPersistenceMongoUriToRawConfig();
         configureMongoDbSuffixBuilder();
         startKamon();
         final ActorSystem actorSystem = createActorSystem(actorSystemConfig);
