@@ -28,7 +28,10 @@ import com.typesafe.config.Config;
 @Immutable
 public final class DefaultDeletionConfig implements DeletionConfig, Serializable {
 
-    private static final String CONFIG_PATH = "deletion";
+    /**
+     * Path where the deletion config values are expected.
+     */
+    static final String CONFIG_PATH = "deletion";
 
     private static final long serialVersionUID = -3713651539614852547L;
 
