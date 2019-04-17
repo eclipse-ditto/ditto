@@ -13,7 +13,7 @@ package org.eclipse.ditto.services.thingsearch.persistence.read.query;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.services.base.config.LimitsConfigReader;
+import org.eclipse.ditto.services.base.config.LimitsConfig;
 import org.eclipse.ditto.services.thingsearch.persistence.read.AggregationBuilder;
 import org.eclipse.ditto.services.thingsearch.persistence.read.AggregationBuilderFactory;
 
@@ -23,24 +23,26 @@ import org.eclipse.ditto.services.thingsearch.persistence.read.AggregationBuilde
 @Immutable
 public final class MongoAggregationBuilderFactory implements AggregationBuilderFactory {
 
-    private final LimitsConfigReader limitsConfigReader;
+    private final LimitsConfig limitsConfig;
 
-    public MongoAggregationBuilderFactory(final LimitsConfigReader limitsConfigReader) {
-        this.limitsConfigReader = limitsConfigReader;
+    public MongoAggregationBuilderFactory(final LimitsConfig limitsConfig) {
+        this.limitsConfig = limitsConfig;
     }
 
-    public static AggregationBuilder newBuilder(final LimitsConfigReader limitsConfigReader) {
-        return new PolicyRestrictedMongoSearchAggregation.Builder(limitsConfigReader);
+    public static AggregationBuilder newBuilder(final LimitsConfig limitsConfig) {
+        return new PolicyRestrictedMongoSearchAggregation.Builder(limitsConfig);
     }
 
     @Override
     public AggregationBuilder newBuilder(final Criteria criteria) {
-        return new PolicyRestrictedMongoSearchAggregation.Builder(limitsConfigReader).filterCriteria(criteria);
+        return new PolicyRestrictedMongoSearchAggregation.Builder(limitsConfig).filterCriteria(criteria);
     }
 
     @Override
     public AggregationBuilder newCountBuilder(final Criteria criteria) {
-        return new PolicyRestrictedMongoSearchAggregation.Builder(limitsConfigReader).filterCriteria(criteria).count(true);
+        return new PolicyRestrictedMongoSearchAggregation.Builder(limitsConfig)
+                .filterCriteria(criteria)
+                .count(true);
     }
 
 }

@@ -132,7 +132,6 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
     private static final String FEATURE_WITH_DOTS = "feature.with.dots";
     private static final List<String> DEFAULT_POLICY_SUBJECTS = Collections.singletonList("some:mySid");
 
-
     private static abstract class BaseClass extends AbstractThingSearchPersistenceITBase {
 
         Enforcer policyEnforcer;
@@ -148,8 +147,8 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         private void spyWriteCollections() {
-            this.writeThingsCollectionSpy = replaceWithSpy(writePersistence, "collection");
-            this.writePoliciesCollectionSpy = replaceWithSpy(writePersistence, "policiesCollection");
+            writeThingsCollectionSpy = replaceWithSpy(writePersistence, "collection");
+            writePoliciesCollectionSpy = replaceWithSpy(writePersistence, "policiesCollection");
         }
 
         private static <T> T replaceWithSpy(final Object object, final String fieldName) {
@@ -172,9 +171,13 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
          * Simulates {@code ThingUpdater.endSyncWithPolicy} from the module {@code search-updater-starter}. For unit
          * tests only.
          */
-        void insertBlockingAndResetMocks(final boolean isV2, final Thing thing, final long thingRevision, final long
-                policyRevision,
-                final Enforcer policyEnforcer, final Object... mocks) {
+        void insertBlockingAndResetMocks(final boolean isV2,
+                final Thing thing,
+                final long thingRevision,
+                final long policyRevision,
+                final Enforcer policyEnforcer,
+                final Object... mocks) {
+
             if (isV2) {
                 checkNotNull(this.policyEnforcer, "policyEnforcer");
                 runBlocking(writePersistence.insertOrUpdate(thing, thingRevision, policyRevision)
@@ -187,7 +190,6 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
     }
-
 
     @RunWith(Parameterized.class)
     public static class MongoThingsSearchUpdaterPersistenceParameterizedTests extends BaseClass {
@@ -202,24 +204,19 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
         private boolean isV2;
 
-
-        /** */
         @Before
         public void setUp() {
             isV2 = apiVersion.toInt() == JsonSchemaVersion.V_2.toInt();
         }
 
-        /** */
         @Test
         public void insertAndExists() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 0, 0, policyEnforcer);
 
-            exists(KNOWN_THING_ID);
+            exists();
         }
 
-
-        /** */
         @Test
         public void insertAndExistsWithDots() {
 
@@ -227,15 +224,15 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
                     isV2));
             insertBlockingAndResetMocks(isV2, dottedThing, 0, 0, policyEnforcer);
 
-            exists(KNOWN_THING_ID);
+            exists();
         }
 
-        private void exists(final String thingId) {
+        private void exists() {
             // verify
             final PolicyRestrictedSearchAggregation aggregation =
                     abf.newBuilder(cf.any()).authorizationSubjects(KNOWN_SUBJECTS_2).build();
             final List<String> foundAll = findAll(aggregation);
-            assertThat(foundAll).contains(thingId);
+            assertThat(foundAll).contains(MongoThingsSearchUpdaterPersistenceIT.KNOWN_THING_ID);
         }
 
 
@@ -245,8 +242,6 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
                     .setFeatureProperty("feature.with.dots", "prop.with.dots", "some.more.dots");
         }
 
-
-        /** */
         @Test
         public void insertWithHigherRevision() {
             insertBlockingAndResetMocks(isV2, createThing(KNOWN_THING_ID, VALUE1, isV2), 2, 0,
@@ -272,7 +267,6 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
             assertThat(findAll(aggregation2)).isEmpty();
         }
 
-        /** */
         @Test
         public void insertWithSameRevision() {
             Assertions.assertThat(
@@ -284,7 +278,6 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
                     .isFalse();
         }
 
-        /** */
         @Test
         public void deleteWithSameRevision() {
             // prepare
@@ -302,8 +295,6 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
             assertThat(findAll(aggregation)).contains(KNOWN_THING_ID);
         }
 
-
-        /** */
         @Test
         public void deleteWithHigherRevision() {
             // prepare
@@ -321,8 +312,6 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
             assertThat(findAll(aggregation)).isEmpty();
         }
 
-
-        /** */
         @Test
         public void insertDeleteAndInsertAgain() {
             insertBlockingAndResetMocks(isV2, createThing(KNOWN_THING_ID, VALUE1, isV2), 2, 0, policyEnforcer);
@@ -332,7 +321,6 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
             verifyInsertWithHigherRevision();
         }
 
-        /** */
         @Test
         public void updateAllAttributes() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
@@ -341,7 +329,6 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
             verifyUpdateAllAttributes(KNOWN_ATTRIBUTE_1);
         }
 
-        /** */
         @Test
         public void updateAllAttributesWithDots() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
@@ -374,7 +361,6 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
                 verifyNoMoreInteractions(writePoliciesCollectionSpy);
             }
 
-
             final PolicyRestrictedSearchAggregation aggregation1 =
                     abf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(attributeName), cf.eq(KNOWN_NEW_VALUE)))
                             .authorizationSubjects(KNOWN_SUBJECTS_2)
@@ -391,7 +377,6 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
             final Collection<String> result2 = findAll(aggregation2);
             assertThat(result2).isEmpty();
         }
-
 
         @Test
         public void addNewSingleSimpleAttribute() {
@@ -580,7 +565,6 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
             assertThat(result3).contains(KNOWN_THING_ID);
         }
 
-
         @Test
         public void deleteSingleAttribute() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
@@ -609,7 +593,6 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
             assertThat(result).isEmpty();
         }
-
 
         @Test
         public void deleteAllAttributes() {
@@ -689,7 +672,6 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
             verifyNoMoreInteractions(writePoliciesCollectionSpy);
         }
 
-
         @Test
         public void addNewFeature() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
@@ -720,7 +702,6 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
             assertThat(findAll(aggregation2)).contains(KNOWN_THING_ID);
         }
 
-
         @Test
         public void createThingWithNullAttribute() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
@@ -733,7 +714,6 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
             assertThat(findAll(aggregation)).contains(KNOWN_THING_ID);
         }
-
 
         @Test
         public void updateExistingFeature() {
@@ -753,7 +733,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
             verifyCreateFeature("feature.with.dots");
         }
 
-        private void verifyCreateFeature(final String featureId) {
+        private void verifyCreateFeature(final CharSequence featureId) {
             final long targetRevision = 1L;
             final List<ThingEvent> writes = Collections.singletonList(
                     wrapEvent(createFeatureCreated(featureId), apiVersion));
@@ -786,7 +766,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
                     writeThingsCollectionSpy, writePoliciesCollectionSpy);
 
             final List<ThingEvent> writes =
-                    Collections.singletonList(wrapEvent(createFeaturePropertiesDeleted(FEATURE_ID1), apiVersion));
+                    Collections.singletonList(wrapEvent(createFeaturePropertiesDeleted(), apiVersion));
 
             Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID,
                     writes, policyEnforcer, 1L)))
@@ -867,7 +847,6 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
             assertThat(result2).contains(KNOWN_THING_ID);
         }
 
-
         @Test
         public void deleteFeatureProperty() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
@@ -875,7 +854,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
                     writePoliciesCollectionSpy);
 
             final List<ThingEvent> writes = Collections.singletonList(
-                    wrapEvent(createFeaturePropertyDeleted(FEATURE_ID1, PROP1, 2L), apiVersion));
+                    wrapEvent(createFeaturePropertyDeleted(2L), apiVersion));
 
             Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID,
                     writes, policyEnforcer, 2L)))
@@ -906,13 +885,12 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
             final List<ThingEvent> writes = Collections.singletonList(
-                    wrapEvent(createFeaturePropertyDeleted(FEATURE_ID1, PROP1, 1L), apiVersion));
+                    wrapEvent(createFeaturePropertyDeleted(1L), apiVersion));
 
             Assertions.assertThat(runBlockingWithReturn(
                     writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes, policyEnforcer, 1L)))
                     .isFalse();
         }
-
 
         @Test
         public void updateFeatureProperty() {
@@ -921,7 +899,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
                     writePoliciesCollectionSpy);
 
             final List<ThingEvent> writes = Collections.singletonList(
-                    wrapEvent(createFeaturePropertyModified(FEATURE_ID1, PROP1, newValue(true),
+                    wrapEvent(createFeaturePropertyModified(PROP1, newValue(true),
                             2L), apiVersion));
 
             Assertions.assertThat(runBlockingWithReturn(
@@ -947,7 +925,6 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
             assertThat(result2).isEmpty();
         }
 
-
         @Test
         public void updateFeaturePropertyByOverridingComplexProperty() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
@@ -955,7 +932,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
                     writePoliciesCollectionSpy);
 
             final List<ThingEvent> writes = Collections.singletonList(
-                    wrapEvent(createFeaturePropertyModified(FEATURE_ID1, PROP7, newValue("simple"), 2L),
+                    wrapEvent(createFeaturePropertyModified(PROP7, newValue("simple"), 2L),
                             apiVersion));
 
             Assertions.assertThat(runBlockingWithReturn(
@@ -1019,7 +996,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
-            verifyUpdateFeatures("f3", createFeatures(), 1L);
+            verifyUpdateFeatures("f3", createFeatures());
         }
 
         @Test
@@ -1027,7 +1004,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
-            verifyUpdateFeatures(FEATURE_WITH_DOTS, createFeaturesWithDottedFeatureId(FEATURE_WITH_DOTS), 1L);
+            verifyUpdateFeatures(FEATURE_WITH_DOTS, createFeaturesWithDottedFeatureId());
         }
 
         @Test
@@ -1035,7 +1012,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
-            verifyUpdateFeatures(FEATURE_WITH_DOTS, createFeaturesWithDottedPropertyNames(FEATURE_WITH_DOTS), 1L);
+            verifyUpdateFeatures(FEATURE_WITH_DOTS, createFeaturesWithDottedPropertyNames());
         }
 
         @Test
@@ -1043,17 +1020,15 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
             insertBlockingAndResetMocks(isV2, thing, 1L, -1L, policyEnforcer, writeThingsCollectionSpy,
                     writePoliciesCollectionSpy);
-            verifyUpdateFeatures(FEATURE_WITH_DOTS, createFeaturesWithDottedPropertyNames(FEATURE_WITH_DOTS), 1L);
+            verifyUpdateFeatures(FEATURE_WITH_DOTS, createFeaturesWithDottedPropertyNames());
         }
 
-        private void verifyUpdateFeatures(final String expectedFeatureId, final Features features, final long
-                targetRevision) {
-
+        private void verifyUpdateFeatures(final String expectedFeatureId, final Features features) {
             final List<ThingEvent> writes = Collections.singletonList(
                     wrapEvent(createFeaturesModified(features), apiVersion));
 
             Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID,
-                    writes, policyEnforcer, targetRevision)))
+                    writes, policyEnforcer, (long) 1)))
                     .isTrue();
 
             verifyCollectionWrites();
@@ -1082,7 +1057,6 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
             final Collection<String> result3 = findAll(aggregation3);
             assertThat(result3).contains(KNOWN_THING_ID);
         }
-
 
         @Test
         public void updateFeaturePropertiesAndOneAttribute() {
@@ -1120,7 +1094,6 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
             assertThat(result2).contains(KNOWN_THING_ID);
         }
 
-
         @Test
         public void updateSeveralFeaturePropertiesAndDeleteThing() {
             insertBlockingAndResetMocks(isV2, createThing(KNOWN_THING_ID, VALUE1, isV2), 1L, -1L, policyEnforcer,
@@ -1131,16 +1104,16 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
                     createAclModified("anotherSid", 2L, org.eclipse.ditto.model.things.Permission.READ),
                     apiVersion));
             writes.add(wrapEvent(
-                    createFeaturePropertyModified(FEATURE_ID1, PROP1, newValue("somethingNew"), 3L),
+                    createFeaturePropertyModified(PROP1, newValue("somethingNew"), 3L),
                     apiVersion));
             writes.add(wrapEvent(
-                    createFeaturePropertyModified(FEATURE_ID1, PROP1, newValue("somethingNew2"), 4L),
+                    createFeaturePropertyModified(PROP1, newValue("somethingNew2"), 4L),
                     apiVersion));
             writes.add(wrapEvent(
-                    createFeaturePropertyModified(FEATURE_ID1, PROP1, newValue("somethingNew3"), 5L),
+                    createFeaturePropertyModified(PROP1, newValue("somethingNew3"), 5L),
                     apiVersion));
             writes.add(wrapEvent(
-                    createFeaturePropertyModified(FEATURE_ID1, PROP1, newValue("somethingNew4"), 6L),
+                    createFeaturePropertyModified(PROP1, newValue("somethingNew4"), 6L),
                     apiVersion));
             writes.add(wrapEvent(ThingDeleted.of(KNOWN_THING_ID, 7L, DittoHeaders.empty()),
                     apiVersion));
@@ -1158,7 +1131,6 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
             assertThat(findAll(aggregation1)).isEmpty();
         }
-
 
         @Test
         public void delete() {
@@ -1291,7 +1263,6 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
             assertThat(findAll(aggregation)).isEmpty();
         }
 
-        /** */
         @Test
         public void updateWholeACL() {
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, isV2);
@@ -1327,7 +1298,6 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
             assertThat(findAll(aggregation2)).contains(KNOWN_THING_ID);
         }
 
-
         @Test
         public void updateFeaturePropertyAndAcl() {
             insertBlockingAndResetMocks(isV2, createThing(KNOWN_THING_ID, VALUE1, isV2), 1L, -1L, policyEnforcer);
@@ -1340,7 +1310,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
                     AclEntryModified.of(KNOWN_THING_ID, entry, 2L, DittoHeaders.empty()),
                     apiVersion));
             writes.add(wrapEvent(
-                    createFeaturePropertyModified(FEATURE_ID1, PROP1, newValue("somethingNew"), 3L),
+                    createFeaturePropertyModified(PROP1, newValue("somethingNew"), 3L),
                     apiVersion));
 
             Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID,
@@ -1456,8 +1426,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
             final Set<String> result = runBlockingWithReturn(writePersistence.getThingIdsForPolicy(policyId));
 
-            assertThat(result.size())
-                    .isEqualTo(2);
+            assertThat(result.size()).isEqualTo(2);
             assertThat(result)
                     .containsOnly(thing1.getId().orElseThrow(IllegalStateException::new),
                             thing2.getId().orElseThrow(IllegalStateException::new));
@@ -1539,7 +1508,6 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
         @Test
         public void migrateExistingThingToV2() {
-
             // create a thing with an ACL
             final Thing thing = createThing(KNOWN_THING_ID, VALUE1, false);
 
@@ -1595,27 +1563,23 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
             final IllegalArgumentException toThrow = new IllegalArgumentException("any");
             assertThatExceptionOfType(toThrow.getClass())
-                    .isThrownBy(() -> {
-                        runBlockingWithReturn(recovery.apply(toThrow));
-                    })
+                    .isThrownBy(() -> runBlockingWithReturn(recovery.apply(toThrow)))
                     .isEqualTo(toThrow);
         }
 
-        private MongoWriteException createMongoWriteException(final int errorCode) {
+        private static MongoWriteException createMongoWriteException(final int errorCode) {
             final WriteError writeError = new WriteError(errorCode, "error", BsonDocument.parse("{}"));
             final ServerAddress serverAddress = new ServerAddress();
             return new MongoWriteException(writeError, serverAddress);
         }
-
 
     }
 
     private static Thing createThing(final String thingId, final String attributeValue, final boolean isV2) {
         if (isV2) {
             return thingV2(thingId, attributeValue);
-        } else {
-            return thingV1(thingId, attributeValue);
         }
+        return thingV1(thingId, attributeValue);
     }
 
     private static Thing thingV2(final String thingId, final String attributeValue) {
@@ -1635,8 +1599,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
                 .set(PROP4, PROP_VALUE4)
                 .set(PROP7, JsonFactory.newObjectBuilder()
                         .set(JsonFactory.newKey(PROP8), PROP_VALUE8)
-                        .build()
-                )
+                        .build())
                 .build();
         final Feature feature = ThingsModelFactory.newFeature(FEATURE_ID1, featureProperties);
 
@@ -1676,8 +1639,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
                 .set(PROP4, PROP_VALUE4)
                 .set(PROP7, JsonFactory.newObjectBuilder()
                         .set(JsonFactory.newKey(PROP8), PROP_VALUE8)
-                        .build()
-                )
+                        .build())
                 .build();
         final Feature feature = ThingsModelFactory.newFeature(FEATURE_ID1, featureProperties);
 
@@ -1714,16 +1676,15 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
     private static AttributeModified createAttributeModified(final CharSequence attributePointer,
             final JsonValue attributeValue, final long revision) {
+
         return AttributeModified.of(KNOWN_THING_ID, JsonFactory.newPointer(attributePointer), attributeValue,
-                revision,
-                DittoHeaders.empty());
+                revision, DittoHeaders.empty());
     }
 
     private static ThingEvent createFeatureCreated(final CharSequence featureId) {
         final Feature feature = createFeature(featureId.toString());
         return FeatureCreated.of(KNOWN_THING_ID, feature, 2L, DittoHeaders.empty());
     }
-
 
     private static Policy createPolicyFor(final CharSequence user) {
         return PoliciesModelFactory.newPolicyBuilder(KNOWN_THING_ID)
@@ -1753,22 +1714,23 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         return ThingsModelFactory.newFeatures(f1, f2, f3);
     }
 
-    private static Features createFeaturesWithDottedFeatureId(final String knownFeatureIdWithDots) {
+    private static Features createFeaturesWithDottedFeatureId() {
         final Feature f1 = createFeature("f.1");
         final Feature f2 = createFeature("f.2");
-        final Feature withDots = createFeature(knownFeatureIdWithDots);
+        final Feature withDots = createFeature(MongoThingsSearchUpdaterPersistenceIT.FEATURE_WITH_DOTS);
 
         return ThingsModelFactory.newFeatures(f1, f2, withDots);
     }
 
-    private static Features createFeaturesWithDottedPropertyNames(final String knownFeatureIdWithDots) {
-        final Feature baselineFeature = createFeature(knownFeatureIdWithDots);
+    private static Features createFeaturesWithDottedPropertyNames() {
+        final Feature baselineFeature = createFeature(MongoThingsSearchUpdaterPersistenceIT.FEATURE_WITH_DOTS);
         final FeatureProperties featureProperties =
                 baselineFeature.getProperties().orElseThrow(IllegalStateException::new)
                         .toBuilder()
                         .set(DOTTED_PROP, JsonFactory.newObjectBuilder().set(DOTTED_PROP, VALUE1).build())
                         .build();
-        final Feature feature = ThingsModelFactory.newFeature(knownFeatureIdWithDots, featureProperties);
+        final Feature feature = ThingsModelFactory.newFeature(MongoThingsSearchUpdaterPersistenceIT.FEATURE_WITH_DOTS,
+                featureProperties);
 
         return ThingsModelFactory.newFeatures(feature);
     }
@@ -1779,15 +1741,14 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
                 .set(PROP6, PROP_VALUE6)
                 .set(PROP7, JsonFactory.newObjectBuilder()
                         .set(JsonFactory.newKey(PROP8), PROP_VALUE8)
-                        .build()
-                )
+                        .build())
                 .build();
 
         return ThingsModelFactory.newFeature(featureId, featureProperties);
     }
 
-    private static ThingEvent createFeaturePropertiesDeleted(final CharSequence featureId) {
-        return FeaturePropertiesDeleted.of(KNOWN_THING_ID, featureId.toString(), 2L,
+    private static ThingEvent createFeaturePropertiesDeleted() {
+        return FeaturePropertiesDeleted.of(KNOWN_THING_ID, MongoThingsSearchUpdaterPersistenceIT.FEATURE_ID1, 2L,
                 DittoHeaders.empty());
     }
 
@@ -1797,17 +1758,17 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         return FeaturePropertiesModified.of(KNOWN_THING_ID, featureId.toString(), properties, 2L, DittoHeaders.empty());
     }
 
-    private static ThingEvent createFeaturePropertyDeleted(final CharSequence featureId,
-            final CharSequence featurePropertyPointer, final long revision) {
-        return FeaturePropertyDeleted.of(KNOWN_THING_ID, featureId.toString(), JsonFactory
-                .newPointer(featurePropertyPointer), revision, DittoHeaders.empty());
+    private static ThingEvent createFeaturePropertyDeleted(final long revision) {
+        return FeaturePropertyDeleted.of(KNOWN_THING_ID, MongoThingsSearchUpdaterPersistenceIT.FEATURE_ID1,
+                JsonFactory.newPointer(MongoThingsSearchUpdaterPersistenceIT.PROP1), revision, DittoHeaders.empty());
     }
 
+    private static ThingEvent createFeaturePropertyModified(final CharSequence propertyPointer,
+            final JsonValue propertyValue,
+            final long revision) {
 
-    private static ThingEvent createFeaturePropertyModified(final CharSequence featureId,
-            final CharSequence propertyPointer, final JsonValue propertyValue, final long revision) {
-        return FeaturePropertyModified.of(KNOWN_THING_ID, featureId.toString(), JsonFactory.newPointer
-                (propertyPointer), propertyValue, revision, DittoHeaders.empty());
+        return FeaturePropertyModified.of(KNOWN_THING_ID, MongoThingsSearchUpdaterPersistenceIT.FEATURE_ID1,
+                JsonFactory.newPointer(propertyPointer), propertyValue, revision, DittoHeaders.empty());
     }
 
     private static ThingEvent createFeaturesModified(final Features features) {
@@ -1820,5 +1781,5 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
                 .build();
         return thingEvent.setDittoHeaders(versionedHeaders);
     }
-}
 
+}

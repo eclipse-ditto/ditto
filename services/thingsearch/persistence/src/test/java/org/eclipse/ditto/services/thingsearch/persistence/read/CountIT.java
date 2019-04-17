@@ -55,7 +55,6 @@ public final class CountIT extends AbstractVersionedThingSearchPersistenceITBase
         // test-data are created in tests
     }
 
-    /** */
     @Test
     public void countAny() {
         final Random random = new Random();
@@ -70,7 +69,6 @@ public final class CountIT extends AbstractVersionedThingSearchPersistenceITBase
         assertThat(actualCount).isEqualTo(expectedCount);
     }
 
-    /** */
     @Test
     public void countAnyWithSudo() {
         // sudo test only needed for V_2 Policy related searches
@@ -94,7 +92,6 @@ public final class CountIT extends AbstractVersionedThingSearchPersistenceITBase
         }
     }
 
-    /** */
     @Test
     public void countEquals() {
         final Random random = new Random();
@@ -113,7 +110,6 @@ public final class CountIT extends AbstractVersionedThingSearchPersistenceITBase
         assertThat(actualCount).isEqualTo(expectedCount);
     }
 
-    /** */
     @Test
     public void countWithNoMatchingResults() {
         final String nonExistingThingId = thingId(NAMESPACE, UUID.randomUUID().toString());
@@ -154,7 +150,6 @@ public final class CountIT extends AbstractVersionedThingSearchPersistenceITBase
                 .build();
     }
 
-
     private long executeVersionedCountQuery(final Criteria criteria) {
         return executeVersionedCountQuery(criteria, false);
     }
@@ -170,6 +165,5 @@ public final class CountIT extends AbstractVersionedThingSearchPersistenceITBase
                 this::aggregateCount,
                 criteria);
     }
-
 
 }

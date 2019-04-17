@@ -16,7 +16,7 @@ import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.streaming.DefaultStreamSupervisor;
-import org.eclipse.ditto.services.utils.akka.streaming.StreamConsumerSettings;
+import org.eclipse.ditto.services.utils.akka.streaming.SyncConfig;
 import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
 
 import akka.NotUsed;
@@ -42,26 +42,29 @@ public final class PoliciesStreamSupervisorCreator {
     }
 
     /**
-     * Creates the props for {@link PoliciesStreamSupervisorCreator}.
+     * Creates the props for PoliciesStreamSupervisorCreator.
      *
      * @param thingsUpdater the things updater actor
      * @param pubSubMediator the PubSub mediator Actor.
      * @param streamMetadataPersistence the {@link TimestampPersistence} used to read and write stream metadata (is
      * used to remember the end time of the last stream after a re-start).
-     * @param materializer the materializer for the akka actor system.
-     * @param streamConsumerSettings The settings for stream consumption.
+     * @param materializer the materializer for the Akka actor system.
+     * @param syncConfig the configuration settings for stream consumption.
      * @return the props
      */
     public static Props props(final ActorRef thingsUpdater, final ActorRef pubSubMediator,
             final TimestampPersistence streamMetadataPersistence, final Materializer materializer,
-            final StreamConsumerSettings streamConsumerSettings,
+            final SyncConfig syncConfig,
             final ThingsSearchUpdaterPersistence searchUpdaterPersistence) {
 
-        return DefaultStreamSupervisor.props(thingsUpdater, pubSubMediator,
+        return DefaultStreamSupervisor.props(thingsUpdater,
+                pubSubMediator,
                 PolicyTag.class,
                 policyTag -> toPolicyReferenceTags(policyTag, searchUpdaterPersistence),
                 PoliciesStreamSupervisorCreator::mapStreamTriggerCommand,
-                streamMetadataPersistence, materializer, streamConsumerSettings);
+                streamMetadataPersistence,
+                materializer,
+                syncConfig);
     }
 
     private static DistributedPubSubMediator.Send mapStreamTriggerCommand(
@@ -77,4 +80,5 @@ public final class PoliciesStreamSupervisorCreator {
         return searchUpdaterPersistence.getOutdatedThingIds(policyTag)
                 .map(thingId -> PolicyReferenceTag.of(thingId, policyTag));
     }
+
 }

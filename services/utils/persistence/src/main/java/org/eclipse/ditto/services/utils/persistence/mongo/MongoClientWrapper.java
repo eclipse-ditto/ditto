@@ -91,21 +91,7 @@ public final class MongoClientWrapper implements DittoMongoClient {
      * @return a new {@code MongoClientWrapper} object.
      */
     public static MongoClientWrapper newInstance(final MongoDbConfig mongoDbConfig) {
-        final MongoClientWrapperBuilder builder = new MongoClientWrapperBuilder();
-
-        builder.connectionString(mongoDbConfig.getMongoDbUri());
-        builder.maxQueryTime(mongoDbConfig.getMaxQueryTime());
-
-        final MongoDbConfig.ConnectionPoolConfig connectionPoolConfig = mongoDbConfig.getConnectionPoolConfig();
-        builder.connectionPoolMaxSize(connectionPoolConfig.getMaxSize());
-        builder.connectionPoolMaxWaitQueueSize(connectionPoolConfig.getMaxWaitQueueSize());
-        builder.connectionPoolMaxWaitTime(connectionPoolConfig.getMaxWaitTime());
-        builder.enableJmxListener(connectionPoolConfig.isJmxListenerEnabled());
-
-        final MongoDbConfig.OptionsConfig optionsConfig = mongoDbConfig.getOptionsConfig();
-        builder.enableSsl(optionsConfig.isSslEnabled());
-
-        return builder.build();
+        return (MongoClientWrapper) getBuilder(mongoDbConfig).build();
     }
 
     /**
@@ -123,9 +109,22 @@ public final class MongoClientWrapper implements DittoMongoClient {
      * @param mongoConfig provides the initial MongoDB settings of the returned builder.
      * @return the new builder instance.
      * @throws NullPointerException if {@code mongoConfig} is {@code null}.
+     * @deprecated please use {@link #getBuilder(MongoDbConfig)} instead.
      */
+    @Deprecated
     public static DittoMongoClientBuilder.GeneralPropertiesStep getBuilder(final MongoConfig mongoConfig) {
         return MongoClientWrapperBuilder.newInstance(mongoConfig);
+    }
+
+    /**
+     * Returns a new builder for creating an instance of {@code MongoClientWrapper} from scratch.
+     *
+     * @param mongoDbConfig provides the initial MongoDB settings of the returned builder.
+     * @return the new builder instance.
+     * @throws NullPointerException if {@code mongoConfig} is {@code null}.
+     */
+    public static DittoMongoClientBuilder.GeneralPropertiesStep getBuilder(final MongoDbConfig mongoDbConfig) {
+        return MongoClientWrapperBuilder.newInstance(mongoDbConfig);
     }
 
     @Override
@@ -304,6 +303,32 @@ public final class MongoClientWrapper implements DittoMongoClient {
             builder.connectionPoolMaxWaitTime(mongoConfig.getConnectionPoolMaxWaitTime());
             builder.enableJmxListener(mongoConfig.isJmxListenerEnabled());
             builder.enableSsl(mongoConfig.isSslEnabled());
+
+            return builder;
+        }
+
+        /**
+         * Returns a new instance of {@code MongoClientWrapperBuilder} at the step for adding general properties or
+         * building the client instance.
+         *
+         * @param mongoDbConfig the config which provides settings for MongoDB.
+         * @return the new builder.
+         * @throws NullPointerException if {@code mongoConfig} is {@code null}.
+         */
+        static GeneralPropertiesStep newInstance(final MongoDbConfig mongoDbConfig) {
+            checkNotNull(mongoDbConfig, "MongoDB config");
+
+            final MongoClientWrapperBuilder builder = new MongoClientWrapperBuilder();
+            builder.connectionString(mongoDbConfig.getMongoDbUri());
+
+            final MongoDbConfig.ConnectionPoolConfig connectionPoolConfig = mongoDbConfig.getConnectionPoolConfig();
+            builder.connectionPoolMaxSize(connectionPoolConfig.getMaxSize());
+            builder.connectionPoolMaxWaitQueueSize(connectionPoolConfig.getMaxWaitQueueSize());
+            builder.connectionPoolMaxWaitTime(connectionPoolConfig.getMaxWaitTime());
+            builder.enableJmxListener(connectionPoolConfig.isJmxListenerEnabled());
+
+            final MongoDbConfig.OptionsConfig optionsConfig = mongoDbConfig.getOptionsConfig();
+            builder.enableSsl(optionsConfig.isSslEnabled());
 
             return builder;
         }

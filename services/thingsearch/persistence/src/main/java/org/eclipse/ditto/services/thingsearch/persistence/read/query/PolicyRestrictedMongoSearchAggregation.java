@@ -82,7 +82,7 @@ import org.eclipse.ditto.model.query.expression.SimpleFieldExpressionImpl;
 import org.eclipse.ditto.model.query.expression.SortFieldExpression;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
-import org.eclipse.ditto.services.base.config.LimitsConfigReader;
+import org.eclipse.ditto.services.base.config.LimitsConfig;
 import org.eclipse.ditto.services.thingsearch.persistence.read.AggregationBuilder;
 import org.eclipse.ditto.services.thingsearch.persistence.read.PolicyRestrictedSearchAggregation;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonVisitor;
@@ -134,10 +134,10 @@ final class PolicyRestrictedMongoSearchAggregation implements PolicyRestrictedSe
         }
 
         final Predicate authorizationSubjectsPredicate = CRITERIA_FACTORY.in(builder.authorizationSubjects);
-        final Criteria globalReadsCriteria = createCriteria(isSudo, CRITERIA_FACTORY,
-                authorizationSubjectsPredicate, FIELD_EXPRESSION_FACTORY.filterByGlobalRead());
-        final Criteria aclFieldCriteria = createCriteria(isSudo, CRITERIA_FACTORY,
-                authorizationSubjectsPredicate, FIELD_EXPRESSION_FACTORY.filterByAcl());
+        final Criteria globalReadsCriteria =
+                createCriteria(isSudo, authorizationSubjectsPredicate, FIELD_EXPRESSION_FACTORY.filterByGlobalRead());
+        final Criteria aclFieldCriteria =
+                createCriteria(isSudo, authorizationSubjectsPredicate, FIELD_EXPRESSION_FACTORY.filterByAcl());
         final List<Bson> pipeline = new ArrayList<>();
 
         // match1 filters by ACL, global-READ and search criteria.
@@ -246,18 +246,18 @@ final class PolicyRestrictedMongoSearchAggregation implements PolicyRestrictedSe
         }
     }
 
-    private static Criteria createCriteria(final boolean isSudo,
-            final CriteriaFactory criteriaFactory,
-            final Predicate authorizationSubjectsPredicate,
+    private static Criteria createCriteria(final boolean isSudo, final Predicate authorizationSubjectsPredicate,
             final FilterFieldExpression global) {
 
-        return (isSudo
-                ? criteriaFactory.any()
-                : criteriaFactory.fieldCriteria(global, authorizationSubjectsPredicate));
+        return isSudo
+                ? PolicyRestrictedMongoSearchAggregation.CRITERIA_FACTORY.any()
+                : PolicyRestrictedMongoSearchAggregation.CRITERIA_FACTORY.fieldCriteria(global,
+                        authorizationSubjectsPredicate);
     }
 
     private static void addSortingStage(final Collection<Bson> pipeline, final Collection<SortOption> sortOptions,
             final boolean isCount) {
+
         if (!isCount && !sortOptions.isEmpty()) {
             pipeline.add(sort(getSortOptionsAsBson(sortOptions)));
         }
@@ -419,11 +419,11 @@ final class PolicyRestrictedMongoSearchAggregation implements PolicyRestrictedSe
         private boolean count = false;
         private boolean withDeletedThings = false;
         private boolean sudo = false;
-        private final LimitsConfigReader limitsConfigReader;
+        private final LimitsConfig limitsConfig;
 
-        Builder(final LimitsConfigReader limitsConfigReader) {
-            this.limitsConfigReader = limitsConfigReader;
-            limit = limitsConfigReader.thingsSearchDefaultPageSize();
+        Builder(final LimitsConfig limitsConfig) {
+            this.limitsConfig = limitsConfig;
+            limit = limitsConfig.getThingsSearchDefaultPageSize();
         }
 
         @Override
@@ -452,7 +452,7 @@ final class PolicyRestrictedMongoSearchAggregation implements PolicyRestrictedSe
 
         @Override
         public Builder limit(final long limit) {
-            this.limit = Validator.checkLimit(limit, limitsConfigReader.thingsSearchMaxPageSize());
+            this.limit = Validator.checkLimit(limit, limitsConfig.getThingsSearchMaxPageSize());
             return this;
         }
 

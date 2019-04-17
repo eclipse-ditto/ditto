@@ -23,15 +23,11 @@ import javax.annotation.Nullable;
 
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
-import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 
 import com.mongodb.client.model.Filters;
 import com.mongodb.reactivestreams.client.MongoCollection;
-import com.typesafe.config.Config;
 
-import akka.ConfigurationException;
 import akka.actor.AbstractActor;
 import akka.actor.Cancellable;
 import akka.actor.Props;
@@ -55,49 +51,56 @@ public final class ThingsSearchIndexDeletionActor extends AbstractActor {
 
     private static final Object PERFORM_DELETION_MESSAGE = new Object();
 
-    private final DiagnosticLoggingAdapter log = Logging.apply(this);
-
+    private final MongoCollection<Document> collection;
     private final Duration age;
     private final Duration runInterval;
     private final int firstIntervalHour;
-    private final MongoCollection<Document> collection;
     private final Materializer actorMaterializer;
+    private final DiagnosticLoggingAdapter log;
 
-    @Nullable private Cancellable scheduler = null;
+    @Nullable private Cancellable scheduler;
 
-    private ThingsSearchIndexDeletionActor(final DittoMongoClient mongoClient) {
-        final Config config = getContext().getSystem().settings().config();
-        age = config.getDuration(ConfigKeys.DELETION_AGE);
-        runInterval = config.getDuration(ConfigKeys.DELETION_RUN_INTERVAL);
-        firstIntervalHour = config.getInt(ConfigKeys.DELETION_FIRST_INTERVAL_HOUR);
-        if (firstIntervalHour < 0 || firstIntervalHour > 23) {
-            throw new ConfigurationException(
-                    "The configured <" + ConfigKeys.DELETION_FIRST_INTERVAL_HOUR + "> must bebetween 0 and 23");
-        }
+    private ThingsSearchIndexDeletionActor(final MongoCollection<Document> collection,
+            final Duration age,
+            final Duration runInterval,
+            final int firstIntervalHour) {
 
+        this.collection = collection;
+        this.age = age;
+        this.runInterval = runInterval;
+        this.firstIntervalHour = firstIntervalHour;
         actorMaterializer = ActorMaterializer.create(getContext());
-        collection = mongoClient.getCollection(THINGS_COLLECTION_NAME);
+        log = Logging.apply(this);
+        scheduler = null;
     }
 
     /**
      * Creates Akka configuration object Props for this Actor.
      *
-     * @param mongoClient the MongoDB client wrapper to use for deletion.
+     * @param collection the collection to perform the deletions on.
+     * @param age the amount of time after which thing entities should be deleted.
+     * @param runInterval the interval of physical deletion.
+     * @param firstIntervalHour the hour (UTC) of the first physical deletion run.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final DittoMongoClient mongoClient) {
-        return Props.create(ThingsSearchIndexDeletionActor.class, mongoClient);
+    public static Props props(final MongoCollection<Document> collection,
+            final Duration age,
+            final Duration runInterval,
+            final int firstIntervalHour) {
+
+        return Props.create(ThingsSearchIndexDeletionActor.class, collection, age, runInterval, firstIntervalHour);
     }
 
     @Override
     public void preStart() {
-
         final Instant now = Instant.now();
         final Duration initialDelay = calculateInitialDelay(now, firstIntervalHour);
-        log.info("Initial deletion is scheduled at <{}>", now.plus(initialDelay));
+        log.info("Initial deletion is scheduled at <{}>.", now.plus(initialDelay));
 
-        scheduler = getContext().getSystem().scheduler()
-                .schedule(initialDelay, runInterval, getSelf(), PERFORM_DELETION_MESSAGE, getContext().dispatcher(),
+        final ActorContext actorContext = getContext();
+        scheduler = actorContext.getSystem()
+                .scheduler()
+                .schedule(initialDelay, runInterval, getSelf(), PERFORM_DELETION_MESSAGE, actorContext.dispatcher(),
                         getSelf());
     }
 
@@ -118,23 +121,21 @@ public final class ThingsSearchIndexDeletionActor extends AbstractActor {
     }
 
     private void performDeletion() {
-
         final Date deletionDate = Date.from(Instant.now().minus(age).truncatedTo(ChronoUnit.SECONDS));
         final Bson deleteFilter = Filters.and(
                 Filters.eq(PersistenceConstants.FIELD_DELETED_FLAG, true),
                 Filters.lte(PersistenceConstants.FIELD_DELETED, deletionDate));
-        log.info("About to delete marked as deleted fields in collection <{}> matching the filter: <{}>",
+        log.info("Going to delete marked as deleted fields in collection <{}> matching the filter: <{}>.",
                 THINGS_COLLECTION_NAME, deleteFilter);
 
         Source.fromPublisher(collection.deleteMany(deleteFilter))
                 .runWith(Sink.head(), actorMaterializer)
                 .whenComplete((deleteResult, throwable) -> {
                     if (throwable != null) {
-                        log.error(throwable, "Deletion of marked as deleted Things failed due to: {}: <{}>",
+                        log.error(throwable, "Deletion of marked as deleted things failed due to: {}: <{}>",
                                 throwable.getClass().getSimpleName(), throwable.getMessage());
                     } else {
-                        log.info("Deletion of marked as deleted Things was successful, response: {}",
-                                deleteResult);
+                        log.info("Deletion of marked as deleted things was successful, response: {}", deleteResult);
                     }
                 });
     }
@@ -159,9 +160,8 @@ public final class ThingsSearchIndexDeletionActor extends AbstractActor {
                 .minus(durationSinceMidnight);
         if (delay.isNegative()) {
             return Duration.ofHours(24).plus(delay);
-        } else {
-            return delay;
         }
+        return delay;
     }
 
 }

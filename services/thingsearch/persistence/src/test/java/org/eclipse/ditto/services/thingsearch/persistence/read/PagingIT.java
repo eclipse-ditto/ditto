@@ -16,6 +16,7 @@ import static org.eclipse.ditto.services.thingsearch.persistence.TestConstants.t
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
@@ -53,7 +54,6 @@ public final class PagingIT extends AbstractVersionedThingSearchPersistenceITBas
     private int maxPageSizeFromConfig;
     private int defaultPageSizeFromConfig;
 
-    /** */
     @Before
     public void setUp() {
         final LimitsConfigReader limitsConfigReader = DittoLimitsConfigReader.fromRawConfig(ConfigFactory.load("test"));
@@ -71,7 +71,6 @@ public final class PagingIT extends AbstractVersionedThingSearchPersistenceITBas
         // test-data are created in tests
     }
 
-    /** */
     @Test
     public void pageWithItemsCountLessThanLimit() {
         // prepare
@@ -86,7 +85,6 @@ public final class PagingIT extends AbstractVersionedThingSearchPersistenceITBas
         assertPaging(result, oneThingList, ResultList.NO_NEXT_PAGE);
     }
 
-    /** */
     @Test
     public void pageWithItemsCountEqualToLimit() {
         // prepare
@@ -101,7 +99,6 @@ public final class PagingIT extends AbstractVersionedThingSearchPersistenceITBas
         assertPaging(result, expectedList, KNOWN_LIMIT);
     }
 
-    /** */
     @Test
     public void pageWithSkipAndLimitLessThanTotalItems() {
         // prepare
@@ -116,7 +113,6 @@ public final class PagingIT extends AbstractVersionedThingSearchPersistenceITBas
         assertPaging(result, expectedList, KNOWN_LIMIT * 2);
     }
 
-    /** */
     @Test
     public void lastPageWithItemsCountLessThanLimit() {
         // prepare
@@ -131,7 +127,6 @@ public final class PagingIT extends AbstractVersionedThingSearchPersistenceITBas
         assertPaging(result, expectedList, ResultList.NO_NEXT_PAGE);
     }
 
-    /** */
     @Test
     public void lastPageWithItemsCountEqualToLimit() {
         // prepare
@@ -146,7 +141,6 @@ public final class PagingIT extends AbstractVersionedThingSearchPersistenceITBas
         assertPaging(result, expectedList, ResultList.NO_NEXT_PAGE);
     }
 
-    /** */
     @Test
     public void defaultLimitValue() {
         // prepare
@@ -168,7 +162,6 @@ public final class PagingIT extends AbstractVersionedThingSearchPersistenceITBas
         assertPaging(result, expectedList, defaultPageSizeFromConfig);
     }
 
-    /** */
     @Test(expected = IllegalArgumentException.class)
     public void limitValueExceedsMaximum() {
         executeVersionedQueryWithChangeOptions(
@@ -183,7 +176,7 @@ public final class PagingIT extends AbstractVersionedThingSearchPersistenceITBas
         assertThat(actualResult.nextPageOffset()).isEqualTo(expectedNextPageOffset);
     }
 
-    private void insertThings(final List<String> thingIds) {
+    private void insertThings(final Collection<String> thingIds) {
         shuffleAndPersist(createThings(thingIds));
     }
 
@@ -196,16 +189,16 @@ public final class PagingIT extends AbstractVersionedThingSearchPersistenceITBas
     private ResultList<String> executeVersionedQueryWithChangeOptions(
             final Function<QueryBuilder, QueryBuilder> queryChanger,
             final Function<AggregationBuilder, AggregationBuilder> aggregationChanger) {
+
         return executeVersionedQuery(
-                (criteria -> queryChanger.apply(qbf.newBuilder(criteria)
+                criteria -> queryChanger.apply(qbf.newBuilder(criteria)
                         .sort(Collections.singletonList(new SortOption(eft.sortByThingId(), SortDirection.ASC))))
-                        .build()),
-                (criteria -> aggregationChanger.apply(abf.newBuilder(criteria)
-                        .authorizationSubjects(KNOWN_SUBJECTS)).build()),
+                        .build(),
+                criteria -> aggregationChanger.apply(abf.newBuilder(criteria)
+                        .authorizationSubjects(KNOWN_SUBJECTS)).build(),
                 this::findAll,
                 this::findAll,
                 cf.any());
-
     }
 
 }

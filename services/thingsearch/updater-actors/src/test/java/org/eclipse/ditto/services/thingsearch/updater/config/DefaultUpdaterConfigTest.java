@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.akka.streaming;
+package org.eclipse.ditto.services.thingsearch.updater.config;
 
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -18,18 +18,20 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Test for {@link StreamConsumerSettings}.
+ * Unit test for {@link DefaultUpdaterConfig}.
  */
-public class StreamConsumerSettingsTest {
+public final class DefaultUpdaterConfigTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(StreamConsumerSettings.class, areImmutable());
+        assertInstancesOf(DefaultUpdaterConfig.class, areImmutable());
     }
 
     @Test
-    public void equalsAndHashcode() {
-        EqualsVerifier.forClass(StreamConsumerSettings.class).verify();
+    public void testHashCodeAndEquals() {
+        EqualsVerifier.forClass(DefaultUpdaterConfig.class)
+                .usingGetClass()
+                .verify();
     }
 
 }
