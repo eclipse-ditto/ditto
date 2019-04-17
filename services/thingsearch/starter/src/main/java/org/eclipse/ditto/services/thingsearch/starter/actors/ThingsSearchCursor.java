@@ -29,7 +29,9 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
@@ -39,12 +41,11 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.query.Query;
+import org.eclipse.ditto.model.query.SortDirection;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
-import org.eclipse.ditto.model.query.criteria.Predicate;
 import org.eclipse.ditto.model.rql.ParserException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.thingsearch.CursorOption;
@@ -70,44 +71,69 @@ import akka.util.ByteString;
 
 /**
  * Package-private evaluator and generator of opaque cursors.
+ * The meaning of a cursor should be invisible to all users.
+ * This class provides the following services to other classes of this package:
+ * <ul>
+ * <li>{@code extractCursor(QueryThings, ActorMaterializer)}:
+ * Read any cursor given by a {@code QueryThings} command.
+ * </li>
+ * <li>{@code adjust(Optional<ThingsSearchCursor>, QueryThings)}:
+ * Augment a {@code QueryThings} command by information in the cursor.
+ * </li>
+ * <li>{@code adjust(Optional<ThingsSearchCursor>, Query, CriteriaFactory)}:
+ * Adjust a {@code Query} so that its results start from the location marked by the cursor.
+ * </li>
+ * <li>{@code processSearchResult(QueryThings, ThingsSearchCursor, SearchResult, ResultList)}:
+ * Compute a cursor pointing at the end of the search result if there are more results.
+ * </li>
+ * </ul>
  */
-// TODO: document and test.
 final class ThingsSearchCursor {
 
+    static final SortOptionEntry DEFAULT_SORT_OPTION_ENTRY =
+            SortOptionEntry.asc(Thing.JsonFields.ID.getPointer());
+
+    /**
+     * Delimiter between correlation IDs. The real correlation ID of a QueryThings command with cursor is
+     * "[correlation-id-of-cursor]:[correlation-id-of-command-headers]".
+     */
     private static final String CORRELATION_ID_DELIMITER = ":";
 
     private static final String LIMIT_OPTION_FORBIDDEN = "The options 'cursor' and 'limit' must not be used together.";
 
-    private static final SortOptionEntry DEFAULT_SORT_OPTION_ENTRY =
-            SortOptionEntry.asc(Thing.JsonFields.ID.getPointer());
-
     private static final Base64.Encoder BASE64_URL_ENCODER_WITHOUT_PADDING = Base64.getUrlEncoder().withoutPadding();
 
-    // secret fields in JSON representation
+    /*
+     * Secret fields in JSON representation of a cursor.
+     */
+
     private static final JsonFieldDefinition<String> FILTER = JsonFactory.newStringFieldDefinition("F");
     private static final JsonFieldDefinition<String> JSON_FIELD_SELECTOR = JsonFactory.newStringFieldDefinition("J");
+    private static final JsonFieldDefinition<JsonArray> NAMESPACES = JsonFactory.newJsonArrayFieldDefinition("N");
     private static final JsonFieldDefinition<String> CORRELATION_ID = JsonFactory.newStringFieldDefinition("C");
     private static final JsonFieldDefinition<String> OPTIONS = JsonFactory.newStringFieldDefinition("O");
     private static final JsonFieldDefinition<JsonArray> VALUES = JsonFactory.newJsonArrayFieldDefinition("V");
 
-    // data encoded in a cursor
+    /*
+     * Data encoded in a cursor.
+     */
+
     @Nullable private final String filter;
     @Nullable private final String jsonFieldSelector;
     @Nullable private final Set<String> namespaces;
-    private final DittoHeaders dittoHeaders;
+    @Nullable final String correlationId;
     private final List<Option> options;
     private final JsonArray values;
-
-    // convenient access to required option
     private final SortOption sortOption;
 
-    private ThingsSearchCursor(@Nullable final String jsonFieldSelector,
-            @Nullable final Set<String> namespaces, final DittoHeaders dittoHeaders,
+    ThingsSearchCursor(@Nullable final String jsonFieldSelector,
+            @Nullable final Set<String> namespaces, @Nullable final String correlationId,
             final List<Option> options, @Nullable final String filter, final JsonArray values) {
         this.namespaces = namespaces;
         this.filter = filter;
         this.jsonFieldSelector = jsonFieldSelector;
-        this.dittoHeaders = dittoHeaders;
+
+        this.correlationId = correlationId;
         this.options = options;
         this.values = values;
 
@@ -120,21 +146,35 @@ final class ThingsSearchCursor {
     }
 
     @Override
+    public String toString() {
+        return getClass().getSimpleName() + toJson();
+    }
+
+    @Override
     public int hashCode() {
-        return Objects.hash(filter, jsonFieldSelector, dittoHeaders, options, values);
+        return Objects.hash(filter, jsonFieldSelector, namespaces, correlationId, options, values, sortOption);
     }
 
     @Override
     public boolean equals(final Object that) {
         if (that instanceof ThingsSearchCursor) {
             final ThingsSearchCursor c = (ThingsSearchCursor) that;
-            return Arrays.asList(filter, jsonFieldSelector, dittoHeaders, options, values).equals(
-                    Arrays.asList(c.filter, c.jsonFieldSelector, c.dittoHeaders, c.options, c.values));
+            return Arrays.asList(filter, jsonFieldSelector, namespaces, correlationId, options, values, sortOption)
+                    .equals(Arrays.asList(c.filter, c.jsonFieldSelector, c.namespaces, c.correlationId, c.options,
+                            c.values, c.sortOption));
         } else {
             return false;
         }
     }
 
+    /**
+     * Override certain values in this cursor by values from a {@code QueryThing} command.
+     * Accepted values are field selector, namespaces and a size option.
+     *
+     * @param queryThings the command.
+     * @param inputOptions parsed options of the command.
+     * @return a copy of this cursor with values from the command.
+     */
     private ThingsSearchCursor override(final QueryThings queryThings, final List<Option> inputOptions) {
         checkCursorValidity(queryThings, inputOptions)
                 .ifPresent(error -> {
@@ -145,10 +185,22 @@ final class ThingsSearchCursor {
                 queryThings.getFields().map(JsonFieldSelector::toString).orElse(this.jsonFieldSelector);
         final List<Option> newOptions =
                 new OptionsBuilder().visitAll(options).visitAll(inputOptions).withSortOption(sortOption).build();
-        final DittoHeaders newHeaders = overrideHeaders(dittoHeaders, queryThings.getDittoHeaders());
-        return new ThingsSearchCursor(newSelector, namespaces, newHeaders, newOptions, filter, values);
+        return new ThingsSearchCursor(newSelector, namespaces, correlationId, newOptions, filter, values);
     }
 
+    /**
+     * Check whether this cursor is valid for a {@code QueryThings} command.
+     * A cursor is compatible with a command if
+     * <ul>
+     * <li>their filter strings are identical,</li>
+     * <li>their sort options are compatible, and</li>
+     * <li>the command has no limit option.</li>
+     * </ul>
+     *
+     * @param queryThings the command.
+     * @param commandOptions parsed options of the command.
+     * @return reason why this cursor is invalid for the command.
+     */
     private Optional<DittoRuntimeException> checkCursorValidity(final QueryThings queryThings,
             final List<Option> commandOptions) {
 
@@ -171,17 +223,32 @@ final class ThingsSearchCursor {
         return Optional.ofNullable(description).map(d -> invalidCursor(d, queryThings));
     }
 
+    /**
+     * Check if options from a {@code QueryThings} command contains an incompatible sort option.
+     * A sort option is incompatible if it is different from the sort option of this cursor, and does not obtain this
+     * cursor's sort option by appending a default sort option.
+     *
+     * @param commandOptions options from a command.
+     * @return whether the options contains an incompatible sort option.
+     */
     private boolean hasIncompatibleSortOption(final List<Option> commandOptions) {
         return findAll(SortOption.class, commandOptions).stream()
                 .anyMatch(sortOption -> !areCompatible(this.sortOption.getEntries(), sortOption.getEntries(), 0));
     }
 
+    /**
+     * During paging, augment a search result by a cursor pointing at its end.
+     *
+     * @param searchResult the search result.
+     * @param resultList items in the search result.
+     * @return search result augmented by a new cursor.
+     */
     private SearchResult searchResultWithExistingCursor(final SearchResult searchResult,
             final ResultList<?> resultList) {
         final Optional<JsonArray> newValues = resultList.lastResultSortValues();
         if (newValues.isPresent()) {
             final ThingsSearchCursor newCursor =
-                    new ThingsSearchCursor(jsonFieldSelector, namespaces, dittoHeaders, options, filter,
+                    new ThingsSearchCursor(jsonFieldSelector, namespaces, correlationId, options, filter,
                             newValues.get());
             return searchResult.toBuilder()
                     .cursor(newCursor.encode())
@@ -192,36 +259,75 @@ final class ThingsSearchCursor {
         }
     }
 
-    private QueryThings toQueryThings() {
+    /**
+     * @return Compute a {@code QueryThings} using content of this cursor.
+     */
+    private QueryThings adjustQueryThings(final QueryThings queryThings) {
         final List<String> optionStrings = options.stream().map(Option::toString).collect(Collectors.toList());
         final JsonFieldSelector selector = Optional.ofNullable(jsonFieldSelector)
                 .map(JsonFieldSelector::newInstance)
                 .orElse(null);
-        return QueryThings.of(filter, optionStrings, selector, namespaces, dittoHeaders);
+        final DittoHeaders headers = queryThings.getDittoHeaders().toBuilder()
+                .correlationId(combineCorrelationIds(correlationId, queryThings.getDittoHeaders()))
+                .build();
+        return QueryThings.of(filter, optionStrings, selector, namespaces, headers);
     }
 
+    /**
+     * Adjust a {@code Query} object so that its results start at the location of this cursor.
+     *
+     * @param query the query object.
+     * @param cf a criteria factory.
+     * @return a new query object starting at the location of this cursor.
+     */
     private Query adjustQuery(final Query query, final CriteriaFactory cf) {
         return query.withCritera(cf.and(Arrays.asList(query.getCriteria(),
                 getNextPageFilter(query.getSortOptions(), values, cf))));
     }
 
+    /**
+     * @return Secret JSON representation of this cursor.
+     */
     private JsonObject toJson() {
+        final java.util.function.Predicate<JsonField> notNull = field -> !field.getValue().isNull();
         return JsonFactory.newObjectBuilder()
-                .set(FILTER, filter)
-                .set(JSON_FIELD_SELECTOR, jsonFieldSelector)
-                .set(CORRELATION_ID, dittoHeaders.getCorrelationId().orElse(null))
+                .set(FILTER, filter, notNull)
+                .set(JSON_FIELD_SELECTOR, jsonFieldSelector, notNull)
+                .set(NAMESPACES, renderNamespaces(), notNull)
+                .set(CORRELATION_ID, correlationId, notNull)
                 .set(OPTIONS, RqlOptionParser.unparse(options))
                 .set(VALUES, values)
                 .build();
     }
 
-    private String encode() {
+    /**
+     * @return naemspaces of this cursor as JSON array.
+     */
+    @Nullable
+    private JsonArray renderNamespaces() {
+        if (namespaces != null) {
+            return namespaces.stream().map(JsonValue::of).collect(JsonCollectors.valuesToArray());
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * @return Coded string representation of this cursor.
+     */
+    String encode() {
         final ByteString byteString = ByteString.fromString(toJson().toString(), StandardCharsets.UTF_8);
         final ByteString compressed = Coder.Deflate.encode(byteString);
         return BASE64_URL_ENCODER_WITHOUT_PADDING.encodeToString(compressed.toByteBuffer().array());
     }
 
-    // TODO: test decode/encode being inverse of each other
+    /**
+     * Decode the string representation of a cursor.
+     *
+     * @param cursorString the string representation.
+     * @param materializer materializer of actors that will decode the cursor.
+     * @return future of the decoded cursor.
+     */
     static CompletionStage<ThingsSearchCursor> decode(final String cursorString,
             final ActorMaterializer materializer) {
         final ByteString compressed = ByteString.fromArray(Base64.getUrlDecoder().decode(cursorString));
@@ -229,16 +335,40 @@ final class ThingsSearchCursor {
                 .thenApply(decompressed -> fromJson(JsonFactory.newObject(decompressed.utf8String())));
     }
 
+    /**
+     * Adjust a {@code QueryThings} by the content of an optional cursor.
+     *
+     * @param cursor an optional cursor.
+     * @param queryThings the command to adjust.
+     * @return the adjusted command if the cursor exists; the unadjusted command if the cursor does not exist.
+     */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     static QueryThings adjust(final Optional<ThingsSearchCursor> cursor, final QueryThings queryThings) {
-        return cursor.map(ThingsSearchCursor::toQueryThings).orElse(queryThings);
+        return cursor.map(c -> c.adjustQueryThings(queryThings)).orElse(queryThings);
     }
 
+    /**
+     * Adjust a {@code Query} object so that its result starts with the location of an optional cursor.
+     *
+     * @param cursor an optional cursor.
+     * @param query the query to adjust.
+     * @param cf a criteria factory.
+     * @return the adjusted {@code Query} if the cursor exists; the unadjusted {@code Query} if the cursor does not
+     * exist.
+     */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     static Query adjust(final Optional<ThingsSearchCursor> cursor, final Query query, final CriteriaFactory cf) {
         return cursor.map(c -> c.adjustQuery(query, cf)).orElse(query);
     }
 
+    /**
+     * Extract a cursor from a {@code QueryThings} command if any exists.
+     *
+     * @param queryThings the command.
+     * @param materializer materializer of actors that will extract the cursor.
+     * @return source of an optional cursor if the command has no cursor or has a valid cursor; a failed source if the
+     * command has an invalid cursor.
+     */
     static Source<Optional<ThingsSearchCursor>, NotUsed> extractCursor(final QueryThings queryThings,
             final ActorMaterializer materializer) {
 
@@ -257,7 +387,6 @@ final class ThingsSearchCursor {
             } else if (!limitOptions.isEmpty()) {
                 return Source.failed(invalidCursor(LIMIT_OPTION_FORBIDDEN, queryThings));
             } else {
-                cursorOptions.size();
                 return Source.fromCompletionStage(decode(cursorOptions.get(0).getCursor(), materializer))
                         .map(cursor -> Optional.of(cursor.override(queryThings, options)));
             }
@@ -272,6 +401,15 @@ final class ThingsSearchCursor {
         }
     }
 
+    /**
+     * Augment a search result by the next cursor as needed.
+     *
+     * @param queryThings the command that produced the results.
+     * @param cursor cursor given by the command, if any.
+     * @param searchResult the search result.
+     * @param resultList items in the search result.
+     * @return search result with cursor or next-page-offset or both as appropriate.
+     */
     static SearchResult processSearchResult(final QueryThings queryThings,
             @Nullable final ThingsSearchCursor cursor,
             final SearchResult searchResult,
@@ -289,6 +427,14 @@ final class ThingsSearchCursor {
         }
     }
 
+    /**
+     * Locate instances of a class within a collection.
+     *
+     * @param clazz the class.
+     * @param collection the collection.
+     * @param <T> type of the class.
+     * @return list of all instances of the class in the collection.
+     */
     private static <T> List<T> findAll(final Class<T> clazz, final Collection<?> collection) {
         return collection.stream()
                 .filter(clazz::isInstance)
@@ -296,6 +442,15 @@ final class ThingsSearchCursor {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Find a unique sort option within a list of options of a cursor. If none exists, then the cursor is corrupted and
+     * an exception is thrown offering no insight into the cursor's composition.
+     *
+     * @param options list of options of a cursor.
+     * @return the unique sort option.
+     * @throws org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException if the list contains 0
+     * or more than 1 sort option.
+     */
     private static SortOption findUniqueSortOption(final List<Option> options) {
         final List<SortOption> sortOptions = findAll(SortOption.class, options);
         if (sortOptions.size() == 1) {
@@ -306,17 +461,36 @@ final class ThingsSearchCursor {
         }
     }
 
+    /**
+     * Create a builder for errors due to invalid cursors.
+     *
+     * @return the exception builder.
+     */
     private static DittoRuntimeExceptionBuilder<InvalidOptionException> invalidCursorBuilder() {
         return InvalidOptionException.newBuilder()
                 .message("The option 'cursor' is not valid for the search request.");
     }
 
+    /**
+     * Create an exception due to an invalid cursor.
+     *
+     * @param description why the cursor is invalid.
+     * @param withDittoHeaders signal whose headers the exception should retain.
+     * @return the exception.
+     */
     private static InvalidOptionException invalidCursor(final String description,
             final WithDittoHeaders withDittoHeaders) {
 
         return invalidCursor(description, withDittoHeaders.getDittoHeaders());
     }
 
+    /**
+     * Create an exception due to an invalid cursor.
+     *
+     * @param description why the cursor is invalid.
+     * @param dittoHeaders headers of the exception.
+     * @return the exception.
+     */
     private static InvalidOptionException invalidCursor(final String description,
             final DittoHeaders dittoHeaders) {
 
@@ -325,16 +499,38 @@ final class ThingsSearchCursor {
                 .build();
     }
 
+    /**
+     * Create a cursor from its secret JSON representation.
+     *
+     * @param json the JSON representation.
+     * @return the cursor.
+     */
     private static ThingsSearchCursor fromJson(final JsonObject json) {
         return new ThingsSearchCursor(
                 json.getValue(JSON_FIELD_SELECTOR).orElse(null),
-                null,
-                json.getValue(CORRELATION_ID).map(ThingsSearchCursor::correlationIdHeader).orElse(DittoHeaders.empty()),
+                json.getValue(NAMESPACES).map(ThingsSearchCursor::readNamespaces).orElse(null),
+                json.getValue(CORRELATION_ID).orElse(null),
                 RqlOptionParser.parseOptions(json.getValueOrThrow(OPTIONS)),
                 json.getValue(FILTER).orElse(null),
                 json.getValueOrThrow(VALUES));
     }
 
+    /**
+     * Read a set of namespaces from a JSON array.
+     *
+     * @param array the array.
+     * @return set of namespaces.
+     */
+    private static Set<String> readNamespaces(final JsonArray array) {
+        return array.stream().map(JsonValue::asString).collect(Collectors.toSet());
+    }
+
+    /**
+     * Parse options of a {@code QueryThings} command.
+     *
+     * @param queryThings the command.
+     * @return parsed options.
+     */
     private static List<Option> getOptions(final QueryThings queryThings) {
         return queryThings.getOptions()
                 .map(options -> String.join(",", options))
@@ -342,46 +538,85 @@ final class ThingsSearchCursor {
                 .orElse(Collections.emptyList());
     }
 
-    // TODO: remove if it does not work
-    private static DittoHeaders correlationIdHeader(final String correlationId) {
-        return DittoHeaders.newBuilder()
-                .correlationId(correlationId)
-                .build();
-    }
-
+    /**
+     * Augment a fresh search result (i. e., not obtained via any cursor) by a new cursor if appropriate.
+     *
+     * @param queryThings the command that produced the search result.
+     * @param searchResult the search result.
+     * @param resultList items in the search result.
+     * @return the augmented search result.
+     */
     private static SearchResult searchResultWithNewCursor(final QueryThings queryThings,
             final SearchResult searchResult, final ResultList<?> resultList) {
 
+        final List<Option> commandOptions = getOptions(queryThings);
+        final boolean hasLimitOption = !findAll(LimitOption.class, commandOptions).isEmpty();
+        final boolean hasSizeOption = !findAll(SizeOption.class, commandOptions).isEmpty();
+
         if (hasNextPage(resultList)) {
-            final ThingsSearchCursor newCursor = computeNewCursor(queryThings, resultList);
-            final SearchResultBuilder builder = searchResult.toBuilder().cursor(newCursor.encode());
-            if (!findAll(SizeOption.class, newCursor.options).isEmpty()) {
-                // using size option; do not deliver nextPageOffset
-                builder.nextPageOffset(null);
+            // there are more results; append cursor and offset as appropriate
+            final SearchResultBuilder builder = searchResult.toBuilder();
+
+            if (hasLimitOption) {
+                // limit option is present. Do not compute cursor.
+                builder.cursor(null);
+            } else {
+                // limit option is absent. Compute cursor.
+                final ThingsSearchCursor newCursor = computeNewCursor(queryThings, resultList);
+                builder.cursor(newCursor.encode());
+
+                // size option is present. Remove next-page-offset.
+                if (hasSizeOption) {
+                    // using size option; do not deliver nextPageOffset
+                    builder.nextPageOffset(null);
+                }
             }
             return builder.build();
+        } else if (hasSizeOption) {
+            // This is the last page. Size option is present. Remove next-page-offset.
+            return searchResult.toBuilder().nextPageOffset(null).build();
         } else {
+            // This is the last page. Size option is absent. Retain next-page-offset.
             return searchResult;
         }
     }
 
+    /**
+     * Compute cursor for a {@code QueryThings} without cursor.
+     *
+     * @param queryThings the command.
+     * @param resultList search result produced by the command.
+     * @return cursor at the end of the search result.
+     */
     private static ThingsSearchCursor computeNewCursor(final QueryThings queryThings, final ResultList<?> resultList) {
 
         return new ThingsSearchCursor(queryThings.getFields().map(JsonFieldSelector::toString).orElse(null),
                 queryThings.getNamespaces().orElse(null),
-                queryThings.getDittoHeaders(),
-                mergeOptionsForNewCursor(queryThings),
+                queryThings.getDittoHeaders().getCorrelationId().orElse(null),
+                computeOptionsForNewCursor(queryThings),
                 queryThings.getFilter().orElse(null),
                 resultList.lastResultSortValues().orElse(JsonArray.empty()));
     }
 
-    private static List<Option> mergeOptionsForNewCursor(final QueryThings queryThings) {
-        // override sort option from command by those from the query--the latter has at least 1 non-null dimension
+    /**
+     * Compute options for a new cursor with special attention to ensure that at least one sort dimension is non-null
+     * for all things.
+     *
+     * @param queryThings the command.
+     * @return the options for the new cursor.
+     */
+    private static List<Option> computeOptionsForNewCursor(final QueryThings queryThings) {
         return new OptionsBuilder().visitAll(getOptions(queryThings))
                 .withSortOption(sortOptionForNewCursor(queryThings))
                 .build();
     }
 
+    /**
+     * Compute the sort option for a new cursor such that at least one dimension is non-null for all things.
+     *
+     * @param queryThings the command.
+     * @return the sort option for the new cursor.
+     */
     private static SortOption sortOptionForNewCursor(final QueryThings queryThings) {
         final List<SortOption> sortOptions = findAll(SortOption.class, getOptions(queryThings));
         final List<SortOptionEntry> entries =
@@ -389,6 +624,12 @@ final class ThingsSearchCursor {
         return SortOption.of(ensureDefaultPropertyPath(entries));
     }
 
+    /**
+     * Append default sort entry if a command's sort option does not include thing ID.
+     *
+     * @param entries sort option entries of a command.
+     * @return augmented sort option entries.
+     */
     private static List<SortOptionEntry> ensureDefaultPropertyPath(final List<SortOptionEntry> entries) {
         final JsonPointer defaultPropertyPath = DEFAULT_SORT_OPTION_ENTRY.getPropertyPath();
         final boolean hasThingIdEntry = entries.stream()
@@ -402,6 +643,14 @@ final class ThingsSearchCursor {
         }
     }
 
+    /**
+     * Filter out results before a cursor's position.
+     *
+     * @param sortOptions sort options of the parsed query.
+     * @param previousValues values of the fields in the sort options of a cursor marking its position.
+     * @param cf a criteria factory.
+     * @return criteria to filter out results before a cursor's position.
+     */
     private static Criteria getNextPageFilter(final List<org.eclipse.ditto.model.query.SortOption> sortOptions,
             final JsonArray previousValues,
             final CriteriaFactory cf) {
@@ -413,6 +662,15 @@ final class ThingsSearchCursor {
         return getNextPageFilterImpl(sortOptions, previousValues, cf, 0);
     }
 
+    /**
+     * Recursive implementation of {@code getNextPageFilter}.
+     *
+     * @param sortOptionEntries sort options of the parsed query.
+     * @param previousValues values of the fields in the sort options of a cursor marking its position.
+     * @param cf a criteria factory.
+     * @param i dimension to start generating criteria for.
+     * @return criteria starting from the ith dimension.
+     */
     private static Criteria getNextPageFilterImpl(
             final List<org.eclipse.ditto.model.query.SortOption> sortOptionEntries,
             final JsonArray previousValues,
@@ -429,70 +687,133 @@ final class ThingsSearchCursor {
         }
     }
 
+    /**
+     * Generate a criteria to filter for things whose value on a field prior to a cursor's position according to
+     * the ordering specified by a sort option.
+     *
+     * @param entry sort option specifying an ordering on a field.
+     * @param previousValue value of the field in the sort option marking the position of a cursor.
+     * @param cf a criteria factory.
+     * @return criteria to filter for things prior to a cursor's position on the specified field.
+     */
     private static Criteria getDimensionLtCriteria(final org.eclipse.ditto.model.query.SortOption entry,
             final JsonValue previousValue, final CriteriaFactory cf) {
 
-        if (previousValue.isNull()) {
-            return cf.nor(cf.any()); // criteria of the final dimension with null value
+        // special handling for null values needed due to comparison operators never matching null values
+        if (entry.getSortDirection() == SortDirection.ASC) {
+            if (previousValue.isNull()) {
+                // ASC null: any value is bigger than null
+                return cf.existsCriteria(entry.getSortExpression());
+            } else {
+                // ASC nonnull: null values cannot be bigger and can be ignored
+                return cf.fieldCriteria(entry.getSortExpression(), cf.gt(JsonToBson.convert(previousValue)));
+            }
         } else {
-            return cf.fieldCriteria(entry.getSortExpression(), getPredicate(entry, previousValue, cf));
+            if (previousValue.isNull()) {
+                // DESC null: smaller than null means false
+                return cf.nor(cf.any());
+            } else {
+                // DESC nonnull: null is smaller than any value
+                return cf.or(Arrays.asList(
+                        cf.fieldCriteria(entry.getSortExpression(), cf.lt(JsonToBson.convert(previousValue))),
+                        cf.nor(cf.existsCriteria(entry.getSortExpression()))
+                ));
+            }
         }
     }
 
-    private static Criteria getNextDimensionCriteria(final Criteria thisDimensionCriteria, final Criteria nextDimension,
+    /**
+     * Generate a criteria to filter for things that precede the cursor's position due to this dimension or subsequent
+     * dimensions taking null values into account.
+     *
+     * @param thisDimensionLt criteria to filter for things prior to the cursor's position on this dimension.
+     * @param nextDimension criteria to filter for things prior to the cursor's position on subsequent dimensions.
+     * @param sortOption parsed sort option for this dimension.
+     * @param previousValue value on this dimension marking the position of the cursor.
+     * @param cf a criteria factory.
+     * @return criteria to filter for things that precede the cursor's position due to this dimension or subsequent
+     * dimensions.
+     */
+    private static Criteria getNextDimensionCriteria(final Criteria thisDimensionLt, final Criteria nextDimension,
             final org.eclipse.ditto.model.query.SortOption sortOption, final JsonValue previousValue,
             final CriteriaFactory cf) {
 
+        final Criteria thisDimensionEq;
         if (previousValue.isNull()) {
-            return nextDimension;
+            thisDimensionEq = cf.or(Arrays.asList(
+                    cf.nor(cf.existsCriteria(sortOption.getSortExpression())),
+                    cf.fieldCriteria(sortOption.getSortExpression(), cf.eq(null))
+            ));
         } else {
-            final Criteria thisDimensionEq =
+            thisDimensionEq =
                     cf.fieldCriteria(sortOption.getSortExpression(), cf.eq(JsonToBson.convert(previousValue)));
-            return cf.or(Arrays.asList(thisDimensionCriteria, cf.and(Arrays.asList(thisDimensionEq, nextDimension))));
         }
+        return cf.or(Arrays.asList(thisDimensionLt, cf.and(Arrays.asList(thisDimensionEq, nextDimension))));
     }
 
-    private static Predicate getPredicate(final org.eclipse.ditto.model.query.SortOption sortOption,
-            final JsonValue previousValue, final CriteriaFactory cf) {
-
-        switch (sortOption.getSortDirection()) {
-            case DESC:
-                return cf.lt(JsonToBson.convert(previousValue));
-            case ASC:
-            default:
-                return cf.gt(JsonToBson.convert(previousValue));
-        }
-    }
-
+    /**
+     * Test whether there are more results.
+     *
+     * @param resultList items of a search result.
+     * @return whether there are more results.
+     */
     private static boolean hasNextPage(final ResultList<?> resultList) {
         return resultList.lastResultSortValues().isPresent();
     }
 
-    private static boolean areCompatible(final List<SortOptionEntry> sortOptionEntries,
+    /**
+     * Test if sort options of a cursor is compatible with sort options of a command starting from a dimension.
+     *
+     * @param cursorSortOptionEntries sort options of a cursor.
+     * @param commandSortOptionEntries sort options of a command.
+     * @param i the dimension to start the check from.
+     * @return whether the sort options are compatible.
+     */
+    private static boolean areCompatible(final List<SortOptionEntry> cursorSortOptionEntries,
             final List<SortOptionEntry> commandSortOptionEntries,
             final int i) {
-        if (i >= sortOptionEntries.size() && i >= commandSortOptionEntries.size()) {
+
+        if (i >= cursorSortOptionEntries.size() && i >= commandSortOptionEntries.size()) {
+            // all dimensions checked; sort options are compatible.
             return true;
         } else if (i >= commandSortOptionEntries.size()) {
-            return i + 1 == sortOptionEntries.size() && DEFAULT_SORT_OPTION_ENTRY.equals(sortOptionEntries.get(i));
-        } else if (i >= sortOptionEntries.size()) {
+            // command sort options have fewer dimensions; ensure cursor sort options are obtained by appending default.
+            return i + 1 == cursorSortOptionEntries.size() &&
+                    DEFAULT_SORT_OPTION_ENTRY.equals(cursorSortOptionEntries.get(i));
+        } else if (i >= cursorSortOptionEntries.size()) {
+            // cursor sort options have fewer dimensions; incompatible.
             return false;
         } else {
-            return Objects.equals(sortOptionEntries.get(i), commandSortOptionEntries.get(i)) &&
-                    areCompatible(sortOptionEntries, commandSortOptionEntries, i + 1);
+            // check this dimension has equal sort option entries and recurse onto subsequent dimensions
+            return Objects.equals(cursorSortOptionEntries.get(i), commandSortOptionEntries.get(i)) &&
+                    areCompatible(cursorSortOptionEntries, commandSortOptionEntries, i + 1);
         }
     }
 
-    private static DittoHeaders overrideHeaders(final DittoHeaders encodedHeaders, final DittoHeaders newHeaders) {
-        final Optional<String> correlationId = encodedHeaders.getCorrelationId()
-                .map(encodedCID -> newHeaders.getCorrelationId()
+    /**
+     * Combine correlation IDs between the cursor and the command headers.
+     *
+     * @param cursorCorrelationId correlationId of a cursor.
+     * @param commandHeaders headers from a {@code QueryThings} command.
+     * @return a merged correlation ID.
+     */
+    @Nullable
+    private static String combineCorrelationIds(@Nullable final String cursorCorrelationId,
+            final DittoHeaders commandHeaders) {
+        return Optional.ofNullable(cursorCorrelationId)
+                .map(encodedCID -> commandHeaders.getCorrelationId()
                         .map(newCID -> encodedCID + CORRELATION_ID_DELIMITER + newCID)
-                        .orElse(encodedCID));
-        final DittoHeadersBuilder builder = encodedHeaders.toBuilder().putHeaders(newHeaders);
-        correlationId.ifPresent(builder::correlationId);
-        return builder.build();
+                        .orElse(encodedCID))
+                .orElse(null);
     }
 
+    /**
+     * Check that at most 1 size option is given and its argument is positive.
+     *
+     * @param options options of a {@code QueryThings} command.
+     * @param withDittoHeaders headers of the command.
+     * @return empty optional if any size option is valid, or the reason why they are not.
+     */
     private static Optional<InvalidOptionException> checkSizeOption(final List<Option> options,
             final WithDittoHeaders withDittoHeaders) {
 
@@ -512,6 +833,9 @@ final class ThingsSearchCursor {
         }
     }
 
+    /**
+     * Visitor to set size and sort options.
+     */
     private static final class OptionsBuilder implements OptionVisitor {
 
         @Nullable private SortOption sortOption;
