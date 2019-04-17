@@ -28,9 +28,12 @@ import com.typesafe.config.Config;
 @Immutable
 public final class DefaultUpdaterConfig implements UpdaterConfig, Serializable {
 
-    private static final String CONFIG_PATH = "updater";
-    private static final String THINGS_SYNC_CONFIG_PATH = "sync.things";
-    private static final String POLICIES_SYNC_CONFIG_PATH = "sync.policies";
+    /**
+     * Path where the updater config values are expected.
+     */
+    static final String CONFIG_PATH = "updater";
+    static final String THINGS_SYNC_CONFIG_PATH = "sync.things";
+    static final String POLICIES_SYNC_CONFIG_PATH = "sync.policies";
 
     private static final long serialVersionUID = 4454646582191046605L;
 
