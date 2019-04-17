@@ -37,11 +37,8 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.ImmutableConnectionMonitorRegistry;
-import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 /**
  * Tests {@link SignalFilter} for filtering with namespace + RQL filter.

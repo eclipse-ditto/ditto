@@ -25,7 +25,7 @@ import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.ImmutableConnectionMonitorRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.connectivity.util.MonitoringConfigReader;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
@@ -61,7 +61,7 @@ public abstract class BaseConsumerActor extends AbstractActor {
 
         final MonitoringConfigReader monitoringConfig =
                 ConfigKeys.Monitoring.fromRawConfig(getContext().system().settings().config());
-        this.connectionMonitorRegistry = ImmutableConnectionMonitorRegistry.fromConfig(monitoringConfig);
+        this.connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
         inboundMonitor = connectionMonitorRegistry.forInboundConsumed(connectionId, sourceAddress);
     }
 

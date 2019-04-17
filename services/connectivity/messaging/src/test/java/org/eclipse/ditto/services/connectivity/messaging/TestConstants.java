@@ -246,6 +246,8 @@ public class TestConstants {
     }
 
     public static class Monitoring {
+        public static final MonitoringConfigReader MONITORING_CONFIG_READER =
+                ConfigKeys.Monitoring.fromRawConfig(CONFIG);
         public static ConnectionMonitorRegistry
                 MONITOR_REGISTRY_MOCK = Mockito.mock(ConnectionMonitorRegistry.class, Mockito.withSettings().stubOnly());
         private static ConnectionMonitor
@@ -274,11 +276,8 @@ public class TestConstants {
 
         private static Instant LAST_MESSAGE_AT = Instant.now();
 
-        public static final MonitoringConfigReader MONITORING_CONFIG_READER =
-                ConfigKeys.Monitoring.fromRawConfig(CONFIG);
-
         private static final ConnectivityCounterRegistry COUNTER_REGISTRY =
-                ConnectivityCounterRegistry.fromConfig(MONITORING_CONFIG_READER.counter());
+                ConnectivityCounterRegistry.fromConfig(Monitoring.MONITORING_CONFIG_READER.counter());
 
         public static String ID = "myConnectionId";
 

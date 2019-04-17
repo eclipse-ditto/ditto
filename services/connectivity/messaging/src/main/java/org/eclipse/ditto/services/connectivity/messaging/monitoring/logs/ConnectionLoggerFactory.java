@@ -81,7 +81,7 @@ final class ConnectionLoggerFactory {
      * @throws java.lang.NullPointerException if {@code delegate} is null.
      */
     static MuteableConnectionLogger newMuteableLogger(final ConnectionLogger delegate) {
-        return new ImmutableMuteableConnectionLogger(checkNotNull(delegate));
+        return new DefaultMuteableConnectionLogger(checkNotNull(delegate));
     }
 
     private static ConnectionLogger newSourceLogger(final LogType type, final int successCapacity,

@@ -44,7 +44,7 @@ import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
 import org.eclipse.ditto.services.connectivity.messaging.kafka.KafkaValidator;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.ImmutableConnectionMonitorRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.RetrieveConnectionMetricsAggregatorActor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.RetrieveConnectionStatusAggregatorActor;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttValidator;
@@ -207,7 +207,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
         flushPendingResponsesTimeout = Duration.create(javaFlushTimeout.toMillis(), TimeUnit.MILLISECONDS);
         clientActorAskTimeout = configReader.clientActorAskTimeout();
 
-        connectionMonitorRegistry = ImmutableConnectionMonitorRegistry.fromConfig(ConfigKeys.Monitoring.fromRawConfig(config));
+        connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(ConfigKeys.Monitoring.fromRawConfig(config));
 
         ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
     }
@@ -219,7 +219,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
      * @param pubSubMediator Akka pub-sub mediator.
      * @param conciergeForwarder proxy of concierge service.
      * @param propsFactory factory of props of client actors for various protocols.
-     * @return the Akka configuration Props object
+     * @param commandValidator validator for commands that should throw an exception if a command is invalid.
+     * @return the Akka configuration Props object.
      */
     public static Props props(final String connectionId,
             final ActorRef pubSubMediator,

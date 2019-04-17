@@ -27,4 +27,11 @@ interface MuteableConnectionLogger extends ConnectionLogger {
      * Unmutes the logger. Messages will be stored after unmuting.
      */
     void unmute();
+
+    /**
+     * Check if the logger is currently muted.
+     * @return {@code true} if the logger is currently muted.
+     */
+    boolean isMuted();
+
 }

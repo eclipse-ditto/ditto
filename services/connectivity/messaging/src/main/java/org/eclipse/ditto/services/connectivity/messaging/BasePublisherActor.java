@@ -42,7 +42,7 @@ import org.eclipse.ditto.model.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.ImmutableConnectionMonitorRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.connectivity.util.MonitoringConfigReader;
@@ -89,7 +89,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
         final MonitoringConfigReader
                 monitoringConfig = ConfigKeys.Monitoring.fromRawConfig(getContext().system().settings().config());
-        this.connectionMonitorRegistry = ImmutableConnectionMonitorRegistry.fromConfig(monitoringConfig);
+        this.connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
         responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(this.connectionId);
         responsePublishedMonitor = connectionMonitorRegistry.forResponsePublished(this.connectionId);
     }

@@ -25,16 +25,24 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.LogEntry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 
-// TODO: doc & test
+// TODO: test
+
+/**
+ * Default implementation of {@link org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.MuteableConnectionLogger}.
+ */
 @NotThreadSafe // since it ain't really of a big importance if a log message gets lost during activation of the logger
-final class ImmutableMuteableConnectionLogger implements MuteableConnectionLogger {
+final class DefaultMuteableConnectionLogger implements MuteableConnectionLogger {
 
     private final ConnectionLogger delegate;
     private boolean active;
 
-    ImmutableMuteableConnectionLogger(final ConnectionLogger delegate) {
+    /**
+     * Create a new mutable connection logger that is currently muted.
+     * @param delegate the delegate to call while the logger is unmuted
+     */
+    DefaultMuteableConnectionLogger(final ConnectionLogger delegate) {
         this.delegate = delegate;
-        this.active = true;
+        this.active = false;
     }
 
     @Override
@@ -45,6 +53,11 @@ final class ImmutableMuteableConnectionLogger implements MuteableConnectionLogge
     @Override
     public void unmute() {
         active = true;
+    }
+
+    @Override
+    public boolean isMuted() {
+        return !active;
     }
 
     @Override
@@ -108,7 +121,7 @@ final class ImmutableMuteableConnectionLogger implements MuteableConnectionLogge
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final ImmutableMuteableConnectionLogger that = (ImmutableMuteableConnectionLogger) o;
+        final DefaultMuteableConnectionLogger that = (DefaultMuteableConnectionLogger) o;
         return active == that.active &&
                 Objects.equals(delegate, that.delegate);
     }

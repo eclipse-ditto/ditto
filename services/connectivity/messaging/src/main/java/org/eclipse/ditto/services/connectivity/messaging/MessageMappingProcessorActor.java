@@ -63,7 +63,7 @@ import org.eclipse.ditto.model.placeholders.ThingPlaceholder;
 import org.eclipse.ditto.model.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.ImmutableConnectionMonitorRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.connectivity.util.MonitoringConfigReader;
@@ -115,7 +115,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             replaceTargetAddressPlaceholders;
     private final BiConsumer<ExternalMessage, Signal<?>> applySignalIdEnforcement;
 
-    private final ImmutableConnectionMonitorRegistry connectionMonitorRegistry;
+    private final DefaultConnectionMonitorRegistry connectionMonitorRegistry;
     private final ConnectionMonitor responseDispatchedMonitor;
     private final ConnectionMonitor responseDroppedMonitor;
     private final ConnectionMonitor responseMappedMonitor;
@@ -138,7 +138,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
         final MonitoringConfigReader monitoringConfig = ConfigKeys.Monitoring
                 .fromRawConfig(getContext().system().settings().config());
-        this.connectionMonitorRegistry = ImmutableConnectionMonitorRegistry.fromConfig(monitoringConfig);
+        this.connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
         responseDispatchedMonitor = connectionMonitorRegistry.forResponseDispatched(connectionId);
         responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(connectionId);
         responseMappedMonitor = connectionMonitorRegistry.forResponseMapped(connectionId);

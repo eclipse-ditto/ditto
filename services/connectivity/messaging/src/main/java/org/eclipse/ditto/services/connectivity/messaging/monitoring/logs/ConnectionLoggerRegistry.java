@@ -19,6 +19,7 @@ import java.time.Instant;
 import java.time.temporal.TemporalAmount;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,13 +43,13 @@ import org.eclipse.ditto.services.connectivity.util.MonitoringConfigReader;
  * org.eclipse.ditto.model.connectivity.LogType}, a {@link org.eclipse.ditto.model.connectivity.LogCategory} and an
  * address.
  */
-// TODO: docs & test
+// TODO: test
 public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry<ConnectionLogger> {
 
     private static final ConcurrentMap<MapKey, MuteableConnectionLogger> loggers = new ConcurrentHashMap<>();
     private static final ConcurrentMap<String, LogMetadata> metadata = new ConcurrentHashMap<>();
 
-    // artificial internal address for responses TODO: unify with connection counter
+    // artificial internal address for responses
     private static final String RESPONSES_ADDRESS = "_responses";
 
     private final int successCapacity;
@@ -61,6 +62,11 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         this.loggingDuration = checkNotNull(loggingDuration);
     }
 
+    /**
+     * Build a new {@code ConnectionLoggerRegistry} from configuration.
+     * @param config the configuration to use.
+     * @return a new instance of {@code ConnectionLoggerRegistry}.
+     */
     public static ConnectionLoggerRegistry fromConfig(final MonitoringConfigReader.MonitoringLoggerConfigReader config) {
         checkNotNull(config);
         return new ConnectionLoggerRegistry(config.successCapacity(), config.failureCapacity(), config.logDuration());
@@ -201,6 +207,12 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         return getLogger(connectionId, LogCategory.RESPONSE, LogType.PUBLISHED, RESPONSES_ADDRESS);
     }
 
+    /**
+     * Get the logger for connection specific logs that can't be associated to a specific category/type.
+     *
+     * @param connectionId the connection.
+     * @return a new logger instance.
+     */
     public ConnectionLogger forConnection(final String connectionId) {
         return getLogger(connectionId, LogCategory.CONNECTION, LogType.OTHER, null);
     }
@@ -221,7 +233,6 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
             @Nullable final String address) {
 
         final MapKey key = new MapKey(connectionId, logCategory, logType, address);
-        // TODO: should the new logger be muted or unmuted when starting? probably muted -> test it
         return loggers.computeIfAbsent(key, m -> newMuteableLogger(logCategory, logType, address));
     }
 
@@ -265,25 +276,44 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     @Immutable
     public static class CollectionLogs {
 
-        private Instant enabledSince;
-        private Instant enabledUntil;
+        @Nullable private Instant enabledSince;
+        @Nullable private Instant enabledUntil;
         private Collection<LogEntry> logs;
 
-        private CollectionLogs(final Instant enabledSince, final Instant enabledUntil,
+        private CollectionLogs(@Nullable final Instant enabledSince, @Nullable final Instant enabledUntil,
                 final Collection<LogEntry> logs) {
             this.enabledSince = enabledSince;
             this.enabledUntil = enabledUntil;
             this.logs = logs;
         }
 
+        /**
+         * Returns an empty instance indicating inactive logging.
+         * @return an empty instance.
+         */
+        public static CollectionLogs empty() {
+            return new CollectionLogs(null, null, Collections.emptyList());
+        }
+
+        /**
+         * @return since when the logs are enabled.
+         */
+        @Nullable
         public Instant getEnabledSince() {
             return enabledSince;
         }
 
+        /**
+         * @return until when the logs will stay enabled.
+         */
+        @Nullable
         public Instant getEnabledUntil() {
             return enabledUntil;
         }
 
+        /**
+         * @return the log entries.
+         */
         public Collection<LogEntry> getLogs() {
             return logs;
         }

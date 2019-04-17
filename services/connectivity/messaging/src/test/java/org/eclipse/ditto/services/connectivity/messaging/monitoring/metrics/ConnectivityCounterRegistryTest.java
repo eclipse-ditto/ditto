@@ -21,6 +21,8 @@ import static org.eclipse.ditto.model.connectivity.MetricType.DISPATCHED;
 import static org.eclipse.ditto.model.connectivity.MetricType.FILTERED;
 import static org.eclipse.ditto.model.connectivity.MetricType.MAPPED;
 import static org.eclipse.ditto.model.connectivity.MetricType.PUBLISHED;
+import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
+import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -40,13 +42,15 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionM
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import nl.jqno.equalsverifier.EqualsVerifier;
+
 /**
  * Tests {@link ConnectivityCounterRegistry}.
  */
 public class ConnectivityCounterRegistryTest {
 
     private static final ConnectivityCounterRegistry COUNTER_REGISTRY =
-            ConnectivityCounterRegistry.fromConfig(TestConstants.Metrics.MONITORING_CONFIG_READER.counter());
+            ConnectivityCounterRegistry.fromConfig(TestConstants.Monitoring.MONITORING_CONFIG_READER.counter());
     private static final String CONNECTION_ID = "theConnection";
     private static final String SOURCE = "source1";
     private static final String TARGET = "target1";
@@ -167,6 +171,16 @@ public class ConnectivityCounterRegistryTest {
                                 TestConstants.Metrics.OUTBOUND, 2));
         assertThat(merged.getTargetMetrics().getAddressMetrics().get("target3").getMeasurements())
                 .contains(TestConstants.Metrics.MAPPING, TestConstants.Metrics.OUTBOUND);
+    }
+
+    @Test
+    public void testImmutability() {
+        assertInstancesOf(ConnectivityCounterRegistry.class, areImmutable());
+    }
+
+    @Test
+    public void testEqualsAndHashcode() {
+        EqualsVerifier.forClass(ConnectivityCounterRegistry.class).verify();
     }
 
 }

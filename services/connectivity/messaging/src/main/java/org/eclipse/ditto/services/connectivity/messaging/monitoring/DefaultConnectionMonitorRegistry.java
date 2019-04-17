@@ -18,7 +18,6 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.LogCategory;
@@ -29,26 +28,33 @@ import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.Connect
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.ConnectivityCounterRegistry;
 import org.eclipse.ditto.services.connectivity.util.MonitoringConfigReader;
 
-// TODO: doc & test
-@Immutable
-public final class ImmutableConnectionMonitorRegistry implements ConnectionMonitorRegistry<ConnectionMonitor> {
+/**
+ * Default implementation of {@link org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry}.
+ */
+public final class DefaultConnectionMonitorRegistry implements ConnectionMonitorRegistry<ConnectionMonitor> {
 
     private final ConnectionLoggerRegistry connectionLoggerRegistry;
     private final ConnectivityCounterRegistry connectionCounterRegistry;
 
-    private ImmutableConnectionMonitorRegistry(final ConnectionLoggerRegistry connectionLoggerRegistry,
+    private DefaultConnectionMonitorRegistry(final ConnectionLoggerRegistry connectionLoggerRegistry,
             final ConnectivityCounterRegistry connectionCounterRegistry) {
         this.connectionLoggerRegistry = connectionLoggerRegistry;
         this.connectionCounterRegistry = connectionCounterRegistry;
     }
 
-    public static ImmutableConnectionMonitorRegistry fromConfig(final MonitoringConfigReader config) {
+    /**
+     * Builds a new {@code DefaultConnectionMonitorRegistry} from a configuration.
+     * @param config the configuration to  use.
+     * @return a new instance of {@code DefaultConnectionMonitorRegistry}.
+     * @throws java.lang.NullPointerException if {@code config} is null.
+     */
+    public static DefaultConnectionMonitorRegistry fromConfig(final MonitoringConfigReader config) {
         checkNotNull(config);
 
         final ConnectionLoggerRegistry loggerRegistry = ConnectionLoggerRegistry.fromConfig(config.logger());
         final ConnectivityCounterRegistry counterRegistry = ConnectivityCounterRegistry.fromConfig(config.counter());
 
-        return new ImmutableConnectionMonitorRegistry(loggerRegistry, counterRegistry);
+        return new DefaultConnectionMonitorRegistry(loggerRegistry, counterRegistry);
     }
 
     @Override
@@ -158,8 +164,8 @@ public final class ImmutableConnectionMonitorRegistry implements ConnectionMonit
      * @param metricDirection direction of the metrics counter.
      * @param logType type of the logger.
      * @param logCategory category of the logger.
-     * @param address address
-     * @return
+     * @param address address.
+     * @return the specific monitor.
      */
     public ConnectionMonitor getMonitor(final String connectionId, final MetricType metricType,
             final MetricDirection metricDirection, final LogType logType, final LogCategory logCategory,
@@ -178,7 +184,7 @@ public final class ImmutableConnectionMonitorRegistry implements ConnectionMonit
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final ImmutableConnectionMonitorRegistry that = (ImmutableConnectionMonitorRegistry) o;
+        final DefaultConnectionMonitorRegistry that = (DefaultConnectionMonitorRegistry) o;
         return Objects.equals(connectionLoggerRegistry, that.connectionLoggerRegistry) &&
                 Objects.equals(connectionCounterRegistry, that.connectionCounterRegistry);
     }
