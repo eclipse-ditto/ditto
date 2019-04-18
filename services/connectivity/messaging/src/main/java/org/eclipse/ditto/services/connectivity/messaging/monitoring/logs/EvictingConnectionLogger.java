@@ -94,8 +94,8 @@ final class EvictingConnectionLogger implements ConnectionLogger {
     @Override
     public void success(final String correlationId, final Instant timestamp, final String message,
             @Nullable final String thingId) {
-        logTraceWithCorrelationId("Saving success log at <{}> for thing <{}> with message: {}",
-                correlationId, timestamp, thingId, message);
+        logTraceWithCorrelationId(correlationId, "Saving success log at <{}> for thing <{}> with message: {}",
+                timestamp, thingId, message);
         successLogs.add(getLogEntry(correlationId, timestamp, message, address, thingId, LogLevel.SUCCESS));
     }
 
@@ -112,8 +112,8 @@ final class EvictingConnectionLogger implements ConnectionLogger {
     @Override
     public void failure(final String correlationId, final Instant timestamp, final String message,
             @Nullable final String thingId) {
-        logTraceWithCorrelationId("Saving failure log at <{}> for thing <{}> with message: {}",
-                correlationId, timestamp, thingId, message);
+        logTraceWithCorrelationId(correlationId, "Saving failure log at <{}> for thing <{}> with message: {}",
+                timestamp, thingId, message);
         failureLogs.add(getLogEntry(correlationId, timestamp, message, address, thingId, LogLevel.FAILURE));
     }
 
@@ -125,8 +125,8 @@ final class EvictingConnectionLogger implements ConnectionLogger {
     @Override
     public void exception(final String correlationId, final Instant timestamp, final String message,
             @Nullable final String thingId) {
-        logTraceWithCorrelationId("Saving exception log at <{}> for thing <{}> with message: {}",
-                correlationId, timestamp, thingId, message);
+        logTraceWithCorrelationId(correlationId, "Saving exception log at <{}> for thing <{}> with message: {}",
+                timestamp, thingId, message);
         failureLogs.add(getLogEntry(correlationId, timestamp, message, address, thingId, LogLevel.FAILURE));
     }
 
@@ -193,7 +193,8 @@ final class EvictingConnectionLogger implements ConnectionLogger {
                 .build();
     }
 
-    private void logTraceWithCorrelationId(final String message, final String correlationId, final Object... messageArguments) {
+    private void logTraceWithCorrelationId(final String correlationId, final String message,
+            final Object... messageArguments) {
         if (LOGGER.isTraceEnabled()) {
             LogUtil.enhanceLogWithCorrelationId(correlationId);
             LOGGER.trace(message, messageArguments);
