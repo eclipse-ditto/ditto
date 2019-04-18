@@ -26,6 +26,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
@@ -35,6 +36,7 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
  * Command that will reset logging for a {@link org.eclipse.ditto.model.connectivity.Connection}.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = ResetConnectionLogs.TYPE_PREFIX, name = ResetConnectionLogs.NAME)
 public final class ResetConnectionLogs extends AbstractCommand<ResetConnectionLogs>
     implements ConnectivityModifyCommand<ResetConnectionLogs> {
 
