@@ -50,6 +50,7 @@ import org.slf4j.Logger;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigRenderOptions;
 
 import akka.Done;
 import akka.actor.ActorRef;
@@ -138,9 +139,10 @@ public abstract class DittoServiceTng<C extends ServiceSpecificConfig> {
      * @return the config of this service.
      */
     protected Config determineRawConfig() {
-        final Config config = RawConfigSupplier.of(serviceName).get();
-        logger.debug("Using raw config <{}>", config);
-        return config;
+        final Config loadedConfig = RawConfigSupplier.of(serviceName).get();
+
+        logger.debug("Using config <{}>", loadedConfig.root().render(ConfigRenderOptions.concise()));
+        return loadedConfig;
     }
 
     private static ScopedConfig tryToGetDittoConfigOrEmpty(final Config rawConfig) {

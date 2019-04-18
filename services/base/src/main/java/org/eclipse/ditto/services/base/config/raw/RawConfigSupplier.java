@@ -54,10 +54,12 @@ public final class RawConfigSupplier implements Supplier<Config> {
          */
         final Config serviceSpecificEnvironmentConfig = getServiceSpecificEnvironmentConfig();
 
-        return serviceSpecificEnvironmentConfig
+        final Config configWithFallbacks = serviceSpecificEnvironmentConfig
                 .withFallback(getServiceSpecificBaseConfig())
                 .withFallback(getCommonDittoServicesConfig())
                 .resolve();
+
+        return ConfigFactory.load(configWithFallbacks);
     }
 
     private Config getServiceSpecificEnvironmentConfig() {
