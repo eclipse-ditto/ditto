@@ -39,6 +39,17 @@ public final class ConnectionLogUtil {
     }
 
     /**
+     * Enhances the default slf4j MDC map with an entry for the passed {@code connectionId} and {@code correlationId}.
+     *
+     * @param correlationId the correlation ID to set.
+     * @param connectionId the connection ID to set.
+     */
+    public static void enhanceLogWithCorrelationIdAndConnectionId(final String correlationId, final String connectionId) {
+        enhanceLogWithConnectionId(connectionId);
+        LogUtil.enhanceLogWithCorrelationId(correlationId);
+    }
+
+    /**
      * Enhances the passed {@link DiagnosticLoggingAdapter} with an "MDC" map entry for the passed {@code
      * connectionId}.
      *

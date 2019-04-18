@@ -104,19 +104,24 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     // TODO: doc, test and use
     public void muteForConnection(final String connectionId) {
         ConnectionLogUtil.enhanceLogWithConnectionId(connectionId);
-        LOGGER.info("Muting logger for connection <{}>.", connectionId);
+        LOGGER.info("Muting loggers for connection <{}>.", connectionId);
 
         streamLoggers(connectionId)
                 .forEach(MuteableConnectionLogger::mute);
     }
 
-    // TODO: doc, test and use
+    // TODO: test
+    /**
+     * Unmute / activate all loggers for the connection {@code connectionId}.
+     * @param connectionId the connection for which the loggers should be enabled.
+     */
     public void unmuteForConnection(final String connectionId) {
         ConnectionLogUtil.enhanceLogWithConnectionId(connectionId);
-        LOGGER.info("Unmuting logger for connection <{}>.", connectionId);
+        LOGGER.info("Unmuting loggers for connection <{}>.", connectionId);
 
         streamLoggers(connectionId)
                 .forEach(MuteableConnectionLogger::unmute);
+        startMetadata(connectionId);
     }
 
     private Stream<MuteableConnectionLogger> streamLoggers(final String connectionId) {
@@ -162,7 +167,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
                 .filter(logType -> logType.supportsCategory(logCategory))
                 .forEach(logType -> {
                     final MapKey key = new MapKey(connectionId, logCategory, logType, address);
-                    loggers.computeIfAbsent(key, m -> newMuteableLogger(logCategory, logType, address));
+                    loggers.computeIfAbsent(key, m -> newMuteableLogger(connectionId, logCategory, logType, address));
                 });
     }
 
@@ -187,6 +192,12 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
             }
             return new LogMetadata(now, now.plus(loggingDuration));
         });
+    }
+
+    private void startMetadata(final String connectionId) {
+        final Instant now = Instant.now();
+        final LogMetadata timing = new LogMetadata(now, now.plus(loggingDuration));
+        metadata.put(connectionId, timing);
     }
 
     @Override
@@ -270,13 +281,13 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
             @Nullable final String address) {
 
         final MapKey key = new MapKey(connectionId, logCategory, logType, address);
-        return loggers.computeIfAbsent(key, m -> newMuteableLogger(logCategory, logType, address));
+        return loggers.computeIfAbsent(key, m -> newMuteableLogger(connectionId, logCategory, logType, address));
     }
 
-    private MuteableConnectionLogger newMuteableLogger(final LogCategory logCategory, final LogType logType,
+    private MuteableConnectionLogger newMuteableLogger(final String connectionId, final LogCategory logCategory, final LogType logType,
             @Nullable final String address) {
         final ConnectionLogger logger = ConnectionLoggerFactory.newEvictingLogger(successCapacity, failureCapacity, logCategory, logType, address);
-        return ConnectionLoggerFactory.newMuteableLogger(logger);
+        return ConnectionLoggerFactory.newMuteableLogger(connectionId, logger);
     }
 
     @Override

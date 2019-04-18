@@ -76,12 +76,13 @@ final class ConnectionLoggerFactory {
      * Creates a new {@link org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.MuteableConnectionLogger} that can
      * be muted and unmuted.
      *
+     * @param connectionId the connection for which the logger is created.
      * @param delegate the delegate that will be called while the logger is unmuted.
      * @return a new muteable logger.
      * @throws java.lang.NullPointerException if {@code delegate} is null.
      */
-    static MuteableConnectionLogger newMuteableLogger(final ConnectionLogger delegate) {
-        return new DefaultMuteableConnectionLogger(checkNotNull(delegate));
+    static MuteableConnectionLogger newMuteableLogger(final String connectionId, final ConnectionLogger delegate) {
+        return new DefaultMuteableConnectionLogger(connectionId, checkNotNull(delegate));
     }
 
     private static ConnectionLogger newSourceLogger(final LogType type, final int successCapacity,

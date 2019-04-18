@@ -72,6 +72,7 @@ import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFail
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
+import org.eclipse.ditto.signals.commands.connectivity.modify.EnableConnectionLogs;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionMetrics;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
@@ -245,6 +246,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return matchEvent(RetrieveConnectionMetrics.class, BaseClientData.class, (command, data) -> this.retrieveConnectionMetrics(command))
                 .event(RetrieveConnectionStatus.class, BaseClientData.class, this::retrieveConnectionStatus)
                 .event(ResetConnectionMetrics.class, BaseClientData.class, this::resetConnectionMetrics)
+                .event(EnableConnectionLogs.class, BaseClientData.class, (command, data) -> this.enableConnectionLogs(command))
                 .event(OutboundSignal.class, BaseClientData.class, (signal, data) -> {
                     handleOutboundSignal(signal);
                     return stay();
@@ -661,7 +663,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private FSM.State<BaseClientState, BaseClientData> retrieveConnectionStatus(
             final RetrieveConnectionStatus command,
             final BaseClientData data) {
-        LogUtil.enhanceLogWithCorrelationId(log, command);
+
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionId());
         log.debug("Received RetrieveConnectionStatus message from {}, forwarding to consumers and publishers.",
                 getSender());
 
@@ -685,7 +688,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     private FSM.State<BaseClientState, BaseClientData> retrieveConnectionMetrics(final RetrieveConnectionMetrics command) {
 
-        LogUtil.enhanceLogWithCorrelationId(log, command);
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionId());
         log.debug("Received RetrieveConnectionMetrics message, gathering metrics.");
         final DittoHeaders dittoHeaders = command.getDittoHeaders().toBuilder()
                 .source(ConfigUtil.instanceIdentifier())
@@ -708,11 +711,24 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             final ResetConnectionMetrics command,
             final BaseClientData data) {
 
-        LogUtil.enhanceLogWithCorrelationId(log, command);
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionId());
         log.debug("Received ResetConnectionMetrics message, resetting metrics.");
         //  TODO: think about just clearing the counters instead of completely rebuilding them
         connectionCounterRegistry.resetForConnection(data.getConnection());
         connectionCounterRegistry.initForConnection(data.getConnection());
+
+        return stay();
+    }
+
+    // TODO: test
+    private FSM.State<BaseClientState, BaseClientData> enableConnectionLogs(
+            final EnableConnectionLogs command) {
+
+        final String connectionId = command.getConnectionId();
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, connectionId);
+        log.debug("Received EnableConnectionLogs message, enabling logs.");
+
+        this.connectionLoggerRegistry.unmuteForConnection(connectionId);
 
         return stay();
     }
@@ -722,7 +738,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             final RetrieveConnectionLogs command,
             final BaseClientData data) {
 
-        LogUtil.enhanceLogWithCorrelationId(log, command);
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionId());
         log.debug("Received RetrieveConnectionLogs message, gathering metrics.");
         final DittoHeaders dittoHeaders = command.getDittoHeaders().toBuilder()
                 .source(ConfigUtil.instanceIdentifier())
@@ -745,7 +761,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             final ResetConnectionMetrics command,
             final BaseClientData data) {
 
-        LogUtil.enhanceLogWithCorrelationId(log, command);
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionId());
         log.debug("Received ResetConnectionLogs message, resetting logs.");
 
         //  TODO: think about just clearing the loggers instead of completely rebuilding them

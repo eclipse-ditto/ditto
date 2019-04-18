@@ -74,6 +74,8 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnectionResponse;
+import org.eclipse.ditto.signals.commands.connectivity.modify.EnableConnectionLogs;
+import org.eclipse.ditto.signals.commands.connectivity.modify.EnableConnectionLogsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
@@ -360,6 +362,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
                 .match(CloseConnection.class, this::closeConnection)
                 .match(DeleteConnection.class, this::deleteConnection)
                 .match(ResetConnectionMetrics.class, this::resetConnectionMetrics)
+                .match(EnableConnectionLogs.class, this::enableConnectionLogs)
                 .match(RetrieveConnection.class, this::retrieveConnection)
                 .match(RetrieveConnectionStatus.class, this::retrieveConnectionStatus)
                 .match(RetrieveConnectionMetrics.class, this::retrieveConnectionMetrics)
@@ -657,6 +660,15 @@ public final class ConnectionActor extends AbstractPersistentActor {
             clientActorRouter.tell(new Broadcast(command), ActorRef.noSender());
         }
         getSender().tell(ResetConnectionMetricsResponse.of(connectionId, command.getDittoHeaders()), getSelf());
+    }
+
+    // TODO: test
+    private void enableConnectionLogs(final EnableConnectionLogs command) {
+        if (clientActorRouter != null) {
+            // forward command to all client actors with no sender
+            clientActorRouter.tell(new Broadcast(command), ActorRef.noSender());
+        }
+        getSender().tell(EnableConnectionLogsResponse.of(connectionId, command.getDittoHeaders()), getSelf());
     }
 
     /*

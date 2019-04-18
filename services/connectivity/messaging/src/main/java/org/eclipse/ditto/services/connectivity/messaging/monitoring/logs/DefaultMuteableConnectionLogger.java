@@ -24,7 +24,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.LogEntry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,33 +32,35 @@ import org.slf4j.LoggerFactory;
  * Default implementation of {@link org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.MuteableConnectionLogger}.
  * This implementation is not threadsafe since it ain't really of a big importance if a log message gets lost during activation of the logger.
  */
-// TODO: should we also add the connection id to the logs?
 @NotThreadSafe
 final class DefaultMuteableConnectionLogger implements MuteableConnectionLogger {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultMuteableConnectionLogger.class);
 
+    private final String connectionId;
     private final ConnectionLogger delegate;
     private boolean active;
 
     /**
      * Create a new mutable connection logger that is currently muted.
+     * @param connectionId the connection for which the logger is logging.
      * @param delegate the delegate to call while the logger is unmuted
      */
-    DefaultMuteableConnectionLogger(final ConnectionLogger delegate) {
+    DefaultMuteableConnectionLogger(final String connectionId, final ConnectionLogger delegate) {
+        this.connectionId = connectionId;
         this.delegate = delegate;
         this.active = false;
     }
 
     @Override
     public void mute() {
-        LOGGER.debug("Muting the logger");
+        logDebug("Muting the logger");
         active = false;
     }
 
     @Override
     public void unmute() {
-        LOGGER.debug("Unmuting the logger");
+        logDebug("Unmuting the logger");
         active = true;
     }
 
@@ -138,17 +140,23 @@ final class DefaultMuteableConnectionLogger implements MuteableConnectionLogger 
         return Collections.emptyList();
     }
 
+    private void logDebug(final String message) {
+        if (LOGGER.isDebugEnabled()) {
+            ConnectionLogUtil.enhanceLogWithConnectionId(connectionId);
+            LOGGER.debug(message);
+        }
+    }
 
     private void logTraceWithCorrelationId(final String message, final String correlationId, final Object... messageArguments) {
         if (LOGGER.isTraceEnabled()) {
-            LogUtil.enhanceLogWithCorrelationId(correlationId);
+            ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(correlationId, connectionId);
             LOGGER.trace(message, messageArguments);
         }
     }
 
     private void logTraceWithCorrelationId(final String message, final ConnectionMonitor.InfoProvider infoProvider, final Object... messageArguments) {
         if (LOGGER.isTraceEnabled()) {
-            LogUtil.enhanceLogWithCorrelationId(infoProvider.getCorrelationId());
+            ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(infoProvider.getCorrelationId(), connectionId);
             LOGGER.trace(message, messageArguments);
         }
     }

@@ -178,7 +178,7 @@ public final class DefaultMuteableConnectionLoggerTest {
     }
 
     private DefaultMuteableConnectionLogger logger() {
-        return new DefaultMuteableConnectionLogger(delegate);
+        return new DefaultMuteableConnectionLogger("theConnection", delegate);
     }
 
 }
