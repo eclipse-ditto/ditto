@@ -180,10 +180,12 @@ public final class MqttClientActor extends BaseClientActor {
         // start publisher
         startMqttPublisher(factory, dryRun);
 
+        // start message mapping processor actor early so that consumer streams can be run.
+        // note that it has to be started after the publisher since the publisher actor is needed inside the mapping processor
+        final Either<DittoRuntimeException, ActorRef> messageMappingProcessor = startMessageMappingProcessor();
+
         // start consumers
         if (isConsuming()) {
-            // start message mapping processor actor early so that consumer streams can be run
-            final Either<DittoRuntimeException, ActorRef> messageMappingProcessor = startMessageMappingProcessor();
             if (messageMappingProcessor.isLeft()) {
                 final DittoRuntimeException e = messageMappingProcessor.left().get();
                 log.warning("failed to start mapping processor due to {}", e);
