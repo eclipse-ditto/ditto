@@ -16,7 +16,6 @@ import static org.eclipse.ditto.services.models.concierge.ConciergeMessagingCons
 
 import java.util.function.Function;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.models.concierge.ConciergeWrapper;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
@@ -90,7 +89,7 @@ public class ConciergeForwarderActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(Signal.class, signal -> forward(signal, getSender()))
+                .match(Signal.class, signal -> forward(signal, getContext()))
                 .match(DistributedPubSubMediator.SubscribeAck.class, subscribeAck ->
                         log.debug("Successfully subscribed to distributed pub/sub on topic '{}'",
                                 subscribeAck.subscribe().topic())
@@ -104,9 +103,9 @@ public class ConciergeForwarderActor extends AbstractActor {
      * the {@code conciergeShardRegion}.
      *
      * @param signal the Signal to forward
-     * @param sender the ActorRef to use as sender
+     * @param ctx the ActorRef to use as sender
      */
-    private void forward(final Signal<?> signal, final ActorRef sender) {
+    private void forward(final Signal<?> signal, final ActorContext ctx) {
 
         final Signal<?> transformedSignal = signalTransformer.apply(signal);
 
@@ -118,24 +117,13 @@ public class ConciergeForwarderActor extends AbstractActor {
             log.debug("Sending signal without ID and type <{}> to concierge-dispatcherActor: <{}>", signalType,
                     transformedSignal);
             final DistributedPubSubMediator.Send msg = wrapForPubSub(transformedSignal);
-            log.debug("Sending message to concierge-dispatcherActor: <{}>.", msg);
-            pubSubMediator.tell(msg, sender);
+            log.debug("Forwarding message to concierge-dispatcherActor via pub/sub: <{}>.", msg);
+            pubSubMediator.forward(msg, ctx);
         } else {
-            log.info("Sending signal with ID <{}> and type <{}> to concierge-shard-region",
-                    signalId, signalType);
-            log.debug("Sending signal with ID <{}> and type <{}> to concierge-shard-region: <{}>",
-                    signalId, signalType, transformedSignal);
-            final Object msg;
-            try {
-                msg = ConciergeWrapper.wrapForEnforcer(transformedSignal);
-            } catch (final DittoRuntimeException e) {
-                log.warning("Got DittoRuntimeException when wrapping signal for enforcer: {}: <{}>",
-                        e.getClass().getSimpleName(), e.getMessage());
-                sender.tell(e, getSelf());
-                return;
-            }
-            log.debug("Sending message to concierge-shard-region: <{}>", msg);
-            conciergeEnforcer.tell(msg, sender);
+            log.info("Forwarding signal with ID <{}> and type <{}> to concierge enforcer", signalId, signalType);
+            final Object msg = ConciergeWrapper.wrapForEnforcer(transformedSignal);
+            log.debug("Forwarding message to concierge enforcer: <{}>", msg);
+            conciergeEnforcer.forward(msg, ctx);
         }
     }
 

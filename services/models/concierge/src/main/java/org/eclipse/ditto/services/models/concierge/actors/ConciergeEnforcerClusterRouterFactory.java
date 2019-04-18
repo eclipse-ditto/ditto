@@ -61,7 +61,7 @@ public final class ConciergeEnforcerClusterRouterFactory {
                 new ClusterRouterGroup(
                         new ConsistentHashingGroup(routeesPaths),
                         new ClusterRouterGroupSettings(numberOfRoutees, routeesPaths,
-                                false, clusterRoles))
+                                true, clusterRoles))
                         .props(),
                 CONCIERGE_ENFORCER_ROUTER_ACTORNAME);
     }
