@@ -116,7 +116,7 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
         return MergeHub.of(getMessageClass(), 16) // default value according to Akka docs is 16
                 .to(getHandler()
                         .watchTermination(handleTermination(self))
-                        .to(Sink.foreach(msg -> log.warning("Unhandled message: <{}>", msg)))
+                        .to(Sink.foreach(msg -> log.debug("Unhandled message: <{}>", msg)))
                 )
                 .run(materializer);
     }

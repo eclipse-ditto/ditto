@@ -19,6 +19,7 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
@@ -138,9 +139,13 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
                 log, entityIdFor(message), responseReceivers);
     }
 
+    @Nullable
     private static EntityId entityIdFor(final WithDittoHeaders<?> signal) {
 
-        if (signal instanceof WithResource && signal instanceof WithId) {
+        if (signal instanceof DittoRuntimeException) {
+            return null;
+        }
+        else if (signal instanceof WithResource && signal instanceof WithId) {
             final EntityId entityId;
             if (MessageCommand.RESOURCE_TYPE.equals(((WithResource) signal).getResourceType())) {
                 entityId = EntityId.of(ThingCommand.RESOURCE_TYPE, ((WithId) signal).getId());
