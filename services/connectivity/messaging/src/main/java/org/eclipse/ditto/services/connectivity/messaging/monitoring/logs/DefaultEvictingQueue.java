@@ -20,6 +20,7 @@ import java.util.Objects;
 import java.util.Queue;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.NotThreadSafe;
 
 /**
  * Default implementation of {@link org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.EvictingQueue}.
@@ -28,6 +29,7 @@ import javax.annotation.Nullable;
  *
  * @param <E> type of elements in the queue.
  */
+@NotThreadSafe
 final class DefaultEvictingQueue<E> extends AbstractQueue<E> implements EvictingQueue<E> {
 
     private final int capacity;

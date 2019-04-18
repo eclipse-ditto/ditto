@@ -844,6 +844,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     /**
      * Starts the {@link MessageMappingProcessorActor} responsible for payload transformation/mapping as child actor
      * behind a (cluster node local) RoundRobin pool and a dynamic resizer from the current mapping context.
+     * @return {@link org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessorActor} or exception, which will
+     * also cause an sideeffect that stores the mapping actor in the local variable {@code messageMappingProcessorActor}.
      */
     protected Either<DittoRuntimeException, ActorRef> startMessageMappingProcessor() {
         final MappingContext mappingContext = stateData().getConnection().getMappingContext().orElse(null);
@@ -855,6 +857,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * behind a (cluster node local) RoundRobin pool and a dynamic resizer.
      *
      * @param mappingContext the MappingContext containing information about how to map external messages
+     * @return {@link org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessorActor} or exception, which will
+     * also cause an sideeffect that stores the mapping actor in the local variable {@code messageMappingProcessorActor}.
      */
     protected Either<DittoRuntimeException, ActorRef> startMessageMappingProcessor(
             @Nullable final MappingContext mappingContext) {

@@ -73,6 +73,7 @@ public final class MessageMappingProcessor {
      * Initializes a new command processor with mappers defined in mapping mappingContext. The dynamic access is needed
      * to instantiate message mappers for an actor system
      *
+     * @param connectionId the connection that the processor works for.
      * @param mappingContext the mapping Context
      * @param actorSystem the dynamic access used for message mapper instantiation
      * @param log the log adapter

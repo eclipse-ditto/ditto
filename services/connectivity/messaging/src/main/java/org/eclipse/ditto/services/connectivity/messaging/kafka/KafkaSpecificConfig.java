@@ -32,6 +32,7 @@ public interface KafkaSpecificConfig {
     /**
      * Validates the given connection against the config. Assumes that the connection {@code isApplicable}.
      * @param connection the connection to validate.
+     * @param dittoHeaders headers that were sent with the connection.
      * @throws org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException if the configuration is invalid.
      */
     void validateOrThrow(Connection connection, DittoHeaders dittoHeaders);

@@ -68,6 +68,7 @@ public final class KafkaClientActor extends BaseClientActor {
      *
      * @param connection the connection.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
+     * @param factory factory for creating a kafka publisher actor.
      * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection, final ActorRef conciergeForwarder,
