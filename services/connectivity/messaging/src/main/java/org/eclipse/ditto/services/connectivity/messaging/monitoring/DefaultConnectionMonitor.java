@@ -47,6 +47,7 @@ public final class DefaultConnectionMonitor implements ConnectionMonitor {
 
     /**
      * Creates a new builder for an {@code DefaultConnectionMonitor}.
+     *
      * @param counter the counter to use in the connection monitor.
      * @param logger the logger to use in the connection monitor.
      * @return a new builder.
@@ -63,8 +64,8 @@ public final class DefaultConnectionMonitor implements ConnectionMonitor {
         private final ConnectionMetricsCounter counter;
         private final ConnectionLogger logger;
 
-        private ConnectionMonitorBuilder(final ConnectionMetricsCounter counter, final ConnectionLogger logger) {
-            // intentionally empty
+        private ConnectionMonitorBuilder(final ConnectionMetricsCounter counter,
+                final ConnectionLogger logger) {
             this.counter = checkNotNull(counter);
             this.logger = checkNotNull(logger);
         }

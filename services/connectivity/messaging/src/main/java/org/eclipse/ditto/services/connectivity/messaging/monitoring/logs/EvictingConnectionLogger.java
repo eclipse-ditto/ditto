@@ -30,12 +30,17 @@ import org.eclipse.ditto.model.connectivity.LogEntry;
 import org.eclipse.ditto.model.connectivity.LogLevel;
 import org.eclipse.ditto.model.connectivity.LogType;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of {@link org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger} that
  * has fixed capacity for its success and failure logs and will evict old logs when new logs are added.
  */
 final class EvictingConnectionLogger implements ConnectionLogger {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(EvictingConnectionLogger.class);
 
     private static final String FALLBACK_EXCEPTION_TEXT = "not specified";
 
@@ -62,6 +67,8 @@ final class EvictingConnectionLogger implements ConnectionLogger {
         this.defaultSuccessMessage = builder.defaultSuccessMessage;
         this.defaultFailureMessage = builder.defaultFailureMessage;
         this.defaultExceptionMessage = builder.defaultExceptionMessage;
+
+        LOGGER.trace("Successfully built new EvictingConnectionLogger: {}", this);
     }
 
     /**
@@ -87,6 +94,8 @@ final class EvictingConnectionLogger implements ConnectionLogger {
     @Override
     public void success(final String correlationId, final Instant timestamp, final String message,
             @Nullable final String thingId) {
+        logTraceWithCorrelationId("Saving success log at <{}> for thing <{}> with message: {}",
+                correlationId, timestamp, thingId, message);
         successLogs.add(getLogEntry(correlationId, timestamp, message, address, thingId, LogLevel.SUCCESS));
     }
 
@@ -103,6 +112,8 @@ final class EvictingConnectionLogger implements ConnectionLogger {
     @Override
     public void failure(final String correlationId, final Instant timestamp, final String message,
             @Nullable final String thingId) {
+        logTraceWithCorrelationId("Saving failure log at <{}> for thing <{}> with message: {}",
+                correlationId, timestamp, thingId, message);
         failureLogs.add(getLogEntry(correlationId, timestamp, message, address, thingId, LogLevel.FAILURE));
     }
 
@@ -114,11 +125,14 @@ final class EvictingConnectionLogger implements ConnectionLogger {
     @Override
     public void exception(final String correlationId, final Instant timestamp, final String message,
             @Nullable final String thingId) {
+        logTraceWithCorrelationId("Saving exception log at <{}> for thing <{}> with message: {}",
+                correlationId, timestamp, thingId, message);
         failureLogs.add(getLogEntry(correlationId, timestamp, message, address, thingId, LogLevel.FAILURE));
     }
 
     @Override
     public void clear() {
+        LOGGER.debug("Clearing all logs.");
         successLogs.clear();
         failureLogs.clear();
     }
@@ -128,6 +142,8 @@ final class EvictingConnectionLogger implements ConnectionLogger {
         final List<LogEntry> logs = new ArrayList<>(successLogs.size() + failureLogs.size());
         logs.addAll(successLogs);
         logs.addAll(failureLogs);
+
+        LOGGER.trace("Returning logs: {}", logs);
         return logs;
     }
 
@@ -175,6 +191,13 @@ final class EvictingConnectionLogger implements ConnectionLogger {
         return ImmutableLogEntry.getBuilder(correlationId, timestamp, category, type, logLevel, message,
                 address, thingId)
                 .build();
+    }
+
+    private void logTraceWithCorrelationId(final String message, final String correlationId, final Object... messageArguments) {
+        if (LOGGER.isTraceEnabled()) {
+            LogUtil.enhanceLogWithCorrelationId(correlationId);
+            LOGGER.trace(message, messageArguments);
+        }
     }
 
     /**

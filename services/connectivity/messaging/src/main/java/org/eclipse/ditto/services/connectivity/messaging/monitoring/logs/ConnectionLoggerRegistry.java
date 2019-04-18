@@ -38,7 +38,10 @@ import org.eclipse.ditto.model.connectivity.LogType;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
+import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.connectivity.util.MonitoringConfigReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This registry holds loggers for the connectivity service. The loggers are identified by the connection ID, a {@link
@@ -46,6 +49,8 @@ import org.eclipse.ditto.services.connectivity.util.MonitoringConfigReader;
  * address.
  */
 public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry<ConnectionLogger> {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ConnectionLoggerRegistry.class);
 
     private static final ConcurrentMap<MapKey, MuteableConnectionLogger> loggers = new ConcurrentHashMap<>();
     private static final ConcurrentMap<String, LogMetadata> metadata = new ConcurrentHashMap<>();
@@ -82,6 +87,9 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
      * @return the {@link org.eclipse.ditto.model.connectivity.LogEntry}s.
      */
     public CollectionLogs aggregateLogs(final String connectionId) {
+        ConnectionLogUtil.enhanceLogWithConnectionId(connectionId);
+        LOGGER.info("Aggregating logs for connection <{}>.", connectionId);
+
         // TODO: it does not make sense to refresh metadata for a connection id if the logger for the connection is muted! implement & test
         final LogMetadata timing = refreshMetadata(connectionId);
         final Collection<LogEntry> logs = streamLoggers(connectionId)
@@ -89,17 +97,24 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
                 .flatMap(Collection::stream)
                 .collect(Collectors.toList());
         // TODO: should we sort the log entries by date?
+        LOGGER.debug("Aggregated logs for connection <{}>: {}", connectionId, logs);
         return new CollectionLogs(timing.getEnabledSince(), timing.getEnabledUntil(), logs);
     }
 
     // TODO: doc, test and use
     public void muteForConnection(final String connectionId) {
+        ConnectionLogUtil.enhanceLogWithConnectionId(connectionId);
+        LOGGER.info("Muting logger for connection <{}>.", connectionId);
+
         streamLoggers(connectionId)
                 .forEach(MuteableConnectionLogger::mute);
     }
 
     // TODO: doc, test and use
     public void unmuteForConnection(final String connectionId) {
+        ConnectionLogUtil.enhanceLogWithConnectionId(connectionId);
+        LOGGER.info("Unmuting logger for connection <{}>.", connectionId);
+
         streamLoggers(connectionId)
                 .forEach(MuteableConnectionLogger::unmute);
     }
@@ -118,6 +133,8 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
      */
     @Override
     public void initForConnection(final Connection connection) {
+        ConnectionLogUtil.enhanceLogWithConnectionId(connection.getId());
+        LOGGER.info("Initializing loggers for connection <{}>.", connection.getId());
 
         final String connectionId = connection.getId();
         connection.getSources().stream()
@@ -152,6 +169,9 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     @Override
     public void resetForConnection(final Connection connection) {
         final String connectionId = connection.getId();
+        ConnectionLogUtil.enhanceLogWithConnectionId(connectionId);
+        LOGGER.info("Resetting loggers for connection <{}>.", connectionId);
+
         loggers.keySet().stream()
                 .filter(key -> key.connectionId.equals(connectionId))
                 .forEach(loggers::remove);

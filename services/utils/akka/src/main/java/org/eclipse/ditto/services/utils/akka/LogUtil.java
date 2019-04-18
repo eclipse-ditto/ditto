@@ -245,6 +245,15 @@ public final class LogUtil {
     }
 
     /**
+     * Enhances the default {@link org.slf4j.MDC} with a map entry for the passed {@code mdcFields}.
+     *
+     * @param mdcField the field to add to the MDC.
+     */
+    public static void enhanceLogWithCustomField(final MdcField mdcField) {
+        MDC.put(mdcField.getName(), mdcField.getValue());
+    }
+
+    /**
      * Enhances the passed {@link DiagnosticLoggingAdapter} with an "MDC" map entry for the passed {@code correlationId}
      * (if present).
      *

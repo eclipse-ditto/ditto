@@ -30,7 +30,17 @@ public final class ConnectionLogUtil {
     }
 
     /**
-     * Enhances the passed {@link DiagnosticLoggingAdapter} with an "MDC" map entry for the passed {@code connectionId}.
+     * Enhances the default slf4j MDC map with an entry for the passed {@code connectionId}.
+     *
+     * @param connectionId the connection ID to set.
+     */
+    public static void enhanceLogWithConnectionId(final String connectionId) {
+        LogUtil.enhanceLogWithCustomField(LogUtil.newMdcField(MDC_CONNECTION_ID, connectionId));
+    }
+
+    /**
+     * Enhances the passed {@link DiagnosticLoggingAdapter} with an "MDC" map entry for the passed {@code
+     * connectionId}.
      *
      * @param loggingAdapter the DiagnosticLoggingAdapter to set the "MDC" on.
      * @param connectionId the connection ID to set.
@@ -51,7 +61,8 @@ public final class ConnectionLogUtil {
     public static void enhanceLogWithCorrelationIdAndConnectionId(final DiagnosticLoggingAdapter loggingAdapter,
             final WithDittoHeaders<?> signal,
             final String connectionId) {
-        LogUtil.enhanceLogWithCorrelationId(loggingAdapter, signal, LogUtil.newMdcField(MDC_CONNECTION_ID, connectionId));
+        LogUtil.enhanceLogWithCorrelationId(loggingAdapter, signal,
+                LogUtil.newMdcField(MDC_CONNECTION_ID, connectionId));
     }
 
     /**
@@ -64,6 +75,8 @@ public final class ConnectionLogUtil {
     public static void enhanceLogWithCorrelationIdAndConnectionId(final DiagnosticLoggingAdapter loggingAdapter,
             final String correlationId,
             final String connectionId) {
-        LogUtil.enhanceLogWithCorrelationId(loggingAdapter, correlationId, LogUtil.newMdcField(MDC_CONNECTION_ID, connectionId));
+        LogUtil.enhanceLogWithCorrelationId(loggingAdapter, correlationId,
+                LogUtil.newMdcField(MDC_CONNECTION_ID, connectionId));
     }
+
 }
