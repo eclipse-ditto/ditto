@@ -30,10 +30,14 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.concierge.cache.CacheFactory;
 import org.eclipse.ditto.services.concierge.cache.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.services.models.concierge.EntityId;
-import org.eclipse.ditto.services.models.concierge.cache.Entry;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
+import org.eclipse.ditto.services.thingsearch.persistence.write.mapping.EnforcedThingMapper;
+import org.eclipse.ditto.services.thingsearch.persistence.write.model.AbstractWriteModel;
+import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
+import org.eclipse.ditto.services.thingsearch.persistence.write.model.ThingDeleteModel;
 import org.eclipse.ditto.services.utils.cache.Cache;
+import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.slf4j.Logger;
@@ -48,11 +52,6 @@ import akka.pattern.PatternsCS;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Source;
-
-import org.eclipse.ditto.services.thingsearch.persistence.write.mapping.EnforcedThingMapper;
-import org.eclipse.ditto.services.thingsearch.persistence.write.model.AbstractWriteModel;
-import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
-import org.eclipse.ditto.services.thingsearch.persistence.write.model.ThingDeleteModel;
 
 /**
  * Converts Thing changes into write models by retrieving data and applying enforcement via an enforcer cache.
@@ -182,10 +181,18 @@ final class EnforcementFlow {
         } else {
             final JsonObject thing = sudoRetrieveThingResponse.getEntity().asObject();
             return getEnforcer(metadata, thing).map(entry ->
-                    EnforcedThingMapper.toWriteModel(thing, entry.getValue(), entry.getRevision(), maxArraySize));
+                    EnforcedThingMapper.toWriteModel(thing, entry.getValueOrThrow(), entry.getRevision(),
+                            maxArraySize));
         }
     }
 
+    /**
+     * Get the enforcer of a thing or an empty source if it does not exist.
+     *
+     * @param metadata metadata of the thing.
+     * @param thing the thing (possibly containing ACL)
+     * @return source of an enforcer or an empty source.
+     */
     private Source<Entry<Enforcer>, NotUsed> getEnforcer(final Metadata metadata, final JsonObject thing) {
         final Optional<JsonObject> acl = thing.getValue(Thing.JsonFields.ACL);
         if (acl.isPresent()) {

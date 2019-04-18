@@ -12,8 +12,10 @@
  */
 package org.eclipse.ditto.model.rqlparser.internal
 
-import org.parboiled2._
-import shapeless.HNil
+import akka.parboiled2._
+import akka.shapeless._
+
+import scala.{:: => _}
 
 /**
   * RQL Parser base containing commonly used types for both Predicate and Options parsing in EBNF:
@@ -27,7 +29,8 @@ import shapeless.HNil
   * PropertyLiteral            = ? printable characters ?
   * </pre>
   */
-class RqlParserBase(val input: ParserInput) extends Parser with StringBuilding {
+class RqlParserBase(val input: ParserInput) extends Parser {
+  protected val sb = new java.lang.StringBuilder
 
   private val WhiteSpaceChar = CharPredicate(" \n\r\t\f")
   private val CommaClosingParenthesisQuote = CharPredicate(",)\"\\")
@@ -70,6 +73,7 @@ class RqlParserBase(val input: ParserInput) extends Parser with StringBuilding {
   protected def CharactersInQuotes: Rule[HNil, HNil] = rule {
     zeroOrMore(NormalCharInQuotes | '\\' ~ EscapedChar)
   }
+
   protected def Characters: Rule[HNil, HNil] = rule {
     zeroOrMore(NormalChar | '\\' ~ EscapedChar)
   }
@@ -77,6 +81,7 @@ class RqlParserBase(val input: ParserInput) extends Parser with StringBuilding {
   protected def NormalCharInQuotes: Rule[HNil, HNil] = rule {
     !QuoteBackslash ~ ANY ~ appendSB()
   }
+
   protected def NormalChar: Rule[HNil, HNil] = rule {
     !CommaClosingParenthesisQuote ~ ANY ~ appendSB()
   }
@@ -91,7 +96,7 @@ class RqlParserBase(val input: ParserInput) extends Parser with StringBuilding {
       | Unicode ~> { code: Int => sb.append(code.asInstanceOf[Char]); () }
   )
 
-  protected def Unicode: Rule[HNil, shapeless.::[Int, HNil]] = rule {
+  protected def Unicode: Rule[HNil, Int :: HNil] = rule {
     'u' ~ capture(CharPredicate.HexDigit ~ CharPredicate.HexDigit ~ CharPredicate.HexDigit ~ CharPredicate.HexDigit) ~>
       ((code: String) => java.lang.Integer.parseInt(code, 16))
   }
@@ -103,4 +108,17 @@ class RqlParserBase(val input: ParserInput) extends Parser with StringBuilding {
   protected def ws(c: Char): Rule[HNil, HNil] = rule {
     c ~ WhiteSpace
   }
+
+  protected def clearSB(): Rule0 = rule {
+    run(sb.setLength(0))
+  }
+
+  protected def appendSB(): Rule0 = rule {
+    run(sb.append(lastChar))
+  }
+
+  protected def appendSB(c: Char): Rule0 = rule {
+    run(sb.append(c))
+  }
+
 }

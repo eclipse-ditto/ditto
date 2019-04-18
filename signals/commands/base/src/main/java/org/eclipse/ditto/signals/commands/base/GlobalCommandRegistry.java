@@ -78,7 +78,8 @@ public final class GlobalCommandRegistry extends AbstractJsonParsableRegistry<Co
                     final String methodName = fromJsonAnnotation.method();
                     final String typePrefix = fromJsonAnnotation.typePrefix();
                     final String name = fromJsonAnnotation.name();
-                    final Method method = parsableCommand.getMethod(methodName, JSON_OBJECT_PARAMETER, DITTO_HEADERS_PARAMETER);
+                    final Method method =
+                            parsableCommand.getMethod(methodName, JSON_OBJECT_PARAMETER, DITTO_HEADERS_PARAMETER);
 
                     appendMethodToParseStrategies(typePrefix, name, method);
                 } catch (final NoSuchMethodException e) {
@@ -96,6 +97,7 @@ public final class GlobalCommandRegistry extends AbstractJsonParsableRegistry<Co
                 } catch (final IllegalAccessException | InvocationTargetException e) {
                     throw JsonTypeNotParsableException.newBuilder(type, getClass().getSimpleName())
                             .dittoHeaders(dittoHeaders)
+                            .cause(e)
                             .build();
                 }
             });

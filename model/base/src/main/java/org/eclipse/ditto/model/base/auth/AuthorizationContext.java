@@ -63,6 +63,7 @@ public interface AuthorizationContext
      *
      * @param authorizationSubjects the authorization subjects to be added
      * @return a new authorization context with the given {@code authorizationSubjects} added at the beginning.
+     * @throws NullPointerException if {@code authorizationSubjects} is {@code null}.
      */
     AuthorizationContext addHead(List<AuthorizationSubject> authorizationSubjects);
 
@@ -71,6 +72,7 @@ public interface AuthorizationContext
      *
      * @param authorizationSubjects the authorization subjects to be added
      * @return a new authorization context with the given {@code authorizationSubjects} added at the end.
+     * @throws NullPointerException if {@code authorizationSubjects} is {@code null}.
      */
     AuthorizationContext addTail(List<AuthorizationSubject> authorizationSubjects);
 

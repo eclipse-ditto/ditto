@@ -48,6 +48,7 @@ import akka.testkit.javadsl.TestKit;
  */
 public abstract class EventSourceNamespaceOpsActorTestCases {
 
+    private static final Duration EXPECT_MESSAGE_TIMEOUT = Duration.ofSeconds(10);
     private static final Random RANDOM = new Random();
 
     /**
@@ -171,27 +172,28 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
 
             // create 2 entities in 2 namespaces, 1 of which will be purged
             actorToPurge.tell(getCreateEntityCommand(purgedId), getRef());
-            expectMsgClass(Duration.ofSeconds(10L), getCreateEntityResponseClass());
+            expectMsgClass(EXPECT_MESSAGE_TIMEOUT, getCreateEntityResponseClass());
 
             survivingActor.tell(getCreateEntityCommand(survivingId), getRef());
-            expectMsgClass(Duration.ofSeconds(10L), getCreateEntityResponseClass());
+            expectMsgClass(EXPECT_MESSAGE_TIMEOUT, getCreateEntityResponseClass());
 
             // kill the actor in the namespace to be purged to avoid write conflict
             actorToPurge.tell(PoisonPill.getInstance(), getRef());
-            expectTerminated(actorToPurge);
+            expectTerminated(EXPECT_MESSAGE_TIMEOUT, actorToPurge);
 
             // purge the namespace
             underTest.tell(PurgeNamespace.of(purgedNamespace, dittoHeaders), getRef());
-            expectMsg(PurgeNamespaceResponse.successful(purgedNamespace, getResourceType(), dittoHeaders));
+            expectMsg(EXPECT_MESSAGE_TIMEOUT,
+                    PurgeNamespaceResponse.successful(purgedNamespace, getResourceType(), dittoHeaders));
 
             // restart the actor in the purged namespace - it should work as if its entity never existed
             final ActorRef purgedActor = watch(startEntityActor(actorSystem, pubSubMediator, purgedId));
             purgedActor.tell(getRetrieveEntityCommand(purgedId), getRef());
-            expectMsgClass(getEntityNotAccessibleClass());
+            expectMsgClass(EXPECT_MESSAGE_TIMEOUT, getEntityNotAccessibleClass());
 
             // the actor outside the purged namespace should not be affected
             survivingActor.tell(getRetrieveEntityCommand(survivingId), getRef());
-            expectMsgClass(getRetrieveEntityResponseClass());
+            expectMsgClass(EXPECT_MESSAGE_TIMEOUT, getRetrieveEntityResponseClass());
 
             // stop both actors - neither should pollute the database on death
             purgedActor.tell(PoisonPill.getInstance(), getRef());

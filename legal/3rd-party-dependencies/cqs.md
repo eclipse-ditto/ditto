@@ -7,7 +7,6 @@
 |ch.qos.logback|logback-classic|1.2.3| [16306](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16306) |
 |ch.qos.logback|logback-core|1.2.3| [16305](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16305) |
 |com.ajjpj.simple-akka-downing|simple-akka-downing_2.12|0.9.2| [18601](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18601) |
-|com.chuusai|shapeless_2.12|2.3.2| [16295](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16295) |
 |com.eclipsesource.minimal-json|minimal-json|0.9.5| [16296](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16296) |
 |com.github.ben-manes.caffeine|caffeine|2.6.2| [16300](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16300) |
 |com.github.jnr|jffi|1.2.16| [16301](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16301) |
@@ -84,14 +83,12 @@
 |org.ow2.asm|asm|5.2| [16325](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16325) |
 |org.ow2.asm|asm-tree|5.2| [16323](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16323) |
 |org.ow2.asm|asm-util|5.2| [16324](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16324) |
-|org.parboiled|parboiled_2.12|2.1.4| [16334](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16334) |
 |org.reactivestreams|reactive-streams|1.0.2| [16332](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16332) |
 |org.scala-lang.modules|scala-java8-compat_2.12|0.8.0| [14402](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14402) |
 |org.scala-lang.modules|scala-parser-combinators_2.12|1.1.0| [16341](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16341) |
 |org.scala-lang|scala-library|2.12.6| [16335](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16335) |
 |org.scala-lang|scala-reflect|2.12.6| [18676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18676) |
 |org.slf4j|slf4j-api|1.7.25| [14404](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14404) |
-|org.typelevel|macro-compat_2.12|1.1.1| [16326](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16326) |
 |org.webjars.npm|bytebuffer|5.0.1| [16728](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16728) |
 |org.webjars.npm|long|3.2.0| [16729](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16729) |
 |org.xerial.snappy|snappy-java|1.1.7.2| [19164](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19164) |
@@ -209,3 +206,6 @@ Manual step by sending mail to Eclipse IP team - this is a collection of depende
 |io.netty|netty-transport-native-epoll|linux-x86_64| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
 |io.netty|netty-transport-native-kqueue|osx-x86_64| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
 |io.netty|netty-transport-native-unix-common|4.1.27.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
+|com.chuusai|shapeless_2.12|2.3.2| [16295](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16295) |
+|org.parboiled|parboiled_2.12|2.1.4| [16334](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16334) |
+|org.typelevel|macro-compat_2.12|1.1.1| [16326](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16326) |

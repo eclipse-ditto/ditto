@@ -24,14 +24,6 @@
  * Source: https://github.com/arnohaase/simple-akka-downing
 
 
-## core (2.3.2)
-
- * Maven coordinates: `com.chuusai:shapeless_2.12:2.3.2`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/milessabin/shapeless
- * Source: https://github.com/milessabin/shapeless
-
-
 ## minimal-json (0.9.5)
 
  * Maven coordinates: `com.eclipsesource.minimal-json:minimal-json:0.9.5`
@@ -352,17 +344,17 @@
  * Source: https://github.com/dropwizard/metrics/metrics-healthchecks/
 
 
-## JJWT :: API (0.10.1)
+## JJWT :: API (0.10.6)
 
- * Maven coordinates: `io.jsonwebtoken:jjwt-api:0.10.1`
+ * Maven coordinates: `io.jsonwebtoken:jjwt-api:0.10.6`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://github.com/jwtk/jjwt/jjwt-api
  * Source: https://github.com/jwtk/jjwt/jjwt-api
 
 
-## JJWT :: Impl (0.10.1)
+## JJWT :: Impl (0.10.6)
 
- * Maven coordinates: `io.jsonwebtoken:jjwt-impl:0.10.1`
+ * Maven coordinates: `io.jsonwebtoken:jjwt-impl:0.10.6`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://github.com/jwtk/jjwt/jjwt-impl
  * Source: https://github.com/jwtk/jjwt/jjwt-impl
@@ -408,9 +400,25 @@
  * Source: https://github.com/netty/netty/netty-buffer
 
 
+## Netty/Buffer (4.1.33.Final)
+
+ * Maven coordinates: `io.netty:netty-buffer:4.1.33.Final`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: http://netty.io/netty-buffer/
+ * Source: https://github.com/netty/netty/netty-buffer
+
+
 ## Netty/Codec (4.1.32.Final)
 
  * Maven coordinates: `io.netty:netty-codec:4.1.32.Final`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: http://netty.io/netty-codec/
+ * Source: https://github.com/netty/netty/netty-codec
+
+
+## Netty/Codec (4.1.33.Final)
+
+ * Maven coordinates: `io.netty:netty-codec:4.1.33.Final`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: http://netty.io/netty-codec/
  * Source: https://github.com/netty/netty/netty-codec
@@ -432,9 +440,25 @@
  * Source: https://github.com/netty/netty/netty-common
 
 
+## Netty/Common (4.1.33.Final)
+
+ * Maven coordinates: `io.netty:netty-common:4.1.33.Final`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: http://netty.io/netty-common/
+ * Source: https://github.com/netty/netty/netty-common
+
+
 ## Netty/Handler (4.1.32.Final)
 
  * Maven coordinates: `io.netty:netty-handler:4.1.32.Final`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: http://netty.io/netty-handler/
+ * Source: https://github.com/netty/netty/netty-handler
+
+
+## Netty/Handler (4.1.33.Final)
+
+ * Maven coordinates: `io.netty:netty-handler:4.1.33.Final`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: http://netty.io/netty-handler/
  * Source: https://github.com/netty/netty/netty-handler
@@ -448,9 +472,25 @@
  * Source: https://github.com/netty/netty/netty-resolver
 
 
+## Netty/Resolver (4.1.33.Final)
+
+ * Maven coordinates: `io.netty:netty-resolver:4.1.33.Final`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: http://netty.io/netty-resolver/
+ * Source: https://github.com/netty/netty/netty-resolver
+
+
 ## Netty/Transport (4.1.32.Final)
 
  * Maven coordinates: `io.netty:netty-transport:4.1.32.Final`
+ * License: [Apache-2.0](licenses/Apache-2.0.txt)
+ * Project: http://netty.io/netty-transport/
+ * Source: https://github.com/netty/netty/netty-transport
+
+
+## Netty/Transport (4.1.33.Final)
+
+ * Maven coordinates: `io.netty:netty-transport:4.1.33.Final`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: http://netty.io/netty-transport/
  * Source: https://github.com/netty/netty/netty-transport
@@ -688,28 +728,12 @@
  * Source: https://svn.forge.objectweb.org/cgi-bin/viewcvs.cgi/asm/trunk/asm-util/
 
 
-## parboiled (2.1.4)
-
- * Maven coordinates: `org.parboiled:parboiled_2.12:2.1.4`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: http://parboiled.org
- * Source: https://github.com/sirthias/parboiled2
-
-
 ## reactive-streams (1.0.2)
 
  * Maven coordinates: `org.reactivestreams:reactive-streams:1.0.2`
  * License: [CC0](licenses/CC0.txt)
  * Project: http://www.reactive-streams.org/
  * Source: https://github.com/reactive-streams/reactive-streams
-
-
-## Scala Library (2.12.1)
-
- * Maven coordinates: `org.scala-lang:scala-library:2.12.1`
- * License: [BSD-3-Clause](licenses/BSD-3-Clause.txt)
- * Project: http://www.scala-lang.org/
- * Source: https://github.com/scala/scala
 
 
 ## Scala Library (2.12.8)
@@ -758,14 +782,6 @@
  * License: [MIT](licenses/MIT.txt)
  * Project: http://www.slf4j.org
  * Source: https://github.com/qos-ch/slf4j/slf4j-api
-
-
-## core (1.1.1)
-
- * Maven coordinates: `org.typelevel:macro-compat_2.12:1.1.1`
- * License: [Apache-2.0](licenses/Apache-2.0.txt)
- * Project: https://github.com/milessabin/macro-compat
- * Source: https://github.com/milessabin/macro-compat
 
 
 ## bytebuffer (5.0.1)
