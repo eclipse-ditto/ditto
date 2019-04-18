@@ -132,12 +132,13 @@ public final class ConciergeRootActor extends AbstractActor {
         requireNonNull(authorizationProxyPropsFactory);
         requireNonNull(materializer);
 
+        pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
+
         final ActorContext context = getContext();
 
         authorizationProxyPropsFactory.startEnforcerActor(context, configReader, pubSubMediator);
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
 
-        final ActorRef conciergeForwarder = getContext().findChild(ConciergeForwarderActor.ACTOR_NAME).orElseThrow(() ->
+        final ActorRef conciergeForwarder = context.findChild(ConciergeForwarderActor.ACTOR_NAME).orElseThrow(() ->
                 new IllegalStateException("ConciergeForwarder could not be found"));
 
         startClusterSingletonActor(context, BatchSupervisorActor.ACTOR_NAME,

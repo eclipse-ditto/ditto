@@ -281,7 +281,7 @@ public final class BatchSupervisorActorTest {
         public AbstractActor.Receive createReceive() {
             return ReceiveBuilder.create()
                     .match(Signal.class, signal -> {
-                        final Object msg = ConciergeWrapper.wrapForEnforcer(signal);
+                        final Object msg = ConciergeWrapper.wrapForEnforcerRouter(signal);
                         enforcerActor.tell(msg, getSender());
                     })
                     .build();

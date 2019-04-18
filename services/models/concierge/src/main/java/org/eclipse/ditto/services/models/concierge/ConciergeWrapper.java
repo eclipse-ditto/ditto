@@ -31,7 +31,7 @@ public final class ConciergeWrapper {
      * @param signal the signal to wrap.
      * @return the message envelope.
      */
-    public static ConsistentHashingRouter.ConsistentHashableEnvelope wrapForEnforcer(final Signal<?> signal) {
+    public static ConsistentHashingRouter.ConsistentHashableEnvelope wrapForEnforcerRouter(final Signal<?> signal) {
         return new ConsistentHashingRouter.ConsistentHashableEnvelope(signal, hashFor(signal));
     }
 

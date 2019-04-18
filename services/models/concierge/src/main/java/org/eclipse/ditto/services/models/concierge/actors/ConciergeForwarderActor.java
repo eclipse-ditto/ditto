@@ -121,7 +121,7 @@ public class ConciergeForwarderActor extends AbstractActor {
             pubSubMediator.forward(msg, ctx);
         } else {
             log.info("Forwarding signal with ID <{}> and type <{}> to concierge enforcer", signalId, signalType);
-            final Object msg = ConciergeWrapper.wrapForEnforcer(transformedSignal);
+            final Object msg = ConciergeWrapper.wrapForEnforcerRouter(transformedSignal);
             log.debug("Forwarding message to concierge enforcer: <{}>", msg);
             conciergeEnforcer.forward(msg, ctx);
         }

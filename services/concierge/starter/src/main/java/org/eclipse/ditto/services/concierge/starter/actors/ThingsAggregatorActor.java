@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.concierge.util.config.AbstractConciergeConfigReader;
+import org.eclipse.ditto.services.models.concierge.ConciergeWrapper;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -157,7 +158,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
                                 .map(sf -> SudoRetrieveThing.of(thingId, sf, dittoHeaders))
                                 .orElse(SudoRetrieveThing.of(thingId, dittoHeaders));
                     }
-                    return toBeWrapped;
+                    return ConciergeWrapper.wrapForEnforcerRouter(toBeWrapped);
                 })
                 .ask(calculateParallelism(thingIds), targetActor, Jsonifiable.class,
                         Timeout.apply(retrieveSingleThingTimeout.toMillis(), TimeUnit.MILLISECONDS))
