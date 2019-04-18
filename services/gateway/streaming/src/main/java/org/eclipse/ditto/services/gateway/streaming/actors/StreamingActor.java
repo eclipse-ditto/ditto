@@ -28,6 +28,7 @@ import org.eclipse.ditto.signals.base.Signal;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.Cancellable;
 import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
@@ -62,6 +63,7 @@ public final class StreamingActor extends AbstractActor {
             }).build());
 
     private final Gauge streamingSessionsCounter;
+    private final Cancellable sessionCounterScheduler;
 
     private StreamingActor(final ActorRef pubSubMediator, final ActorRef commandRouter) {
         this.pubSubMediator = pubSubMediator;
@@ -69,14 +71,21 @@ public final class StreamingActor extends AbstractActor {
 
         streamingSessionsCounter = DittoMetrics.gauge("streaming-sessions-count");
 
-        getContext().getSystem().getScheduler()
+        sessionCounterScheduler = getContext().getSystem().getScheduler()
                 .schedule(SESSIONS_COUNTER_SCRAPE_INTERVAL, SESSIONS_COUNTER_SCRAPE_INTERVAL,
-                this::updateStreamingSessionsCounter, getContext().getDispatcher());
+                        this::updateStreamingSessionsCounter, getContext().getDispatcher());
     }
 
     private void updateStreamingSessionsCounter() {
-        streamingSessionsCounter.set(
-                StreamSupport.stream(getContext().getChildren().spliterator(), false).count());
+        if (getContext() != null) {
+            streamingSessionsCounter.set(
+                    StreamSupport.stream(getContext().getChildren().spliterator(), false).count());
+        }
+    }
+
+    @Override
+    public void postStop() {
+        sessionCounterScheduler.cancel();
     }
 
     /**
