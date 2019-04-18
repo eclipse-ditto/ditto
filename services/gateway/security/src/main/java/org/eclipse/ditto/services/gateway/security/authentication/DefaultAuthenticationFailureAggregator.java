@@ -1,0 +1,120 @@
+/*
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ *
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
+package org.eclipse.ditto.services.gateway.security.authentication;
+
+import java.text.MessageFormat;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
+
+/**
+ * Default implementation of {@link AuthenticationFailureAggregator}.
+ */
+@Immutable
+final class DefaultAuthenticationFailureAggregator implements AuthenticationFailureAggregator {
+
+    private static final String AGGREGATED_AUTH_FAILURE_MESSAGE =
+            "Multiple authentication mechanisms were applicable but none succeeded.";
+
+    private static final String AGGREGATED_AUTH_FAILURE_DESCRIPTION_PREFIX =
+            "For a successful authentication see the following suggestions: ";
+
+    private DefaultAuthenticationFailureAggregator() {
+        super();
+    }
+
+    static DefaultAuthenticationFailureAggregator getInstance() {
+        return new DefaultAuthenticationFailureAggregator();
+    }
+
+    @Override
+    public DittoRuntimeException aggregateAuthenticationFailures(final List<AuthenticationResult> failedAuthResults) {
+        final List<DittoRuntimeException> reasonsOfFailure = getDittoRuntimeExceptionReasonsWithDescription(failedAuthResults);
+
+        if (reasonsOfFailure.isEmpty()) {
+            final String msgPattern = "The failed authentication results did not contain any failure reason of type " +
+                    "<{0}> containing a description!";
+            final String message = MessageFormat.format(msgPattern, DittoRuntimeException.class.getSimpleName());
+            throw new IllegalArgumentException(message);
+        }
+
+        if (1 == reasonsOfFailure.size()) {
+            return reasonsOfFailure.get(0);
+        }
+
+        return reasonsOfFailure.stream()
+                .filter(reasonOfFailure -> !HttpStatusCode.UNAUTHORIZED.equals(reasonOfFailure.getStatusCode()))
+                .findFirst()
+                .orElseGet(() -> GatewayAuthenticationFailedException.newBuilder(AGGREGATED_AUTH_FAILURE_MESSAGE)
+                        .description(buildAggregatedDescriptionFromDittoRuntimeExceptions(reasonsOfFailure))
+                        .dittoHeaders(buildAggregatedHeaders(reasonsOfFailure))
+                        .build());
+    }
+
+    private static List<DittoRuntimeException> getDittoRuntimeExceptionReasonsWithDescription(
+            final Collection<AuthenticationResult> failedAuthenticationResults) {
+
+        return failedAuthenticationResults.stream()
+                .map(AuthenticationResult::getReasonOfFailure)
+                .map(DefaultAuthenticationFailureAggregator::toDittoRuntimeException)
+                .filter(Objects::nonNull)
+                .filter(reasonOfFailure -> reasonOfFailure.getDescription().isPresent())
+                .collect(Collectors.toList());
+    }
+
+    @Nullable
+    private static DittoRuntimeException toDittoRuntimeException(final Throwable throwable) {
+        if (throwable instanceof DittoRuntimeException) {
+            return (DittoRuntimeException) throwable;
+        } else if (null == throwable) {
+            return null;
+        } else {
+            return toDittoRuntimeException(throwable.getCause());
+        }
+    }
+
+    private static String buildAggregatedDescriptionFromDittoRuntimeExceptions(
+            final Collection<DittoRuntimeException> reasonsOfFailure) {
+
+        final Function<Optional<String>, String> toDescriptionString =
+                optional -> optional.map(description -> "{ " + description + " }").orElse("");
+
+        final String reasonDescriptions = reasonsOfFailure.stream()
+                .map(DittoRuntimeException::getDescription)
+                .map(toDescriptionString)
+                .collect(Collectors.joining(", "));
+
+        return AGGREGATED_AUTH_FAILURE_DESCRIPTION_PREFIX + reasonDescriptions + ".";
+    }
+
+    private static DittoHeaders buildAggregatedHeaders(final Iterable<DittoRuntimeException> reasonsOfFailure) {
+        final DittoHeadersBuilder dittoHeadersBuilder = DittoHeaders.newBuilder();
+        for (final DittoRuntimeException reasonOfFailure : reasonsOfFailure) {
+            dittoHeadersBuilder.putHeaders(reasonOfFailure.getDittoHeaders());
+        }
+        return dittoHeadersBuilder.build();
+    }
+
+}

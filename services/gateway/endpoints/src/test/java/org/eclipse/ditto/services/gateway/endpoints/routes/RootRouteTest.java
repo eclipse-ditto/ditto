@@ -16,6 +16,8 @@ import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.UNKNOWN_PATH;
 
 import java.util.UUID;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
@@ -29,6 +31,7 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
+import org.eclipse.ditto.services.gateway.starter.service.util.DefaultHttpClientFacade;
 import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
 import org.junit.Before;
 import org.junit.Test;
@@ -76,13 +79,18 @@ public final class RootRouteTest extends EndpointTestBase {
     private static final String HTTPS = "https";
 
     private TestRoute rootTestRoute;
+    private final Executor messageDispatcher;
+
+    public RootRouteTest() {
+        this.messageDispatcher = Executors.newFixedThreadPool(8);
+    }
 
     @Before
     public void setUp() {
         final Config config = system().settings().config();
-        final HttpClientFacade httpClient = HttpClientFacade.getInstance(system());
+        final HttpClientFacade httpClient = DefaultHttpClientFacade.getInstance(system());
         final DittoGatewayAuthenticationDirectiveFactory authenticationDirectiveFactory =
-                new DittoGatewayAuthenticationDirectiveFactory(config, httpClient);
+                new DittoGatewayAuthenticationDirectiveFactory(config, httpClient, messageDispatcher);
         final RouteFactory routeFactory = RouteFactory.newInstance(system(),
                 createDummyResponseActor(),
                 createDummyResponseActor(),
@@ -279,8 +287,8 @@ public final class RootRouteTest extends EndpointTestBase {
     public void getExceptionForDuplicateHeaderFields() {
         final TestRouteResult result =
                 rootTestRoute.run(withHttps(withDummyAuthentication(HttpRequest.GET(THINGS_1_PATH_WITH_IDS)
-                        .addHeader(RawHeader.create("location", UUID.randomUUID().toString()))
-                        .addHeader(RawHeader.create("location", UUID.randomUUID().toString()))
+                                .addHeader(RawHeader.create("location", UUID.randomUUID().toString()))
+                                .addHeader(RawHeader.create("location", UUID.randomUUID().toString()))
                         ))
                 );
         result.assertStatusCode(StatusCodes.BAD_REQUEST);

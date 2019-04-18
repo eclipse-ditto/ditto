@@ -78,6 +78,11 @@ public final class BsonCollectionAssert
         return new BsonAssert(value).as(description);
     }
 
+    @Override
+    protected BsonCollectionAssert newAbstractIterableAssert(final Iterable<? extends Bson> iterable) {
+        return new BsonCollectionAssert((Collection<Bson>) iterable);
+    }
+
     private void assertBothOrNonNull(final Object expected) {
         if (null == expected) {
             Assertions.assertThat(actual).isNull();

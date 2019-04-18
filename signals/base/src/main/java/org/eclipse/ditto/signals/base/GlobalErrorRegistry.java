@@ -139,6 +139,7 @@ public final class GlobalErrorRegistry extends AbstractErrorRegistry<DittoRuntim
                 } catch (final IllegalAccessException | InvocationTargetException e) {
                     throw JsonTypeNotParsableException.newBuilder(errorCode, getClass().getSimpleName())
                             .dittoHeaders(dittoHeaders)
+                            .cause(e)
                             .build();
                 }
             });

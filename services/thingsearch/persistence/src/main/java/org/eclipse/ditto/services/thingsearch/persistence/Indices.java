@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.thingsearch.persistence;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETE_AT;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_GLOBAL_READ;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_GRANTED_PATH;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ID;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_NAMESPACE;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_PATH_KEY;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_PATH_VALUE;
@@ -61,7 +62,7 @@ public final class Indices {
      * Index for namespace.
      */
     private static final Index NAMESPACE = IndexFactory.newInstance("namespace",
-            Collections.singletonList(FIELD_NAMESPACE), false);
+            Arrays.asList(FIELD_NAMESPACE, FIELD_ID), false);
 
     /**
      * Gets all defined indices.

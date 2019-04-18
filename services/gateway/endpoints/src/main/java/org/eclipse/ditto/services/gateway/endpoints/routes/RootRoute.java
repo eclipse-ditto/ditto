@@ -28,8 +28,10 @@ import static org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggi
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -128,7 +130,7 @@ public final class RootRoute {
         customApiRoutesProvider = builder.customApiRoutesProvider;
         apiAuthenticationDirective = builder.httpAuthenticationDirective;
         wsAuthenticationDirective = builder.wsAuthenticationDirective;
-        exceptionHandler = builder.exceptionHandler;
+        exceptionHandler = null != builder.exceptionHandler ? builder.exceptionHandler : createExceptionHandler();
         supportedSchemaVersions = builder.supportedSchemaVersions;
         protocolAdapterProvider = builder.protocolAdapterProvider;
         headerTranslator = builder.headerTranslator;
@@ -140,8 +142,12 @@ public final class RootRoute {
         return new Builder()
                 .customApiRoutesProvider(NoopCustomApiRoutesProvider.getInstance())
                 .customHeadersHandler(NoopCustomHeadersHandler.getInstance())
-                .exceptionHandler(createExceptionHandler())
                 .rejectionHandler(DittoRejectionHandlerFactory.createInstance());
+    }
+
+    private static Route newRouteInstance(final Builder builder) {
+        final RootRoute rootRoute = new RootRoute(builder);
+        return rootRoute.buildRoute();
     }
 
     private Route buildRoute() {
@@ -198,11 +204,15 @@ public final class RootRoute {
         return outerRouteProvider.apply(innerRouteProvider);
     }
 
-    private Route apiAuthentication(final String correlationId, final Function<AuthorizationContext, Route> inner) {
+    private Route apiAuthentication(final CharSequence correlationId,
+            final Function<AuthorizationContext, Route> inner) {
+
         return apiAuthenticationDirective.authenticate(correlationId, inner);
     }
 
-    private Route wsAuthentication(final String correlationId, final Function<AuthorizationContext, Route> inner) {
+    private Route wsAuthentication(final CharSequence correlationId,
+            final Function<AuthorizationContext, Route> inner) {
+
         return wsAuthenticationDirective.authenticate(correlationId, inner);
     }
 
@@ -243,7 +253,7 @@ public final class RootRoute {
         );
     }
 
-    private Route ensureSchemaVersion(final Function<Integer, Route> inner) {
+    private Route ensureSchemaVersion(final IntFunction<Route> inner) {
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.integerSegment()),
                 apiVersion -> { // /xx/<schemaVersion>
                     if (supportedSchemaVersions.contains(apiVersion)) {
@@ -254,19 +264,29 @@ public final class RootRoute {
                         } catch (final Exception e) {
                             throw new IllegalStateException("Unexpected checked exception", e);
                         }
-                    } else {
-                        final CommandNotSupportedException commandNotSupportedException =
-                                CommandNotSupportedException.newBuilder(apiVersion).build();
-                        return complete(
-                                HttpResponse.create().withStatus(commandNotSupportedException.getStatusCode().toInt())
-                                        .withEntity(ContentTypes.APPLICATION_JSON,
-                                                ByteString.fromString(commandNotSupportedException.toJsonString())));
                     }
+                    return complete(getHttpResponseFor(CommandNotSupportedException.newBuilder(apiVersion).build()));
                 });
+    }
+
+    private HttpResponse getHttpResponseFor(final DittoRuntimeException exception) {
+        return HttpResponse.create()
+                .withStatus(exception.getStatusCode().toInt())
+                .withHeaders(getExternalHeadersFor(exception.getDittoHeaders()))
+                .withEntity(ContentTypes.APPLICATION_JSON, ByteString.fromString(exception.toJsonString()));
+    }
+
+    private Set<HttpHeader> getExternalHeadersFor(final DittoHeaders dittoHeaders) {
+        final Map<String, String> externalHeaders = headerTranslator.toExternalHeaders(dittoHeaders);
+        return externalHeaders.entrySet()
+                .stream()
+                .map(headerEntry -> HttpHeader.parse(headerEntry.getKey(), headerEntry.getValue()))
+                .collect(Collectors.toSet());
     }
 
     private Route buildApiSubRoutes(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final AuthorizationContext authorizationContext) {
+
         final Route customApiSubRoutes = customApiRoutesProvider.authorized(dittoHeaders);
 
         return Directives.route(
@@ -397,37 +417,37 @@ public final class RootRoute {
         return headerTranslator.fromExternalHeaders(externalHeaders);
     }
 
-    private static ExceptionHandler createExceptionHandler() {
+    private ExceptionHandler createExceptionHandler() {
         return ExceptionHandler.newBuilder()
-                .match(DittoRuntimeException.class, cre -> {
-                    final DittoHeaders dittoHeaders = cre.getDittoHeaders();
-                    final Optional<String> correlationIdOpt = dittoHeaders.getCorrelationId();
-                    if (!correlationIdOpt.isPresent()) {
-                        LOGGER.warn("DittoHeaders / correlation-id was missing in DittoRuntimeException <{}>: {}",
-                                cre.getClass().getSimpleName(), cre.getMessage());
-                    }
-                    enhanceLogWithCorrelationId(correlationIdOpt, () ->
-                            LOGGER.info("DittoRuntimeException in gateway RootRoute: {}", cre.getMessage())
-                    );
-                    return complete(HttpResponse.create().withStatus(cre.getStatusCode().toInt())
-                            .withEntity(ContentTypes.APPLICATION_JSON, ByteString.fromString(cre.toJsonString())));
+                .match(DittoRuntimeException.class, dittoRuntimeException -> {
+                    logException(dittoRuntimeException);
+                    return complete(getHttpResponseFor(dittoRuntimeException));
                 })
-                .match(JsonRuntimeException.class, jre -> {
-                    final DittoJsonException dittoJsonException = new DittoJsonException(jre);
-                    final DittoHeaders dittoHeaders = dittoJsonException.getDittoHeaders();
-                    enhanceLogWithCorrelationId(dittoHeaders.getCorrelationId(), () ->
-                            LOGGER.info("DittoJsonException in gateway RootRoute: {}",
-                                    dittoJsonException.getMessage()));
-                    return complete(HttpResponse.create().withStatus(dittoJsonException.getStatusCode().toInt())
-                            .withEntity(ContentTypes.APPLICATION_JSON,
-                                    ByteString.fromString(dittoJsonException.toJsonString())));
+                .match(JsonRuntimeException.class, jsonRuntimeException -> {
+                    final DittoRuntimeException dittoRuntimeException = new DittoJsonException(jsonRuntimeException);
+                    logException(dittoRuntimeException);
+                    return complete(getHttpResponseFor(dittoRuntimeException));
                 })
                 .matchAny(throwable -> {
-                    LOGGER.error("Unexpected RuntimeException in gateway RootRoute: {}", throwable.getMessage(),
+                    LOGGER.error("Unexpected RuntimeException in gateway root route: <{}>!", throwable.getMessage(),
                             throwable);
+
                     return complete(StatusCodes.INTERNAL_SERVER_ERROR);
                 })
                 .build();
+    }
+
+    private static void logException(final DittoRuntimeException exception) {
+        final DittoHeaders dittoHeaders = exception.getDittoHeaders();
+
+        final Optional<String> correlationIdOptional = dittoHeaders.getCorrelationId();
+        final String simpleExceptionName = exception.getClass().getSimpleName();
+        final String exceptionMessage = exception.getMessage();
+        if (!correlationIdOptional.isPresent()) {
+            LOGGER.warn("Correlation ID was missing in headers of <{}>: <{}>!", simpleExceptionName, exceptionMessage);
+        }
+        enhanceLogWithCorrelationId(correlationIdOptional,
+                () -> LOGGER.info("<{}> occurred in gateway root route: <{}>!", simpleExceptionName, exceptionMessage));
     }
 
     @NotThreadSafe
@@ -456,6 +476,7 @@ public final class RootRoute {
         private RejectionHandler rejectionHandler;
 
         private Builder() {
+            super();
         }
 
         @Override
@@ -466,7 +487,7 @@ public final class RootRoute {
 
         @Override
         public RootRouteBuilder overallStatusRoute(final OverallStatusRoute route) {
-            this.overallStatusRoute = route;
+            overallStatusRoute = route;
             return this;
         }
 
@@ -574,7 +595,7 @@ public final class RootRoute {
 
         @Override
         public Route build() {
-            return new RootRoute(this).buildRoute();
+            return newRouteInstance(this);
         }
 
     }

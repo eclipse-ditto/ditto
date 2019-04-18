@@ -47,9 +47,11 @@ public final class AuthorizationContextVersioningDirective {
      * @param inner the inner Route to wrap with the mapped {@link AuthorizationContext}
      * @return the new Route the mapped authentication {@link AuthorizationContext}
      */
-    public static Route mapAuthorizationContext(final String correlationId, final int apiVersion,
+    public static Route mapAuthorizationContext(final CharSequence correlationId,
+            final int apiVersion,
             final AuthorizationContext authContextWithPrefixedSubjects,
             final Function<AuthorizationContext, Route> inner) {
+
         return DirectivesLoggingUtils.enhanceLogWithCorrelationId(correlationId, () -> {
             LOGGER.debug("Original authorization context: {}", authContextWithPrefixedSubjects);
 

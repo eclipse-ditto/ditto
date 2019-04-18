@@ -29,7 +29,7 @@ import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.concierge.EntityId;
-import org.eclipse.ditto.services.models.concierge.cache.Entry;
+import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -127,7 +127,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
         LogUtil.enhanceLogWithCorrelationIdOrRandom(signal);
         return enforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             if (enforcerEntry.exists()) {
-                final Enforcer enforcer = enforcerEntry.getValue();
+                final Enforcer enforcer = enforcerEntry.getValueOrThrow();
 
                 final String correlationId = signal.getDittoHeaders().getCorrelationId().get();
                 if (signal instanceof SendClaimMessage) {
