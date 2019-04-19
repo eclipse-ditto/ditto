@@ -17,22 +17,22 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.signals.base.AbstractAnnotationBasedJsonParsableBuilder;
 import org.eclipse.ditto.signals.base.AbstractGlobalJsonParsableRegistry;
-import org.eclipse.ditto.signals.base.AbstractJsonParsableRegistry;
 
 /**
  * Contains all strategies to deserialize subclasses of {@link Command} from a combination of
  * {@link JsonObject} and {@link DittoHeaders}.
  */
 @Immutable
-public final class GlobalCommandResponseRegistry extends AbstractJsonParsableRegistry<CommandResponse>
+public final class GlobalCommandResponseRegistry
+        extends AbstractGlobalJsonParsableRegistry<CommandResponse, JsonParsableCommandResponse>
         implements CommandResponseRegistry<CommandResponse> {
 
-    private static final GlobalCommandResponseRegistry INSTANCE =
-            new GlobalCommandResponseRegistry(new JsonParsableCommandResponseRegistry());
+    private static final GlobalCommandResponseRegistry INSTANCE = new GlobalCommandResponseRegistry();
 
-    private GlobalCommandResponseRegistry(final JsonParsableCommandResponseRegistry jsonParsableRegistry) {
-        super(jsonParsableRegistry.getParseStrategies());
+    private GlobalCommandResponseRegistry() {
+        super(CommandResponse.class, JsonParsableCommandResponse.class, new CommandResponseParsingStrategyBuilder());
     }
 
     /**
@@ -53,12 +53,10 @@ public final class GlobalCommandResponseRegistry extends AbstractJsonParsableReg
      * Contains all strategies to deserialize {@link CommandResponse} annotated with {@link JsonParsableCommandResponse}
      * from a combination of {@link JsonObject} and {@link DittoHeaders}.
      */
-    private static final class JsonParsableCommandResponseRegistry
-            extends AbstractGlobalJsonParsableRegistry<CommandResponse, JsonParsableCommandResponse> {
+    private static final class CommandResponseParsingStrategyBuilder
+            extends AbstractAnnotationBasedJsonParsableBuilder<CommandResponse, JsonParsableCommandResponse> {
 
-        private JsonParsableCommandResponseRegistry() {
-            super(CommandResponse.class, JsonParsableCommandResponse.class);
-        }
+        private CommandResponseParsingStrategyBuilder() {}
 
         @Override
         protected String getV1FallbackKeyFor(final JsonParsableCommandResponse annotation) {

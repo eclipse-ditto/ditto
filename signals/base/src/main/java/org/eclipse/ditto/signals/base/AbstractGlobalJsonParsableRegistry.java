@@ -18,40 +18,57 @@
 
  import org.atteo.classindex.ClassIndex;
 
- public abstract class AbstractGlobalJsonParsableRegistry<T, A extends Annotation> {
+ public abstract class AbstractGlobalJsonParsableRegistry<T, A extends Annotation>
+         extends AbstractJsonParsableRegistry<T> {
 
-     private final Map<String, JsonParsable<T>> parseStrategies;
+     protected AbstractGlobalJsonParsableRegistry(
+             final Class<T> parsedClass,
+             final Class<A> annotationClass,
+             final AbstractAnnotationBasedJsonParsableBuilder<T, A> annotationBasedJsonParsableBuilder) {
 
-     protected AbstractGlobalJsonParsableRegistry(final Class<T> parsedClass, final Class<A> annotationClass) {
-         this.parseStrategies = initParseStrategies(parsedClass, annotationClass);
+         super(initAnnotationBasedParseStrategies(parsedClass, annotationClass, annotationBasedJsonParsableBuilder));
      }
 
-     private Map<String, JsonParsable<T>> initParseStrategies(final Class<T> parsedClass,
-             final Class<A> annotationClass) {
+     protected AbstractGlobalJsonParsableRegistry(
+             final Class<T> parsedClass,
+             final Class<A> annotationClass,
+             final AbstractAnnotationBasedJsonParsableBuilder<T, A> annotationBasedJsonParsableBuilder,
+             final Map<String, JsonParsable<T>> parseStrategies) {
+
+         super(mergeParsingStrategies(
+                 initAnnotationBasedParseStrategies(parsedClass, annotationClass, annotationBasedJsonParsableBuilder),
+                 parseStrategies)
+         );
+     }
+
+     private static <T> Map<String, JsonParsable<T>> mergeParsingStrategies(
+             final Map<String, JsonParsable<T>> annotationBasedStrategies,
+             final Map<String, JsonParsable<T>> otherStrategies) {
+
+         final HashMap<String, JsonParsable<T>> mergedStrategies = new HashMap<>();
+         mergedStrategies.putAll(annotationBasedStrategies);
+         mergedStrategies.putAll(otherStrategies);
+         return mergedStrategies;
+     }
+
+     private static <T, A extends Annotation> Map<String, JsonParsable<T>> initAnnotationBasedParseStrategies(
+             final Class<T> parsedClass,
+             final Class<A> annotationClass,
+             final AbstractAnnotationBasedJsonParsableBuilder<T, A> annotationBasedJsonParsableBuilder) {
+
          final Map<String, JsonParsable<T>> parseRegistries = new HashMap<>();
          final Iterable<Class<?>> annotatedClasses = ClassIndex.getAnnotated(annotationClass);
+
          annotatedClasses.forEach(parsableException -> {
              final A fromJsonAnnotation = parsableException.getAnnotation(annotationClass);
-             final String methodName = getMethodNameFor(fromJsonAnnotation);
-             final String key = getKeyFor(fromJsonAnnotation);
-             final String v1FallbackKey = getV1FallbackKeyFor(fromJsonAnnotation);
 
              final AnnotationBasedJsonParsable<T>
-                     strategy = new AnnotationBasedJsonParsable<>(key, v1FallbackKey, parsedClass,
-                     methodName);
+                     strategy = annotationBasedJsonParsableBuilder.fromAnnotation(fromJsonAnnotation, parsedClass);
              parseRegistries.put(strategy.getKey(), strategy);
              parseRegistries.put(strategy.getV1FallbackKey(), strategy);
          });
+
          return parseRegistries;
      }
 
-     abstract protected String getV1FallbackKeyFor(A annotation);
-
-     abstract protected String getKeyFor(A annotation);
-
-     abstract protected String getMethodNameFor(A annotation);
-
-     public Map<String, JsonParsable<T>> getParseStrategies() {
-         return parseStrategies;
-     }
  }

@@ -32,20 +32,19 @@ import org.eclipse.ditto.model.base.json.JsonParsableException;
  * {@link JsonObject} and {@link DittoHeaders}.
  */
 @Immutable
-public final class GlobalErrorRegistry extends AbstractErrorRegistry<DittoRuntimeException> {
+public final class GlobalErrorRegistry
+        extends AbstractGlobalJsonParsableRegistry<DittoRuntimeException, JsonParsableException>
+        implements ErrorRegistry<DittoRuntimeException> {
 
-    private static final GlobalErrorRegistry INSTANCE = new GlobalErrorRegistry();
+    private static final GlobalErrorRegistry INSTANCE = new GlobalErrorRegistry(new DittoJsonExceptionRegistry());
 
-    private GlobalErrorRegistry() {
-        super(getParseStrategies());
-    }
-
-    private static Map<String, JsonParsable<DittoRuntimeException>> getParseStrategies() {
-        final Map<String, JsonParsable<DittoRuntimeException>> parseStrategies =
-                new JsonParsableExceptionRegistry().getParseStrategies();
-        parseStrategies.putAll(new DittoJsonExceptionRegistry().getDittoJsonParseRegistries());
-
-        return parseStrategies;
+    private GlobalErrorRegistry(final DittoJsonExceptionRegistry dittoJsonExceptionRegistry) {
+        super(
+                DittoRuntimeException.class,
+                JsonParsableException.class,
+                new ExceptionParsingStrategyBuilder(),
+                dittoJsonExceptionRegistry.getDittoJsonParseRegistries()
+        );
     }
 
     /**
@@ -99,16 +98,22 @@ public final class GlobalErrorRegistry extends AbstractErrorRegistry<DittoRuntim
 
     }
 
+    @Override
+    protected String resolveType(final JsonObject jsonObject) {
+        return jsonObject.getValue(DittoRuntimeException.JsonFields.ERROR_CODE)
+                .orElseThrow(() -> JsonMissingFieldException.newBuilder()
+                        .fieldName(DittoRuntimeException.JsonFields.ERROR_CODE.getPointer().toString())
+                        .build());
+    }
+
     /**
      * Contains all strategies to deserialize {@link DittoRuntimeException} annotated with {@link JsonParsableException}
      * from a combination of {@link JsonObject} and {@link DittoHeaders}.
      */
-    private static final class JsonParsableExceptionRegistry extends AbstractGlobalJsonParsableRegistry<DittoRuntimeException
-                , JsonParsableException> {
+    private static final class ExceptionParsingStrategyBuilder
+            extends AbstractAnnotationBasedJsonParsableBuilder<DittoRuntimeException, JsonParsableException> {
 
-        private JsonParsableExceptionRegistry() {
-            super(DittoRuntimeException.class, JsonParsableException.class);
-        }
+        private ExceptionParsingStrategyBuilder() {}
 
         @Override
         protected String getV1FallbackKeyFor(final JsonParsableException annotation) {

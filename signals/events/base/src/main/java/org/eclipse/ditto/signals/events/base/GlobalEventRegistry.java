@@ -21,7 +21,7 @@ import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
-import org.eclipse.ditto.signals.base.AbstractJsonParsableRegistry;
+import org.eclipse.ditto.signals.base.AbstractAnnotationBasedJsonParsableBuilder;
 import org.eclipse.ditto.signals.base.AbstractGlobalJsonParsableRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
 
@@ -30,12 +30,14 @@ import org.eclipse.ditto.signals.base.JsonParsable;
  * {@link JsonObject} and {@link DittoHeaders}.
  */
 @Immutable
-public final class GlobalEventRegistry extends AbstractJsonParsableRegistry<Event> implements EventRegistry<Event> {
+public final class GlobalEventRegistry
+        extends AbstractGlobalJsonParsableRegistry<Event, JsonParsableEvent>
+        implements EventRegistry<Event> {
 
-    private static final GlobalEventRegistry INSTANCE = new GlobalEventRegistry(new JsonParsableEventRegistry());
+    private static final GlobalEventRegistry INSTANCE = new GlobalEventRegistry();
 
-    private GlobalEventRegistry(final JsonParsableEventRegistry jsonParsableEventRegistry) {
-        super(jsonParsableEventRegistry.getParseStrategies());
+    private GlobalEventRegistry() {
+        super(Event.class, JsonParsableEvent.class, new EventParsingStrategyBuilder());
     }
 
     /**
@@ -78,12 +80,10 @@ public final class GlobalEventRegistry extends AbstractJsonParsableRegistry<Even
      * Contains all strategies to deserialize {@link Event} annotated with {@link JsonParsableEvent}
      * from a combination of {@link JsonObject} and {@link DittoHeaders}.
      */
-    private static final class JsonParsableEventRegistry extends
-            AbstractGlobalJsonParsableRegistry<Event, JsonParsableEvent> {
+    private static final class EventParsingStrategyBuilder extends
+            AbstractAnnotationBasedJsonParsableBuilder<Event, JsonParsableEvent> {
 
-        private JsonParsableEventRegistry() {
-            super(Event.class, JsonParsableEvent.class);
-        }
+        private EventParsingStrategyBuilder() {}
 
         @Override
         protected String getV1FallbackKeyFor(final JsonParsableEvent annotation) {
