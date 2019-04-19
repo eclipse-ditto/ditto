@@ -12,14 +12,11 @@
  */
 package org.eclipse.ditto.signals.base;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.atteo.classindex.ClassIndex;
 import org.eclipse.ditto.json.JsonFieldSelectorInvalidException;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
@@ -40,15 +37,15 @@ public final class GlobalErrorRegistry extends AbstractErrorRegistry<DittoRuntim
     private static final GlobalErrorRegistry INSTANCE = new GlobalErrorRegistry();
 
     private GlobalErrorRegistry() {
-        super(getParseRegistries());
+        super(getParseStrategies());
     }
 
-    private static Map<String, JsonParsable<DittoRuntimeException>> getParseRegistries() {
-        final Map<String, JsonParsable<DittoRuntimeException>> parseRegistries =
-                new JsonParsableExceptionRegistry().getParseRegistries();
-        parseRegistries.putAll(new DittoJsonExceptionRegistry().getDittoJsonParseRegistries());
+    private static Map<String, JsonParsable<DittoRuntimeException>> getParseStrategies() {
+        final Map<String, JsonParsable<DittoRuntimeException>> parseStrategies =
+                new JsonParsableExceptionRegistry().getParseStrategies();
+        parseStrategies.putAll(new DittoJsonExceptionRegistry().getDittoJsonParseRegistries());
 
-        return parseRegistries;
+        return parseStrategies;
     }
 
     /**
@@ -106,49 +103,27 @@ public final class GlobalErrorRegistry extends AbstractErrorRegistry<DittoRuntim
      * Contains all strategies to deserialize {@link DittoRuntimeException} annotated with {@link JsonParsableException}
      * from a combination of {@link JsonObject} and {@link DittoHeaders}.
      */
-    private static final class JsonParsableExceptionRegistry {
-
-        private static final Class<?> JSON_OBJECT_PARAMETER = JsonObject.class;
-        private static final Class<?> DITTO_HEADERS_PARAMETER = DittoHeaders.class;
-
-        private final Map<String, JsonParsable<DittoRuntimeException>> parseRegistries = new HashMap<>();
+    private static final class JsonParsableExceptionRegistry extends AbstractGlobalJsonParsableRegistry<DittoRuntimeException
+                , JsonParsableException> {
 
         private JsonParsableExceptionRegistry() {
-
-            final Iterable<Class<?>> jsonParsableExceptions = ClassIndex.getAnnotated(JsonParsableException.class);
-            jsonParsableExceptions.forEach(parsableException -> {
-                final JsonParsableException fromJsonAnnotation =
-                        parsableException.getAnnotation(JsonParsableException.class);
-                try {
-                    final String methodName = fromJsonAnnotation.method();
-                    final String errorCode = fromJsonAnnotation.errorCode();
-                    final Method method = parsableException
-                            .getMethod(methodName, JSON_OBJECT_PARAMETER, DITTO_HEADERS_PARAMETER);
-
-                    appendMethodToParseStrategies(errorCode, method);
-                } catch (final NoSuchMethodException e) {
-                    throw new DeserializationStrategyNotFoundError(parsableException, e);
-                }
-            });
+            super(DittoRuntimeException.class, JsonParsableException.class);
         }
 
-        private void appendMethodToParseStrategies(final String errorCode, final Method method) {
-            parseRegistries.put(errorCode, (jsonObject, dittoHeaders) -> {
-                try {
-                    return (DittoRuntimeException) method.invoke(null, jsonObject, dittoHeaders);
-                } catch (final IllegalAccessException | InvocationTargetException e) {
-                    throw JsonTypeNotParsableException.newBuilder(errorCode, getClass().getSimpleName())
-                            .dittoHeaders(dittoHeaders)
-                            .cause(e)
-                            .build();
-                }
-            });
+        @Override
+        protected String getV1FallbackKeyFor(final JsonParsableException annotation) {
+            return annotation.errorCode();
         }
 
-        private Map<String, JsonParsable<DittoRuntimeException>> getParseRegistries() {
-            return new HashMap<>(parseRegistries);
+        @Override
+        protected String getKeyFor(final JsonParsableException annotation) {
+            return annotation.errorCode();
         }
 
+        @Override
+        protected String getMethodNameFor(final JsonParsableException annotation) {
+            return annotation.method();
+        }
     }
 
 }

@@ -12,24 +12,18 @@
  */
 package org.eclipse.ditto.signals.events.base;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.atteo.classindex.ClassIndex;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.signals.base.AbstractJsonParsableRegistry;
-import org.eclipse.ditto.signals.base.DeserializationStrategyNotFoundError;
+import org.eclipse.ditto.signals.base.AbstractGlobalJsonParsableRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
-import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 
 /**
  * Contains all strategies to deserialize subclasses of {@link Event} from a combination of
@@ -40,12 +34,8 @@ public final class GlobalEventRegistry extends AbstractJsonParsableRegistry<Even
 
     private static final GlobalEventRegistry INSTANCE = new GlobalEventRegistry(new JsonParsableEventRegistry());
 
-    private final Map<String, String> nameToTypePrefixMap;
-
     private GlobalEventRegistry(final JsonParsableEventRegistry jsonParsableEventRegistry) {
-        super(jsonParsableEventRegistry.getParseRegistries());
-        nameToTypePrefixMap =
-                Collections.unmodifiableMap(new HashMap<>(jsonParsableEventRegistry.getNameToTypePrefixMap()));
+        super(jsonParsableEventRegistry.getParseStrategies());
     }
 
     /**
@@ -81,61 +71,33 @@ public final class GlobalEventRegistry extends AbstractJsonParsableRegistry<Even
 
     @SuppressWarnings({"squid:CallToDeprecatedMethod", "deprecation"})
     private Optional<String> extractTypeV1(final JsonObject jsonObject) {
-        return jsonObject.getValue(Event.JsonFields.ID).map(event -> nameToTypePrefixMap.get(event) + event);
+        return jsonObject.getValue(Event.JsonFields.ID);
     }
 
     /**
      * Contains all strategies to deserialize {@link Event} annotated with {@link JsonParsableEvent}
      * from a combination of {@link JsonObject} and {@link DittoHeaders}.
      */
-    private static final class JsonParsableEventRegistry {
-
-        private static final Class<?> JSON_OBJECT_PARAMETER = JsonObject.class;
-        private static final Class<?> DITTO_HEADERS_PARAMETER = DittoHeaders.class;
-
-        private final Map<String, JsonParsable<Event>> parseRegistries = new HashMap<>();
-        private final Map<String, String> nameToTypePrefixMap = new HashMap<>();
+    private static final class JsonParsableEventRegistry extends
+            AbstractGlobalJsonParsableRegistry<Event, JsonParsableEvent> {
 
         private JsonParsableEventRegistry() {
-            final Iterable<Class<?>> jsonParsableEvents = ClassIndex.getAnnotated(JsonParsableEvent.class);
-            jsonParsableEvents.forEach(parsableEvent -> {
-                final JsonParsableEvent fromJsonAnnotation = parsableEvent.getAnnotation(JsonParsableEvent.class);
-                try {
-                    final String methodName = fromJsonAnnotation.method();
-                    final String typePrefix = fromJsonAnnotation.typePrefix();
-                    final String name = fromJsonAnnotation.name();
-                    final Method method =
-                            parsableEvent.getMethod(methodName, JSON_OBJECT_PARAMETER, DITTO_HEADERS_PARAMETER);
-
-                    appendMethodToParseStrategies(typePrefix, name, method);
-                } catch (final NoSuchMethodException e) {
-                    throw new DeserializationStrategyNotFoundError(parsableEvent, e);
-                }
-            });
+            super(Event.class, JsonParsableEvent.class);
         }
 
-        private void appendMethodToParseStrategies(final String typePrefix, final String name, final Method method) {
-            final String type = typePrefix + name;
-            final JsonParsable<Event> deserializationMethod = (jsonObject, dittoHeaders) -> {
-                try {
-                    return (Event) method.invoke(null, jsonObject, dittoHeaders);
-                } catch (final IllegalAccessException | InvocationTargetException e) {
-                    throw JsonTypeNotParsableException.newBuilder(type, getClass().getSimpleName())
-                            .dittoHeaders(dittoHeaders)
-                            .cause(e)
-                            .build();
-                }
-            };
-            nameToTypePrefixMap.put(name, typePrefix);
-            parseRegistries.put(type, deserializationMethod);
+        @Override
+        protected String getV1FallbackKeyFor(final JsonParsableEvent annotation) {
+            return annotation.name();
         }
 
-        private Map<String, JsonParsable<Event>> getParseRegistries() {
-            return new HashMap<>(parseRegistries);
+        @Override
+        protected String getKeyFor(final JsonParsableEvent annotation) {
+            return annotation.typePrefix() + annotation.name();
         }
 
-        private Map<String, String> getNameToTypePrefixMap() {
-            return new HashMap<>(nameToTypePrefixMap);
+        @Override
+        protected String getMethodNameFor(final JsonParsableEvent annotation) {
+            return annotation.method();
         }
 
     }
