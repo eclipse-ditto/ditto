@@ -460,6 +460,7 @@
                                 <exclude>org.eclipse.ditto.services.models.policies.PoliciesMappingStrategy</exclude>
                                 <exclude>org.eclipse.ditto.services.models.things.ThingsMappingStrategy</exclude>
                                 <exclude>org.eclipse.ditto.services.models.thingsearch.ThingSearchMappingStrategy</exclude>
+                                <exclude>org.eclipse.ditto.signals.base.AbstractErrorRegistry</exclude>
                             </excludes>
                         </parameter>
                     </configuration>
