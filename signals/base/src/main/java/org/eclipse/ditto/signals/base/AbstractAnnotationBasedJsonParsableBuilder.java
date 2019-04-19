@@ -16,17 +16,17 @@
 
  public abstract class AbstractAnnotationBasedJsonParsableBuilder<T, A extends Annotation> {
 
-     abstract protected String getV1FallbackKeyFor(A annotation);
-
-     abstract protected String getKeyFor(A annotation);
-
-     abstract protected String getMethodNameFor(A annotation);
-
-     public AnnotationBasedJsonParsable<T> fromAnnotation(A annotation, Class<? extends T> classToParse) {
+     AnnotationBasedJsonParsable<T> fromAnnotation(final A annotation, final Class<? extends T> classToParse) {
          final String methodName = getMethodNameFor(annotation);
          final String key = getKeyFor(annotation);
          final String v1FallbackKey = getV1FallbackKeyFor(annotation);
 
          return new AnnotationBasedJsonParsable<>(key, v1FallbackKey, classToParse, methodName);
      }
+
+     protected abstract String getV1FallbackKeyFor(A annotation);
+
+     protected abstract String getKeyFor(A annotation);
+
+     protected abstract String getMethodNameFor(A annotation);
  }

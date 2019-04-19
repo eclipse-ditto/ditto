@@ -16,6 +16,7 @@
  import java.lang.reflect.Method;
 
  import org.eclipse.ditto.json.JsonObject;
+ import org.eclipse.ditto.json.JsonParseException;
  import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
  public final class AnnotationBasedJsonParsable<T> implements JsonParsable<T> {
@@ -27,7 +28,7 @@
      private final String v1FallbackKey;
      private final Method parseMethod;
 
-     public AnnotationBasedJsonParsable(final String key, final String v1FallbackKey,
+     AnnotationBasedJsonParsable(final String key, final String v1FallbackKey,
              final Class<? extends T> parsedClass,
              final String parsingMethodName) {
          this.key = key;
@@ -68,9 +69,9 @@
 
      private JsonTypeNotParsableException buildJsonTypeNotParsableException(final Throwable cause,
              final DittoHeaders dittoHeaders) {
-         throw JsonTypeNotParsableException.newBuilder(key, "TODO")
-                 .dittoHeaders(dittoHeaders)
-                 .cause(cause)
+         //TODO: throw better exception.
+         throw JsonParseException.newBuilder()
+                 .message(cause.getMessage())
                  .build();
      }
  }

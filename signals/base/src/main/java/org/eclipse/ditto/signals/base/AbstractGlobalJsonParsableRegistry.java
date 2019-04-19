@@ -15,6 +15,7 @@
  import java.lang.annotation.Annotation;
  import java.util.HashMap;
  import java.util.Map;
+ import java.util.stream.StreamSupport;
 
  import org.atteo.classindex.ClassIndex;
 
@@ -52,21 +53,24 @@
      }
 
      private static <T, A extends Annotation> Map<String, JsonParsable<T>> initAnnotationBasedParseStrategies(
-             final Class<T> parsedClass,
+             final Class<T> baseClass,
              final Class<A> annotationClass,
              final AbstractAnnotationBasedJsonParsableBuilder<T, A> annotationBasedJsonParsableBuilder) {
 
          final Map<String, JsonParsable<T>> parseRegistries = new HashMap<>();
          final Iterable<Class<?>> annotatedClasses = ClassIndex.getAnnotated(annotationClass);
 
-         annotatedClasses.forEach(parsableException -> {
-             final A fromJsonAnnotation = parsableException.getAnnotation(annotationClass);
+         StreamSupport.stream(annotatedClasses.spliterator(), false)
+                 .filter(baseClass::isAssignableFrom)
+                 .map(cls -> (Class<? extends T>) cls)
+                 .forEach(classToParse -> {
+                     final A fromJsonAnnotation = classToParse.getAnnotation(annotationClass);
 
-             final AnnotationBasedJsonParsable<T>
-                     strategy = annotationBasedJsonParsableBuilder.fromAnnotation(fromJsonAnnotation, parsedClass);
-             parseRegistries.put(strategy.getKey(), strategy);
-             parseRegistries.put(strategy.getV1FallbackKey(), strategy);
-         });
+                     final AnnotationBasedJsonParsable<T> strategy =
+                             annotationBasedJsonParsableBuilder.fromAnnotation(fromJsonAnnotation, classToParse);
+                     parseRegistries.put(strategy.getKey(), strategy);
+                     parseRegistries.put(strategy.getV1FallbackKey(), strategy);
+                 });
 
          return parseRegistries;
      }
