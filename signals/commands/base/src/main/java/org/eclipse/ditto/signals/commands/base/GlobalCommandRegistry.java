@@ -84,7 +84,7 @@ public final class GlobalCommandRegistry
 
         @Override
         protected String getMethodNameFor(final JsonParsableCommand annotation) {
-            return annotation.toString();
+            return annotation.method();
         }
 
     }
