@@ -720,7 +720,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return stay();
     }
 
-    // TODO: test
     private FSM.State<BaseClientState, BaseClientData> enableConnectionLogs(
             final EnableConnectionLogs command) {
 
@@ -744,13 +743,13 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 .source(ConfigUtil.instanceIdentifier())
                 .build();
 
-        final ConnectionLoggerRegistry.CollectionLogs collectionLogs =
+        final ConnectionLoggerRegistry.ConnectionLogs connectionLogs =
                 connectionLoggerRegistry.aggregateLogs(connectionId());
 
         getSender().tell(
-                RetrieveConnectionLogsResponse.of(connectionId(), collectionLogs.getLogs(),
-                        collectionLogs.getEnabledSince(),
-                        collectionLogs.getEnabledUntil(), dittoHeaders),
+                RetrieveConnectionLogsResponse.of(connectionId(), connectionLogs.getLogs(),
+                        connectionLogs.getEnabledSince(),
+                        connectionLogs.getEnabledUntil(), dittoHeaders),
                 getSelf());
 
         return stay();

@@ -86,7 +86,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
      * @param connectionId connection id
      * @return the {@link org.eclipse.ditto.model.connectivity.LogEntry}s.
      */
-    public CollectionLogs aggregateLogs(final String connectionId) {
+    public ConnectionLogs aggregateLogs(final String connectionId) {
         ConnectionLogUtil.enhanceLogWithConnectionId(connectionId);
         LOGGER.info("Aggregating logs for connection <{}>.", connectionId);
 
@@ -98,7 +98,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
                 .collect(Collectors.toList());
         // TODO: should we sort the log entries by date?
         LOGGER.debug("Aggregated logs for connection <{}>: {}", connectionId, logs);
-        return new CollectionLogs(timing.getEnabledSince(), timing.getEnabledUntil(), logs);
+        return new ConnectionLogs(timing.getEnabledSince(), timing.getEnabledUntil(), logs);
     }
 
     // TODO: doc, test and use
@@ -110,7 +110,6 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
                 .forEach(MuteableConnectionLogger::mute);
     }
 
-    // TODO: test
     /**
      * Unmute / activate all loggers for the connection {@code connectionId}.
      * @param connectionId the connection for which the loggers should be enabled.
@@ -322,13 +321,13 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
      * Helper class that stores logs together with information on when they were enabled and how long they will stay enabled.
      */
     @Immutable
-    public static final class CollectionLogs {
+    public static final class ConnectionLogs {
 
         @Nullable private final Instant enabledSince;
         @Nullable private final Instant enabledUntil;
         private final Collection<LogEntry> logs;
 
-        private CollectionLogs(@Nullable final Instant enabledSince, @Nullable final Instant enabledUntil,
+        private ConnectionLogs(@Nullable final Instant enabledSince, @Nullable final Instant enabledUntil,
                 final Collection<LogEntry> logs) {
             this.enabledSince = enabledSince;
             this.enabledUntil = enabledUntil;
@@ -339,8 +338,8 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
          * Returns an empty instance indicating inactive logging.
          * @return an empty instance.
          */
-        public static CollectionLogs empty() {
-            return new CollectionLogs(null, null, Collections.emptyList());
+        public static ConnectionLogs empty() {
+            return new ConnectionLogs(null, null, Collections.emptyList());
         }
 
         /**
@@ -374,7 +373,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
             if (o == null || getClass() != o.getClass()) {
                 return false;
             }
-            final CollectionLogs that = (CollectionLogs) o;
+            final ConnectionLogs that = (ConnectionLogs) o;
             return Objects.equals(enabledSince, that.enabledSince) &&
                     Objects.equals(enabledUntil, that.enabledUntil) &&
                     Objects.equals(logs, that.logs);

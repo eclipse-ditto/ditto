@@ -40,6 +40,8 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnectionResponse;
+import org.eclipse.ditto.signals.commands.connectivity.modify.EnableConnectionLogs;
+import org.eclipse.ditto.signals.commands.connectivity.modify.EnableConnectionLogsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
@@ -546,6 +548,32 @@ public final class ConnectionActorTest extends WithMockServers {
 
             final ResetConnectionMetricsResponse resetResponse = ResetConnectionMetricsResponse.of(connectionId, DittoHeaders.empty());
             expectMsg(resetResponse);
+        }};
+    }
+
+    @Test
+    public void enableConnectionLogs() {
+        final EnableConnectionLogs enableConnectionLogs = EnableConnectionLogs.of(connectionId, DittoHeaders.empty());
+        final EnableConnectionLogsResponse enableConnectionLogsResponse = EnableConnectionLogsResponse.of(connectionId, enableConnectionLogs.getDittoHeaders());
+        new TestKit(actorSystem) {{
+
+            final TestProbe probe = TestProbe.apply(actorSystem);
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+            watch(underTest);
+
+            // create connection
+            underTest.tell(createConnection, getRef());
+            probe.expectMsg(openConnection);
+            expectMsg(createConnectionResponse);
+
+            // enable connection logs
+            underTest.tell(enableConnectionLogs, getRef());
+            probe.expectMsg(enableConnectionLogs);
+
+            expectMsg(enableConnectionLogsResponse);
+
         }};
     }
 

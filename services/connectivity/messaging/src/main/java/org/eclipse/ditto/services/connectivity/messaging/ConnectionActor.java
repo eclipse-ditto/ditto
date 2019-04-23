@@ -662,7 +662,6 @@ public final class ConnectionActor extends AbstractPersistentActor {
         getSender().tell(ResetConnectionMetricsResponse.of(connectionId, command.getDittoHeaders()), getSelf());
     }
 
-    // TODO: test
     private void enableConnectionLogs(final EnableConnectionLogs command) {
         if (clientActorRouter != null) {
             // forward command to all client actors with no sender

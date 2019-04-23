@@ -19,6 +19,7 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -41,7 +42,7 @@ import org.eclipse.ditto.model.connectivity.LogLevel;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLoggerRegistry.CollectionLogs;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLoggerRegistry.ConnectionLogs;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.connectivity.util.MonitoringConfigReader;
 import org.junit.Test;
@@ -100,7 +101,7 @@ public final class ConnectionLoggerRegistryTest {
         final Collection<LogEntry> connectionLogs = connectionLogger.getLogs();
         final Collection<LogEntry> inboundConsumedLogs = inboundConsumed.getLogs();
 
-        final CollectionLogs aggregatedLogs = underTest.aggregateLogs(connectionId);
+        final ConnectionLogs aggregatedLogs = underTest.aggregateLogs(connectionId);
 
         assertThat(aggregatedLogs.getEnabledSince()).isNotNull();
         assertThat(aggregatedLogs.getEnabledUntil()).isNotNull();
@@ -170,6 +171,27 @@ public final class ConnectionLoggerRegistryTest {
     }
 
     @Test
+    public void enableConnectionLogsUnmutesTheLoggersAndStartsTimer() {
+        final String connectionId = connectionId();
+        underTest.initForConnection(connection(connectionId));
+
+        final MuteableConnectionLogger anyLoggerOfConnection =
+                (MuteableConnectionLogger) underTest.forConnection(connectionId);
+
+        assertThat(anyLoggerOfConnection.isMuted()).isTrue();
+        final Instant before = Instant.now();
+
+        underTest.unmuteForConnection(connectionId);
+
+        final Instant after = Instant.now();
+
+        assertThat(anyLoggerOfConnection.isMuted()).isFalse();
+        assertThat(underTest.aggregateLogs(connectionId).getEnabledSince())
+                .isBetween(before, after);
+
+    }
+
+    @Test
     public void testEqualsAndHashcode() {
         forClass(ConnectionLoggerRegistry.class)
                 .verify();
@@ -189,12 +211,12 @@ public final class ConnectionLoggerRegistryTest {
 
     @Test
     public void testImmutabilityOfCollectionLogs() {
-        assertInstancesOf(CollectionLogs.class, areImmutable(), provided(LogEntry.class).isAlsoImmutable());
+        assertInstancesOf(ConnectionLogs.class, areImmutable(), provided(LogEntry.class).isAlsoImmutable());
     }
 
     @Test
     public void testEqualsAndHashcodeOfCollectionLogs() {
-        forClass(CollectionLogs.class).verify();
+        forClass(ConnectionLogs.class).verify();
     }
 
 }
