@@ -171,17 +171,19 @@ final class DefaultMuteableConnectionLogger implements MuteableConnectionLogger 
         }
         final DefaultMuteableConnectionLogger that = (DefaultMuteableConnectionLogger) o;
         return active == that.active &&
+                Objects.equals(connectionId, that.connectionId) &&
                 Objects.equals(delegate, that.delegate);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(delegate, active);
+        return Objects.hash(connectionId, delegate, active);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
+                ", connectionId=" + connectionId +
                 ", delegate=" + delegate +
                 ", active=" + active +
                 "]";
