@@ -359,7 +359,7 @@ public final class LogUtil {
      * @param correlationId the optional correlation ID to set.
      */
     public static void enhanceLogWithCorrelationId(@Nullable final CharSequence correlationId) {
-        if (correlationId != null && 0 > correlationId.length()) {
+        if (correlationId != null && 0 < correlationId.length()) {
             MDC.put(X_CORRELATION_ID, correlationId.toString());
         } else {
             removeCorrelationId();

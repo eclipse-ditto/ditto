@@ -19,6 +19,7 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
@@ -26,12 +27,11 @@ import java.util.function.Function;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.models.concierge.EntityId;
-import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
@@ -120,7 +120,7 @@ public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<EntityI
             final ActorRef pubSubMediator,
             final Map<String, Function<String, DistributedPubSubMediator.Send>> commandCreatorMap,
             final Map<String, Function<Object, Entry<V>>> responseTransformerMap) {
-        return new ActorAskCacheLoader<>(askTimeout, (unused) -> pubSubMediator, commandCreatorMap,
+        return new ActorAskCacheLoader<>(askTimeout, unused -> pubSubMediator, commandCreatorMap,
                 responseTransformerMap);
     }
 
@@ -153,9 +153,9 @@ public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<EntityI
     public final CompletableFuture<Entry<V>> asyncLoad(final EntityId key, final Executor executor) {
         final String resourceType = key.getResourceType();
         // provide correlation id to inner thread
-        final String correlationId = MDC.get(LogUtil.X_CORRELATION_ID);
+        final Optional<String> correlationId = LogUtil.getCorrelationId();
         return CompletableFuture.supplyAsync(() -> {
-            MDC.put(LogUtil.X_CORRELATION_ID, correlationId);
+            LogUtil.enhanceLogWithCorrelationId(correlationId);
             final String entityId = getEntityId(key);
             return getCommand(resourceType, entityId);
         }, executor).thenCompose(command -> {
