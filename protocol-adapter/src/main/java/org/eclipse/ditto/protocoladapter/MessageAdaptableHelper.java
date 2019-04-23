@@ -23,7 +23,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
-import java.util.regex.Pattern;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -40,6 +39,7 @@ import org.eclipse.ditto.model.messages.MessageHeadersBuilder;
 import org.eclipse.ditto.model.messages.MessagesModelFactory;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.messages.MessageCommandSizeValidator;
 
 /**
  * Common functionality for handling (e.g. decoding) {@link Message}s used in {@link MessageCommandAdapter} and
@@ -48,7 +48,6 @@ import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 final class MessageAdaptableHelper {
 
     private static final Base64.Decoder BASE_64_DECODER = Base64.getDecoder();
-    private static final Pattern CHARSET_PATTERN = Pattern.compile(";.?charset=");
 
     private static final String TEXT_PREFIX = "text/";
     private static final String APPLICATION_JSON = "application/json";
@@ -122,6 +121,8 @@ final class MessageAdaptableHelper {
      * </ul>
      * @throws org.eclipse.ditto.model.messages.SubjectInvalidException if {@code initialHeaders} contains an invalid
      * value for {@link MessageHeaderDefinition#SUBJECT}.
+     * @throws org.eclipse.ditto.model.messages.MessagePayloadSizeTooLargeException if the message's payload is too
+     * large
      */
     static <T> Message<T> messageFrom(final Adaptable adaptable) {
         final MessageHeaders messageHeaders = messageHeadersFrom(adaptable);
@@ -131,6 +132,7 @@ final class MessageAdaptableHelper {
 
         final MessageBuilder<T> messageBuilder = MessagesModelFactory.newMessageBuilder(messageHeaders);
         final Optional<JsonValue> value = adaptable.getPayload().getValue();
+        enforceMessageSizeLimit(messageHeaders, value);
         if (shouldBeInterpretedAsText) {
             if (isAnyText(contentType) && value.filter(JsonValue::isString).isPresent()) {
                 messageBuilder.payload((T) value.get().asString());
@@ -143,6 +145,11 @@ final class MessageAdaptableHelper {
                     .ifPresent(bytes -> messageBuilder.rawPayload(ByteBuffer.wrap(tryToDecode(bytes))));
         }
         return messageBuilder.build();
+    }
+
+    private static void enforceMessageSizeLimit(final MessageHeaders messageHeaders, final Optional<JsonValue> value) {
+        MessageCommandSizeValidator.getInstance().ensureValidSize(() ->
+                value.map(jsonValue -> jsonValue.toString().length()).orElse(0), () -> messageHeaders);
     }
 
     /**
