@@ -22,7 +22,6 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorEx
 import akka.Done;
 import akka.NotUsed;
 import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.function.Function;
@@ -30,11 +29,14 @@ import akka.japi.function.Function2;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.ActorMaterializer;
 import akka.stream.ActorMaterializerSettings;
+import akka.stream.OverflowStrategy;
+import akka.stream.QueueOfferResult;
 import akka.stream.Supervision;
 import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.MergeHub;
+import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
+import akka.stream.javadsl.SourceQueueWithComplete;
 
 /**
  * Actor whose behavior is defined entirely by an Akka stream graph.
@@ -43,21 +45,31 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
 
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    /**
-     * @return the type of the messages this graph actor's Source emits.
-     */
-    protected abstract Class<T> getMessageClass();
+    private final int bufferSize;
+    private final int parallelism;
 
     /**
-     * Provides a Source by passing each single {@code message}s this Actor received.
+     * @param bufferSize the buffer size used for the Source queue. After this limit is reached, the mailbox
+     * of this actor will rise and buffer messages as part of the backpressure strategy.
+     * @param parallelism parallelism to use for processing messages in parallel.
+     * When configured too low, throughput of messages which perform blocking operations will be bad.
+     */
+    protected AbstractGraphActor(final int bufferSize, final int parallelism) {
+
+        this.bufferSize = bufferSize;
+        this.parallelism = parallelism;
+    }
+
+    /**
+     * Provides a {@code T} by passing each single {@code message}s this Actor received.
      *
      * @param message the currently processed message of this Actor.
      * @return the created Source.
      */
-    protected abstract Source<T, NotUsed> mapMessage(WithDittoHeaders<?> message);
+    protected abstract T mapMessage(WithDittoHeaders<?> message);
 
     /**
-     * @return the Sink handling the messages of type {@link #getMessageClass()} this graph actor handles.
+     * @return the Sink handling the messages of type {@code T} this graph actor handles.
      */
     protected abstract Flow<T, T, NotUsed> getHandler();
 
@@ -72,13 +84,24 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
                                 log.warning("DittoRuntimeException during materialization of AbstractGraphActor: [{}] {}",
                                         exc.getClass().getSimpleName(), exc.getMessage());
                             } else {
-                                log.error(exc,"Exception during materialization of of AbstractGraphActor: {}", exc.getMessage());
+                                log.error(exc, "Exception during materialization of of AbstractGraphActor: {}",
+                                        exc.getMessage());
                             }
                             return Supervision.resume(); // in any case, resume!
                         }
                 );
         final ActorMaterializer materializer = ActorMaterializer.create(materializerSettings, getContext());
-        final Sink<T, NotUsed> messageHandler = createMessageHandler(materializer);
+
+        final SourceQueueWithComplete<T> sourceQueue =
+                Source.<T>queue(bufferSize, OverflowStrategy.backpressure())
+                        .mapAsyncUnordered(parallelism, msg ->
+                                Source.single(msg)
+                                        .via(getHandler())
+                                        .runWith(Sink.ignore(), materializer)
+                        )
+                        .watchTermination(handleTermination())
+                        .toMat(Sink.ignore(), Keep.left())
+                        .run(materializer);
 
         final ReceiveBuilder receiveBuilder = ReceiveBuilder.create();
         preEnhancement(receiveBuilder);
@@ -88,8 +111,13 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
                     sender().tell(dittoRuntimeException, self());
                 })
                 .match(WithDittoHeaders.class, withDittoHeaders -> {
+                    LogUtil.enhanceLogWithCorrelationId(log, withDittoHeaders);
                     log.debug("Received WithDittoHeaders: <{}>", withDittoHeaders);
-                    mapMessage(withDittoHeaders).runWith(messageHandler, materializer);
+                    final QueueOfferResult queueOfferResult = sourceQueue.offer(mapMessage(withDittoHeaders))
+                            .toCompletableFuture()
+                            .join(); // blocks the Actor from processing new messages
+                    // used intentionally in combination with OverflowStrategy.backpressure()
+                    log.debug("queueOfferResult: <{}>", queueOfferResult);
                 })
                 .match(Throwable.class, unknownThrowable -> {
                     log.warning("Received unknown Throwable: <{}>", unknownThrowable);
@@ -110,23 +138,12 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
      */
     protected abstract void preEnhancement(final ReceiveBuilder receiveBuilder);
 
-    private Sink<T, NotUsed> createMessageHandler(final ActorMaterializer materializer) {
-        final ActorRef self = getSelf();
-
-        return MergeHub.of(getMessageClass(), 16) // default value according to Akka docs is 16
-                .to(getHandler()
-                        .watchTermination(handleTermination(self))
-                        .to(Sink.foreach(msg -> log.debug("Unhandled message: <{}>", msg)))
-                )
-                .run(materializer);
-    }
-
-    private Function2<NotUsed, CompletionStage<Done>, NotUsed> handleTermination(final ActorRef self) {
+    private Function2<SourceQueueWithComplete<T>, CompletionStage<Done>, SourceQueueWithComplete<T>> handleTermination() {
 
         return (notUsed, doneCompletionStage) -> {
             doneCompletionStage.whenComplete((done, ex) -> {
                 if (done != null) {
-                    log.warning("Stream was completed which should never happen: <{}>", self);
+                    log.warning("Stream was completed which should never happen.");
                 } else {
                     log.warning(
                             "Unexpected exception when watching Termination of stream - {}: {}",

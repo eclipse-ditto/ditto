@@ -61,7 +61,12 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
     private DispatcherActor(final AbstractConciergeConfigReader configReader,
             final ActorRef enforcerActor,
             final ActorRef pubSubMediator,
-            final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> handler) {
+            final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> handler,
+            final int bufferSize,
+            final int parallelism) {
+
+        super(bufferSize, parallelism);
+
         this.handler = handler;
         final Props props = ThingsAggregatorActor.props(configReader, enforcerActor);
         thingsAggregatorActor = getContext().actorOf(props, ThingsAggregatorActor.ACTOR_NAME);
@@ -70,13 +75,8 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
     }
 
     @Override
-    protected Class<ImmutableDispatch> getMessageClass() {
-        return ImmutableDispatch.class;
-    }
-
-    @Override
-    protected Source<ImmutableDispatch, NotUsed> mapMessage(final WithDittoHeaders<?> message) {
-        return Source.single(new ImmutableDispatch(message, getSender(), thingsAggregatorActor));
+    protected DispatcherActor.ImmutableDispatch mapMessage(final WithDittoHeaders<?> message) {
+        return new ImmutableDispatch(message, getSender(), thingsAggregatorActor);
     }
 
     @Override
@@ -95,12 +95,14 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
      * @param configReader the configReader for the concierge service.
      * @param pubSubMediator Akka pub-sub mediator.
      * @param enforcerActor address of the enforcer actor.
+     * @param bufferSize the buffer size used for the Source queue.
+     * @param parallelism parallelism to use for processing messages in parallel.
      * @return the Props object.
      */
     public static Props props(final AbstractConciergeConfigReader configReader, final ActorRef pubSubMediator,
-            final ActorRef enforcerActor) {
+            final ActorRef enforcerActor, final int bufferSize, final int parallelism) {
 
-        return props(configReader, pubSubMediator, enforcerActor, Flow.create());
+        return props(configReader, pubSubMediator, enforcerActor, Flow.create(), bufferSize, parallelism);
     }
 
     /**
@@ -110,20 +112,26 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
      * @param pubSubMediator Akka pub-sub mediator.
      * @param enforcerActor the address of the enforcer actor.
      * @param preEnforcer the pre-enforcer as graph.
+     * @param bufferSize the buffer size used for the Source queue.
+     * @param parallelism parallelism to use for processing messages in parallel.
      * @return the Props object.
      */
     public static Props props(final AbstractConciergeConfigReader configReader,
             final ActorRef pubSubMediator,
             final ActorRef enforcerActor,
-            final Graph<FlowShape<WithSender, WithSender>, ?> preEnforcer) {
+            final Graph<FlowShape<WithSender, WithSender>, ?> preEnforcer,
+            final int bufferSize,
+            final int parallelism) {
 
-        final Graph<FlowShape<ImmutableDispatch, ImmutableDispatch>, NotUsed> dispatchFlow = createDispatchFlow(pubSubMediator);
+        final Graph<FlowShape<ImmutableDispatch, ImmutableDispatch>, NotUsed> dispatchFlow =
+                createDispatchFlow(pubSubMediator);
 
         final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> handler = asContextualFlow(preEnforcer)
                 .via(dispatchFlow);
 
         return Props.create(DispatcherActor.class,
-                () -> new DispatcherActor(configReader, enforcerActor, pubSubMediator, handler));
+                () -> new DispatcherActor(configReader, enforcerActor, pubSubMediator, handler, bufferSize,
+                        parallelism));
     }
 
     /**
@@ -132,7 +140,8 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
      * @param pubSubMediator Akka pub-sub-mediator.
      * @return stream to dispatch search and thing commands.
      */
-    private static Graph<FlowShape<ImmutableDispatch, ImmutableDispatch>, NotUsed> createDispatchFlow(final ActorRef pubSubMediator) {
+    private static Graph<FlowShape<ImmutableDispatch, ImmutableDispatch>, NotUsed> createDispatchFlow(
+            final ActorRef pubSubMediator) {
         return GraphDSL.create(builder -> {
 
             final FanOutShape2<ImmutableDispatch, ImmutableDispatch, ImmutableDispatch> multiplexSearch =
@@ -153,7 +162,8 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
         });
     }
 
-    private static Graph<FanOutShape2<ImmutableDispatch, ImmutableDispatch, ImmutableDispatch>, NotUsed> multiplexBy(final Class<?>... classes) {
+    private static Graph<FanOutShape2<ImmutableDispatch, ImmutableDispatch, ImmutableDispatch>, NotUsed> multiplexBy(
+            final Class<?>... classes) {
         return Filter.multiplexBy(dispatch ->
                 Arrays.stream(classes).anyMatch(clazz -> clazz.isInstance(dispatch.getMessage()))
                         ? Optional.of(dispatch)
@@ -219,7 +229,8 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
         private final ActorRef sender;
         private final ActorRef thingsAggregatorActor;
 
-        private ImmutableDispatch(final WithDittoHeaders message, final ActorRef sender, final ActorRef thingsAggregatorActor) {
+        private ImmutableDispatch(final WithDittoHeaders message, final ActorRef sender,
+                final ActorRef thingsAggregatorActor) {
             this.message = message;
             this.sender = sender;
             this.thingsAggregatorActor = thingsAggregatorActor;

@@ -34,7 +34,6 @@ import akka.actor.ActorRef;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.Source;
 
 /**
  * Extensible actor to execute enforcement behavior.
@@ -60,6 +59,8 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
      * @param conciergeForwarder the concierge forwarder.
      * @param enforcerExecutor executor for enforcement steps.
      * @param askTimeout how long to wait for entity actors.
+     * @param bufferSize the buffer size used for the Source queue.
+     * @param parallelism parallelism to use for processing messages in parallel.
      * @param thingIdCache the cache for Thing IDs to either ACL or Policy ID.
      * @param aclEnforcerCache the ACL cache.
      * @param policyEnforcerCache the Policy cache.
@@ -68,9 +69,13 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
             final ActorRef conciergeForwarder,
             final Executor enforcerExecutor,
             final Duration askTimeout,
+            final int bufferSize,
+            final int parallelism,
             @Nullable final Cache<EntityId, Entry<EntityId>> thingIdCache,
             @Nullable final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache,
             @Nullable final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache) {
+
+        super(bufferSize, parallelism);
 
         this.thingIdCache = thingIdCache;
         this.aclEnforcerCache = aclEnforcerCache;
@@ -113,15 +118,8 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     protected abstract Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> getHandler();
 
     @Override
-    @SuppressWarnings("unchecked")
-    protected Class<Contextual<WithDittoHeaders>> getMessageClass() {
-        // trick Java type system into accepting the cast without it understanding the covariance of Contextual<>
-        return (Class<Contextual<WithDittoHeaders>>) (Object) Contextual.class;
-    }
-
-    @Override
-    protected Source<Contextual<WithDittoHeaders>, NotUsed> mapMessage(final WithDittoHeaders<?> message) {
-        return Source.single(contextual.withReceivedMessage(message, getSender()));
+    protected Contextual<WithDittoHeaders> mapMessage(final WithDittoHeaders<?> message) {
+        return contextual.withReceivedMessage(message, getSender());
     }
 
     private static Cache<String, ActorRef> createResponseReceiversCache() {

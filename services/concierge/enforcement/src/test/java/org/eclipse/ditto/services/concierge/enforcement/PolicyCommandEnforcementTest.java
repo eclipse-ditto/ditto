@@ -40,12 +40,12 @@ import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.services.concierge.cache.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.services.models.concierge.EntityId;
-import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
+import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotModifiableException;
@@ -503,7 +503,7 @@ public class PolicyCommandEnforcementTest {
         enforcementProviders.add(enforcementProvider);
 
         return system.actorOf(EnforcerActor.props(pubSubMediator, enforcementProviders, Duration.ofSeconds(10),
-                conciergeForwarder, system.dispatcher(), null, null, null),
+                conciergeForwarder, system.dispatcher(), 1, 2, null, null, null),
                 ENTITY_ID.toString());
     }
 

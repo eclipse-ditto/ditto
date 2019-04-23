@@ -38,9 +38,9 @@ import org.eclipse.ditto.services.concierge.cache.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.ThingEnforcementIdCacheLoader;
 import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
 import org.eclipse.ditto.services.models.concierge.EntityId;
-import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
+import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
@@ -109,7 +109,8 @@ public class TestSetup {
                 new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache, aclEnforcerCache));
 
         final Props props = EnforcerActor.props(testActorRef, enforcementProviders, Duration.ofSeconds(10),
-                conciergeForwarder, system.dispatcher(), preEnforcer, null, null, null);
+                conciergeForwarder, system.dispatcher(), 1, 2,
+                preEnforcer, null, null, null);
         return system.actorOf(props, THING + ":" + THING_ID);
     }
 

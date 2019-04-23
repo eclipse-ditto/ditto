@@ -52,11 +52,13 @@ public final class EnforcerActor extends AbstractEnforcerActor {
             final Executor enforcerExecutor,
             final Duration askTimeout,
             final Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> handler,
+            final int bufferSize,
+            final int parallelism,
             @Nullable final Cache<EntityId, Entry<EntityId>> thingIdCache,
             @Nullable final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache,
             @Nullable final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache) {
-        super(pubSubMediator, conciergeForwarder, enforcerExecutor, askTimeout, thingIdCache, aclEnforcerCache,
-                policyEnforcerCache);
+        super(pubSubMediator, conciergeForwarder, enforcerExecutor, askTimeout, bufferSize, parallelism,
+                thingIdCache, aclEnforcerCache, policyEnforcerCache);
         this.handler = handler;
     }
 
@@ -69,6 +71,8 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      * @param conciergeForwarder an actorRef to concierge forwarder.
      * @param enforcerExecutor the Executor to run async tasks on during enforcement.
      * @param preEnforcer a function executed before actual enforcement, may be {@code null}.
+     * @param bufferSize the buffer size used for the Source queue.
+     * @param parallelism parallelism to use for processing messages in parallel.
      * @param thingIdCache the cache for Thing IDs to either ACL or Policy ID.
      * @param aclEnforcerCache the ACL cache.
      * @param policyEnforcerCache the Policy cache.
@@ -79,6 +83,8 @@ public final class EnforcerActor extends AbstractEnforcerActor {
             final Duration askTimeout,
             final ActorRef conciergeForwarder,
             final Executor enforcerExecutor,
+            final int bufferSize,
+            final int parallelism,
             @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
             @Nullable final Cache<EntityId, Entry<EntityId>> thingIdCache,
             @Nullable final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache,
@@ -90,7 +96,7 @@ public final class EnforcerActor extends AbstractEnforcerActor {
 
         return Props.create(EnforcerActor.class, () ->
                 new EnforcerActor(pubSubMediator, conciergeForwarder, enforcerExecutor, askTimeout, messageHandler,
-                        thingIdCache, aclEnforcerCache, policyEnforcerCache));
+                        bufferSize, parallelism, thingIdCache, aclEnforcerCache, policyEnforcerCache));
     }
 
     /**
@@ -102,6 +108,8 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      * @param askTimeout the ask timeout duration: the duration to wait for entity shard regions.
      * @param conciergeForwarder an actorRef to concierge forwarder.
      * @param enforcerExecutor the Executor to run async tasks on during enforcement.
+     * @param bufferSize the buffer size used for the Source queue.
+     * @param parallelism parallelism to use for processing messages in parallel.
      * @param thingIdCache the cache for Thing IDs to either ACL or Policy ID.
      * @param aclEnforcerCache the ACL cache.
      * @param policyEnforcerCache the Policy cache.
@@ -112,12 +120,14 @@ public final class EnforcerActor extends AbstractEnforcerActor {
             final Duration askTimeout,
             final ActorRef conciergeForwarder,
             final Executor enforcerExecutor,
+            final int bufferSize,
+            final int parallelism,
             @Nullable final Cache<EntityId, Entry<EntityId>> thingIdCache,
             @Nullable final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache,
             @Nullable final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache) {
 
         return props(pubSubMediator, enforcementProviders, askTimeout, conciergeForwarder, enforcerExecutor,
-                null, thingIdCache, aclEnforcerCache, policyEnforcerCache);
+                bufferSize, parallelism, null, thingIdCache, aclEnforcerCache, policyEnforcerCache);
     }
 
     @Override
