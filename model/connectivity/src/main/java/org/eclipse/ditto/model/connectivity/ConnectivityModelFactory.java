@@ -688,4 +688,19 @@ public final class ConnectivityModelFactory {
         return ImmutableLogEntry.fromJson(jsonObject);
     }
 
+    /**
+     * Creates a new {@link org.eclipse.ditto.model.connectivity.LogEntryBuilder} with the given parameters.
+     * @param correlationId the correlation ID.
+     * @param timestamp the timestamp of the log entry.
+     * @param logCategory the category.
+     * @param logType the type.
+     * @param logLevel the level.
+     * @param message the message.
+     * @return a new builder.
+     */
+    public static LogEntryBuilder newLogEntryBuilder(final String correlationId, final Instant timestamp, final LogCategory logCategory,
+            final LogType logType, final LogLevel logLevel, final String message) {
+        return ImmutableLogEntry.getBuilder(correlationId, timestamp, logCategory, logType, logLevel, message);
+    }
+
 }
