@@ -67,7 +67,7 @@ public interface SnapshotConfig {
         /**
          * The threshold after how many changes to an entity to do a snapshot.
          */
-        THRESHOLD("threshold", 500),
+        THRESHOLD("threshold", 500L),
 
         /**
          * Determines whether to delete old snapshot when taking a snapshot.

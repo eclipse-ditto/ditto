@@ -8,10 +8,9 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.base.config;
+package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -32,36 +31,33 @@ import com.typesafe.config.ConfigFactory;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.base.config.DefaultClusterConfig}.
+ * Unit test for {@link org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultTagsConfig}.
  */
-public final class DefaultClusterConfigTest {
+public final class DefaultTagsConfigTest {
 
-    private static Config clusterTestConf;
+    private static Config snapshotTestConf;
 
     @BeforeClass
     public static void initTestFixture() {
-        clusterTestConf = ConfigFactory.load("cluster-test");
+        snapshotTestConf = ConfigFactory.load("tags-test");
     }
-
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DefaultClusterConfig.class,
-                areImmutable(),
-                provided(Config.class).isAlsoImmutable());
+        assertInstancesOf(DefaultTagsConfig.class,
+                areImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(DefaultClusterConfig.class)
+        EqualsVerifier.forClass(DefaultTagsConfig.class)
                 .usingGetClass()
                 .verify();
     }
 
     @Test
     public void testSerializationAndDeserialization() throws IOException, ClassNotFoundException {
-        final DefaultClusterConfig underTest = DefaultClusterConfig.of(clusterTestConf);
-
+        final DefaultTagsConfig underTest = DefaultTagsConfig.of(snapshotTestConf);
         final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         final ObjectOutput objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
         objectOutputStream.writeObject(underTest);
@@ -78,27 +74,20 @@ public final class DefaultClusterConfigTest {
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
-        final DefaultClusterConfig underTest = DefaultClusterConfig.of(ConfigFactory.empty());
+        final DefaultTagsConfig underTest = DefaultTagsConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.getNumberOfShards())
-                .as("getNumberOfShards")
-                .isEqualTo(ServiceSpecificConfig.ClusterConfig.ClusterConfigValue.NUMBER_OF_SHARDS.getDefaultValue());
+        assertThat(underTest.getStreamingCacheSize())
+                .as("getStreamingCacheSize")
+                .isEqualTo(TagsConfig.TagsConfigValue.STREAMING_CACHE_SIZE.getDefaultValue());
     }
 
     @Test
     public void underTestReturnsValuesOfConfigFile() {
-        final DefaultClusterConfig underTest = DefaultClusterConfig.of(clusterTestConf);
+        final DefaultTagsConfig underTest = DefaultTagsConfig.of(snapshotTestConf);
 
-        assertThat(underTest.getNumberOfShards())
-                .as("getNumberOfShards")
+        assertThat(underTest.getStreamingCacheSize())
+                .as("getStreamingCacheSize")
                 .isEqualTo(100);
-    }
-
-    @Test
-    public void toStringReturnsExpected() {
-        final DefaultClusterConfig underTest = DefaultClusterConfig.of(ConfigFactory.empty());
-
-        assertThat(underTest.toString()).contains(underTest.getClass().getSimpleName()).contains("numberOfShards");
     }
 
 }

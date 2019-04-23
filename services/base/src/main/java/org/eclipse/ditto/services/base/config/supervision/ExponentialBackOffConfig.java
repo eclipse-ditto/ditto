@@ -55,12 +55,12 @@ public interface ExponentialBackOffConfig {
         /**
          * The minimal exponential back-off duration.
          */
-        MIN("min", "1s"),
+        MIN("min", Duration.ofSeconds(1L)),
 
         /**
          * The maximal exponential back-off duration.
          */
-        MAX("max", "10s"),
+        MAX("max", Duration.ofSeconds(10L)),
 
         /**
          * The random factor of the exponential back-off strategy.

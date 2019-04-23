@@ -7,8 +7,7 @@
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
  * SPDX-License-Identifier: EPL-2.0
- */
-package org.eclipse.ditto.services.base.config;
+ */package org.eclipse.ditto.services.concierge.starter.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
@@ -22,6 +21,7 @@ import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
+import java.time.Duration;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -32,35 +32,34 @@ import com.typesafe.config.ConfigFactory;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.base.config.DefaultClusterConfig}.
+ * Unit test for {@link org.eclipse.ditto.services.concierge.starter.config.DefaultThingsAggregatorConfig}.
  */
-public final class DefaultClusterConfigTest {
+public final class DefaultThingsAggregatorConfigTest {
 
-    private static Config clusterTestConf;
+    private static Config thingsAggregatorTestConf;
 
     @BeforeClass
     public static void initTestFixture() {
-        clusterTestConf = ConfigFactory.load("cluster-test");
+        thingsAggregatorTestConf = ConfigFactory.load("things-aggregator-test");
     }
-
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DefaultClusterConfig.class,
+        assertInstancesOf(DefaultThingsAggregatorConfig.class,
                 areImmutable(),
-                provided(Config.class).isAlsoImmutable());
+                provided(ThingsAggregatorConfig.class).isAlsoImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(DefaultClusterConfig.class)
+        EqualsVerifier.forClass(DefaultThingsAggregatorConfig.class)
                 .usingGetClass()
                 .verify();
     }
 
     @Test
     public void testSerializationAndDeserialization() throws IOException, ClassNotFoundException {
-        final DefaultClusterConfig underTest = DefaultClusterConfig.of(clusterTestConf);
+        final DefaultThingsAggregatorConfig underTest = DefaultThingsAggregatorConfig.of(thingsAggregatorTestConf);
 
         final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         final ObjectOutput objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
@@ -78,27 +77,29 @@ public final class DefaultClusterConfigTest {
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
-        final DefaultClusterConfig underTest = DefaultClusterConfig.of(ConfigFactory.empty());
+        final DefaultThingsAggregatorConfig underTest = DefaultThingsAggregatorConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.getNumberOfShards())
-                .as("getNumberOfShards")
-                .isEqualTo(ServiceSpecificConfig.ClusterConfig.ClusterConfigValue.NUMBER_OF_SHARDS.getDefaultValue());
+        assertThat(underTest.getSingleRetrieveThingTimeout())
+                .as("getSingleRetrieveThingTimeout")
+                .isEqualTo(ThingsAggregatorConfig.ThingsAggregatorConfigValue.SINGLE_RETRIEVE_THING_TIMEOUT.getDefaultValue());
+
+        assertThat(underTest.getMaxParallelism())
+                .as("getMaxParallelism")
+                .isEqualTo(ThingsAggregatorConfig.ThingsAggregatorConfigValue.MAX_PARALLELISM.getDefaultValue());
     }
 
     @Test
     public void underTestReturnsValuesOfConfigFile() {
-        final DefaultClusterConfig underTest = DefaultClusterConfig.of(clusterTestConf);
+        final DefaultThingsAggregatorConfig underTest = DefaultThingsAggregatorConfig.of(thingsAggregatorTestConf);
 
-        assertThat(underTest.getNumberOfShards())
-                .as("getNumberOfShards")
-                .isEqualTo(100);
-    }
+        assertThat(underTest.getSingleRetrieveThingTimeout())
+                .as("getSingleRetrieveThingTimeout")
+                .isEqualTo(Duration.ofSeconds(60L));
 
-    @Test
-    public void toStringReturnsExpected() {
-        final DefaultClusterConfig underTest = DefaultClusterConfig.of(ConfigFactory.empty());
+        assertThat(underTest.getMaxParallelism())
+                .as("getMaxParallelism")
+                .isEqualTo(10);
 
-        assertThat(underTest.toString()).contains(underTest.getClass().getSimpleName()).contains("numberOfShards");
     }
 
 }

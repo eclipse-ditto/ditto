@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.base.config;
+package org.eclipse.ditto.services.concierge.cache.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
@@ -22,6 +22,7 @@ import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
+import java.time.Duration;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -32,35 +33,34 @@ import com.typesafe.config.ConfigFactory;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.base.config.DefaultClusterConfig}.
+ * Unit test for {@link org.eclipse.ditto.services.concierge.cache.config.DefaultCachesConfig}.
  */
-public final class DefaultClusterConfigTest {
+public final class DefaultCachesConfigTest {
 
-    private static Config clusterTestConf;
+    private static Config cachesTestConf;
 
     @BeforeClass
     public static void initTestFixture() {
-        clusterTestConf = ConfigFactory.load("cluster-test");
+        cachesTestConf = ConfigFactory.load("caches-test");
     }
-
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DefaultClusterConfig.class,
+        assertInstancesOf(DefaultCachesConfig.class,
                 areImmutable(),
-                provided(Config.class).isAlsoImmutable());
+                provided(CachesConfig.class).isAlsoImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(DefaultClusterConfig.class)
+        EqualsVerifier.forClass(DefaultCachesConfig.class)
                 .usingGetClass()
                 .verify();
     }
 
     @Test
     public void testSerializationAndDeserialization() throws IOException, ClassNotFoundException {
-        final DefaultClusterConfig underTest = DefaultClusterConfig.of(clusterTestConf);
+        final DefaultCachesConfig underTest = DefaultCachesConfig.of(cachesTestConf);
 
         final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         final ObjectOutput objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
@@ -78,27 +78,41 @@ public final class DefaultClusterConfigTest {
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
-        final DefaultClusterConfig underTest = DefaultClusterConfig.of(ConfigFactory.empty());
+        final DefaultCachesConfig underTest = DefaultCachesConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.getNumberOfShards())
-                .as("getNumberOfShards")
-                .isEqualTo(ServiceSpecificConfig.ClusterConfig.ClusterConfigValue.NUMBER_OF_SHARDS.getDefaultValue());
+        assertThat(underTest.getAskTimeout())
+                .as("getAskTimeout")
+                .isEqualTo(CachesConfig.CachesConfigValue.ASK_TIMEOUT.getDefaultValue());
     }
 
     @Test
     public void underTestReturnsValuesOfConfigFile() {
-        final DefaultClusterConfig underTest = DefaultClusterConfig.of(clusterTestConf);
+        final DefaultCachesConfig underTest = DefaultCachesConfig.of(cachesTestConf);
 
-        assertThat(underTest.getNumberOfShards())
-                .as("getNumberOfShards")
-                .isEqualTo(100);
+        assertThat(underTest.getAskTimeout())
+                .as("getAskTimeout")
+                .isEqualTo(Duration.ofSeconds(30L));
+
+        assertThat(underTest.getEnforcerCacheConfig())
+                .as("enforcerCacheConfig")
+                .satisfies(enforcerCacheConfig -> {
+                    assertThat(enforcerCacheConfig.getMaximumSize())
+                            .as("getMaximumSize")
+                            .isEqualTo(20000);
+                    assertThat(enforcerCacheConfig.getExpireAfterWrite())
+                            .as("getExpireAfterWrite")
+                            .isEqualTo(Duration.ofMinutes(15L));
+                });
+
+        assertThat(underTest.getIdCacheConfig())
+                .as("idCacheConfig")
+                .satisfies(idCacheConfig -> {
+                    assertThat(idCacheConfig.getMaximumSize())
+                            .as("getMaximumSize")
+                            .isEqualTo(80000);
+                    assertThat(idCacheConfig.getExpireAfterWrite())
+                            .as("getExpireAfterWrite")
+                            .isEqualTo(Duration.ofMinutes(15L));
+                });
     }
-
-    @Test
-    public void toStringReturnsExpected() {
-        final DefaultClusterConfig underTest = DefaultClusterConfig.of(ConfigFactory.empty());
-
-        assertThat(underTest.toString()).contains(underTest.getClass().getSimpleName()).contains("numberOfShards");
-    }
-
 }

@@ -64,7 +64,7 @@ public interface JavaScriptConfig {
         /**
          * The maximum execution time of a mapping script to run.
          */
-        MAX_SCRIPT_EXECUTION_TIME("maxScriptExecutionTime", "500ms"),
+        MAX_SCRIPT_EXECUTION_TIME("maxScriptExecutionTime", Duration.ofMillis(500L)),
 
         /**
          * The maximum call stack depth in the mapping script.

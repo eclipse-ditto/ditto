@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.base.config;
+package org.eclipse.ditto.services.connectivity.messaging.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
@@ -22,6 +22,7 @@ import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
+import java.time.Duration;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -32,35 +33,34 @@ import com.typesafe.config.ConfigFactory;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.base.config.DefaultClusterConfig}.
+ * Unit test for {@link org.eclipse.ditto.services.connectivity.messaging.config.DefaultClientConfig}.
  */
-public final class DefaultClusterConfigTest {
+public final class DefaultClientConfigTest {
 
-    private static Config clusterTestConf;
+    private static Config clientTestConf;
 
     @BeforeClass
     public static void initTestFixture() {
-        clusterTestConf = ConfigFactory.load("cluster-test");
+        clientTestConf = ConfigFactory.load("client-test");
     }
-
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DefaultClusterConfig.class,
+        assertInstancesOf(DefaultClientConfig.class,
                 areImmutable(),
-                provided(Config.class).isAlsoImmutable());
+                provided(ClientConfig.class).isAlsoImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(DefaultClusterConfig.class)
+        EqualsVerifier.forClass(DefaultClientConfig.class)
                 .usingGetClass()
                 .verify();
     }
 
     @Test
     public void testSerializationAndDeserialization() throws IOException, ClassNotFoundException {
-        final DefaultClusterConfig underTest = DefaultClusterConfig.of(clusterTestConf);
+        final DefaultClientConfig underTest = DefaultClientConfig.of(clientTestConf);
 
         final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         final ObjectOutput objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
@@ -78,27 +78,19 @@ public final class DefaultClusterConfigTest {
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
-        final DefaultClusterConfig underTest = DefaultClusterConfig.of(ConfigFactory.empty());
+        final DefaultClientConfig underTest = DefaultClientConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.getNumberOfShards())
-                .as("getNumberOfShards")
-                .isEqualTo(ServiceSpecificConfig.ClusterConfig.ClusterConfigValue.NUMBER_OF_SHARDS.getDefaultValue());
+        assertThat(underTest.getInitTimeout())
+                .as("getInitTimeout")
+                .isEqualTo(ClientConfig.ClientConfigValue.INIT_TIMEOUT.getDefaultValue());
     }
 
     @Test
     public void underTestReturnsValuesOfConfigFile() {
-        final DefaultClusterConfig underTest = DefaultClusterConfig.of(clusterTestConf);
+        final DefaultClientConfig underTest = DefaultClientConfig.of(clientTestConf);
 
-        assertThat(underTest.getNumberOfShards())
-                .as("getNumberOfShards")
-                .isEqualTo(100);
+        assertThat(underTest.getInitTimeout())
+                .as("getInitTimeout")
+                .isEqualTo(Duration.ofSeconds(1L));
     }
-
-    @Test
-    public void toStringReturnsExpected() {
-        final DefaultClusterConfig underTest = DefaultClusterConfig.of(ConfigFactory.empty());
-
-        assertThat(underTest.toString()).contains(underTest.getClass().getSimpleName()).contains("numberOfShards");
-    }
-
 }

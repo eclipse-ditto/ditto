@@ -55,12 +55,12 @@ public interface ReconnectConfig {
         /**
          * The initial delay for reconnection the connections after the ReconnectActor has been started.
          */
-        INITIAL_DELAY("initial-delay", "0s"),
+        INITIAL_DELAY("initial-delay", Duration.ofSeconds(0L)),
 
         /**
          * The interval for trying to reconnect all started connections.
          */
-        INTERVAL("interval", "10m");
+        INTERVAL("interval", Duration.ofMinutes(10L));
 
         private final String path;
         private final Object defaultValue;
@@ -117,7 +117,7 @@ public interface ReconnectConfig {
             /**
              * Returns the duration (frequency) of recovery.
              */
-            FREQUENCY("frequency", "1s"),
+            FREQUENCY("frequency", Duration.ofSeconds(1L)),
 
             /**
              * Returns the number of entities to be recovered per batch.

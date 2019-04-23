@@ -69,12 +69,12 @@ public interface ConnectionConfig extends WithSupervisorConfig {
         /**
          * The delay between subscribing to Akka pub/sub and responding to the command that triggered the subscription.
          */
-        FLUSH_PENDING_RESPONSES_TIMEOUT("flush-pending-responses-timeout", "5s"),
+        FLUSH_PENDING_RESPONSES_TIMEOUT("flush-pending-responses-timeout", Duration.ofSeconds(5L)),
 
         /**
          * The amount of time for how long the connection actor waits for response from client actors.
          */
-        CLIENT_ACTOR_ASK_TIMEOUT("client-actor-ask-timeout", "60s");
+        CLIENT_ACTOR_ASK_TIMEOUT("client-actor-ask-timeout", Duration.ofSeconds(60L));
 
         private final String path;
         private final Object defaultValue;

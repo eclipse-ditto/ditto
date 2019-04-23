@@ -8,10 +8,9 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.base.config;
+package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -32,35 +31,34 @@ import com.typesafe.config.ConfigFactory;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.base.config.DefaultClusterConfig}.
+ * Unit test for {@link org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultIndexInitializationConfig}.
  */
-public final class DefaultClusterConfigTest {
+public final class DefaultIndexInitializationConfigTest {
 
-    private static Config clusterTestConf;
+    private static Config indexInitializationTestConf;
 
     @BeforeClass
     public static void initTestFixture() {
-        clusterTestConf = ConfigFactory.load("cluster-test");
+        indexInitializationTestConf = ConfigFactory.load("index-initialization-test");
     }
-
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DefaultClusterConfig.class,
-                areImmutable(),
-                provided(Config.class).isAlsoImmutable());
+        assertInstancesOf(DefaultIndexInitializationConfig.class,
+                areImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(DefaultClusterConfig.class)
+        EqualsVerifier.forClass(DefaultIndexInitializationConfig.class)
                 .usingGetClass()
                 .verify();
     }
 
     @Test
     public void testSerializationAndDeserialization() throws IOException, ClassNotFoundException {
-        final DefaultClusterConfig underTest = DefaultClusterConfig.of(clusterTestConf);
+        final DefaultIndexInitializationConfig underTest = DefaultIndexInitializationConfig.of(
+                indexInitializationTestConf);
 
         final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         final ObjectOutput objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
@@ -78,27 +76,20 @@ public final class DefaultClusterConfigTest {
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
-        final DefaultClusterConfig underTest = DefaultClusterConfig.of(ConfigFactory.empty());
+        final DefaultIndexInitializationConfig underTest = DefaultIndexInitializationConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.getNumberOfShards())
-                .as("getNumberOfShards")
-                .isEqualTo(ServiceSpecificConfig.ClusterConfig.ClusterConfigValue.NUMBER_OF_SHARDS.getDefaultValue());
+        assertThat(underTest.isIndexInitializationConfigEnabled())
+                .as("isIndexInitializationConfigEnabled")
+                .isEqualTo(IndexInitializationConfig.IndexInitializerConfigValue.ENABLED.getDefaultValue());
     }
 
     @Test
     public void underTestReturnsValuesOfConfigFile() {
-        final DefaultClusterConfig underTest = DefaultClusterConfig.of(clusterTestConf);
+        final DefaultIndexInitializationConfig underTest = DefaultIndexInitializationConfig.of(
+                indexInitializationTestConf);
 
-        assertThat(underTest.getNumberOfShards())
-                .as("getNumberOfShards")
-                .isEqualTo(100);
+        assertThat(underTest.isIndexInitializationConfigEnabled())
+                .as("isIndexInitializationConfigEnabled")
+                .isTrue();
     }
-
-    @Test
-    public void toStringReturnsExpected() {
-        final DefaultClusterConfig underTest = DefaultClusterConfig.of(ConfigFactory.empty());
-
-        assertThat(underTest.toString()).contains(underTest.getClass().getSimpleName()).contains("numberOfShards");
-    }
-
 }

@@ -11,6 +11,7 @@
 package org.eclipse.ditto.services.policies.persistence.config;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -69,6 +70,34 @@ public final class DefaultPolicyConfig implements PolicyConfig, Serializable {
     @Override
     public SnapshotConfig getSnapshotConfig() {
         return snapshotConfig;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final DefaultPolicyConfig that = (DefaultPolicyConfig) o;
+        return Objects.equals(supervisorConfig, that.supervisorConfig) &&
+                Objects.equals(activityCheckConfig, that.activityCheckConfig) &&
+                Objects.equals(snapshotConfig, that.snapshotConfig);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(supervisorConfig, activityCheckConfig, snapshotConfig);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                " supervisorConfig=" + supervisorConfig +
+                ", activityCheckConfig=" + activityCheckConfig +
+                ", snapshotConfig=" + snapshotConfig +
+                "]";
     }
 
 }

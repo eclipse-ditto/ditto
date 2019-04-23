@@ -8,10 +8,9 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.base.config;
+package org.eclipse.ditto.services.base.config.supervision;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -22,6 +21,7 @@ import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
+import java.time.Duration;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -32,35 +32,34 @@ import com.typesafe.config.ConfigFactory;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.base.config.DefaultClusterConfig}.
+ * Unit test for {@link org.eclipse.ditto.services.base.config.supervision.DefaultExponentialBackOffConfig}.
  */
-public final class DefaultClusterConfigTest {
+public final class DefaultExponentialBackOffConfigTest {
 
-    private static Config clusterTestConf;
+
+    private static Config exponentialBackOffTestConf;
 
     @BeforeClass
     public static void initTestFixture() {
-        clusterTestConf = ConfigFactory.load("cluster-test");
+        exponentialBackOffTestConf = ConfigFactory.load("exponentialBackOff-test");
     }
-
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DefaultClusterConfig.class,
-                areImmutable(),
-                provided(Config.class).isAlsoImmutable());
+        assertInstancesOf(DefaultExponentialBackOffConfig.class,
+                areImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(DefaultClusterConfig.class)
+        EqualsVerifier.forClass(DefaultExponentialBackOffConfig.class)
                 .usingGetClass()
                 .verify();
     }
 
     @Test
     public void testSerializationAndDeserialization() throws IOException, ClassNotFoundException {
-        final DefaultClusterConfig underTest = DefaultClusterConfig.of(clusterTestConf);
+        final DefaultExponentialBackOffConfig underTest = DefaultExponentialBackOffConfig.of(exponentialBackOffTestConf);
 
         final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         final ObjectOutput objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
@@ -78,27 +77,35 @@ public final class DefaultClusterConfigTest {
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
-        final DefaultClusterConfig underTest = DefaultClusterConfig.of(ConfigFactory.empty());
+        final DefaultExponentialBackOffConfig underTest = DefaultExponentialBackOffConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.getNumberOfShards())
-                .as("getNumberOfShards")
-                .isEqualTo(ServiceSpecificConfig.ClusterConfig.ClusterConfigValue.NUMBER_OF_SHARDS.getDefaultValue());
+        assertThat(underTest.getMin())
+                .as("getMin")
+                .isEqualTo(ExponentialBackOffConfig.ExponentialBackOffConfigValue.MIN.getDefaultValue());
+
+        assertThat(underTest.getMax())
+                .as("getMax")
+                .isEqualTo(ExponentialBackOffConfig.ExponentialBackOffConfigValue.MAX.getDefaultValue());
+
+        assertThat(underTest.getRandomFactor())
+                .as("getRandomFactor")
+                .isEqualTo(ExponentialBackOffConfig.ExponentialBackOffConfigValue.RANDOM_FACTOR.getDefaultValue());
     }
 
     @Test
     public void underTestReturnsValuesOfConfigFile() {
-        final DefaultClusterConfig underTest = DefaultClusterConfig.of(clusterTestConf);
+        final DefaultExponentialBackOffConfig underTest = DefaultExponentialBackOffConfig.of(exponentialBackOffTestConf);
 
-        assertThat(underTest.getNumberOfShards())
-                .as("getNumberOfShards")
-                .isEqualTo(100);
+        assertThat(underTest.getMin())
+                .as("getMin")
+                .isEqualTo(Duration.ofSeconds(2L));
+
+        assertThat(underTest.getMax())
+                .as("getMax")
+                .isEqualTo(Duration.ofSeconds(20L));
+
+        assertThat(underTest.getRandomFactor())
+                .as("getRandomFactor")
+                .isEqualTo(0.3D);
     }
-
-    @Test
-    public void toStringReturnsExpected() {
-        final DefaultClusterConfig underTest = DefaultClusterConfig.of(ConfigFactory.empty());
-
-        assertThat(underTest.toString()).contains(underTest.getClass().getSimpleName()).contains("numberOfShards");
-    }
-
 }

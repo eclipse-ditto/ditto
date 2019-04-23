@@ -11,7 +11,6 @@
 package org.eclipse.ditto.services.base.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -32,35 +31,33 @@ import com.typesafe.config.ConfigFactory;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.base.config.DefaultClusterConfig}.
+ * Unit test for {@link org.eclipse.ditto.services.base.config.DefaultMetricsConfig}.
  */
-public final class DefaultClusterConfigTest {
+public final class DefaultMetricsConfigTest {
 
-    private static Config clusterTestConf;
+    private static Config metricsTestConf;
 
     @BeforeClass
     public static void initTestFixture() {
-        clusterTestConf = ConfigFactory.load("cluster-test");
+        metricsTestConf = ConfigFactory.load("metrics-test");
     }
-
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DefaultClusterConfig.class,
-                areImmutable(),
-                provided(Config.class).isAlsoImmutable());
+        assertInstancesOf(DefaultMetricsConfig.class,
+                areImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(DefaultClusterConfig.class)
+        EqualsVerifier.forClass(DefaultMetricsConfig.class)
                 .usingGetClass()
                 .verify();
     }
 
     @Test
     public void testSerializationAndDeserialization() throws IOException, ClassNotFoundException {
-        final DefaultClusterConfig underTest = DefaultClusterConfig.of(clusterTestConf);
+        final DefaultMetricsConfig underTest = DefaultMetricsConfig.of(metricsTestConf);
 
         final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         final ObjectOutput objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
@@ -78,27 +75,44 @@ public final class DefaultClusterConfigTest {
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
-        final DefaultClusterConfig underTest = DefaultClusterConfig.of(ConfigFactory.empty());
+        final DefaultMetricsConfig underTest = DefaultMetricsConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.getNumberOfShards())
-                .as("getNumberOfShards")
-                .isEqualTo(ServiceSpecificConfig.ClusterConfig.ClusterConfigValue.NUMBER_OF_SHARDS.getDefaultValue());
+        assertThat(underTest.isSystemMetricsEnabled())
+                .as("isSystemMetricsEnabled")
+                .isEqualTo(ServiceSpecificConfig.MetricsConfig.MetricsConfigValue.SYSTEM_METRICS_ENABLED.getDefaultValue());
+
+        assertThat(underTest.isPrometheusEnabled())
+                .as("isPrometheusEnabled")
+                .isEqualTo(ServiceSpecificConfig.MetricsConfig.MetricsConfigValue.PROMETHEUS_ENABLED.getDefaultValue());
+
+        assertThat(underTest.getPrometheusHostname())
+                .as("getPrometheusHostname")
+                .isEqualTo(ServiceSpecificConfig.MetricsConfig.MetricsConfigValue.PROMETHEUS_HOSTNAME.getDefaultValue());
+
+        assertThat(underTest.getPrometheusPort())
+                .as("getPrometheusPort")
+                .isEqualTo(ServiceSpecificConfig.MetricsConfig.MetricsConfigValue.PROMETHEUS_PORT.getDefaultValue());
     }
 
     @Test
     public void underTestReturnsValuesOfConfigFile() {
-        final DefaultClusterConfig underTest = DefaultClusterConfig.of(clusterTestConf);
+        final DefaultMetricsConfig underTest = DefaultMetricsConfig.of(metricsTestConf);
 
-        assertThat(underTest.getNumberOfShards())
-                .as("getNumberOfShards")
-                .isEqualTo(100);
-    }
+        assertThat(underTest.isSystemMetricsEnabled())
+                .as("isSystemMetricsEnabled")
+                .isTrue();
 
-    @Test
-    public void toStringReturnsExpected() {
-        final DefaultClusterConfig underTest = DefaultClusterConfig.of(ConfigFactory.empty());
+        assertThat(underTest.isPrometheusEnabled())
+                .as("isPrometheusEnabled")
+                .isTrue();
 
-        assertThat(underTest.toString()).contains(underTest.getClass().getSimpleName()).contains("numberOfShards");
+        assertThat(underTest.getPrometheusHostname())
+                .as("getPrometheusHostname")
+                .isEqualTo("1.1.1.1");
+
+        assertThat(underTest.getPrometheusPort())
+                .as("getPrometheusPort")
+                .isEqualTo(9999);
     }
 
 }

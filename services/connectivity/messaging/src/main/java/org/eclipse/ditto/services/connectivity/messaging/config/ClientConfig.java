@@ -41,7 +41,7 @@ public interface ClientConfig {
         /**
          * The duration after the init process is triggered.
          */
-        INIT_TIMEOUT("init-timeout", "5s");
+        INIT_TIMEOUT("init-timeout", Duration.ofSeconds(5L));
 
         private final String path;
         private final Object defaultValue;
