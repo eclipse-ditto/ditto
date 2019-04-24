@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.base.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -22,7 +21,9 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -36,6 +37,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DefaultMetricsConfigTest {
 
     private static Config metricsTestConf;
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @BeforeClass
     public static void initTestFixture() {
@@ -70,27 +74,27 @@ public final class DefaultMetricsConfigTest {
         final ObjectInput objectInputStream = new ObjectInputStream(byteArrayInputStream);
         final Object underTestDeserialized = objectInputStream.readObject();
 
-        assertThat(underTestDeserialized).isEqualTo(underTest);
+        softly.assertThat(underTestDeserialized).isEqualTo(underTest);
     }
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final DefaultMetricsConfig underTest = DefaultMetricsConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.isSystemMetricsEnabled())
-                .as("isSystemMetricsEnabled")
+        softly.assertThat(underTest.isSystemMetricsEnabled())
+                .as(ServiceSpecificConfig.MetricsConfig.MetricsConfigValue.SYSTEM_METRICS_ENABLED.getConfigPath())
                 .isEqualTo(ServiceSpecificConfig.MetricsConfig.MetricsConfigValue.SYSTEM_METRICS_ENABLED.getDefaultValue());
 
-        assertThat(underTest.isPrometheusEnabled())
-                .as("isPrometheusEnabled")
+        softly.assertThat(underTest.isPrometheusEnabled())
+                .as(ServiceSpecificConfig.MetricsConfig.MetricsConfigValue.PROMETHEUS_ENABLED.getConfigPath())
                 .isEqualTo(ServiceSpecificConfig.MetricsConfig.MetricsConfigValue.PROMETHEUS_ENABLED.getDefaultValue());
 
-        assertThat(underTest.getPrometheusHostname())
-                .as("getPrometheusHostname")
+        softly.assertThat(underTest.getPrometheusHostname())
+                .as(ServiceSpecificConfig.MetricsConfig.MetricsConfigValue.PROMETHEUS_HOSTNAME.getConfigPath())
                 .isEqualTo(ServiceSpecificConfig.MetricsConfig.MetricsConfigValue.PROMETHEUS_HOSTNAME.getDefaultValue());
 
-        assertThat(underTest.getPrometheusPort())
-                .as("getPrometheusPort")
+        softly.assertThat(underTest.getPrometheusPort())
+                .as(ServiceSpecificConfig.MetricsConfig.MetricsConfigValue.PROMETHEUS_PORT.getConfigPath())
                 .isEqualTo(ServiceSpecificConfig.MetricsConfig.MetricsConfigValue.PROMETHEUS_PORT.getDefaultValue());
     }
 
@@ -98,20 +102,20 @@ public final class DefaultMetricsConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultMetricsConfig underTest = DefaultMetricsConfig.of(metricsTestConf);
 
-        assertThat(underTest.isSystemMetricsEnabled())
-                .as("isSystemMetricsEnabled")
+        softly.assertThat(underTest.isSystemMetricsEnabled())
+                .as(ServiceSpecificConfig.MetricsConfig.MetricsConfigValue.SYSTEM_METRICS_ENABLED.getConfigPath())
                 .isTrue();
 
-        assertThat(underTest.isPrometheusEnabled())
-                .as("isPrometheusEnabled")
+        softly.assertThat(underTest.isPrometheusEnabled())
+                .as(ServiceSpecificConfig.MetricsConfig.MetricsConfigValue.PROMETHEUS_ENABLED.getConfigPath())
                 .isTrue();
 
-        assertThat(underTest.getPrometheusHostname())
-                .as("getPrometheusHostname")
+        softly.assertThat(underTest.getPrometheusHostname())
+                .as(ServiceSpecificConfig.MetricsConfig.MetricsConfigValue.PROMETHEUS_HOSTNAME.getConfigPath())
                 .isEqualTo("1.1.1.1");
 
-        assertThat(underTest.getPrometheusPort())
-                .as("getPrometheusPort")
+        softly.assertThat(underTest.getPrometheusPort())
+                .as(ServiceSpecificConfig.MetricsConfig.MetricsConfigValue.PROMETHEUS_PORT.getConfigPath())
                 .isEqualTo(9999);
     }
 

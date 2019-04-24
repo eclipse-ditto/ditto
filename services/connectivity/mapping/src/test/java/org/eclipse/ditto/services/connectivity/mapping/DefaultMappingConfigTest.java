@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -23,8 +22,10 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.services.connectivity.mapping.javascript.JavaScriptConfig;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -38,6 +39,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DefaultMappingConfigTest {
 
     private static Config mappingTestConfig;
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @BeforeClass
     public static void initTestFixture() {
@@ -73,28 +77,28 @@ public final class DefaultMappingConfigTest {
         final ObjectInput objectInputStream = new ObjectInputStream(byteArrayInputStream);
         final Object underTestDeserialized = objectInputStream.readObject();
 
-        assertThat(underTestDeserialized).isEqualTo(underTest);
+        softly.assertThat(underTestDeserialized).isEqualTo(underTest);
     }
 
     @Test
     public void getFactoryNameReturnsDefaultValueIfConfigIsEmpty() {
         final DefaultMappingConfig underTest = DefaultMappingConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.getFactoryName()).isEqualTo(MappingConfig.MappingConfigValue.FACTORY.getDefaultValue());
+        softly.assertThat(underTest.getFactoryName()).isEqualTo(MappingConfig.MappingConfigValue.FACTORY.getDefaultValue());
     }
 
     @Test
     public void getFactoryNameReturnsValueOfConfigurationFile() {
         final DefaultMappingConfig underTest = DefaultMappingConfig.of(mappingTestConfig);
 
-        assertThat(underTest.getFactoryName()).isEqualTo("org.test.mappers.MessageMapperFactory");
+        softly.assertThat(underTest.getFactoryName()).isEqualTo("org.test.mappers.MessageMapperFactory");
     }
 
     @Test
     public void toStringContainsExpected() {
         final DefaultMappingConfig underTest = DefaultMappingConfig.of(mappingTestConfig);
 
-        assertThat(underTest.toString()).contains(underTest.getClass().getSimpleName())
+        softly.assertThat(underTest.toString()).contains(underTest.getClass().getSimpleName())
                 .contains("factoryName").contains(underTest.getFactoryName())
                 .contains("javaScriptConfig");
     }

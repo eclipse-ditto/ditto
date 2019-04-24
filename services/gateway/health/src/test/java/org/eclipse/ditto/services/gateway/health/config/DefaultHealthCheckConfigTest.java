@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.gateway.health.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -24,9 +23,11 @@ import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.time.Duration;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.services.gateway.health.config.HealthCheckConfig.ClusterRolesConfig.ClusterRolesConfigValue;
 import org.eclipse.ditto.services.utils.health.config.BasicHealthCheckConfig;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -40,6 +41,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DefaultHealthCheckConfigTest {
 
     private static Config healthCheckTestConfig;
+    
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @BeforeClass
     public static void initTestFixture() {
@@ -75,7 +79,7 @@ public final class DefaultHealthCheckConfigTest {
         final ObjectInput objectInputStream = new ObjectInputStream(byteArrayInputStream);
         final Object underTestDeserialized = objectInputStream.readObject();
 
-        assertThat(underTestDeserialized).isEqualTo(underTest);
+        softly.assertThat(underTestDeserialized).isEqualTo(underTest);
     }
 
     @SuppressWarnings("unchecked")
@@ -83,21 +87,21 @@ public final class DefaultHealthCheckConfigTest {
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final DefaultHealthCheckConfig underTest = DefaultHealthCheckConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.getServiceTimeout())
-                .as("serviceTimeout")
+        softly.assertThat(underTest.getServiceTimeout())
+                .as(HealthCheckConfig.HealthCheckConfigValue.SERVICE_TIMEOUT.getConfigPath())
                 .isEqualTo(HealthCheckConfig.HealthCheckConfigValue.SERVICE_TIMEOUT.getDefaultValue());
-        assertThat(underTest.isEnabled())
-                .as("isEnabled")
+        softly.assertThat(underTest.isEnabled())
+                .as(BasicHealthCheckConfig.HealthCheckConfigValue.ENABLED.getConfigPath())
                 .isEqualTo(BasicHealthCheckConfig.HealthCheckConfigValue.ENABLED.getDefaultValue());
-        assertThat(underTest.getInterval())
-                .as("interval")
+        softly.assertThat(underTest.getInterval())
+                .as(BasicHealthCheckConfig.HealthCheckConfigValue.INTERVAL.getConfigPath())
                 .isEqualTo(BasicHealthCheckConfig.HealthCheckConfigValue.INTERVAL.getDefaultValue());
-        assertThat(underTest.getClusterRolesConfig()).satisfies(clusterRolesConfig -> {
-            assertThat(clusterRolesConfig.isEnabled())
-                    .as("isEnabled")
+        softly.assertThat(underTest.getClusterRolesConfig()).satisfies(clusterRolesConfig -> {
+            softly.assertThat(clusterRolesConfig.isEnabled())
+                    .as(ClusterRolesConfigValue.ENABLED.getConfigPath())
                     .isEqualTo(ClusterRolesConfigValue.ENABLED.getDefaultValue());
-            assertThat(clusterRolesConfig.getExpectedClusterRoles())
-                    .as("expectedClusterRoles")
+            softly.assertThat(clusterRolesConfig.getExpectedClusterRoles())
+                    .as(ClusterRolesConfigValue.EXPECTED.getConfigPath())
                     .containsOnlyElementsOf((Iterable) ClusterRolesConfigValue.EXPECTED.getDefaultValue());
         });
     }
@@ -106,21 +110,21 @@ public final class DefaultHealthCheckConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultHealthCheckConfig underTest = DefaultHealthCheckConfig.of(healthCheckTestConfig);
 
-        assertThat(underTest.getServiceTimeout())
-                .as("serviceTimeout")
+        softly.assertThat(underTest.getServiceTimeout())
+                .as(HealthCheckConfig.HealthCheckConfigValue.SERVICE_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(23L));
-        assertThat(underTest.isEnabled())
-                .as("isEnabled")
+        softly.assertThat(underTest.isEnabled())
+                .as(BasicHealthCheckConfig.HealthCheckConfigValue.ENABLED.getConfigPath())
                 .isTrue();
-        assertThat(underTest.getInterval())
-                .as("interval")
+        softly.assertThat(underTest.getInterval())
+                .as(BasicHealthCheckConfig.HealthCheckConfigValue.INTERVAL.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(42L));
-        assertThat(underTest.getClusterRolesConfig()).satisfies(clusterRolesConfig -> {
-            assertThat(clusterRolesConfig.isEnabled())
-                    .as("isEnabled")
+        softly.assertThat(underTest.getClusterRolesConfig()).satisfies(clusterRolesConfig -> {
+            softly.assertThat(clusterRolesConfig.isEnabled())
+                    .as(ClusterRolesConfigValue.ENABLED.getConfigPath())
                     .isTrue();
-            assertThat(clusterRolesConfig.getExpectedClusterRoles())
-                    .as("expectedClusterRoles")
+            softly.assertThat(clusterRolesConfig.getExpectedClusterRoles())
+                    .as(ClusterRolesConfigValue.EXPECTED.getConfigPath())
                     .containsOnly("foo", "bar", "baz");
         });
     }

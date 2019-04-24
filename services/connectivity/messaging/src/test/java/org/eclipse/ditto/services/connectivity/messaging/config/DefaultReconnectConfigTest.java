@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -24,7 +23,9 @@ import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.time.Duration;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -38,6 +39,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DefaultReconnectConfigTest {
 
     private static Config reconnectionTestConf;
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @BeforeClass
     public static void initTestFixture() {
@@ -73,29 +77,29 @@ public final class DefaultReconnectConfigTest {
         final ObjectInput objectInputStream = new ObjectInputStream(byteArrayInputStream);
         final Object underTestDeserialized = objectInputStream.readObject();
 
-        assertThat(underTestDeserialized).isEqualTo(underTest);
+        softly.assertThat(underTestDeserialized).isEqualTo(underTest);
     }
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final DefaultReconnectConfig underTest = DefaultReconnectConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.getInitialDelay())
-                .as("getInitialDelay")
+        softly.assertThat(underTest.getInitialDelay())
+                .as(ReconnectConfig.ReconnectConfigValue.INITIAL_DELAY.getConfigPath())
                 .isEqualTo(ReconnectConfig.ReconnectConfigValue.INITIAL_DELAY.getDefaultValue());
 
-        assertThat(underTest.getInterval())
-                .as("getInterval")
+        softly.assertThat(underTest.getInterval())
+                .as(ReconnectConfig.ReconnectConfigValue.INTERVAL.getConfigPath())
                 .isEqualTo(ReconnectConfig.ReconnectConfigValue.INTERVAL.getDefaultValue());
 
-        assertThat(underTest.getRateConfig())
+        softly.assertThat(underTest.getRateConfig())
                 .as("rateConfig")
                 .satisfies(rateConfig -> {
-                    assertThat(rateConfig.getEntityAmount())
-                            .as("getEntityAmount")
+                    softly.assertThat(rateConfig.getEntityAmount())
+                            .as(ReconnectConfig.RateConfig.RateConfigValue.ENTITIES.getConfigPath())
                             .isEqualTo(ReconnectConfig.RateConfig.RateConfigValue.ENTITIES.getDefaultValue());
-                    assertThat(rateConfig.getFrequency())
-                            .as("getFrequency")
+                    softly.assertThat(rateConfig.getFrequency())
+                            .as(ReconnectConfig.RateConfig.RateConfigValue.FREQUENCY.getConfigPath())
                             .isEqualTo(ReconnectConfig.RateConfig.RateConfigValue.FREQUENCY.getDefaultValue());
                 });
     }
@@ -104,22 +108,22 @@ public final class DefaultReconnectConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultReconnectConfig underTest = DefaultReconnectConfig.of(reconnectionTestConf);
 
-        assertThat(underTest.getInitialDelay())
-                .as("getInitialDelay")
+        softly.assertThat(underTest.getInitialDelay())
+                .as(ReconnectConfig.ReconnectConfigValue.INITIAL_DELAY.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(1L));
 
-        assertThat(underTest.getInterval())
-                .as("getInterval")
+        softly.assertThat(underTest.getInterval())
+                .as(ReconnectConfig.ReconnectConfigValue.INTERVAL.getConfigPath())
                 .isEqualTo(Duration.ofMinutes(5L));
 
-        assertThat(underTest.getRateConfig())
+        softly.assertThat(underTest.getRateConfig())
                 .as("rateConfig")
                 .satisfies(rateConfig -> {
-                    assertThat(rateConfig.getEntityAmount())
-                            .as("getEntityAmount")
+                    softly.assertThat(rateConfig.getEntityAmount())
+                            .as(ReconnectConfig.RateConfig.RateConfigValue.ENTITIES.getConfigPath())
                             .isEqualTo(2);
-                    assertThat(rateConfig.getFrequency())
-                            .as("getFrequency")
+                    softly.assertThat(rateConfig.getFrequency())
+                            .as(ReconnectConfig.RateConfig.RateConfigValue.FREQUENCY.getConfigPath())
                             .isEqualTo(Duration.ofSeconds(2L));
                 });
     }

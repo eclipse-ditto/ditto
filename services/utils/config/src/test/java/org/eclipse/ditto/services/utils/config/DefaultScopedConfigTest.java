@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.utils.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -18,7 +17,9 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.util.Collections;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -35,6 +36,9 @@ public final class DefaultScopedConfigTest {
     private static final String KNOWN_CONFIG_PATH = "nowhere";
 
     private static Config testConfig;
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @BeforeClass
     public static void initTestFixture() {
@@ -93,7 +97,7 @@ public final class DefaultScopedConfigTest {
     public void getConfigPathReturnsRelativePathIfDefaultScopedConfigIsBuiltFromPlainConfig() {
         final DefaultScopedConfig underTest = DefaultScopedConfig.newInstance(testConfig, "ditto");
 
-        assertThat(underTest.getConfigPath()).isEqualTo("ditto");
+        softly.assertThat(underTest.getConfigPath()).isEqualTo("ditto");
     }
 
     @Test
@@ -101,7 +105,7 @@ public final class DefaultScopedConfigTest {
         final Config dittoScopedConfig = DefaultScopedConfig.newInstance(testConfig, "ditto");
         final DefaultScopedConfig underTest = DefaultScopedConfig.newInstance(dittoScopedConfig, "concierge");
 
-        assertThat(underTest.getConfigPath()).isEqualTo("ditto.concierge");
+        softly.assertThat(underTest.getConfigPath()).isEqualTo("ditto.concierge");
     }
 
     @Test
@@ -124,7 +128,7 @@ public final class DefaultScopedConfigTest {
 
         final DefaultScopedConfig underTest = DefaultScopedConfig.newInstance(config, parentPath);
 
-        assertThat(underTest.getInt(valuePath)).as(valuePath).isEqualTo(intValue);
+        softly.assertThat(underTest.getInt(valuePath)).as(valuePath).isEqualTo(intValue);
     }
 
 }

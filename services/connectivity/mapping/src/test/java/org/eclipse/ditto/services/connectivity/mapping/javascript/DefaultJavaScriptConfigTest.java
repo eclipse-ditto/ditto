@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping.javascript;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -24,7 +23,9 @@ import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.time.Duration;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -38,6 +39,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DefaultJavaScriptConfigTest {
 
     private static Config javascriptTestConf;
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @BeforeClass
     public static void initTestFixture() {
@@ -73,23 +77,23 @@ public final class DefaultJavaScriptConfigTest {
         final ObjectInput objectInputStream = new ObjectInputStream(byteArrayInputStream);
         final Object underTestDeserialized = objectInputStream.readObject();
 
-        assertThat(underTestDeserialized).isEqualTo(underTest);
+        softly.assertThat(underTestDeserialized).isEqualTo(underTest);
     }
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final DefaultJavaScriptConfig underTest = DefaultJavaScriptConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.getMaxScriptSizeBytes())
-                .as("getMaxScriptSizeBytes")
+        softly.assertThat(underTest.getMaxScriptSizeBytes())
+                .as(JavaScriptConfig.JavaScriptConfigValue.MAX_SCRIPT_SIZE_BYTES.getConfigPath())
                 .isEqualTo(JavaScriptConfig.JavaScriptConfigValue.MAX_SCRIPT_SIZE_BYTES.getDefaultValue());
 
-        assertThat(underTest.getMaxScriptExecutionTime())
-                .as("getMaxScriptExecutionTime")
+        softly.assertThat(underTest.getMaxScriptExecutionTime())
+                .as(JavaScriptConfig.JavaScriptConfigValue.MAX_SCRIPT_EXECUTION_TIME.getConfigPath())
                 .isEqualTo(JavaScriptConfig.JavaScriptConfigValue.MAX_SCRIPT_EXECUTION_TIME.getDefaultValue());
 
-        assertThat(underTest.getMaxScriptStackDepth())
-                .as("getMaxScriptStackDepth")
+        softly.assertThat(underTest.getMaxScriptStackDepth())
+                .as(JavaScriptConfig.JavaScriptConfigValue.MAX_SCRIPT_STACK_DEPTH.getConfigPath())
                 .isEqualTo(JavaScriptConfig.JavaScriptConfigValue.MAX_SCRIPT_STACK_DEPTH.getDefaultValue());
     }
 
@@ -97,16 +101,16 @@ public final class DefaultJavaScriptConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultJavaScriptConfig underTest = DefaultJavaScriptConfig.of(javascriptTestConf);
 
-        assertThat(underTest.getMaxScriptSizeBytes())
-                .as("getMaxScriptSizeBytes")
+        softly.assertThat(underTest.getMaxScriptSizeBytes())
+                .as(JavaScriptConfig.JavaScriptConfigValue.MAX_SCRIPT_SIZE_BYTES.getConfigPath())
                 .isEqualTo(10000);
 
-        assertThat(underTest.getMaxScriptExecutionTime())
-                .as("getMaxScriptExecutionTime")
+        softly.assertThat(underTest.getMaxScriptExecutionTime())
+                .as(JavaScriptConfig.JavaScriptConfigValue.MAX_SCRIPT_EXECUTION_TIME.getConfigPath())
                 .isEqualTo(Duration.ofMillis(100L));
 
-        assertThat(underTest.getMaxScriptStackDepth())
-                .as("getMaxScriptStackDepth")
+        softly.assertThat(underTest.getMaxScriptStackDepth())
+                .as(JavaScriptConfig.JavaScriptConfigValue.MAX_SCRIPT_STACK_DEPTH.getConfigPath())
                 .isEqualTo(1);
     }
 }

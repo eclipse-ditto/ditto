@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.base.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -23,7 +22,9 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -37,6 +38,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DefaultClusterConfigTest {
 
     private static Config clusterTestConf;
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @BeforeClass
     public static void initTestFixture() {
@@ -73,15 +77,15 @@ public final class DefaultClusterConfigTest {
         final ObjectInput objectInputStream = new ObjectInputStream(byteArrayInputStream);
         final Object underTestDeserialized = objectInputStream.readObject();
 
-        assertThat(underTestDeserialized).isEqualTo(underTest);
+        softly.assertThat(underTestDeserialized).isEqualTo(underTest);
     }
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final DefaultClusterConfig underTest = DefaultClusterConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.getNumberOfShards())
-                .as("getNumberOfShards")
+        softly.assertThat(underTest.getNumberOfShards())
+                .as(ServiceSpecificConfig.ClusterConfig.ClusterConfigValue.NUMBER_OF_SHARDS.getConfigPath())
                 .isEqualTo(ServiceSpecificConfig.ClusterConfig.ClusterConfigValue.NUMBER_OF_SHARDS.getDefaultValue());
     }
 
@@ -89,8 +93,8 @@ public final class DefaultClusterConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultClusterConfig underTest = DefaultClusterConfig.of(clusterTestConf);
 
-        assertThat(underTest.getNumberOfShards())
-                .as("getNumberOfShards")
+        softly.assertThat(underTest.getNumberOfShards())
+                .as(ServiceSpecificConfig.ClusterConfig.ClusterConfigValue.NUMBER_OF_SHARDS.getConfigPath())
                 .isEqualTo(100);
     }
 
@@ -98,7 +102,7 @@ public final class DefaultClusterConfigTest {
     public void toStringReturnsExpected() {
         final DefaultClusterConfig underTest = DefaultClusterConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.toString()).contains(underTest.getClass().getSimpleName()).contains("numberOfShards");
+        softly.assertThat(underTest.toString()).contains(underTest.getClass().getSimpleName()).contains("numberOfShards");
     }
 
 }

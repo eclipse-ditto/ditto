@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -22,7 +21,9 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -36,6 +37,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DefaultIndexInitializationConfigTest {
 
     private static Config indexInitializationTestConf;
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @BeforeClass
     public static void initTestFixture() {
@@ -71,15 +75,15 @@ public final class DefaultIndexInitializationConfigTest {
         final ObjectInput objectInputStream = new ObjectInputStream(byteArrayInputStream);
         final Object underTestDeserialized = objectInputStream.readObject();
 
-        assertThat(underTestDeserialized).isEqualTo(underTest);
+        softly.assertThat(underTestDeserialized).isEqualTo(underTest);
     }
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final DefaultIndexInitializationConfig underTest = DefaultIndexInitializationConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.isIndexInitializationConfigEnabled())
-                .as("isIndexInitializationConfigEnabled")
+        softly.assertThat(underTest.isIndexInitializationConfigEnabled())
+                .as(IndexInitializationConfig.IndexInitializerConfigValue.ENABLED.getConfigPath())
                 .isEqualTo(IndexInitializationConfig.IndexInitializerConfigValue.ENABLED.getDefaultValue());
     }
 
@@ -88,8 +92,8 @@ public final class DefaultIndexInitializationConfigTest {
         final DefaultIndexInitializationConfig underTest = DefaultIndexInitializationConfig.of(
                 indexInitializationTestConf);
 
-        assertThat(underTest.isIndexInitializationConfigEnabled())
-                .as("isIndexInitializationConfigEnabled")
+        softly.assertThat(underTest.isIndexInitializationConfigEnabled())
+                .as(IndexInitializationConfig.IndexInitializerConfigValue.ENABLED.getConfigPath())
                 .isTrue();
     }
 }

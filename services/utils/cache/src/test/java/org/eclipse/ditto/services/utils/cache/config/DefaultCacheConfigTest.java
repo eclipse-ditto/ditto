@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.utils.cache.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -23,7 +22,9 @@ import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.time.Duration;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -39,6 +40,9 @@ public final class DefaultCacheConfigTest {
     private static final String KNOWN_CONFIG_PATH = "my-cache";
 
     private static Config cacheTestConfig;
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @BeforeClass
     public static void initTestFixture() {
@@ -73,18 +77,18 @@ public final class DefaultCacheConfigTest {
         final ObjectInput objectInputStream = new ObjectInputStream(byteArrayInputStream);
         final Object underTestDeserialized = objectInputStream.readObject();
 
-        assertThat(underTestDeserialized).isEqualTo(underTest);
+        softly.assertThat(underTestDeserialized).isEqualTo(underTest);
     }
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final DefaultCacheConfig underTest = DefaultCacheConfig.of(ConfigFactory.empty(), KNOWN_CONFIG_PATH);
 
-        assertThat(underTest.getMaximumSize())
-                .as("maximumSize")
+        softly.assertThat(underTest.getMaximumSize())
+                .as(CacheConfig.CacheConfigValue.MAXIMUM_SIZE.getConfigPath())
                 .isEqualTo(CacheConfig.CacheConfigValue.MAXIMUM_SIZE.getDefaultValue());
-        assertThat(underTest.getExpireAfterWrite())
-                .as("expireAfterWrite")
+        softly.assertThat(underTest.getExpireAfterWrite())
+                .as(CacheConfig.CacheConfigValue.EXPIRE_AFTER_WRITE.getConfigPath())
                 .isEqualTo(CacheConfig.CacheConfigValue.EXPIRE_AFTER_WRITE.getDefaultValue());
     }
 
@@ -92,11 +96,11 @@ public final class DefaultCacheConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultCacheConfig underTest = DefaultCacheConfig.of(cacheTestConfig, KNOWN_CONFIG_PATH);
 
-        assertThat(underTest.getMaximumSize())
-                .as("maximumSize")
+        softly.assertThat(underTest.getMaximumSize())
+                .as(CacheConfig.CacheConfigValue.MAXIMUM_SIZE.getConfigPath())
                 .isEqualTo(4711);
-        assertThat(underTest.getExpireAfterWrite())
-                .as("expireAfterWrite")
+        softly.assertThat(underTest.getExpireAfterWrite())
+                .as(CacheConfig.CacheConfigValue.EXPIRE_AFTER_WRITE.getConfigPath())
                 .isEqualTo(Duration.ofMinutes(3));
     }
 

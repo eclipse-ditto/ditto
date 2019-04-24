@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.base.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -22,7 +21,9 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -36,6 +37,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public class DefaultLimitsConfigTest {
 
     private static Config limitsTestConf;
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @BeforeClass
     public static void initTestFixture() {
@@ -70,31 +74,31 @@ public class DefaultLimitsConfigTest {
         final ObjectInput objectInputStream = new ObjectInputStream(byteArrayInputStream);
         final Object underTestDeserialized = objectInputStream.readObject();
 
-        assertThat(underTestDeserialized).isEqualTo(underTest);
+        softly.assertThat(underTestDeserialized).isEqualTo(underTest);
     }
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final DefaultLimitsConfig underTest = DefaultLimitsConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.getThingsMaxSize())
-                .as("getThingsMaxSize")
+        softly.assertThat(underTest.getThingsMaxSize())
+                .as(LimitsConfig.LimitsConfigValue.THINGS_MAX_SIZE.getConfigPath())
                 .isEqualTo(LimitsConfig.LimitsConfigValue.THINGS_MAX_SIZE.getDefaultValue());
 
-        assertThat(underTest.getPoliciesMaxSize())
-                .as("getPoliciesMaxSize")
+        softly.assertThat(underTest.getPoliciesMaxSize())
+                .as(LimitsConfig.LimitsConfigValue.POLICIES_MAX_SIZE.getConfigPath())
                 .isEqualTo(LimitsConfig.LimitsConfigValue.POLICIES_MAX_SIZE.getDefaultValue());
 
-        assertThat(underTest.getMessagesMaxSize())
-                .as("getMessagesMaxSize")
+        softly.assertThat(underTest.getMessagesMaxSize())
+                .as(LimitsConfig.LimitsConfigValue.MESSAGES_MAX_SIZE.getConfigPath())
                 .isEqualTo(LimitsConfig.LimitsConfigValue.MESSAGES_MAX_SIZE.getDefaultValue());
 
-        assertThat(underTest.getThingsSearchDefaultPageSize())
-                .as("getThingsSearchDefaultPageSize")
+        softly.assertThat(underTest.getThingsSearchDefaultPageSize())
+                .as(LimitsConfig.LimitsConfigValue.THINGS_SEARCH_DEFAULT_PAGE_SIZE.getConfigPath())
                 .isEqualTo(LimitsConfig.LimitsConfigValue.THINGS_SEARCH_DEFAULT_PAGE_SIZE.getDefaultValue());
 
-        assertThat(underTest.getThingsSearchMaxPageSize())
-                .as("getThingsSearchMaxPageSize")
+        softly.assertThat(underTest.getThingsSearchMaxPageSize())
+                .as(LimitsConfig.LimitsConfigValue.THINGS_SEARCH_MAX_PAGE_SIZE.getConfigPath())
                 .isEqualTo(LimitsConfig.LimitsConfigValue.THINGS_SEARCH_MAX_PAGE_SIZE.getDefaultValue());
     }
 
@@ -102,24 +106,24 @@ public class DefaultLimitsConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultLimitsConfig underTest = DefaultLimitsConfig.of(limitsTestConf);
 
-        assertThat(underTest.getThingsMaxSize())
-                .as("getThingsMaxSize")
+        softly.assertThat(underTest.getThingsMaxSize())
+                .as(LimitsConfig.LimitsConfigValue.THINGS_MAX_SIZE.getConfigPath())
                 .isEqualTo(204800);
 
-        assertThat(underTest.getPoliciesMaxSize())
-                .as("getPoliciesMaxSize")
+        softly.assertThat(underTest.getPoliciesMaxSize())
+                .as(LimitsConfig.LimitsConfigValue.POLICIES_MAX_SIZE.getConfigPath())
                 .isEqualTo(204800);
 
-        assertThat(underTest.getMessagesMaxSize())
-                .as("getMessagesMaxSize")
+        softly.assertThat(underTest.getMessagesMaxSize())
+                .as(LimitsConfig.LimitsConfigValue.MESSAGES_MAX_SIZE.getConfigPath())
                 .isEqualTo(358400);
 
-        assertThat(underTest.getThingsSearchDefaultPageSize())
-                .as("getThingsSearchDefaultPageSize")
+        softly.assertThat(underTest.getThingsSearchDefaultPageSize())
+                .as(LimitsConfig.LimitsConfigValue.THINGS_SEARCH_DEFAULT_PAGE_SIZE.getConfigPath())
                 .isEqualTo(50);
 
-        assertThat(underTest.getThingsSearchMaxPageSize())
-                .as("getThingsSearchMaxPageSize")
+        softly.assertThat(underTest.getThingsSearchMaxPageSize())
+                .as(LimitsConfig.LimitsConfigValue.THINGS_SEARCH_MAX_PAGE_SIZE.getConfigPath())
                 .isEqualTo(500);
     }
 }

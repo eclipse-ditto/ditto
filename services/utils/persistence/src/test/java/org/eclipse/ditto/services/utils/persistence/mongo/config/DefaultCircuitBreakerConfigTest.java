@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -22,7 +21,9 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -36,6 +37,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DefaultCircuitBreakerConfigTest {
 
     private static Config circuitBreakerTestConfig;
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @BeforeClass
     public static void initTestFixture() {
@@ -69,28 +73,28 @@ public final class DefaultCircuitBreakerConfigTest {
         final ObjectInput objectInputStream = new ObjectInputStream(byteArrayInputStream);
         final Object underTestDeserialized = objectInputStream.readObject();
 
-        assertThat(underTestDeserialized).isEqualTo(underTest);
+        softly.assertThat(underTestDeserialized).isEqualTo(underTest);
     }
 
     @Test
     public void getMaxFailuresReturnsDefaultValueIfConfigIsEmpty() {
         final DefaultCircuitBreakerConfig underTest = DefaultCircuitBreakerConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.getMaxFailures()).isEqualTo(5);
+        softly.assertThat(underTest.getMaxFailures()).isEqualTo(5);
     }
 
     @Test
     public void getMaxFailuresReturnsValueOfConfigFile() {
         final DefaultCircuitBreakerConfig underTest = DefaultCircuitBreakerConfig.of(circuitBreakerTestConfig);
 
-        assertThat(underTest.getMaxFailures()).isEqualTo(23);
+        softly.assertThat(underTest.getMaxFailures()).isEqualTo(23);
     }
 
     @Test
     public void toStringContainsExpected() {
         final DefaultCircuitBreakerConfig underTest = DefaultCircuitBreakerConfig.of(circuitBreakerTestConfig);
 
-        assertThat(underTest.toString()).contains(underTest.getClass().getSimpleName())
+        softly.assertThat(underTest.toString()).contains(underTest.getClass().getSimpleName())
             .contains("maxFailures").contains("5")
             .contains("timeoutConfig");
     }

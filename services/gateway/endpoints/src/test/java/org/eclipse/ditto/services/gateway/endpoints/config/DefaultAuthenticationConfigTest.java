@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -23,7 +22,9 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -37,6 +38,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DefaultAuthenticationConfigTest {
 
     private static Config authenticationTestConf;
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @BeforeClass
     public static void initTestFixture() {
@@ -72,15 +76,15 @@ public final class DefaultAuthenticationConfigTest {
         final ObjectInput objectInputStream = new ObjectInputStream(byteArrayInputStream);
         final Object underTestDeserialized = objectInputStream.readObject();
 
-        assertThat(underTestDeserialized).isEqualTo(underTest);
+        softly.assertThat(underTestDeserialized).isEqualTo(underTest);
     }
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final DefaultAuthenticationConfig underTest = DefaultAuthenticationConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.isDummyAuthenticationEnabled())
-                .as("isDummyAuthenticationEnabled")
+        softly.assertThat(underTest.isDummyAuthenticationEnabled())
+                .as(AuthenticationConfig.AuthenticationConfigValue.DUMMY_AUTH_ENABLED.getConfigPath())
                 .isEqualTo(AuthenticationConfig.AuthenticationConfigValue.DUMMY_AUTH_ENABLED.getDefaultValue());
     }
 
@@ -88,26 +92,26 @@ public final class DefaultAuthenticationConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultAuthenticationConfig underTest = DefaultAuthenticationConfig.of(authenticationTestConf);
 
-        assertThat(underTest.isDummyAuthenticationEnabled())
-                .as("isDummyAuthenticationEnabled")
+        softly.assertThat(underTest.isDummyAuthenticationEnabled())
+                .as(AuthenticationConfig.AuthenticationConfigValue.DUMMY_AUTH_ENABLED.getConfigPath())
                 .isTrue();
-        assertThat(underTest.getHttpProxyConfig())
+        softly.assertThat(underTest.getHttpProxyConfig())
                 .as("httpProxyConfig")
                 .satisfies(httpProxyConfig -> {
-                    assertThat(httpProxyConfig.isEnabled())
-                            .as("isEnabled")
+                    softly.assertThat(httpProxyConfig.isEnabled())
+                            .as(AuthenticationConfig.HttpProxyConfig.HttpProxyConfigValue.ENABLED.getConfigPath())
                             .isTrue();
-                    assertThat(httpProxyConfig.getHostname())
-                            .as("hostName")
+                    softly.assertThat(httpProxyConfig.getHostname())
+                            .as(AuthenticationConfig.HttpProxyConfig.HttpProxyConfigValue.HOST_NAME.getConfigPath())
                             .isEqualTo("example.com");
-                    assertThat(httpProxyConfig.getPort())
-                            .as("port")
+                    softly.assertThat(httpProxyConfig.getPort())
+                            .as(AuthenticationConfig.HttpProxyConfig.HttpProxyConfigValue.PORT.getConfigPath())
                             .isEqualTo(4711);
-                    assertThat(httpProxyConfig.getUsername())
-                            .as("userName")
+                    softly.assertThat(httpProxyConfig.getUsername())
+                            .as(AuthenticationConfig.HttpProxyConfig.HttpProxyConfigValue.USER_NAME.getConfigPath())
                             .isEqualTo("john.frume");
-                    assertThat(httpProxyConfig.getPassword())
-                            .as("password")
+                    softly.assertThat(httpProxyConfig.getPassword())
+                            .as(AuthenticationConfig.HttpProxyConfig.HttpProxyConfigValue.USER_NAME.getConfigPath())
                             .isEqualTo("verySecretPW!");
                 });
     }

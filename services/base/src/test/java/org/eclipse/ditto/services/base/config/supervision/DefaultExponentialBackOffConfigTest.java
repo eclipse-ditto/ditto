@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.base.config.supervision;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -23,7 +22,9 @@ import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.time.Duration;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -36,8 +37,10 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class DefaultExponentialBackOffConfigTest {
 
-
     private static Config exponentialBackOffTestConf;
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @BeforeClass
     public static void initTestFixture() {
@@ -72,23 +75,23 @@ public final class DefaultExponentialBackOffConfigTest {
         final ObjectInput objectInputStream = new ObjectInputStream(byteArrayInputStream);
         final Object underTestDeserialized = objectInputStream.readObject();
 
-        assertThat(underTestDeserialized).isEqualTo(underTest);
+        softly.assertThat(underTestDeserialized).isEqualTo(underTest);
     }
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final DefaultExponentialBackOffConfig underTest = DefaultExponentialBackOffConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.getMin())
-                .as("getMin")
+        softly.assertThat(underTest.getMin())
+                .as(ExponentialBackOffConfig.ExponentialBackOffConfigValue.MIN.getConfigPath())
                 .isEqualTo(ExponentialBackOffConfig.ExponentialBackOffConfigValue.MIN.getDefaultValue());
 
-        assertThat(underTest.getMax())
-                .as("getMax")
+        softly.assertThat(underTest.getMax())
+                .as(ExponentialBackOffConfig.ExponentialBackOffConfigValue.MAX.getConfigPath())
                 .isEqualTo(ExponentialBackOffConfig.ExponentialBackOffConfigValue.MAX.getDefaultValue());
 
-        assertThat(underTest.getRandomFactor())
-                .as("getRandomFactor")
+        softly.assertThat(underTest.getRandomFactor())
+                .as(ExponentialBackOffConfig.ExponentialBackOffConfigValue.RANDOM_FACTOR.getConfigPath())
                 .isEqualTo(ExponentialBackOffConfig.ExponentialBackOffConfigValue.RANDOM_FACTOR.getDefaultValue());
     }
 
@@ -96,16 +99,16 @@ public final class DefaultExponentialBackOffConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultExponentialBackOffConfig underTest = DefaultExponentialBackOffConfig.of(exponentialBackOffTestConf);
 
-        assertThat(underTest.getMin())
-                .as("getMin")
+        softly.assertThat(underTest.getMin())
+                .as(ExponentialBackOffConfig.ExponentialBackOffConfigValue.MIN.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(2L));
 
-        assertThat(underTest.getMax())
-                .as("getMax")
+        softly.assertThat(underTest.getMax())
+                .as(ExponentialBackOffConfig.ExponentialBackOffConfigValue.MAX.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(20L));
 
-        assertThat(underTest.getRandomFactor())
-                .as("getRandomFactor")
+        softly.assertThat(underTest.getRandomFactor())
+                .as(ExponentialBackOffConfig.ExponentialBackOffConfigValue.RANDOM_FACTOR.getConfigPath())
                 .isEqualTo(0.3D);
     }
 }

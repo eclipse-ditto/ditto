@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.gateway.health.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -22,8 +21,10 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.services.gateway.health.config.HealthCheckConfig.ClusterRolesConfig.ClusterRolesConfigValue;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -37,6 +38,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DefaultClusterRolesConfigTest {
 
     private static Config clusterRolesTestConfig;
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @BeforeClass
     public static void initTestFixture() {
@@ -70,7 +74,7 @@ public final class DefaultClusterRolesConfigTest {
         final ObjectInput objectInputStream = new ObjectInputStream(byteArrayInputStream);
         final Object underTestDeserialized = objectInputStream.readObject();
 
-        assertThat(underTestDeserialized).isEqualTo(underTest);
+        softly.assertThat(underTestDeserialized).isEqualTo(underTest);
     }
 
     @SuppressWarnings("unchecked")
@@ -78,11 +82,11 @@ public final class DefaultClusterRolesConfigTest {
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final DefaultClusterRolesConfig underTest = DefaultClusterRolesConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.isEnabled())
-                .as("isEnabled")
+        softly.assertThat(underTest.isEnabled())
+                .as(ClusterRolesConfigValue.ENABLED.getConfigPath())
                 .isEqualTo(ClusterRolesConfigValue.ENABLED.getDefaultValue());
-        assertThat(underTest.getExpectedClusterRoles())
-                .as("expectedClusterRoles")
+        softly.assertThat(underTest.getExpectedClusterRoles())
+                .as(ClusterRolesConfigValue.EXPECTED.getConfigPath())
                 .containsOnlyElementsOf((Iterable) ClusterRolesConfigValue.EXPECTED.getDefaultValue());
     }
 
@@ -90,11 +94,11 @@ public final class DefaultClusterRolesConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultClusterRolesConfig underTest = DefaultClusterRolesConfig.of(clusterRolesTestConfig);
 
-        assertThat(underTest.isEnabled())
-                .as("isEnabled")
+        softly.assertThat(underTest.isEnabled())
+                .as(ClusterRolesConfigValue.ENABLED.getConfigPath())
                 .isTrue();
-        assertThat(underTest.getExpectedClusterRoles())
-                .as("expectedClusterRoles")
+        softly.assertThat(underTest.getExpectedClusterRoles())
+                .as(ClusterRolesConfigValue.EXPECTED.getConfigPath())
                 .containsOnly("foo", "bar", "baz");
     }
 

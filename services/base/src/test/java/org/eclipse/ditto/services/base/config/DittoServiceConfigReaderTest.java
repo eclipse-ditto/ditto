@@ -10,10 +10,11 @@
  */
 package org.eclipse.ditto.services.base.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.assertj.core.api.JUnitSoftAssertions;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -27,6 +28,9 @@ public final class DittoServiceConfigReaderTest {
 
     private static final String SERVICE_NAME = "dummy-service";
 
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
+
     @Test
     public void assertImmutability() {
         assertInstancesOf(DittoServiceConfigReader.class, areImmutable());
@@ -35,27 +39,27 @@ public final class DittoServiceConfigReaderTest {
     @Test
     public void allValuesSet() {
         final ServiceConfigReader underTest = loadResource("allValuesSet.conf");
-        assertThat(underTest.cluster().numberOfShards()).isEqualTo(1234);
-        assertThat(underTest.metrics().isPrometheusEnabled()).isTrue();
-        assertThat(underTest.metrics().isSystemMetricsEnabled()).isTrue();
+        softly.assertThat(underTest.cluster().numberOfShards()).isEqualTo(1234);
+        softly.assertThat(underTest.metrics().isPrometheusEnabled()).isTrue();
+        softly.assertThat(underTest.metrics().isSystemMetricsEnabled()).isTrue();
     }
 
     @Test
     public void noValuesSet() {
         final ServiceConfigReader underTest = DittoServiceConfigReader.from(SERVICE_NAME).apply(ConfigFactory.empty());
 
-        assertThat(underTest.cluster().numberOfShards())
+        softly.assertThat(underTest.cluster().numberOfShards())
                 .isEqualTo(ClusterConfigReader.DEFAULT_NUMBER_OF_SHARDS);
-        assertThat(underTest.metrics().isPrometheusEnabled()).isFalse();
-        assertThat(underTest.metrics().isSystemMetricsEnabled()).isFalse();
+        softly.assertThat(underTest.metrics().isPrometheusEnabled()).isFalse();
+        softly.assertThat(underTest.metrics().isSystemMetricsEnabled()).isFalse();
     }
 
     @Test
     public void someValuesSet() {
         final ServiceConfigReader underTest = loadResource("someValuesSet.conf");
-        assertThat(underTest.cluster().numberOfShards()).isEqualTo(1234);
-        assertThat(underTest.metrics().isPrometheusEnabled()).isTrue();
-        assertThat(underTest.metrics().isSystemMetricsEnabled()).isFalse();
+        softly.assertThat(underTest.cluster().numberOfShards()).isEqualTo(1234);
+        softly.assertThat(underTest.metrics().isPrometheusEnabled()).isTrue();
+        softly.assertThat(underTest.metrics().isSystemMetricsEnabled()).isFalse();
     }
 
     private static ServiceConfigReader loadResource(final String resourceName) {

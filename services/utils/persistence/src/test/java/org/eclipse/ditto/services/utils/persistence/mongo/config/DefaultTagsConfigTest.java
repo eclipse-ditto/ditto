@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -22,7 +21,9 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -36,6 +37,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DefaultTagsConfigTest {
 
     private static Config snapshotTestConf;
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @BeforeClass
     public static void initTestFixture() {
@@ -69,15 +73,15 @@ public final class DefaultTagsConfigTest {
         final ObjectInput objectInputStream = new ObjectInputStream(byteArrayInputStream);
         final Object underTestDeserialized = objectInputStream.readObject();
 
-        assertThat(underTestDeserialized).isEqualTo(underTest);
+        softly.assertThat(underTestDeserialized).isEqualTo(underTest);
     }
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final DefaultTagsConfig underTest = DefaultTagsConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.getStreamingCacheSize())
-                .as("getStreamingCacheSize")
+        softly.assertThat(underTest.getStreamingCacheSize())
+                .as(TagsConfig.TagsConfigValue.STREAMING_CACHE_SIZE.getConfigPath())
                 .isEqualTo(TagsConfig.TagsConfigValue.STREAMING_CACHE_SIZE.getDefaultValue());
     }
 
@@ -85,8 +89,8 @@ public final class DefaultTagsConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultTagsConfig underTest = DefaultTagsConfig.of(snapshotTestConf);
 
-        assertThat(underTest.getStreamingCacheSize())
-                .as("getStreamingCacheSize")
+        softly.assertThat(underTest.getStreamingCacheSize())
+                .as(TagsConfig.TagsConfigValue.STREAMING_CACHE_SIZE.getConfigPath())
                 .isEqualTo(100);
     }
 

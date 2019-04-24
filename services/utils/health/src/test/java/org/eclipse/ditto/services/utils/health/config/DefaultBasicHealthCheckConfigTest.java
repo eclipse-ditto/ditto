@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.utils.health.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -23,7 +22,9 @@ import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.time.Duration;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -37,6 +38,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DefaultBasicHealthCheckConfigTest {
 
     private static Config healthCheckConfig;
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @BeforeClass
     public static void initTestFixture() {
@@ -70,18 +74,18 @@ public final class DefaultBasicHealthCheckConfigTest {
         final ObjectInput objectInputStream = new ObjectInputStream(byteArrayInputStream);
         final Object underTestDeserialized = objectInputStream.readObject();
 
-        assertThat(underTestDeserialized).isEqualTo(underTest);
+        softly.assertThat(underTestDeserialized).isEqualTo(underTest);
     }
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigIsEmpty() {
         final DefaultBasicHealthCheckConfig underTest = DefaultBasicHealthCheckConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.isEnabled())
-                .as("isEnabled")
+        softly.assertThat(underTest.isEnabled())
+                .as(BasicHealthCheckConfig.HealthCheckConfigValue.ENABLED.getConfigPath())
                 .isEqualTo(BasicHealthCheckConfig.HealthCheckConfigValue.ENABLED.getDefaultValue());
-        assertThat(underTest.getInterval())
-                .as("interval")
+        softly.assertThat(underTest.getInterval())
+                .as(BasicHealthCheckConfig.HealthCheckConfigValue.INTERVAL.getConfigPath())
                 .isEqualTo(BasicHealthCheckConfig.HealthCheckConfigValue.INTERVAL.getDefaultValue());
     }
 
@@ -89,11 +93,11 @@ public final class DefaultBasicHealthCheckConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultBasicHealthCheckConfig underTest = DefaultBasicHealthCheckConfig.of(healthCheckConfig);
 
-        assertThat(underTest.isEnabled())
-                .as("isEnabled")
+        softly.assertThat(underTest.isEnabled())
+                .as(BasicHealthCheckConfig.HealthCheckConfigValue.ENABLED.getConfigPath())
                 .isTrue();
-        assertThat(underTest.getInterval())
-                .as("interval")
+        softly.assertThat(underTest.getInterval())
+                .as(BasicHealthCheckConfig.HealthCheckConfigValue.INTERVAL.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(13L));
     }
 

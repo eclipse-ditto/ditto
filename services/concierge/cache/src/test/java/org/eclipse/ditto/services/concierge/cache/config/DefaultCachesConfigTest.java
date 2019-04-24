@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.concierge.cache.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -24,7 +23,10 @@ import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.time.Duration;
 
+import org.assertj.core.api.JUnitSoftAssertions;
+import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -38,6 +40,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DefaultCachesConfigTest {
 
     private static Config cachesTestConf;
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @BeforeClass
     public static void initTestFixture() {
@@ -73,14 +78,14 @@ public final class DefaultCachesConfigTest {
         final ObjectInput objectInputStream = new ObjectInputStream(byteArrayInputStream);
         final Object underTestDeserialized = objectInputStream.readObject();
 
-        assertThat(underTestDeserialized).isEqualTo(underTest);
+        softly.assertThat(underTestDeserialized).isEqualTo(underTest);
     }
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final DefaultCachesConfig underTest = DefaultCachesConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.getAskTimeout())
+        softly.assertThat(underTest.getAskTimeout())
                 .as("getAskTimeout")
                 .isEqualTo(CachesConfig.CachesConfigValue.ASK_TIMEOUT.getDefaultValue());
     }
@@ -89,29 +94,29 @@ public final class DefaultCachesConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultCachesConfig underTest = DefaultCachesConfig.of(cachesTestConf);
 
-        assertThat(underTest.getAskTimeout())
-                .as("getAskTimeout")
+        softly.assertThat(underTest.getAskTimeout())
+                .as(CachesConfig.CachesConfigValue.ASK_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(30L));
 
-        assertThat(underTest.getEnforcerCacheConfig())
+        softly.assertThat(underTest.getEnforcerCacheConfig())
                 .as("enforcerCacheConfig")
                 .satisfies(enforcerCacheConfig -> {
-                    assertThat(enforcerCacheConfig.getMaximumSize())
-                            .as("getMaximumSize")
+                    softly.assertThat(enforcerCacheConfig.getMaximumSize())
+                            .as(CacheConfig.CacheConfigValue.MAXIMUM_SIZE.getConfigPath())
                             .isEqualTo(20000);
-                    assertThat(enforcerCacheConfig.getExpireAfterWrite())
-                            .as("getExpireAfterWrite")
+                    softly.assertThat(enforcerCacheConfig.getExpireAfterWrite())
+                            .as(CacheConfig.CacheConfigValue.EXPIRE_AFTER_WRITE.getConfigPath())
                             .isEqualTo(Duration.ofMinutes(15L));
                 });
 
-        assertThat(underTest.getIdCacheConfig())
+        softly.assertThat(underTest.getIdCacheConfig())
                 .as("idCacheConfig")
                 .satisfies(idCacheConfig -> {
-                    assertThat(idCacheConfig.getMaximumSize())
-                            .as("getMaximumSize")
+                    softly.assertThat(idCacheConfig.getMaximumSize())
+                            .as(CacheConfig.CacheConfigValue.MAXIMUM_SIZE.getConfigPath())
                             .isEqualTo(80000);
-                    assertThat(idCacheConfig.getExpireAfterWrite())
-                            .as("getExpireAfterWrite")
+                    softly.assertThat(idCacheConfig.getExpireAfterWrite())
+                            .as(CacheConfig.CacheConfigValue.EXPIRE_AFTER_WRITE.getConfigPath())
                             .isEqualTo(Duration.ofMinutes(15L));
                 });
     }

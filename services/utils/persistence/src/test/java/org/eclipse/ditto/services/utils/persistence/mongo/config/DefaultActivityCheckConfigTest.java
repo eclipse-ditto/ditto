@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -23,7 +22,9 @@ import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.time.Duration;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -37,6 +38,10 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DefaultActivityCheckConfigTest {
 
     private static Config activityCheckTestConf;
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
+
 
     @BeforeClass
     public static void initTestFixture() {
@@ -71,18 +76,18 @@ public final class DefaultActivityCheckConfigTest {
         final ObjectInput objectInputStream = new ObjectInputStream(byteArrayInputStream);
         final Object underTestDeserialized = objectInputStream.readObject();
 
-        assertThat(underTestDeserialized).isEqualTo(underTest);
+        softly.assertThat(underTestDeserialized).isEqualTo(underTest);
     }
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final DefaultActivityCheckConfig underTest = DefaultActivityCheckConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.getInactiveInterval())
-                .as("getInactiveInterval")
+        softly.assertThat(underTest.getInactiveInterval())
+                .as(ActivityCheckConfig.ActivityCheckConfigValue.INACTIVE_INTERVAL.getConfigPath())
                 .isEqualTo(ActivityCheckConfig.ActivityCheckConfigValue.INACTIVE_INTERVAL.getDefaultValue());
-        assertThat(underTest.getDeletedInterval())
-                .as("getDeletedInterval")
+        softly.assertThat(underTest.getDeletedInterval())
+                .as(ActivityCheckConfig.ActivityCheckConfigValue.DELETED_INTERVAL.getConfigPath())
                 .isEqualTo(ActivityCheckConfig.ActivityCheckConfigValue.DELETED_INTERVAL.getDefaultValue());
     }
 
@@ -90,11 +95,11 @@ public final class DefaultActivityCheckConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultActivityCheckConfig underTest = DefaultActivityCheckConfig.of(activityCheckTestConf);
 
-        assertThat(underTest.getInactiveInterval())
-                .as("getInactiveInterval")
+        softly.assertThat(underTest.getInactiveInterval())
+                .as(ActivityCheckConfig.ActivityCheckConfigValue.INACTIVE_INTERVAL.getConfigPath())
                 .isEqualTo(Duration.ofDays(100L));
-        assertThat(underTest.getDeletedInterval())
-                .as("getDeletedInterval")
+        softly.assertThat(underTest.getDeletedInterval())
+                .as(ActivityCheckConfig.ActivityCheckConfigValue.DELETED_INTERVAL.getConfigPath())
                 .isEqualTo(Duration.ofDays(100L));
     }
 }

@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.utils.health.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -23,7 +22,9 @@ import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.time.Duration;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -37,6 +38,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DefaultPersistenceConfigTest {
 
     private static Config persistenceConfig;
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @BeforeClass
     public static void initTestFixture() {
@@ -71,18 +75,18 @@ public final class DefaultPersistenceConfigTest {
         final ObjectInput objectInputStream = new ObjectInputStream(byteArrayInputStream);
         final Object underTestDeserialized = objectInputStream.readObject();
 
-        assertThat(underTestDeserialized).isEqualTo(underTest);
+        softly.assertThat(underTestDeserialized).isEqualTo(underTest);
     }
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigIsEmpty() {
         final DefaultPersistenceConfig underTest = DefaultPersistenceConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.isEnabled())
-                .as("isEnabled")
+        softly.assertThat(underTest.isEnabled())
+                .as(PersistenceConfig.PersistenceConfigValue.ENABLED.getConfigPath())
                 .isEqualTo(PersistenceConfig.PersistenceConfigValue.ENABLED.getDefaultValue());
-        assertThat(underTest.getTimeout())
-                .as("timeout")
+        softly.assertThat(underTest.getTimeout())
+                .as(PersistenceConfig.PersistenceConfigValue.TIMEOUT.getConfigPath())
                 .isEqualTo(PersistenceConfig.PersistenceConfigValue.TIMEOUT.getDefaultValue());
     }
 
@@ -90,11 +94,11 @@ public final class DefaultPersistenceConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultPersistenceConfig underTest = DefaultPersistenceConfig.of(persistenceConfig);
 
-        assertThat(underTest.isEnabled())
-                .as("isEnabled")
+        softly.assertThat(underTest.isEnabled())
+                .as(PersistenceConfig.PersistenceConfigValue.ENABLED.getConfigPath())
                 .isTrue();
-        assertThat(underTest.getTimeout())
-                .as("timeout")
+        softly.assertThat(underTest.getTimeout())
+                .as(PersistenceConfig.PersistenceConfigValue.TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(42L));
     }
 

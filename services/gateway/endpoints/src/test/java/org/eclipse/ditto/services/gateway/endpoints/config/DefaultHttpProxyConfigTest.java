@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -22,8 +21,10 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.services.gateway.endpoints.config.AuthenticationConfig.HttpProxyConfig.HttpProxyConfigValue;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -37,6 +38,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DefaultHttpProxyConfigTest {
 
     private static Config httpProxyConfig;
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @BeforeClass
     public static void initTestFixture() {
@@ -70,26 +74,26 @@ public final class DefaultHttpProxyConfigTest {
         final ObjectInput objectInputStream = new ObjectInputStream(byteArrayInputStream);
         final Object underTestDeserialized = objectInputStream.readObject();
 
-        assertThat(underTestDeserialized).isEqualTo(underTest);
+        softly.assertThat(underTestDeserialized).isEqualTo(underTest);
     }
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final DefaultHttpProxyConfig underTest = DefaultHttpProxyConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.isEnabled())
+        softly.assertThat(underTest.isEnabled())
                 .as(HttpProxyConfigValue.ENABLED.getConfigPath())
                 .isEqualTo(HttpProxyConfigValue.ENABLED.getDefaultValue());
-        assertThat(underTest.getHostname())
+        softly.assertThat(underTest.getHostname())
                 .as(HttpProxyConfigValue.HOST_NAME.getConfigPath())
                 .isEqualTo(HttpProxyConfigValue.HOST_NAME.getDefaultValue());
-        assertThat(underTest.getPort())
+        softly.assertThat(underTest.getPort())
                 .as(HttpProxyConfigValue.PORT.getConfigPath())
                 .isEqualTo(HttpProxyConfigValue.PORT.getDefaultValue());
-        assertThat(underTest.getUsername())
+        softly.assertThat(underTest.getUsername())
                 .as(HttpProxyConfigValue.USER_NAME.getConfigPath())
                 .isEqualTo(HttpProxyConfigValue.USER_NAME.getDefaultValue());
-        assertThat(underTest.getPassword())
+        softly.assertThat(underTest.getPassword())
                 .as(HttpProxyConfigValue.PASSWORD.getConfigPath())
                 .isEqualTo(HttpProxyConfigValue.PASSWORD.getDefaultValue());
     }
@@ -98,19 +102,19 @@ public final class DefaultHttpProxyConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultHttpProxyConfig underTest = DefaultHttpProxyConfig.of(httpProxyConfig);
 
-        assertThat(underTest.isEnabled())
+        softly.assertThat(underTest.isEnabled())
                 .as(HttpProxyConfigValue.ENABLED.getConfigPath())
                 .isTrue();
-        assertThat(underTest.getHostname())
+        softly.assertThat(underTest.getHostname())
                 .as(HttpProxyConfigValue.HOST_NAME.getConfigPath())
                 .isEqualTo("example.com");
-        assertThat(underTest.getPort())
+        softly.assertThat(underTest.getPort())
                 .as(HttpProxyConfigValue.PORT.getConfigPath())
                 .isEqualTo(4711);
-        assertThat(underTest.getUsername())
+        softly.assertThat(underTest.getUsername())
                 .as(HttpProxyConfigValue.USER_NAME.getConfigPath())
                 .isEqualTo("john.frume");
-        assertThat(underTest.getPassword())
+        softly.assertThat(underTest.getPassword())
                 .as(HttpProxyConfigValue.PASSWORD.getConfigPath())
                 .isEqualTo("verySecretPW!");
     }

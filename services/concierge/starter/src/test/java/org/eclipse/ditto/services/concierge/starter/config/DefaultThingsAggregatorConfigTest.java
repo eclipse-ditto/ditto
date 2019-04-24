@@ -9,7 +9,6 @@
  * SPDX-License-Identifier: EPL-2.0
  */package org.eclipse.ditto.services.concierge.starter.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -23,7 +22,9 @@ import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.time.Duration;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -37,6 +38,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DefaultThingsAggregatorConfigTest {
 
     private static Config thingsAggregatorTestConf;
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @BeforeClass
     public static void initTestFixture() {
@@ -72,19 +76,19 @@ public final class DefaultThingsAggregatorConfigTest {
         final ObjectInput objectInputStream = new ObjectInputStream(byteArrayInputStream);
         final Object underTestDeserialized = objectInputStream.readObject();
 
-        assertThat(underTestDeserialized).isEqualTo(underTest);
+        softly.assertThat(underTestDeserialized).isEqualTo(underTest);
     }
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final DefaultThingsAggregatorConfig underTest = DefaultThingsAggregatorConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.getSingleRetrieveThingTimeout())
-                .as("getSingleRetrieveThingTimeout")
+        softly.assertThat(underTest.getSingleRetrieveThingTimeout())
+                .as(ThingsAggregatorConfig.ThingsAggregatorConfigValue.SINGLE_RETRIEVE_THING_TIMEOUT.getConfigPath())
                 .isEqualTo(ThingsAggregatorConfig.ThingsAggregatorConfigValue.SINGLE_RETRIEVE_THING_TIMEOUT.getDefaultValue());
 
-        assertThat(underTest.getMaxParallelism())
-                .as("getMaxParallelism")
+        softly.assertThat(underTest.getMaxParallelism())
+                .as(ThingsAggregatorConfig.ThingsAggregatorConfigValue.MAX_PARALLELISM.getConfigPath())
                 .isEqualTo(ThingsAggregatorConfig.ThingsAggregatorConfigValue.MAX_PARALLELISM.getDefaultValue());
     }
 
@@ -92,14 +96,13 @@ public final class DefaultThingsAggregatorConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultThingsAggregatorConfig underTest = DefaultThingsAggregatorConfig.of(thingsAggregatorTestConf);
 
-        assertThat(underTest.getSingleRetrieveThingTimeout())
-                .as("getSingleRetrieveThingTimeout")
+        softly.assertThat(underTest.getSingleRetrieveThingTimeout())
+                .as(ThingsAggregatorConfig.ThingsAggregatorConfigValue.SINGLE_RETRIEVE_THING_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(60L));
 
-        assertThat(underTest.getMaxParallelism())
-                .as("getMaxParallelism")
+        softly.assertThat(underTest.getMaxParallelism())
+                .as(ThingsAggregatorConfig.ThingsAggregatorConfigValue.MAX_PARALLELISM.getConfigPath())
                 .isEqualTo(10);
-
     }
 
 }

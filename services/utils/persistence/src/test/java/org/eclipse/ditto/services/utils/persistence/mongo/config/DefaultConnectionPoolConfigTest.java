@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -23,8 +22,10 @@ import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.time.Duration;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig.ConnectionPoolConfig.ConnectionPoolConfigValue;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -38,6 +39,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DefaultConnectionPoolConfigTest {
 
     private static Config connectionPoolTestConfig;
+    
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @BeforeClass
     public static void initTestFixture() {
@@ -71,23 +75,23 @@ public final class DefaultConnectionPoolConfigTest {
         final ObjectInput objectInputStream = new ObjectInputStream(byteArrayInputStream);
         final Object underTestDeserialized = objectInputStream.readObject();
 
-        assertThat(underTestDeserialized).isEqualTo(underTest);
+        softly.assertThat(underTestDeserialized).isEqualTo(underTest);
     }
 
     @Test
     public void underTestReturnsDefaultValuesWhenBaseConfigWasEmpty() {
         final DefaultConnectionPoolConfig underTest = DefaultConnectionPoolConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.getMaxSize())
+        softly.assertThat(underTest.getMaxSize())
                 .as(ConnectionPoolConfigValue.MAX_SIZE.getConfigPath())
                 .isEqualTo(ConnectionPoolConfigValue.MAX_SIZE.getDefaultValue());
-        assertThat(underTest.getMaxWaitQueueSize())
+        softly.assertThat(underTest.getMaxWaitQueueSize())
                 .as(ConnectionPoolConfigValue.MAX_WAIT_QUEUE_SIZE.getConfigPath())
                 .isEqualTo(ConnectionPoolConfigValue.MAX_WAIT_QUEUE_SIZE.getDefaultValue());
-        assertThat(underTest.getMaxWaitTime())
+        softly.assertThat(underTest.getMaxWaitTime())
                 .as(ConnectionPoolConfigValue.MAX_WAIT_TIME.getConfigPath())
                 .isEqualTo(ConnectionPoolConfigValue.MAX_WAIT_TIME.getDefaultValue());
-        assertThat(underTest.isJmxListenerEnabled())
+        softly.assertThat(underTest.isJmxListenerEnabled())
                 .as(ConnectionPoolConfigValue.JMX_LISTENER_ENABLED.getConfigPath())
                 .isEqualTo(ConnectionPoolConfigValue.JMX_LISTENER_ENABLED.getDefaultValue());
     }
@@ -96,16 +100,16 @@ public final class DefaultConnectionPoolConfigTest {
     public void underTestReturnsValuesOfBaseConfig() {
         final DefaultConnectionPoolConfig underTest = DefaultConnectionPoolConfig.of(connectionPoolTestConfig);
 
-        assertThat(underTest.getMaxSize())
+        softly.assertThat(underTest.getMaxSize())
                 .as(ConnectionPoolConfigValue.MAX_SIZE.getConfigPath())
                 .isEqualTo(1_000);
-        assertThat(underTest.getMaxWaitQueueSize())
+        softly.assertThat(underTest.getMaxWaitQueueSize())
                 .as(ConnectionPoolConfigValue.MAX_WAIT_QUEUE_SIZE.getConfigPath())
                 .isEqualTo(1_000);
-        assertThat(underTest.getMaxWaitTime())
+        softly.assertThat(underTest.getMaxWaitTime())
                 .as(ConnectionPoolConfigValue.MAX_WAIT_TIME.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(42L));
-        assertThat(underTest.isJmxListenerEnabled())
+        softly.assertThat(underTest.isJmxListenerEnabled())
                 .as(ConnectionPoolConfigValue.JMX_LISTENER_ENABLED.getConfigPath())
                 .isTrue();
     }

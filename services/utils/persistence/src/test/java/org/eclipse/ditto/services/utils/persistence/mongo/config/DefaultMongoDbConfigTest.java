@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -18,7 +17,9 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Duration;
 import java.util.Collections;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -35,6 +36,9 @@ public final class DefaultMongoDbConfigTest {
     private static final String MONGODB_CONFIG_FILE_NAME = "mongodb_test.conf";
 
     private Config mongoDbConfig;
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @Before
     public void initMongoDbConfig() {
@@ -64,7 +68,7 @@ public final class DefaultMongoDbConfigTest {
     public void toStringContainsExpected() {
         final DefaultMongoDbConfig underTest = DefaultMongoDbConfig.of(mongoDbConfig);
 
-        assertThat(underTest.toString()).contains(underTest.getClass().getSimpleName())
+        softly.assertThat(underTest.toString()).contains(underTest.getClass().getSimpleName())
                 .contains("maxQueryTime", "mongoDbUri", "optionsConfig", "connectionPoolConfig",
                 "circuitBreakerConfig", "monitoringConfig");
     }
@@ -73,27 +77,27 @@ public final class DefaultMongoDbConfigTest {
     public void defaultMongodbConfigContainsExactlyValuesOfResourceConfigFile() {
         final DefaultMongoDbConfig underTest = DefaultMongoDbConfig.of(mongoDbConfig);
 
-        assertThat(underTest.getMaxQueryTime()).isEqualTo(Duration.ofSeconds(10));
-        assertThat(underTest.getMongoDbUri()).isEqualTo("mongodb://foo:bar@mongodb:27017/test?w=1&ssl=false");
-        assertThat(underTest.getOptionsConfig()).satisfies(optionsConfig -> {
-            assertThat(optionsConfig.isSslEnabled()).isFalse();
+        softly.assertThat(underTest.getMaxQueryTime()).isEqualTo(Duration.ofSeconds(10));
+        softly.assertThat(underTest.getMongoDbUri()).isEqualTo("mongodb://foo:bar@mongodb:27017/test?w=1&ssl=false");
+        softly.assertThat(underTest.getOptionsConfig()).satisfies(optionsConfig -> {
+            softly.assertThat(optionsConfig.isSslEnabled()).isFalse();
         });
-        assertThat(underTest.getConnectionPoolConfig()).satisfies(connectionPoolConfig -> {
-            assertThat(connectionPoolConfig.getMaxSize()).isEqualTo(1_000);
-            assertThat(connectionPoolConfig.getMaxWaitQueueSize()).isEqualTo(1_000);
-            assertThat(connectionPoolConfig.getMaxWaitTime()).isEqualTo(Duration.ofSeconds(42L));
-            assertThat(connectionPoolConfig.isJmxListenerEnabled()).isTrue();
+        softly.assertThat(underTest.getConnectionPoolConfig()).satisfies(connectionPoolConfig -> {
+            softly.assertThat(connectionPoolConfig.getMaxSize()).isEqualTo(1_000);
+            softly.assertThat(connectionPoolConfig.getMaxWaitQueueSize()).isEqualTo(1_000);
+            softly.assertThat(connectionPoolConfig.getMaxWaitTime()).isEqualTo(Duration.ofSeconds(42L));
+            softly.assertThat(connectionPoolConfig.isJmxListenerEnabled()).isTrue();
         });
-        assertThat(underTest.getCircuitBreakerConfig()).satisfies(circuitBreakerConfig -> {
-            assertThat(circuitBreakerConfig.getMaxFailures()).isEqualTo(23);
-            assertThat(circuitBreakerConfig.getTimeoutConfig()).satisfies(timeoutConfig -> {
-                assertThat(timeoutConfig.getCall()).isEqualTo(Duration.ofSeconds(13L));
-                assertThat(timeoutConfig.getReset()).isEqualTo(Duration.ofSeconds(7L));
+        softly.assertThat(underTest.getCircuitBreakerConfig()).satisfies(circuitBreakerConfig -> {
+            softly.assertThat(circuitBreakerConfig.getMaxFailures()).isEqualTo(23);
+            softly.assertThat(circuitBreakerConfig.getTimeoutConfig()).satisfies(timeoutConfig -> {
+                softly.assertThat(timeoutConfig.getCall()).isEqualTo(Duration.ofSeconds(13L));
+                softly.assertThat(timeoutConfig.getReset()).isEqualTo(Duration.ofSeconds(7L));
             });
         });
-        assertThat(underTest.getMonitoringConfig()).satisfies(monitoringConfig -> {
-            assertThat(monitoringConfig.isCommandsEnabled()).isTrue();
-            assertThat(monitoringConfig.isConnectionPoolEnabled()).isTrue();
+        softly.assertThat(underTest.getMonitoringConfig()).satisfies(monitoringConfig -> {
+            softly.assertThat(monitoringConfig.isCommandsEnabled()).isTrue();
+            softly.assertThat(monitoringConfig.isConnectionPoolEnabled()).isTrue();
         });
     }
 
@@ -106,27 +110,27 @@ public final class DefaultMongoDbConfigTest {
                 ConfigFactory.parseMap(Collections.singletonMap(absoluteMongoDbUriPath, sourceMongoDbUri));
         final DefaultMongoDbConfig underTest = DefaultMongoDbConfig.of(originalMongoDbConfig);
 
-        assertThat(underTest.getMaxQueryTime()).as("maxQueryTime").isEqualTo(Duration.ofMinutes(1));
-        assertThat(underTest.getMongoDbUri()).as("mongoDbUri").isEqualTo("mongodb://foo:bar@mongodb:27017/test");
-        assertThat(underTest.getOptionsConfig()).satisfies(optionsConfig -> {
-            assertThat(optionsConfig.isSslEnabled()).as("ssl").isFalse();
+        softly.assertThat(underTest.getMaxQueryTime()).as("maxQueryTime").isEqualTo(Duration.ofMinutes(1));
+        softly.assertThat(underTest.getMongoDbUri()).as("mongoDbUri").isEqualTo("mongodb://foo:bar@mongodb:27017/test");
+        softly.assertThat(underTest.getOptionsConfig()).satisfies(optionsConfig -> {
+            softly.assertThat(optionsConfig.isSslEnabled()).as("ssl").isFalse();
         });
-        assertThat(underTest.getConnectionPoolConfig()).satisfies(connectionPoolConfig -> {
-            assertThat(connectionPoolConfig.getMaxSize()).as("maxSize").isEqualTo(100);
-            assertThat(connectionPoolConfig.getMaxWaitQueueSize()).as("maxWaitQueueSize").isEqualTo(100);
-            assertThat(connectionPoolConfig.getMaxWaitTime()).as("maxWaitTime").isEqualTo(Duration.ofSeconds(30L));
-            assertThat(connectionPoolConfig.isJmxListenerEnabled()).as("jmxListenerEnabled").isFalse();
+        softly.assertThat(underTest.getConnectionPoolConfig()).satisfies(connectionPoolConfig -> {
+            softly.assertThat(connectionPoolConfig.getMaxSize()).as("maxSize").isEqualTo(100);
+            softly.assertThat(connectionPoolConfig.getMaxWaitQueueSize()).as("maxWaitQueueSize").isEqualTo(100);
+            softly.assertThat(connectionPoolConfig.getMaxWaitTime()).as("maxWaitTime").isEqualTo(Duration.ofSeconds(30L));
+            softly.assertThat(connectionPoolConfig.isJmxListenerEnabled()).as("jmxListenerEnabled").isFalse();
         });
-        assertThat(underTest.getCircuitBreakerConfig()).satisfies(circuitBreakerConfig -> {
-            assertThat(circuitBreakerConfig.getMaxFailures()).as("maxFailures").isEqualTo(5);
-            assertThat(circuitBreakerConfig.getTimeoutConfig()).satisfies(timeoutConfig -> {
-                assertThat(timeoutConfig.getCall()).as("call").isEqualTo(Duration.ofSeconds(5L));
-                assertThat(timeoutConfig.getReset()).as("reset").isEqualTo(Duration.ofSeconds(10L));
+        softly.assertThat(underTest.getCircuitBreakerConfig()).satisfies(circuitBreakerConfig -> {
+            softly.assertThat(circuitBreakerConfig.getMaxFailures()).as("maxFailures").isEqualTo(5);
+            softly.assertThat(circuitBreakerConfig.getTimeoutConfig()).satisfies(timeoutConfig -> {
+                softly.assertThat(timeoutConfig.getCall()).as("call").isEqualTo(Duration.ofSeconds(5L));
+                softly.assertThat(timeoutConfig.getReset()).as("reset").isEqualTo(Duration.ofSeconds(10L));
             });
         });
-        assertThat(underTest.getMonitoringConfig()).satisfies(monitoringConfig -> {
-            assertThat(monitoringConfig.isCommandsEnabled()).as("commands").isFalse();
-            assertThat(monitoringConfig.isConnectionPoolEnabled()).as("connection-pool").isFalse();
+        softly.assertThat(underTest.getMonitoringConfig()).satisfies(monitoringConfig -> {
+            softly.assertThat(monitoringConfig.isCommandsEnabled()).as("commands").isFalse();
+            softly.assertThat(monitoringConfig.isConnectionPoolEnabled()).as("connection-pool").isFalse();
         });
     }
 

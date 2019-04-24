@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.concierge.enforcement.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -24,7 +23,9 @@ import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.time.Duration;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -38,6 +39,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DefaultEnforcementConfigTest {
 
     private static Config enforcementTestConf;
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @BeforeClass
     public static void initTestFixture() {
@@ -73,15 +77,15 @@ public final class DefaultEnforcementConfigTest {
         final ObjectInput objectInputStream = new ObjectInputStream(byteArrayInputStream);
         final Object underTestDeserialized = objectInputStream.readObject();
 
-        assertThat(underTestDeserialized).isEqualTo(underTest);
+        softly.assertThat(underTestDeserialized).isEqualTo(underTest);
     }
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final DefaultEnforcementConfig underTest = DefaultEnforcementConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.getAskTimeout())
-                .as("getAskTimeout")
+        softly.assertThat(underTest.getAskTimeout())
+                .as(EnforcementConfig.EnforcementConfigValue.ASK_TIMEOUT.getConfigPath())
                 .isEqualTo(EnforcementConfig.EnforcementConfigValue.ASK_TIMEOUT.getDefaultValue());
     }
 
@@ -89,8 +93,8 @@ public final class DefaultEnforcementConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultEnforcementConfig underTest = DefaultEnforcementConfig.of(enforcementTestConf);
 
-        assertThat(underTest.getAskTimeout())
-                .as("getAskTimeout")
+        softly.assertThat(underTest.getAskTimeout())
+                .as(EnforcementConfig.EnforcementConfigValue.ASK_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(30L));
     }
 }

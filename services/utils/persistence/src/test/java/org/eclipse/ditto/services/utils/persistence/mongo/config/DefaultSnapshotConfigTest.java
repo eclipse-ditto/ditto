@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -23,7 +22,9 @@ import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.time.Duration;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -37,6 +38,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DefaultSnapshotConfigTest {
 
     private static Config snapshotTestConf;
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @BeforeClass
     public static void initTestFixture() {
@@ -70,24 +74,24 @@ public final class DefaultSnapshotConfigTest {
         final ObjectInput objectInputStream = new ObjectInputStream(byteArrayInputStream);
         final Object underTestDeserialized = objectInputStream.readObject();
 
-        assertThat(underTestDeserialized).isEqualTo(underTest);
+        softly.assertThat(underTestDeserialized).isEqualTo(underTest);
     }
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final DefaultSnapshotConfig underTest = DefaultSnapshotConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.getInterval())
-                .as("getInterval")
+        softly.assertThat(underTest.getInterval())
+                .as(SnapshotConfig.SnapshotConfigValue.INTERVAL.getConfigPath())
                 .isEqualTo(SnapshotConfig.SnapshotConfigValue.INTERVAL.getDefaultValue());
-        assertThat(underTest.getThreshold())
-                .as("getThreshold")
+        softly.assertThat(underTest.getThreshold())
+                .as(SnapshotConfig.SnapshotConfigValue.THRESHOLD.getConfigPath())
                 .isEqualTo(SnapshotConfig.SnapshotConfigValue.THRESHOLD.getDefaultValue());
-        assertThat(underTest.isDeleteOldSnapshot())
-                .as("isDeleteOldSnapshot")
+        softly.assertThat(underTest.isDeleteOldSnapshot())
+                .as(SnapshotConfig.SnapshotConfigValue.DELETE_OLD_SNAPSHOT.getConfigPath())
                 .isEqualTo(SnapshotConfig.SnapshotConfigValue.DELETE_OLD_SNAPSHOT.getDefaultValue());
-        assertThat(underTest.isDeleteOldEvents())
-                .as("isDeleteOldEvents")
+        softly.assertThat(underTest.isDeleteOldEvents())
+                .as(SnapshotConfig.SnapshotConfigValue.DELETE_OLD_EVENTS.getConfigPath())
                 .isEqualTo(SnapshotConfig.SnapshotConfigValue.DELETE_OLD_EVENTS.getDefaultValue());
     }
 
@@ -95,17 +99,17 @@ public final class DefaultSnapshotConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultSnapshotConfig underTest = DefaultSnapshotConfig.of(snapshotTestConf);
 
-        assertThat(underTest.getInterval())
-                .as("getInterval")
+        softly.assertThat(underTest.getInterval())
+                .as(SnapshotConfig.SnapshotConfigValue.INTERVAL.getConfigPath())
                 .isEqualTo(Duration.ofDays(100L));
-        assertThat(underTest.getThreshold())
-                .as("getThreshold")
+        softly.assertThat(underTest.getThreshold())
+                .as(SnapshotConfig.SnapshotConfigValue.THRESHOLD.getConfigPath())
                 .isEqualTo(2);
-        assertThat(underTest.isDeleteOldSnapshot())
-                .as("isDeleteOldSnapshot")
+        softly.assertThat(underTest.isDeleteOldSnapshot())
+                .as(SnapshotConfig.SnapshotConfigValue.DELETE_OLD_SNAPSHOT.getConfigPath())
                 .isTrue();
-        assertThat(underTest.isDeleteOldEvents())
-                .as("isDeleteOldEvents")
+        softly.assertThat(underTest.isDeleteOldEvents())
+                .as(SnapshotConfig.SnapshotConfigValue.DELETE_OLD_EVENTS.getConfigPath())
                 .isTrue();
     }
 }

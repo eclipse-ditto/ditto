@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.utils.protocol.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -22,8 +21,10 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig.ProtocolConfigValue;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -37,6 +38,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DefaultProtocolConfigTest {
 
     private static Config protocolTestConfig;
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @BeforeClass
     public static void initTestFixture() {
@@ -70,7 +74,7 @@ public final class DefaultProtocolConfigTest {
         final ObjectInput objectInputStream = new ObjectInputStream(byteArrayInputStream);
         final Object underTestDeserialized = objectInputStream.readObject();
 
-        assertThat(underTestDeserialized).isEqualTo(underTest);
+        softly.assertThat(underTestDeserialized).isEqualTo(underTest);
     }
 
     @SuppressWarnings("unchecked")
@@ -78,13 +82,13 @@ public final class DefaultProtocolConfigTest {
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final DefaultProtocolConfig underTest = DefaultProtocolConfig.of(ConfigFactory.empty());
 
-        assertThat(underTest.getProviderClassName())
+        softly.assertThat(underTest.getProviderClassName())
                 .as(ProtocolConfigValue.PROVIDER.getConfigPath())
                 .isEqualTo(ProtocolConfigValue.PROVIDER.getDefaultValue());
-        assertThat(underTest.getBlacklistedHeaderKeys())
+        softly.assertThat(underTest.getBlacklistedHeaderKeys())
                 .as(ProtocolConfigValue.BLACKLIST.getConfigPath())
                 .containsOnlyElementsOf((Iterable) ProtocolConfigValue.BLACKLIST.getDefaultValue());
-        assertThat(underTest.getIncompatibleBlacklist())
+        softly.assertThat(underTest.getIncompatibleBlacklist())
                 .as(ProtocolConfigValue.INCOMPATIBLE_BLACKLIST.getConfigPath())
                 .containsOnlyElementsOf((Iterable) ProtocolConfigValue.INCOMPATIBLE_BLACKLIST.getDefaultValue());
     }
@@ -93,13 +97,13 @@ public final class DefaultProtocolConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultProtocolConfig underTest = DefaultProtocolConfig.of(protocolTestConfig);
 
-        assertThat(underTest.getProviderClassName())
+        softly.assertThat(underTest.getProviderClassName())
                 .as(ProtocolConfigValue.PROVIDER.getConfigPath())
                 .isEqualTo("org.example.ditto.MyProtocolAdapterProvider");
-        assertThat(underTest.getBlacklistedHeaderKeys())
+        softly.assertThat(underTest.getBlacklistedHeaderKeys())
                 .as(ProtocolConfigValue.BLACKLIST.getConfigPath())
                 .containsOnly("foo", "bar", "baz");
-        assertThat(underTest.getIncompatibleBlacklist())
+        softly.assertThat(underTest.getIncompatibleBlacklist())
                 .as(ProtocolConfigValue.INCOMPATIBLE_BLACKLIST.getConfigPath())
                 .containsOnly("tick", "trick", "track");
     }
