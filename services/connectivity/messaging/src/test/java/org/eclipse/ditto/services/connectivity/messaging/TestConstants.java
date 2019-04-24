@@ -27,7 +27,9 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.AbstractMap;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -53,6 +55,10 @@ import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
+import org.eclipse.ditto.model.connectivity.LogCategory;
+import org.eclipse.ditto.model.connectivity.LogEntry;
+import org.eclipse.ditto.model.connectivity.LogLevel;
+import org.eclipse.ditto.model.connectivity.LogType;
 import org.eclipse.ditto.model.connectivity.Measurement;
 import org.eclipse.ditto.model.connectivity.MetricType;
 import org.eclipse.ditto.model.connectivity.Source;
@@ -252,6 +258,20 @@ public class TestConstants {
                 MONITOR_REGISTRY_MOCK = Mockito.mock(ConnectionMonitorRegistry.class, Mockito.withSettings().stubOnly());
         private static ConnectionMonitor
                 CONNECTION_MONITOR_MOCK = Mockito.mock(ConnectionMonitor.class, Mockito.withSettings().stubOnly());
+        public static LogEntry LOG_ENTRY = ConnectivityModelFactory.newLogEntryBuilder("foo",
+            Instant.now(),
+            LogCategory.TARGET,
+            LogType.MAPPED,
+            LogLevel.SUCCESS,
+                    "mapping worked.").build();
+        public static LogEntry LOG_ENTRY_2 = ConnectivityModelFactory.newLogEntryBuilder("bar",
+            Instant.now(),
+            LogCategory.TARGET,
+            LogType.PUBLISHED,
+            LogLevel.SUCCESS,
+                    "publishing worked.").build();
+        public static Collection<LogEntry> LOG_ENTRIES = Collections.unmodifiableList(Arrays.asList(LOG_ENTRY, LOG_ENTRY_2));
+
 
         static {
             when(MONITOR_REGISTRY_MOCK.forInboundConsumed(anyString(), anyString())).thenReturn(CONNECTION_MONITOR_MOCK);
@@ -428,16 +448,16 @@ public class TestConstants {
         MOCK_SERVERS.clear();
     }
 
-    public static Connection createConnection(final String connectionId, final ActorSystem actorSystem) {
-        return createConnection(connectionId, actorSystem, Sources.SOURCES_WITH_AUTH_CONTEXT);
+    public static Connection createConnection(final String connectionId) {
+        return createConnection(connectionId, Sources.SOURCES_WITH_AUTH_CONTEXT);
     }
 
-    public static Connection createConnection(final String connectionId, final ActorSystem actorSystem,
+    public static Connection createConnection(final String connectionId,
             final List<Source> sources) {
-        return createConnection(connectionId, actorSystem, STATUS, sources);
+        return createConnection(connectionId, STATUS, sources);
     }
 
-    public static Connection createConnection(final String connectionId, final ActorSystem actorSystem,
+    public static Connection createConnection(final String connectionId,
             final ConnectivityStatus status, final List<Source> sources) {
         return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, status, getUriOfNewMockServer())
                 .sources(sources)

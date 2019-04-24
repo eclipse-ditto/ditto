@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.connectivity.messaging.MockClientActor.mockClientActorPropsFactory;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.INSTANT;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -48,6 +49,8 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionMetrics;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnection;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionLogs;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionLogsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionResponse;
@@ -115,9 +118,9 @@ public final class ConnectionActorTest extends WithMockServers {
     @Before
     public void init() {
         connectionId = TestConstants.createRandomConnectionId();
-        final Connection connection = TestConstants.createConnection(connectionId, actorSystem);
+        final Connection connection = TestConstants.createConnection(connectionId);
         final Connection closedConnection =
-                TestConstants.createConnection(connectionId, actorSystem, ConnectivityStatus.CLOSED,
+                TestConstants.createConnection(connectionId, ConnectivityStatus.CLOSED,
                         TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT);
         createConnection = CreateConnection.of(connection, DittoHeaders.empty());
         createClosedConnection = CreateConnection.of(closedConnection, DittoHeaders.empty());
@@ -574,6 +577,68 @@ public final class ConnectionActorTest extends WithMockServers {
 
             expectMsg(enableConnectionLogsResponse);
 
+        }};
+    }
+
+    @Test
+    public void retrieveLogsInClosedStateDoesNotStartClientActor() {
+        new TestKit(actorSystem) {{
+            final TestProbe probe = TestProbe.apply(actorSystem);
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+            watch(underTest);
+
+            // create connection
+            underTest.tell(createClosedConnection, getRef());
+            expectMsg(createClosedConnectionResponse);
+            probe.expectNoMessage();
+
+            // retrieve logs
+            underTest.tell(RetrieveConnectionLogs.of(connectionId, DittoHeaders.empty()), getRef());
+            probe.expectNoMessage();
+
+            final RetrieveConnectionLogsResponse logsResponse =
+                    RetrieveConnectionLogsResponse.of(connectionId,
+                            Collections.emptyList(),
+                            null,
+                            null,
+                            DittoHeaders.empty());
+            expectMsg(logsResponse);
+        }};
+    }
+
+    @Test
+    public void retrieveLogsIsAggregated() {
+        final Instant now = Instant.now();
+        final RetrieveConnectionLogsResponse innerResponse = RetrieveConnectionLogsResponse.of(connectionId,
+                TestConstants.Monitoring.LOG_ENTRIES,
+                now.minusSeconds(312),
+                now.plusSeconds(123),
+                DittoHeaders.empty());
+
+        new TestKit(actorSystem) {{
+            final TestProbe probe = TestProbe.apply(actorSystem);
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+            watch(underTest);
+
+            // create connection
+            underTest.tell(createConnection, getRef());
+            probe.expectMsg(openConnection);
+            expectMsg(createConnectionResponse);
+
+            // retrieve logs
+            final RetrieveConnectionLogs retrieveConnectionLogs = RetrieveConnectionLogs.of(connectionId, DittoHeaders.empty());
+            underTest.tell(retrieveConnectionLogs, getRef());
+            probe.expectMsg(retrieveConnectionLogs);
+
+            // send answer to aggregator actor
+            final ActorRef aggregatorActor = probe.sender();
+            probe.send(aggregatorActor, innerResponse);
+
+            expectMsg(innerResponse);
         }};
     }
 

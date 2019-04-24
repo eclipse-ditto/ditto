@@ -57,7 +57,7 @@ public class ConnectionValidatorTest {
     @Test
     public void acceptValidConnection() {
         final ActorSystem system = ActorSystem.create(getClass().getSimpleName(), ConfigFactory.load("test"));
-        final Connection connection = createConnection("connectionId", system);
+        final Connection connection = createConnection("connectionId");
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
         underTest.validate(connection, DittoHeaders.empty());
     }
@@ -118,8 +118,7 @@ public class ConnectionValidatorTest {
 
     @Test
     public void rejectConnectionWithIllFormedTrustedCertificates() {
-        final ActorSystem system = ActorSystem.create(getClass().getSimpleName(), ConfigFactory.load("test"));
-        final Connection connection = createConnection("connectionId", system).toBuilder()
+        final Connection connection = createConnection("connectionId").toBuilder()
                 .trustedCertificates("Wurst")
                 .build();
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
@@ -134,8 +133,7 @@ public class ConnectionValidatorTest {
                 Certificates.SERVER_CRT,
                 Certificates.CLIENT_CRT,
                 Certificates.CLIENT_SELF_SIGNED_CRT);
-        final ActorSystem system = ActorSystem.create(getClass().getSimpleName(), ConfigFactory.load("test"));
-        final Connection connection = createConnection("connectionId", system).toBuilder()
+        final Connection connection = createConnection("connectionId").toBuilder()
                 .trustedCertificates(trustedCertificates)
                 .build();
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
@@ -144,8 +142,7 @@ public class ConnectionValidatorTest {
 
     @Test
     public void rejectIllFormedClientCertificate() {
-        final ActorSystem system = ActorSystem.create(getClass().getSimpleName(), ConfigFactory.load("test"));
-        final Connection connection = createConnection("connectionId", system).toBuilder()
+        final Connection connection = createConnection("connectionId").toBuilder()
                 .credentials(ClientCertificateCredentials.newBuilder()
                         .clientKey(Certificates.CLIENT_KEY)
                         .clientCertificate("Wurst")
@@ -158,8 +155,7 @@ public class ConnectionValidatorTest {
 
     @Test
     public void rejectIllFormedClientKey() {
-        final ActorSystem system = ActorSystem.create(getClass().getSimpleName(), ConfigFactory.load("test"));
-        final Connection connection = createConnection("connectionId", system).toBuilder()
+        final Connection connection = createConnection("connectionId").toBuilder()
                 .credentials(ClientCertificateCredentials.newBuilder()
                         .clientKey("-----BEGIN RSA PRIVATE KEY-----\nWurst\n-----END RSA PRIVATE KEY-----")
                         .clientCertificate(Certificates.CLIENT_CRT)
@@ -173,8 +169,7 @@ public class ConnectionValidatorTest {
 
     @Test
     public void acceptClientCertificate() {
-        final ActorSystem system = ActorSystem.create(getClass().getSimpleName(), ConfigFactory.load("test"));
-        final Connection connection = createConnection("connectionId", system).toBuilder()
+        final Connection connection = createConnection("connectionId").toBuilder()
                 .credentials(ClientCertificateCredentials.newBuilder()
                         .clientKey(Certificates.CLIENT_KEY)
                         .clientCertificate(Certificates.CLIENT_CRT)

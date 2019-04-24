@@ -90,6 +90,7 @@ public class DefaultClientActorPropsFactoryTest extends WithMockServers {
      * may be created on a different connectivity service instance using a local connection object.
      */
     @Test
+    @SuppressWarnings("squid:S2699")
     public void kafkaActorPropsIsSerializable() {
         actorPropsIsSerializable(KAFKA);
     }
@@ -125,7 +126,7 @@ public class DefaultClientActorPropsFactoryTest extends WithMockServers {
 
     private Connection randomConnection(final ConnectionType connectionType) {
         final Connection template =
-                TestConstants.createConnection(TestConstants.createRandomConnectionId(), actorSystem);
+                TestConstants.createConnection(TestConstants.createRandomConnectionId());
 
         return ConnectivityModelFactory
                 .newConnectionBuilder(template.getId(),

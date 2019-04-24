@@ -68,10 +68,10 @@ import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization;
-import org.eclipse.ditto.services.connectivity.messaging.WithMockServers;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -106,7 +106,7 @@ import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 @RunWith(MockitoJUnitRunner.class)
-public class AmqpClientActorTest extends WithMockServers {
+public class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
     private static final Status.Success CONNECTED_SUCCESS = new Status.Success(BaseClientState.CONNECTED);
     private static final Status.Success DISCONNECTED_SUCCESS = new Status.Success(BaseClientState.DISCONNECTED);
@@ -136,13 +136,18 @@ public class AmqpClientActorTest extends WithMockServers {
     @BeforeClass
     public static void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
-        connection = TestConstants.createConnection(connectionId, actorSystem);
+        connection = TestConstants.createConnection(connectionId);
     }
 
     @AfterClass
     public static void tearDown() {
         TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS),
                 false);
+    }
+
+    @AfterClass
+    public static void stopMockServers() {
+        TestConstants.stopMockServers();
     }
 
     @Before
@@ -417,7 +422,7 @@ public class AmqpClientActorTest extends WithMockServers {
     @Test
     public void testConsumeMessageForSourcesWithSameAddress() throws JMSException {
         final Connection connection =
-                TestConstants.createConnection(connectionId, actorSystem,
+                TestConstants.createConnection(connectionId,
                         TestConstants.Sources.SOURCES_WITH_SAME_ADDRESS);
 
         final AtomicBoolean messageReceivedForGlobalContext = new AtomicBoolean(false);
@@ -443,7 +448,7 @@ public class AmqpClientActorTest extends WithMockServers {
     @Test
     public void testConsumeMessageAndExpectForwardToConciergeForwarderWithCorrectAuthContext() throws JMSException {
         final Connection connection =
-                TestConstants.createConnection(connectionId, actorSystem,
+                TestConstants.createConnection(connectionId,
                         TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT);
         testConsumeMessageAndExpectForwardToConciergeForwarder(connection, 1,
                 c -> assertThat(c.getDittoHeaders().getAuthorizationContext()).isEqualTo(
@@ -641,7 +646,7 @@ public class AmqpClientActorTest extends WithMockServers {
 
                 final String connectionId = createRandomConnectionId();
                 final Connection connectionWithSpecialCharacters =
-                        TestConstants.createConnection(connectionId, actorSystem, singletonList(source));
+                        TestConstants.createConnection(connectionId, singletonList(source));
 
                 testConsumeMessageAndExpectForwardToConciergeForwarder(connectionWithSpecialCharacters, 1, (cmd) -> {
                     // nothing to do here
@@ -690,7 +695,7 @@ public class AmqpClientActorTest extends WithMockServers {
 
             final String connectionId = createRandomConnectionId();
             final Connection connectionWithSpecialCharacters =
-                    TestConstants.createConnection(connectionId, actorSystem, singletonList(source));
+                    TestConstants.createConnection(connectionId, singletonList(source));
 
             testConsumeMessageAndExpectForwardToConciergeForwarder(connectionWithSpecialCharacters, 1, (cmd) -> {
                 // nothing to do here
@@ -750,6 +755,21 @@ public class AmqpClientActorTest extends WithMockServers {
             e.printStackTrace();
         }
         return result;
+    }
+
+    @Override
+    protected Connection getConnection() {
+        return connection;
+    }
+
+    @Override
+    protected Props createClientActor(final ActorRef conciergeForwarder) {
+        return AmqpClientActor.propsForTests(connection, connectionStatus, conciergeForwarder, (ac, el) -> mockConnection);
+    }
+
+    @Override
+    protected ActorSystem getActorSystem() {
+        return actorSystem;
     }
 
 }

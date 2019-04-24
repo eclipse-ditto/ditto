@@ -247,6 +247,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 .event(RetrieveConnectionStatus.class, BaseClientData.class, this::retrieveConnectionStatus)
                 .event(ResetConnectionMetrics.class, BaseClientData.class, this::resetConnectionMetrics)
                 .event(EnableConnectionLogs.class, BaseClientData.class, (command, data) -> this.enableConnectionLogs(command))
+                .event(RetrieveConnectionLogs.class, BaseClientData.class, (command, data) -> this.retrieveConnectionLogs(command))
                 .event(OutboundSignal.class, BaseClientData.class, (signal, data) -> {
                     handleOutboundSignal(signal);
                     return stay();
@@ -732,10 +733,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return stay();
     }
 
-    // TODO: call
-    private FSM.State<BaseClientState, BaseClientData> retrieveConnectionLogs(
-            final RetrieveConnectionLogs command,
-            final BaseClientData data) {
+    private FSM.State<BaseClientState, BaseClientData> retrieveConnectionLogs(final RetrieveConnectionLogs command) {
 
         ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionId());
         log.debug("Received RetrieveConnectionLogs message, gathering metrics.");

@@ -63,7 +63,7 @@ public class ErrorHandlingActorTest extends WithMockServers {
     public void tryCreateConnectionExpectSuccessResponseIndependentOfConnectionStatus() {
         new TestKit(actorSystem) {{
             final String connectionId = TestConstants.createRandomConnectionId();
-            final Connection connection = TestConstants.createConnection(connectionId, actorSystem);
+            final Connection connection = TestConstants.createConnection(connectionId);
             final ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
                     pubSubMediator, conciergeForwarder,
                     (connection1, conciergeForwarder) -> FaultyClientActor.props(false));
@@ -90,7 +90,7 @@ public class ErrorHandlingActorTest extends WithMockServers {
     public void tryDeleteConnectionExpectErrorResponse() {
         new TestKit(actorSystem) {{
             final String connectionId = TestConstants.createRandomConnectionId();
-            final Connection connection = TestConstants.createConnection(connectionId, actorSystem);
+            final Connection connection = TestConstants.createConnection(connectionId);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
                             conciergeForwarder, faultyClientActorPropsFactory);
@@ -113,7 +113,7 @@ public class ErrorHandlingActorTest extends WithMockServers {
     private void tryModifyConnectionExpectErrorResponse(final String action) {
         new TestKit(actorSystem) {{
             final String connectionId = TestConstants.createRandomConnectionId();
-            final Connection connection = TestConstants.createConnection(connectionId, actorSystem);
+            final Connection connection = TestConstants.createConnection(connectionId);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
                             conciergeForwarder, faultyClientActorPropsFactory);

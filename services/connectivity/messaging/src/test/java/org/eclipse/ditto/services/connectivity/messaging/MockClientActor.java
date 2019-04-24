@@ -20,6 +20,7 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionLogs;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 
 import akka.actor.AbstractActor;
@@ -106,6 +107,16 @@ public class MockClientActor extends AbstractActor {
                     sender().tell(ConnectivityModelFactory.newTargetStatus("client1",
                             ConnectivityStatus.OPEN, "target1","publisher started"),
                             getSelf());
+                })
+                .match(RetrieveConnectionLogs.class, rcl -> {
+                    log.info("Retrieve connection logs...");
+                    // forwarding to delegate so it can respond to correct sender
+                    if (null != delegate) {
+                        delegate.forward(rcl, getContext());
+                    } else {
+                        log.error("No delegate found in MockClientActor. RetrieveConnectionLogs needs a delegate which" +
+                                " needs to respond with a RetrieveConnectionLogsResponse to the sender of the command");
+                    }
                 })
                 .matchAny(unhandled -> {
                     log.info("Received unhandled message: {}", unhandled.getClass().getName());

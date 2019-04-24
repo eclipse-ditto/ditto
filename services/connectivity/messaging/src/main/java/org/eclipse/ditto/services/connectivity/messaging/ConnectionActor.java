@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -45,6 +46,7 @@ import org.eclipse.ditto.services.connectivity.messaging.kafka.KafkaValidator;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.RetrieveConnectionLogsAggregatorActor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.RetrieveConnectionMetricsAggregatorActor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.RetrieveConnectionStatusAggregatorActor;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttValidator;
@@ -84,7 +86,10 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionMet
 import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnectionResponse;
+import org.eclipse.ditto.signals.commands.connectivity.query.ConnectivityQueryCommand;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnection;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionLogs;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionLogsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionResponse;
@@ -209,7 +214,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
         flushPendingResponsesTimeout = Duration.create(javaFlushTimeout.toMillis(), TimeUnit.MILLISECONDS);
         clientActorAskTimeout = configReader.clientActorAskTimeout();
 
-        connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(ConfigKeys.Monitoring.fromRawConfig(config));
+        connectionMonitorRegistry =
+                DefaultConnectionMonitorRegistry.fromConfig(ConfigKeys.Monitoring.fromRawConfig(config));
 
         ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
     }
@@ -363,6 +369,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
                 .match(DeleteConnection.class, this::deleteConnection)
                 .match(ResetConnectionMetrics.class, this::resetConnectionMetrics)
                 .match(EnableConnectionLogs.class, this::enableConnectionLogs)
+                .match(RetrieveConnectionLogs.class, this::retrieveConnectionLogs)
                 .match(RetrieveConnection.class, this::retrieveConnection)
                 .match(RetrieveConnectionStatus.class, this::retrieveConnectionStatus)
                 .match(RetrieveConnectionMetrics.class, this::retrieveConnectionMetrics)
@@ -374,8 +381,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
                         "cause {}: {}", f.cause().getClass().getSimpleName(), f.cause().getMessage()))
                 .match(PerformTask.class, this::performTask)
                 .matchEquals(STOP_SELF_IF_DELETED, msg ->
-                    // do nothing; this connection is not deleted.
-                    cancelStopSelfIfDeletedTrigger()
+                        // do nothing; this connection is not deleted.
+                        cancelStopSelfIfDeletedTrigger()
                 )
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
@@ -419,7 +426,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
             return;
         }
 
-        log.debug("Forwarding signal <{}> to client actor with targets: {}.", signal.getType(), subscribedAndAuthorizedTargets);
+        log.debug("Forwarding signal <{}> to client actor with targets: {}.", signal.getType(),
+                subscribedAndAuthorizedTargets);
 
         final OutboundSignal outbound = OutboundSignalFactory.newOutboundSignal(signal, subscribedAndAuthorizedTargets);
         clientActorRouter.tell(outbound, getSender());
@@ -670,6 +678,25 @@ public final class ConnectionActor extends AbstractPersistentActor {
         getSender().tell(EnableConnectionLogsResponse.of(connectionId, command.getDittoHeaders()), getSelf());
     }
 
+    private void retrieveConnectionLogs(final RetrieveConnectionLogs command) {
+        broadcastCommandWithDifferentSender(command,
+                (existingConnection, timeout) -> RetrieveConnectionLogsAggregatorActor.props(
+                        existingConnection, getSender(), command.getDittoHeaders(), timeout),
+                () -> respondWithEmptyLogs(command, this.getSender()));
+    }
+
+    private void respondWithEmptyLogs(final RetrieveConnectionLogs command, final ActorRef origin) {
+        log.debug("ClientActor not started, responding with empty connection logs.");
+        final RetrieveConnectionLogsResponse logsResponse = RetrieveConnectionLogsResponse.of(
+                connectionId,
+                Collections.emptyList(),
+                null,
+                null,
+                command.getDittoHeaders()
+        );
+        origin.tell(logsResponse, getSelf());
+    }
+
     /*
      * NOT thread-safe.
      */
@@ -723,17 +750,17 @@ public final class ConnectionActor extends AbstractPersistentActor {
         }
     }
 
-    private void forwardRetrieveConnectionCommand(final Command<?> cmd, final Runnable onClientActorNotStarted) {
+    private void broadcastCommandWithDifferentSender(final ConnectivityQueryCommand<?> command,
+            final BiFunction<Connection, java.time.Duration, Props> senderPropsForConnectionWithTimeout,
+            final Runnable onClientActorNotStarted) {
         if (clientActorRouter != null && connection != null) {
             // timeout before sending the (partial) response
             final java.time.Duration timeout =
-                    java.time.Duration.ofMillis((long) (extractTimeoutFromCommand(cmd.getDittoHeaders()) * 0.75));
-            final ActorRef metricsAggregator = getContext().actorOf(
-                    RetrieveConnectionMetricsAggregatorActor.props(connection, getSender(), cmd.getDittoHeaders(),
-                            timeout));
+                    java.time.Duration.ofMillis((long) (extractTimeoutFromCommand(command.getDittoHeaders()) * 0.75));
+            final ActorRef aggregator = getContext().actorOf(senderPropsForConnectionWithTimeout.apply(connection, timeout));
 
             // forward command to all client actors with aggregator as sender
-            clientActorRouter.tell(new Broadcast(cmd), metricsAggregator);
+            clientActorRouter.tell(new Broadcast(command), aggregator);
         } else {
             onClientActorNotStarted.run();
         }
@@ -802,7 +829,10 @@ public final class ConnectionActor extends AbstractPersistentActor {
     }
 
     private void retrieveConnectionMetrics(final RetrieveConnectionMetrics command) {
-        forwardRetrieveConnectionCommand(command, () -> respondWithEmptyMetrics(command, this.getSender()));
+        broadcastCommandWithDifferentSender(command,
+                (existingConnection, timeout) -> RetrieveConnectionMetricsAggregatorActor.props(
+                        existingConnection, getSender(), command.getDittoHeaders(), timeout),
+                () -> respondWithEmptyMetrics(command, this.getSender()));
     }
 
     private void respondWithEmptyMetrics(final RetrieveConnectionMetrics command, final ActorRef origin) {
@@ -819,6 +849,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
                         command.getDittoHeaders());
         origin.tell(metricsResponse, getSelf());
     }
+
     private void respondWithEmptyStatus(final RetrieveConnectionStatus command, final ActorRef origin) {
         log.debug("ClientActor not started, responding with empty connection status with status closed.");
         final RetrieveConnectionStatusResponse statusResponse =
@@ -992,9 +1023,9 @@ public final class ConnectionActor extends AbstractPersistentActor {
     }
 
     /**
-     * Self-message for future tasks to run synchronously in actor's thread.
-     * Minimal wrapping of thread-unsafe operations so that they do not corrupt actor state.
-     * The results of such operations are not guaranteed to make sense.
+     * Self-message for future tasks to run synchronously in actor's thread. Minimal wrapping of thread-unsafe
+     * operations so that they do not corrupt actor state. The results of such operations are not guaranteed to make
+     * sense.
      */
     private static final class PerformTask {
 
@@ -1014,11 +1045,12 @@ public final class ConnectionActor extends AbstractPersistentActor {
         public final String toString() {
             return String.format("PerformTask(%s)", description);
         }
+
     }
 
     /**
-     * Local helper-actor which is started for aggregating several Status sent back by potentially several
-     * {@code clientActors} (behind a cluster Router running on different cluster nodes).
+     * Local helper-actor which is started for aggregating several Status sent back by potentially several {@code
+     * clientActors} (behind a cluster Router running on different cluster nodes).
      */
     private static final class AggregateActor extends AbstractActor {
 
@@ -1068,8 +1100,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
                                 Duration.create(timeout / 2.0, TimeUnit.MILLISECONDS));
                     })
                     .match(ReceiveTimeout.class, receiveTimeout ->
-                        // send back (partially) gathered responses
-                        sendBackAggregatedResults()
+                            // send back (partially) gathered responses
+                            sendBackAggregatedResults()
                     )
                     .matchAny(any -> {
                         if (any instanceof Status.Status) {
@@ -1107,6 +1139,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
             }
             getContext().stop(getSelf());
         }
+
     }
 
 }

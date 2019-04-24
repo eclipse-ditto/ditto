@@ -45,6 +45,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -79,7 +80,7 @@ import akka.util.ByteString;
 
 
 @RunWith(MockitoJUnitRunner.class)
-public class MqttClientActorTest {
+public class MqttClientActorTest extends AbstractBaseClientActorTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MqttClientActorTest.class);
 
@@ -385,15 +386,30 @@ public class MqttClientActorTest {
         };
     }
 
-    private static Props mqttClientActor(final Connection connection, final ActorRef testProbe,
+    private static Props mqttClientActor(final Connection connection, final ActorRef conciergeForwarder,
             final BiFunction<Connection, DittoHeaders, MqttConnectionFactory> factoryCreator) {
 
         return Props.create(MqttClientActor.class, () ->
-                new MqttClientActor(connection, connection.getConnectionStatus(), testProbe, factoryCreator));
+                new MqttClientActor(connection, connection.getConnectionStatus(), conciergeForwarder, factoryCreator));
     }
 
     private static MqttMessage mqttMessage(final String topic, final String payload) {
         return MqttMessage.create(topic, ByteString.fromArray(payload.getBytes(UTF_8)));
+    }
+
+    @Override
+    protected Connection getConnection() {
+        return connection;
+    }
+
+    @Override
+    protected Props createClientActor(final ActorRef conciergeForwarder) {
+        return mqttClientActor(getConnection(), conciergeForwarder, MockMqttConnectionFactory.with(conciergeForwarder));
+    }
+
+    @Override
+    protected ActorSystem getActorSystem() {
+        return actorSystem;
     }
 
     private static class FreePort {

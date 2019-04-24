@@ -111,6 +111,27 @@ public final class ConnectionLoggerRegistryTest {
                 .hasSize(connectionLogs.size() + inboundConsumedLogs.size());
     }
 
+    @Test
+    public void aggregatesNoLogsForMutedLoggers() {
+        final String connectionId = connectionId();
+        final String source = "a:b";
+        // inits the loggers muted
+        underTest.initForConnection(connection(connectionId));
+
+        final ConnectionLogger connectionLogger = underTest.forConnection(connectionId);
+        final ConnectionLogger inboundConsumed = underTest.forInboundConsumed(connectionId, source);
+
+        connectionLogger.success(randomInfoProvider());
+        connectionLogger.failure(randomInfoProvider());
+        inboundConsumed.success(randomInfoProvider());
+
+        final ConnectionLogs aggregatedLogs = underTest.aggregateLogs(connectionId);
+
+        assertThat(aggregatedLogs.getEnabledSince()).isNull();
+        assertThat(aggregatedLogs.getEnabledUntil()).isNull();
+        assertThat(aggregatedLogs.getLogs()).isEmpty();
+    }
+
     private ConnectionMonitor.InfoProvider randomInfoProvider() {
         return ImmutableInfoProvider.forHeaders(DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build());
     }

@@ -62,7 +62,8 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     private final int failureCapacity;
     private final TemporalAmount loggingDuration;
 
-    private ConnectionLoggerRegistry(final int successCapacity, final int failureCapacity, final Duration loggingDuration) {
+    private ConnectionLoggerRegistry(final int successCapacity, final int failureCapacity,
+            final Duration loggingDuration) {
         this.successCapacity = successCapacity;
         this.failureCapacity = failureCapacity;
         this.loggingDuration = checkNotNull(loggingDuration);
@@ -70,18 +71,20 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
 
     /**
      * Build a new {@code ConnectionLoggerRegistry} from configuration.
+     *
      * @param config the configuration to use.
      * @return a new instance of {@code ConnectionLoggerRegistry}.
      */
-    public static ConnectionLoggerRegistry fromConfig(final MonitoringConfigReader.MonitoringLoggerConfigReader config) {
+    public static ConnectionLoggerRegistry fromConfig(
+            final MonitoringConfigReader.MonitoringLoggerConfigReader config) {
         checkNotNull(config);
         return new ConnectionLoggerRegistry(config.successCapacity(), config.failureCapacity(), config.logDuration());
     }
 
 
     /**
-     * Aggregate the {@link org.eclipse.ditto.model.connectivity.LogEntry}s for the given connection from the
-     * loggers in this registry.
+     * Aggregate the {@link org.eclipse.ditto.model.connectivity.LogEntry}s for the given connection from the loggers in
+     * this registry.
      *
      * @param connectionId connection id
      * @return the {@link org.eclipse.ditto.model.connectivity.LogEntry}s.
@@ -90,15 +93,35 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         ConnectionLogUtil.enhanceLogWithConnectionId(connectionId);
         LOGGER.info("Aggregating logs for connection <{}>.", connectionId);
 
-        // TODO: it does not make sense to refresh metadata for a connection id if the logger for the connection is muted! implement & test
-        final LogMetadata timing = refreshMetadata(connectionId);
-        final Collection<LogEntry> logs = streamLoggers(connectionId)
-                .map(ConnectionLogger::getLogs)
-                .flatMap(Collection::stream)
-                .collect(Collectors.toList());
-        // TODO: should we sort the log entries by date?
+        final LogMetadata timing;
+        final Collection<LogEntry> logs;
+
+        if (isLoggingActive(connectionId)) {
+            LOGGER.trace("Logging is enabled, will aggregate logs for connection <{}>", connectionId);
+
+            timing = refreshMetadata(connectionId);
+            // TODO: should we sort the log entries by date?
+            logs = streamLoggers(connectionId)
+                    .map(ConnectionLogger::getLogs)
+                    .flatMap(Collection::stream)
+                    .collect(Collectors.toList());
+        } else {
+            LOGGER.debug("Logging is disabled, will return empty logs for connection <{}>", connectionId);
+
+            timing = getMetadata(connectionId);
+            logs = Collections.emptyList();
+        }
+
         LOGGER.debug("Aggregated logs for connection <{}>: {}", connectionId, logs);
         return new ConnectionLogs(timing.getEnabledSince(), timing.getEnabledUntil(), logs);
+    }
+
+    private boolean isLoggingActive(final String connectionId) {
+        final boolean muted = streamLoggers(connectionId)
+                .findFirst()
+                .map(MuteableConnectionLogger::isMuted)
+                .orElse(true);
+        return !muted;
     }
 
     // TODO: doc, test and use
@@ -108,10 +131,12 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
 
         streamLoggers(connectionId)
                 .forEach(MuteableConnectionLogger::mute);
+        // TODO: stopMetadata -> should either remove the metadata or set to LotMetadata#empty.
     }
 
     /**
      * Unmute / activate all loggers for the connection {@code connectionId}.
+     *
      * @param connectionId the connection for which the loggers should be enabled.
      */
     public void unmuteForConnection(final String connectionId) {
@@ -152,8 +177,6 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
                         initLogger(connectionId, LogCategory.TARGET, address));
         initLogger(connectionId, LogCategory.RESPONSE, RESPONSES_ADDRESS);
         initLogger(connectionId, LogCategory.CONNECTION);
-
-        refreshMetadata(connectionId);
     }
 
     private void initLogger(final String connectionId, final LogCategory logCategory) {
@@ -197,6 +220,10 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         final Instant now = Instant.now();
         final LogMetadata timing = new LogMetadata(now, now.plus(loggingDuration));
         metadata.put(connectionId, timing);
+    }
+
+    private LogMetadata getMetadata(final String connectionId) {
+        return metadata.getOrDefault(connectionId, LogMetadata.empty());
     }
 
     @Override
@@ -283,9 +310,12 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         return loggers.computeIfAbsent(key, m -> newMuteableLogger(connectionId, logCategory, logType, address));
     }
 
-    private MuteableConnectionLogger newMuteableLogger(final String connectionId, final LogCategory logCategory, final LogType logType,
+    private MuteableConnectionLogger newMuteableLogger(final String connectionId, final LogCategory logCategory,
+            final LogType logType,
             @Nullable final String address) {
-        final ConnectionLogger logger = ConnectionLoggerFactory.newEvictingLogger(successCapacity, failureCapacity, logCategory, logType, address);
+        final ConnectionLogger logger =
+                ConnectionLoggerFactory.newEvictingLogger(successCapacity, failureCapacity, logCategory, logType,
+                        address);
         return ConnectionLoggerFactory.newMuteableLogger(connectionId, logger);
     }
 
@@ -318,7 +348,8 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     }
 
     /**
-     * Helper class that stores logs together with information on when they were enabled and how long they will stay enabled.
+     * Helper class that stores logs together with information on when they were enabled and how long they will stay
+     * enabled.
      */
     @Immutable
     public static final class ConnectionLogs {
@@ -336,6 +367,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
 
         /**
          * Returns an empty instance indicating inactive logging.
+         *
          * @return an empty instance.
          */
         public static ConnectionLogs empty() {
@@ -462,7 +494,10 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     @Immutable
     private static final class LogMetadata {
 
+        @Nullable
         private final Instant enabledSince;
+
+        @Nullable
         private final Instant enabledUntil;
 
         /**
@@ -471,21 +506,26 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
          * @param enabledSince since when logging is enabled.
          * @param enabledUntil until when logging will stay enabled.
          */
-        private LogMetadata(final Instant enabledSince, final Instant enabledUntil) {
-            // TODO: clarify if nullable or not
+        private LogMetadata(@Nullable final Instant enabledSince, @Nullable final Instant enabledUntil) {
             this.enabledSince = enabledSince;
             this.enabledUntil = enabledUntil;
         }
 
+        private static LogMetadata empty() {
+            return new LogMetadata(null, null);
+        }
+
+        @Nullable
         private Instant getEnabledSince() {
             return enabledSince;
         }
 
+        @Nullable
         private Instant getEnabledUntil() {
             return enabledUntil;
         }
 
-        private LogMetadata withEnabledUntil(final Instant newEnabledUntil) {
+        private LogMetadata withEnabledUntil(@Nullable final Instant newEnabledUntil) {
             return new LogMetadata(enabledSince, newEnabledUntil);
         }
 

@@ -28,10 +28,10 @@ import akka.actor.ReceiveTimeout;
 import akka.event.DiagnosticLoggingAdapter;
 
 /**
- * An aggregation actor which receives {@link org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse} messages and aggregates them into a
- * single {@link org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse} message it sends back to a passed in {@code sender}.
+ * An aggregation actor which receives {@link org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionLogs}
+ * messages and aggregates them into a single {@link org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionLogsResponse}
+ * message it sends back to a passed in {@code sender}.
  */
-// TODO: docs & test
 public final class RetrieveConnectionLogsAggregatorActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
@@ -59,11 +59,11 @@ public final class RetrieveConnectionLogsAggregatorActor extends AbstractActor {
     /**
      * Creates Akka configuration object for this actor.
      *
-     * @param connection the {@code Connection} for which to aggregate the metrics for.
+     * @param connection the {@code Connection} for which to aggregate the logs for.
      * @param sender the ActorRef of the sender to which to answer the response to.
      * @param originalHeaders the DittoHeaders to use for the response message.
      * @param timeout the timeout to apply in order to receive the response.
-     * @return the Akka configuration Props object
+     * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection, final ActorRef sender,
             final DittoHeaders originalHeaders, final Duration timeout) {

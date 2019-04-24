@@ -36,6 +36,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -70,7 +71,7 @@ import akka.testkit.javadsl.TestKit;
  */
 @SuppressWarnings({"squid:S3599", "squid:S1171"})
 @RunWith(MockitoJUnitRunner.class)
-public class KafkaClientActorTest {
+public class KafkaClientActorTest extends AbstractBaseClientActorTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaClientActorTest.class);
 
@@ -240,6 +241,21 @@ public class KafkaClientActorTest {
                 any(ActorRef.class), anyBoolean()))
                 .thenReturn(mockKafkaPublisher.publisherActorProps());
         return mockKafkaPublisher;
+    }
+
+    @Override
+    protected Connection getConnection() {
+        return connection;
+    }
+
+    @Override
+    protected Props createClientActor(final ActorRef conciergeForwarder) {
+        return kafkaClientActor(getConnection(), conciergeForwarder);
+    }
+
+    @Override
+    protected ActorSystem getActorSystem() {
+        return actorSystem;
     }
 
     private static class MockKafkaPublisher {
