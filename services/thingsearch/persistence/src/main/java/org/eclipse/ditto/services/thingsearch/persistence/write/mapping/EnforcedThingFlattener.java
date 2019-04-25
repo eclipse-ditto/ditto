@@ -118,6 +118,7 @@ final class EnforcedThingFlattener implements JsonObjectVisitor<Stream<Document>
                     .map(replacedKey -> Stream.of(document, assembleDocument(replacedKey, bsonValue, grants, revokes)))
                     .orElse(Stream.of(document));
         } else {
+            // Impossible to restrict length of this key-value pair; do not index it.
             return Stream.empty();
         }
     }

@@ -1,5 +1,5 @@
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Values.concierge.name }}
@@ -12,6 +12,9 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.concierge.name }}
   replicas: {{ .Values.concierge.replicaCount }}
   template:
     metadata:
@@ -72,7 +75,7 @@ spec:
                   name: mongodb
                   key: concierge-uri
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Values.connectivity.name }}
@@ -85,6 +88,9 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.connectivity.name }}
   replicas: {{ .Values.connectivity.replicaCount }}
   template:
     metadata:
@@ -145,7 +151,7 @@ spec:
                   name: mongodb
                   key: connectivity-uri
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Values.things.name }}
@@ -158,6 +164,9 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.things.name }}
   replicas: {{ .Values.things.replicaCount }}
   template:
     metadata:
@@ -218,7 +227,7 @@ spec:
                   name: mongodb
                   key: things-uri
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Values.search.name }}
@@ -231,6 +240,9 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.search.name }}
   replicas: {{ .Values.search.replicaCount }}
   template:
     metadata:
@@ -290,7 +302,7 @@ spec:
                   name: mongodb
                   key: searchDB-uri
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Values.policies.name }}
@@ -303,6 +315,9 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.policies.name }}
   replicas: {{ .Values.policies.replicaCount }}
   template:
     metadata:
@@ -362,7 +377,7 @@ spec:
                   name: mongodb
                   key: policies-uri
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Values.gateway.name }}
@@ -375,6 +390,9 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.gateway.name }}
   replicas: {{ .Values.gateway.replicaCount }}
   template:
     metadata:

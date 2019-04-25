@@ -17,7 +17,7 @@ spec:
   selector:
     app: nginx
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nginx
@@ -30,6 +30,9 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
+  selector:
+    matchLabels:
+      app: nginx
   replicas: {{ .Values.nginx.replicaCount }}
   template:
     metadata:

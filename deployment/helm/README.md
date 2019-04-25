@@ -75,7 +75,7 @@ helm upgrade ditto ./eclipse-ditto/ --namespace dittons --wait --install
 ### Use Eclipse Ditto
 
 ```bash
-minikube service ditto
+minikube service -n dittons ditto
 ```
 
 ### Use Minikube Dashboard
