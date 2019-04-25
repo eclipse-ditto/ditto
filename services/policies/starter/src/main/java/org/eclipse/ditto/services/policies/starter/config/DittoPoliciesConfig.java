@@ -16,9 +16,11 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.base.config.ClusterConfig;
 import org.eclipse.ditto.services.base.config.DittoServiceConfig;
 import org.eclipse.ditto.services.base.config.HttpConfig;
 import org.eclipse.ditto.services.base.config.LimitsConfig;
+import org.eclipse.ditto.services.base.config.MetricsConfig;
 import org.eclipse.ditto.services.policies.persistence.config.DefaultPolicyConfig;
 import org.eclipse.ditto.services.policies.persistence.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;

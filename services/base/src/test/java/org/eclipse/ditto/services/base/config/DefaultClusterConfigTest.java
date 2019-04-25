@@ -81,20 +81,20 @@ public final class DefaultClusterConfigTest {
     }
 
     @Test
-    public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
+    public void gettersReturnDefaultValuesIfNotConfigured() {
         final DefaultClusterConfig underTest = DefaultClusterConfig.of(ConfigFactory.empty());
 
         softly.assertThat(underTest.getNumberOfShards())
-                .as(ServiceSpecificConfig.ClusterConfig.ClusterConfigValue.NUMBER_OF_SHARDS.getConfigPath())
-                .isEqualTo(ServiceSpecificConfig.ClusterConfig.ClusterConfigValue.NUMBER_OF_SHARDS.getDefaultValue());
+                .as(ClusterConfig.ClusterConfigValue.NUMBER_OF_SHARDS.getConfigPath())
+                .isEqualTo(ClusterConfig.ClusterConfigValue.NUMBER_OF_SHARDS.getDefaultValue());
     }
 
     @Test
-    public void underTestReturnsValuesOfConfigFile() {
+    public void gettersReturnConfiguredValues() {
         final DefaultClusterConfig underTest = DefaultClusterConfig.of(clusterTestConf);
 
         softly.assertThat(underTest.getNumberOfShards())
-                .as(ServiceSpecificConfig.ClusterConfig.ClusterConfigValue.NUMBER_OF_SHARDS.getConfigPath())
+                .as(ClusterConfig.ClusterConfigValue.NUMBER_OF_SHARDS.getConfigPath())
                 .isEqualTo(100);
     }
 

@@ -12,7 +12,7 @@ package org.eclipse.ditto.services.concierge.starter.proxy;
 
 import java.util.Optional;
 
-import org.eclipse.ditto.services.base.config.ServiceSpecificConfig;
+import org.eclipse.ditto.services.base.config.ClusterConfig;
 import org.eclipse.ditto.services.concierge.starter.config.ConciergeConfig;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
@@ -62,8 +62,8 @@ public abstract class AbstractEnforcerActorFactory<C extends ConciergeConfig> {
      * @param props props of actors to start in the shard.
      * @return actor reference to the shard region.
      */
-    protected static ActorRef startShardRegion(final ActorSystem actorSystem,
-            final ServiceSpecificConfig.ClusterConfig clusterConfig, final Props props) {
+    protected static ActorRef startShardRegion(final ActorSystem actorSystem, final ClusterConfig clusterConfig,
+            final Props props) {
 
         final ClusterShardingSettings settings = ClusterShardingSettings.create(actorSystem)
                 .withRole(ConciergeMessagingConstants.CLUSTER_ROLE);

@@ -22,8 +22,8 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.services.base.config.ClusterConfig;
 import org.eclipse.ditto.services.base.config.HttpConfig;
-import org.eclipse.ditto.services.base.config.ServiceSpecificConfig;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.policies.persistence.actors.policies.PoliciesPersistenceStreamingActorCreator;
 import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicyNamespaceOpsActor;
@@ -152,7 +152,7 @@ public final class PoliciesRootActor extends AbstractActor {
         pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
         pubSubMediator.tell(new DistributedPubSubMediator.Put(persistenceStreamingActor), getSelf());
 
-        final ServiceSpecificConfig.ClusterConfig clusterConfig = policiesConfig.getClusterConfig();
+        final ClusterConfig clusterConfig = policiesConfig.getClusterConfig();
         final ActorRef policiesShardRegion = ClusterSharding.get(actorSystem)
                 .start(PoliciesMessagingConstants.SHARD_REGION, policySupervisorProps, shardingSettings,
                         ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem));

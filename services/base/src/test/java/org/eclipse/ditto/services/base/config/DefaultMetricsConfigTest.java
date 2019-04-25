@@ -22,6 +22,7 @@ import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 
 import org.assertj.core.api.JUnitSoftAssertions;
+import org.eclipse.ditto.services.base.config.MetricsConfig.MetricsConfigValue;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -48,8 +49,7 @@ public final class DefaultMetricsConfigTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DefaultMetricsConfig.class,
-                areImmutable());
+        assertInstancesOf(DefaultMetricsConfig.class, areImmutable());
     }
 
     @Test
@@ -78,44 +78,38 @@ public final class DefaultMetricsConfigTest {
     }
 
     @Test
-    public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
+    public void gettersReturnDefaultValuesIfNotConfigured() {
         final DefaultMetricsConfig underTest = DefaultMetricsConfig.of(ConfigFactory.empty());
 
         softly.assertThat(underTest.isSystemMetricsEnabled())
-                .as(ServiceSpecificConfig.MetricsConfig.MetricsConfigValue.SYSTEM_METRICS_ENABLED.getConfigPath())
-                .isEqualTo(ServiceSpecificConfig.MetricsConfig.MetricsConfigValue.SYSTEM_METRICS_ENABLED.getDefaultValue());
-
+                .as(MetricsConfigValue.SYSTEM_METRICS_ENABLED.getConfigPath())
+                .isEqualTo(MetricsConfigValue.SYSTEM_METRICS_ENABLED.getDefaultValue());
         softly.assertThat(underTest.isPrometheusEnabled())
-                .as(ServiceSpecificConfig.MetricsConfig.MetricsConfigValue.PROMETHEUS_ENABLED.getConfigPath())
-                .isEqualTo(ServiceSpecificConfig.MetricsConfig.MetricsConfigValue.PROMETHEUS_ENABLED.getDefaultValue());
-
+                .as(MetricsConfigValue.PROMETHEUS_ENABLED.getConfigPath())
+                .isEqualTo(MetricsConfigValue.PROMETHEUS_ENABLED.getDefaultValue());
         softly.assertThat(underTest.getPrometheusHostname())
-                .as(ServiceSpecificConfig.MetricsConfig.MetricsConfigValue.PROMETHEUS_HOSTNAME.getConfigPath())
-                .isEqualTo(ServiceSpecificConfig.MetricsConfig.MetricsConfigValue.PROMETHEUS_HOSTNAME.getDefaultValue());
-
+                .as(MetricsConfigValue.PROMETHEUS_HOSTNAME.getConfigPath())
+                .isEqualTo(MetricsConfigValue.PROMETHEUS_HOSTNAME.getDefaultValue());
         softly.assertThat(underTest.getPrometheusPort())
-                .as(ServiceSpecificConfig.MetricsConfig.MetricsConfigValue.PROMETHEUS_PORT.getConfigPath())
-                .isEqualTo(ServiceSpecificConfig.MetricsConfig.MetricsConfigValue.PROMETHEUS_PORT.getDefaultValue());
+                .as(MetricsConfigValue.PROMETHEUS_PORT.getConfigPath())
+                .isEqualTo(MetricsConfigValue.PROMETHEUS_PORT.getDefaultValue());
     }
 
     @Test
-    public void underTestReturnsValuesOfConfigFile() {
+    public void gettersReturnConfiguredValues() {
         final DefaultMetricsConfig underTest = DefaultMetricsConfig.of(metricsTestConf);
 
         softly.assertThat(underTest.isSystemMetricsEnabled())
-                .as(ServiceSpecificConfig.MetricsConfig.MetricsConfigValue.SYSTEM_METRICS_ENABLED.getConfigPath())
+                .as(MetricsConfigValue.SYSTEM_METRICS_ENABLED.getConfigPath())
                 .isTrue();
-
         softly.assertThat(underTest.isPrometheusEnabled())
-                .as(ServiceSpecificConfig.MetricsConfig.MetricsConfigValue.PROMETHEUS_ENABLED.getConfigPath())
+                .as(MetricsConfigValue.PROMETHEUS_ENABLED.getConfigPath())
                 .isTrue();
-
         softly.assertThat(underTest.getPrometheusHostname())
-                .as(ServiceSpecificConfig.MetricsConfig.MetricsConfigValue.PROMETHEUS_HOSTNAME.getConfigPath())
+                .as(MetricsConfigValue.PROMETHEUS_HOSTNAME.getConfigPath())
                 .isEqualTo("1.1.1.1");
-
         softly.assertThat(underTest.getPrometheusPort())
-                .as(ServiceSpecificConfig.MetricsConfig.MetricsConfigValue.PROMETHEUS_PORT.getConfigPath())
+                .as(MetricsConfigValue.PROMETHEUS_PORT.getConfigPath())
                 .isEqualTo(9999);
     }
 

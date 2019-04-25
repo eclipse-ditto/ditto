@@ -13,11 +13,10 @@ package org.eclipse.ditto.services.base.config;
 import java.io.Serializable;
 import java.util.Objects;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.base.config.ServiceSpecificConfig.MetricsConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 
@@ -36,11 +35,11 @@ public final class DefaultMetricsConfig implements MetricsConfig, Serializable {
     private final String prometheusHostname;
     private final int prometheusPort;
 
-    private DefaultMetricsConfig(final ScopedConfig config) {
-        systemMetricEnabled = config.getBoolean(MetricsConfigValue.SYSTEM_METRICS_ENABLED.getConfigPath());
-        prometheusEnabled = config.getBoolean(MetricsConfigValue.PROMETHEUS_ENABLED.getConfigPath());
-        prometheusHostname = config.getString(MetricsConfigValue.PROMETHEUS_HOSTNAME.getConfigPath());
-        prometheusPort = config.getInt(MetricsConfigValue.PROMETHEUS_PORT.getConfigPath());
+    private DefaultMetricsConfig(final ConfigWithFallback metricsScopedConfig) {
+        systemMetricEnabled = metricsScopedConfig.getBoolean(MetricsConfigValue.SYSTEM_METRICS_ENABLED.getConfigPath());
+        prometheusEnabled = metricsScopedConfig.getBoolean(MetricsConfigValue.PROMETHEUS_ENABLED.getConfigPath());
+        prometheusHostname = metricsScopedConfig.getString(MetricsConfigValue.PROMETHEUS_HOSTNAME.getConfigPath());
+        prometheusPort = metricsScopedConfig.getInt(MetricsConfigValue.PROMETHEUS_PORT.getConfigPath());
     }
 
     /**
@@ -76,7 +75,7 @@ public final class DefaultMetricsConfig implements MetricsConfig, Serializable {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }

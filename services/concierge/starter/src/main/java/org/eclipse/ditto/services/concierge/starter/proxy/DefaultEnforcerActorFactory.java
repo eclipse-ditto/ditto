@@ -23,7 +23,7 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
-import org.eclipse.ditto.services.base.config.ServiceSpecificConfig.ClusterConfig;
+import org.eclipse.ditto.services.base.config.ClusterConfig;
 import org.eclipse.ditto.services.concierge.cache.AclEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.CacheFactory;
 import org.eclipse.ditto.services.concierge.cache.PolicyEnforcerCacheLoader;

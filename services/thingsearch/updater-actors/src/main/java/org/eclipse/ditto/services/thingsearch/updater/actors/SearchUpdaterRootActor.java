@@ -14,7 +14,7 @@ import java.time.Duration;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.services.base.config.ServiceSpecificConfig;
+import org.eclipse.ditto.services.base.config.ClusterConfig;
 import org.eclipse.ditto.services.thingsearch.common.util.RootSupervisorStrategyFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
@@ -72,7 +72,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     private final ActorRef thingsUpdaterActor;
     private final DittoMongoClient mongoClient;
 
-    private SearchUpdaterRootActor(final ServiceSpecificConfig.ClusterConfig clusterConfig,
+    private SearchUpdaterRootActor(final ClusterConfig clusterConfig,
             final MongoDbConfig mongoDbConfig,
             final IndexInitializationConfig indexInitializationConfig,
             final UpdaterConfig updaterConfig,
@@ -214,7 +214,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
      * @param policiesSyncPersistence persistence for background synchronization of policies.
      * @return a Props object to create this actor.
      */
-    public static Props props(final ServiceSpecificConfig.ClusterConfig clusterConfig,
+    public static Props props(final ClusterConfig clusterConfig,
             final MongoDbConfig mongoDbConfig,
             final IndexInitializationConfig indexInitializationConfig,
             final UpdaterConfig updaterConfig,

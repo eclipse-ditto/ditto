@@ -28,7 +28,7 @@ import javax.naming.NamingException;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.base.config.HttpConfig;
-import org.eclipse.ditto.services.base.config.ServiceSpecificConfig.ClusterConfig;
+import org.eclipse.ditto.services.base.config.ClusterConfig;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ConnectionSupervisorActor;

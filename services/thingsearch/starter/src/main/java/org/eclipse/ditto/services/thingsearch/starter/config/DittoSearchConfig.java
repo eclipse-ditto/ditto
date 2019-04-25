@@ -16,9 +16,11 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.base.config.ClusterConfig;
 import org.eclipse.ditto.services.base.config.DittoServiceConfig;
 import org.eclipse.ditto.services.base.config.HttpConfig;
 import org.eclipse.ditto.services.base.config.LimitsConfig;
+import org.eclipse.ditto.services.base.config.MetricsConfig;
 import org.eclipse.ditto.services.thingsearch.updater.config.DefaultDeletionConfig;
 import org.eclipse.ditto.services.thingsearch.updater.config.DefaultUpdaterConfig;
 import org.eclipse.ditto.services.thingsearch.updater.config.DeletionConfig;

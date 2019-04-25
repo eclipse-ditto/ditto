@@ -10,22 +10,11 @@
  */
 package org.eclipse.ditto.services.base.config;
 
-import javax.annotation.concurrent.Immutable;
-
-import org.eclipse.ditto.services.utils.config.KnownConfigValue;
-
 /**
  * Provides the common configuration settings of each Ditto service.
  * This interface is the base of all service specific configuration settings.
  */
-public interface ServiceSpecificConfig {
-
-    /**
-     * Returns the cluster config.
-     *
-     * @return the cluster config.
-     */
-    ClusterConfig getClusterConfig();
+public interface ServiceSpecificConfig extends WithClusterConfig, WithMetricsConfig {
 
     /**
      * Returns the limits config.
@@ -40,146 +29,5 @@ public interface ServiceSpecificConfig {
      * @return the HTTP config.
      */
     HttpConfig getHttpConfig();
-
-    /**
-     * Returns the metrics config.
-     *
-     * @return the metrics config.
-     */
-    MetricsConfig getMetricsConfig();
-
-    /**
-     * Provides configuration settings for the Ditto cluster.
-     * <p>
-     * Java serialization is supported for {@code ClusterConfig}.
-     * </p>
-     */
-    @Immutable
-    interface ClusterConfig {
-
-        /**
-         * Returns the number of shards in a cluster.
-         *
-         * @return the number of shards.
-         */
-        int getNumberOfShards();
-
-        /**
-         * An enumeration of the known config path expressions and their associated default values for
-         * {@code ClusterConfig}.
-         */
-        enum ClusterConfigValue implements KnownConfigValue {
-
-            /**
-             * The number of shards in a cluster.
-             */
-            NUMBER_OF_SHARDS("number-of-shards", 30);
-
-            private final String path;
-            private final Object defaultValue;
-
-            private ClusterConfigValue(final String thePath, final Object theDefaultValue) {
-                path = thePath;
-                defaultValue = theDefaultValue;
-            }
-
-            @Override
-            public String getConfigPath() {
-                return path;
-            }
-
-            @Override
-            public Object getDefaultValue() {
-                return defaultValue;
-            }
-
-        }
-
-    }
-
-    /**
-     * Provides the configuration settings of metrics.
-     * <p>
-     * Java serialization is supported for {@code MetricsConfig}.
-     * </p>
-     */
-    @Immutable
-    interface MetricsConfig {
-
-        /**
-         * Indicates whether system metrics are enabled.
-         *
-         * @return {@code true} if system metrics are enabled, {@code false} if not.
-         */
-        boolean isSystemMetricsEnabled();
-
-        /**
-         * Indicates whether Prometheus is enabled.
-         *
-         * @return {@code true} if Prometheus is enabled, {@code false} if not.
-         */
-        boolean isPrometheusEnabled();
-
-        /**
-         * Returns the hostname to bind the Prometheus HTTP server to.
-         *
-         * @return the hostname.
-         */
-        String getPrometheusHostname();
-
-        /**
-         * Returns the port to bind the Prometheus HTTP server to.
-         *
-         * @return the port.
-         */
-        int getPrometheusPort();
-
-        /**
-         * An enumeration of the known config path expressions and their associated default values for
-         * {@code MetricsConfig}.
-         */
-        enum MetricsConfigValue implements KnownConfigValue {
-
-            /**
-             * Determines whether system metrics are enabled.
-             */
-            SYSTEM_METRICS_ENABLED("systemMetrics.enabled", false),
-
-            /**
-             * Determines whether Prometheus is enabled.
-             */
-            PROMETHEUS_ENABLED("prometheus.enabled", false),
-
-            /**
-             * The hostname to bind the Prometheus HTTP server to.
-             */
-            PROMETHEUS_HOSTNAME("prometheus.hostname", "0.0.0.0"),
-
-            /**
-             * The port to bind the Prometheus HTTP server to.
-             */
-            PROMETHEUS_PORT("prometheus.port", 9095);
-
-            private final String path;
-            private final Object defaultValue;
-
-            private MetricsConfigValue(final String thePath, final Object theDefaultValue) {
-                path = thePath;
-                defaultValue = theDefaultValue;
-            }
-
-            @Override
-            public String getConfigPath() {
-                return path;
-            }
-
-            @Override
-            public Object getDefaultValue() {
-                return defaultValue;
-            }
-
-        }
-
-    }
 
 }

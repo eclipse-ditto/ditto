@@ -19,7 +19,7 @@ import java.util.function.Supplier;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
-import org.eclipse.ditto.services.base.config.ServiceSpecificConfig;
+import org.eclipse.ditto.services.base.config.ClusterConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.AuthenticationConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.CachesConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
@@ -148,7 +148,7 @@ final class GatewayRootActor extends AbstractActor {
 
         final ActorSystem actorSystem = context().system();
 
-        final ServiceSpecificConfig.ClusterConfig clusterConfig = gatewayConfig.getClusterConfig();
+        final ClusterConfig clusterConfig = gatewayConfig.getClusterConfig();
         final int numberOfShards = clusterConfig.getNumberOfShards();
 
         // start the cluster sharding proxies for retrieving Statistics via StatisticActor about them:

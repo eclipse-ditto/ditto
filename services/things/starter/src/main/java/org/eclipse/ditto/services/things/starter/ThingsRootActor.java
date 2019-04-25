@@ -20,8 +20,8 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.services.base.config.ClusterConfig;
 import org.eclipse.ditto.services.base.config.HttpConfig;
-import org.eclipse.ditto.services.base.config.ServiceSpecificConfig;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.things.persistence.actors.ThingNamespaceOpsActor;
 import org.eclipse.ditto.services.things.persistence.actors.ThingSupervisorActor;
@@ -147,7 +147,7 @@ public final class ThingsRootActor extends AbstractActor {
 
         final ActorSystem actorSystem = getContext().system();
 
-        final ServiceSpecificConfig.ClusterConfig clusterConfig = thingsConfig.getClusterConfig();
+        final ClusterConfig clusterConfig = thingsConfig.getClusterConfig();
         final ActorRef thingsShardRegion = ClusterSharding.get(actorSystem)
                 .start(ThingsMessagingConstants.SHARD_REGION,
                         getThingSupervisorActorProps(thingsConfig, pubSubMediator, thingSnapshotterCreate),

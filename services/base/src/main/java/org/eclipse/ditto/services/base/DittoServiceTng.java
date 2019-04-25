@@ -27,6 +27,7 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.services.base.config.LimitsConfig;
+import org.eclipse.ditto.services.base.config.MetricsConfig;
 import org.eclipse.ditto.services.base.config.ServiceSpecificConfig;
 import org.eclipse.ditto.services.base.config.raw.RawConfigSupplier;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
@@ -228,7 +229,7 @@ public abstract class DittoServiceTng<C extends ServiceSpecificConfig> {
         final Config kamonConfig = ConfigFactory.load("kamon");
         Kamon.reconfigure(kamonConfig);
 
-        final ServiceSpecificConfig.MetricsConfig metricsConfig = serviceSpecificConfig.getMetricsConfig();
+        final MetricsConfig metricsConfig = serviceSpecificConfig.getMetricsConfig();
 
         if (metricsConfig.isSystemMetricsEnabled()) {
             // start system metrics collection
@@ -291,7 +292,7 @@ public abstract class DittoServiceTng<C extends ServiceSpecificConfig> {
      * Starts Prometheus HTTP endpoint on which Prometheus may scrape the data.
      */
     private void startKamonPrometheusHttpEndpoint(final ActorSystem actorSystem) {
-        final ServiceSpecificConfig.MetricsConfig metricsConfig = serviceSpecificConfig.getMetricsConfig();
+        final MetricsConfig metricsConfig = serviceSpecificConfig.getMetricsConfig();
         if (metricsConfig.isPrometheusEnabled() && null != prometheusReporter) {
             final String prometheusHostname = metricsConfig.getPrometheusHostname();
             final int prometheusPort = metricsConfig.getPrometheusPort();
