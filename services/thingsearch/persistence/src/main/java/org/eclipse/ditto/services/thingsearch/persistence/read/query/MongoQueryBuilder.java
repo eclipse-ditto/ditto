@@ -18,8 +18,9 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.OptionalInt;
+import java.util.stream.IntStream;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.query.Query;
@@ -93,8 +94,11 @@ final class MongoQueryBuilder implements QueryBuilder {
     @Override
     public QueryBuilder sort(final List<SortOption> sortOptions) {
         checkNotNull(sortOptions, "sort options");
-        if (sortOptions.stream().map(SortOption::getSortExpression).anyMatch(ID_SORT_FIELD_EXPRESSION::equals)) {
-            this.sortOptions = sortOptions;
+        final OptionalInt thingIdEntry = IntStream.range(0, sortOptions.size())
+                .filter(i -> ID_SORT_FIELD_EXPRESSION.equals(sortOptions.get(i).getSortExpression()))
+                .findFirst();
+        if (thingIdEntry.isPresent()) {
+            this.sortOptions = sortOptions.subList(0, thingIdEntry.getAsInt() + 1);
         } else {
             final List<SortOption> options = new ArrayList<>(sortOptions.size() + DEFAULT_SORT_OPTIONS.size());
             options.addAll(sortOptions);

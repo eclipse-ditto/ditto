@@ -21,9 +21,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
@@ -225,8 +227,12 @@ final class ThingsSearchCursor {
 
     /**
      * Check if options from a {@code QueryThings} command contains an incompatible sort option.
-     * A sort option is incompatible if it is different from the sort option of this cursor, and does not obtain this
-     * cursor's sort option by appending a default sort option.
+     * A sort option is compatible with the sort option of this cursor if
+     * <ul>
+     * <li>both are identical,</li>
+     * <li>cursor option is obtained from command option by appending the default option, or</li>
+     * <li>cursor option is obtained from command option by truncating after +thingId or -thingId.</li>
+     * </ul>
      *
      * @param commandOptions options from a command.
      * @return whether the options contains an incompatible sort option.
@@ -632,10 +638,11 @@ final class ThingsSearchCursor {
      */
     private static List<SortOptionEntry> ensureDefaultPropertyPath(final List<SortOptionEntry> entries) {
         final JsonPointer defaultPropertyPath = DEFAULT_SORT_OPTION_ENTRY.getPropertyPath();
-        final boolean hasThingIdEntry = entries.stream()
-                .anyMatch(entry -> Objects.equals(defaultPropertyPath, entry.getPropertyPath()));
-        if (hasThingIdEntry) {
-            return entries;
+        final OptionalInt thingIdEntry = IntStream.range(0, entries.size())
+                .filter(i -> Objects.equals(defaultPropertyPath, entries.get(i).getPropertyPath()))
+                .findFirst();
+        if (thingIdEntry.isPresent()) {
+            return entries.subList(0, thingIdEntry.getAsInt() + 1);
         } else {
             final List<SortOptionEntry> augmentedEntries = new ArrayList<>(entries);
             augmentedEntries.add(DEFAULT_SORT_OPTION_ENTRY);
@@ -785,8 +792,18 @@ final class ThingsSearchCursor {
             return false;
         } else {
             // check this dimension has equal sort option entries and recurse onto subsequent dimensions
-            return Objects.equals(cursorSortOptionEntries.get(i), commandSortOptionEntries.get(i)) &&
-                    areCompatible(cursorSortOptionEntries, commandSortOptionEntries, i + 1);
+            final SortOptionEntry cursorEntry = cursorSortOptionEntries.get(i);
+            final boolean isThisDimensionEq =
+                    Objects.equals(cursorEntry, commandSortOptionEntries.get(i));
+
+            if (isThisDimensionEq) {
+                final boolean isThisDimensionBijective =
+                        Objects.equals(DEFAULT_SORT_OPTION_ENTRY.getPropertyPath(), cursorEntry.getPropertyPath());
+                return isThisDimensionBijective ||
+                        areCompatible(cursorSortOptionEntries, commandSortOptionEntries, i + 1);
+            } else {
+                return false;
+            }
         }
     }
 
