@@ -27,7 +27,10 @@ import com.typesafe.config.Config;
 @Immutable
 public final class DefaultLimitsConfig implements LimitsConfig, Serializable, WithConfigPath {
 
-    private static final String CONFIG_PATH = "limits";
+    /**
+     * Path of the limits configuration settings.
+     */
+    public static final String CONFIG_PATH = "limits";
 
     private static final long serialVersionUID = -2234806942804455395L;
 
