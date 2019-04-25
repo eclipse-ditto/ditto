@@ -13,15 +13,14 @@
 package org.eclipse.ditto.services.thingsearch.persistence.write;
 
 
-import static org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer.MAX_INDEX_CONTENT_LENGTH;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer.MAX_INDEX_CONTENT_LENGTH;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.services.thingsearch.persistence.util.TestStringGenerator;
 import org.junit.Before;
 import org.junit.Test;
-
-import org.eclipse.ditto.services.thingsearch.persistence.util.TestStringGenerator;
 
 /**
  * Test for IndexLengthRestrictionEnforcer
@@ -32,9 +31,10 @@ public final class IndexLengthRestrictionEnforcerTest {
     private static final String THING_ID = NAMESPACE + ":" + "myThingId";
 
     /**
-     * Overhead of thingId and namespace.
+     * Extra overhead in index key.
      */
-    private static final int THING_ID_NAMESPACE_OVERHEAD = THING_ID.length() + NAMESPACE.length();
+    private static final int OVERHEAD =
+            THING_ID.length() + NAMESPACE.length() + IndexLengthRestrictionEnforcer.AUTHORIZATION_SUBJECT_OVERHEAD;
 
     private IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer;
 
@@ -56,7 +56,7 @@ public final class IndexLengthRestrictionEnforcerTest {
     @Test
     public void enforceRestrictionsOnViolation() {
         final String key = "/attributes/enforceRestrictionsOnViolation";
-        final int maxAllowedValueForKey = MAX_INDEX_CONTENT_LENGTH - THING_ID_NAMESPACE_OVERHEAD - key.length();
+        final int maxAllowedValueForKey = MAX_INDEX_CONTENT_LENGTH - OVERHEAD - key.length();
         final String value = TestStringGenerator.createString(maxAllowedValueForKey + 1);
         assertThat(indexLengthRestrictionEnforcer.enforce(JsonPointer.of(key), JsonValue.of(value)))
                 .contains(JsonValue.of(value.substring(0, maxAllowedValueForKey)));
@@ -65,7 +65,7 @@ public final class IndexLengthRestrictionEnforcerTest {
     @Test
     public void doNotTruncateWithoutViolation() {
         final String key = "/attributes/doesNotTruncateWithoutViolation";
-        final int maxAllowedValueForKey = MAX_INDEX_CONTENT_LENGTH - THING_ID_NAMESPACE_OVERHEAD - key.length();
+        final int maxAllowedValueForKey = MAX_INDEX_CONTENT_LENGTH - OVERHEAD - key.length();
         final String value = TestStringGenerator.createString(maxAllowedValueForKey);
         assertThat(indexLengthRestrictionEnforcer.enforce(JsonPointer.of(key), JsonValue.of(value)))
                 .contains(JsonValue.of(value));
@@ -76,7 +76,7 @@ public final class IndexLengthRestrictionEnforcerTest {
         final String value = "value";
         final String baseKey = "/attributes/giveUpIfKeyIsTooLong/";
         final int maxAllowed =
-                MAX_INDEX_CONTENT_LENGTH - THING_ID_NAMESPACE_OVERHEAD - baseKey.length();
+                MAX_INDEX_CONTENT_LENGTH - OVERHEAD - baseKey.length();
         final String key = baseKey + TestStringGenerator.createString(maxAllowed + 1);
         assertThat(indexLengthRestrictionEnforcer.enforce(JsonPointer.of(key), JsonValue.of(value)))
                 .isEmpty();

@@ -42,7 +42,7 @@ public final class Indices {
      * Index for queries with effective filters.
      */
     private static final Index KEY_VALUE = IndexFactory.newInstance("key-value",
-            Arrays.asList(FIELD_GRANTED_PATH, FIELD_PATH_KEY, FIELD_PATH_VALUE), false);
+            Arrays.asList(FIELD_GRANTED_PATH, FIELD_PATH_KEY, FIELD_PATH_VALUE, FIELD_ID), false);
 
     /**
      * Index for queries without effective filters to be executed as scans over all visible things.

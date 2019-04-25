@@ -33,12 +33,17 @@ public final class IndexLengthRestrictionEnforcer {
     static final int MAX_INDEX_CONTENT_LENGTH = 950;
 
     /**
+     * Reserved length for auth subjects.
+     */
+    static final int AUTHORIZATION_SUBJECT_OVERHEAD = 128;
+
+    /**
      * The logging adapter used to log size restriction enforcements.
      */
     private final int thingIdNamespaceOverhead;
 
     private IndexLengthRestrictionEnforcer(final String thingId) {
-        this.thingIdNamespaceOverhead = calculateThingIdNamespaceOverhead(thingId);
+        this.thingIdNamespaceOverhead = calculateThingIdNamespaceAuthSubjectOverhead(thingId);
     }
 
     /**
@@ -89,9 +94,10 @@ public final class IndexLengthRestrictionEnforcer {
         return jsonPointerLength(key) + additionalOverhead;
     }
 
-    private static int calculateThingIdNamespaceOverhead(final String thingId) {
+    private static int calculateThingIdNamespaceAuthSubjectOverhead(final String thingId) {
         final int namespaceLength = Math.max(0, thingId.indexOf(':'));
-        return thingId.length() + namespaceLength;
+        final int authSubjectOverhead = 128;
+        return thingId.length() + namespaceLength + authSubjectOverhead;
     }
 
     private static int jsonPointerLength(final JsonPointer jsonPointer) {
