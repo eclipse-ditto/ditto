@@ -72,16 +72,58 @@ public final class ConnectionLoggerRegistryTest {
     }
 
     @Test
-    public void reinitializesLoggersOnReset() {
+    public void clearsLoggersOnReset() {
         final String connectionId = connectionId();
         final ConnectionLogger before = underTest.forConnection(connectionId);
+        underTest.unmuteForConnection(connectionId);
+
+        before.success("a", Instant.now(), "b", null);
+
+        assertThat(before.getLogs()).isNotEmpty();
 
         underTest.resetForConnection(connection(connectionId));
-        final ConnectionLogger after = underTest.forConnection(connectionId);
 
+        assertThat(before.getLogs()).isEmpty();
+        final ConnectionLogger after = underTest.forConnection(connectionId);
         assertThat(after).isNotNull()
-                // isNotEqual currently works but might fail if the loggers are implemented so that they will equal on same capacity.
-                .isNotSameAs(before);
+                .isSameAs(before);
+    }
+
+    @Test
+    public void leavesMutedLoggersMutedOnReset() {
+        final String connectionId = connectionId();
+        underTest.initForConnection(connection(connectionId));
+
+        underTest.resetForConnection(connection(connectionId));
+
+        assertThat(underTest.isActiveForConnection(connectionId)).isFalse();
+    }
+
+    @Test
+    public void leavesActivatedLoggersActivatedOnReset() {
+        final String connectionId = connectionId();
+        underTest.initForConnection(connection(connectionId));
+        underTest.unmuteForConnection(connectionId);
+
+        underTest.resetForConnection(connection(connectionId));
+
+        assertThat(underTest.isActiveForConnection(connectionId)).isTrue();
+    }
+
+    @Test
+    public void isActiveForConnection() {
+        final String connectionId = connectionId();
+        underTest.initForConnection(connection(connectionId));
+
+        assertThat(underTest.isActiveForConnection(connectionId)).isFalse();
+
+        underTest.unmuteForConnection(connectionId);
+
+        assertThat(underTest.isActiveForConnection(connectionId)).isTrue();
+
+        underTest.muteForConnection(connectionId);
+
+        assertThat(underTest.isActiveForConnection(connectionId)).isFalse();
     }
 
     @Test

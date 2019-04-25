@@ -17,6 +17,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.signals.commands.connectivity.modify.EnableConnectionLogs;
+import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionLogs;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionMetrics;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionLogs;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionLogsResponse;
@@ -80,6 +81,16 @@ public abstract class AbstractBaseClientActorTest {
         new TestKit(getActorSystem()) {{
             final ActorRef clientActor = childActorOf(createClientActor(getRef()));
             clientActor.tell(EnableConnectionLogs.of(getConnectionId(), DittoHeaders.empty()), getRef());
+
+            expectNoMessage();
+        }};
+    }
+
+    @Test
+    public void resetConnectionLogs() {
+        new TestKit(getActorSystem()) {{
+            final ActorRef clientActor = childActorOf(createClientActor(getRef()));
+            clientActor.tell(ResetConnectionLogs.of(getConnectionId(), DittoHeaders.empty()), getRef());
 
             expectNoMessage();
         }};

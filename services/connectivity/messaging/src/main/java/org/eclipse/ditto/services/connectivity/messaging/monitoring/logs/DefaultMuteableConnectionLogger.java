@@ -54,13 +54,13 @@ final class DefaultMuteableConnectionLogger implements MuteableConnectionLogger 
 
     @Override
     public void mute() {
-        logDebug("Muting the logger");
+        logTrace("Muting the logger");
         active = false;
     }
 
     @Override
     public void unmute() {
-        logDebug("Unmuting the logger");
+        logTrace("Unmuting the logger");
         active = true;
     }
 
@@ -140,10 +140,10 @@ final class DefaultMuteableConnectionLogger implements MuteableConnectionLogger 
         return Collections.emptyList();
     }
 
-    private void logDebug(final String message) {
-        if (LOGGER.isDebugEnabled()) {
+    private void logTrace(final String message) {
+        if (LOGGER.isTraceEnabled()) {
             ConnectionLogUtil.enhanceLogWithConnectionId(connectionId);
-            LOGGER.debug(message);
+            LOGGER.trace(message);
         }
     }
 

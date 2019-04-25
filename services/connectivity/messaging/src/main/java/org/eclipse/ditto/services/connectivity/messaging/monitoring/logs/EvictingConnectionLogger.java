@@ -132,7 +132,7 @@ final class EvictingConnectionLogger implements ConnectionLogger {
 
     @Override
     public void clear() {
-        LOGGER.debug("Clearing all logs.");
+        LOGGER.trace("Clearing all logs.");
         successLogs.clear();
         failureLogs.clear();
     }

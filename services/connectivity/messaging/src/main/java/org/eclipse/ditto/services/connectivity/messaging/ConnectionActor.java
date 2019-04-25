@@ -82,6 +82,8 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnectionResponse;
+import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionLogs;
+import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionLogsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionMetrics;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
@@ -370,6 +372,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
                 .match(ResetConnectionMetrics.class, this::resetConnectionMetrics)
                 .match(EnableConnectionLogs.class, this::enableConnectionLogs)
                 .match(RetrieveConnectionLogs.class, this::retrieveConnectionLogs)
+                .match(ResetConnectionLogs.class, this::resetConnectionLogs)
                 .match(RetrieveConnection.class, this::retrieveConnection)
                 .match(RetrieveConnectionStatus.class, this::retrieveConnectionStatus)
                 .match(RetrieveConnectionMetrics.class, this::retrieveConnectionMetrics)
@@ -695,6 +698,14 @@ public final class ConnectionActor extends AbstractPersistentActor {
                 command.getDittoHeaders()
         );
         origin.tell(logsResponse, getSelf());
+    }
+
+    private void resetConnectionLogs(final ResetConnectionLogs command) {
+        if (clientActorRouter != null) {
+            // forward command to all client actors with no sender
+            clientActorRouter.tell(new Broadcast(command), ActorRef.noSender());
+        }
+        getSender().tell(ResetConnectionLogsResponse.of(connectionId, command.getDittoHeaders()), getSelf());
     }
 
     /*

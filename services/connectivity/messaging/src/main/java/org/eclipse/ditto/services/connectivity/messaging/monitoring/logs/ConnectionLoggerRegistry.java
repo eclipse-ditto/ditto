@@ -96,7 +96,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         final LogMetadata timing;
         final Collection<LogEntry> logs;
 
-        if (isLoggingActive(connectionId)) {
+        if (isActiveForConnection(connectionId)) {
             LOGGER.trace("Logging is enabled, will aggregate logs for connection <{}>", connectionId);
 
             timing = refreshMetadata(connectionId);
@@ -116,7 +116,12 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         return new ConnectionLogs(timing.getEnabledSince(), timing.getEnabledUntil(), logs);
     }
 
-    private boolean isLoggingActive(final String connectionId) {
+    /**
+     * Checks if logging is enabled for the given connection.
+     * @param connectionId the connection to check.
+     * @return true if logging is currently enabled for the connection.
+     */
+    public boolean isActiveForConnection(final String connectionId) {
         final boolean muted = streamLoggers(connectionId)
                 .findFirst()
                 .map(MuteableConnectionLogger::isMuted)
@@ -124,7 +129,6 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         return !muted;
     }
 
-    // TODO: doc, test and use
     public void muteForConnection(final String connectionId) {
         ConnectionLogUtil.enhanceLogWithConnectionId(connectionId);
         LOGGER.info("Muting loggers for connection <{}>.", connectionId);
@@ -201,9 +205,9 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
 
         loggers.keySet().stream()
                 .filter(key -> key.connectionId.equals(connectionId))
-                .forEach(loggers::remove);
-
-        refreshMetadata(connectionId);
+                .map(loggers::get)
+                .filter(Objects::nonNull)
+                .forEach(MuteableConnectionLogger::clear);
     }
 
     private LogMetadata refreshMetadata(final String connectionId) {

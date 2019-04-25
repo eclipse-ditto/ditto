@@ -74,6 +74,7 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.EnableConnectionLogs;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
+import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionLogs;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionMetrics;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionLogs;
@@ -248,6 +249,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 .event(ResetConnectionMetrics.class, BaseClientData.class, this::resetConnectionMetrics)
                 .event(EnableConnectionLogs.class, BaseClientData.class, (command, data) -> this.enableConnectionLogs(command))
                 .event(RetrieveConnectionLogs.class, BaseClientData.class, (command, data) -> this.retrieveConnectionLogs(command))
+                .event(ResetConnectionLogs.class, BaseClientData.class, this::resetConnectionLogs)
                 .event(OutboundSignal.class, BaseClientData.class, (signal, data) -> {
                     handleOutboundSignal(signal);
                     return stay();
@@ -753,17 +755,14 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return stay();
     }
 
-    // TODO: call
     private FSM.State<BaseClientState, BaseClientData> resetConnectionLogs(
-            final ResetConnectionMetrics command,
+            final ResetConnectionLogs command,
             final BaseClientData data) {
 
         ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionId());
         log.debug("Received ResetConnectionLogs message, resetting logs.");
 
-        //  TODO: think about just clearing the loggers instead of completely rebuilding them
         this.connectionLoggerRegistry.resetForConnection(data.getConnection());
-        this.connectionLoggerRegistry.initForConnection(data.getConnection());
 
         this.connectionLoggerRegistry.forConnection(data.getConnectionId())
                 .success(ImmutableInfoProvider.forSignal(command), "Successfully reset the logs.");

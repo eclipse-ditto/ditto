@@ -46,6 +46,8 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.EnableConnectionLo
 import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
+import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionLogs;
+import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionLogsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionMetrics;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnection;
@@ -639,6 +641,31 @@ public final class ConnectionActorTest extends WithMockServers {
             probe.send(aggregatorActor, innerResponse);
 
             expectMsg(innerResponse);
+        }};
+    }
+
+    @Test
+    public void resetConnectionLogs() {
+        final ResetConnectionLogs resetConnectionLogs = ResetConnectionLogs.of(connectionId, DittoHeaders.empty());
+        final ResetConnectionLogsResponse expectedResponse = ResetConnectionLogsResponse.of(connectionId, resetConnectionLogs.getDittoHeaders());
+
+        new TestKit(actorSystem) {{
+            final TestProbe probe = TestProbe.apply(actorSystem);
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+            watch(underTest);
+
+            // create connection
+            underTest.tell(createConnection, getRef());
+            probe.expectMsg(openConnection);
+            expectMsg(createConnectionResponse);
+
+            // reset metrics
+            underTest.tell(resetConnectionLogs, getRef());
+            probe.expectMsg(resetConnectionLogs);
+
+            expectMsg(expectedResponse);
         }};
     }
 
