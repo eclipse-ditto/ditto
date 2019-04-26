@@ -1,6 +1,6 @@
 ---
 title: Delete a single feature
-keywords: examples, create feature
+keywords: examples, delete feature
 search: exclude
 permalink: protocol-examples-deletefeature.html
 ---
