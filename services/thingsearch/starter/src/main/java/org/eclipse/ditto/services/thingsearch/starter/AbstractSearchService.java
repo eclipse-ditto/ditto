@@ -15,13 +15,14 @@ package org.eclipse.ditto.services.thingsearch.starter;
 import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
-import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
-import org.eclipse.ditto.services.thingsearch.starter.actors.SearchRootActor;
 import org.slf4j.Logger;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.stream.ActorMaterializer;
+
+import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
+import org.eclipse.ditto.services.thingsearch.starter.actors.SearchRootActor;
 
 /**
  * Abstract base implementation for starting the Search service.

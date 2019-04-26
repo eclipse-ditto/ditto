@@ -19,6 +19,8 @@ import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThin
 import org.eclipse.ditto.services.utils.test.GlobalCommandRegistryTestCases;
 import org.eclipse.ditto.signals.commands.batch.ExecuteBatch;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
+import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnection;
 import org.eclipse.ditto.signals.commands.devops.ExecutePiggybackCommand;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespace;
@@ -44,7 +46,9 @@ public final class ThingsSearchServiceGlobalCommandRegistryTest extends GlobalCo
                 Shutdown.class,
                 PurgeNamespace.class,
                 RetrieveResource.class,
-                DeleteSubject.class);
+                DeleteSubject.class,
+                CreateConnection.class,
+                RetrieveConnection.class);
     }
 
 }

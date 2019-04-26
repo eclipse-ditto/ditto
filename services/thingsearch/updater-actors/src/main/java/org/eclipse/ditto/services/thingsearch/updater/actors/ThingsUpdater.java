@@ -12,10 +12,11 @@
  */
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
-import java.time.Duration;
+import static akka.cluster.pubsub.DistributedPubSubMediator.Subscribe;
+import static akka.cluster.pubsub.DistributedPubSubMediator.SubscribeAck;
+import static org.eclipse.ditto.services.thingsearch.updater.actors.ShardRegionFactory.UPDATER_SHARD_REGION;
+
 import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -25,8 +26,6 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.streaming.IdentifiableStreamingMessage;
 import org.eclipse.ditto.services.models.things.ThingTag;
-import org.eclipse.ditto.services.models.thingsearch.ThingsSearchConstants;
-import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
@@ -35,25 +34,16 @@ import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 import org.eclipse.ditto.signals.events.base.Event;
-import org.eclipse.ditto.signals.events.policies.PolicyEvent;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.cluster.pubsub.DistributedPubSub;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.event.Logging;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.CircuitBreaker;
 import akka.pattern.PatternsCS;
-import akka.stream.ActorMaterializer;
-import akka.stream.Materializer;
-import akka.stream.javadsl.Sink;
 
 /**
  * This Actor subscribes to messages the Things service emits, when it starts a new ThingActor (a Thing becomes "hot").
@@ -67,83 +57,44 @@ final class ThingsUpdater extends AbstractActor {
      */
     static final String ACTOR_NAME = "thingsUpdater";
 
-    private static final String UPDATER_GROUP = "thingsUpdaterGroup";
     private final DiagnosticLoggingAdapter log = Logging.apply(this);
     private final ActorRef shardRegion;
-    private final ThingsSearchUpdaterPersistence searchUpdaterPersistence;
-    private final Materializer materializer;
-    private final RetrieveStatisticsDetailsResponseSupplier retrieveStatisticsDetailsResponseSupplier;
     private final BlockNamespaceBehavior namespaceBlockingBehavior;
+    private final RetrieveStatisticsDetailsResponseSupplier retrieveStatisticsDetailsResponseSupplier;
 
-    private ThingsUpdater(final int numberOfShards,
-            final ShardRegionFactory shardRegionFactory,
-            final ThingsSearchUpdaterPersistence searchUpdaterPersistence,
-            final CircuitBreaker circuitBreaker,
+    private ThingsUpdater(final ActorRef pubSubMediator,
+            final ActorRef thingUpdaterShardRegion,
             final boolean eventProcessingActive,
-            final Duration thingUpdaterActivityCheckInterval,
-            final int maxBulkSize,
             final BlockedNamespaces blockedNamespaces) {
 
-        final ActorSystem actorSystem = context().system();
-
-        // Start the proxy for the Things and Policies sharding, too.
-        final ActorRef thingsShardRegion = shardRegionFactory.getThingsShardRegion(numberOfShards);
-        final ActorRef policiesShardRegion = shardRegionFactory.getPoliciesShardRegion(numberOfShards);
-
-        final ActorRef pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
-
-        final Props thingUpdaterProps =
-                ThingUpdater.props(pubSubMediator, searchUpdaterPersistence, circuitBreaker, thingsShardRegion,
-                        policiesShardRegion, thingUpdaterActivityCheckInterval, ThingUpdater.DEFAULT_THINGS_TIMEOUT,
-                        maxBulkSize)
-                        .withMailbox("akka.actor.custom-updater-mailbox");
-
-        shardRegion = shardRegionFactory.getSearchUpdaterShardRegion(numberOfShards, thingUpdaterProps);
-        this.searchUpdaterPersistence = searchUpdaterPersistence;
-        materializer = ActorMaterializer.create(getContext());
-
-        retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(shardRegion,
-                ThingsSearchConstants.SHARD_REGION, log);
-
-        if (eventProcessingActive) {
-            pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(ThingEvent.TYPE_PREFIX, UPDATER_GROUP, self()),
-                    self());
-            pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(PolicyEvent.TYPE_PREFIX, UPDATER_GROUP, self()),
-                    self());
-        }
+        shardRegion = thingUpdaterShardRegion;
 
         namespaceBlockingBehavior = BlockNamespaceBehavior.of(blockedNamespaces);
+
+        retrieveStatisticsDetailsResponseSupplier =
+                RetrieveStatisticsDetailsResponseSupplier.of(shardRegion, UPDATER_SHARD_REGION, log);
+
+        if (eventProcessingActive) {
+            pubSubMediator.tell(new Subscribe(ThingEvent.TYPE_PREFIX, ACTOR_NAME, self()), self());
+        }
     }
 
     /**
      * Creates Akka configuration object for this actor.
      *
-     * @param numberOfShards the number of shards the "search-updater" shardRegion should be started with.
-     * @param shardRegionFactory The shard region factory to use when creating sharded actors.
-     * @param thingUpdaterActivityCheckInterval the interval at which is checked, if the corresponding Thing is still
-     * actively updated
-     * @param maxBulkSize maximum number of events to update in a bulk.
+     * @param pubSubMediator Akka pub-sub-mediator
+     * @param thingUpdaterShardRegion shard region of thing-updaters
+     * @param eventProcessingActive should this actor forward thing-events
      * @param blockedNamespaces cache of namespaces to block.
      * @return the Akka configuration Props object
      */
-    static Props props(final int numberOfShards,
-            final ShardRegionFactory shardRegionFactory,
-            final ThingsSearchUpdaterPersistence searchUpdaterPersistence,
-            final CircuitBreaker circuitBreaker,
+    static Props props(final ActorRef pubSubMediator,
+            final ActorRef thingUpdaterShardRegion,
             final boolean eventProcessingActive,
-            final Duration thingUpdaterActivityCheckInterval,
-            final int maxBulkSize,
             final BlockedNamespaces blockedNamespaces) {
 
-        return Props.create(ThingsUpdater.class, new Creator<ThingsUpdater>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public ThingsUpdater create() {
-                return new ThingsUpdater(numberOfShards, shardRegionFactory, searchUpdaterPersistence, circuitBreaker,
-                        eventProcessingActive, thingUpdaterActivityCheckInterval, maxBulkSize, blockedNamespaces);
-            }
-        });
+        return Props.create(ThingsUpdater.class, () ->
+                new ThingsUpdater(pubSubMediator, thingUpdaterShardRegion, eventProcessingActive, blockedNamespaces));
     }
 
     @Override
@@ -153,10 +104,9 @@ final class ThingsUpdater extends AbstractActor {
                         shardRegion.forward(getShardRegionState, getContext()))
                 .match(RetrieveStatisticsDetails.class, this::handleRetrieveStatisticsDetails)
                 .match(ThingEvent.class, this::processThingEvent)
-                .match(PolicyEvent.class, this::processPolicyEvent)
                 .match(ThingTag.class, this::processThingTag)
                 .match(PolicyReferenceTag.class, this::processPolicyReferenceTag)
-                .match(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck)
+                .match(SubscribeAck.class, this::subscribeAck)
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
@@ -183,28 +133,11 @@ final class ThingsUpdater extends AbstractActor {
         forwardJsonifiableToShardRegion(policyReferenceTag, unused -> policyReferenceTag.getEntityId());
     }
 
+
     private void processThingEvent(final ThingEvent<?> thingEvent) {
         LogUtil.enhanceLogWithCorrelationId(log, thingEvent);
         log.debug("Forwarding incoming ThingEvent for thingId '{}'", thingEvent.getThingId());
         forwardEventToShardRegion(thingEvent, ThingEvent::getId);
-    }
-
-    private void processPolicyEvent(final PolicyEvent<?> policyEvent) {
-        LogUtil.enhanceLogWithCorrelationId(log, policyEvent);
-        final String policyId = policyEvent.getPolicyId();
-
-        namespaceBlockingBehavior.block(policyEvent)
-                .thenCompose(event -> thingIdsForPolicy(policyId))
-                .thenAccept(thingIds -> thingIds.forEach(id -> forwardPolicyEventToShardRegion(policyEvent, id)))
-                .exceptionally(error -> {
-                    LogUtil.enhanceLogWithCorrelationId(log, policyEvent);
-                    log.info("Policy event ''{}'' not applied due to ''{}''", policyEvent, error);
-                    return null;
-                });
-    }
-
-    private CompletionStage<Set<String>> thingIdsForPolicy(final String policyId) {
-        return searchUpdaterPersistence.getThingIdsForPolicy(policyId).runWith(Sink.last(), materializer);
     }
 
     private <J extends Jsonifiable<?>> void forwardJsonifiableToShardRegion(final J message,
@@ -242,8 +175,7 @@ final class ThingsUpdater extends AbstractActor {
         final ActorRef sender = getSender();
         final ActorRef deadLetters = getContext().getSystem().deadLetters();
 
-        namespaceBlockingBehavior
-                .block(messageEnvelope)
+        namespaceBlockingBehavior.block(messageEnvelope)
                 .thenAccept(m -> shardRegion.tell(m, sender))
                 .exceptionally(throwable -> {
                     if (!Objects.equals(sender, deadLetters)) {
@@ -258,13 +190,7 @@ final class ThingsUpdater extends AbstractActor {
                 });
     }
 
-    private void forwardPolicyEventToShardRegion(final PolicyEvent<?> policyEvent, final String thingId) {
-        log.debug("Will forward incoming event message for policyId '{}' to update actor '{}':",
-                policyEvent.getPolicyId(), thingId);
-        forwardEventToShardRegion(policyEvent, e -> thingId);
-    }
-
-    private void subscribeAck(final DistributedPubSubMediator.SubscribeAck subscribeAck) {
+    private void subscribeAck(final SubscribeAck subscribeAck) {
         log.debug("Successfully subscribed to distributed pub/sub on topic '{}'", subscribeAck.subscribe().topic());
     }
 

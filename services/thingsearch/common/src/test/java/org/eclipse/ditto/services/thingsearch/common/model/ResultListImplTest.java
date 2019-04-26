@@ -24,7 +24,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class ResultListImplTest {
 
-    /** */
+
     @Test
     public void hashcodeAndEquals() {
         EqualsVerifier.forClass(ResultListImpl.class).usingGetClass().verify();
@@ -38,13 +38,13 @@ public final class ResultListImplTest {
     // assertInstancesOf(ResultListImpl.class, areImmutable());
     // }
 
-    /** */
+
     @Test(expected = NullPointerException.class)
     public void constructorWithNull() {
         new ResultListImpl<>(null, 1);
     }
 
-    /** */
+
     @Test
     public void basicUsage() {
         final int nextPageOffset = 4;

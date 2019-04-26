@@ -20,10 +20,11 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+
+import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 
 /**
  * Abstract base class for search persistence tests parameterized with version.
@@ -39,13 +40,7 @@ public abstract class AbstractVersionedThingSearchPersistenceITBase extends Abst
     public static List<Object[]> versionAndQueryClassParameters() {
         return apiVersions()
                 .stream()
-                .map(apiVersion -> {
-                    if (JsonSchemaVersion.V_1.equals(apiVersion)) {
-                        return new Object[]{apiVersion, Query.class.getSimpleName()};
-                    } else {
-                        return new Object[]{apiVersion, PolicyRestrictedSearchAggregation.class.getSimpleName()};
-                    }
-                })
+                .map(apiVersion -> new Object[]{apiVersion, Query.class.getSimpleName()})
                 .collect(Collectors.toList());
     }
 
@@ -55,7 +50,7 @@ public abstract class AbstractVersionedThingSearchPersistenceITBase extends Abst
     @Parameterized.Parameter(1)
     public String queryClass;
 
-    /** */
+
     @Before
     public void before() {
         super.before();
@@ -82,41 +77,24 @@ public abstract class AbstractVersionedThingSearchPersistenceITBase extends Abst
         return qbf.newBuilder(criteria).build();
     }
 
-    /**
-     * Creates a {@link PolicyRestrictedSearchAggregation} for the given {@link Criteria}.
-     */
-    private PolicyRestrictedSearchAggregation aggregation(final Criteria criteria) {
-        return abf.newBuilder(criteria)
-                .authorizationSubjects(KNOWN_SUBJECTS)
-                .build();
-    }
-
     ResultList<String> executeVersionedQuery(final Criteria criteria) {
-        return executeVersionedQuery(this::query, this::aggregation, this::findAll, this::findAll, criteria);
+        return executeVersionedQuery(this::query, this::findAll, criteria);
     }
 
     /**
-     * Execute a versioned query based on either via {@link Query} or {@link PolicyRestrictedSearchAggregation}.
+     * Execute a versioned query based on either via {@link Query}.
      *
      * @param <R> The result type.
      * @param queryMapper The mapper for creating {@link Query} from {@link Criteria}.
-     * @param aggregationMapper The mapper for creating {@link PolicyRestrictedSearchAggregation} from {@link
-     * Criteria}.
      * @param queryFn The function for getting the search result when applying a {@link Query}.
-     * @param aggregationFn The function for getting the search result when applying a {@link
-     * PolicyRestrictedSearchAggregation}.
      * @param criteria The {@link Criteria} to search for.
      * @return The result of the search operation.
      */
     <R> R executeVersionedQuery(final Function<Criteria, Query> queryMapper,
-            final Function<Criteria, PolicyRestrictedSearchAggregation> aggregationMapper,
             final Function<Query, R> queryFn,
-            final Function<PolicyRestrictedSearchAggregation, R> aggregationFn,
             final Criteria criteria) {
         if (queryClass.equals(Query.class.getSimpleName())) {
             return queryFn.apply(queryMapper.apply(criteria));
-        } else if (queryClass.equals(PolicyRestrictedSearchAggregation.class.getSimpleName())) {
-            return aggregationFn.apply(aggregationMapper.apply(criteria));
         } else {
             throw new IllegalStateException("should never happen");
         }

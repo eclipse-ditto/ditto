@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.read.query;
 
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.DOT;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_SORTING;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
@@ -52,7 +54,6 @@ public final class MongoQueryTest {
     private Bson knownSortOptionsExpectedBson;
     private int defaultPageSizeFromConfig;
 
-    /** */
     @Before
     public void before() {
         final LimitsConfigReader limitsConfigReader = DittoLimitsConfigReader.fromRawConfig(ConfigFactory.load("test"));
@@ -66,24 +67,22 @@ public final class MongoQueryTest {
                         new SortOption(sortExp2, SortDirection.DESC));
         final String thingIdFieldName = ((SimpleFieldExpressionImpl) EFT.sortByThingId()).getFieldName();
         final String attributeFieldName = "attributes.test";
-        knownSortOptionsExpectedBson =
-                Sorts.orderBy(Arrays.asList(Sorts.ascending(thingIdFieldName), Sorts.descending(attributeFieldName)));
+        knownSortOptionsExpectedBson = Sorts.orderBy(Arrays.asList(
+                Sorts.ascending(thingIdFieldName),
+                Sorts.descending(FIELD_SORTING + DOT + attributeFieldName)));
     }
 
-    /** */
     @Test
     public void hashcodeAndEquals() {
         EqualsVerifier.forClass(MongoQuery.class).verify();
     }
 
-    /** */
     @Test
     public void immutability() {
         assertInstancesOf(MongoQuery.class, areImmutable(),
                 provided(Criteria.class, SortOption.class).isAlsoImmutable());
     }
 
-    /** */
     @Test
     public void criteriaIsCorrectlySet() {
         final MongoQuery query = new MongoQuery(KNOWN_CRIT, knownSortOptions, defaultPageSizeFromConfig,
@@ -92,7 +91,6 @@ public final class MongoQueryTest {
         assertThat(query.getCriteria()).isEqualTo(KNOWN_CRIT);
     }
 
-    /** */
     @Test
     public void emptySortOptions() {
         final MongoQuery query = new MongoQuery(KNOWN_CRIT, Collections.emptyList(), defaultPageSizeFromConfig,
@@ -103,15 +101,6 @@ public final class MongoQueryTest {
         assertBson(new BsonDocument(), query.getSortOptionsAsBson());
     }
 
-    private static void assertBson(final Bson expected, final Bson actual) {
-        final BsonDocument expectedDoc =
-                org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil.toBsonDocument(expected);
-        final BsonDocument actualDoc =
-                org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil.toBsonDocument(actual);
-        assertThat(actualDoc).isEqualTo(expectedDoc);
-    }
-
-    /** */
     @Test
     public void sortOptionsAreCorrectlySet() {
         final MongoQuery query = new MongoQuery(KNOWN_CRIT, knownSortOptions, defaultPageSizeFromConfig,
@@ -122,4 +111,11 @@ public final class MongoQueryTest {
         assertBson(knownSortOptionsExpectedBson, query.getSortOptionsAsBson());
     }
 
+    private static void assertBson(final Bson expected, final Bson actual) {
+        final BsonDocument expectedDoc =
+                org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil.toBsonDocument(expected);
+        final BsonDocument actualDoc =
+                org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil.toBsonDocument(actual);
+        assertThat(actualDoc).isEqualTo(expectedDoc);
+    }
 }
