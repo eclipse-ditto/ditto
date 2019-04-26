@@ -17,6 +17,7 @@ import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 /**
  * This class is the default implementation of {@link HealthCheckConfig}.
@@ -46,8 +47,14 @@ public final class DefaultHealthCheckConfig implements HealthCheckConfig, Serial
     public static DefaultHealthCheckConfig of(final Config config) {
         final DefaultBasicHealthCheckConfig basicHealthCheckConfig = DefaultBasicHealthCheckConfig.of(config);
 
-        final PersistenceConfig persistenceConfig =
-                DefaultPersistenceConfig.of(config.getConfig(basicHealthCheckConfig.getConfigPath()));
+        final String healthCheckConfigPath = basicHealthCheckConfig.getConfigPath();
+        final PersistenceConfig persistenceConfig;
+        if (config.hasPath(healthCheckConfigPath)) {
+            persistenceConfig = DefaultPersistenceConfig.of(config.getConfig(healthCheckConfigPath));
+        } else {
+            // Completely rely on fall-back values of PersistenceConfig.
+            persistenceConfig = DefaultPersistenceConfig.of(ConfigFactory.empty());
+        }
 
         return new DefaultHealthCheckConfig(basicHealthCheckConfig, persistenceConfig);
     }
