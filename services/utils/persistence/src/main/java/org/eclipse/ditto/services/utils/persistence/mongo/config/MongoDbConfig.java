@@ -72,7 +72,7 @@ public interface MongoDbConfig {
         /**
          * The maximum query duration.
          */
-        MAX_QUERY_TIME("maxQueryTime", "60s");
+        MAX_QUERY_TIME("maxQueryTime", Duration.ofMinutes(1L));
 
         private final String path;
         private final Object defaultValue;
