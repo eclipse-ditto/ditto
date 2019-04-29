@@ -19,14 +19,13 @@ import java.util.Objects;
 import org.eclipse.ditto.model.query.expression.visitors.ExistsFieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.FieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.FilterFieldExpressionVisitor;
-import org.eclipse.ditto.model.query.expression.visitors.PolicyRestrictedFieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.SortFieldExpressionVisitor;
 
 /**
  * Field expression for feature properties with a given feature id.
  */
-public class FeatureIdPropertyExpressionImpl implements SortFieldExpression, FilterFieldExpression,
-        ExistsFieldExpression, PolicyRestrictedFieldExpression {
+public class FeatureIdPropertyExpressionImpl
+        implements SortFieldExpression, FilterFieldExpression, ExistsFieldExpression {
 
     private final String property;
     private final String featureId;
@@ -40,11 +39,6 @@ public class FeatureIdPropertyExpressionImpl implements SortFieldExpression, Fil
     public FeatureIdPropertyExpressionImpl(final String featureId, final String property) {
         this.property = requireNonNull(property);
         this.featureId = requireNonNull(featureId);
-    }
-
-    @Override
-    public <T> T acceptPolicyRestrictedVisitor(final PolicyRestrictedFieldExpressionVisitor<T> visitor) {
-        return visitor.visitFeatureIdProperty(featureId, property);
     }
 
     @Override

@@ -47,7 +47,7 @@ public final class TestUtils {
      *
      * @param actorRefModifier The modifying function to use on the actorRefs returned by the original
      * shardRegionFactory.
-     * @param originalShardRegionFactory The original {@link org.eclipse.ditto.services.thingsearch.updater.actors.ShardRegionFactory}
+     * @param originalShardRegionFactory The original {@link ShardRegionFactory}
      * used the generate the shard region Actors.
      * @return The mocked ShardRegionFactory.
      */
@@ -68,7 +68,7 @@ public final class TestUtils {
      * by the  original shardRegionFactory.
      * @param topologiesShardModifier The modifying function to use on the topologies shard region actor returned by the
      * original shardRegionFactory.
-     * @param originalShardRegionFactory The original {@link org.eclipse.ditto.services.thingsearch.updater.actors.ShardRegionFactory}
+     * @param originalShardRegionFactory The original {@link ShardRegionFactory}
      * used the generate the shard region Actors.
      * @return The mocked ShardRegionFactory.
      */
@@ -84,12 +84,13 @@ public final class TestUtils {
                     return policiesShardModifier.apply(
                             originalShardRegionFactory.getPoliciesShardRegion(numberOfShards));
                 });
-        when(shardRegionFactory.getSearchUpdaterShardRegion(anyInt(), any(Props.class)))
+        when(shardRegionFactory.getSearchUpdaterShardRegion(anyInt(), any(Props.class), any()))
                 .thenAnswer(invocation -> {
                     final int numberOfShards = invocation.getArgument(0);
                     final Props props = invocation.getArgument(1);
                     return searchUpdaterShardModifier.apply(
-                            originalShardRegionFactory.getSearchUpdaterShardRegion(numberOfShards, props)
+                            originalShardRegionFactory.getSearchUpdaterShardRegion(numberOfShards, props,
+                                    SearchUpdaterRootActor.CLUSTER_ROLE)
                     );
                 });
         when(shardRegionFactory.getThingsShardRegion(anyInt()))

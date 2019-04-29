@@ -22,10 +22,10 @@ import org.junit.Test;
  */
 public class KeyEscapeUtilTest {
 
-    /** */
+
     @Test
     public void escape() {
         assertSame("escapingNotNecessary", KeyEscapeUtil.escape("escapingNotNecessary"));
-        assertEquals("\uFF04org\uFF0Eeclipse\uFF0Editto", KeyEscapeUtil.escape("$org.eclipse.ditto"));
+        assertEquals("~1org~2eclipse~2~0ditto", KeyEscapeUtil.escape("$org.eclipse.~ditto"));
     }
 }

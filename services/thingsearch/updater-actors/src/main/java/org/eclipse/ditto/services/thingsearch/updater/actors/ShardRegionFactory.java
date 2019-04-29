@@ -36,6 +36,8 @@ import akka.cluster.sharding.ClusterShardingSettings;
 @NotThreadSafe
 final class ShardRegionFactory {
 
+    static final String UPDATER_SHARD_REGION = ThingsSearchConstants.SHARD_REGION;
+
     private final ActorSystem actorSystem;
 
     private ShardRegionFactory(final ActorSystem theActorSystem) {
@@ -94,15 +96,17 @@ final class ShardRegionFactory {
      * @throws NullPointerException if {@code thingUpdaterProps} is {@code null}.
      */
     @Nonnull
-    public ActorRef getSearchUpdaterShardRegion(final int numberOfShards, @Nonnull final Props thingUpdaterProps) {
+    public ActorRef getSearchUpdaterShardRegion(final int numberOfShards,
+            @Nonnull final Props thingUpdaterProps,
+            final String clusterRole) {
         checkNotNull(thingUpdaterProps, "Props of ThingUpdater");
 
         final ClusterSharding clusterSharding = ClusterSharding.get(actorSystem);
-        final ClusterShardingSettings shardingSettings = ClusterShardingSettings.create(actorSystem);
+        final ClusterShardingSettings shardingSettings =
+                ClusterShardingSettings.create(actorSystem).withRole(clusterRole);
         final ShardRegionExtractor shardRegionExtractor = ShardRegionExtractor.of(numberOfShards, actorSystem);
 
-        return clusterSharding.start(ThingsSearchConstants.SHARD_REGION, thingUpdaterProps, shardingSettings,
-                shardRegionExtractor);
+        return clusterSharding.start(UPDATER_SHARD_REGION, thingUpdaterProps, shardingSettings, shardRegionExtractor);
     }
 
 }

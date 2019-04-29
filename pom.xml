@@ -193,10 +193,6 @@
         <release.scm.developerConnection>scm:git:https://github.com/eclipse/ditto.git</release.scm.developerConnection>
         <release.scm.url>https://github.com/eclipse/ditto.git</release.scm.url>
 
-        <ditto.it.report.path>${user.dir}/target/jacoco-it.exec</ditto.it.report.path>
-        <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
-        <sonar.jacoco.reportPaths>target/jacoco.exec, ${ditto.it.report.path}</sonar.jacoco.reportPaths>
-
         <argLine>-Dfile.encoding=${project.build.sourceEncoding}</argLine>
 
         <!-- globally set version for checking binary compatibility against -->
@@ -364,7 +360,7 @@
                 <plugin>
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
-                    <version>0.8.0</version>
+                    <version>0.8.3</version>
                 </plugin>
                 <plugin>
                     <groupId>io.fabric8</groupId>
@@ -633,34 +629,19 @@
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <executions>
-                    <execution>
-                        <id>prepare-agent-test</id>
-                        <goals>
-                            <goal>prepare-agent</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>prepare-agent-it</id>
-                        <goals>
-                            <goal>prepare-agent-integration</goal>
-                        </goals>
-                        <configuration>
-                            <destFile>${ditto.it.report.path}</destFile>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>report-test</id>
-                        <goals>
-                            <goal>report</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>report-it</id>
-                        <goals>
-                            <goal>report-integration</goal>
-                        </goals>
-                    </execution>
-                </executions>
+                      <execution>
+                            <id>prepare</id>
+                            <goals>
+                                <goal>prepare-agent</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>report</id>
+                            <goals>
+                                <goal>report-aggregate</goal>
+                            </goals>
+                        </execution>
+                    </executions>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
