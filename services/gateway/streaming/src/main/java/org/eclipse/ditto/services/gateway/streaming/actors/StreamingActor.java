@@ -69,7 +69,7 @@ public final class StreamingActor extends AbstractActor {
         this.pubSubMediator = pubSubMediator;
         this.commandRouter = commandRouter;
 
-        streamingSessionsCounter = DittoMetrics.gauge("streaming-sessions-count");
+        streamingSessionsCounter = DittoMetrics.gauge("streaming_sessions_count");
 
         sessionCounterScheduler = getContext().getSystem().getScheduler()
                 .schedule(SESSIONS_COUNTER_SCRAPE_INTERVAL, SESSIONS_COUNTER_SCRAPE_INTERVAL,
