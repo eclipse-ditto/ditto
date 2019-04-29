@@ -77,7 +77,7 @@ public interface DevOpsCommand<T extends DevOpsCommand> extends Command<T> {
     /**
      * @return the instance index of the serviceName to which to send the DevOpsCommand.
      */
-    Optional<Integer> getInstance();
+    Optional<String> getInstance();
 
     /**
      * An enumeration of the known {@link org.eclipse.ditto.json.JsonField}s of a DevOpsCommand.
@@ -94,8 +94,8 @@ public interface DevOpsCommand<T extends DevOpsCommand> extends Command<T> {
         /**
          * JSON field containing the instance index of the serviceName serviceName to which to send the DevOpsCommand.
          */
-        public static final JsonFieldDefinition<Integer> JSON_INSTANCE =
-                JsonFactory.newIntFieldDefinition("instance", FieldType.REGULAR, JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<String> JSON_INSTANCE =
+                JsonFactory.newStringFieldDefinition("instance", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
     }

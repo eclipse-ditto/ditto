@@ -35,7 +35,7 @@ abstract class AbstractDevOpsCommand<T extends AbstractDevOpsCommand> extends Ab
         implements DevOpsCommand<T> {
 
     @Nullable private final String serviceName;
-    @Nullable private final Integer instance;
+    @Nullable private final String instance;
 
     /**
      * Constructs a new {@code AbstractDevOpsCommand} object.
@@ -47,7 +47,7 @@ abstract class AbstractDevOpsCommand<T extends AbstractDevOpsCommand> extends Ab
      * @throws NullPointerException if any argument is {@code null}.
      */
     protected AbstractDevOpsCommand(final String type, @Nullable final String serviceName,
-            @Nullable final Integer instance, final DittoHeaders dittoHeaders) {
+            @Nullable final String instance, final DittoHeaders dittoHeaders) {
         super(type, dittoHeaders);
         this.serviceName = serviceName;
         this.instance = instance;
@@ -57,7 +57,7 @@ abstract class AbstractDevOpsCommand<T extends AbstractDevOpsCommand> extends Ab
         return Optional.ofNullable(serviceName);
     }
 
-    public Optional<Integer> getInstance() {
+    public Optional<String> getInstance() {
         return Optional.ofNullable(instance);
     }
 

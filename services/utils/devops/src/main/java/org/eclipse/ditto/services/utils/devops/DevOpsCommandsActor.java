@@ -158,7 +158,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
             final Optional<String> commandServiceNameOpt = command.getServiceName();
             if (commandServiceNameOpt.isPresent()) {
                 final String commandServiceName = commandServiceNameOpt.get();
-                final Integer commandInstance = command.getInstance().orElse(null);
+                final String commandInstance = command.getInstance().orElse(null);
                 if (commandInstance != null) {
                     topic = command.getType() + ":" + commandServiceName + ":" + commandInstance;
                 } else {
