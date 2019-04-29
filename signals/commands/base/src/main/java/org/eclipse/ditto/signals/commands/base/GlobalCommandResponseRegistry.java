@@ -17,7 +17,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.signals.base.AbstractAnnotationBasedJsonParsableBuilder;
+import org.eclipse.ditto.signals.base.AbstractAnnotationBasedJsonParsableFactory;
 import org.eclipse.ditto.signals.base.AbstractGlobalJsonParsableRegistry;
 
 /**
@@ -32,7 +32,7 @@ public final class GlobalCommandResponseRegistry
     private static final GlobalCommandResponseRegistry INSTANCE = new GlobalCommandResponseRegistry();
 
     private GlobalCommandResponseRegistry() {
-        super(CommandResponse.class, JsonParsableCommandResponse.class, new CommandResponseParsingStrategyBuilder());
+        super(CommandResponse.class, JsonParsableCommandResponse.class, new CommandResponseParsingStrategyFactory());
     }
 
     /**
@@ -53,10 +53,10 @@ public final class GlobalCommandResponseRegistry
      * Contains all strategies to deserialize {@link CommandResponse} annotated with {@link JsonParsableCommandResponse}
      * from a combination of {@link JsonObject} and {@link DittoHeaders}.
      */
-    private static final class CommandResponseParsingStrategyBuilder
-            extends AbstractAnnotationBasedJsonParsableBuilder<CommandResponse, JsonParsableCommandResponse> {
+    private static final class CommandResponseParsingStrategyFactory
+            extends AbstractAnnotationBasedJsonParsableFactory<CommandResponse, JsonParsableCommandResponse> {
 
-        private CommandResponseParsingStrategyBuilder() {}
+        private CommandResponseParsingStrategyFactory() {}
 
         @Override
         protected String getV1FallbackKeyFor(final JsonParsableCommandResponse annotation) {

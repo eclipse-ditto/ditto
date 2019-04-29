@@ -17,9 +17,11 @@
 
  import org.eclipse.ditto.json.JsonObject;
  import org.eclipse.ditto.json.JsonParseException;
+ import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
+ import org.eclipse.ditto.json.JsonParseException;
  import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
- public final class AnnotationBasedJsonParsable<T> implements JsonParsable<T> {
+ final class AnnotationBasedJsonParsable<T> implements JsonParsable<T> {
 
      private static final Class<?> JSON_OBJECT_PARAMETER = JsonObject.class;
      private static final Class<?> DITTO_HEADERS_PARAMETER = DittoHeaders.class;
@@ -36,6 +38,12 @@
          try {
              this.parseMethod =
                      parsedClass.getMethod(parsingMethodName, JSON_OBJECT_PARAMETER, DITTO_HEADERS_PARAMETER);
+             final Class<?> returnType = parseMethod.getReturnType();
+             if (!parsedClass.isAssignableFrom(returnType)) {
+                 throw new IllegalArgumentException(
+                         String.format("Parse method is invalid. Return type <%s> of parse method must be assignable " +
+                                 "to parsed class: <%s>.", returnType.getSimpleName(), parsedClass.getSimpleName()));
+             }
          } catch (final NoSuchMethodException e) {
              throw new DeserializationStrategyNotFoundError(parsedClass, e);
          }
@@ -50,12 +58,13 @@
      }
 
 
+     @SuppressWarnings("unchecked") //suppressed because returned type is ensured in constructor
      @Override
      public T parse(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
          try {
              return (T) parseMethod.invoke(null, jsonObject, dittoHeaders);
          } catch (final ClassCastException | IllegalAccessException e) {
-             throw buildJsonTypeNotParsableException(e, dittoHeaders);
+             throw buildDittoJsonException(e, jsonObject, dittoHeaders);
          } catch (final InvocationTargetException e) {
              final Throwable targetException = e.getTargetException();
 
@@ -63,15 +72,17 @@
                  throw (RuntimeException) targetException;
              }
 
-             throw buildJsonTypeNotParsableException(targetException, dittoHeaders);
+             throw buildDittoJsonException(targetException, jsonObject, dittoHeaders);
          }
      }
 
-     private JsonTypeNotParsableException buildJsonTypeNotParsableException(final Throwable cause,
+     private DittoJsonException buildDittoJsonException(final Throwable cause,
+             final JsonObject jsonObject,
              final DittoHeaders dittoHeaders) {
-         //TODO: throw better exception.
-         throw JsonParseException.newBuilder()
-                 .message(cause.getMessage())
-                 .build();
+
+         return new DittoJsonException(JsonParseException.newBuilder()
+                 .message(String.format("Error during parsing json: <%s>", jsonObject.toString()))
+                 .cause(cause).build(),
+                 dittoHeaders);
      }
  }

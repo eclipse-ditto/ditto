@@ -14,7 +14,7 @@
 
  import java.lang.annotation.Annotation;
 
- public abstract class AbstractAnnotationBasedJsonParsableBuilder<T, A extends Annotation> {
+ public abstract class AbstractAnnotationBasedJsonParsableFactory<T, A extends Annotation> {
 
      AnnotationBasedJsonParsable<T> fromAnnotation(final A annotation, final Class<? extends T> classToParse) {
          final String methodName = getMethodNameFor(annotation);

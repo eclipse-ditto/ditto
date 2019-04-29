@@ -25,7 +25,7 @@
      protected AbstractGlobalJsonParsableRegistry(
              final Class<T> parsedClass,
              final Class<A> annotationClass,
-             final AbstractAnnotationBasedJsonParsableBuilder<T, A> annotationBasedJsonParsableBuilder) {
+             final AbstractAnnotationBasedJsonParsableFactory<T, A> annotationBasedJsonParsableBuilder) {
 
          super(initAnnotationBasedParseStrategies(parsedClass, annotationClass, annotationBasedJsonParsableBuilder));
      }
@@ -33,7 +33,7 @@
      protected AbstractGlobalJsonParsableRegistry(
              final Class<T> parsedClass,
              final Class<A> annotationClass,
-             final AbstractAnnotationBasedJsonParsableBuilder<T, A> annotationBasedJsonParsableBuilder,
+             final AbstractAnnotationBasedJsonParsableFactory<T, A> annotationBasedJsonParsableBuilder,
              final Map<String, JsonParsable<T>> parseStrategies) {
 
          super(mergeParsingStrategies(
@@ -55,7 +55,7 @@
      private static <T, A extends Annotation> Map<String, JsonParsable<T>> initAnnotationBasedParseStrategies(
              final Class<T> baseClass,
              final Class<A> annotationClass,
-             final AbstractAnnotationBasedJsonParsableBuilder<T, A> annotationBasedJsonParsableBuilder) {
+             final AbstractAnnotationBasedJsonParsableFactory<T, A> annotationBasedJsonParsableBuilder) {
 
          final Map<String, JsonParsable<T>> parseRegistries = new HashMap<>();
          final Iterable<Class<?>> annotatedClasses = ClassIndex.getAnnotated(annotationClass);

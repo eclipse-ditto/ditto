@@ -42,7 +42,7 @@ public final class GlobalErrorRegistry
         super(
                 DittoRuntimeException.class,
                 JsonParsableException.class,
-                new ExceptionParsingStrategyBuilder(),
+                new ExceptionParsingStrategyFactory(),
                 dittoJsonExceptionRegistry.getDittoJsonParseRegistries()
         );
     }
@@ -110,10 +110,10 @@ public final class GlobalErrorRegistry
      * Contains all strategies to deserialize {@link DittoRuntimeException} annotated with {@link JsonParsableException}
      * from a combination of {@link JsonObject} and {@link DittoHeaders}.
      */
-    private static final class ExceptionParsingStrategyBuilder
-            extends AbstractAnnotationBasedJsonParsableBuilder<DittoRuntimeException, JsonParsableException> {
+    private static final class ExceptionParsingStrategyFactory
+            extends AbstractAnnotationBasedJsonParsableFactory<DittoRuntimeException, JsonParsableException> {
 
-        private ExceptionParsingStrategyBuilder() {}
+        private ExceptionParsingStrategyFactory() {}
 
         @Override
         protected String getV1FallbackKeyFor(final JsonParsableException annotation) {
