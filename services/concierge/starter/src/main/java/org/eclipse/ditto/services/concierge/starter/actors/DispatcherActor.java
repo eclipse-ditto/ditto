@@ -75,7 +75,7 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
     }
 
     @Override
-    protected DispatcherActor.ImmutableDispatch mapMessage(final WithDittoHeaders<?> message) {
+    protected DispatcherActor.ImmutableDispatch mapMessage(final WithDittoHeaders message) {
         return new ImmutableDispatch(message, getSender(), thingsAggregatorActor);
     }
 

@@ -49,10 +49,10 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
     private final int parallelism;
 
     /**
-     * @param bufferSize the buffer size used for the Source queue. After this limit is reached, the mailbox
-     * of this actor will rise and buffer messages as part of the backpressure strategy.
-     * @param parallelism parallelism to use for processing messages in parallel.
-     * When configured too low, throughput of messages which perform blocking operations will be bad.
+     * @param bufferSize the buffer size used for the Source queue. After this limit is reached, the mailbox of this
+     * actor will rise and buffer messages as part of the backpressure strategy.
+     * @param parallelism parallelism to use for processing messages in parallel. When configured too low, throughput of
+     * messages which perform blocking operations will be bad.
      */
     protected AbstractGraphActor(final int bufferSize, final int parallelism) {
 
@@ -66,7 +66,18 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
      * @param message the currently processed message of this Actor.
      * @return the created Source.
      */
-    protected abstract T mapMessage(WithDittoHeaders<?> message);
+    protected abstract T mapMessage(WithDittoHeaders message);
+
+    /**
+     * Called before handling the actual message via the {@link #getHandler()} in order to being able to enhance the
+     * message.
+     *
+     * @param message the message to be handled.
+     * @return the (potentially) adjusted message before handling.
+     */
+    protected T beforeHandleMessage(final T message) {
+        return message;
+    }
 
     /**
      * @return the Sink handling the messages of type {@code T} this graph actor handles.
@@ -96,6 +107,7 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
                 Source.<T>queue(bufferSize, OverflowStrategy.backpressure())
                         .mapAsyncUnordered(parallelism, msg ->
                                 Source.single(msg)
+                                        .via(Flow.fromFunction(this::beforeHandleMessage))
                                         .via(getHandler())
                                         .runWith(Sink.ignore(), materializer)
                         )

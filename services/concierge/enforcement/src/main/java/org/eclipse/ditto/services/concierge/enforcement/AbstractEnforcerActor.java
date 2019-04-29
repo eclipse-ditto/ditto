@@ -26,6 +26,11 @@ import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.timer.ExpiringTimerBuilder;
+import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.base.Command;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 
@@ -39,6 +44,8 @@ import akka.stream.javadsl.Flow;
  * Extensible actor to execute enforcement behavior.
  */
 public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextual<WithDittoHeaders>> {
+
+    private static final String TIMER_NAME = "concierge_enforcements";
 
     /**
      * Contextual information about this actor.
@@ -82,7 +89,7 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
         this.policyEnforcerCache = policyEnforcerCache;
 
         contextual = new Contextual<>(null, getSelf(), getContext().getSystem().deadLetters(),
-                pubSubMediator, conciergeForwarder, enforcerExecutor, askTimeout, log, null,
+                pubSubMediator, conciergeForwarder, enforcerExecutor, askTimeout, log, null, null,
                 createResponseReceiversCache());
 
         // register for sending messages via pub/sub to this enforcer
@@ -115,10 +122,31 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     }
 
     @Override
+    protected Contextual<WithDittoHeaders> beforeHandleMessage(final Contextual<WithDittoHeaders> contextual) {
+        final StartedTimer timer = createTimer(contextual.getMessage());
+        return contextual.withTimer(timer);
+    }
+
+    private StartedTimer createTimer(final WithDittoHeaders withDittoHeaders) {
+        final ExpiringTimerBuilder timerBuilder = DittoMetrics.expiringTimer(TIMER_NAME);
+
+        withDittoHeaders.getDittoHeaders().getChannel().ifPresent(channel ->
+                timerBuilder.tag("channel", channel)
+        );
+        if (withDittoHeaders instanceof Signal) {
+            timerBuilder.tag("resource", ((Signal) withDittoHeaders).getResourceType());
+        }
+        if (withDittoHeaders instanceof Command) {
+            timerBuilder.tag("category", ((Command) withDittoHeaders).getCategory().name().toLowerCase());
+        }
+        return timerBuilder.build();
+    }
+
+    @Override
     protected abstract Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> getHandler();
 
     @Override
-    protected Contextual<WithDittoHeaders> mapMessage(final WithDittoHeaders<?> message) {
+    protected Contextual<WithDittoHeaders> mapMessage(final WithDittoHeaders message) {
         return contextual.withReceivedMessage(message, getSender());
     }
 

@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
 import org.eclipse.ditto.services.utils.cache.Cache;
+import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.base.WithResource;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
@@ -57,6 +58,9 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
     @Nullable
     private final EntityId entityId;
 
+    @Nullable
+    private final StartedTimer startedTimer;
+
     // for live signal enforcement
     private final Cache<String, ActorRef> responseReceivers;
 
@@ -64,6 +68,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
             final ActorRef pubSubMediator, final ActorRef conciergeForwarder,
             final Executor enforcerExecutor, final Duration askTimeout, final DiagnosticLoggingAdapter log,
             @Nullable final EntityId entityId,
+            @Nullable final StartedTimer startedTimer,
             final Cache<String, ActorRef> responseReceivers) {
         this.message = message;
         this.self = self;
@@ -74,6 +79,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
         this.askTimeout = askTimeout;
         this.log = log;
         this.entityId = entityId;
+        this.startedTimer = startedTimer;
         this.responseReceivers = responseReceivers;
     }
 
@@ -126,6 +132,10 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
         return entityId;
     }
 
+    Optional<StartedTimer> getStartedTimer() {
+        return Optional.ofNullable(startedTimer);
+    }
+
     Cache<String, ActorRef> getResponseReceivers() {
         return responseReceivers;
     }
@@ -136,13 +146,21 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
 
     <S extends WithDittoHeaders> Contextual<S> withReceivedMessage(final S message, final ActorRef sender) {
         return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, enforcerExecutor, askTimeout,
-                log, entityIdFor(message), responseReceivers);
+                log, entityIdFor(message), startedTimer, responseReceivers);
+    }
+
+    Contextual<T> withTimer(final StartedTimer startedTimer) {
+        return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, enforcerExecutor, askTimeout,
+                log, entityId, startedTimer, responseReceivers);
     }
 
     @Nullable
-    private static EntityId entityIdFor(final WithDittoHeaders<?> signal) {
+    private static EntityId entityIdFor(@Nullable final WithDittoHeaders<?> signal) {
 
-        if (signal instanceof DittoRuntimeException) {
+        if (signal == null) {
+            return null;
+        }
+        else if (signal instanceof DittoRuntimeException) {
             return null;
         }
         else if (signal instanceof WithResource && signal instanceof WithId) {

@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
@@ -88,6 +89,7 @@ public abstract class AbstractEnforcement<T extends Signal> {
                         : throwable;
                 reportError("Error thrown during enforcement", error);
             }
+            context.getStartedTimer().ifPresent(StartedTimer::stop);
         };
     }
 
