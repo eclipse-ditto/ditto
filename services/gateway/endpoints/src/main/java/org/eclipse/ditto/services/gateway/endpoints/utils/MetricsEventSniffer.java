@@ -34,7 +34,9 @@ final class MetricsEventSniffer<T> implements EventSniffer<T> {
      * @param direction the direction the message went, e.g. "in" or "out"
      */
     MetricsEventSniffer(final String streamingType, final String direction) {
-        messageCount = DittoMetrics.gauge("streaming-" + streamingType + "-" + direction + "-message-count");
+        messageCount = DittoMetrics.gauge("streaming_message_count")
+                .tag("type", streamingType)
+                .tag("direction", direction);
     }
 
     @Override
