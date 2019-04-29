@@ -89,7 +89,9 @@ public abstract class AbstractEnforcement<T extends Signal> {
                         : throwable;
                 reportError("Error thrown during enforcement", error);
             }
-            context.getStartedTimer().ifPresent(StartedTimer::stop);
+            context.getStartedTimer()
+                    .map(startedTimer -> startedTimer.tag("outcome", throwable != null ? "fail" : "success"))
+                    .ifPresent(StartedTimer::stop);
         };
     }
 
