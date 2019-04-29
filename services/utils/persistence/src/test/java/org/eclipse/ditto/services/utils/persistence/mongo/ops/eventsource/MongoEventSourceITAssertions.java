@@ -1,15 +1,18 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource;
 
+import java.math.BigInteger;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
@@ -29,6 +32,8 @@ import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespace;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespaceResponse;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
+import org.junit.rules.TestName;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -44,14 +49,16 @@ import akka.testkit.javadsl.TestKit;
  */
 public abstract class MongoEventSourceITAssertions {
 
-    private static final Duration WAIT_FOR_CREATE_RESPONSE_DURATION = Duration.ofSeconds(10);
-
-    private ActorSystem actorSystem;
+    private static final Duration EXPECT_MESSAGE_TIMEOUT = Duration.ofSeconds(10);
+    private static final Random RANDOM = new Random();
 
     /**
      * Embedded MongoDB resource.
      */
     private MongoDbResource mongoDbResource;
+    private ActorSystem actorSystem;
+
+    @Rule public TestName name = new TestName();
 
     @Before
     public void startMongoDb() {
@@ -178,13 +185,15 @@ public abstract class MongoEventSourceITAssertions {
      * @return config to feed the actor system and its actors.
      */
     private Config getEventSourcingConfiguration(final Config configOverride) {
-        final String databaseName = "test";
+        final String databaseName =
+                name.getMethodName() + "-" + BigInteger.valueOf(System.currentTimeMillis()).toString(16);
         final String mongoUriValue = String.format("\"mongodb://%s:%s/%s\"\n",
                 mongoDbResource.getBindIp(), mongoDbResource.getPort(), databaseName);
 
         // - do not log dead letters (i. e., events for which there is no subscriber)
         // - bind to random available port
         // - do not attempt to join an Akka cluster
+        // - do not shutdown jvm on exit (breaks unit tests)
         // - make Mongo URI known to the persistence plugin and to the NamespaceOps actor
         final String testConfig = "akka.log-dead-letters=0\n" +
                 "akka.remote.artery.bind.port=0\n" +
@@ -211,9 +220,8 @@ public abstract class MongoEventSourceITAssertions {
                 .build();
 
         new TestKit(actorSystem) {{
-            final Random random = new Random();
-            final String purgedNamespace = "purgedNamespace.x" + random.nextInt(1000000);
-            final String survivingNamespace = "survivingNamespace.x" + random.nextInt(1000000);
+            final String purgedNamespace = "purgedNamespace.x" + RANDOM.nextInt(1000000);
+            final String survivingNamespace = "survivingNamespace.x" + RANDOM.nextInt(1000000);
 
             final String purgedId = purgedNamespace + ":name";
             final String survivingId = survivingNamespace + ":name";
@@ -233,16 +241,17 @@ public abstract class MongoEventSourceITAssertions {
 
             // kill the actor in the namespace to be purged to avoid write conflict
             actorToPurge.tell(PoisonPill.getInstance(), getRef());
-            expectTerminated(actorToPurge);
+            expectTerminated(EXPECT_MESSAGE_TIMEOUT, actorToPurge);
 
             // purge the namespace
             underTest.tell(PurgeNamespace.of(purgedNamespace, dittoHeaders), getRef());
-            expectMsg(PurgeNamespaceResponse.successful(purgedNamespace, getResourceType(), dittoHeaders));
+            expectMsg(EXPECT_MESSAGE_TIMEOUT,
+                    PurgeNamespaceResponse.successful(purgedNamespace, getResourceType(), dittoHeaders));
 
             // restart the actor in the purged namespace - it should work as if its entity never existed
             final ActorRef purgedActor = watch(startEntityActor(actorSystem, pubSubMediator, purgedId));
             purgedActor.tell(getRetrieveEntityCommand(purgedId), getRef());
-            expectMsgClass(getEntityNotAccessibleClass());
+            expectMsgClass(EXPECT_MESSAGE_TIMEOUT, getEntityNotAccessibleClass());
 
             // the actor outside the purged namespace should not be affected
             survivingActor.tell(getRetrieveEntityCommand(survivingId), getRef());
@@ -313,7 +322,7 @@ public abstract class MongoEventSourceITAssertions {
     }
 
     private void expectCreateEntityResponse(final TestKit testKit) {
-        testKit.expectMsgClass(WAIT_FOR_CREATE_RESPONSE_DURATION, getCreateEntityResponseClass());
+        testKit.expectMsgClass(EXPECT_MESSAGE_TIMEOUT, getCreateEntityResponseClass());
     }
 
     private ActorSystem startActorSystem(final Config config) {

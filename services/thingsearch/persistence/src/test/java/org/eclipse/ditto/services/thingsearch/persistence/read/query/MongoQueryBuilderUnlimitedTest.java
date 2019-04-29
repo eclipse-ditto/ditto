@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -34,20 +36,20 @@ public final class MongoQueryBuilderUnlimitedTest {
     private Criteria criteria;
     private MongoQueryBuilder underTest;
 
-    /** */
+
     @Before
     public void setUp() {
         criteria = mock(Criteria.class);
         underTest = MongoQueryBuilder.unlimited(criteria);
     }
 
-    /** */
+
     @Test(expected = NullPointerException.class)
     public void createWithNullCriteria() {
         MongoQueryBuilder.unlimited(null);
     }
 
-    /** */
+
     @Test
     public void buildWithCriteriaOnly() {
         final Query query = underTest.build();
@@ -55,7 +57,7 @@ public final class MongoQueryBuilderUnlimitedTest {
         assertThat(query.getCriteria()).isEqualTo(criteria);
     }
 
-    /** */
+
     @Test
     public void buildWithSort() {
         final List<SortOption> sortOptions = Collections.singletonList(KNOWN_SORT_OPTION);
@@ -65,7 +67,7 @@ public final class MongoQueryBuilderUnlimitedTest {
         assertThat(query.getSortOptions()).isEqualTo(sortOptions);
     }
 
-    /** */
+
     @Test
     public void buildWithLimit() {
         final int limit = 4;
@@ -75,7 +77,7 @@ public final class MongoQueryBuilderUnlimitedTest {
         assertThat(query.getLimit()).isEqualTo(limit);
     }
 
-    /** */
+
     @Test
     public void buildWithSkip() {
         final int skip = 4;
@@ -85,7 +87,7 @@ public final class MongoQueryBuilderUnlimitedTest {
         assertThat(query.getSkip()).isEqualTo(skip);
     }
 
-    /** */
+
     @Test
     public void buildWithVeryHighLimit() {
         final int veryHighLimit = Integer.MAX_VALUE;
@@ -96,13 +98,13 @@ public final class MongoQueryBuilderUnlimitedTest {
     }
 
 
-    /** */
+
     @Test(expected = IllegalArgumentException.class)
     public void buildWithLimitLessThanZero() {
         underTest.limit(-1);
     }
 
-    /** */
+
     @Test(expected = IllegalArgumentException.class)
     public void buildWithSkipLessThanZero() {
         underTest.skip(-1);

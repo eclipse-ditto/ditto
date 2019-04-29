@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -12,7 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.Set;
+import java.util.List;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
@@ -58,7 +60,7 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
 
     private final boolean dryRun;
 
-    private MqttPublisherActor(final String connectionId, final Set<Target> targets,
+    private MqttPublisherActor(final String connectionId, final List<Target> targets,
             final MqttConnectionFactory factory,
             final ActorRef mqttClientActor,
             final boolean dryRun) {
@@ -66,6 +68,10 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
         this.mqttClientActor = mqttClientActor;
         this.dryRun = dryRun;
 
+        // TODO: as stated in the documentation of Source#actorRef, the ActorRef coming out of this call should be stopped
+        //  by sending a akka.actor.Status.Success or akka.actor.Status.Failure to the actor. Just killing the actor won't
+        //  stop the internal stream. KafkaPublisherActor has the same issue but already uses a special message
+        //  that allows stopping the internal stream before the Actor gets stopped.
         final Pair<ActorRef, CompletionStage<Done>> materializedValues =
                 Source.<MqttMessage>actorRef(100, OverflowStrategy.dropHead())
                         .toMat(factory.newSink(), Keep.both())
@@ -86,7 +92,7 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
      * @param dryRun whether this publisher is only created for a test or not.
      * @return the Akka configuration Props object.
      */
-    static Props props(final String connectionId, final Set<Target> targets,
+    static Props props(final String connectionId, final List<Target> targets,
             final MqttConnectionFactory factory, final ActorRef mqttClientActor,
             final boolean dryRun) {
         return Props.create(MqttPublisherActor.class, new Creator<MqttPublisherActor>() {
@@ -134,10 +140,10 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
         publishMessage(publishTarget, targetQoS, message, publishedCounter);
     }
 
-    private void publishMessage(final MqttPublishTarget replyTarget, final MqttQoS qos, final ExternalMessage message,
+    private void publishMessage(final MqttPublishTarget publishTarget, final MqttQoS qos, final ExternalMessage message,
             final ConnectionMetricsCollector publishedCounter) {
 
-        final MqttMessage mqttMessage = mapExternalMessageToMqttMessage(replyTarget, qos, message);
+        final MqttMessage mqttMessage = mapExternalMessageToMqttMessage(publishTarget, qos, message);
         sourceActor.tell(mqttMessage, getSelf());
         publishedCounter.recordSuccess();
     }

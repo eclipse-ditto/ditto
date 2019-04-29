@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -45,7 +47,7 @@ public final class TestUtils {
      *
      * @param actorRefModifier The modifying function to use on the actorRefs returned by the original
      * shardRegionFactory.
-     * @param originalShardRegionFactory The original {@link org.eclipse.ditto.services.thingsearch.updater.actors.ShardRegionFactory}
+     * @param originalShardRegionFactory The original {@link ShardRegionFactory}
      * used the generate the shard region Actors.
      * @return The mocked ShardRegionFactory.
      */
@@ -66,7 +68,7 @@ public final class TestUtils {
      * by the  original shardRegionFactory.
      * @param topologiesShardModifier The modifying function to use on the topologies shard region actor returned by the
      * original shardRegionFactory.
-     * @param originalShardRegionFactory The original {@link org.eclipse.ditto.services.thingsearch.updater.actors.ShardRegionFactory}
+     * @param originalShardRegionFactory The original {@link ShardRegionFactory}
      * used the generate the shard region Actors.
      * @return The mocked ShardRegionFactory.
      */
@@ -82,12 +84,13 @@ public final class TestUtils {
                     return policiesShardModifier.apply(
                             originalShardRegionFactory.getPoliciesShardRegion(numberOfShards));
                 });
-        when(shardRegionFactory.getSearchUpdaterShardRegion(anyInt(), any(Props.class)))
+        when(shardRegionFactory.getSearchUpdaterShardRegion(anyInt(), any(Props.class), any()))
                 .thenAnswer(invocation -> {
                     final int numberOfShards = invocation.getArgument(0);
                     final Props props = invocation.getArgument(1);
                     return searchUpdaterShardModifier.apply(
-                            originalShardRegionFactory.getSearchUpdaterShardRegion(numberOfShards, props)
+                            originalShardRegionFactory.getSearchUpdaterShardRegion(numberOfShards, props,
+                                    SearchUpdaterRootActor.CLUSTER_ROLE)
                     );
                 });
         when(shardRegionFactory.getThingsShardRegion(anyInt()))

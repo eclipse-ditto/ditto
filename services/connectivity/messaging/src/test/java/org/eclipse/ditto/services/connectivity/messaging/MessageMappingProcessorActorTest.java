@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -13,9 +15,9 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELATION_ID;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
-import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.asSet;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -44,6 +46,10 @@ import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.messages.MessageHeadersBuilder;
+import org.eclipse.ditto.model.placeholders.EnforcementFactoryFactory;
+import org.eclipse.ditto.model.placeholders.EnforcementFilter;
+import org.eclipse.ditto.model.placeholders.EnforcementFilterFactory;
+import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
@@ -51,10 +57,6 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
-import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFactoryFactory;
-import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilter;
-import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilterFactory;
-import org.eclipse.ditto.services.models.connectivity.placeholder.Placeholder;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
@@ -106,7 +108,7 @@ public class MessageMappingProcessorActorTest {
         new TestKit(actorSystem) {{
             final String prefix = "some/topic/";
             final String subject = "some-subject";
-            final String addressWithTopicPlaceholder = prefix + "{{ topic:action|subject }}";
+            final String addressWithTopicPlaceholder = prefix + "{{ topic:action-subject }}";
             final String addressWithSomeOtherPlaceholder = prefix + "{{ eclipse:ditto }}";
             final String expectedTargetAddress = prefix + subject;
             final String fixedAddress = "fixedAddress";
@@ -114,7 +116,7 @@ public class MessageMappingProcessorActorTest {
 
             final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(getRef());
             final OutboundSignal outboundSignal =
-                    OutboundSignalFactory.newOutboundSignal(command, asSet(
+                    OutboundSignalFactory.newOutboundSignal(command, Arrays.asList(
                             newTarget(addressWithTopicPlaceholder, addressWithTopicPlaceholder),
                             newTarget(addressWithSomeOtherPlaceholder, addressWithSomeOtherPlaceholder),
                             newTarget(fixedAddress, fixedAddress)));
@@ -364,8 +366,8 @@ public class MessageMappingProcessorActorTest {
         }
 
         @Override
-        public Optional<String> apply(final String source, final String name) {
-            return Optional.of(source);
+        public Optional<String> resolve(final String placeholderSource, final String name) {
+            return Optional.of(placeholderSource);
         }
     }
 }

@@ -1,15 +1,23 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors;
 
+import static org.eclipse.ditto.services.thingsearch.persistence.MongoSortKeyMappingFunction.mapSortKey;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ATTRIBUTES;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_FEATURES;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_PROPERTIES;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_SORTING;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.SLASH;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Collections;
@@ -19,8 +27,6 @@ import org.bson.conversions.Bson;
 import org.eclipse.ditto.model.query.SortDirection;
 import org.eclipse.ditto.model.query.expression.SortFieldExpression;
 import org.eclipse.ditto.model.query.expression.visitors.SortFieldExpressionVisitor;
-import org.eclipse.ditto.services.thingsearch.persistence.MongoSortKeyMappingFunction;
-import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 
 import com.mongodb.client.model.Sorts;
 
@@ -33,6 +39,7 @@ public final class GetSortBsonVisitor implements SortFieldExpressionVisitor<List
 
     /**
      * Constructs a {@link GetSortBsonVisitor}.
+     *
      * @param sortDirection the {@link SortDirection} needed to create a valid Bson for sorting.
      */
     private GetSortBsonVisitor(final SortDirection sortDirection) {
@@ -41,6 +48,7 @@ public final class GetSortBsonVisitor implements SortFieldExpressionVisitor<List
 
     /**
      * Creates a Bson sort option based on an expression.
+     *
      * @param expression the expression to generate the Bson from.
      * @param sortDirection the {@link SortDirection} needed to create a valid Bson for sorting.
      * @return the Bson.
@@ -51,21 +59,22 @@ public final class GetSortBsonVisitor implements SortFieldExpressionVisitor<List
 
     @Override
     public List<Bson> visitAttribute(final String key) {
-        final String sortKey = MongoSortKeyMappingFunction.mapSortKey(PersistenceConstants.FIELD_ATTRIBUTES, key);
+        final String sortKey = mapSortKey(FIELD_SORTING, FIELD_ATTRIBUTES, key);
         return getSortBson(sortDirection, sortKey);
     }
 
     @Override
     public List<Bson> visitFeatureIdProperty(final String featureId, final String property) {
-        final String sortKey =
-                MongoSortKeyMappingFunction.mapSortKey(PersistenceConstants.FIELD_FEATURES, featureId, PersistenceConstants.FIELD_PROPERTIES,
-                        property);
-        return getSortBson(sortDirection, sortKey);
+        final String fieldPath = mapSortKey(FIELD_SORTING, FIELD_FEATURES, featureId, FIELD_PROPERTIES, property);
+        return getSortBson(sortDirection, fieldPath);
     }
 
     @Override
     public List<Bson> visitSimple(final String fieldName) {
-        return getSortBson(sortDirection, fieldName);
+        final String sortKey = fieldName.startsWith(SLASH)
+                ? mapSortKey(FIELD_SORTING + fieldName)
+                : fieldName;
+        return getSortBson(sortDirection, sortKey);
     }
 
     /**
@@ -73,19 +82,19 @@ public final class GetSortBsonVisitor implements SortFieldExpressionVisitor<List
      * {@code sortDirection} and {@code fieldName}.
      *
      * @param sortDirection the {@link SortDirection} to apply.
-     * @param fieldName the name of the Field to use for sorting.
+     * @param sortKey the sorting key.
      * @return the singleton List of a Bson sort document.
      */
-    private static List<Bson> getSortBson(final SortDirection sortDirection, final String fieldName) {
+    private static List<Bson> getSortBson(final SortDirection sortDirection, final String sortKey) {
         requireNonNull(sortDirection);
 
         final Bson sort;
         switch (sortDirection) {
             case ASC:
-                sort = Sorts.ascending(fieldName);
+                sort = Sorts.ascending(sortKey);
                 break;
             case DESC:
-                sort = Sorts.descending(fieldName);
+                sort = Sorts.descending(sortKey);
                 break;
             default:
                 throw new IllegalStateException("Unknown SortDirection=" + sortDirection);

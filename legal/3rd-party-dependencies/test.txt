@@ -1,10 +1,9 @@
    com.github.dnvriend:akka-persistence-inmemory_2.12:jar:2.5.1.1:test
-   commons-io:commons-io:jar:2.4:test
-   com.typesafe.akka:akka-http-testkit_2.12:jar:10.1.5:test
-   com.typesafe.akka:akka-stream-testkit_2.12:jar:2.5.17:test
-   com.typesafe.akka:akka-testkit_2.12:jar:2.5.17:test
-   de.flapdoodle.embed:de.flapdoodle.embed.mongo:jar:2.0.0:test
-   de.flapdoodle.embed:de.flapdoodle.embed.process:jar:2.0.1:test
+   com.typesafe.akka:akka-http-testkit_2.12:jar:10.1.7:test
+   com.typesafe.akka:akka-stream-testkit_2.12:jar:2.5.21:test
+   com.typesafe.akka:akka-testkit_2.12:jar:2.5.21:test
+   de.flapdoodle.embed:de.flapdoodle.embed.mongo:jar:2.2.0:test
+   de.flapdoodle.embed:de.flapdoodle.embed.process:jar:2.1.2:test
    junit:junit:jar:4.12:test
    net.bytebuddy:byte-buddy-agent:jar:1.7.0:test
    net.bytebuddy:byte-buddy:jar:1.7.0:test
@@ -12,7 +11,7 @@
    net.java.dev.jna:jna-platform:jar:4.0.0:test
    net.sf.jopt-simple:jopt-simple:jar:4.6:test
    nl.jqno.equalsverifier:equalsverifier:jar:3.0.3:test
-   org.apache.commons:commons-compress:jar:1.10:test
+   org.apache.commons:commons-compress:jar:1.18:test
    org.apache.commons:commons-lang3:jar:3.1:test
    org.apache.commons:commons-math3:jar:3.2:test
    org.assertj:assertj-core:jar:3.8.0:test

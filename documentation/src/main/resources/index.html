@@ -11,15 +11,15 @@ sidebar: false
     <div class="container">
         <div class="row">
             <div class="col-lg-12 text-center">
-                <h1>Eclipse Ditto</h1>
-                <h2>… where IoT devices and their digital twins get together</h2>
-                <img src="images/ditto.svg" class="img-fluid ditto-logo" alt="Eclipse Ditto logo">
+                <!--<h1>Eclipse Ditto</h1>-->
+              <img src="images/ditto.svg" class="img-fluid ditto-logo" alt="Eclipse Ditto">
+              <h1>… where IoT devices and their digital twins get together</h1>
             </div>
         </div>
     </div>
 </header>
 
-<div class="container">
+<div class="container info-container">
     <div class="row">
         <div class="col-md-4 col-sm-6">
             <div class="panel panel-default text-center">
@@ -67,6 +67,30 @@ sidebar: false
             </div>
         </div>
     </div>
+</div>
 
-    {% include footer.html %}
+<div class="row highlight who">
+  <div class="container">
+    <h2>Who's using Eclipse Ditto?</h2>
+    <div class="row user-logos">
+      <div class="col-sm-3 user-logo">
+      </div>
+      <div class="col-sm-3 user-logo">
+        <a href="http://www.aloxy.io/">
+          <img src="{{ "images/user-logos/aloxy-word-white.svg" }}">
+        </a>
+      </div>
+      <div class="col-sm-3 user-logo">
+        <a href="https://www.bosch-iot-suite.com/service/things/">
+          <img src="{{ "images/user-logos/bosch-en-white.svg" }}">
+        </a>
+      </div>
+      <div class="col-sm-3 user-logo">
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  {% include footer.html %}
 </div>

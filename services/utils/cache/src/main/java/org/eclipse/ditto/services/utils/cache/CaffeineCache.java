@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -16,6 +18,8 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executor;
+import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
 
@@ -168,6 +172,20 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
         requireNonNull(key);
 
         return asyncLoadingCache.get(key).thenApply(Optional::ofNullable);
+    }
+
+    /**
+     * Lookup a value in cache, or create it via {@code mappingFunction} and store it if the value was not cached.
+     * Only available for Caffeine caches.
+     *
+     * @param key key associated with the value in cache.
+     * @param mappingFunction function to create the value in case of absence.
+     * @return future value under normal circumstances, or a failed future if the mapping function fails.
+     */
+    public CompletableFuture<V> get(final K key,
+            final BiFunction<K, Executor, CompletableFuture<V>> mappingFunction) {
+
+        return asyncLoadingCache.get(key, mappingFunction);
     }
 
     @Override

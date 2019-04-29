@@ -1,14 +1,18 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.policies.modify;
+
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -26,6 +30,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyEntry;
@@ -38,8 +43,9 @@ import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
  * This command modifies a {@link PolicyEntry}.
  */
 @Immutable
-public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry> implements
-        PolicyModifyCommand<ModifyPolicyEntry> {
+@JsonParsableCommand(typePrefix = ModifyPolicyEntry.TYPE_PREFIX, name = ModifyPolicyEntry.NAME)
+public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry>
+        implements PolicyModifyCommand<ModifyPolicyEntry> {
 
     /**
      * NAME of this command.
@@ -82,8 +88,8 @@ public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry> 
     public static ModifyPolicyEntry of(final String policyId, final PolicyEntry policyEntry,
             final DittoHeaders dittoHeaders) {
 
-        Objects.requireNonNull(policyId, "The Policy identifier must not be null!");
-        Objects.requireNonNull(policyEntry, "The PolicyEntry must not be null!");
+        checkNotNull(policyId, "Policy identifier");
+        checkNotNull(policyEntry, "PolicyEntry");
         return new ModifyPolicyEntry(policyId, policyEntry, dittoHeaders);
     }
 
@@ -189,8 +195,10 @@ public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry> 
             return false;
         }
         final ModifyPolicyEntry that = (ModifyPolicyEntry) obj;
-        return that.canEqual(this) && Objects.equals(policyId, that.policyId)
-                && Objects.equals(policyEntry, that.policyEntry) && super.equals(obj);
+        return that.canEqual(this) &&
+                Objects.equals(policyId, that.policyId) &&
+                Objects.equals(policyEntry, that.policyEntry) &&
+                super.equals(obj);
     }
 
     @SuppressWarnings("squid:S109")

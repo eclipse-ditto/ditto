@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -27,6 +29,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
@@ -37,8 +40,9 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  * Response to a {@link SudoRetrievePolicyResponse} command.
  */
 @Immutable
-public final class SudoRetrievePolicyResponse extends AbstractCommandResponse<SudoRetrievePolicyResponse> implements
-        SudoCommandResponse<SudoRetrievePolicyResponse> {
+@JsonParsableCommandResponse(type = SudoRetrievePolicyResponse.TYPE)
+public final class SudoRetrievePolicyResponse extends AbstractCommandResponse<SudoRetrievePolicyResponse>
+        implements SudoCommandResponse<SudoRetrievePolicyResponse> {
 
     /**
      * Type of this response.
@@ -90,6 +94,7 @@ public final class SudoRetrievePolicyResponse extends AbstractCommandResponse<Su
      */
     public static SudoRetrievePolicyResponse of(final String policyId, final JsonObject policy,
             final DittoHeaders dittoHeaders) {
+
         return new SudoRetrievePolicyResponse(policyId, HttpStatusCode.OK, policy, dittoHeaders);
     }
 
@@ -118,10 +123,9 @@ public final class SudoRetrievePolicyResponse extends AbstractCommandResponse<Su
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static SudoRetrievePolicyResponse fromJson(final JsonObject jsonObject,
-            final DittoHeaders dittoHeaders) {
+    public static SudoRetrievePolicyResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<SudoRetrievePolicyResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
+                .deserialize(statusCode -> {
                     final String policyId = jsonObject.getValueOrThrow(SudoCommandResponse.JsonFields.JSON_POLICY_ID);
                     final JsonObject extractedPolicy = jsonObject.getValueOrThrow(JSON_POLICY);
 
@@ -162,6 +166,7 @@ public final class SudoRetrievePolicyResponse extends AbstractCommandResponse<Su
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(SudoCommandResponse.JsonFields.JSON_POLICY_ID, policyId, predicate);
         jsonObjectBuilder.set(JSON_POLICY, policy, predicate);
@@ -181,7 +186,9 @@ public final class SudoRetrievePolicyResponse extends AbstractCommandResponse<Su
             return false;
         }
         final SudoRetrievePolicyResponse that = (SudoRetrievePolicyResponse) o;
-        return that.canEqual(this) && Objects.equals(policyId, that.policyId) && Objects.equals(policy, that.policy) &&
+        return that.canEqual(this) &&
+                Objects.equals(policyId, that.policyId) &&
+                Objects.equals(policy, that.policy) &&
                 super.equals(o);
     }
 

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -12,6 +14,10 @@ package org.eclipse.ditto.services.gateway.endpoints.routes;
 
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.KNOWN_DOMAIN;
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.UNKNOWN_PATH;
+
+import java.util.UUID;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
@@ -25,6 +31,7 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
+import org.eclipse.ditto.services.gateway.starter.service.util.DefaultHttpClientFacade;
 import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
 import org.junit.Before;
 import org.junit.Test;
@@ -72,13 +79,18 @@ public final class RootRouteTest extends EndpointTestBase {
     private static final String HTTPS = "https";
 
     private TestRoute rootTestRoute;
+    private final Executor messageDispatcher;
+
+    public RootRouteTest() {
+        this.messageDispatcher = Executors.newFixedThreadPool(8);
+    }
 
     @Before
     public void setUp() {
         final Config config = system().settings().config();
-        final HttpClientFacade httpClient = HttpClientFacade.getInstance(system());
+        final HttpClientFacade httpClient = DefaultHttpClientFacade.getInstance(system());
         final DittoGatewayAuthenticationDirectiveFactory authenticationDirectiveFactory =
-                new DittoGatewayAuthenticationDirectiveFactory(config, httpClient);
+                new DittoGatewayAuthenticationDirectiveFactory(config, httpClient, messageDispatcher);
         final RouteFactory routeFactory = RouteFactory.newInstance(system(),
                 createDummyResponseActor(),
                 createDummyResponseActor(),
@@ -268,6 +280,19 @@ public final class RootRouteTest extends EndpointTestBase {
     @Test
     public void getWithInvalidEncoding() {
         final TestRouteResult result = rootTestRoute.run(HttpRequest.GET(PATH_WITH_INVALID_ENCODING));
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+    }
+
+    @Test
+    public void getExceptionForDuplicateHeaderFields() {
+        final TestRouteResult result =
+                rootTestRoute.run(withHttps(withDummyAuthentication(HttpRequest.GET(THINGS_1_PATH_WITH_IDS)
+                                .addHeader(
+                                        RawHeader.create(HttpHeader.X_CORRELATION_ID.getName(), UUID.randomUUID().toString()))
+                                .addHeader(
+                                        RawHeader.create(HttpHeader.X_CORRELATION_ID.getName(), UUID.randomUUID().toString()))
+                        ))
+                );
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
     }
 

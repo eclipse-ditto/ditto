@@ -32,6 +32,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
@@ -41,12 +42,15 @@ import org.eclipse.ditto.signals.commands.common.CommonCommand;
  * Command for purging arbitrary entities.
  */
 @Immutable
+@JsonParsableCommand(typePrefix = PurgeEntities.TYPE_PREFIX, name = PurgeEntities.NAME)
 public final class PurgeEntities extends CommonCommand<PurgeEntities> {
 
     /**
      * The name of the command.
      */
     static final String NAME = "purgeEntities";
+
+    static final String TYPE_PREFIX = CommonCommand.TYPE_PREFIX;
 
     /**
      * The type of the command.

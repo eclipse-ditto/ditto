@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -66,7 +68,7 @@ import org.eclipse.ditto.services.concierge.cache.IdentityCache;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.references.PolicyIdReferencePlaceholderResolver;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.references.ReferencePlaceholder;
 import org.eclipse.ditto.services.models.concierge.EntityId;
-import org.eclipse.ditto.services.models.concierge.cache.Entry;
+import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.models.policies.PoliciesAclMigrations;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
@@ -170,10 +172,10 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             if (!enforcerEntry.exists()) {
                 enforceThingCommandByNonexistentEnforcer(enforcerKeyEntry, signal, sender);
             } else if (isAclEnforcer(enforcerKeyEntry)) {
-                enforceThingCommandByAclEnforcer(signal, enforcerEntry.getValue(), sender);
+                enforceThingCommandByAclEnforcer(signal, enforcerEntry.getValueOrThrow(), sender);
             } else {
-                final String policyId = enforcerKeyEntry.getValue().getId();
-                enforceThingCommandByPolicyEnforcer(signal, policyId, enforcerEntry.getValue(), sender);
+                final String policyId = enforcerKeyEntry.getValueOrThrow().getId();
+                enforceThingCommandByPolicyEnforcer(signal, policyId, enforcerEntry.getValueOrThrow(), sender);
             }
         });
     }
@@ -275,7 +277,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         if (enforcerKeyEntry.exists()) {
             // Thing exists but its policy is deleted.
             final String thingId = thingCommand.getThingId();
-            final String policyId = enforcerKeyEntry.getValue().getId();
+            final String policyId = enforcerKeyEntry.getValueOrThrow().getId();
             final DittoRuntimeException error = errorForExistingThingWithDeletedPolicy(thingCommand, thingId, policyId);
             log(thingCommand).info("Enforcer was not existing for Thing <{}>, responding with: {}", thingId, error);
             replyToSender(error, sender);
@@ -636,7 +638,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         final EntityId policyEntityId = EntityId.of(PolicyCommand.RESOURCE_TYPE, policyId);
         policyEnforcerRetriever.retrieve(policyEntityId, (policyIdEntry, policyEnforcerEntry) -> {
             if (policyEnforcerEntry.exists()) {
-                enforceThingCommandByPolicyEnforcer(createThing, policyId, policyEnforcerEntry.getValue(), sender);
+                enforceThingCommandByPolicyEnforcer(createThing, policyId, policyEnforcerEntry.getValueOrThrow(), sender);
             } else {
                 final DittoRuntimeException error =
                         errorForExistingThingWithDeletedPolicy(createThing, createThing.getThingId(), policyId);
@@ -777,7 +779,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
      */
     private static boolean isAclEnforcer(final Entry<EntityId> enforcerKeyEntry) {
         return enforcerKeyEntry.exists() &&
-                Objects.equals(ThingCommand.RESOURCE_TYPE, enforcerKeyEntry.getValue().getResourceType());
+                Objects.equals(ThingCommand.RESOURCE_TYPE, enforcerKeyEntry.getValueOrThrow().getResourceType());
     }
 
     /**

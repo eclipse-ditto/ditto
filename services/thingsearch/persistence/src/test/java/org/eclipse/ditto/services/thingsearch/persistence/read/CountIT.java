@@ -1,25 +1,23 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.thingsearch.persistence.read;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.services.thingsearch.persistence.TestConstants.Thing.NAMESPACE;
-import static org.eclipse.ditto.services.thingsearch.persistence.TestConstants.thingId;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
@@ -28,15 +26,14 @@ import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.things.Thing;
 import org.junit.Test;
 
+import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
+
 /**
  * Tests for complex search criteria on the persistence.
  */
-public final class CountIT extends AbstractVersionedThingSearchPersistenceITBase {
+public final class CountIT extends AbstractReadPersistenceITBase {
 
-    private static final List<String> UNKNOWN_SUBJECTS = Collections.singletonList("any:other_user");
-    private static final String UNKNOWN_POLICY_ID = "any:other_policy";
-
-    private static final String THING_BASE_ID = thingId("thingsearch", "countThing");
+    private static final String THING_BASE_ID = TestConstants.thingId("thingsearch", "countThing");
     private static final String KNOWN_ATTRIBUTE_KEY_1 = "attributeKey1";
     private static final String KNOWN_ATTRIBUTE_KEY_2 = "attributeKey2";
 
@@ -45,56 +42,29 @@ public final class CountIT extends AbstractVersionedThingSearchPersistenceITBase
 
     private final Enforcer otherPolicyEnforcer = PolicyEnforcers.defaultEvaluator(createOtherPolicy());
 
-    @Override
-    void createTestDataV1() {
-        // test-data are created in tests
-    }
-
-    @Override
-    void createTestDataV2() {
-        // test-data are created in tests
-    }
-
-    /** */
     @Test
     public void countAny() {
         final Random random = new Random();
         final long expectedCount = random.nextInt(100) + 10;
 
         for (int i = 0; i < expectedCount; i++) {
-            insertThingWithAttribute(THING_BASE_ID + i, KNOWN_STRING_VALUE, true);
+            insertThingWithAttribute(THING_BASE_ID + i, KNOWN_STRING_VALUE);
         }
 
-        final long actualCount = executeVersionedCountQuery(cf.any());
+        final long actualCount = executeCount(cf.any());
 
         assertThat(actualCount).isEqualTo(expectedCount);
     }
 
-    /** */
     @Test
-    public void countAnyWithSudo() {
-        // sudo test only needed for V_2 Policy related searches
-        if (JsonSchemaVersion.V_2.equals(getVersion())) {
-            final Random random = new Random();
-            final long expectedCount = random.nextInt(100) + 10;
-            final String countThingId = thingId(SUDO_NAMESPACE, "countThing");
+    public void countAnyWithoutAuthorization() {
+        insertThingWithAttribute(THING_BASE_ID, KNOWN_STRING_VALUE);
 
-            for (int i = 0; i < expectedCount; i++) {
-                insertThingWithAttribute(countThingId + i, KNOWN_STRING_VALUE, false);
-            }
+        final long actualCount = count(qbf.newUnlimitedBuilder(cf.any()).build(), Collections.emptyList());
 
-            // verify nothing is found without sudo
-            final long withoutSudoCount = executeVersionedCountQuery(cf.any());
-            assertThat(withoutSudoCount).isEqualTo(0L);
-
-            // verify everything is found with sudo
-            final long actualCount = executeVersionedCountQuery(cf.any(), true);
-
-            assertThat(actualCount).isEqualTo(expectedCount);
-        }
+        assertThat(actualCount).isEqualTo(0L);
     }
 
-    /** */
     @Test
     public void countEquals() {
         final Random random = new Random();
@@ -102,23 +72,23 @@ public final class CountIT extends AbstractVersionedThingSearchPersistenceITBase
         final String attributeValue = UUID.randomUUID().toString();
 
         for (int i = 0; i < expectedCount; i++) {
-            insertThingWithAttribute(THING_BASE_ID + i, attributeValue, true);
+            insertThingWithAttribute(THING_BASE_ID + i, attributeValue);
         }
 
         final long actualCount =
-                executeVersionedCountQuery(cf.fieldCriteria(
+                executeCount(cf.fieldCriteria(
                         fef.filterByAttribute(KNOWN_ATTRIBUTE_KEY_1),
                         cf.eq(attributeValue)));
 
         assertThat(actualCount).isEqualTo(expectedCount);
     }
 
-    /** */
     @Test
     public void countWithNoMatchingResults() {
-        final String nonExistingThingId = thingId(NAMESPACE, UUID.randomUUID().toString());
+        final String nonExistingThingId =
+                TestConstants.thingId(TestConstants.Thing.NAMESPACE, UUID.randomUUID().toString());
 
-        final long actualCount = executeVersionedCountQuery(
+        final long actualCount = executeCount(
                 cf.fieldCriteria(
                         fef.filterByThingId(),
                         cf.eq(nonExistingThingId)));
@@ -126,13 +96,8 @@ public final class CountIT extends AbstractVersionedThingSearchPersistenceITBase
         assertThat(actualCount).isEqualTo(0);
     }
 
-    private void insertThingWithAttribute(final String thingId, final String attributeValue, final boolean known) {
-        final Thing thing;
-        if (JsonSchemaVersion.V_1.equals(getVersion())) {
-            thing = createThingV1(thingId, known ? KNOWN_SUBJECTS : UNKNOWN_SUBJECTS);
-        } else {
-            thing = createThingV2(thingId, known ? POLICY_ID : UNKNOWN_POLICY_ID);
-        }
+    private void insertThingWithAttribute(final String thingId, final String attributeValue) {
+        final Thing thing = createThingV1(thingId, KNOWN_SUBJECTS);
 
         persistThing(thing
                 .setAttribute(KNOWN_ATTRIBUTE_KEY_1, attributeValue)
@@ -154,22 +119,8 @@ public final class CountIT extends AbstractVersionedThingSearchPersistenceITBase
                 .build();
     }
 
-
-    private long executeVersionedCountQuery(final Criteria criteria) {
-        return executeVersionedCountQuery(criteria, false);
+    private long executeCount(final Criteria criteria) {
+        return count(qbf.newUnlimitedBuilder(criteria).build());
     }
-
-    private long executeVersionedCountQuery(final Criteria criteria, final boolean sudo) {
-        return executeVersionedQuery(
-                crit -> qbf.newUnlimitedBuilder(crit).build(),
-                crit -> abf.newCountBuilder(crit)
-                        .sudo(sudo)
-                        .authorizationSubjects(sudo ? Collections.emptyList() : KNOWN_SUBJECTS)
-                        .build(),
-                this::count,
-                this::aggregateCount,
-                criteria);
-    }
-
 
 }

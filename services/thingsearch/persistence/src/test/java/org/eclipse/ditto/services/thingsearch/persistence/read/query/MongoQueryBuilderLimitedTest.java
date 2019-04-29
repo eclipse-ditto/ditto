@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -42,7 +44,7 @@ public final class MongoQueryBuilderLimitedTest {
     private int maxPageSizeFromConfig;
     private int defaultPageSizeFromConfig;
 
-    /** */
+
     @Before
     public void setUp() {
         final LimitsConfigReader limitsConfigReader = DittoLimitsConfigReader.fromRawConfig(ConfigFactory.load("test"));
@@ -51,13 +53,13 @@ public final class MongoQueryBuilderLimitedTest {
         underTest = MongoQueryBuilder.limited(criteria, maxPageSizeFromConfig, defaultPageSizeFromConfig);
     }
 
-    /** */
+
     @Test(expected = NullPointerException.class)
     public void createWithNullCriteria() {
         MongoQueryBuilder.limited(null, maxPageSizeFromConfig, defaultPageSizeFromConfig);
     }
 
-    /** */
+
     @Test
     public void buildWithCriteriaOnly() {
         final Query query = underTest.build();
@@ -65,7 +67,7 @@ public final class MongoQueryBuilderLimitedTest {
         assertThat(query.getCriteria()).isEqualTo(criteria);
     }
 
-    /** */
+
     @Test
     public void buildWithSort() {
         final List<SortOption> sortOptions = Collections.singletonList(KNOWN_SORT_OPTION);
@@ -74,7 +76,7 @@ public final class MongoQueryBuilderLimitedTest {
         assertThat(query.getSortOptions()).isEqualTo(sortOptions);
     }
 
-    /** */
+
     @Test
     public void buildWithLimit() {
         final int limit = maxPageSizeFromConfig - 1;
@@ -83,7 +85,7 @@ public final class MongoQueryBuilderLimitedTest {
         assertThat(query.getLimit()).isEqualTo(limit);
     }
 
-    /** */
+
     @Test
     public void buildWithSkip() {
         final int skip = 4;
@@ -92,20 +94,20 @@ public final class MongoQueryBuilderLimitedTest {
         assertThat(query.getSkip()).isEqualTo(skip);
     }
 
-    /** */
+
     @Test(expected = IllegalArgumentException.class)
     public void buildWithLimitGreaterThanMaxValue() {
         final long limitTooHigh = (long) maxPageSizeFromConfig + 1;
         underTest.limit(limitTooHigh);
     }
 
-    /** */
+
     @Test(expected = IllegalArgumentException.class)
     public void buildWithLimitLessThanZero() {
         underTest.limit(-1);
     }
 
-    /** */
+
     @Test(expected = IllegalArgumentException.class)
     public void buildWithSkipLessThanZero() {
         underTest.skip(-1);

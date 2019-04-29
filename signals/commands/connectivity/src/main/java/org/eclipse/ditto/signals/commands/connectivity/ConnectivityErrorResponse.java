@@ -1,16 +1,18 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.connectivity;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -27,6 +29,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
@@ -36,8 +39,9 @@ import org.eclipse.ditto.signals.commands.base.ErrorResponse;
  * Response to a {@link ConnectivityCommand} which wraps the exception thrown when processing the command.
  */
 @Immutable
-public final class ConnectivityErrorResponse extends AbstractCommandResponse<ConnectivityErrorResponse> implements
-        ConnectivityCommandResponse<ConnectivityErrorResponse>, ErrorResponse<ConnectivityErrorResponse> {
+@JsonParsableCommandResponse(type = ConnectivityErrorResponse.TYPE)
+public final class ConnectivityErrorResponse extends AbstractCommandResponse<ConnectivityErrorResponse>
+        implements ConnectivityCommandResponse<ConnectivityErrorResponse>, ErrorResponse<ConnectivityErrorResponse> {
 
     /**
      * Type of this response.
@@ -50,8 +54,9 @@ public final class ConnectivityErrorResponse extends AbstractCommandResponse<Con
 
     private ConnectivityErrorResponse(final DittoRuntimeException dittoRuntimeException,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, dittoRuntimeException.getStatusCode(), dittoHeaders);
-        this.dittoRuntimeException = requireNonNull(dittoRuntimeException, "The CR Runtime Exception must not be null");
+        this.dittoRuntimeException = checkNotNull(dittoRuntimeException, "CR Runtime Exception");
     }
 
     /**
@@ -75,6 +80,7 @@ public final class ConnectivityErrorResponse extends AbstractCommandResponse<Con
      */
     public static ConnectivityErrorResponse of(final DittoRuntimeException dittoRuntimeException,
             final DittoHeaders dittoHeaders) {
+
         return new ConnectivityErrorResponse(dittoRuntimeException, dittoHeaders);
     }
 
@@ -132,6 +138,7 @@ public final class ConnectivityErrorResponse extends AbstractCommandResponse<Con
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(
                 ConnectivityCommandResponse.JsonFields.PAYLOAD,
@@ -146,7 +153,7 @@ public final class ConnectivityErrorResponse extends AbstractCommandResponse<Con
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof ConnectivityErrorResponse);
+        return other instanceof ConnectivityErrorResponse;
     }
 
     @Override

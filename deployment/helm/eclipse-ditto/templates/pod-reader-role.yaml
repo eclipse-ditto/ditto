@@ -22,7 +22,7 @@ subjects:
 # Note the `name` line below. The first default refers to the namespace. The second refers to the service account name.
 # For instance, `name: system:serviceaccount:myns:default` would refer to the default service account in namespace `myns`
 - kind: User
-  name: system:serviceaccount:default:default
+  name: system:serviceaccount:{{.Release.Namespace}}:default
 roleRef:
   kind: Role
   name: pod-reader
