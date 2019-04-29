@@ -201,7 +201,7 @@ public final class SearchActorIT {
 
     private QueryThings queryThings(final int size, final @Nullable String cursor) {
         final List<String> options = new ArrayList<>();
-        options.add("sort(-attributes/c,+attributes/b,-attributes/a)");
+        options.add("sort(-attributes/c,+attributes/b,-attributes/a,+attributes/null/1,-attributes/null/2)");
         options.add("size(" + size + ")");
         if (cursor != null) {
             options.add("cursor(" + cursor + ")");
