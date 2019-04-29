@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.utils.test.GlobalCommandResponseRegistryTestCases;
 import org.eclipse.ditto.signals.commands.batch.ExecuteBatchResponse;
+import org.eclipse.ditto.signals.commands.common.purge.PurgeEntitiesResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionResponse;
@@ -47,7 +48,8 @@ public final class ConnectivityServiceGlobalCommandResponseRegistryTest extends 
                 ThingErrorResponse.class,
                 PolicyErrorResponse.class,
                 RetrieveLoggerConfigResponse.class,
-                ConnectivityErrorResponse.class
+                ConnectivityErrorResponse.class,
+                PurgeEntitiesResponse.class
         );
     }
 

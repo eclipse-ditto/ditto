@@ -17,6 +17,7 @@ import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingR
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoRetrieveNamespaceReportResponse;
 import org.eclipse.ditto.services.utils.test.GlobalCommandResponseRegistryTestCases;
 import org.eclipse.ditto.signals.commands.batch.ExecuteBatchResponse;
+import org.eclipse.ditto.signals.commands.common.purge.PurgeEntitiesResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionResponse;
@@ -52,7 +53,8 @@ public final class ThingsSearchServiceGlobalCommandResponseRegistryTest extends 
                 SudoRetrieveNamespaceReportResponse.class,
                 CreateConnectionResponse.class,
                 RetrieveConnectionResponse.class,
-                ConnectivityErrorResponse.class);
+                ConnectivityErrorResponse.class,
+                PurgeEntitiesResponse.class);
     }
 
 }
