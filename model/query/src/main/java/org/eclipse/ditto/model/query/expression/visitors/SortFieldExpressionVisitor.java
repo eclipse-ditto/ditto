@@ -12,11 +12,8 @@
  */
 package org.eclipse.ditto.model.query.expression.visitors;
 
-import org.eclipse.ditto.model.query.expression.PolicyRestrictedFieldExpression;
-
 /**
- * Compositional interpreter of
- * {@link PolicyRestrictedFieldExpression}.
+ * Compositional interpreter of * {@link SortFieldExpressionVisitor}.
  */
 public interface SortFieldExpressionVisitor<T> {
 

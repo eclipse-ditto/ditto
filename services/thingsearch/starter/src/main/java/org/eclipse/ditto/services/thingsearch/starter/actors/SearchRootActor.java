@@ -18,23 +18,27 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.THINGS_SYNC_STATE_COLLECTION_NAME;
 
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.query.QueryBuilderFactory;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
+import org.eclipse.ditto.model.query.expression.FieldExpressionUtil;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.base.config.HttpConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
 import org.eclipse.ditto.services.thingsearch.common.util.RootSupervisorStrategyFactory;
-import org.eclipse.ditto.services.thingsearch.persistence.query.AggregationQueryActor;
-import org.eclipse.ditto.services.thingsearch.persistence.query.QueryActor;
-import org.eclipse.ditto.services.thingsearch.persistence.read.AggregationBuilderFactory;
+import org.eclipse.ditto.services.thingsearch.persistence.query.QueryParser;
 import org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.read.ThingsSearchPersistence;
-import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoAggregationBuilderFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQueryBuilderFactory;
 import org.eclipse.ditto.services.thingsearch.starter.actors.health.SearchHealthCheckingActorFactory;
 import org.eclipse.ditto.services.thingsearch.updater.actors.SearchUpdaterRootActor;
@@ -51,6 +55,7 @@ import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoTimesta
 
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;
+import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.typesafe.config.Config;
 
 import akka.Done;
@@ -100,25 +105,24 @@ public final class SearchRootActor extends AbstractActor {
                 rawConfig.getBoolean(ConfigKeys.MONITORING_CONNECTION_POOL_ENABLED) ?
                         new KamonConnectionPoolListener(KAMON_METRICS_PREFIX) : null;
 
-        final DittoMongoClient mongoClient = MongoClientWrapper.getBuilder(MongoConfig.of(rawConfig))
+        final DittoMongoClient dittoMongoClient = MongoClientWrapper.getBuilder(MongoConfig.of(rawConfig))
                 .addCommandListener(kamonCommandListener)
                 .addConnectionPoolListener(kamonConnectionPoolListener)
                 .build();
 
         final TimestampPersistence thingsSyncPersistence =
-                MongoTimestampPersistence.initializedInstance(THINGS_SYNC_STATE_COLLECTION_NAME, mongoClient,
+                MongoTimestampPersistence.initializedInstance(THINGS_SYNC_STATE_COLLECTION_NAME, dittoMongoClient,
                         materializer);
 
         final TimestampPersistence policiesSyncPersistence =
-                MongoTimestampPersistence.initializedInstance(POLICIES_SYNC_STATE_COLLECTION_NAME, mongoClient,
+                MongoTimestampPersistence.initializedInstance(POLICIES_SYNC_STATE_COLLECTION_NAME, dittoMongoClient,
                         materializer);
 
-        final ActorRef searchActor = initializeSearchActor(configReader, mongoClient);
+        final ActorRef searchActor = initializeSearchActor(configReader, dittoMongoClient.getDefaultDatabase());
+        pubSubMediator.tell(new DistributedPubSubMediator.Put(searchActor), getSelf());
 
         final ActorRef healthCheckingActor =
                 initializeHealthCheckActor(configReader, thingsSyncPersistence, policiesSyncPersistence);
-
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(searchActor), getSelf());
 
         createHealthCheckingActorHttpBinding(configReader.http(), healthCheckingActor, materializer);
 
@@ -126,10 +130,11 @@ public final class SearchRootActor extends AbstractActor {
                 materializer, thingsSyncPersistence, policiesSyncPersistence));
     }
 
-    private ActorRef initializeSearchActor(final ServiceConfigReader configReader, final DittoMongoClient mongoClient) {
+    private ActorRef initializeSearchActor(final ServiceConfigReader configReader, final MongoDatabase database) {
+
         final Config rawConfig = configReader.getRawConfig();
         final ThingsSearchPersistence thingsSearchPersistence =
-                new MongoThingsSearchPersistence(mongoClient, getContext().system());
+                initializeSearchPersistence(database, getContext().getSystem(), rawConfig);
 
         final boolean indexInitializationEnabled = rawConfig.getBoolean(ConfigKeys.INDEX_INITIALIZATION_ENABLED);
         if (indexInitializationEnabled) {
@@ -139,17 +144,28 @@ public final class SearchRootActor extends AbstractActor {
         }
 
         final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
-        final ThingsFieldExpressionFactory fieldExpressionFactory = new ThingsFieldExpressionFactoryImpl();
-        final AggregationBuilderFactory aggregationBuilderFactory =
-                new MongoAggregationBuilderFactory(configReader.limits());
+        final ThingsFieldExpressionFactory expressionFactory = getThingsFieldExpressionFactory();
         final QueryBuilderFactory queryBuilderFactory = new MongoQueryBuilderFactory(configReader.limits());
-        final ActorRef aggregationQueryActor = startChildActor(AggregationQueryActor.ACTOR_NAME,
-                AggregationQueryActor.props(criteriaFactory, fieldExpressionFactory, aggregationBuilderFactory));
-        final ActorRef apiV1QueryActor = startChildActor(QueryActor.ACTOR_NAME,
-                QueryActor.props(criteriaFactory, fieldExpressionFactory, queryBuilderFactory));
+        final QueryParser queryFactory = QueryParser.of(criteriaFactory, expressionFactory, queryBuilderFactory);
 
-        return startChildActor(SearchActor.ACTOR_NAME,
-                SearchActor.props(aggregationQueryActor, apiV1QueryActor, thingsSearchPersistence));
+        final Props searchActorProps = SearchActor.props(queryFactory, thingsSearchPersistence);
+
+        return startChildActor(SearchActor.ACTOR_NAME, searchActorProps);
+    }
+
+    private ThingsSearchPersistence initializeSearchPersistence(final MongoDatabase db, final ActorSystem actorSystem,
+            final Config config) {
+
+        // TODO: refactor config.
+        final String hintsConfigKey = "ditto.things-search.mongo-hints-by-namespace";
+        final MongoThingsSearchPersistence persistence = new MongoThingsSearchPersistence(db, actorSystem);
+        if (config.hasPath(hintsConfigKey)) {
+            final String mongoHints = config.getString(hintsConfigKey);
+            log.info("Applying MongoDB hints: {}", mongoHints);
+            return persistence.withHintsByNamespace(mongoHints);
+        } else {
+            return persistence;
+        }
     }
 
     private ActorRef initializeHealthCheckActor(final ServiceConfigReader configReader,
@@ -176,6 +192,7 @@ public final class SearchRootActor extends AbstractActor {
 
         binding.thenAccept(theBinding -> CoordinatedShutdown.get(getContext().getSystem()).addTask(
                 CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_health_http_endpoint", () -> {
+
                     log.info("Gracefully shutting down status/health HTTP endpoint..");
                     return theBinding.terminate(Duration.ofSeconds(1))
                             .handle((httpTerminated, e) -> Done.getInstance());
@@ -236,4 +253,20 @@ public final class SearchRootActor extends AbstractActor {
         return logRequest("http-request", () -> logResult("http-response", statusRoute::buildStatusRoute));
     }
 
+    private static void addMapping(final Map<String, String> fieldMappings, final JsonFieldDefinition<?> definition) {
+        final JsonPointer pointer = definition.getPointer();
+        final String key = pointer.getRoot().map(JsonKey::toString).orElse("");
+        final String value = pointer.toString();
+        fieldMappings.put(key, value);
+    }
+
+    private static ThingsFieldExpressionFactory getThingsFieldExpressionFactory() {
+        final Map<String, String> mappings = new HashMap<>();
+        mappings.put(FieldExpressionUtil.FIELD_NAME_THING_ID, FieldExpressionUtil.FIELD_ID);
+        mappings.put(FieldExpressionUtil.FIELD_NAME_NAMESPACE, FieldExpressionUtil.FIELD_NAMESPACE);
+        addMapping(mappings, Thing.JsonFields.POLICY_ID);
+        addMapping(mappings, Thing.JsonFields.REVISION);
+        addMapping(mappings, Thing.JsonFields.MODIFIED);
+        return new ThingsFieldExpressionFactoryImpl(mappings);
+    }
 }
