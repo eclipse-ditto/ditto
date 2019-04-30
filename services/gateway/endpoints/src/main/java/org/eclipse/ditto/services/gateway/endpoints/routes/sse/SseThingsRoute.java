@@ -226,7 +226,7 @@ public class SseThingsRoute extends AbstractRoute {
                                         thingJson::contains)) // check if the resulting JSON did contain ANY of the requested fields
                         .filter(thingJson -> !thingJson.isEmpty()) // avoid sending back empty jsonValues
                         .map(jsonValue -> ServerSentEvent.create(jsonValue.toString()))
-                        .viaMat(eventSniffer.toAsyncFlow(request), Keep.left()) // sniffer shouldn't sniff heartbeats
+                        .viaMat(eventSniffer.toAsyncFlow(request, connectionCorrelationId), Keep.left()) // sniffer shouldn't sniff heartbeats
                         .keepAlive(Duration.ofSeconds(1), ServerSentEvent::heartbeat);
 
         return completeOK(sseSource, EventStreamMarshalling.toEventStream());

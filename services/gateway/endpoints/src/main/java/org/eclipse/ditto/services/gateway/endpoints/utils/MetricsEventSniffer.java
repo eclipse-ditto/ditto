@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.gateway.endpoints.utils;
 
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 
 import akka.http.javadsl.model.HttpRequest;
@@ -25,7 +26,7 @@ import akka.stream.javadsl.Sink;
  */
 final class MetricsEventSniffer<T> implements EventSniffer<T> {
 
-    private final Gauge messageCount;
+    private final Counter messageCounter;
 
     /**
      * Creates a new MetricsEventSniffer counting messages via a Gauge.
@@ -34,14 +35,14 @@ final class MetricsEventSniffer<T> implements EventSniffer<T> {
      * @param direction the direction the message went, e.g. "in" or "out"
      */
     MetricsEventSniffer(final String streamingType, final String direction) {
-        messageCount = DittoMetrics.gauge("streaming_message_count")
+        messageCounter = DittoMetrics.counter("streaming_messages")
                 .tag("type", streamingType)
                 .tag("direction", direction);
     }
 
     @Override
-    public Sink<T, ?> createSink(final HttpRequest request) {
-        return Sink.foreach(x -> messageCount.increment());
+    public Sink<T, ?> createSink(final HttpRequest request, final String sessionId) {
+        return Sink.foreach(x -> messageCounter.tag("session", sessionId).increment());
     }
 
 }

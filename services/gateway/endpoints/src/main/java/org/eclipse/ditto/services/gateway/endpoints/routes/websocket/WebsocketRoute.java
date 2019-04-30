@@ -200,7 +200,7 @@ public final class WebsocketRoute {
                 connectionCorrelationId);
 
         final Flow<Message, String, NotUsed> extractStringFromMessage = Flow.<Message>create()
-                .via(incomingMessageSniffer.toAsyncFlow(request))
+                .via(incomingMessageSniffer.toAsyncFlow(request, connectionCorrelationId))
                 .filter(Message::isText)
                 .map(Message::asTextMessage)
                 .map(textMsg -> {
@@ -267,7 +267,7 @@ public final class WebsocketRoute {
                             return result;
                         }))
                         .<Message>map(TextMessage::create)
-                        .via(outgoingMessageSniffer.toAsyncFlow(request));
+                        .via(outgoingMessageSniffer.toAsyncFlow(request, connectionCorrelationId));
 
         return joinOutgoingFlows(eventAndResponseSource, errorFlow, messageFlow);
     }

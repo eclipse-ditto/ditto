@@ -31,21 +31,24 @@ public interface EventSniffer<T> {
      * Create a receiver for sniffed events.
      *
      * @param request the HTTP request that started the event stream.
+     * @param sessionId the id of the streaming session.
      * @return sink to send events into.
      */
-    Sink<T, ?> createSink(HttpRequest request);
+    Sink<T, ?> createSink(HttpRequest request, String sessionId);
 
     /**
      * Create an async flow for event sniffing.
      *
      * @param request the HTTP request that started the event stream.
+     * @param sessionId the id of the streaming session.
      * @return flow to pass events through with a wiretap attached over an async barrier to the sink for sniffed events.
      */
-    default Flow<T, T, NotUsed> toAsyncFlow(final HttpRequest request) {
+    default Flow<T, T, NotUsed> toAsyncFlow(final HttpRequest request, final String sessionId) {
         return Flow.<T>create().wireTap(
                 Flow.<T>create()
                         .async()
-                        .to(Sink.lazyInitAsync(() -> CompletableFuture.completedFuture(createSink(request)))));
+                        .to(Sink.lazyInitAsync(() -> CompletableFuture.completedFuture(
+                                createSink(request, sessionId)))));
     }
 
     /**

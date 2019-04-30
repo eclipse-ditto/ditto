@@ -25,6 +25,7 @@ import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DittoGatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.services.gateway.endpoints.routes.RootRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.RouteFactory;
+import org.eclipse.ditto.services.gateway.health.GatewayHttpReadinessCheck;
 import org.eclipse.ditto.services.gateway.proxy.actors.ProxyActor;
 import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
 import org.eclipse.ditto.services.gateway.starter.service.util.DefaultHttpClientFacade;
@@ -132,6 +133,8 @@ final class GatewayRootActor extends AbstractActor {
                 return SupervisorStrategy.escalate();
             }).build());
 
+    private final CompletionStage<ServerBinding> httpBinding;
+
     private GatewayRootActor(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
@@ -181,12 +184,12 @@ final class GatewayRootActor extends AbstractActor {
             log.info("No explicit hostname configured, using HTTP hostname: {}", hostname);
         }
 
-        final CompletionStage<ServerBinding> binding = Http.get(actorSystem)
+        httpBinding = Http.get(actorSystem)
                 .bindAndHandle(createRoute(actorSystem, config, proxyActor, streamingActor, healthCheckActor)
                                 .flow(actorSystem, materializer),
                         ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
 
-        binding.thenAccept(theBinding -> {
+        httpBinding.thenAccept(theBinding -> {
                     log.info("Serving HTTP requests on port {} ...", theBinding.localAddress().getPort());
                     CoordinatedShutdown.get(actorSystem).addTask(
                             CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_http_endpoint", () -> {
@@ -231,6 +234,11 @@ final class GatewayRootActor extends AbstractActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure: {}", f))
+                .matchEquals(GatewayHttpReadinessCheck.READINESS_ASK_MESSAGE, msg -> {
+                    final ActorRef sender = getSender();
+                    httpBinding.thenAccept(binding -> sender.tell(
+                            GatewayHttpReadinessCheck.READINESS_ASK_MESSAGE_RESPONSE, ActorRef.noSender()));
+                })
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
