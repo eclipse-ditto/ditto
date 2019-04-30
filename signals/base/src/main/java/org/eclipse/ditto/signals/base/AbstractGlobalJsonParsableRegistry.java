@@ -19,25 +19,51 @@
 
  import org.atteo.classindex.ClassIndex;
 
+ /**
+  * Responsible for collecting all {@link AnnotationBasedJsonParsable<T>} for subclasses of T.
+  *
+  * @param <T> The superclass of all classes that should be deserialized by this registry.
+  * @param <A> The type of the annotation that holds the information to build an annotation based json parsable.
+  */
  public abstract class AbstractGlobalJsonParsableRegistry<T, A extends Annotation>
          extends AbstractJsonParsableRegistry<T> {
 
+     /**
+      * Creates a new instance.
+      *
+      * @param parsedClass the superclass of all classes that should be deserialized by this registry.
+      * @param annotationClass the type of the annotation that holds the information to build an annotation based
+      * json parsable.
+      * @param annotationBasedJsonParsableFactory the factory used to create {@link AnnotationBasedJsonParsable<T>}
+      * based on a given annotation.
+      */
      protected AbstractGlobalJsonParsableRegistry(
              final Class<T> parsedClass,
              final Class<A> annotationClass,
-             final AbstractAnnotationBasedJsonParsableFactory<T, A> annotationBasedJsonParsableBuilder) {
+             final AbstractAnnotationBasedJsonParsableFactory<T, A> annotationBasedJsonParsableFactory) {
 
-         super(initAnnotationBasedParseStrategies(parsedClass, annotationClass, annotationBasedJsonParsableBuilder));
+         super(initAnnotationBasedParseStrategies(parsedClass, annotationClass, annotationBasedJsonParsableFactory));
      }
 
+     /**
+      * Creates a new instance.
+      *
+      * @param parsedClass the superclass of all classes that should be deserialized by this registry.
+      * @param annotationClass the type of the annotation that holds the information to build an annotation based
+      * json parsable.
+      * @param annotationBasedJsonParsableFactory the factory used to create {@link AnnotationBasedJsonParsable<T>}
+      * based on a given annotation.
+      * @param parseStrategies individual strategies that should be added to the annotation based strategies.
+      * Annotation based strategies will be overridden if they have the same key.
+      */
      protected AbstractGlobalJsonParsableRegistry(
              final Class<T> parsedClass,
              final Class<A> annotationClass,
-             final AbstractAnnotationBasedJsonParsableFactory<T, A> annotationBasedJsonParsableBuilder,
+             final AbstractAnnotationBasedJsonParsableFactory<T, A> annotationBasedJsonParsableFactory,
              final Map<String, JsonParsable<T>> parseStrategies) {
 
          super(mergeParsingStrategies(
-                 initAnnotationBasedParseStrategies(parsedClass, annotationClass, annotationBasedJsonParsableBuilder),
+                 initAnnotationBasedParseStrategies(parsedClass, annotationClass, annotationBasedJsonParsableFactory),
                  parseStrategies)
          );
      }
@@ -52,22 +78,24 @@
          return mergedStrategies;
      }
 
+     @SuppressWarnings("unchecked") //Suppressed because the cast of cls is ensured by the two filters before.
      private static <T, A extends Annotation> Map<String, JsonParsable<T>> initAnnotationBasedParseStrategies(
              final Class<T> baseClass,
              final Class<A> annotationClass,
-             final AbstractAnnotationBasedJsonParsableFactory<T, A> annotationBasedJsonParsableBuilder) {
+             final AbstractAnnotationBasedJsonParsableFactory<T, A> annotationBasedJsonParsableFactory) {
 
          final Map<String, JsonParsable<T>> parseRegistries = new HashMap<>();
          final Iterable<Class<?>> annotatedClasses = ClassIndex.getAnnotated(annotationClass);
 
          StreamSupport.stream(annotatedClasses.spliterator(), false)
                  .filter(baseClass::isAssignableFrom)
+                 .filter(cls -> !baseClass.equals(cls))
                  .map(cls -> (Class<? extends T>) cls)
                  .forEach(classToParse -> {
                      final A fromJsonAnnotation = classToParse.getAnnotation(annotationClass);
 
                      final AnnotationBasedJsonParsable<T> strategy =
-                             annotationBasedJsonParsableBuilder.fromAnnotation(fromJsonAnnotation, classToParse);
+                             annotationBasedJsonParsableFactory.fromAnnotation(fromJsonAnnotation, classToParse);
                      parseRegistries.put(strategy.getKey(), strategy);
                      parseRegistries.put(strategy.getV1FallbackKey(), strategy);
                  });

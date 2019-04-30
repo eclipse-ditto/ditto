@@ -18,9 +18,14 @@
  import org.eclipse.ditto.json.JsonObject;
  import org.eclipse.ditto.json.JsonParseException;
  import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
- import org.eclipse.ditto.json.JsonParseException;
+ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
  import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
+ /**
+  * Responsible for deserialization of a class of type T.
+  *
+  * @param <T> the type of the class that should be deserialized.
+  */
  final class AnnotationBasedJsonParsable<T> implements JsonParsable<T> {
 
      private static final Class<?> JSON_OBJECT_PARAMETER = JsonObject.class;
@@ -30,6 +35,15 @@
      private final String v1FallbackKey;
      private final Method parseMethod;
 
+     /**
+      * Creates a new instance.
+      *
+      * @param key the API v2 key for this strategy.
+      * @param v1FallbackKey the API v1 key for this strategy.
+      * @param parsedClass the class that should be deserialized.
+      * @param parsingMethodName the name of the method that should be called on the given class in order to
+      * deserialize.
+      */
      AnnotationBasedJsonParsable(final String key, final String v1FallbackKey,
              final Class<? extends T> parsedClass,
              final String parsingMethodName) {
@@ -49,10 +63,20 @@
          }
      }
 
+     /**
+      * The API v2 key for this strategy.
+      *
+      * @return the API v2 key for this strategy.
+      */
      public String getKey() {
          return key;
      }
 
+     /**
+      * The API v1 key for this strategy.
+      *
+      * @return the API v1 key for this strategy.
+      */
      public String getV1FallbackKey() {
          return v1FallbackKey;
      }
