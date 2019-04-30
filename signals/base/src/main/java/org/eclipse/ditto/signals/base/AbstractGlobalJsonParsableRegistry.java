@@ -20,7 +20,7 @@
  import org.atteo.classindex.ClassIndex;
 
  /**
-  * Responsible for collecting all {@link AnnotationBasedJsonParsable<T>} for subclasses of T.
+  * Responsible for collecting all {@link AnnotationBasedJsonParsable} for subclasses of T.
   *
   * @param <T> The superclass of all classes that should be deserialized by this registry.
   * @param <A> The type of the annotation that holds the information to build an annotation based json parsable.
@@ -34,7 +34,7 @@
       * @param parsedClass the superclass of all classes that should be deserialized by this registry.
       * @param annotationClass the type of the annotation that holds the information to build an annotation based
       * json parsable.
-      * @param annotationBasedJsonParsableFactory the factory used to create {@link AnnotationBasedJsonParsable<T>}
+      * @param annotationBasedJsonParsableFactory the factory used to create {@link AnnotationBasedJsonParsable}
       * based on a given annotation.
       */
      protected AbstractGlobalJsonParsableRegistry(
@@ -51,7 +51,7 @@
       * @param parsedClass the superclass of all classes that should be deserialized by this registry.
       * @param annotationClass the type of the annotation that holds the information to build an annotation based
       * json parsable.
-      * @param annotationBasedJsonParsableFactory the factory used to create {@link AnnotationBasedJsonParsable<T>}
+      * @param annotationBasedJsonParsableFactory the factory used to create {@link AnnotationBasedJsonParsable}
       * based on a given annotation.
       * @param parseStrategies individual strategies that should be added to the annotation based strategies.
       * Annotation based strategies will be overridden if they have the same key.

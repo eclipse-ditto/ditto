@@ -15,7 +15,7 @@
  import java.lang.annotation.Annotation;
 
  /**
-  * Responsible to build an {@link AnnotationBasedJsonParsable<T>} from a given annotation.
+  * Responsible to build an {@link AnnotationBasedJsonParsable} from a given annotation.
   *
   * @param <T> The superclass of the class that should be parsed by an annotation based json parsable created by this
   * factory.
@@ -24,7 +24,7 @@
  public abstract class AbstractAnnotationBasedJsonParsableFactory<T, A extends Annotation> {
 
      /**
-      * Builds an {@link AnnotationBasedJsonParsable<T>} from the given annotation.
+      * Builds an {@link AnnotationBasedJsonParsable} from the given annotation.
       *
       * @param annotation the annotation that holds the information to build an annotation based json parsable.
       * @param classToParse the class that should be deserialized.
