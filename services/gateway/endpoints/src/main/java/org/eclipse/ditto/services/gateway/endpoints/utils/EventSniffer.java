@@ -31,36 +31,52 @@ public interface EventSniffer<T> {
      * Create a receiver for sniffed events.
      *
      * @param request the HTTP request that started the event stream.
-     * @param sessionId the id of the streaming session.
      * @return sink to send events into.
      */
-    Sink<T, ?> createSink(HttpRequest request, String sessionId);
+    Sink<T, ?> createSink(HttpRequest request);
 
     /**
      * Create an async flow for event sniffing.
      *
      * @param request the HTTP request that started the event stream.
-     * @param sessionId the id of the streaming session.
      * @return flow to pass events through with a wiretap attached over an async barrier to the sink for sniffed events.
      */
-    default Flow<T, T, NotUsed> toAsyncFlow(final HttpRequest request, final String sessionId) {
+    default Flow<T, T, NotUsed> toAsyncFlow(final HttpRequest request) {
         return Flow.<T>create().wireTap(
                 Flow.<T>create()
                         .async()
                         .to(Sink.lazyInitAsync(() -> CompletableFuture.completedFuture(
-                                createSink(request, sessionId)))));
+                                createSink(request)))));
     }
 
     /**
-     * Create an event sniffer that gathers metrics.
+     * Create an event sniffer that does not do anything.
      *
-     * @param streamingType the type of streaming metric, e.g. "ws" or "sse"
-     * @param direction the direction the message went, e.g. "in" or "out"
      * @param <T> type of events to sniff.
-     * @return an event sniffer that gathers metrics.
+     * @return an event sniffer that does not do anything.
      */
-    static <T> EventSniffer<T> metricsSniffer(final String streamingType, final String direction) {
-        return new MetricsEventSniffer<>(streamingType, direction);
+    static <T> EventSniffer<T> noOp() {
+        return new NoOp<>();
+    }
+
+    /**
+     * An event sniffer that does not do anything.
+     *
+     * @param <T> Type of events to sniff.
+     */
+    final class NoOp<T> implements EventSniffer<T> {
+
+        private NoOp() {}
+
+        @Override
+        public Sink<T, ?> createSink(final HttpRequest request) {
+            return Sink.ignore();
+        }
+
+        @Override
+        public Flow<T, T, NotUsed> toAsyncFlow(final HttpRequest request) {
+            return Flow.create();
+        }
     }
 
 }

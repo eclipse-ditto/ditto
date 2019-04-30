@@ -49,6 +49,8 @@ import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
@@ -65,6 +67,7 @@ import akka.http.javadsl.model.sse.ServerSentEvent;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 import akka.japi.JavaPartialFunction;
+import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Source;
 
@@ -93,8 +96,7 @@ public class SseThingsRoute extends AbstractRoute {
      * @throws NullPointerException if any argument is {@code null}.
      */
     public SseThingsRoute(final ActorRef proxyActor, final ActorSystem actorSystem, final ActorRef streamingActor) {
-        this(proxyActor, actorSystem, streamingActor,
-                EventSniffer.metricsSniffer("sse", "out"),
+        this(proxyActor, actorSystem, streamingActor, EventSniffer.noOp(),
                 new QueryFilterCriteriaFactory(new CriteriaFactoryImpl(),
                         new ModelBasedThingsFieldExpressionFactory()));
     }
@@ -192,6 +194,11 @@ public class SseThingsRoute extends AbstractRoute {
         final JsonSchemaVersion jsonSchemaVersion =
                 dittoHeaders.getSchemaVersion().orElse(dittoHeaders.getImplementedSchemaVersion());
 
+        final Counter messageCounter = DittoMetrics.counter("streaming_messages")
+                        .tag("type", "sse")
+                        .tag("direction", "out")
+                        .tag("session", connectionCorrelationId);
+
         if (filterString != null) {
             // will throw an InvalidRqlExpressionException if the RQL expression was not valid:
             queryFilterCriteriaFactory.filterCriteria(filterString, dittoHeaders);
@@ -226,7 +233,11 @@ public class SseThingsRoute extends AbstractRoute {
                                         thingJson::contains)) // check if the resulting JSON did contain ANY of the requested fields
                         .filter(thingJson -> !thingJson.isEmpty()) // avoid sending back empty jsonValues
                         .map(jsonValue -> ServerSentEvent.create(jsonValue.toString()))
-                        .viaMat(eventSniffer.toAsyncFlow(request, connectionCorrelationId), Keep.left()) // sniffer shouldn't sniff heartbeats
+                        .via(Flow.fromFunction(msg -> {
+                            messageCounter.increment();
+                            return msg;
+                        }))
+                        .viaMat(eventSniffer.toAsyncFlow(request), Keep.left()) // sniffer shouldn't sniff heartbeats
                         .keepAlive(Duration.ofSeconds(1), ServerSentEvent::heartbeat);
 
         return completeOK(sseSource, EventStreamMarshalling.toEventStream());
