@@ -13,15 +13,13 @@
 package org.eclipse.ditto.services.thingsearch.starter;
 
 import org.eclipse.ditto.services.utils.test.GlobalEventRegistryTestCases;
-import org.eclipse.ditto.signals.events.batch.BatchExecutionFinished;
-import org.eclipse.ditto.signals.events.connectivity.ConnectionClosed;
 import org.eclipse.ditto.signals.events.policies.ResourceDeleted;
 import org.eclipse.ditto.signals.events.things.FeatureDeleted;
 
 public final class ThingsSearchServiceGlobalEventRegistryTest extends GlobalEventRegistryTestCases {
 
     public ThingsSearchServiceGlobalEventRegistryTest() {
-        super(ResourceDeleted.class, FeatureDeleted.class, ConnectionClosed.class);
+        super(ResourceDeleted.class, FeatureDeleted.class);
     }
 
 }

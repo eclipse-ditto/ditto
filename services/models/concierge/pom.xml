@@ -66,6 +66,11 @@
         </dependency>
 
         <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-utils-cache</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-cluster-tools_${scala.version}</artifactId>
         </dependency>
@@ -81,14 +86,10 @@
                 <groupId>com.github.siom79.japicmp</groupId>
                 <artifactId>japicmp-maven-plugin</artifactId>
                 <configuration>
+                    <!-- TODO remove after next release: -->
+                    <skip>true</skip>
                     <parameter>
                         <excludes>
-                            <exclude>org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants</exclude>
-                            <exclude>org.eclipse.ditto.services.models.concierge.cache.Entry</exclude>
-                            <exclude>org.eclipse.ditto.services.models.concierge.batch.BatchStepCommandRegistry</exclude>
-                            <exclude>org.eclipse.ditto.services.models.concierge.batch.BatchStepCommandResponseRegistry</exclude>
-                            <exclude>org.eclipse.ditto.services.models.concierge.batch.BatchMappingStrategy</exclude>
-                            <exclude>org.eclipse.ditto.services.models.concierge.ConciergeWrapper#wrapForEnforcer(org.eclipse.ditto.signals.base.Signal)</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

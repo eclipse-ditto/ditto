@@ -15,19 +15,14 @@ package org.eclipse.ditto.services.thingsearch.starter;
 import java.util.Arrays;
 
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
-import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.messages.AuthorizationSubjectBlockedException;
 import org.eclipse.ditto.model.namespaces.NamespaceBlockedException;
-import org.eclipse.ditto.model.placeholders.PlaceholderFunctionSignatureInvalidException;
 import org.eclipse.ditto.model.policies.PolicyEntryInvalidException;
 import org.eclipse.ditto.model.things.AclEntryInvalidException;
-import org.eclipse.ditto.protocoladapter.UnknownCommandException;
 import org.eclipse.ditto.services.utils.test.GlobalErrorRegistryTestCases;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
-import org.eclipse.ditto.signals.commands.batch.exceptions.BatchAlreadyExecutingException;
-import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionConflictException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyConflictException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInvalidException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
@@ -49,11 +44,7 @@ public final class ThingSearchServiceGlobalErrorRegistryTest extends GlobalError
                 AuthorizationSubjectBlockedException.class,
                 JsonTypeNotParsableException.class,
                 InvalidNamespacesException.class,
-                NamespaceBlockedException.class,
-                ConnectionConfigurationInvalidException.class,
-                UnknownCommandException.class,
-                ConnectionConflictException.class,
-                PlaceholderFunctionSignatureInvalidException.class
+                NamespaceBlockedException.class
         ));
     }
 }
