@@ -68,8 +68,8 @@
          } catch (final InvocationTargetException e) {
              final Throwable targetException = e.getTargetException();
 
-             if (targetException instanceof RuntimeException) {
-                 throw (RuntimeException) targetException;
+             if (targetException instanceof DittoRuntimeException) {
+                 throw (DittoRuntimeException) targetException;
              }
 
              throw buildDittoJsonException(targetException, jsonObject, dittoHeaders);
