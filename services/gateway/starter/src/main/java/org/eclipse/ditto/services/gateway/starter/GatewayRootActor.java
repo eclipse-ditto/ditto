@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.services.base.config.HealthConfigReader;
 import org.eclipse.ditto.services.base.config.HttpConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
@@ -183,7 +184,7 @@ final class GatewayRootActor extends AbstractActor {
         }
 
         final CompletionStage<ServerBinding> binding = Http.get(actorSystem)
-                .bindAndHandle(createRoute(actorSystem, config, proxyActor, streamingActor, healthCheckActor)
+                .bindAndHandle(createRoute(actorSystem, configReader, proxyActor, streamingActor, healthCheckActor)
                                 .flow(actorSystem, materializer),
                         ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
 
@@ -244,10 +245,12 @@ final class GatewayRootActor extends AbstractActor {
     }
 
     private Route createRoute(final ActorSystem actorSystem,
-            final Config config,
+            final ServiceConfigReader configReader,
             final ActorRef proxyActor,
             final ActorRef streamingActor,
             final ActorRef healthCheckingActor) {
+
+        final Config config = configReader.getRawConfig();
 
         final HttpClientFacade httpClient = DefaultHttpClientFacade.getInstance(actorSystem);
         final ClusterStatusSupplier clusterStateSupplier = new ClusterStatusSupplier(Cluster.get(actorSystem));
@@ -257,6 +260,9 @@ final class GatewayRootActor extends AbstractActor {
                 new DittoGatewayAuthenticationDirectiveFactory(config, httpClient, authenticationDispatcher);
         final RouteFactory routeFactory = RouteFactory.newInstance(actorSystem, proxyActor, streamingActor,
                 healthCheckingActor, clusterStateSupplier, authenticationDirectiveFactory);
+        final DittoHeadersSizeChecker dittoHeadersSizeChecker =
+                DittoHeadersSizeChecker.of(configReader.limits().headersMaxSize(),
+                        configReader.limits().authSubjectsCount());
 
         return RootRoute.getBuilder()
                 .statsRoute(routeFactory.newStatsRoute())
@@ -274,6 +280,7 @@ final class GatewayRootActor extends AbstractActor {
                 .headerTranslator(routeFactory.getHeaderTranslator())
                 .httpAuthenticationDirective(routeFactory.newHttpAuthenticationDirective())
                 .wsAuthenticationDirective(routeFactory.newWsAuthenticationDirective())
+                .dittoHeadersSizeChecker(dittoHeadersSizeChecker)
                 .build();
     }
 

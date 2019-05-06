@@ -19,6 +19,7 @@ import static akka.http.javadsl.server.Directives.handleRejections;
 import static akka.http.javadsl.server.Directives.parameterOptional;
 import static akka.http.javadsl.server.Directives.rawPathPrefix;
 import static akka.http.javadsl.server.Directives.route;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CorrelationIdEnsuringDirective.ensureCorrelationId;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.RequestResultLoggingDirective.logRequestResult;
@@ -46,6 +47,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
@@ -116,6 +118,8 @@ public final class RootRoute {
     private final CustomHeadersHandler customHeadersHandler;
     private final RejectionHandler rejectionHandler;
 
+    private final DittoHeadersSizeChecker dittoHeadersSizeChecker;
+
     private RootRoute(final Builder builder) {
         ownStatusRoute = builder.statusRoute;
         overallStatusRoute = builder.overallStatusRoute;
@@ -136,6 +140,7 @@ public final class RootRoute {
         headerTranslator = builder.headerTranslator;
         customHeadersHandler = builder.customHeadersHandler;
         rejectionHandler = builder.rejectionHandler;
+        dittoHeadersSizeChecker = checkNotNull(builder.dittoHeadersSizeChecker, "dittoHeadersSizeChecker");
     }
 
     public static RootRouteBuilder getBuilder() {
@@ -350,7 +355,11 @@ public final class RootRoute {
 
         final DittoHeaders dittoHeaders =
                 buildDittoHeaders(authorizationContext, version, correlationId, ctx, liveParam, requestType);
-        return inner.apply(dittoHeaders);
+
+        return dittoHeadersSizeChecker.run(dittoHeaders, inner, error ->
+                handleExceptions(exceptionHandler, () -> {
+                    throw error;
+                }));
     }
 
     private DittoHeaders overwriteDittoHeaders(final RequestContext ctx, final DittoHeaders dittoHeaders,
@@ -401,7 +410,7 @@ public final class RootRoute {
                 authorizationContext, dittoDefaultHeaders);
     }
 
-    private Map<String, String> getFilteredExternalHeaders(final HttpMessage httpRequest, final String correlationId ) {
+    private Map<String, String> getFilteredExternalHeaders(final HttpMessage httpRequest, final String correlationId) {
         Map<String, String> externalHeaders =
                 StreamSupport.stream(httpRequest.getHeaders().spliterator(), false)
                         .collect(Collectors.toMap(HttpHeader::name, HttpHeader::value, (dv1, dv2) -> {
@@ -470,6 +479,8 @@ public final class RootRoute {
         private HeaderTranslator headerTranslator;
         private CustomHeadersHandler customHeadersHandler;
         private RejectionHandler rejectionHandler;
+
+        private DittoHeadersSizeChecker dittoHeadersSizeChecker;
 
         private Builder() {
             super();
@@ -586,6 +597,12 @@ public final class RootRoute {
         @Override
         public RootRouteBuilder rejectionHandler(final RejectionHandler handler) {
             rejectionHandler = handler;
+            return this;
+        }
+
+        @Override
+        public RootRouteBuilder dittoHeadersSizeChecker(final DittoHeadersSizeChecker checker) {
+            dittoHeadersSizeChecker = checker;
             return this;
         }
 

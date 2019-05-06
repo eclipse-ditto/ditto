@@ -25,12 +25,17 @@ public final class DittoLimitsConfigReader extends AbstractConfigReader implemen
     private static final long DEFAULT_ENTITY_MAX_SIZE = 100 * 1024L;
     private static final long DEFAULT_MESSAGE_MAX_SIZE = 250 * 1024L;
 
+    private static final int DEFAULT_HEADERS_MAX_SIZE = 5 * 1024;
+    private static final int DEFAULT_AUTH_SUBJECTS_COUNT = 100;
+
     private static final int DEFAULT_THINGS_SEARCH_DEFAULT_PAGE_SIZE = 25;
     private static final int DEFAULT_THINGS_SEARCH_MAX_PAGE_SIZE = 200;
 
     private static final String PATH_THINGS_MAX_SIZE = "things.max-size";
     private static final String PATH_POLICIES_MAX_SIZE = "policies.max-size";
     private static final String PATH_MESSAGES_MAX_SIZE = "messages.max-size";
+    private static final String PATH_HEADERS_SIZE = "messages.headers-size";
+    private static final String PATH_AUTH_SUBJECTS_COUNT = "messages.auth-subjects-count";
 
     private static final String THINGS_SEARCH_KEY = "things-search";
     private static final String PATH_THINGS_SEARCH_DEFAULT_PAGE_SIZE = path(THINGS_SEARCH_KEY, "default-page-size");
@@ -66,6 +71,16 @@ public final class DittoLimitsConfigReader extends AbstractConfigReader implemen
     @Override
     public long messagesMaxSize() {
         return getIfPresent(PATH_MESSAGES_MAX_SIZE, config::getBytes).orElse(DEFAULT_MESSAGE_MAX_SIZE);
+    }
+
+    @Override
+    public int headersMaxSize() {
+        return getIfPresent(PATH_HEADERS_SIZE, config::getBytes).map(Long::intValue).orElse(DEFAULT_HEADERS_MAX_SIZE);
+    }
+
+    @Override
+    public int authSubjectsCount() {
+        return getIfPresent(PATH_AUTH_SUBJECTS_COUNT, config::getInt).orElse(DEFAULT_AUTH_SUBJECTS_COUNT);
     }
 
     @Override
