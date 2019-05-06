@@ -89,6 +89,22 @@ public final class MongoConfigTest {
 
         // THEN
         assertThat(targetUri).isEqualTo(SOURCE_URI.replaceAll("ssl=true", "ssl=false"));
+        assertThat(getSslEnabledConfig(config)).isFalse();
+    }
+
+    @Test
+    public void turnOnSsl() {
+        // GIVEN
+        final Config options = ConfigFactory.parseString("ssl=true");
+        final Config config = ConfigFactory.parseString(
+                String.format("%s=\"%s\"\n%s=%s", KEY_URI, SOURCE_URI, KEY_OPTIONS, options.root().render()));
+
+        // WHEN
+        final String targetUri = getMongoUri(config);
+
+        // THEN
+        assertThat(targetUri).isEqualTo(SOURCE_URI);
+        assertThat(getSslEnabledConfig(config)).isTrue();
     }
 
     @Test
@@ -178,6 +194,11 @@ public final class MongoConfigTest {
     private static String getMongoUri(final Config config) {
         final MongoConfig mongoConfig = getMongoConfig(config);
         return mongoConfig.getMongoUri();
+    }
+
+    private static boolean getSslEnabledConfig(final Config config) {
+        final MongoConfig mongoConfig = getMongoConfig(config);
+        return mongoConfig.isSslEnabled();
     }
 
     private static MongoConfig getMongoConfig(final Config config) {
