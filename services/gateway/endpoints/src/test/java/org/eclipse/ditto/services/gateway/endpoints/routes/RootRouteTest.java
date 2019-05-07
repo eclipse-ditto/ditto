@@ -39,7 +39,6 @@ import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
 import org.eclipse.ditto.services.gateway.starter.service.util.DefaultHttpClientFacade;
 import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -315,7 +314,7 @@ public final class RootRouteTest extends EndpointTestBase {
         result.assertStatusCode(StatusCodes.REQUEST_HEADER_FIELDS_TOO_LARGE);
     }
 
-    @Ignore("TODO: fix me")
+    @Test
     public void acceptMaximumNumberOfAuthSubjects() {
         final String hugeSubjects = IntStream.range(0, 10)
                 .mapToObj(i -> "i:foo" + i)
@@ -324,7 +323,7 @@ public final class RootRouteTest extends EndpointTestBase {
                 withDummyAuthentication(withHttps(HttpRequest.GET(THING_SEARCH_2_PATH)), hugeSubjects);
         final TestRouteResult result = rootTestRoute.run(request);
 
-        result.assertStatusCode(StatusCodes.REQUEST_HEADER_FIELDS_TOO_LARGE);
+        result.assertStatusCode(StatusCodes.OK);
     }
 
     @Test

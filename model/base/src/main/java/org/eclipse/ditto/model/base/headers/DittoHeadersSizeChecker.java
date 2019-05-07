@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoHeadersTooLargeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 
@@ -50,7 +51,20 @@ public final class DittoHeadersSizeChecker {
      * @return an optional error if the headers are too large or an empty optional otherwise.
      */
     public Optional<DittoRuntimeException> check(final DittoHeaders dittoHeaders) {
-        final int authSubjectsCount = dittoHeaders.getAuthorizationSubjects().size();
+        return check(dittoHeaders, dittoHeaders.getAuthorizationContext());
+    }
+
+    /**
+     * Check whether Ditto headers are too large.
+     *
+     * @param dittoHeaders the headers to check.
+     * @param authorizationContext unmapped authorization context.
+     * @return an optional error if the headers are too large or an empty optional otherwise.
+     */
+    public Optional<DittoRuntimeException> check(final DittoHeaders dittoHeaders,
+            final AuthorizationContext authorizationContext) {
+
+        final int authSubjectsCount = authorizationContext.getSize();
         if (authSubjectsCount > maxAuthSubjects) {
             return Optional.of(
                     DittoHeadersTooLargeException.newAuthSubjectsLimitBuilder(authSubjectsCount, maxAuthSubjects)
@@ -67,10 +81,11 @@ public final class DittoHeadersSizeChecker {
     }
 
     public <T> T run(final DittoHeaders dittoHeaders,
+            final AuthorizationContext authorizationContext,
             final Function<DittoHeaders, T> onSuccess,
             final Function<DittoRuntimeException, T> onError) {
 
-        return check(dittoHeaders).map(onError).orElseGet(() -> onSuccess.apply(dittoHeaders));
+        return check(dittoHeaders, authorizationContext).map(onError).orElseGet(() -> onSuccess.apply(dittoHeaders));
     }
 
     boolean areHeadersTooLarge(final Map<? extends CharSequence, ? extends CharSequence> headersStream) {
