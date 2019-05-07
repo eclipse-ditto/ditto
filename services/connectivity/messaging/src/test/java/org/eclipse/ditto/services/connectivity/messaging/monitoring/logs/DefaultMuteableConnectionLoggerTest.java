@@ -89,14 +89,11 @@ public final class DefaultMuteableConnectionLoggerTest {
 
         logger.success(INFO_PROVIDER);
         logger.success(INFO_PROVIDER, MESSAGE, MESSAGE_ARGUMENTS);
-        logger.success(CORRELATION_ID, TIMESTAMP, MESSAGE, THING_ID);
         logger.failure(INFO_PROVIDER, DITTO_RUNTIME_EXCEPTION);
         logger.failure(SIGNAL, DITTO_RUNTIME_EXCEPTION);
-        logger.failure(CORRELATION_ID, TIMESTAMP, MESSAGE, THING_ID);
         logger.failure(INFO_PROVIDER);
         logger.failure(INFO_PROVIDER, MESSAGE, MESSAGE_ARGUMENTS);
         logger.exception(INFO_PROVIDER, EXCEPTION);
-        logger.exception(CORRELATION_ID, TIMESTAMP, MESSAGE, THING_ID);
         logger.exception(INFO_PROVIDER);
         logger.exception(INFO_PROVIDER, MESSAGE, MESSAGE_ARGUMENTS);
         logger.getLogs();
@@ -117,8 +114,8 @@ public final class DefaultMuteableConnectionLoggerTest {
     public void success1() {
         final DefaultMuteableConnectionLogger unmuted = unmuted();
 
-        unmuted.success(CORRELATION_ID, TIMESTAMP, MESSAGE, THING_ID);
-        verify(delegate).success(CORRELATION_ID, TIMESTAMP, MESSAGE, THING_ID);
+        unmuted.success(INFO_PROVIDER, MESSAGE, THING_ID);
+        verify(delegate).success(INFO_PROVIDER, MESSAGE, THING_ID);
     }
 
     @Test
@@ -133,8 +130,8 @@ public final class DefaultMuteableConnectionLoggerTest {
     public void failure1() {
         final DefaultMuteableConnectionLogger unmuted = unmuted();
 
-        unmuted.failure(CORRELATION_ID, TIMESTAMP, MESSAGE, THING_ID);
-        verify(delegate).failure(CORRELATION_ID, TIMESTAMP, MESSAGE, THING_ID);
+        unmuted.failure(INFO_PROVIDER, MESSAGE, THING_ID);
+        verify(delegate).failure(INFO_PROVIDER, MESSAGE, THING_ID);
     }
 
     @Test
@@ -149,8 +146,8 @@ public final class DefaultMuteableConnectionLoggerTest {
     public void exception1() {
         final DefaultMuteableConnectionLogger unmuted = unmuted();
 
-        unmuted.exception(CORRELATION_ID, TIMESTAMP, MESSAGE, THING_ID);
-        verify(delegate).exception(CORRELATION_ID, TIMESTAMP, MESSAGE, THING_ID);
+        unmuted.exception(INFO_PROVIDER, MESSAGE, THING_ID);
+        verify(delegate).exception(INFO_PROVIDER, MESSAGE, THING_ID);
     }
 
     @Test

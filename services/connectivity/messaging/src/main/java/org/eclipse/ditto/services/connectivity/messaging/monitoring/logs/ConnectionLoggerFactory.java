@@ -98,7 +98,8 @@ final class ConnectionLoggerFactory {
                 builder.withDefaultSuccessMessage("Received signal.")
                         .withDefaultFailureMessage("Ran into a failure when parsing an input command: {0}")
                         .withDefaultExceptionMessage(
-                                "Ran into an unexpected failure when parsing an input command.");
+                                "Ran into an unexpected failure when parsing an input command.")
+                        .logHeadersAndPayload();
                 break;
             case MAPPED:
                 builder.withDefaultSuccessMessage("Mapped incoming signal.")
@@ -111,7 +112,8 @@ final class ConnectionLoggerFactory {
             case ENFORCED:
                 builder.withDefaultSuccessMessage("Successfully applied enforcement on incoming signal.")
                         .withDefaultFailureMessage("Ran into a failure when enforcing incoming signal: {0}")
-                        .withDefaultExceptionMessage("Unexpected failure when enforcing incoming signal.");
+                        .withDefaultExceptionMessage("Unexpected failure when enforcing incoming signal.")
+                        .logHeadersAndPayload();
                 break;
             default:
                 // use the defaults already provided by the builder.
@@ -130,7 +132,8 @@ final class ConnectionLoggerFactory {
 
         switch (type) {
             case DISPATCHED:
-                builder.withDefaultSuccessMessage("Successfully dispatched signal.");
+                builder.withDefaultSuccessMessage("Successfully dispatched signal.")
+                        .logHeadersAndPayload();
                 break;
             case FILTERED:
                 builder.withDefaultSuccessMessage("Signal successfully passed possible filters.");
@@ -141,12 +144,14 @@ final class ConnectionLoggerFactory {
                         .withDefaultExceptionMessage("Unexpected failure when mapping outgoing signal.");
                 break;
             case DROPPED:
-                builder.withDefaultSuccessMessage(EMPTY_PAYLOAD_MAPPING_MESSAGE);
+                builder.withDefaultSuccessMessage(EMPTY_PAYLOAD_MAPPING_MESSAGE)
+                        .logHeadersAndPayload();
                 break;
             case PUBLISHED:
                 builder.withDefaultSuccessMessage("Successfully published signal.")
                         .withDefaultFailureMessage("Ran into a failure when publishing signal: {0}")
-                        .withDefaultExceptionMessage("Unexpected failure when publishing signal.");
+                        .withDefaultExceptionMessage("Unexpected failure when publishing signal.")
+                        .logHeadersAndPayload();
                 break;
             default:
                 // use the defaults already provided by the builder.
@@ -166,7 +171,8 @@ final class ConnectionLoggerFactory {
             case DISPATCHED:
                 builder.withDefaultSuccessMessage("Received response.")
                         .withDefaultFailureMessage("Received error response.")
-                        .withDefaultExceptionMessage("Received error response.");
+                        .withDefaultExceptionMessage("Received error response.")
+                        .logHeadersAndPayload();
                 break;
             case FILTERED:
                 final String message = MessageFormat.format(
@@ -181,12 +187,14 @@ final class ConnectionLoggerFactory {
                 break;
             case DROPPED:
                 builder.withDefaultSuccessMessage(EMPTY_PAYLOAD_MAPPING_MESSAGE)
-                        .withDefaultFailureMessage("Response dropped, missing replyTo address.");
+                        .withDefaultFailureMessage("Response dropped, missing replyTo address.")
+                        .logHeadersAndPayload();
                 break;
             case PUBLISHED:
                 builder.withDefaultSuccessMessage("Successfully published response.")
                         .withDefaultFailureMessage("Ran into a failure when publishing response: {0}")
-                        .withDefaultExceptionMessage("Unexpected failure when publishing response.");
+                        .withDefaultExceptionMessage("Unexpected failure when publishing response.")
+                        .logHeadersAndPayload();
                 break;
             default:
                 // use the defaults already provided by the builder.

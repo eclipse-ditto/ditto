@@ -13,7 +13,6 @@
 
 package org.eclipse.ditto.services.connectivity.messaging.monitoring.logs;
 
-import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
@@ -79,12 +78,12 @@ final class DefaultMuteableConnectionLogger implements MuteableConnectionLogger 
     }
 
     @Override
-    public void success(final String correlationId, final Instant timestamp, final String message,
-            @Nullable final String thingId) {
+    public void success(final ConnectionMonitor.InfoProvider infoProvider, final String message,
+            final Object... messageArguments) {
         if (active) {
-            delegate.success(correlationId, timestamp, message, thingId);
+            delegate.success(infoProvider, message, messageArguments);
         } else {
-            logTraceWithCorrelationId("Not logging success since logger is muted.", correlationId);
+            logTraceWithCorrelationId("Not logging success since logger is muted.", infoProvider);
         }
     }
 
@@ -98,12 +97,12 @@ final class DefaultMuteableConnectionLogger implements MuteableConnectionLogger 
     }
 
     @Override
-    public void failure(final String correlationId, final Instant timestamp, final String message,
-            @Nullable final String thingId) {
+    public void failure(final ConnectionMonitor.InfoProvider infoProvider, final String message,
+            final Object... messageArguments) {
         if (active) {
-            delegate.failure(correlationId, timestamp, message, thingId);
+            delegate.failure(infoProvider, message, messageArguments);
         } else {
-            logTraceWithCorrelationId("Not logging failure since logger is muted.", correlationId);
+            logTraceWithCorrelationId("Not logging failure since logger is muted.", infoProvider);
         }
     }
 
@@ -117,12 +116,12 @@ final class DefaultMuteableConnectionLogger implements MuteableConnectionLogger 
     }
 
     @Override
-    public void exception(final String correlationId, final Instant timestamp, final String message,
-            @Nullable final String thingId) {
+    public void exception(final ConnectionMonitor.InfoProvider infoProvider, final String message,
+            final Object... messageArguments) {
         if (active) {
-            delegate.exception(correlationId, timestamp, message, thingId);
+            delegate.exception(infoProvider, message, messageArguments);
         } else {
-            logTraceWithCorrelationId("Not logging exception since logger is muted.", correlationId);
+            logTraceWithCorrelationId("Not logging exception since logger is muted.", infoProvider);
         }
     }
 
@@ -144,13 +143,6 @@ final class DefaultMuteableConnectionLogger implements MuteableConnectionLogger 
         if (LOGGER.isTraceEnabled()) {
             ConnectionLogUtil.enhanceLogWithConnectionId(connectionId);
             LOGGER.trace(message);
-        }
-    }
-
-    private void logTraceWithCorrelationId(final String message, final String correlationId, final Object... messageArguments) {
-        if (LOGGER.isTraceEnabled()) {
-            ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(correlationId, connectionId);
-            LOGGER.trace(message, messageArguments);
         }
     }
 

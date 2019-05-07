@@ -13,11 +13,15 @@
 
 package org.eclipse.ditto.services.connectivity.messaging.monitoring.logs;
 
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Instant;
+import java.util.Base64;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -88,6 +92,96 @@ public final class ImmutableInfoProviderTest {
     }
 
     @Test
+    public void forExternalMessageWithHeaders() {
+        final Map<String, String> headers = DittoHeaders.newBuilder()
+                .putHeader("foo", "bar")
+                .putHeader("138", "ditto")
+                .build();
+        final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).build();
+
+        final ConnectionMonitor.InfoProvider info = ImmutableInfoProvider.forExternalMessage(externalMessage);
+
+        assertThat(info).hasHeaders(headers);
+    }
+
+    @Test
+    public void forExternalMessageWithTextPayload() {
+        final String textPayload = "{ \"foo\":\"bar\" }";
+        final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(new HashMap<>())
+                .withText(textPayload)
+                .build();
+
+        final ConnectionMonitor.InfoProvider info = ImmutableInfoProvider.forExternalMessage(externalMessage);
+
+        assertThat(info).hasPayload(textPayload);
+    }
+
+    @Test
+    public void forExternalMessageWithBytePayload() {
+        final byte[] bytePayload = "{ \"foo\":\"bar\" }".getBytes();
+        final String expectedBase64Payload = Base64.getEncoder().encodeToString(bytePayload);
+
+        final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(new HashMap<>())
+                .withBytes(bytePayload)
+                .build();
+
+        final ConnectionMonitor.InfoProvider info = ImmutableInfoProvider.forExternalMessage(externalMessage);
+
+        assertThat(info).hasPayload(expectedBase64Payload);
+
+    }
+
+    @Test
+    public void forExternalMessageWithoutTextPayload() {
+        final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(new HashMap<>())
+                .withText(null)
+                .build();
+
+        final ConnectionMonitor.InfoProvider info = ImmutableInfoProvider.forExternalMessage(externalMessage);
+
+        assertThat(info).hasEmptyTextPayload();
+    }
+
+    @Test
+    public void forExternalMessageWithoutBytePayload() {
+        final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(new HashMap<>())
+                .withBytes((byte[]) null)
+                .build();
+
+        final ConnectionMonitor.InfoProvider info = ImmutableInfoProvider.forExternalMessage(externalMessage);
+
+        assertThat(info).hasEmptyBytePayload();
+    }
+
+    @Test
+    public void forSignalWithHeaders() {
+        final DittoHeaders headers = DittoHeaders.newBuilder()
+                .putHeader("foo", "bar")
+                .putHeader("138", "ditto")
+                .build();
+        final Signal<?> signal = RetrieveThing.of("the:thing", headers);
+
+        final ConnectionMonitor.InfoProvider info = ImmutableInfoProvider.forSignal(signal);
+
+        assertThat(info).hasHeaders(headers);
+    }
+
+    @Test
+    public void forSignalWithPayload() {
+
+        final DittoHeaders headers = DittoHeaders.newBuilder()
+                .putHeader("foo", "bar")
+                .putHeader("138", "ditto")
+                .build();
+        final Signal<?> signal = RetrieveThing.of("the:thing", headers);
+        final String expectedTextPayload = signal.toJsonString();
+
+        final ConnectionMonitor.InfoProvider info = ImmutableInfoProvider.forSignal(signal);
+
+        assertThat(info).hasPayload(expectedTextPayload);
+    }
+
+    @Test
     public void empty() {
         final Instant before = Instant.now();
         final ConnectionMonitor.InfoProvider info = ImmutableInfoProvider.empty();
@@ -108,7 +202,7 @@ public final class ImmutableInfoProviderTest {
     @Test
     public void testImmutability() {
         assertInstancesOf(ImmutableInfoProvider.class,
-                areImmutable());
+                areImmutable(), provided(Supplier.class).isAlsoImmutable());
     }
 
     private InfoProviderAssert assertThat(final ConnectionMonitor.InfoProvider infoProvider) {
@@ -145,6 +239,30 @@ public final class ImmutableInfoProviderTest {
 
         private InfoProviderAssert hasDefaultCorrelationId() {
             return hasCorrelationId("<not-provided>");
+        }
+
+        private InfoProviderAssert hasHeaders(final Map<String, String> headers) {
+            isNotNull();
+            Assertions.assertThat(actual.getHeaders()).isEqualTo(headers);
+            return this;
+        }
+
+        private InfoProviderAssert hasPayload(final String payload) {
+            isNotNull();
+            Assertions.assertThat(actual.getPayload()).isEqualTo(payload);
+            return this;
+        }
+
+        private InfoProviderAssert hasEmptyTextPayload() {
+            isNotNull();
+            Assertions.assertThat(actual.getPayload()).isEqualTo("<empty-text-payload>");
+            return this;
+        }
+
+        private InfoProviderAssert hasEmptyBytePayload() {
+            isNotNull();
+            Assertions.assertThat(actual.getPayload()).isEqualTo("<empty-byte-payload>");
+            return this;
         }
 
     }
