@@ -12,9 +12,11 @@
  */
 package org.eclipse.ditto.model.base.headers;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoHeadersTooLargeException;
@@ -80,12 +82,50 @@ public final class DittoHeadersSizeChecker {
         }
     }
 
+    /**
+     * Check headers for size violation.
+     *
+     * @param dittoHeaders headers to check.
+     * @param authorizationContext authorization context to check.
+     * @param onSuccess what to do if headers are compliant.
+     * @param onError what to do if headers are not comnpliant.
+     * @param <T> type of results.
+     * @return the result of the handlers.
+     */
     public <T> T run(final DittoHeaders dittoHeaders,
             final AuthorizationContext authorizationContext,
             final Function<DittoHeaders, T> onSuccess,
             final Function<DittoRuntimeException, T> onError) {
 
         return check(dittoHeaders, authorizationContext).map(onError).orElseGet(() -> onSuccess.apply(dittoHeaders));
+    }
+
+    /**
+     * Truncate headers to the size limit, keeping as many header entries as possible.
+     *
+     * @param headers headers to truncate.
+     * @return headers within the size limit.
+     */
+    public DittoHeaders truncateHeaders(final Map<String, String> headers) {
+        final List<Map.Entry<String, String>> headersList = headers.entrySet()
+                .stream()
+                .sorted((entry1, entry2) ->
+                        entry2.getKey().length() + entry2.getValue().length()
+                                - entry1.getKey().length() - entry1.getValue().length())
+                .collect(Collectors.toList());
+
+        final DittoHeadersBuilder builder = DittoHeaders.newBuilder();
+
+        int quota = maxSize;
+
+        for (final Map.Entry<String, String> entry : headersList) {
+            if (quota < 0 || (quota -= entry.getKey().length()) < 0 || (quota -= entry.getValue().length()) < 0) {
+                return builder.build();
+            } else {
+                builder.putHeader(entry.getKey(), entry.getValue());
+            }
+        }
+        return builder.build();
     }
 
     boolean areHeadersTooLarge(final Map<? extends CharSequence, ? extends CharSequence> headersStream) {
