@@ -24,12 +24,13 @@
     <name>Eclipse Ditto :: Services :: Models</name>
 
     <modules>
-        <module>connectivity</module>
+        <module>base</module>
         <module>concierge</module>
+        <module>connectivity</module>
         <module>policies</module>
+        <module>streaming</module>
         <module>things</module>
         <module>thingsearch</module>
-        <module>streaming</module>
     </modules>
 
     <dependencies>
