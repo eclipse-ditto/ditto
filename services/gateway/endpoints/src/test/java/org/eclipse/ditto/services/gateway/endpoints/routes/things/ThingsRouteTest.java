@@ -53,7 +53,7 @@ public class ThingsRouteTest extends EndpointTestBase {
 
     @Test
     public void postFeaturesReturnsMethodNotAllowed() {
-        final TestRouteResult result = underTest.run(HttpRequest.POST("/things/%3Adummy/features"));
+        final TestRouteResult result = underTest.run(HttpRequest.POST("/things/org.eclipse.ditto%3Adummy/features"));
         result.assertStatusCode(StatusCodes.METHOD_NOT_ALLOWED);
     }
 
@@ -70,7 +70,7 @@ public class ThingsRouteTest extends EndpointTestBase {
 
     @Test
     public void createThingWithInvalidInitialPolicy() {
-        final String body = "{\"_policy\":1234}";
+        final String body = "{\"_policy\"org.eclipse.ditto:1234}";
         final RequestEntity requestEntity = HttpEntities.create(ContentTypes.APPLICATION_JSON, body);
         final TestRouteResult result = underTest.run(HttpRequest.POST("/things").withEntity(requestEntity));
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
@@ -89,7 +89,7 @@ public class ThingsRouteTest extends EndpointTestBase {
     @Test
     public void putAttributeWithEmptyPointer() {
         final String body = "\"bumlux\"";
-        final HttpRequest request = HttpRequest.PUT("/things/%3Adummy/attributes//")
+        final HttpRequest request = HttpRequest.PUT("/things/org.eclipse.ditto%3Adummy/attributes//")
                 .withEntity(HttpEntities.create(ContentTypes.APPLICATION_JSON, body));
         final TestRouteResult result =
                 underTest.run(request);

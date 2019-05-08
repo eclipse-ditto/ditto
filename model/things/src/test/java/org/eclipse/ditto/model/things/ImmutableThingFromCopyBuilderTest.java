@@ -789,14 +789,10 @@ public final class ImmutableThingFromCopyBuilderTest {
     }
 
     @Test(expected = ThingIdInvalidException.class)
-    public void tryToSetIdWithNamespaceWithNumberAfterPeriod() {
-        underTestV1.setId("namespace.42:foobar2000");
-    }
+    public void tryToSetIdWithNamespaceWithNumberAfterPeriod() { underTestV1.setId("namespace.42:foobar2000"); }
 
-    @Test
-    public void setIdWithEmptyNamespace() {
-        assertSetIdWithValidNamespace("");
-    }
+    @Test(expected = ThingIdInvalidException.class)
+    public void tryToSetIdWithEmptyNamespace() { underTestV1.setId(":foobar2000"); }
 
     @Test
     public void setIdWithTopLevelNamespace() {

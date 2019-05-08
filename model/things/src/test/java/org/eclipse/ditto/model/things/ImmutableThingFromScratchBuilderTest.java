@@ -655,16 +655,8 @@ public final class ImmutableThingFromScratchBuilderTest {
         underTest.setId("namespace.42:foobar2000");
     }
 
-    @Test
-    public void setIdWithEmptyNamespace() {
-        final String thingId = ":foobar2000";
-        underTest.setId(thingId);
-        final Thing thing = underTest.build();
-
-        assertThat(thing)
-                .hasId(thingId)
-                .hasNamespace("");
-    }
+    @Test(expected = ThingIdInvalidException.class)
+    public void tryToSetIdWithEmptyNamespace() { underTest.setId(":foobar2000"); }
 
     @Test
     public void setIdWithNamespace() {
