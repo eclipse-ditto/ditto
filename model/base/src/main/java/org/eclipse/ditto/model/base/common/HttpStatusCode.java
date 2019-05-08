@@ -420,7 +420,7 @@ public enum HttpStatusCode {
      * @return true if status code is 2XX false if not.
      */
     public boolean isSuccess() {
-        return statusCodeValue >= 200 && statusCodeValue <= 299;
+        return statusCodeValue >= OK.statusCodeValue && statusCodeValue < MULTIPLE_CHOICES.statusCodeValue;
     }
 
 }
