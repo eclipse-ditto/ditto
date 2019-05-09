@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.models.connectivity;
 import java.nio.ByteBuffer;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.placeholders.EnforcementFilter;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -36,6 +37,7 @@ public final class UnmodifiableExternalMessageTest {
         // The field "bytePayload" is mutable.
         // Assume the user never modifies it.
         MutabilityAssert.assertInstancesOf(UnmodifiableExternalMessage.class, MutabilityMatchers.areImmutable(),
+                AllowedReason.provided(DittoHeaders.class).isAlsoImmutable(),
                 AllowedReason.assumingFields("bytePayload").areNotModifiedAndDoNotEscape(),
                 AllowedReason.provided(ByteBuffer.class, AuthorizationContext.class, Adaptable.class,
                         EnforcementFilter.class, HeaderMapping.class, TopicPath.class).areAlsoImmutable());
