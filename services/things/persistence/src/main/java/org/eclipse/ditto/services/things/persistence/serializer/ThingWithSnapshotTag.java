@@ -237,6 +237,11 @@ public final class ThingWithSnapshotTag implements Thing {
     }
 
     @Override
+    public void validate() {
+        delegee.validate();
+    }
+
+    @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         return delegee.toJson(schemaVersion, thePredicate);
     }

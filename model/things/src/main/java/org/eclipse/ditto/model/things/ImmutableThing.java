@@ -62,20 +62,18 @@ final class ImmutableThing implements Thing {
             @Nullable final Instant modified) {
 
         if (null != thingId) {
-            ThingIdValidator.getInstance().accept(thingId, DittoHeaders.empty());
             final Matcher nsMatcher = ID_PATTERN.matcher(thingId);
-            nsMatcher.matches();
-            namespace = nsMatcher.group("ns");
+            if (nsMatcher.matches()) {
+                namespace = nsMatcher.group("ns");
+            } else {
+                namespace = null;
+            }
         } else {
             namespace = null;
         }
 
         this.thingId = thingId;
         this.acl = acl;
-
-        if (policyId != null) {
-            ThingPolicyIdValidator.getInstance().accept(policyId, DittoHeaders.empty());
-        }
 
         this.policyId = policyId;
         this.attributes = attributes;
@@ -353,6 +351,14 @@ final class ImmutableThing implements Thing {
         ConditionChecker.checkNotNull(newLifecycle, "lifecycle to be set");
 
         return new ImmutableThing(thingId, acl, policyId, attributes, features, newLifecycle, revision, modified);
+    }
+
+    @Override
+    public void validate() {
+        ThingIdValidator.getInstance().accept(thingId, DittoHeaders.empty());
+        if (policyId != null) {
+            ThingPolicyIdValidator.getInstance().accept(policyId, DittoHeaders.empty());
+        }
     }
 
     @Override

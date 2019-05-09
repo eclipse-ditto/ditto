@@ -473,7 +473,7 @@ public final class ThingCommandEnforcementTest {
 
     @Test
     public void transformModifyThingToCreateThing() {
-        final Thing thingInPayload = newThing().setId(null).build();
+        final Thing thingInPayload = newThing().setId(THING_ID).build();
 
         new TestKit(system) {{
             final ActorRef underTest = TestSetup.newEnforcerActor(system, getRef(), getRef());

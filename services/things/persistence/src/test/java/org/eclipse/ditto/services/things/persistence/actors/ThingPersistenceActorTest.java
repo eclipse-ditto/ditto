@@ -717,7 +717,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
         final Thing thing = ThingsModelFactory.newThingBuilder()
                 .setAttributes(ThingsModelFactory.newAttributes(attributes))
-                .setGeneratedId()
+                .setId(THING_ID)
                 .setPolicyId(POLICY_ID)
                 .build();
 
@@ -757,7 +757,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
         final Thing thing = ThingsModelFactory.newThingBuilder()
                 .setAttributes(ThingsModelFactory.newAttributes(attributes))
-                .setGeneratedId()
+                .setId(THING_ID)
                 .setPolicyId(POLICY_ID)
                 .build();
 
@@ -792,7 +792,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
         final Thing thing = ThingsModelFactory.newThingBuilder()
                 .setAttributes(ThingsModelFactory.newAttributes(attributes))
-                .setGeneratedId()
+                .setId(THING_ID)
                 .setPolicyId(POLICY_ID)
                 .build();
 

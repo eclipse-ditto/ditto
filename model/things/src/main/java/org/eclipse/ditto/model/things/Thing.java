@@ -505,6 +505,14 @@ public interface Thing extends Entity<ThingRevision> {
     Thing removeFeature(String featureId);
 
     /**
+     * Validates the thingId and policyId of this Thing.
+     *
+     * @throws ThingIdInvalidException if {@code thingId} is invalid.
+     * @throws ThingPolicyIdInvalidException if {@code policyId} is invalid.
+     */
+    void validate();
+
+    /**
      * An enumeration of the known {@link JsonField}s of a Thing.
      */
     @Immutable

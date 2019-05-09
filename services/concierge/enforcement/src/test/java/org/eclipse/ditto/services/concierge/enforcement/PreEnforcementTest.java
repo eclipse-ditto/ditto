@@ -34,10 +34,13 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.AclEntry;
+import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -129,6 +132,33 @@ public final class PreEnforcementTest {
         }};
     }
 
+    @Test
+    public void rejectWhenPreEnforcementThrowsThingIdInvalidException() {
+        disableLogging();
+        final String invalidThingId = "invalidThingId";
+        final Thing thing = newThing()
+                .setId(invalidThingId)
+                .setPermissions(
+                        AclEntry.newInstance(SUBJECT, READ, WRITE, ADMINISTRATE))
+                .build();
+        final SudoRetrieveThingResponse response =
+                SudoRetrieveThingResponse.of(thing.toJson(), DittoHeaders.empty());
+
+        new TestKit(system) {{
+            mockEntitiesActorInstance.setReply(THING_SUDO, response);
+
+            final ThingIdInvalidException mockedEx =
+                    ThingIdInvalidException.newBuilder(invalidThingId).build();
+
+            final ActorRef underTest = newEnforcerActor(getRef(), msg -> CompletableFuture.supplyAsync(() -> {
+                throw mockedEx;
+            }));
+
+            final ThingCommand create = CreateThing.of(thing, null, DittoHeaders.empty());
+            underTest.tell(create, getRef());
+            assertThat(expectMsgClass(mockedEx.getClass())).isEqualTo(mockedEx);
+        }};
+    }
 
     @Test
     public void rejectWhenPreEnforcementReturnsUnexpectedException() {
