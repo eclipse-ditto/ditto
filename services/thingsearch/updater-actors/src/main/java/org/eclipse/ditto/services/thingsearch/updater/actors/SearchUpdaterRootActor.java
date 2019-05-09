@@ -14,7 +14,6 @@ import java.time.Duration;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.services.base.config.ClusterConfig;
 import org.eclipse.ditto.services.thingsearch.common.util.RootSupervisorStrategyFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
@@ -25,6 +24,7 @@ import org.eclipse.ditto.services.thingsearch.updater.config.UpdaterConfig;
 import org.eclipse.ditto.services.utils.akka.streaming.SyncConfig;
 import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
+import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;

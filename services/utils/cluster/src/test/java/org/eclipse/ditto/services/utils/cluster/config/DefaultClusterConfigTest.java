@@ -101,7 +101,9 @@ public final class DefaultClusterConfigTest {
     public void toStringReturnsExpected() {
         final DefaultClusterConfig underTest = DefaultClusterConfig.of(ConfigFactory.empty());
 
-        softly.assertThat(underTest.toString()).contains(underTest.getClass().getSimpleName()).contains("numberOfShards");
+        softly.assertThat(underTest.toString())
+                .contains(underTest.getClass().getSimpleName())
+                .contains("numberOfShards");
     }
 
 }
