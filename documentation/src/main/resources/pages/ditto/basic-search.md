@@ -1,11 +1,11 @@
 ---
-title: Search
+title: Search functionality
 keywords: search, things-search, rql, query
 tags: [search, rql]
 permalink: basic-search.html
 ---
 
-Ditto provides a search functionality as one of the services around its managed **Digital Twins**.
+Ditto provides a search functionality as one of the services around its managed **digital twins**.
 
 ## Search index
 

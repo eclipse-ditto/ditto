@@ -57,7 +57,7 @@ public final class ChangeLogLevel extends AbstractDevOpsCommand<ChangeLogLevel> 
 
     private final LoggerConfig loggerConfig;
 
-    private ChangeLogLevel(@Nullable final String serviceName, @Nullable final Integer instance,
+    private ChangeLogLevel(@Nullable final String serviceName, @Nullable final String instance,
             final LoggerConfig loggerConfig, final DittoHeaders dittoHeaders) {
         super(TYPE, serviceName, instance, dittoHeaders);
         this.loggerConfig = requireNonNull(loggerConfig, "The logger configuration must not be null!");
@@ -73,7 +73,7 @@ public final class ChangeLogLevel extends AbstractDevOpsCommand<ChangeLogLevel> 
      * @return a new ChangeLogLevel command.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ChangeLogLevel of(@Nullable final String serviceName, @Nullable final Integer instance,
+    public static ChangeLogLevel of(@Nullable final String serviceName, @Nullable final String instance,
             final LoggerConfig loggerConfig, final DittoHeaders dittoHeaders) {
         return new ChangeLogLevel(serviceName, instance, loggerConfig, dittoHeaders);
     }
@@ -131,7 +131,7 @@ public final class ChangeLogLevel extends AbstractDevOpsCommand<ChangeLogLevel> 
     public static ChangeLogLevel fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ChangeLogLevel>(TYPE, jsonObject).deserialize(() -> {
             final String serviceName = jsonObject.getValue(DevOpsCommand.JsonFields.JSON_SERVICE_NAME).orElse(null);
-            final Integer instance = jsonObject.getValue(DevOpsCommand.JsonFields.JSON_INSTANCE).orElse(null);
+            final String instance = jsonObject.getValue(DevOpsCommand.JsonFields.JSON_INSTANCE).orElse(null);
             final JsonObject loggerConfigJsonObject = jsonObject.getValueOrThrow(JSON_LOGGER_CONFIG);
             final LoggerConfig loggerConfig = ImmutableLoggerConfig.fromJson(loggerConfigJsonObject);
 

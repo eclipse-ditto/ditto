@@ -42,12 +42,15 @@
         <aspect name="akka.kamon.instrumentation.RemotingInstrumentation"/>
         <aspect name="akka.kamon.instrumentation.HasTransientContextIntoSend"/>
         <aspect name="akka.kamon.instrumentation.MessageBufferInstrumentation"/>
-
+        <aspect name="akka.kamon.instrumentation.cluster.ShardingInstrumentation"/>
+        <aspect name="akka.kamon.instrumentation.cluster.IdentifiableElements"/>
     </aspects>
 
     <weaver options="-warn:none -Xlint:ignore">
         <include within="kamon..*"/>
         <include within="akka..*"/>
+
+        <include within="kamon.scala.instrumentation..*"/>
 
         <include within="scala.concurrent..*"/>
         <include within="scalaz.concurrent..*"/>

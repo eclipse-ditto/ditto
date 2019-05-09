@@ -1,0 +1,90 @@
+{{- if .Values.gateway.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.gateway.name }}
+  labels:
+    app: {{ .Values.gateway.name }}
+    app.kubernetes.io/name: {{ .Values.gateway.name }}
+    app.kubernetes.io/part-of: {{ .Chart.Name }}
+    app.kubernetes.io/version: "{{.Chart.Version}}"
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.gateway.name }}
+  replicas: {{ .Values.gateway.replicaCount }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.gateway.name }}
+        actorSystemName: ditto-cluster
+    spec:
+      containers:
+        - name: {{ .Values.gateway.name }}
+          image: "{{ .Values.gateway.image.repository }}:{{ .Values.gateway.image.tag }}"
+          imagePullPolicy: {{ .Values.gateway.image.imagePullPolicy }}
+          command: ["java"]
+          args: ["-jar", "/opt/ditto/starter.jar"]
+          ports:
+            - name: akka-remoting
+              containerPort: {{ .Values.akka.remoting.port }}
+              protocol: TCP
+            - name: akka-mgmt-http
+              containerPort: {{ .Values.akka.mgmthttp.port }}
+              protocol: TCP
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.akka.mgmthttp.port }}
+            initialDelaySeconds: 45
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.akka.remoting.port }}
+            initialDelaySeconds: 180
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 4
+          env:
+            - name: K8S_NAMESPACE
+              value: {{.Release.Namespace}}
+            - name: ENABLE_DUMMY_AUTH
+              value: "true"
+            - name: INSTANCE_INDEX
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+            - name: DISCOVERY_METHOD
+              value: "kubernetes-api"
+            - name: TZ
+              value: "{{ .Values.global.timezone }}"
+            - name: IBM_JAVA_OPTIONS
+              value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.gateway.name }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.gateway.name }}
+    app.kubernetes.io/part-of: {{ .Chart.Name }}
+    app.kubernetes.io/version: "{{.Chart.Version}}"
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+  selector:
+    app: {{ .Values.gateway.name }}
+{{- end }}
