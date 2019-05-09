@@ -13,8 +13,6 @@
 
 package org.eclipse.ditto.services.connectivity.messaging.monitoring.logs;
 
-import java.text.MessageFormat;
-import java.time.Instant;
 import java.util.Collection;
 
 import javax.annotation.Nullable;
@@ -43,13 +41,12 @@ public interface ConnectionLogger {
 
     /**
      * Log a success event.
-     * @param correlationId the correlation id of the event.
-     * @param timestamp when it happened.
-     * @param message message that should be logged.
-     * @param thingId optionally the thing to which the event relates to.
+     * @param infoProvider containing additional information on the event.
+     * @param message a custom message that is used for logging the event.
+     * @param messageArguments additional message arguments that are part of {@code message}.
+     * {@link java.text.MessageFormat#format(String, Object...)} is used for applying message arguments to {@code message}.
      */
-    void success(final String correlationId, final Instant timestamp, final String message,
-            @Nullable final String thingId);
+    void success(final ConnectionMonitor.InfoProvider infoProvider, final String message, final Object... messageArguments);
 
     /**
      * Log a failure event.
@@ -60,13 +57,12 @@ public interface ConnectionLogger {
 
     /**
      * Log a failure event.
-     * @param correlationId the correlation id of the event.
-     * @param timestamp when it happened.
-     * @param message message that should be logged.
-     * @param thingId optionally the thing to which the event relates to.
+     * @param infoProvider containing additional information on the event.
+     * @param message a custom message that is used for logging the event.
+     * @param messageArguments additional message arguments that are part of {@code message}.
+     * {@link java.text.MessageFormat#format(String, Object...)} is used for applying message arguments to {@code message}.
      */
-    void failure(final String correlationId, final Instant timestamp, final String message,
-            @Nullable final String thingId);
+    void failure(final ConnectionMonitor.InfoProvider infoProvider, final String message, final Object... messageArguments);
 
     /**
      * Log a failure event.
@@ -77,30 +73,17 @@ public interface ConnectionLogger {
 
     /**
      * Log an exception event.
-     * @param correlationId the correlation id of the event.
-     * @param timestamp when it happened.
-     * @param message message that should be logged.
-     * @param thingId optionally the thing to which the event relates to.
-     */
-    void exception(final String correlationId, final Instant timestamp, final String message, @Nullable final String thingId);
-
-    /**
-     * Clears the logs.
-     */
-    void clear();
-
-    /**
-     * Log a success event.
      * @param infoProvider containing additional information on the event.
      * @param message a custom message that is used for logging the event.
      * @param messageArguments additional message arguments that are part of {@code message}.
      * {@link java.text.MessageFormat#format(String, Object...)} is used for applying message arguments to {@code message}.
      */
-    default void success(final ConnectionMonitor.InfoProvider infoProvider, final String message, final Object... messageArguments) {
-        final String formattedMessage = formatMessage(message, messageArguments);
-        success(infoProvider.getCorrelationId(), infoProvider.getTimestamp(), formattedMessage,
-                infoProvider.getThingId());
-    }
+    void exception(final ConnectionMonitor.InfoProvider infoProvider, final String message, final Object... messageArguments);
+
+    /**
+     * Clears the logs.
+     */
+    void clear();
 
     /**
      * Log a failure event.
@@ -120,48 +103,11 @@ public interface ConnectionLogger {
     }
 
     /**
-     * Log a failure event.
-     * @param infoProvider containing additional information on the event.
-     * @param message a custom message that is used for logging the event.
-     * @param messageArguments additional message arguments that are part of {@code message}.
-     * {@link java.text.MessageFormat#format(String, Object...)} is used for applying message arguments to {@code message}.
-     */
-    default void failure(final ConnectionMonitor.InfoProvider infoProvider, final String message, final Object... messageArguments) {
-        final String formattedMessage = formatMessage(message, messageArguments);
-        failure(infoProvider.getCorrelationId(), infoProvider.getTimestamp(), formattedMessage, infoProvider.getThingId());
-    }
-
-    /**
      * Log an exception event.
      * @param infoProvider containing additional information on the event.
      */
     default void exception(final ConnectionMonitor.InfoProvider infoProvider) {
         exception(infoProvider, null);
-    }
-
-    /**
-     * Log an exception event.
-     * @param infoProvider containing additional information on the event.
-     * @param message a custom message that is used for logging the event.
-     * @param messageArguments additional message arguments that are part of {@code message}.
-     * {@link java.text.MessageFormat#format(String, Object...)} is used for applying message arguments to {@code message}.
-     */
-    default void exception(final ConnectionMonitor.InfoProvider infoProvider, final String message, final Object... messageArguments) {
-        final String formattedMessage = formatMessage(message, messageArguments);
-        exception(infoProvider.getCorrelationId(), infoProvider.getTimestamp(), formattedMessage, infoProvider.getThingId());
-    }
-
-    /**
-     * Formats the {@code message} with the {@code messageArguments} using {@link MessageFormat#format(String, Object...)}.
-     * @param message the message with formatting fields as defined by {@link MessageFormat}.
-     * @param messageArguments arguments that are part of the message.
-     * @return the formatted message.
-     */
-    static String formatMessage(final String message, final Object... messageArguments) {
-        if (messageArguments.length > 0) {
-            return MessageFormat.format(message, messageArguments);
-        }
-        return message;
     }
 
 }
