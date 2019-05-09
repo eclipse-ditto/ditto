@@ -15,8 +15,7 @@ import java.io.Serializable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.base.config.DittoServiceConfig;
-import org.eclipse.ditto.services.base.config.LimitsConfig;
-import org.eclipse.ditto.services.base.config.MetricsConfig;
+import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.AuthenticationConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.CachesConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.DefaultAuthenticationConfig;

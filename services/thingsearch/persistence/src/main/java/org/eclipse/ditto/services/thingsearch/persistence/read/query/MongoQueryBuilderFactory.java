@@ -17,7 +17,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.query.QueryBuilder;
 import org.eclipse.ditto.model.query.QueryBuilderFactory;
 import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.services.base.config.LimitsConfig;
+import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 
 /**
  * Mongo implementation for {@link QueryBuilderFactory}.

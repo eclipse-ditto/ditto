@@ -20,7 +20,7 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.services.base.config.HttpConfig;
+import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.concierge.batch.actors.BatchSupervisorActor;
 import org.eclipse.ditto.services.concierge.starter.config.ConciergeConfig;
 import org.eclipse.ditto.services.concierge.starter.proxy.AbstractEnforcerActorFactory;

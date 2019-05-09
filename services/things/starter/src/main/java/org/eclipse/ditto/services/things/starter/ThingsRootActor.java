@@ -20,8 +20,7 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.services.base.config.ClusterConfig;
-import org.eclipse.ditto.services.base.config.HttpConfig;
+import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.things.persistence.actors.ThingNamespaceOpsActor;
 import org.eclipse.ditto.services.things.persistence.actors.ThingSupervisorActor;

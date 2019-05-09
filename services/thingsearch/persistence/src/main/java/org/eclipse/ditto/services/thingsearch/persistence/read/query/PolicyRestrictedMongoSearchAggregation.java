@@ -82,7 +82,7 @@ import org.eclipse.ditto.model.query.expression.SimpleFieldExpressionImpl;
 import org.eclipse.ditto.model.query.expression.SortFieldExpression;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
-import org.eclipse.ditto.services.base.config.LimitsConfig;
+import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.thingsearch.persistence.read.AggregationBuilder;
 import org.eclipse.ditto.services.thingsearch.persistence.read.PolicyRestrictedSearchAggregation;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonVisitor;

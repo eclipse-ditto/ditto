@@ -22,7 +22,7 @@ import java.util.regex.PatternSyntaxException;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.base.config.DefaultHttpConfig;
+import org.eclipse.ditto.services.base.config.http.DefaultHttpConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.config.DittoConfigError;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;

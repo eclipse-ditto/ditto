@@ -29,12 +29,14 @@ import org.eclipse.ditto.model.query.expression.SimpleFieldExpressionImpl;
 import org.eclipse.ditto.model.query.expression.SortFieldExpression;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
-import org.eclipse.ditto.services.base.config.DittoLimitsConfigReader;
-import org.eclipse.ditto.services.base.config.LimitsConfigReader;
+import org.eclipse.ditto.services.base.DittoService;
+import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.mongodb.client.model.Sorts;
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -46,17 +48,22 @@ public final class MongoQueryTest {
 
     private static final Criteria KNOWN_CRIT = mock(Criteria.class);
     private static final ThingsFieldExpressionFactory EFT = new ThingsFieldExpressionFactoryImpl();
+
+    private static int defaultPageSizeFromConfig;
+
     private List<SortOption> knownSortOptions;
     private Bson knownSortOptionsExpectedBson;
-    private int defaultPageSizeFromConfig;
 
-    /** */
+    @BeforeClass
+    public static void initTestFixture() {
+        final Config testConfig = ConfigFactory.load("test");
+        final DefaultLimitsConfig limitsConfig =
+                DefaultLimitsConfig.of(testConfig.getConfig(DittoService.DITTO_CONFIG_PATH));
+        defaultPageSizeFromConfig = limitsConfig.getThingsSearchDefaultPageSize();
+    }
+
     @Before
     public void before() {
-        final LimitsConfigReader limitsConfigReader = DittoLimitsConfigReader.fromRawConfig(ConfigFactory.load("test"));
-
-        defaultPageSizeFromConfig = limitsConfigReader.thingsSearchDefaultPageSize();
-
         final SortFieldExpression sortExp1 = EFT.sortByThingId();
         final SortFieldExpression sortExp2 = EFT.sortByAttribute("test");
         knownSortOptions =
@@ -68,20 +75,17 @@ public final class MongoQueryTest {
                 Sorts.orderBy(Arrays.asList(Sorts.ascending(thingIdFieldName), Sorts.descending(attributeFieldName)));
     }
 
-    /** */
     @Test
     public void hashcodeAndEquals() {
         EqualsVerifier.forClass(MongoQuery.class).verify();
     }
 
-    /** */
     @Test
     public void immutability() {
         assertInstancesOf(MongoQuery.class, areImmutable(),
                 provided(Criteria.class, SortOption.class).isAlsoImmutable());
     }
 
-    /** */
     @Test
     public void criteriaIsCorrectlySet() {
         final MongoQuery query = new MongoQuery(KNOWN_CRIT, knownSortOptions, defaultPageSizeFromConfig,
@@ -90,7 +94,6 @@ public final class MongoQueryTest {
         assertThat(query.getCriteria()).isEqualTo(KNOWN_CRIT);
     }
 
-    /** */
     @Test
     public void emptySortOptions() {
         final MongoQuery query = new MongoQuery(KNOWN_CRIT, Collections.emptyList(), defaultPageSizeFromConfig,
@@ -109,7 +112,6 @@ public final class MongoQueryTest {
         assertThat(actualDoc).isEqualTo(expectedDoc);
     }
 
-    /** */
     @Test
     public void sortOptionsAreCorrectlySet() {
         final MongoQuery query = new MongoQuery(KNOWN_CRIT, knownSortOptions, defaultPageSizeFromConfig,

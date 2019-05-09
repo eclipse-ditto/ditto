@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.base.config;
+package org.eclipse.ditto.services.base.config.http;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -16,7 +16,7 @@ import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
+import org.eclipse.ditto.services.utils.config.DittoConfigError;
 import org.eclipse.ditto.services.utils.config.WithConfigPath;
 
 import com.typesafe.config.Config;
@@ -34,7 +34,7 @@ public final class DefaultHttpConfig implements HttpConfig, Serializable, WithCo
     private final String hostname;
     private final int port;
 
-    private DefaultHttpConfig(final ScopedConfig config) {
+    private DefaultHttpConfig(final ConfigWithFallback config) {
         hostname = config.getString(HttpConfigValue.HOSTNAME.getConfigPath());
         port = config.getInt(HttpConfigValue.PORT.getConfigPath());
     }
@@ -44,7 +44,7 @@ public final class DefaultHttpConfig implements HttpConfig, Serializable, WithCo
      *
      * @param config is supposed to provide the settings of the HTTP config at {@value #CONFIG_PATH}.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
+     * @throws DittoConfigError if {@code config} is invalid.
      */
     public static DefaultHttpConfig of(final Config config) {
         return new DefaultHttpConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH, HttpConfigValue.values()));
@@ -77,7 +77,7 @@ public final class DefaultHttpConfig implements HttpConfig, Serializable, WithCo
             return false;
         }
         final DefaultHttpConfig that = (DefaultHttpConfig) o;
-        return port == that.port && hostname.equals(that.hostname);
+        return port == that.port && Objects.equals(hostname, that.hostname);
     }
 
     @Override

@@ -15,8 +15,8 @@ import static org.mockito.Mockito.mock;
 
 import org.eclipse.ditto.model.query.QueryBuilder;
 import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.services.base.config.DefaultLimitsConfig;
-import org.eclipse.ditto.services.base.config.LimitsConfig;
+import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
+import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;

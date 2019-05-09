@@ -17,9 +17,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.base.config.DittoServiceConfig;
-import org.eclipse.ditto.services.base.config.HttpConfig;
-import org.eclipse.ditto.services.base.config.LimitsConfig;
-import org.eclipse.ditto.services.base.config.MetricsConfig;
+import org.eclipse.ditto.services.base.config.http.HttpConfig;
+import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.policies.persistence.config.DefaultPolicyConfig;
 import org.eclipse.ditto.services.policies.persistence.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;

@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.base.config;
+package org.eclipse.ditto.services.base.config.http;
 
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -22,7 +22,7 @@ import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 
 import org.assertj.core.api.JUnitSoftAssertions;
-import org.eclipse.ditto.services.base.config.HttpConfig.HttpConfigValue;
+import org.eclipse.ditto.services.base.config.http.HttpConfig.HttpConfigValue;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -33,7 +33,7 @@ import com.typesafe.config.ConfigFactory;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.base.config.DefaultHttpConfig}.
+ * Unit test for {@link DefaultHttpConfig}.
  */
 public final class DefaultHttpConfigTest {
 

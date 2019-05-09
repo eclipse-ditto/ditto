@@ -21,12 +21,14 @@ import org.eclipse.ditto.model.query.SortDirection;
 import org.eclipse.ditto.model.query.SortOption;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.expression.SortFieldExpression;
-import org.eclipse.ditto.services.base.config.DittoLimitsConfigReader;
-import org.eclipse.ditto.services.base.config.LimitsConfigReader;
+import org.eclipse.ditto.services.base.DittoService;
+import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 /**
@@ -37,27 +39,32 @@ public final class MongoQueryBuilderLimitedTest {
     private static final SortOption KNOWN_SORT_OPTION =
             new SortOption(mock(SortFieldExpression.class), SortDirection.ASC);
 
-    private Criteria criteria = Mockito.mock(Criteria.class);
-    private MongoQueryBuilder underTest;
+    private static DefaultLimitsConfig limitsConfig;
+
+    private final Criteria criteria = Mockito.mock(Criteria.class);
+
     private int maxPageSizeFromConfig;
     private int defaultPageSizeFromConfig;
+    private MongoQueryBuilder underTest;
 
-    /** */
+    @BeforeClass
+    public static void initTestFixture() {
+        final Config testConfig = ConfigFactory.load("test");
+        limitsConfig = DefaultLimitsConfig.of(testConfig.getConfig(DittoService.DITTO_CONFIG_PATH));
+    }
+
     @Before
     public void setUp() {
-        final LimitsConfigReader limitsConfigReader = DittoLimitsConfigReader.fromRawConfig(ConfigFactory.load("test"));
-        maxPageSizeFromConfig = limitsConfigReader.thingsSearchMaxPageSize();
-        defaultPageSizeFromConfig = limitsConfigReader.thingsSearchDefaultPageSize();
+        maxPageSizeFromConfig = limitsConfig.getThingsSearchMaxPageSize();
+        defaultPageSizeFromConfig = limitsConfig.getThingsSearchDefaultPageSize();
         underTest = MongoQueryBuilder.limited(criteria, maxPageSizeFromConfig, defaultPageSizeFromConfig);
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void createWithNullCriteria() {
         MongoQueryBuilder.limited(null, maxPageSizeFromConfig, defaultPageSizeFromConfig);
     }
 
-    /** */
     @Test
     public void buildWithCriteriaOnly() {
         final Query query = underTest.build();
@@ -65,8 +72,6 @@ public final class MongoQueryBuilderLimitedTest {
         assertThat(query.getCriteria()).isEqualTo(criteria);
     }
 
-    /** */
-    @Test
     public void buildWithSort() {
         final List<SortOption> sortOptions = Collections.singletonList(KNOWN_SORT_OPTION);
         final Query query = underTest.sort(sortOptions).build();
@@ -74,7 +79,6 @@ public final class MongoQueryBuilderLimitedTest {
         assertThat(query.getSortOptions()).isEqualTo(sortOptions);
     }
 
-    /** */
     @Test
     public void buildWithLimit() {
         final int limit = maxPageSizeFromConfig - 1;
@@ -83,7 +87,6 @@ public final class MongoQueryBuilderLimitedTest {
         assertThat(query.getLimit()).isEqualTo(limit);
     }
 
-    /** */
     @Test
     public void buildWithSkip() {
         final int skip = 4;
@@ -92,20 +95,17 @@ public final class MongoQueryBuilderLimitedTest {
         assertThat(query.getSkip()).isEqualTo(skip);
     }
 
-    /** */
     @Test(expected = IllegalArgumentException.class)
     public void buildWithLimitGreaterThanMaxValue() {
         final long limitTooHigh = (long) maxPageSizeFromConfig + 1;
         underTest.limit(limitTooHigh);
     }
 
-    /** */
     @Test(expected = IllegalArgumentException.class)
     public void buildWithLimitLessThanZero() {
         underTest.limit(-1);
     }
 
-    /** */
     @Test(expected = IllegalArgumentException.class)
     public void buildWithSkipLessThanZero() {
         underTest.skip(-1);

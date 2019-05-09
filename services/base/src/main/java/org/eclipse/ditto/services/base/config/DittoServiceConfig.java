@@ -22,9 +22,17 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.base.config.http.DefaultHttpConfig;
+import org.eclipse.ditto.services.base.config.http.HttpConfig;
+import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
+import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
+import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
+import org.eclipse.ditto.services.utils.cluster.config.DefaultClusterConfig;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.DittoConfigError;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
+import org.eclipse.ditto.services.utils.metrics.config.DefaultMetricsConfig;
+import org.eclipse.ditto.services.utils.metrics.config.MetricsConfig;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigList;
@@ -48,12 +56,12 @@ public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificCo
     private static final long serialVersionUID = -3055318635902386342L;
 
     private final ScopedConfig config;
-    private final LimitsConfig limitsConfig;
-    private final ClusterConfig clusterConfig;
-    private final HttpConfig httpConfig;
-    private final MetricsConfig metricsConfig;
+    private final DefaultLimitsConfig limitsConfig;
+    private final DefaultClusterConfig clusterConfig;
+    private final DefaultHttpConfig httpConfig;
+    private final DefaultMetricsConfig metricsConfig;
 
-    private DittoServiceConfig(final ScopedConfig theConfig, final LimitsConfig theLimitsConfig) {
+    private DittoServiceConfig(final ScopedConfig theConfig, final DefaultLimitsConfig theLimitsConfig) {
         config = theConfig;
         limitsConfig = theLimitsConfig;
         clusterConfig = DefaultClusterConfig.of(config);
