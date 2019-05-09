@@ -12,10 +12,12 @@
  */
 package org.eclipse.ditto.services.utils.metrics.instruments.counter;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,31 +29,35 @@ import kamon.metric.MetricValue;
 /**
  * Kamon based implementation of {@link Counter}.
  */
+@Immutable
 public class KamonCounter implements Counter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KamonCounter.class);
+
     private final String name;
     private final Map<String, String> tags;
 
-    private KamonCounter(final String name) {
+    private KamonCounter(final String name, final Map<String, String> tags) {
         this.name = name;
-        this.tags = new HashMap<>();
+        this.tags = Collections.unmodifiableMap(new HashMap<>(tags));
     }
 
     public static Counter newCounter(final String name) {
-        return new KamonCounter(name);
+        return new KamonCounter(name, Collections.emptyMap());
     }
 
     @Override
     public Counter tag(final String key, final String value) {
-        this.tags.put(key, value);
-        return this;
+        final HashMap<String, String> newMap = new HashMap<>(tags);
+        newMap.put(key, value);
+        return new KamonCounter(name, newMap);
     }
 
     @Override
     public Counter tags(final Map<String, String> tags) {
-        this.tags.putAll(tags);
-        return this;
+        final HashMap<String, String> newMap = new HashMap<>(this.tags);
+        newMap.putAll(tags);
+        return new KamonCounter(name, newMap);
     }
 
     @Nullable
@@ -62,7 +68,7 @@ public class KamonCounter implements Counter {
 
     @Override
     public Map<String, String> getTags() {
-        return new HashMap<>(tags);
+        return tags;
     }
 
     @Override

@@ -35,7 +35,7 @@ The RQL filter specifies "what" to filter.
 <property> = url-encoded-string
 ```
 
-To filter nested properties, Ditto uses the JSON Pointer notation ([RFC-6901](http://www.rfc-base.org/rfc-6901.html)).
+To filter nested properties, Ditto uses the JSON Pointer notation ([RFC-6901](https://tools.ietf.org/html/rfc6901)).
 
 The following example shows how to apply a filter for the sub property location of the parent property attributes with 
 a forward slash as separator:

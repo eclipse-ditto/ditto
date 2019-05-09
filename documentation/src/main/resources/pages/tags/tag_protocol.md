@@ -1,5 +1,5 @@
 ---
-title: "Protocol"
+title: "Protocol topics"
 tagName: protocol
 search: exclude
 permalink: tag_protocol.html

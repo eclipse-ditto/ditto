@@ -6,7 +6,7 @@ permalink: basic-changenotifications.html
 ---
 
 [Signals](basic-signals.html) already described what an [Event](basic-signals-event.html) in Ditto is.
-Events are emitted after an entity (either a **Digital Twin** or an actual device) was changed.
+Events are emitted after an entity (either a **digital twin** or an actual device) was changed.
 
 At the Ditto API there are different ways for getting notified of such events:
 * Via the [WebSocket API](httpapi-protocol-bindings-websocket.html) a WebSocket client gets all Events the authenticated subject

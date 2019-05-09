@@ -36,7 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
-import akka.pattern.PatternsCS;
+import akka.pattern.Patterns;
 
 /**
  * Responsible for resolving a policy id of a referenced entity.
@@ -67,8 +67,8 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
     }
 
     /**
-     * Resolves the policy id of the entity of type {@link ReferencePlaceholder#referencedEntityType} with id
-     * {@link ReferencePlaceholder#referencedEntityId}.
+     * Resolves the policy id of the entity of type {@link ReferencePlaceholder#getReferencedEntityType()} with id
+     * {@link ReferencePlaceholder#getReferencedEntityId()}.
      *
      * @param referencePlaceholder The placeholder holding the information about the referenced entity id.
      * @param dittoHeaders The ditto headers.
@@ -102,7 +102,7 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
                         .withSelectedFields(referencePlaceholder.getReferencedField().toFieldSelector())
                         .build();
 
-        return PatternsCS.ask(conciergeForwarderActor, retrieveThingCommand, retrieveEntityTimeoutDuration)
+        return Patterns.ask(conciergeForwarderActor, retrieveThingCommand, retrieveEntityTimeoutDuration)
                 .thenApply(response -> this.handleRetrieveThingResponse(response, referencePlaceholder, dittoHeaders));
     }
 
@@ -133,9 +133,9 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
             // ignore warning that second argument isn't used. Runtime exceptions will have their stacktrace printed
             // in the logs according to https://www.slf4j.org/faq.html#paramException
             LogUtil.logWithCorrelationId(LOGGER, dittoHeaders, log -> log.info(
-                    "Got Exception when waiting on RetrieveThingResponse when resolving policy id placeholder reference <{}>",
+                    "Got Exception when waiting on RetrieveThingResponse when resolving policy id placeholder reference <{}> - {}: {}",
                     referencePlaceholder,
-                    response));
+                    response.getClass().getSimpleName(), ((DittoRuntimeException) response).getMessage()));
             throw (DittoRuntimeException) response;
         } else {
             LogUtil.logWithCorrelationId(LOGGER, dittoHeaders, log -> log.error(

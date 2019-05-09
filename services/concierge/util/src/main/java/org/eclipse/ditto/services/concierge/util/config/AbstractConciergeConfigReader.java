@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.concierge.util.config;
 import java.time.Duration;
 
 import org.eclipse.ditto.services.base.config.AbstractServiceConfigReader;
+import org.eclipse.ditto.services.utils.cache.config.CachesConfigReader;
 
 import com.typesafe.config.Config;
 

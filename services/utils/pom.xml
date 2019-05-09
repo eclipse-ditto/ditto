@@ -29,6 +29,7 @@
         <module>aggregator</module>
         <module>akka</module>
         <module>cache</module>
+        <module>cache-loaders</module>
         <module>cluster</module>
         <module>conditional-headers</module>
         <module>config</module>

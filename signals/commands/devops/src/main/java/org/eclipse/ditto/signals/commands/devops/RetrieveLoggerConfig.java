@@ -65,7 +65,7 @@ public final class RetrieveLoggerConfig extends AbstractDevOpsCommand<RetrieveLo
     private final boolean allKnownLoggers;
     private final List<String> specificLoggers;
 
-    private RetrieveLoggerConfig(@Nullable final String serviceName, @Nullable final Integer instance,
+    private RetrieveLoggerConfig(@Nullable final String serviceName, @Nullable final String instance,
             final boolean allKnownLoggers, final List<String> specificLoggers, final DittoHeaders dittoHeaders) {
         super(TYPE, serviceName, instance, dittoHeaders);
         this.allKnownLoggers = allKnownLoggers;
@@ -103,7 +103,7 @@ public final class RetrieveLoggerConfig extends AbstractDevOpsCommand<RetrieveLo
      * @return a new RetrieveLoggerConfig command.
      */
     public static RetrieveLoggerConfig ofAllKnownLoggers(@Nullable final String serviceName,
-            @Nullable final Integer instance,
+            @Nullable final String instance,
             final DittoHeaders dittoHeaders) {
         return new RetrieveLoggerConfig(serviceName, instance, true, Collections.emptyList(), dittoHeaders);
     }
@@ -154,7 +154,7 @@ public final class RetrieveLoggerConfig extends AbstractDevOpsCommand<RetrieveLo
      * @param specificLoggers one or more loggers to be retrieved.
      * @return a new RetrieveLoggerConfig command.
      */
-    public static RetrieveLoggerConfig of(@Nullable final String serviceName, @Nullable final Integer instance,
+    public static RetrieveLoggerConfig of(@Nullable final String serviceName, @Nullable final String instance,
             final DittoHeaders dittoHeaders, final String... specificLoggers) {
         return new RetrieveLoggerConfig(serviceName, instance, false,
                 specificLoggers == null ? Collections.emptyList() : Arrays.asList(specificLoggers), dittoHeaders);
@@ -182,7 +182,7 @@ public final class RetrieveLoggerConfig extends AbstractDevOpsCommand<RetrieveLo
      * @param specificLoggers one or more loggers to be retrieved.
      * @return a new RetrieveLoggerConfig command.
      */
-    public static RetrieveLoggerConfig of(@Nullable final String serviceName, @Nullable final Integer instance,
+    public static RetrieveLoggerConfig of(@Nullable final String serviceName, @Nullable final String instance,
             final DittoHeaders dittoHeaders,
             final List<String> specificLoggers) {
         return new RetrieveLoggerConfig(serviceName, instance, false, specificLoggers, dittoHeaders);
@@ -215,7 +215,7 @@ public final class RetrieveLoggerConfig extends AbstractDevOpsCommand<RetrieveLo
     public static RetrieveLoggerConfig fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveLoggerConfig>(TYPE, jsonObject).deserialize(() -> {
             final String serviceName = jsonObject.getValue(DevOpsCommand.JsonFields.JSON_SERVICE_NAME).orElse(null);
-            final Integer instance = jsonObject.getValue(DevOpsCommand.JsonFields.JSON_INSTANCE).orElse(null);
+            final String instance = jsonObject.getValue(DevOpsCommand.JsonFields.JSON_INSTANCE).orElse(null);
             final boolean isAllKnownLoggers = jsonObject.getValueOrThrow(JSON_ALL_KNOWN_LOGGERS);
 
             if (isAllKnownLoggers) {

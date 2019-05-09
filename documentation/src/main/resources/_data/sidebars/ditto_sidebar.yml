@@ -13,7 +13,7 @@ entries:
       url: /intro-overview.html
       output: web
       type: homepage
-    - title: Digital Twins
+    - title: Digital twins
       url: /intro-digitaltwins.html
       output: web
     - title: Hello world

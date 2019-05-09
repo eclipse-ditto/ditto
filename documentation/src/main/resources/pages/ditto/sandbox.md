@@ -22,7 +22,7 @@ ask you if the Ditto sandbox may access your Google identity which you should ac
 Afterwards you should be authenticated with your Google user (and therefore your Google ID).
 
 You can try out the API now. For example, expand the [PUT /things/{thingId}](https://ditto.eclipse.org/apidoc/#!/Things/put_things_thingId)
-item in order to create a new `Thing`, a **Digital Twin** so to say.<br/>
+item in order to create a new `Thing`, a **digital twin** so to say.<br/>
 Scroll down to the parameters and enter the required ones (in this case the `thingId`), for example:
 
 ```

@@ -17,10 +17,10 @@ Since the last addition to Ditto's connectivity which [added MQTT connectivity](
 the connectivity feature got a lot of stabilization and new smaller features, e.g. the recent addition of 
 [placeholder functions](basic-placeholders.html#function-expressions).
 
-Returning to the Kafka integration Ditto can now, for example, whenever a [Digital Twin](intro-digitaltwins.html) is 
+Returning to the Kafka integration Ditto can now, for example, whenever a [digital twin](intro-digitaltwins.html) is 
 changed (e.g. a device updated some state data), publish a *twin event* to a Kafka topic.
 
-If you already rely on Apache Kafka as a source for your data lake or analytics, integrating Ditto and its Digital Twins
+If you already rely on Apache Kafka as a source for your data lake or analytics, integrating Ditto and its digital twins
 is now super easy.
 
 Find out more at our [Kafka documentation](connectivity-protocol-bindings-kafka2.html).

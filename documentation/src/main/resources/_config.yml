@@ -6,7 +6,8 @@ output: web
 topnav_title: Eclipse Ditto
 # this appears on the top navigation bar next to the home button
 
-site_title: Eclipse Ditto
+site_title: Eclipse Ditto • open source framework for digital twins in the IoT
+short_title: Eclipse Ditto • a digital twin framework
 # this appears in the html browser tab for the site title (seen mostly by search engines, not users)
 
 company_name: Eclipse Ditto
