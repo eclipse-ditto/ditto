@@ -28,8 +28,6 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import java.time.Duration;
-
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -47,9 +45,7 @@ import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
 import org.eclipse.ditto.services.connectivity.messaging.kafka.KafkaValidator;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLoggerRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.RetrieveConnectionLogsAggregatorActor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.RetrieveConnectionMetricsAggregatorActor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.RetrieveConnectionStatusAggregatorActor;
@@ -109,7 +105,6 @@ import org.eclipse.ditto.signals.events.connectivity.ConnectionDeleted;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionModified;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionOpened;
 
-import com.mongodb.event.CommandListener;
 import com.typesafe.config.Config;
 
 import akka.actor.AbstractActor;
@@ -135,6 +130,7 @@ import akka.routing.Broadcast;
 import akka.routing.RoundRobinPool;
 import scala.concurrent.ExecutionContextExecutor;
 import scala.concurrent.duration.FiniteDuration;
+import scala.concurrent.duration.Duration;
 
 /**
  * Handles {@code *Connection} commands and manages the persistence of connection. The actual connection handling to the
@@ -142,7 +138,7 @@ import scala.concurrent.duration.FiniteDuration;
  */
 public final class ConnectionActor extends AbstractPersistentActor {
 
-    private static final FiniteDuration DELETED_ACTOR_LIFETIME = scala.concurrent.duration.Duration.create(10L, TimeUnit.SECONDS);
+    private static final FiniteDuration DELETED_ACTOR_LIFETIME = Duration.create(10L, TimeUnit.SECONDS);
     private static final long DEFAULT_RETRIEVE_STATUS_TIMEOUT = 500L;
     static final String PERSISTENCE_ID_PREFIX = "connection:";
 
@@ -193,6 +189,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
 
     private final Cancellable enabledLoggingChecker;
+    private static final String CHECK_LOGGING_ENABLED = "checkLoggingActive";
 
     private ConnectionActor(final String connectionId,
             final ActorRef pubSubMediator,
@@ -220,7 +217,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
         connectionCreatedBehaviour = createConnectionCreatedBehaviour();
 
         final java.time.Duration javaFlushTimeout = configReader.flushPendingResponsesTimeout();
-        flushPendingResponsesTimeout = scala.concurrent.duration.Duration.create(javaFlushTimeout.toMillis(),
+        flushPendingResponsesTimeout = Duration.create(javaFlushTimeout.toMillis(),
                 TimeUnit.MILLISECONDS);
         clientActorAskTimeout = configReader.clientActorAskTimeout();
 
@@ -229,8 +226,9 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
         ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
 
+        // TODO: Intervall from Config.
         enabledLoggingChecker = getContext().getSystem().scheduler().schedule(
-                java.time.Duration.ZERO, java.time.Duration.ofSeconds(5), getSelf(), "checkLoggingActive",
+                java.time.Duration.ZERO, java.time.Duration.ofSeconds(5), getSelf(), CHECK_LOGGING_ENABLED,
                 getContext().getSystem().dispatcher(), null
         );
 
@@ -402,20 +400,12 @@ public final class ConnectionActor extends AbstractPersistentActor {
                         // do nothing; this connection is not deleted.
                         cancelStopSelfIfDeletedTrigger()
                 )
-                .matchEquals("checkLoggingActive", msg -> {
-                    CheckConnectionLogsActive checkLoggingActive = CheckConnectionLogsActive.of(connectionId,
-                            DittoHeaders.empty(), Instant.now());
-                    if (clientActorRouter != null) {
-                        // forward command to all client actors with no sender
-                        clientActorRouter.tell(new Broadcast(checkLoggingActive), ActorRef.noSender());
-                    }
-                })
+                .matchEquals(CHECK_LOGGING_ENABLED, msg -> this.checkLoggingEnabled())
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
                 }).build();
     }
-
 
     private void enhanceLogUtil(final WithDittoHeaders<?> createConnection) {
         ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, createConnection, connectionId);
@@ -424,6 +414,15 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private void performTask(final PerformTask performTask) {
         log.info("Running <{}>", performTask);
         performTask.run(this);
+    }
+
+    private void checkLoggingEnabled() {
+        CheckConnectionLogsActive checkLoggingActive = CheckConnectionLogsActive.of(connectionId,
+                DittoHeaders.empty(), Instant.now());
+        if (clientActorRouter != null) {
+            // forward command to all client actors with no sender
+            clientActorRouter.tell(new Broadcast(checkLoggingActive), ActorRef.noSender());
+        }
     }
 
     private void handleSignal(final Signal<?> signal) {
@@ -643,6 +642,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
     private void closeConnection(final CloseConnection command) {
         checkConnectionNotNull();
+
+        enabledLoggingChecker.cancel();
 
         final ConnectionClosed connectionClosed =
                 ConnectionClosed.of(command.getConnectionId(), command.getDittoHeaders());
@@ -1132,7 +1133,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
                         originHeaders = command.getDittoHeaders();
                         origin = getSender();
                         getContext().setReceiveTimeout(
-                                scala.concurrent.duration.Duration.create(timeout / 2.0, TimeUnit.MILLISECONDS));
+                                Duration.create(timeout / 2.0, TimeUnit.MILLISECONDS));
                     })
                     .match(ReceiveTimeout.class, receiveTimeout ->
                             // send back (partially) gathered responses
