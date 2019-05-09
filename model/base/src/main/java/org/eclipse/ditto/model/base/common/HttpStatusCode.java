@@ -414,4 +414,13 @@ public enum HttpStatusCode {
         return statusCodeValue;
     }
 
+    /**
+     * Returns whether this status code is a success status code (2XX).
+     *
+     * @return true if status code is 2XX false if not.
+     */
+    public boolean isSuccess() {
+        return statusCodeValue >= OK.statusCodeValue && statusCodeValue < MULTIPLE_CHOICES.statusCodeValue;
+    }
+
 }
