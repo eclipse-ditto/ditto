@@ -41,12 +41,13 @@ public final class RetrieveConnectionLogsAggregatorActor extends AbstractActor {
     private int expectedResponses;
     private final ActorRef sender;
     private final Duration timeout;
+    private final ActorRef connectionActor;
 
     private RetrieveConnectionLogsResponse theResponse;
 
     @SuppressWarnings("unused")
     private RetrieveConnectionLogsAggregatorActor(final Connection connection, final ActorRef sender,
-            final DittoHeaders originalHeaders, final Duration timeout) {
+            final DittoHeaders originalHeaders, final Duration timeout, final ActorRef connectionActor) {
         this.connection = connection;
         this.originalHeaders = originalHeaders;
 
@@ -54,6 +55,7 @@ public final class RetrieveConnectionLogsAggregatorActor extends AbstractActor {
         this.expectedResponses = connection.getClientCount();
         this.sender = sender;
         this.timeout = timeout;
+        this.connectionActor = connectionActor;
     }
 
     /**
@@ -66,9 +68,9 @@ public final class RetrieveConnectionLogsAggregatorActor extends AbstractActor {
      * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection, final ActorRef sender,
-            final DittoHeaders originalHeaders, final Duration timeout) {
+            final DittoHeaders originalHeaders, final Duration timeout, ActorRef connectionActor) {
         return Props.create(RetrieveConnectionLogsAggregatorActor.class, connection, sender, originalHeaders,
-                timeout);
+                timeout, connectionActor);
     }
 
     @Override
@@ -120,6 +122,7 @@ public final class RetrieveConnectionLogsAggregatorActor extends AbstractActor {
 
     private void sendResponse() {
         sender.tell(theResponse.setDittoHeaders(originalHeaders), getSelf());
+        connectionActor.tell(theResponse.setDittoHeaders(originalHeaders), getSelf());
     }
 
     private void stopSelf() {

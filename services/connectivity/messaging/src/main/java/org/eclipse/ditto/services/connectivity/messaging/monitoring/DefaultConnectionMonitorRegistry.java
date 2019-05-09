@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.connectivity.messaging.monitoring;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.time.Instant;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
@@ -68,6 +69,7 @@ public final class DefaultConnectionMonitorRegistry implements ConnectionMonitor
         this.connectionCounterRegistry.resetForConnection(connection);
         this.connectionLoggerRegistry.resetForConnection(connection);
     }
+
 
     @Override
     public ConnectionMonitor forOutboundDispatched(final String connectionId, final String target) {
@@ -155,6 +157,11 @@ public final class DefaultConnectionMonitorRegistry implements ConnectionMonitor
                 connectionCounterRegistry.forResponsePublished(connectionId),
                 connectionLoggerRegistry.forResponsePublished(connectionId))
                 .build();
+    }
+
+    @Nullable
+    public Instant getEnabledUntil(final String connectionId) {
+        return connectionLoggerRegistry.aggregateLogs(connectionId).getEnabledUntil();
     }
 
     /**

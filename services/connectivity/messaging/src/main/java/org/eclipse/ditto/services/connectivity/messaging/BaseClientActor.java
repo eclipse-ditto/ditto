@@ -70,6 +70,7 @@ import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
+import org.eclipse.ditto.signals.commands.connectivity.modify.CheckConnectionLogsActive;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.EnableConnectionLogs;
@@ -87,6 +88,7 @@ import com.typesafe.config.Config;
 
 import akka.actor.AbstractFSM;
 import akka.actor.ActorRef;
+import akka.actor.Cancellable;
 import akka.actor.FSM;
 import akka.actor.Props;
 import akka.actor.Status;
@@ -244,12 +246,17 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * @return an FSM function builder
      */
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inAnyState() {
-        return matchEvent(RetrieveConnectionMetrics.class, BaseClientData.class, (command, data) -> this.retrieveConnectionMetrics(command))
+        return matchEvent(RetrieveConnectionMetrics.class, BaseClientData.class,
+                (command, data) -> this.retrieveConnectionMetrics(command))
                 .event(RetrieveConnectionStatus.class, BaseClientData.class, this::retrieveConnectionStatus)
                 .event(ResetConnectionMetrics.class, BaseClientData.class, this::resetConnectionMetrics)
-                .event(EnableConnectionLogs.class, BaseClientData.class, (command, data) -> this.enableConnectionLogs(command))
-                .event(RetrieveConnectionLogs.class, BaseClientData.class, (command, data) -> this.retrieveConnectionLogs(command))
+                .event(EnableConnectionLogs.class, BaseClientData.class,
+                        (command, data) -> this.enableConnectionLogs(command))
+                .event(RetrieveConnectionLogs.class, BaseClientData.class,
+                        (command, data) -> this.retrieveConnectionLogs(command))
                 .event(ResetConnectionLogs.class, BaseClientData.class, this::resetConnectionLogs)
+                .event(CheckConnectionLogsActive.class, BaseClientData.class,
+                        (command, data) -> this.checkLoggingActive(command))
                 .event(OutboundSignal.class, BaseClientData.class, (signal, data) -> {
                     handleOutboundSignal(signal);
                     return stay();
@@ -291,7 +298,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         final CompletableFuture<T>[] futureArray = futures.map(CompletionStage::toCompletableFuture)
                 .toArray((IntFunction<CompletableFuture<T>[]>) CompletableFuture[]::new);
 
-        return CompletableFuture.allOf(futureArray).thenApply(unavailable->
+        return CompletableFuture.allOf(futureArray).thenApply(unavailable ->
                 Arrays.stream(futureArray)
                         .map(CompletableFuture::join)
                         .collect(Collectors.toList()));
@@ -689,7 +696,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return stay();
     }
 
-    private FSM.State<BaseClientState, BaseClientData> retrieveConnectionMetrics(final RetrieveConnectionMetrics command) {
+    private FSM.State<BaseClientState, BaseClientData> retrieveConnectionMetrics(
+            final RetrieveConnectionMetrics command) {
 
         ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionId());
         log.debug("Received RetrieveConnectionMetrics message, gathering metrics.");
@@ -731,6 +739,19 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         log.debug("Received EnableConnectionLogs message, enabling logs.");
 
         this.connectionLoggerRegistry.unmuteForConnection(connectionId);
+
+        return stay();
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> checkLoggingActive(
+            final CheckConnectionLogsActive command) {
+
+        final String connectionId = command.getConnectionId();
+        final Instant timestamp = command.getTimestamp();
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, connectionId);
+        log.debug("Received checkLoggingActive message, checking...");
+
+        this.connectionLoggerRegistry.checkLoggingStillEnabled(connectionId, timestamp);
 
         return stay();
     }
@@ -856,6 +877,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     /**
      * Starts the {@link MessageMappingProcessorActor} responsible for payload transformation/mapping as child actor
      * behind a (cluster node local) RoundRobin pool and a dynamic resizer from the current mapping context.
+     *
      * @return {@link org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessorActor} or exception, which will
      * also cause an sideeffect that stores the mapping actor in the local variable {@code messageMappingProcessorActor}.
      */

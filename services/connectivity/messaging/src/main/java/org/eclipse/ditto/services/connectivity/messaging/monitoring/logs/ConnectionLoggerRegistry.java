@@ -81,7 +81,6 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         return new ConnectionLoggerRegistry(config.successCapacity(), config.failureCapacity(), config.logDuration());
     }
 
-
     /**
      * Aggregate the {@link org.eclipse.ditto.model.connectivity.LogEntry}s for the given connection from the loggers in
      * this registry.
@@ -105,6 +104,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
                     .map(ConnectionLogger::getLogs)
                     .flatMap(Collection::stream)
                     .collect(Collectors.toList());
+            LOGGER.info(getMetadata(connectionId).toString());
         } else {
             LOGGER.debug("Logging is disabled, will return empty logs for connection <{}>", connectionId);
 
@@ -127,6 +127,17 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
                 .map(MuteableConnectionLogger::isMuted)
                 .orElse(true);
         return !muted;
+    }
+
+    public void checkLoggingStillEnabled(final String connectionId, final Instant timestamp) {
+        final Instant enabledUntil = getMetadata(connectionId).getEnabledUntil();
+         if (enabledUntil != null && timestamp.compareTo(enabledUntil) >= 0) {
+             this.muteForConnection(connectionId);
+             LOGGER.info("Logging muted for connection <{}>.", connectionId);
+         } else {
+             LOGGER.info("Logging stays active for connection <{}>.", connectionId);
+             LOGGER.info("EnabledUntil: {} - with timestamp: {}", enabledUntil, timestamp);
+         }
     }
 
     public void muteForConnection(final String connectionId) {
@@ -209,6 +220,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
                 .filter(Objects::nonNull)
                 .forEach(MuteableConnectionLogger::clear);
     }
+
 
     private LogMetadata refreshMetadata(final String connectionId) {
         return metadata.compute(connectionId, (c, oldTimings) -> {
