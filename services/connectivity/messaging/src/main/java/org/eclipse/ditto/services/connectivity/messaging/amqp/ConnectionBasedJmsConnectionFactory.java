@@ -50,6 +50,10 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
             LoggerFactory.getLogger(ConnectionBasedJmsConnectionFactory.class);
 
     private static final String SECURE_AMQP_SCHEME = "amqps";
+    private static final int DEFAULT_REQUEST_TIMEOUT = 5000;
+    // using 0 means fire&forget -> we will ignore if the receiver is not available
+    private static final int DEFAULT_SEND_TIMEOUT = 0;
+    private static final boolean DEFAULT_PRESETTLE_PRODUCERS_VALUE = true;
 
     private ConnectionBasedJmsConnectionFactory() {
         // no-op
@@ -155,10 +159,13 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
 
         // set default for sendTimeout and requestTimeout, qpid jms default waits indefinitely
         if (!specificConfig.containsKey("jms.sendTimeout")) {
-            jmsParams.add("jms.sendTimeout=" + 5000);
+            jmsParams.add("jms.sendTimeout=" + DEFAULT_SEND_TIMEOUT);
         }
         if (!specificConfig.containsKey("jms.requestTimeout")) {
-            jmsParams.add("jms.requestTimeout=" + 5000);
+            jmsParams.add("jms.requestTimeout=" + DEFAULT_REQUEST_TIMEOUT);
+        }
+        if (!specificConfig.containsKey("jms.presettlePolicy.presettleProducers")) {
+            jmsParams.add("jms.presettlePolicy.presettleProducers=" + DEFAULT_PRESETTLE_PRODUCERS_VALUE);
         }
 
         if (username != null && !username.isEmpty() && password != null && !password.isEmpty()) {
