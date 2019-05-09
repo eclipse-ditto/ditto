@@ -17,7 +17,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.services.utils.config.MongoConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 
 /**
  * Additional settings of a {@link DittoMongoClient} which are not already part of the client's
@@ -56,10 +56,13 @@ public final class DittoMongoClientSettings {
     @NotThreadSafe
     public static final class Builder {
 
+        private static final Duration DEFAULT_MAX_QUERY_TIME =
+                (Duration) MongoDbConfig.MongoDbConfigValue.MAX_QUERY_TIME.getDefaultValue();
+
         private Duration maxQueryTime;
 
         private Builder() {
-            maxQueryTime = Duration.ofSeconds(MongoConfig.MAX_QUERY_TIME_DEFAULT_SECS);
+            maxQueryTime = DEFAULT_MAX_QUERY_TIME;
         }
 
         /**
@@ -78,7 +81,7 @@ public final class DittoMongoClientSettings {
          * Sets the maximum amount of time a Mongo query may last.
          *
          * @param maxQueryTime the maximum query duration or {@code null} if the default value should be used.
-         * Default is {@value org.eclipse.ditto.services.utils.config.MongoConfig#MAX_QUERY_TIME_DEFAULT_SECS} seconds.
+         * Default is {@link MongoDbConfig.MongoDbConfigValue#MAX_QUERY_TIME} seconds.
          *
          * @return this builder instance to allow method chaining.
          */
@@ -86,7 +89,7 @@ public final class DittoMongoClientSettings {
             if (null != maxQueryTime) {
                 this.maxQueryTime = maxQueryTime;
             } else {
-                this.maxQueryTime = Duration.ofSeconds(MongoConfig.MAX_QUERY_TIME_DEFAULT_SECS);
+                this.maxQueryTime = DEFAULT_MAX_QUERY_TIME;
             }
             return this;
         }

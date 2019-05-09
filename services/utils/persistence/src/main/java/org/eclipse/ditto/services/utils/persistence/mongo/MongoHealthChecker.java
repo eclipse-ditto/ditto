@@ -19,7 +19,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 
 import org.bson.Document;
-import org.eclipse.ditto.services.utils.config.MongoConfig;
 import org.eclipse.ditto.services.utils.health.AbstractHealthCheckingActor;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
 import org.eclipse.ditto.services.utils.health.mongo.RetrieveMongoStatusResponse;
@@ -28,7 +27,6 @@ import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import com.mongodb.ReadPreference;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.reactivestreams.client.MongoCollection;
-import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -49,26 +47,6 @@ public final class MongoHealthChecker extends AbstractHealthCheckingActor {
     private final DittoMongoClient mongoClient;
     private final MongoCollection<Document> collection;
     private final ActorMaterializer materializer;
-
-    /**
-     * Constructs a {@code MongoClientActor}.
-     */
-    private MongoHealthChecker() {
-        final ActorContext actorContext = getContext();
-        final Config config = actorContext.system().settings().config();
-        mongoClient = MongoClientWrapper.getBuilder(MongoConfig.of(config))
-                .connectionPoolMaxSize(HEALTH_CHECK_MAX_POOL_SIZE)
-                .build();
-
-        /*
-         * It's important to have the read preferences to primary preferred because the replication is to slow to retrieve
-         * the inserted document from a secondary directly after inserting it on the primary.
-         */
-        collection = mongoClient.getCollection(TEST_COLLECTION_NAME)
-                .withReadPreference(ReadPreference.primaryPreferred());
-
-        materializer = ActorMaterializer.create(actorContext);
-    }
 
     private MongoHealthChecker(final DittoMongoClient theDittoMongoClient) {
         mongoClient = theDittoMongoClient;
@@ -96,22 +74,17 @@ public final class MongoHealthChecker extends AbstractHealthCheckingActor {
     /**
      * Creates Akka configuration object Props for this MongoClientActor.
      *
+     * @param mongoDbConfig the MongoDB configuration settings.
      * @return the Akka configuration Props object
-     * @deprecated use {@link #props(org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig)} instead.
-     */
-    @Deprecated
-    public static Props props() {
-        return Props.create(MongoHealthChecker.class, MongoHealthChecker::new);
-    }
-
-    /**
-     * Creates Akka configuration object Props for this MongoClientActor.
-     *
-     * @return the Akka configuration Props object
+     * @throws NullPointerException if {@code mongoDbConfig} is {@code null}.
      */
     public static Props props(final MongoDbConfig mongoDbConfig) {
-        return Props.create(MongoHealthChecker.class,
-                () -> new MongoHealthChecker(MongoClientWrapper.newInstance(mongoDbConfig)));
+        return Props.create(MongoHealthChecker.class, () -> {
+            final DittoMongoClient mongoDbClient = MongoClientWrapper.getBuilder(mongoDbConfig)
+                    .connectionPoolMaxSize(HEALTH_CHECK_MAX_POOL_SIZE)
+                    .build();
+            return new MongoHealthChecker(mongoDbClient);
+        });
     }
 
     @Override

@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 
+import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.junit.Test;
 
 import com.mongodb.ConnectionString;
@@ -42,25 +43,18 @@ public final class MongoClientWrapperTest {
     private static final int KNOWN_PORT = 27777;
     private static final String KNOWN_SERVER_ADDRESS = KNOWN_HOST + ":" + KNOWN_PORT;
     private static final Config CONFIG = ConfigFactory.load("test");
-    private static final String MONGO_URI_CONFIG_KEY = "ditto.services-utils-config.mongodb.uri";
-
-    private static String createUri(final boolean sslEnabled) {
-        final ConnectionString connectionString = new ConnectionString(
-                "mongodb://" + KNOWN_USER + ":" + KNOWN_PASSWORD + "@" + KNOWN_SERVER_ADDRESS + "/" + KNOWN_DB_NAME +
-                        "?ssl=" + sslEnabled);
-        return connectionString.getConnectionString();
-    }
+    private static final String MONGO_URI_CONFIG_KEY = "mongodb.uri";
 
     @Test
     public void createByUriWithSslDisabled() {
         // prepare
         final boolean sslEnabled = false;
         final String uri = createUri(sslEnabled);
-
         final Config config = CONFIG.withValue(MONGO_URI_CONFIG_KEY, ConfigValueFactory.fromAnyRef(uri));
+        final DefaultMongoDbConfig mongoDbConfig = DefaultMongoDbConfig.of(config);
 
         // test
-        final MongoClientWrapper underTest = MongoClientWrapper.newInstance(config);
+        final MongoClientWrapper underTest = MongoClientWrapper.newInstance(mongoDbConfig);
 
         // verify
         assertWithExpected(underTest, false, true);
@@ -70,11 +64,11 @@ public final class MongoClientWrapperTest {
     public void createByUriWithSslEnabled() {
         // prepare
         final String uriWithSslEnabled = createUri(true);
-
         final Config config = CONFIG.withValue(MONGO_URI_CONFIG_KEY, ConfigValueFactory.fromAnyRef(uriWithSslEnabled));
+        final DefaultMongoDbConfig mongoDbConfig = DefaultMongoDbConfig.of(config);
 
         // test
-        final MongoClientWrapper underTest = MongoClientWrapper.newInstance(config);
+        final MongoClientWrapper underTest = MongoClientWrapper.newInstance(mongoDbConfig);
 
         // verify
         assertWithExpected(underTest, true, true);
@@ -93,6 +87,13 @@ public final class MongoClientWrapperTest {
 
         // verify
         assertWithExpected(underTest, false, false);
+    }
+
+    private static String createUri(final boolean sslEnabled) {
+        final ConnectionString connectionString = new ConnectionString(
+                "mongodb://" + KNOWN_USER + ":" + KNOWN_PASSWORD + "@" + KNOWN_SERVER_ADDRESS + "/" + KNOWN_DB_NAME +
+                        "?ssl=" + sslEnabled);
+        return connectionString.getConnectionString();
     }
 
     private static void assertWithExpected(final DittoMongoClient mongoClient, final boolean sslEnabled,

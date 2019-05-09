@@ -42,21 +42,6 @@ public abstract class AbstractEventSourceNamespaceOpsActor extends AbstractNames
      *
      * @param pubSubMediator Akka pub-sub mediator.
      * @param config configuration with info about the event journal, snapshot store, metadata and suffix builder.
-     */
-    protected AbstractEventSourceNamespaceOpsActor(final ActorRef pubSubMediator, final Config config) {
-        super(pubSubMediator, MongoNamespaceOps.of(MongoClientWrapper.newInstance(config)));
-        metadata = getCollectionName(config, getJournalPluginId(), "metadata");
-        journal = getCollectionName(config, getJournalPluginId(), "journal");
-        snapshot = getCollectionName(config, getSnapshotPluginId(), "snaps");
-        suffixSeparator = readConfig(config, suffixBuilderPath("separator"), "@");
-        isSuffixBuilderEnabled = !readConfig(config, suffixBuilderPath("class"), "").trim().isEmpty();
-    }
-
-    /**
-     * Creates a new instance of this actor.
-     *
-     * @param pubSubMediator Akka pub-sub mediator.
-     * @param config configuration with info about the event journal, snapshot store, metadata and suffix builder.
      * @param mongoDbConfig the configuration settings for MongoDB.
      */
     protected AbstractEventSourceNamespaceOpsActor(final ActorRef pubSubMediator, final Config config,

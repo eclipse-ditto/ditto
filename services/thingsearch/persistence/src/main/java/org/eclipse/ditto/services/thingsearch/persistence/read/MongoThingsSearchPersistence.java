@@ -35,7 +35,6 @@ import org.eclipse.ditto.services.thingsearch.persistence.Indices;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQuery;
-import org.eclipse.ditto.services.utils.config.MongoConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.services.utils.persistence.mongo.indices.IndexInitializer;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayQueryTimeExceededException;

@@ -25,7 +25,6 @@ import javax.net.ssl.SSLContext;
 
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.services.utils.config.MongoConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.reactivestreams.Publisher;
 
@@ -47,7 +46,6 @@ import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoClients;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
-import com.typesafe.config.Config;
 
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -75,20 +73,11 @@ public final class MongoClientWrapper implements DittoMongoClient {
     }
 
     /**
-     * Initializes the persistence with a passed in {@code config} containing the {@code uri}.
-     *
-     * @param config Config containing mongoDB settings including the URI.
-     * @return a new {@code MongoClientWrapper} object.
-     */
-    public static MongoClientWrapper newInstance(final Config config) {
-        return (MongoClientWrapper) getBuilder(MongoConfig.of(config)).build();
-    }
-
-    /**
      * Initializes the persistence with a passed in {@code config} containing the MongoDB URI.
      *
      * @param mongoDbConfig provides MongoDB settings including the URI.
      * @return a new {@code MongoClientWrapper} object.
+     * @throws NullPointerException if {@code mongoDbConfig} is {@code null}.
      */
     public static MongoClientWrapper newInstance(final MongoDbConfig mongoDbConfig) {
         return (MongoClientWrapper) getBuilder(mongoDbConfig).build();
@@ -101,19 +90,6 @@ public final class MongoClientWrapper implements DittoMongoClient {
      */
     public static DittoMongoClientBuilder.ConnectionCoordinatesStep getBuilder() {
         return MongoClientWrapperBuilder.newInstance();
-    }
-
-    /**
-     * Returns a new builder for creating an instance of {@code MongoClientWrapper} from scratch.
-     *
-     * @param mongoConfig provides the initial MongoDB settings of the returned builder.
-     * @return the new builder instance.
-     * @throws NullPointerException if {@code mongoConfig} is {@code null}.
-     * @deprecated please use {@link #getBuilder(MongoDbConfig)} instead.
-     */
-    @Deprecated
-    public static DittoMongoClientBuilder.GeneralPropertiesStep getBuilder(final MongoConfig mongoConfig) {
-        return MongoClientWrapperBuilder.newInstance(mongoConfig);
     }
 
     /**
@@ -283,28 +259,6 @@ public final class MongoClientWrapper implements DittoMongoClient {
          */
         static ConnectionCoordinatesStep newInstance() {
             return new MongoClientWrapperBuilder();
-        }
-
-        /**
-         * Returns a new instance of {@code MongoClientWrapperBuilder} at the step for adding general properties or
-         * building the client instance.
-         *
-         * @param mongoConfig the Config which provides settings for MongoDB.
-         * @return the new builder.
-         * @throws NullPointerException if {@code mongoConfig} is {@code null}.
-         */
-        static GeneralPropertiesStep newInstance(final MongoConfig mongoConfig) {
-            checkNotNull(mongoConfig, "MongoDB config");
-
-            final MongoClientWrapperBuilder builder = new MongoClientWrapperBuilder();
-            builder.connectionString(mongoConfig.getMongoUri());
-            builder.connectionPoolMaxSize(mongoConfig.getConnectionPoolMaxSize());
-            builder.connectionPoolMaxWaitQueueSize(mongoConfig.getConnectionPoolMaxWaitQueueSize());
-            builder.connectionPoolMaxWaitTime(mongoConfig.getConnectionPoolMaxWaitTime());
-            builder.enableJmxListener(mongoConfig.isJmxListenerEnabled());
-            builder.enableSsl(mongoConfig.isSslEnabled());
-
-            return builder;
         }
 
         /**

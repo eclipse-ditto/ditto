@@ -35,14 +35,14 @@ public final class DefaultMongoDbConfigTest {
 
     private static final String MONGODB_CONFIG_FILE_NAME = "mongodb_test.conf";
 
-    private Config mongoDbConfig;
+    private Config rawMongoDbConfig;
 
     @Rule
     public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @Before
     public void initMongoDbConfig() {
-        mongoDbConfig = ConfigFactory.parseResources(MONGODB_CONFIG_FILE_NAME);
+        rawMongoDbConfig = ConfigFactory.parseResources(MONGODB_CONFIG_FILE_NAME);
     }
 
     @Test
@@ -66,7 +66,7 @@ public final class DefaultMongoDbConfigTest {
 
     @Test
     public void toStringContainsExpected() {
-        final DefaultMongoDbConfig underTest = DefaultMongoDbConfig.of(mongoDbConfig);
+        final DefaultMongoDbConfig underTest = DefaultMongoDbConfig.of(rawMongoDbConfig);
 
         softly.assertThat(underTest.toString()).contains(underTest.getClass().getSimpleName())
                 .contains("maxQueryTime", "mongoDbUri", "optionsConfig", "connectionPoolConfig",
@@ -75,7 +75,7 @@ public final class DefaultMongoDbConfigTest {
 
     @Test
     public void defaultMongodbConfigContainsExactlyValuesOfResourceConfigFile() {
-        final DefaultMongoDbConfig underTest = DefaultMongoDbConfig.of(mongoDbConfig);
+        final DefaultMongoDbConfig underTest = DefaultMongoDbConfig.of(rawMongoDbConfig);
 
         softly.assertThat(underTest.getMaxQueryTime()).isEqualTo(Duration.ofSeconds(10));
         softly.assertThat(underTest.getMongoDbUri()).isEqualTo("mongodb://foo:bar@mongodb:27017/test?w=1&ssl=false");
