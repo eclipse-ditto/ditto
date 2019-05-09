@@ -749,7 +749,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         final String connectionId = command.getConnectionId();
         final Instant timestamp = command.getTimestamp();
         ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, connectionId);
-        log.debug("Received checkLoggingActive message, checking...");
+        log.debug("Received checkLoggingActive message, check if Logging is for connection <{}> is expired.", connectionId);
 
         this.connectionLoggerRegistry.checkLoggingStillEnabled(connectionId, timestamp);
 

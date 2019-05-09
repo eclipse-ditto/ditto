@@ -118,10 +118,11 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
 
     /**
      * Checks if logging is enabled for the given connection.
+     *
      * @param connectionId the connection to check.
      * @return true if logging is currently enabled for the connection.
      */
-    public boolean isActiveForConnection(final String connectionId) {
+    private boolean isActiveForConnection(final String connectionId) {
         final boolean muted = streamLoggers(connectionId)
                 .findFirst()
                 .map(MuteableConnectionLogger::isMuted)
@@ -129,18 +130,27 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         return !muted;
     }
 
+    /**
+     * Checks if logging is still enabled for the given connection.
+     *
+     * @param connectionId the connection to check.
+     * @param timestamp the actual time. If timestamp is after enabledUntil -> deactivate logging.
+     */
     public void checkLoggingStillEnabled(final String connectionId, final Instant timestamp) {
+
+        if (!isActiveForConnection(connectionId)) {
+            return;
+        }
+
         final Instant enabledUntil = getMetadata(connectionId).getEnabledUntil();
-         if (enabledUntil != null && timestamp.compareTo(enabledUntil) >= 0) {
-             this.muteForConnection(connectionId);
-             LOGGER.info("Logging muted for connection <{}>.", connectionId);
-         } else {
-             LOGGER.info("Logging stays active for connection <{}>.", connectionId);
-             LOGGER.info("EnabledUntil: {} - with timestamp: {}", enabledUntil, timestamp);
-         }
+
+        if (enabledUntil != null && timestamp.isAfter(enabledUntil)) {
+            this.muteForConnection(connectionId);
+            LOGGER.info("Logging muted for connection <{}>.", connectionId);
+        }
     }
 
-    public void muteForConnection(final String connectionId) {
+    private void muteForConnection(final String connectionId) {
         ConnectionLogUtil.enhanceLogWithConnectionId(connectionId);
         LOGGER.info("Muting loggers for connection <{}>.", connectionId);
 

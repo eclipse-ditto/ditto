@@ -100,6 +100,7 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
         });
     }
 
+    /* unused */
     public static CheckConnectionLogsActive fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         final Instant now = Instant.now();
         return CheckConnectionLogsActive.fromJson(jsonObject, dittoHeaders, now);
