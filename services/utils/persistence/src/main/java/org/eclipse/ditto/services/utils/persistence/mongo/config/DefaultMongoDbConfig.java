@@ -17,7 +17,6 @@ import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 
@@ -39,12 +38,12 @@ public final class DefaultMongoDbConfig implements MongoDbConfig, Serializable {
 
     private final Duration maxQueryTime;
     private final String mongoDbUri;
-    private final OptionsConfig optionsConfig;
-    private final ConnectionPoolConfig connectionPoolConfig;
-    private final CircuitBreakerConfig circuitBreakerConfig;
-    private final MonitoringConfig monitoringConfig;
+    private final DefaultOptionsConfig optionsConfig;
+    private final DefaultConnectionPoolConfig connectionPoolConfig;
+    private final DefaultCircuitBreakerConfig circuitBreakerConfig;
+    private final DefaultMonitoringConfig monitoringConfig;
 
-    private DefaultMongoDbConfig(final ScopedConfig config, final String theMongoDbUri) {
+    private DefaultMongoDbConfig(final ConfigWithFallback config, final String theMongoDbUri) {
         maxQueryTime = config.getDuration(MongoDbConfigValue.MAX_QUERY_TIME.getConfigPath());
         mongoDbUri = theMongoDbUri;
         optionsConfig = DefaultOptionsConfig.of(config);
@@ -61,12 +60,12 @@ public final class DefaultMongoDbConfig implements MongoDbConfig, Serializable {
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultMongoDbConfig of(final Config config) {
-        final ScopedConfig configWithFallback = appendFallbackValues(config);
+        final ConfigWithFallback configWithFallback = appendFallbackValues(config);
 
         return new DefaultMongoDbConfig(configWithFallback, determineMongoDbUri(configWithFallback));
     }
 
-    private static ScopedConfig appendFallbackValues(final Config config) {
+    private static ConfigWithFallback appendFallbackValues(final Config config) {
         return ConfigWithFallback.newInstance(config, CONFIG_PATH, MongoDbConfigValue.values());
     }
 
