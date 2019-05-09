@@ -10,11 +10,11 @@
  */
 package org.eclipse.ditto.services.concierge.starter;
 
-import org.eclipse.ditto.services.base.DittoServiceTng;
+import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.concierge.starter.actors.ConciergeRootActor;
-import org.eclipse.ditto.services.concierge.starter.proxy.DefaultEnforcerActorFactory;
 import org.eclipse.ditto.services.concierge.starter.config.ConciergeConfig;
 import org.eclipse.ditto.services.concierge.starter.config.DittoConciergeConfig;
+import org.eclipse.ditto.services.concierge.starter.proxy.DefaultEnforcerActorFactory;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +26,7 @@ import akka.stream.ActorMaterializer;
 /**
  * The Concierge service for Eclipse Ditto.
  */
-public final class ConciergeService extends DittoServiceTng<ConciergeConfig> {
+public final class ConciergeService extends DittoService<ConciergeConfig> {
 
     /**
      * Name of Ditto's Concierge service.

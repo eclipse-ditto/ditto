@@ -10,7 +10,7 @@
  */
 package org.eclipse.ditto.services.policies.starter;
 
-import org.eclipse.ditto.services.base.DittoServiceTng;
+import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSnapshotAdapter;
 import org.eclipse.ditto.services.policies.starter.config.DittoPoliciesConfig;
 import org.eclipse.ditto.services.policies.starter.config.PoliciesConfig;
@@ -25,7 +25,7 @@ import akka.stream.ActorMaterializer;
 /**
  * Entry point of the Policies Service.
  */
-public final class PoliciesService extends DittoServiceTng<PoliciesConfig> {
+public final class PoliciesService extends DittoService<PoliciesConfig> {
 
     /**
      * Name of the Policies Service.

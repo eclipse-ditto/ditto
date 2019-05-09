@@ -10,7 +10,7 @@
  */
 package org.eclipse.ditto.services.gateway.starter;
 
-import org.eclipse.ditto.services.base.DittoServiceTng;
+import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.gateway.starter.config.DittoGatewayConfig;
 import org.eclipse.ditto.services.gateway.starter.config.GatewayConfig;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
@@ -27,7 +27,7 @@ import akka.stream.ActorMaterializer;
  * The Gateway service for Eclipse Ditto.
  */
 @AllParametersAndReturnValuesAreNonnullByDefault
-public final class GatewayService extends DittoServiceTng<GatewayConfig> {
+public final class GatewayService extends DittoService<GatewayConfig> {
 
     /**
      * Name for the Akka actor system of the Gateway service.

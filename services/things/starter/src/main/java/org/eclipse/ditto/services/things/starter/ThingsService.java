@@ -10,7 +10,7 @@
  */
 package org.eclipse.ditto.services.things.starter;
 
-import org.eclipse.ditto.services.base.DittoServiceTng;
+import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.things.persistence.snapshotting.DittoThingSnapshotter;
 import org.eclipse.ditto.services.things.starter.config.DittoThingsConfig;
 import org.eclipse.ditto.services.things.starter.config.ThingsConfig;
@@ -30,7 +30,7 @@ import akka.stream.ActorMaterializer;
  * <li>Wires up Akka HTTP Routes</li>
  * </ul>
  */
-public final class ThingsService extends DittoServiceTng<ThingsConfig> {
+public final class ThingsService extends DittoService<ThingsConfig> {
 
     /**
      * Name of the Things service.

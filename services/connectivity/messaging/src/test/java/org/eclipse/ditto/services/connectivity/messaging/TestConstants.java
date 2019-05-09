@@ -65,7 +65,7 @@ import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.services.base.DittoServiceTng;
+import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.connectivity.mapping.DefaultMappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ClientConfig;
@@ -115,7 +115,7 @@ public final class TestConstants {
 
     static {
         final DefaultScopedConfig dittoScopedConfig =
-                DefaultScopedConfig.newInstance(CONFIG, DittoServiceTng.DITTO_CONFIG_PATH);
+                DefaultScopedConfig.newInstance(CONFIG, DittoService.DITTO_CONFIG_PATH);
         final DefaultScopedConfig connectivityScopedConfig =
                 DefaultScopedConfig.newInstance(dittoScopedConfig, "connectivity");
 

@@ -10,7 +10,7 @@
  */
 package org.eclipse.ditto.services.thingsearch.starter;
 
-import org.eclipse.ditto.services.base.DittoServiceTng;
+import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.thingsearch.starter.actors.SearchRootActor;
 import org.eclipse.ditto.services.thingsearch.starter.config.SearchConfig;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
@@ -29,7 +29,7 @@ import akka.stream.ActorMaterializer;
  * <li>Wires up Akka HTTP Routes.</li>
  * </ul>
  */
-public final class SearchService extends DittoServiceTng<SearchConfig> {
+public final class SearchService extends DittoService<SearchConfig> {
 
     /**
      * Name of things-search service.

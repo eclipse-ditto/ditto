@@ -12,7 +12,7 @@ package org.eclipse.ditto.services.connectivity;
 
 import java.util.function.UnaryOperator;
 
-import org.eclipse.ditto.services.base.DittoServiceTng;
+import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.connectivity.actors.ConnectivityRootActor;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
@@ -33,7 +33,7 @@ import akka.stream.ActorMaterializer;
  * </ul>
  */
 @AllParametersAndReturnValuesAreNonnullByDefault
-public final class ConnectivityService extends DittoServiceTng<ConnectivityConfig> {
+public final class ConnectivityService extends DittoService<ConnectivityConfig> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ConnectivityService.class);
 

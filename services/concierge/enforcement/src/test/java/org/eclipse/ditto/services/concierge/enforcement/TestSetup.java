@@ -30,7 +30,7 @@ import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.services.base.DittoServiceTng;
+import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.concierge.cache.AclEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.ThingEnforcementIdCacheLoader;
@@ -68,7 +68,7 @@ public final class TestSetup {
 
     static {
         final DefaultScopedConfig dittoScopedConfig =
-                DefaultScopedConfig.newInstance(RAW_CONFIG, DittoServiceTng.DITTO_CONFIG_PATH);
+                DefaultScopedConfig.newInstance(RAW_CONFIG, DittoService.DITTO_CONFIG_PATH);
         final DefaultScopedConfig conciergeScopedConfig =
                 DefaultScopedConfig.newInstance(dittoScopedConfig, "concierge");
 
