@@ -16,47 +16,53 @@ global:
   timezone: Europe/Berlin
 
 concierge:
+  enabled: true
   name: concierge
   replicaCount: 1
   image:
     repository: docker.io/eclipse/ditto-concierge
     imagePullPolicy: IfNotPresent
-    tag: 0.9.0-M1
+    tag: 0.9.0-M2
 connectivity:
+  enabled: true
   name: connectivity
   replicaCount: 1
   image:
     repository: docker.io/eclipse/ditto-connectivity
     imagePullPolicy: IfNotPresent
-    tag: 0.9.0-M1
+    tag: 0.9.0-M2
 things:
+  enabled: true
   name: things
   replicaCount: 1
   image:
     repository: docker.io/eclipse/ditto-things
     imagePullPolicy: IfNotPresent
-    tag: 0.9.0-M1
+    tag: 0.9.0-M2
 search:
+  enabled: true
   name: things-search
   replicaCount: 1
   image:
     repository: docker.io/eclipse/ditto-things-search
     imagePullPolicy: IfNotPresent
-    tag: 0.9.0-M1
+    tag: 0.9.0-M2
 policies:
+  enabled: true
   name: policies
   replicaCount: 1
   image:
     repository: docker.io/eclipse/ditto-policies
     imagePullPolicy: IfNotPresent
-    tag: 0.9.0-M1
+    tag: 0.9.0-M2
 gateway:
+  enabled: true
   name: gateway
   replicaCount: 1
   image:
     repository: docker.io/eclipse/ditto-gateway
     imagePullPolicy: IfNotPresent
-    tag: 0.9.0-M1
+    tag: 0.9.0-M2
 
 nginx:
   replicaCount: 1
@@ -82,16 +88,16 @@ mongodb:
   apps:
     concierge:
       uri: mongodb://ditto-mongodb:27017/concierge
-      ssl: "false"
+      ssl: false
     connectivity:
       uri: mongodb://ditto-mongodb:27017/connectivity
-      ssl: "false"
+      ssl: false
     things:
       uri: mongodb://ditto-mongodb:27017/things
-      ssl: "false"
+      ssl: false
     searchDB:
       uri: mongodb://ditto-mongodb:27017/searchDB
-      ssl: "false"
+      ssl: false
     policies:
       uri: mongodb://ditto-mongodb:27017/policies
-      ssl: "false"
+      ssl: false
