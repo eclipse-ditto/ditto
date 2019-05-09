@@ -22,6 +22,7 @@ import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.base.config.ClusterConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.AuthenticationConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.CachesConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.DevOpsConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.WebSocketConfig;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DittoGatewayAuthenticationDirectiveFactory;
@@ -283,7 +284,7 @@ final class GatewayRootActor extends AbstractActor {
                 DittoStatusAndHealthProviderFactory.of(actorSystem, clusterStateSupplier, healthCheckConfig);
 
         final HttpConfig httpConfig = gatewayConfig.getHttpConfig();
-        final AuthenticationConfig.DevOpsConfig devOpsConfig = authConfig.getDevOpsConfig();
+        final DevOpsConfig devOpsConfig = authConfig.getDevOpsConfig();
 
         return RootRoute.getBuilder(httpConfig)
                 .statsRoute(new StatsRoute(proxyActor, actorSystem, httpConfig, devOpsConfig, headerTranslator))

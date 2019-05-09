@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
@@ -15,50 +15,48 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
- * Provides configuration settings for the Gateway authentication.
+ * Provides configuration settings of the DevOps endpoint.
  * <p>
- * Java serialization is supported for {@code AuthenticationConfig}.
+ * Java serialization is supported for {@code DevOpsConfig}.
  * </p>
  */
 @Immutable
-public interface AuthenticationConfig {
+public interface DevOpsConfig {
 
     /**
-     * Returns the configuration settings of the HTTP proxy.
+     * Indicates whether DevOps status resources (e. g. /status) should be secured with BasicAuth or not.
      *
-     * @return the config.
+     * @return {@code true} if resources should be secured with BasicAuth, {@code false} else;
      */
-    HttpProxyConfig getHttpProxyConfig();
+    boolean isSecureStatus();
 
     /**
-     * Indicates whether dummy authentication should be enabled.
+     * Returns the BasicAuth password of the DevOps resources.
      *
-     * @return {@code true} if dummy authentication is enabled, {@code false} else.
+     * @return the password.
      */
-    boolean isDummyAuthenticationEnabled();
-
-    /**
-     * Returns the configuration settings of the DevOps resources.
-     *
-     * @return the config.
-     */
-    DevOpsConfig getDevOpsConfig();
+    String getPassword();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for
-     * {@code AuthenticationConfig}.
+     * {@code DevOpsConfig}.
      */
-    enum AuthenticationConfigValue implements KnownConfigValue {
+    enum DevOpsConfigValue implements KnownConfigValue {
 
         /**
-         * Determines whether dummy authentication should be enabled.
+         * Determines whether DevOps status resources (e. g. /status) should be secured with BasicAuth or not.
          */
-        DUMMY_AUTH_ENABLED("dummy.enabled", false);
+        SECURE_STATUS("securestatus", true),
+
+        /**
+         * The BasicAuth password of the DevOps resources.
+         */
+        PASSWORD("password", "foobar");
 
         private final String path;
         private final Object defaultValue;
 
-        private AuthenticationConfigValue(final String thePath, final Object theDefaultValue) {
+        private DevOpsConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

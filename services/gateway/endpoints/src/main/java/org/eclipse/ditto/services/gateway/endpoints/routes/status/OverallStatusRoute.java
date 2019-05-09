@@ -23,7 +23,7 @@ import static org.eclipse.ditto.services.gateway.endpoints.directives.DevOpsBasi
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
-import org.eclipse.ditto.services.gateway.endpoints.config.AuthenticationConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.DevOpsConfig;
 import org.eclipse.ditto.services.gateway.endpoints.directives.DevOpsBasicAuthenticationDirective;
 import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
@@ -49,7 +49,7 @@ public final class OverallStatusRoute {
 
     private final Supplier<ClusterStatus> clusterStateSupplier;
     private final StatusAndHealthProvider statusHealthProvider;
-    private final AuthenticationConfig.DevOpsConfig devOpsConfig;
+    private final DevOpsConfig devOpsConfig;
 
     /**
      * Constructs the {@code /status} route builder.
@@ -59,7 +59,7 @@ public final class OverallStatusRoute {
      * @param devOpsConfig the configuration settings of the Gateway service's DevOps endpoint.
      */
     public OverallStatusRoute(final Supplier<ClusterStatus> clusterStateSupplier,
-            final StatusAndHealthProvider statusHealthProvider, final AuthenticationConfig.DevOpsConfig devOpsConfig) {
+            final StatusAndHealthProvider statusHealthProvider, final DevOpsConfig devOpsConfig) {
 
         this.clusterStateSupplier = clusterStateSupplier;
         this.statusHealthProvider = statusHealthProvider;

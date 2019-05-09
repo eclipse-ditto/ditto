@@ -13,10 +13,10 @@ package org.eclipse.ditto.services.gateway.endpoints.config;
 import java.io.Serializable;
 import java.util.Objects;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 
@@ -24,7 +24,7 @@ import com.typesafe.config.Config;
  * This class is the default implementation of the DevOps config.
  */
 @Immutable
-public final class DefaultDevOpsConfig implements AuthenticationConfig.DevOpsConfig, Serializable {
+public final class DefaultDevOpsConfig implements DevOpsConfig, Serializable {
 
     private static final String CONFIG_PATH = "devops";
 
@@ -33,9 +33,9 @@ public final class DefaultDevOpsConfig implements AuthenticationConfig.DevOpsCon
     private final boolean secureStatus;
     private final String password;
 
-    private DefaultDevOpsConfig(final ScopedConfig scopedConfig) {
-        secureStatus = scopedConfig.getBoolean(DevOpsConfigValue.SECURE_STATUS.getConfigPath());
-        password = scopedConfig.getString(DevOpsConfigValue.PASSWORD.getConfigPath());
+    private DefaultDevOpsConfig(final ConfigWithFallback configWithFallback) {
+        secureStatus = configWithFallback.getBoolean(DevOpsConfigValue.SECURE_STATUS.getConfigPath());
+        password = configWithFallback.getString(DevOpsConfigValue.PASSWORD.getConfigPath());
     }
 
     /**
@@ -60,7 +60,7 @@ public final class DefaultDevOpsConfig implements AuthenticationConfig.DevOpsCon
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }

@@ -15,7 +15,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.util.Optional;
 import java.util.function.Function;
 
-import org.eclipse.ditto.services.gateway.endpoints.config.AuthenticationConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.DevOpsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,9 +38,9 @@ public final class DevOpsBasicAuthenticationDirective {
 
     private static final String USER_DEVOPS = "devops";
 
-    private final AuthenticationConfig.DevOpsConfig devOpsConfig;
+    private final DevOpsConfig devOpsConfig;
 
-    private DevOpsBasicAuthenticationDirective(final AuthenticationConfig.DevOpsConfig devOpsConfig) {
+    private DevOpsBasicAuthenticationDirective(final DevOpsConfig devOpsConfig) {
         this.devOpsConfig = checkNotNull(devOpsConfig, "DevOpsConfig");
     }
 
@@ -51,7 +51,7 @@ public final class DevOpsBasicAuthenticationDirective {
      * @return the instance.
      * @throws NullPointerException if {@code devOpsConfig} is {@code null}.
      */
-    public static DevOpsBasicAuthenticationDirective getInstance(final AuthenticationConfig.DevOpsConfig devOpsConfig) {
+    public static DevOpsBasicAuthenticationDirective getInstance(final DevOpsConfig devOpsConfig) {
         return new DevOpsBasicAuthenticationDirective(devOpsConfig);
     }
 

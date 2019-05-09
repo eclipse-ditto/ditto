@@ -51,7 +51,7 @@ public final class DefaultAuthenticationConfigTest {
     public void assertImmutability() {
         assertInstancesOf(DefaultAuthenticationConfig.class,
                 areImmutable(),
-                provided(AuthenticationConfig.HttpProxyConfig.class).isAlsoImmutable());
+                provided(HttpProxyConfig.class).isAlsoImmutable());
     }
 
     @Test
@@ -99,19 +99,19 @@ public final class DefaultAuthenticationConfigTest {
                 .as("httpProxyConfig")
                 .satisfies(httpProxyConfig -> {
                     softly.assertThat(httpProxyConfig.isEnabled())
-                            .as(AuthenticationConfig.HttpProxyConfig.HttpProxyConfigValue.ENABLED.getConfigPath())
+                            .as(HttpProxyConfig.HttpProxyConfigValue.ENABLED.getConfigPath())
                             .isTrue();
                     softly.assertThat(httpProxyConfig.getHostname())
-                            .as(AuthenticationConfig.HttpProxyConfig.HttpProxyConfigValue.HOST_NAME.getConfigPath())
+                            .as(HttpProxyConfig.HttpProxyConfigValue.HOST_NAME.getConfigPath())
                             .isEqualTo("example.com");
                     softly.assertThat(httpProxyConfig.getPort())
-                            .as(AuthenticationConfig.HttpProxyConfig.HttpProxyConfigValue.PORT.getConfigPath())
+                            .as(HttpProxyConfig.HttpProxyConfigValue.PORT.getConfigPath())
                             .isEqualTo(4711);
                     softly.assertThat(httpProxyConfig.getUsername())
-                            .as(AuthenticationConfig.HttpProxyConfig.HttpProxyConfigValue.USER_NAME.getConfigPath())
+                            .as(HttpProxyConfig.HttpProxyConfigValue.USER_NAME.getConfigPath())
                             .isEqualTo("john.frume");
                     softly.assertThat(httpProxyConfig.getPassword())
-                            .as(AuthenticationConfig.HttpProxyConfig.HttpProxyConfigValue.USER_NAME.getConfigPath())
+                            .as(HttpProxyConfig.HttpProxyConfigValue.USER_NAME.getConfigPath())
                             .isEqualTo("verySecretPW!");
                 });
     }

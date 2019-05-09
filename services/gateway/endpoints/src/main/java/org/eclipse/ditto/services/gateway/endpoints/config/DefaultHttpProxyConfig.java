@@ -13,10 +13,10 @@ package org.eclipse.ditto.services.gateway.endpoints.config;
 import java.io.Serializable;
 import java.util.Objects;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 
@@ -24,7 +24,7 @@ import com.typesafe.config.Config;
  * This class is the default implementation of the HTTP proxy config.
  */
 @Immutable
-public final class DefaultHttpProxyConfig implements AuthenticationConfig.HttpProxyConfig, Serializable {
+public final class DefaultHttpProxyConfig implements HttpProxyConfig, Serializable {
 
     private static final String CONFIG_PATH = "http.proxy";
 
@@ -36,12 +36,12 @@ public final class DefaultHttpProxyConfig implements AuthenticationConfig.HttpPr
     private final String userName;
     private final String password;
 
-    private DefaultHttpProxyConfig(final ScopedConfig scopedConfig) {
-        enabled = scopedConfig.getBoolean(HttpProxyConfigValue.ENABLED.getConfigPath());
-        hostName = scopedConfig.getString(HttpProxyConfigValue.HOST_NAME.getConfigPath());
-        port = scopedConfig.getInt(HttpProxyConfigValue.PORT.getConfigPath());
-        userName = scopedConfig.getString(HttpProxyConfigValue.USER_NAME.getConfigPath());
-        password = scopedConfig.getString(HttpProxyConfigValue.PASSWORD.getConfigPath());
+    private DefaultHttpProxyConfig(final ConfigWithFallback configWithFallback) {
+        enabled = configWithFallback.getBoolean(HttpProxyConfigValue.ENABLED.getConfigPath());
+        hostName = configWithFallback.getString(HttpProxyConfigValue.HOST_NAME.getConfigPath());
+        port = configWithFallback.getInt(HttpProxyConfigValue.PORT.getConfigPath());
+        userName = configWithFallback.getString(HttpProxyConfigValue.USER_NAME.getConfigPath());
+        password = configWithFallback.getString(HttpProxyConfigValue.PASSWORD.getConfigPath());
     }
 
     /**
@@ -82,7 +82,7 @@ public final class DefaultHttpProxyConfig implements AuthenticationConfig.HttpPr
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
@@ -102,6 +102,7 @@ public final class DefaultHttpProxyConfig implements AuthenticationConfig.HttpPr
         return Objects.hash(enabled, hostName, port, userName, password);
     }
 
+    @SuppressWarnings("squid:S2068")
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +

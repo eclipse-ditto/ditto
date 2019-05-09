@@ -15,7 +15,7 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.services.gateway.endpoints.config.AuthenticationConfig.HttpProxyConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.HttpProxyConfig;
 import org.eclipse.ditto.services.utils.config.DittoConfigError;
 
 import akka.actor.ActorSystem;

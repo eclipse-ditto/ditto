@@ -19,7 +19,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
-import org.eclipse.ditto.services.gateway.endpoints.config.AuthenticationConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.DevOpsConfig;
 import org.eclipse.ditto.services.gateway.endpoints.directives.HttpsEnsuringDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DittoGatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthenticationDirectiveFactory;
@@ -104,7 +104,7 @@ public final class RootRouteTest extends EndpointTestBase {
         final Supplier<ClusterStatus> clusterStatusSupplier = createClusterStatusSupplierMock();
         final StatusAndHealthProvider statusAndHealthProvider =
                 DittoStatusAndHealthProviderFactory.of(actorSystem, clusterStatusSupplier, healthCheckConfig);
-        final AuthenticationConfig.DevOpsConfig devOpsConfig = authConfig.getDevOpsConfig();
+        final DevOpsConfig devOpsConfig = authConfig.getDevOpsConfig();
 
         final Route rootRoute = RootRoute.getBuilder(httpConfig)
                 .statsRoute(new StatsRoute(proxyActor, actorSystem, httpConfig, devOpsConfig, headerTranslator))

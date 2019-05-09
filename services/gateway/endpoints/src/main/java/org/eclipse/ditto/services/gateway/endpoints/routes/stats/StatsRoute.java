@@ -28,7 +28,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.HttpRequestActor;
-import org.eclipse.ditto.services.gateway.endpoints.config.AuthenticationConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.DevOpsConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers;
 import org.eclipse.ditto.services.gateway.endpoints.directives.DevOpsBasicAuthenticationDirective;
@@ -60,7 +60,7 @@ public final class StatsRoute extends AbstractRoute {
     static final String SEARCH_PATH = "search";
     private static final String DETAILS_PATH = "details";
 
-    private final AuthenticationConfig.DevOpsConfig devOpsConfig;
+    private final DevOpsConfig devOpsConfig;
 
     /**
      * Constructs the {@code /stats} route builder.
@@ -75,7 +75,7 @@ public final class StatsRoute extends AbstractRoute {
     public StatsRoute(final ActorRef proxyActor,
             final ActorSystem actorSystem,
             final HttpConfig httpConfig,
-            final AuthenticationConfig.DevOpsConfig devOpsConfig,
+            final DevOpsConfig devOpsConfig,
             final HeaderTranslator headerTranslator) {
 
         super(proxyActor, actorSystem, httpConfig, headerTranslator);

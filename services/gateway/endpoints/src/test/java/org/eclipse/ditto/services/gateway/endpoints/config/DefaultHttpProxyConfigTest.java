@@ -22,7 +22,7 @@ import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 
 import org.assertj.core.api.JUnitSoftAssertions;
-import org.eclipse.ditto.services.gateway.endpoints.config.AuthenticationConfig.HttpProxyConfig.HttpProxyConfigValue;
+import org.eclipse.ditto.services.gateway.endpoints.config.HttpProxyConfig.HttpProxyConfigValue;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
