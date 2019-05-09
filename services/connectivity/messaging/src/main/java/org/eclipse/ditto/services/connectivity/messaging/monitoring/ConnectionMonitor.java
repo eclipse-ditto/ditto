@@ -418,6 +418,17 @@ public interface ConnectionMonitor {
         @Nullable
         String getThingId();
 
+        /**
+         * @return the headers that were part of the message that caused the monitoring event.
+         */
+        Map<String, String> getHeaders();
+
+        /**
+         * @return the payload that was part of the message that caused the monitoring event.
+         */
+        @Nullable
+        String getPayload();
+
     }
 
 }

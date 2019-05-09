@@ -77,7 +77,7 @@ public final class ConnectionLoggerRegistryTest {
         final ConnectionLogger before = underTest.forConnection(connectionId);
         underTest.unmuteForConnection(connectionId);
 
-        before.success("a", Instant.now(), "b", null);
+        before.success(randomInfoProvider());
 
         assertThat(before.getLogs()).isNotEmpty();
 

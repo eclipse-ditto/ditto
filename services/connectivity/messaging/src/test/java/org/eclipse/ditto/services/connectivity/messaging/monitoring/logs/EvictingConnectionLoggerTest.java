@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
 import java.util.Collection;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
@@ -34,6 +35,8 @@ import org.eclipse.ditto.model.connectivity.LogEntry;
 import org.eclipse.ditto.model.connectivity.LogLevel;
 import org.eclipse.ditto.model.connectivity.LogType;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.junit.Test;
 
@@ -64,6 +67,77 @@ public final class EvictingConnectionLoggerTest {
                 .hasCategory(CATEGORY)
                 .hasType(TYPE)
                 .hasInfo(INFO_PROVIDER_WITH_THING);
+    }
+
+    @Test
+    public void withoutDebugLogEnabled() {
+        final EvictingConnectionLogger logger = builder().build();
+
+        final String textPayload = "{\"foo\":\"bar\"}";
+        final ConnectionMonitor.InfoProvider info = infoProviderWithHeaderAndPayloadDebugLogging(textPayload);
+
+        logger.success(info);
+        final LogEntry entry = getFirstAndOnlyEntry(logger);
+
+        LogEntryAssertions.assertThat(entry)
+                .hasMessageNotContainingHeaderKeysOrValues(info.getHeaders())
+                .hasMessageNotContainingPayload(textPayload);
+    }
+
+    @Test
+    public void withDebugLogEnabled() {
+        final EvictingConnectionLogger logger = builder().logHeadersAndPayload().build();
+
+        final ConnectionMonitor.InfoProvider info = randomInfoProvider();
+
+        logger.success(info);
+        final LogEntry entry = getFirstAndOnlyEntry(logger);
+
+        LogEntryAssertions.assertThat(entry)
+                .hasMessageContainingHeaderKeys(info.getHeaders());
+    }
+
+    @Test
+    public void withDebugLogHeaders() {
+        final EvictingConnectionLogger logger = builder().logHeadersAndPayload().build();
+
+        final ConnectionMonitor.InfoProvider info = infoProviderWithHeadersDebugLogging();
+
+        logger.success(info);
+        final LogEntry entry = getFirstAndOnlyEntry(logger);
+
+        LogEntryAssertions.assertThat(entry)
+                .hasMessageContainingHeaderValues(info.getHeaders());
+
+    }
+
+    @Test
+    public void withDebugLogPayload() {
+        final EvictingConnectionLogger logger = builder().logHeadersAndPayload().build();
+
+        final String textPayload = "{\"foo\":\"bar\"}";
+        final ConnectionMonitor.InfoProvider info = infoProviderWithPayloadDebugLogging(textPayload);
+
+        logger.success(info);
+        final LogEntry entry = getFirstAndOnlyEntry(logger);
+
+        LogEntryAssertions.assertThat(entry)
+                .hasMessageContainingPayload(textPayload);
+    }
+
+    @Test
+    public void withDebugLogHeadersAndPayload() {
+        final EvictingConnectionLogger logger = builder().logHeadersAndPayload().build();
+
+        final String textPayload = "{\"foo\":\"bar\"}";
+        final ConnectionMonitor.InfoProvider info = infoProviderWithHeaderAndPayloadDebugLogging(textPayload);
+
+        logger.success(info);
+        final LogEntry entry = getFirstAndOnlyEntry(logger);
+
+        LogEntryAssertions.assertThat(entry)
+                .hasMessageContainingPayload(textPayload)
+                .hasMessageContainingHeaderValues(info.getHeaders());
     }
 
     @Test
@@ -232,6 +306,22 @@ public final class EvictingConnectionLoggerTest {
         return ImmutableInfoProvider.forSignal(RetrieveThing.of(thingId, DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build()));
     }
 
+    private static ConnectionMonitor.InfoProvider infoProviderWithHeadersDebugLogging() {
+        return ImmutableInfoProvider.forHeaders(DittoHeaders.newBuilder().putHeader("foo", "bar").putHeader("connectivity-debug-log", "HEADER").build());
+    }
+
+    private static ConnectionMonitor.InfoProvider infoProviderWithPayloadDebugLogging(final String textPayload) {
+        final DittoHeaders headers = DittoHeaders.newBuilder().putHeader("foo", "bar").putHeader("connectivity-debug-log", "PAYLOAD").build();
+        final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).withText(textPayload).build();
+        return ImmutableInfoProvider.forExternalMessage(externalMessage);
+    }
+
+    private static ConnectionMonitor.InfoProvider infoProviderWithHeaderAndPayloadDebugLogging(final String textPayload) {
+        final DittoHeaders headers = DittoHeaders.newBuilder().putHeader("foo", "bar").putHeader("connectivity-debug-log", "ALL").build();
+        final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).withText(textPayload).build();
+        return ImmutableInfoProvider.forExternalMessage(externalMessage);
+    }
+
     private static class LogEntryAssert extends AbstractAssert<LogEntryAssert, LogEntry> {
 
         private LogEntryAssert(final LogEntry logEntry) {
@@ -309,6 +399,33 @@ public final class EvictingConnectionLoggerTest {
             assertThat(actual.getMessage()).contains(values);
             return this;
         }
+
+        private LogEntryAssert hasMessageContainingHeaderKeys(final Map<String, String> headers) {
+            return hasMessageContaining(headers.keySet().toString());
+        }
+
+        private LogEntryAssert hasMessageContainingHeaderValues(final Map<String, String> headers) {
+            return hasMessageContaining(headers.entrySet().toString());
+        }
+
+        private LogEntryAssert hasMessageContainingPayload(final String payload) {
+            return hasMessageContaining(payload);
+        }
+
+        private LogEntryAssert hasMessageNotContainingHeaderKeysOrValues(final Map<String, String> headers) {
+            return hasMessageNotContaining(headers.keySet().toString(), headers.entrySet().toString());
+        }
+
+        private LogEntryAssert hasMessageNotContainingPayload(final String payload) {
+            return hasMessageNotContaining(payload);
+        }
+
+        private LogEntryAssert hasMessageNotContaining(final CharSequence... values) {
+            isNotNull();
+            assertThat(actual.getMessage()).doesNotContain(values);
+            return this;
+        }
+
     }
 
     private static class LogEntryAssertions extends Assertions {

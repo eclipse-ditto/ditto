@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.connectivity.messaging.monitoring.logs;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.time.Instant;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -54,6 +54,8 @@ final class EvictingConnectionLogger implements ConnectionLogger {
     private final String defaultFailureMessage;
     private final String defaultExceptionMessage;
 
+    private final boolean logHeadersAndPayload;
+
     @Nullable private final String address;
 
     private EvictingConnectionLogger(final Builder builder) {
@@ -67,6 +69,8 @@ final class EvictingConnectionLogger implements ConnectionLogger {
         this.defaultSuccessMessage = builder.defaultSuccessMessage;
         this.defaultFailureMessage = builder.defaultFailureMessage;
         this.defaultExceptionMessage = builder.defaultExceptionMessage;
+
+        this.logHeadersAndPayload = builder.logHeadersAndPayload;
 
         LOGGER.trace("Successfully built new EvictingConnectionLogger: {}", this);
     }
@@ -86,17 +90,24 @@ final class EvictingConnectionLogger implements ConnectionLogger {
         return new Builder(successCapacity, failureCapacity, category, type);
     }
 
+    private static String formatMessage(final String message, final Object... messageArguments) {
+        if (messageArguments.length > 0) {
+            return MessageFormat.format(message, messageArguments);
+        }
+        return message;
+    }
+
     @Override
     public void success(final ConnectionMonitor.InfoProvider infoProvider) {
         success(infoProvider, defaultSuccessMessage);
     }
 
     @Override
-    public void success(final String correlationId, final Instant timestamp, final String message,
-            @Nullable final String thingId) {
-        logTraceWithCorrelationId(correlationId, "Saving success log at <{}> for thing <{}> with message: {}",
-                timestamp, thingId, message);
-        successLogs.add(getLogEntry(correlationId, timestamp, message, address, thingId, LogLevel.SUCCESS));
+    public void success(final ConnectionMonitor.InfoProvider infoProvider, final String message, final Object... messageArguments) {
+        logTraceWithCorrelationId(infoProvider.getCorrelationId(), "success", infoProvider, message);
+        final String formattedMessage = formatMessage(infoProvider, message, messageArguments);
+        successLogs.add(getLogEntry(infoProvider, formattedMessage, LogLevel.SUCCESS));
+
     }
 
     @Override
@@ -110,24 +121,24 @@ final class EvictingConnectionLogger implements ConnectionLogger {
     }
 
     @Override
-    public void failure(final String correlationId, final Instant timestamp, final String message,
-            @Nullable final String thingId) {
-        logTraceWithCorrelationId(correlationId, "Saving failure log at <{}> for thing <{}> with message: {}",
-                timestamp, thingId, message);
-        failureLogs.add(getLogEntry(correlationId, timestamp, message, address, thingId, LogLevel.FAILURE));
+    public void failure(final ConnectionMonitor.InfoProvider infoProvider, final String message,
+            final Object... messageArguments) {
+        logTraceWithCorrelationId(infoProvider.getCorrelationId(), "failure", infoProvider, message);
+        final String formattedMessage = formatMessage(infoProvider, message, messageArguments);
+        failureLogs.add(getLogEntry(infoProvider, formattedMessage, LogLevel.FAILURE));
     }
 
     @Override
     public void exception(final ConnectionMonitor.InfoProvider infoProvider, @Nullable final Exception exception) {
-        exception(infoProvider.getCorrelationId(), infoProvider.getTimestamp(), defaultExceptionMessage, infoProvider.getThingId());
+        exception(infoProvider, defaultExceptionMessage);
     }
 
     @Override
-    public void exception(final String correlationId, final Instant timestamp, final String message,
-            @Nullable final String thingId) {
-        logTraceWithCorrelationId(correlationId, "Saving exception log at <{}> for thing <{}> with message: {}",
-                timestamp, thingId, message);
-        failureLogs.add(getLogEntry(correlationId, timestamp, message, address, thingId, LogLevel.FAILURE));
+    public void exception(final ConnectionMonitor.InfoProvider infoProvider, final String message,
+            final Object... messageArguments) {
+        logTraceWithCorrelationId(infoProvider.getCorrelationId(), "exception", infoProvider, message);
+        final String formattedMessage = formatMessage(infoProvider, message, messageArguments);
+        failureLogs.add(getLogEntry(infoProvider, formattedMessage, LogLevel.FAILURE));
     }
 
     @Override
@@ -147,6 +158,39 @@ final class EvictingConnectionLogger implements ConnectionLogger {
         return logs;
     }
 
+    private String formatMessage(final ConnectionMonitor.InfoProvider infoProvider, final String message, final Object... messageArguments) {
+
+        final String messageWithHeadersAndPayload = addHeadersAndPayloadToMessage(infoProvider, message);
+        return formatMessage(messageWithHeadersAndPayload, messageArguments);
+    }
+
+    private String addHeadersAndPayloadToMessage(final ConnectionMonitor.InfoProvider infoProvider, final String initialMessage) {
+
+        if (this.logHeadersAndPayload) {
+            final String headersMessage = getDebugHeaderMessage(infoProvider);
+            final String payloadMessage = getDebugPayloadMessage(infoProvider);
+            return initialMessage + headersMessage + payloadMessage;
+        }
+
+        return initialMessage;
+    }
+
+    private static String getDebugHeaderMessage(final ConnectionMonitor.InfoProvider infoProvider) {
+
+        if (ConnectivityHeaders.isHeadersDebugLogEnabled(infoProvider.getHeaders())) {
+            return MessageFormat.format(" Message headers: {0}", infoProvider.getHeaders().entrySet());
+        }
+        return MessageFormat.format(" Message header keys: {0}", infoProvider.getHeaders().keySet());
+    }
+
+    private static String getDebugPayloadMessage(final ConnectionMonitor.InfoProvider infoProvider) {
+
+        if (ConnectivityHeaders.isPayloadDebugLogEnabled(infoProvider.getHeaders())) {
+            return MessageFormat.format(" Message payload: {0}", infoProvider.getPayload());
+        }
+        return "";
+    }
+
     @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
@@ -156,7 +200,8 @@ final class EvictingConnectionLogger implements ConnectionLogger {
             return false;
         }
         final EvictingConnectionLogger that = (EvictingConnectionLogger) o;
-        return category == that.category &&
+        return logHeadersAndPayload == that.logHeadersAndPayload &&
+                category == that.category &&
                 type == that.type &&
                 Objects.equals(successLogs, that.successLogs) &&
                 Objects.equals(failureLogs, that.failureLogs) &&
@@ -169,7 +214,7 @@ final class EvictingConnectionLogger implements ConnectionLogger {
     @Override
     public int hashCode() {
         return Objects.hash(category, type, successLogs, failureLogs, defaultSuccessMessage, defaultFailureMessage,
-                defaultExceptionMessage, address);
+                defaultExceptionMessage, logHeadersAndPayload, address);
     }
 
     @Override
@@ -182,22 +227,24 @@ final class EvictingConnectionLogger implements ConnectionLogger {
                 ", defaultSuccessMessage=" + defaultSuccessMessage +
                 ", defaultFailureMessage=" + defaultFailureMessage +
                 ", defaultExceptionMessage=" + defaultExceptionMessage +
+                ", logHeadersAndPayload=" + logHeadersAndPayload +
                 ", address=" + address +
                 "]";
     }
 
-    private LogEntry getLogEntry(final String correlationId, final Instant timestamp, final String message,
-            @Nullable final String address, @Nullable final String thingId, final LogLevel logLevel) {
-        return ImmutableLogEntry.getBuilder(correlationId, timestamp, category, type, logLevel, message,
-                address, thingId)
+    private LogEntry getLogEntry(final ConnectionMonitor.InfoProvider infoProvider, final String message,
+            final LogLevel logLevel) {
+        return ImmutableLogEntry.getBuilder(infoProvider.getCorrelationId(), infoProvider.getTimestamp(), category, type, logLevel, message,
+                address, infoProvider.getThingId())
                 .build();
     }
 
-    private void logTraceWithCorrelationId(final String correlationId, final String message,
-            final Object... messageArguments) {
+    private void logTraceWithCorrelationId(final String correlationId, final String level,
+            final ConnectionMonitor.InfoProvider infoProvider, final String message) {
         if (LOGGER.isTraceEnabled()) {
             LogUtil.enhanceLogWithCorrelationId(correlationId);
-            LOGGER.trace(message, messageArguments);
+            LOGGER.trace("Saving {} log at <{}> for thing <{}> with message: {}", level,
+                    infoProvider.getTimestamp(), infoProvider.getThingId(), message);
         }
     }
 
@@ -217,6 +264,7 @@ final class EvictingConnectionLogger implements ConnectionLogger {
         private String defaultSuccessMessage = DEFAULT_SUCCESS_MESSAGE;
         private String defaultFailureMessage = DEFAULT_FAILURE_MESSAGE;
         private String defaultExceptionMessage = DEFAULT_EXCEPTION_MESSAGE;
+        private boolean logHeadersAndPayload = false;
 
         @Nullable private String address;
 
@@ -269,6 +317,16 @@ final class EvictingConnectionLogger implements ConnectionLogger {
          */
         Builder withDefaultExceptionMessage(final String defaultExceptionMessage) {
             this.defaultExceptionMessage = checkNotNull(defaultExceptionMessage, "Default exception message");
+            return this;
+        }
+
+        /**
+         * Enables logging the headers and the payload of messages. The detail level of the logged contents depends a
+         * user-settable header.
+         * @return the builder for method chaining.
+         */
+        Builder logHeadersAndPayload() {
+            this.logHeadersAndPayload = true;
             return this;
         }
 
