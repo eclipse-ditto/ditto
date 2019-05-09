@@ -41,7 +41,7 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnecte
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 
@@ -576,7 +576,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
         }
 
         private void updateSourceStatus(final ConnectivityStatus connectionStatus, final String statusDetails) {
-            consumerActor.tell(ConnectivityModelFactory.newStatusUpdate(ConfigUtil.instanceIdentifier(),
+            consumerActor.tell(ConnectivityModelFactory.newStatusUpdate(InstanceIdentifierSupplier.getInstance().get(),
                     connectionStatus, address, statusDetails, Instant.now()), ActorRef.noSender());
         }
 

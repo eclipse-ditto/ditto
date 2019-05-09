@@ -35,7 +35,8 @@ import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
+import org.eclipse.ditto.services.utils.config.LocalHostAddressSupplier;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
@@ -181,7 +182,7 @@ public final class PoliciesRootActor extends AbstractActor {
         final HttpConfig httpConfig = policiesConfig.getHttpConfig();
         String hostname = httpConfig.getHostname();
         if (hostname.isEmpty()) {
-            hostname = ConfigUtil.getLocalHostAddress();
+            hostname = LocalHostAddressSupplier.getInstance().get();
             log.info("No explicit hostname configured, using HTTP hostname <{}>.", hostname);
         }
 

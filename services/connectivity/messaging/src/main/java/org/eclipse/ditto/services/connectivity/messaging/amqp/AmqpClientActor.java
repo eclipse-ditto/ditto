@@ -51,7 +51,7 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFail
 import org.eclipse.ditto.services.connectivity.messaging.internal.DisconnectClient;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 
@@ -450,7 +450,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                         final ActorRef consumerActor = consumerByNamePrefix.get(c.getActorNamePrefix());
                         if (consumerActor != null) {
                             final Object message = ConnectivityModelFactory.newStatusUpdate(
-                                    ConfigUtil.instanceIdentifier(),
+                                    InstanceIdentifierSupplier.getInstance().get(),
                                     ConnectivityStatus.FAILED,
                                     c.getAddress(),
                                     "Consumer closed", Instant.now());
@@ -532,47 +532,38 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      */
     private static final class StatusReport {
 
-        private final boolean consumedMessage;
         private final boolean connectionRestored;
         @Nullable private final ConnectionFailure failure;
         @Nullable private final MessageConsumer closedConsumer;
-        @Nullable private final MessageProducer closedProducer;
 
-        private StatusReport(final boolean consumedMessage,
-                final boolean connectionRestored,
+        private StatusReport(final boolean connectionRestored,
                 @Nullable final ConnectionFailure failure,
                 @Nullable final MessageConsumer closedConsumer,
                 @Nullable final MessageProducer closedProducer) {
 
-            this.consumedMessage = consumedMessage;
             this.connectionRestored = connectionRestored;
             this.failure = failure;
             this.closedConsumer = closedConsumer;
-            this.closedProducer = closedProducer;
         }
 
         private static StatusReport connectionRestored() {
-            return new StatusReport(false, true, null, null, null);
+            return new StatusReport(true, null, null, null);
         }
 
         private static StatusReport failure(final ConnectionFailure failure) {
-            return new StatusReport(false, false, failure, null, null);
+            return new StatusReport(false, failure, null, null);
         }
 
         private static StatusReport consumedMessage() {
-            return new StatusReport(true, false, null, null, null);
+            return new StatusReport(false, null, null, null);
         }
 
         private static StatusReport consumerClosed(final MessageConsumer consumer) {
-            return new StatusReport(false, false, null, consumer, null);
+            return new StatusReport(false, null, consumer, null);
         }
 
         private static StatusReport producerClosed(final MessageProducer producer) {
-            return new StatusReport(false, false, null, null, producer);
-        }
-
-        private boolean hasConsumedMessage() {
-            return consumedMessage;
+            return new StatusReport(false, null, null, producer);
         }
 
         private boolean isConnectionRestored() {
@@ -585,10 +576,6 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
         private Optional<MessageConsumer> getClosedConsumer() {
             return Optional.ofNullable(closedConsumer);
-        }
-
-        private Optional<MessageProducer> getClosedProducer() {
-            return Optional.ofNullable(closedProducer);
         }
 
     }

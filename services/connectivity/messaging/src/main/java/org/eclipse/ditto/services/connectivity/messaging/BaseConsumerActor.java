@@ -23,7 +23,7 @@ import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectionMetricsCollector;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -49,15 +49,14 @@ public abstract class BaseConsumerActor extends AbstractActor {
         this.messageMappingProcessor = checkNotNull(messageMappingProcessor, "messageMappingProcessor");
         this.authorizationContext = checkNotNull(authorizationContext, "authorizationContext");
         this.headerMapping = headerMapping;
-        resourceStatus = ConnectivityModelFactory.newSourceStatus(ConfigUtil.instanceIdentifier(),
+        resourceStatus = ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
                 ConnectivityStatus.OPEN, sourceAddress,"Started at " + Instant.now());
 
         inboundCounter = ConnectivityCounterRegistry.getInboundConsumedCounter(connectionId, sourceAddress);
     }
 
     protected ResourceStatus getCurrentSourceStatus() {
-
-        return ConnectivityModelFactory.newSourceStatus(ConfigUtil.instanceIdentifier(),
+        return ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
                 resourceStatus != null ? resourceStatus.getStatus() : ConnectivityStatus.UNKNOWN,
                 sourceAddress,
                 resourceStatus != null ? resourceStatus.getStatusDetails().orElse(null) : null);
@@ -65,11 +64,16 @@ public abstract class BaseConsumerActor extends AbstractActor {
 
     protected void handleAddressStatus(final ResourceStatus resourceStatus) {
         if (resourceStatus.getResourceType() == ResourceStatus.ResourceType.UNKNOWN) {
-            this.resourceStatus = ConnectivityModelFactory.newSourceStatus(ConfigUtil.instanceIdentifier(),
+            this.resourceStatus = ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
                     resourceStatus.getStatus(), sourceAddress,
                     resourceStatus.getStatusDetails().orElse(null));
         } else {
             this.resourceStatus = resourceStatus;
         }
     }
+
+    private static String getInstanceIdentifier() {
+        return InstanceIdentifierSupplier.getInstance().get();
+    }
+
 }

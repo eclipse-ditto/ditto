@@ -186,7 +186,7 @@ public final class ThingsRootActor extends AbstractActor {
         final HttpConfig httpConfig = thingsConfig.getHttpConfig();
         String hostname = httpConfig.getHostname();
         if (hostname.isEmpty()) {
-            hostname = ConfigUtil.getLocalHostAddress();
+            hostname = LocalHostAddressSupplier.getInstance().get();
             log.info("No explicit hostname configured, using HTTP hostname <{}>.", hostname);
         }
         final CompletionStage<ServerBinding> binding = Http.get(actorSystem)
@@ -197,7 +197,7 @@ public final class ThingsRootActor extends AbstractActor {
 
         binding.thenAccept(theBinding -> CoordinatedShutdown.get(getContext().getSystem()).addTask(
                 CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_health_http_endpoint", () -> {
-                    log.info("Gracefully shutting down status/health HTTP endpoint..");
+                    log.info("Gracefully shutting down status/health HTTP endpoint ...");
                     return theBinding.terminate(Duration.ofSeconds(1))
                             .handle((httpTerminated, e) -> Done.getInstance());
                 })

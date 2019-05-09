@@ -51,7 +51,9 @@ import org.eclipse.ditto.services.models.thingsearch.ThingsSearchConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
+import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
+import org.eclipse.ditto.services.utils.config.LocalHostAddressSupplier;
 import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
 import org.eclipse.ditto.services.utils.devops.LogbackLoggingFacade;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
@@ -165,7 +167,7 @@ final class GatewayRootActor extends AbstractActor {
 
         final ActorRef devOpsCommandsActor = startChildActor(DevOpsCommandsActor.ACTOR_NAME,
                 DevOpsCommandsActor.props(LogbackLoggingFacade.newInstance(), GatewayService.SERVICE_NAME,
-                        ConfigUtil.instanceIdentifier()));
+                        InstanceIdentifierSupplier.getInstance().get()));
 
         final ActorRef conciergeShardRegionProxy = ClusterSharding.get(actorSystem)
                 .startProxy(ConciergeMessagingConstants.SHARD_REGION,
@@ -190,8 +192,8 @@ final class GatewayRootActor extends AbstractActor {
         final HttpConfig httpConfig = gatewayConfig.getHttpConfig();
         String hostname = httpConfig.getHostname();
         if (hostname.isEmpty()) {
-            hostname = ConfigUtil.getLocalHostAddress();
-            log.info("No explicit hostname configured, using HTTP hostname: {}", hostname);
+            hostname = LocalHostAddressSupplier.getInstance().get();
+            log.info("No explicit hostname configured, using HTTP hostname <{}>.", hostname);
         }
 
         final CompletionStage<ServerBinding> binding = Http.get(actorSystem)

@@ -16,7 +16,7 @@ import java.util.Random;
 import java.util.UUID;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.config.raw.RawConfigSupplier;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.NamespaceSuffixCollectionNames;
@@ -100,12 +100,11 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
         final String testConfig = "akka.log-dead-letters=0\n" +
                 "akka.remote.artery.bind.port=0\n" +
                 "akka.cluster.seed-nodes=[]\n" +
-                "akka.contrib.persistence.mongodb.mongo.mongouri=\"" + mongoDbUri + "\"\n" +
-                "ditto.services-utils-config.mongodb.uri=\"" + mongoDbUri + "\"\n";
+                "akka.contrib.persistence.mongodb.mongo.mongouri=\"" + mongoDbUri + "\"\n";
 
         // load the service config for info about event journal, snapshot store and metadata
         final Config configWithSuffixBuilder = ConfigFactory.parseString(testConfig)
-                .withFallback(ConfigUtil.determineConfig(getServiceName()));
+                .withFallback(RawConfigSupplier.of(getServiceName()).get());
 
         // set namespace suffix config before persisting any event - NullPointerException otherwise
         NamespaceSuffixCollectionNames.setSupportedPrefixes(getSupportedPrefixes());

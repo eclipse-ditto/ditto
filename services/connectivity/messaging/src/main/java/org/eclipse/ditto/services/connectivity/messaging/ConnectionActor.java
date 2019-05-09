@@ -50,7 +50,7 @@ import org.eclipse.ditto.services.connectivity.messaging.validation.DittoConnect
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -795,7 +795,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
         log.debug("ClientActor not started, responding with empty connection status with status closed.");
         final RetrieveConnectionStatusResponse statusResponse =
                 RetrieveConnectionStatusResponse.closedResponse(connectionId,
-                        ConfigUtil.instanceIdentifier(),
+                        InstanceIdentifierSupplier.getInstance().get(),
                         connectionClosedAt == null ? Instant.EPOCH : connectionClosedAt,
                         ConnectivityStatus.CLOSED,
                         "[" + BaseClientState.DISCONNECTED + "] connection is closed",

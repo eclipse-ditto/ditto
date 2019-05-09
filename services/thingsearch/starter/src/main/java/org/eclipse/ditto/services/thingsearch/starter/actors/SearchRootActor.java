@@ -39,7 +39,7 @@ import org.eclipse.ditto.services.thingsearch.starter.config.SearchConfig;
 import org.eclipse.ditto.services.thingsearch.updater.actors.SearchUpdaterRootActor;
 import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.config.LocalHostAddressSupplier;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
@@ -180,7 +180,7 @@ public final class SearchRootActor extends AbstractActor {
 
         String hostname = httpConfig.getHostname();
         if (hostname.isEmpty()) {
-            hostname = ConfigUtil.getLocalHostAddress();
+            hostname = LocalHostAddressSupplier.getInstance().get();
             log.info("No explicit hostname configured, using HTTP hostname <{}>.", hostname);
         }
 
@@ -242,7 +242,7 @@ public final class SearchRootActor extends AbstractActor {
     }
 
     private ActorRef startChildActor(final String actorName, final Props props) {
-        log.info("Starting child actor '{}'", actorName);
+        log.info("Starting child actor <{}>.", actorName);
         return getContext().actorOf(props, actorName);
     }
 

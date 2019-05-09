@@ -29,7 +29,7 @@ import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectionMetricsCollector;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 
 import com.newmotion.akka.rabbitmq.ChannelCreated;
 import com.newmotion.akka.rabbitmq.ChannelMessage;
@@ -115,7 +115,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
                                                 resourceStatusMap.put(
                                                         target,
                                                         ConnectivityModelFactory.newTargetStatus(
-                                                                ConfigUtil.instanceIdentifier(),
+                                                                InstanceIdentifierSupplier.getInstance().get(),
                                                                 ConnectivityStatus.FAILED,
                                                                 target.getAddress(),
                                                                 "Exchange '" + exchange + "' was missing at " +

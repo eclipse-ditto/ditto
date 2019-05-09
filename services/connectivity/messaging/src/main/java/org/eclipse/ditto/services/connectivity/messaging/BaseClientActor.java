@@ -62,7 +62,7 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddres
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
 import org.eclipse.ditto.signals.base.Signal;
@@ -684,7 +684,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         });
 
         final ResourceStatus clientStatus =
-                ConnectivityModelFactory.newClientStatus(ConfigUtil.instanceIdentifier(),
+                ConnectivityModelFactory.newClientStatus(getInstanceIdentifier(),
                         data.getConnectionStatus(),
                         "[" + stateName().name() + "] " + data.getConnectionStatusDetails().orElse(""),
                         getInConnectionStatusSince());
@@ -693,13 +693,17 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return stay();
     }
 
+    private static String getInstanceIdentifier() {
+        return InstanceIdentifierSupplier.getInstance().get();
+    }
+
     private FSM.State<BaseClientState, BaseClientData> retrieveConnectionMetrics(
             final RetrieveConnectionMetrics command, final BaseClientData data) {
 
         LogUtil.enhanceLogWithCorrelationId(log, command);
         log.debug("Received RetrieveConnectionMetrics message, gathering metrics.");
         final DittoHeaders dittoHeaders = command.getDittoHeaders().toBuilder()
-                .source(ConfigUtil.instanceIdentifier())
+                .source(getInstanceIdentifier())
                 .build();
 
         final SourceMetrics sourceMetrics = ConnectivityCounterRegistry.aggregateSourceMetrics(connectionId());
