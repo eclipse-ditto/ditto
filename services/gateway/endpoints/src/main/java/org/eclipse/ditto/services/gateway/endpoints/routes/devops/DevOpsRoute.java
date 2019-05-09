@@ -37,6 +37,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.devops.ImmutableLoggerConfig;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.signals.commands.devops.ChangeLogLevel;
+import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
 import org.eclipse.ditto.signals.commands.devops.ExecutePiggybackCommand;
 import org.eclipse.ditto.signals.commands.devops.RetrieveLoggerConfig;
 
@@ -188,7 +189,23 @@ public final class DevOpsRoute extends AbstractRoute {
                                     final JsonObject parsedJson =
                                             JsonFactory.readFrom(piggybackCommandJson).asObject();
 
-                                    return ExecutePiggybackCommand.of(serviceName, instance,
+                                    final String serviceName1;
+                                    final Integer instance1;
+
+                                    // serviceName and instance from URL are preferred
+                                    if (serviceName == null) {
+                                        serviceName1 = parsedJson.getValue(DevOpsCommand.JsonFields.JSON_SERVICE_NAME).orElse(serviceName);
+                                    } else {
+                                        serviceName1 = serviceName;
+                                    }
+
+                                    if (instance == null) {
+                                        instance1 = parsedJson.getValue(DevOpsCommand.JsonFields.JSON_INSTANCE).orElse(instance);
+                                    } else {
+                                        instance1 = instance;
+                                    }
+
+                                    return ExecutePiggybackCommand.of(serviceName1, instance1,
                                             parsedJson.getValueOrThrow(
                                                     ExecutePiggybackCommand.JSON_TARGET_ACTORSELECTION),
                                             parsedJson.getValueOrThrow(
