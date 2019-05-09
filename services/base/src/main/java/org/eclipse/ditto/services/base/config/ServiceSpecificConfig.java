@@ -10,6 +10,11 @@
  */
 package org.eclipse.ditto.services.base.config;
 
+import org.eclipse.ditto.services.base.config.http.HttpConfig;
+import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
+import org.eclipse.ditto.services.utils.cluster.config.WithClusterConfig;
+import org.eclipse.ditto.services.utils.metrics.config.WithMetricsConfig;
+
 /**
  * Provides the common configuration settings of each Ditto service.
  * This interface is the base of all service specific configuration settings.

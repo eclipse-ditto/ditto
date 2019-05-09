@@ -12,10 +12,10 @@ package org.eclipse.ditto.services.concierge.starter.proxy;
 
 import java.util.Optional;
 
-import org.eclipse.ditto.services.base.config.ClusterConfig;
 import org.eclipse.ditto.services.concierge.starter.config.ConciergeConfig;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
+import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;

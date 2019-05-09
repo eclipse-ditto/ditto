@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.base.config;
+package org.eclipse.ditto.services.utils.metrics.config;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -86,7 +86,7 @@ public final class DefaultMetricsConfig implements MetricsConfig, Serializable {
         return systemMetricEnabled == that.systemMetricEnabled &&
                 prometheusEnabled == that.prometheusEnabled &&
                 prometheusPort == that.prometheusPort &&
-                prometheusHostname.equals(that.prometheusHostname);
+                Objects.equals(prometheusHostname, that.prometheusHostname);
     }
 
     @Override

@@ -16,7 +16,6 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.base.config.ClusterConfig;
 import org.eclipse.ditto.services.base.config.DittoServiceConfig;
 import org.eclipse.ditto.services.base.config.HttpConfig;
 import org.eclipse.ditto.services.base.config.LimitsConfig;
@@ -25,10 +24,12 @@ import org.eclipse.ditto.services.concierge.cache.config.CachesConfig;
 import org.eclipse.ditto.services.concierge.cache.config.DefaultCachesConfig;
 import org.eclipse.ditto.services.concierge.enforcement.config.DefaultEnforcementConfig;
 import org.eclipse.ditto.services.concierge.enforcement.config.EnforcementConfig;
+import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.services.utils.config.WithConfigPath;
 import org.eclipse.ditto.services.utils.health.config.DefaultHealthCheckConfig;
 import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
+import org.eclipse.ditto.services.utils.metrics.config.MetricsConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 
@@ -43,11 +44,11 @@ public final class DittoConciergeConfig implements ConciergeConfig, Serializable
     private static final String CONFIG_PATH = "concierge";
 
     private final DittoServiceConfig serviceSpecificConfig;
-    private final MongoDbConfig mongoDbConfig;
-    private final HealthCheckConfig healthCheckConfig;
-    private final EnforcementConfig enforcementConfig;
-    private final CachesConfig cachesConfig;
-    private final ThingsAggregatorConfig thingsAggregatorConfig;
+    private final DefaultMongoDbConfig mongoDbConfig;
+    private final DefaultHealthCheckConfig healthCheckConfig;
+    private final DefaultEnforcementConfig enforcementConfig;
+    private final DefaultCachesConfig cachesConfig;
+    private final DefaultThingsAggregatorConfig thingsAggregatorConfig;
 
     private DittoConciergeConfig(final DittoServiceConfig conciergeScopedConfig) {
         serviceSpecificConfig = conciergeScopedConfig;

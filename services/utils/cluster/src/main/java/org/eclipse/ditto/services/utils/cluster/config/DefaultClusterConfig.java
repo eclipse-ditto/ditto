@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.base.config;
+package org.eclipse.ditto.services.utils.cluster.config;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -16,7 +16,6 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 
@@ -31,7 +30,7 @@ public final class DefaultClusterConfig implements ClusterConfig, Serializable {
 
     private final int numberOfShards;
 
-    private DefaultClusterConfig(final ScopedConfig config) {
+    private DefaultClusterConfig(final ConfigWithFallback config) {
         numberOfShards = config.getInt(ClusterConfigValue.NUMBER_OF_SHARDS.getConfigPath());
     }
 

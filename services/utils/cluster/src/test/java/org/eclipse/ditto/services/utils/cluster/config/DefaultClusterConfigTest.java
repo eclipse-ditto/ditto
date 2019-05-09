@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.base.config;
+package org.eclipse.ditto.services.utils.cluster.config;
 
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -33,7 +33,7 @@ import com.typesafe.config.ConfigFactory;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.base.config.DefaultClusterConfig}.
+ * Unit test for {@link org.eclipse.ditto.services.utils.cluster.config.DefaultClusterConfig}.
  */
 public final class DefaultClusterConfigTest {
 
@@ -46,7 +46,6 @@ public final class DefaultClusterConfigTest {
     public static void initTestFixture() {
         clusterTestConf = ConfigFactory.load("cluster-test");
     }
-
 
     @Test
     public void assertImmutability() {

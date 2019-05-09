@@ -14,7 +14,6 @@ import java.io.Serializable;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.base.config.ClusterConfig;
 import org.eclipse.ditto.services.base.config.DittoServiceConfig;
 import org.eclipse.ditto.services.base.config.LimitsConfig;
 import org.eclipse.ditto.services.base.config.MetricsConfig;
@@ -33,9 +32,11 @@ import org.eclipse.ditto.services.gateway.endpoints.config.PublicHealthConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.WebSocketConfig;
 import org.eclipse.ditto.services.gateway.health.config.DefaultHealthCheckConfig;
 import org.eclipse.ditto.services.gateway.health.config.HealthCheckConfig;
+import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.services.utils.config.WithConfigPath;
+import org.eclipse.ditto.services.utils.metrics.config.MetricsConfig;
 import org.eclipse.ditto.services.utils.protocol.config.DefaultProtocolConfig;
 import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
 

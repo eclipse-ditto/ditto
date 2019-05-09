@@ -16,16 +16,17 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.base.config.ClusterConfig;
 import org.eclipse.ditto.services.base.config.DittoServiceConfig;
 import org.eclipse.ditto.services.base.config.HttpConfig;
 import org.eclipse.ditto.services.base.config.LimitsConfig;
 import org.eclipse.ditto.services.base.config.MetricsConfig;
 import org.eclipse.ditto.services.things.persistence.config.DefaultThingConfig;
 import org.eclipse.ditto.services.things.persistence.config.ThingConfig;
+import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.services.utils.health.config.DefaultHealthCheckConfig;
 import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
+import org.eclipse.ditto.services.utils.metrics.config.MetricsConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultTagsConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
@@ -43,10 +44,10 @@ public final class DittoThingsConfig implements ThingsConfig, Serializable {
 
     private final DittoServiceConfig serviceSpecificConfig;
     private final boolean logIncomingMessages;
-    private final MongoDbConfig mongoDbConfig;
-    private final HealthCheckConfig healthCheckConfig;
-    private final TagsConfig tagsConfig;
-    private final ThingConfig thingConfig;
+    private final DefaultMongoDbConfig mongoDbConfig;
+    private final DefaultHealthCheckConfig healthCheckConfig;
+    private final DefaultTagsConfig tagsConfig;
+    private final DefaultThingConfig thingConfig;
 
     private DittoThingsConfig(final DittoServiceConfig thingsScopedConfig) {
         serviceSpecificConfig = thingsScopedConfig;

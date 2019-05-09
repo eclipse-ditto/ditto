@@ -7,7 +7,8 @@
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
  * SPDX-License-Identifier: EPL-2.0
- */package org.eclipse.ditto.services.base.config;
+ */
+package org.eclipse.ditto.services.utils.metrics.config;
 
 import javax.annotation.concurrent.Immutable;
 
