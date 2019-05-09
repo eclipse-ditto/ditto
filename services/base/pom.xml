@@ -108,11 +108,6 @@
             <groupId>io.kamon</groupId>
             <artifactId>kamon-system-metrics_${scala.version}</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>com.github.stefanbirkner</groupId>
-            <artifactId>system-rules</artifactId>
-        </dependency>
     </dependencies>
 
 </project>

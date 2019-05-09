@@ -8,21 +8,5 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
+@org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault
 package org.eclipse.ditto.services.utils.config;
-
-import com.typesafe.config.Config;
-
-/**
- * Configuration settings used within Ditto services.
- */
-public interface DittoConfig {
-
-    /**
-     * Returns the {@link com.typesafe.config.Config} representation of this DittoConfig.
-     * The returned Config maintains the same scope.
-     *
-     * @return this DittoConfig as Config.
-     */
-    Config asConfig();
-
-}

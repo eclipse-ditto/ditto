@@ -8,13 +8,13 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.base.config.raw;
+package org.eclipse.ditto.services.utils.config.raw;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.services.base.config.raw.FileBasedConfigSupplier.HOSTING_ENV_FILE_LOCATION_ENV_VARIABLE_NAME;
-import static org.eclipse.ditto.services.base.config.raw.ServiceSpecificEnvironmentConfigSupplier.CF_VCAP_SERVICES_ENV_VARIABLE_NAME;
-import static org.eclipse.ditto.services.base.config.raw.ServiceSpecificEnvironmentConfigSupplier.HOSTING_ENVIRONMENT_ENV_VARIABLE_NAME;
-import static org.eclipse.ditto.services.base.config.raw.VcapServicesStringSupplier.VCAP_LOCATION_ENV_VARIABLE_NAME;
+import static org.eclipse.ditto.services.utils.config.raw.FileBasedConfigSupplier.HOSTING_ENV_FILE_LOCATION_ENV_VARIABLE_NAME;
+import static org.eclipse.ditto.services.utils.config.raw.ServiceSpecificEnvironmentConfigSupplier.CF_VCAP_SERVICES_ENV_VARIABLE_NAME;
+import static org.eclipse.ditto.services.utils.config.raw.ServiceSpecificEnvironmentConfigSupplier.HOSTING_ENVIRONMENT_ENV_VARIABLE_NAME;
+import static org.eclipse.ditto.services.utils.config.raw.VcapServicesStringSupplier.VCAP_LOCATION_ENV_VARIABLE_NAME;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -32,7 +32,7 @@ import org.junit.contrib.java.lang.system.EnvironmentVariables;
 import com.typesafe.config.Config;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.base.config.raw.ServiceSpecificEnvironmentConfigSupplier}.
+ * Unit test for {@link ServiceSpecificEnvironmentConfigSupplier}.
  */
 public final class ServiceSpecificEnvironmentConfigSupplierTest {
 

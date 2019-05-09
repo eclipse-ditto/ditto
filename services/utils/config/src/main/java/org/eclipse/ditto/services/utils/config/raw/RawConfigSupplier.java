@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.base.config.raw;
+package org.eclipse.ditto.services.utils.config.raw;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
@@ -20,8 +20,21 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 /**
- * TODO Javadoc
- * // Ersatz fuer ConfigUtil
+ * Determines the {@link Config} to use based on the environment we are running in.
+ * Applies a simple logic:
+ * <ul>
+ * <li>
+ *     If environment variable {@value ServiceSpecificEnvironmentConfigSupplier#CF_VCAP_SERVICES_ENV_VARIABLE_NAME}
+ *     is present - CloudFoundry profile - loading "resourceBasename{@code -cloud}" config.
+ * </li>
+ * <li>
+ *     If environment variable {@value ServiceSpecificEnvironmentConfigSupplier#HOSTING_ENVIRONMENT_ENV_VARIABLE_NAME}
+ *     is set to "{@code docker}" - Docker profile - loading "resourceBasename{@code -docker}" config.
+ * </li>
+ * <li>
+ *     If nothing else is detected - Development profile - loading "resourceBasename{@code -dev}" config.
+ * </li>
+ * </ul>
  */
 @Immutable
 public final class RawConfigSupplier implements Supplier<Config> {

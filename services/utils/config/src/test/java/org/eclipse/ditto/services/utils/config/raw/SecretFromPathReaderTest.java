@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.base.config.raw;
+package org.eclipse.ditto.services.utils.config.raw;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
@@ -25,7 +25,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.base.config.raw.SecretFromPathReader}.
+ * Unit test for {@link org.eclipse.ditto.services.utils.config.raw.SecretFromPathReader}.
  */
 public final class SecretFromPathReaderTest {
 

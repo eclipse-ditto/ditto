@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.base.config.raw;
+package org.eclipse.ditto.services.utils.config.raw;
 
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -19,7 +19,7 @@ import org.junit.Test;
 import com.typesafe.config.Config;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.base.config.raw.FileBasedConfigSupplier}.
+ * Unit test for {@link org.eclipse.ditto.services.utils.config.raw.FileBasedConfigSupplier}.
  */
 public final class FileBasedConfigSupplierTest {
 

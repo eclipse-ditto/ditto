@@ -8,10 +8,10 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.base.config.raw;
+package org.eclipse.ditto.services.utils.config.raw;
 
 /**
- * TODO Javadoc
+ * An enumeration of the known hosting environments.
  */
 enum HostingEnvironment {
 
@@ -33,6 +33,12 @@ enum HostingEnvironment {
         configFileSuffix = suffix;
     }
 
+    /**
+     * Returns the suffix that distinguishes the config file for this particular hosting environment from the base
+     * config file.
+     *
+     * @return the suffix.
+     */
     public String getConfigFileSuffix() {
         return configFileSuffix;
     }

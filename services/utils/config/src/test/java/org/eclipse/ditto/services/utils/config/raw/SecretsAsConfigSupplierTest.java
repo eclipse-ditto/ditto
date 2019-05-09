@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.base.config.raw;
+package org.eclipse.ditto.services.utils.config.raw;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
@@ -34,7 +34,7 @@ import com.typesafe.config.ConfigValue;
 import com.typesafe.config.ConfigValueFactory;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.base.config.raw.SecretsAsConfigSupplier}.
+ * Unit test for {@link org.eclipse.ditto.services.utils.config.raw.SecretsAsConfigSupplier}.
  */
 public final class SecretsAsConfigSupplierTest {
 

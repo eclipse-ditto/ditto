@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.base.config.raw;
+package org.eclipse.ditto.services.utils.config.raw;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
@@ -34,7 +34,7 @@ import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValue;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.base.config.raw.VcapServicesStringParser}.
+ * Unit test for {@link org.eclipse.ditto.services.utils.config.raw.VcapServicesStringParser}.
  */
 public final class VcapServicesStringParserTest {
 
