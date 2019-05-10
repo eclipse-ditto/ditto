@@ -35,7 +35,6 @@ import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -110,36 +109,29 @@ final class ThingsSearchCursor {
      */
 
     private static final JsonFieldDefinition<String> FILTER = JsonFactory.newStringFieldDefinition("F");
-    private static final JsonFieldDefinition<String> JSON_FIELD_SELECTOR = JsonFactory.newStringFieldDefinition("J");
     private static final JsonFieldDefinition<JsonArray> NAMESPACES = JsonFactory.newJsonArrayFieldDefinition("N");
     private static final JsonFieldDefinition<String> CORRELATION_ID = JsonFactory.newStringFieldDefinition("C");
-    private static final JsonFieldDefinition<String> OPTIONS = JsonFactory.newStringFieldDefinition("O");
     private static final JsonFieldDefinition<JsonArray> VALUES = JsonFactory.newJsonArrayFieldDefinition("V");
+    private static final JsonFieldDefinition<String> SORT_OPTION = JsonFactory.newStringFieldDefinition("S");
 
     /*
      * Data encoded in a cursor.
      */
 
     @Nullable private final String filter;
-    @Nullable private final String jsonFieldSelector;
     @Nullable private final Set<String> namespaces;
     @Nullable final String correlationId;
-    private final List<Option> options;
-    private final JsonArray values;
     private final SortOption sortOption;
+    private final JsonArray values;
 
-    ThingsSearchCursor(@Nullable final String jsonFieldSelector,
-            @Nullable final Set<String> namespaces, @Nullable final String correlationId,
-            final List<Option> options, @Nullable final String filter, final JsonArray values) {
+    ThingsSearchCursor(@Nullable final Set<String> namespaces, @Nullable final String correlationId,
+            final SortOption sortOption, @Nullable final String filter, final JsonArray values) {
         this.namespaces = namespaces;
         this.filter = filter;
-        this.jsonFieldSelector = jsonFieldSelector;
 
         this.correlationId = correlationId;
-        this.options = options;
+        this.sortOption = sortOption;
         this.values = values;
-
-        this.sortOption = findUniqueSortOption(options);
 
         if (sortOption.getSize() != values.getSize()) {
             // Cursor corrupted. Offer no more information.
@@ -154,40 +146,18 @@ final class ThingsSearchCursor {
 
     @Override
     public int hashCode() {
-        return Objects.hash(filter, jsonFieldSelector, namespaces, correlationId, options, values, sortOption);
+        return Objects.hash(filter, namespaces, correlationId, sortOption, values);
     }
 
     @Override
     public boolean equals(final Object that) {
         if (that instanceof ThingsSearchCursor) {
             final ThingsSearchCursor c = (ThingsSearchCursor) that;
-            return Arrays.asList(filter, jsonFieldSelector, namespaces, correlationId, options, values, sortOption)
-                    .equals(Arrays.asList(c.filter, c.jsonFieldSelector, c.namespaces, c.correlationId, c.options,
-                            c.values, c.sortOption));
+            return Arrays.asList(filter, namespaces, correlationId, sortOption, values)
+                    .equals(Arrays.asList(c.filter, c.namespaces, c.correlationId, c.sortOption, c.values));
         } else {
             return false;
         }
-    }
-
-    /**
-     * Override certain values in this cursor by values from a {@code QueryThing} command.
-     * Accepted values are field selector, namespaces and a size option.
-     *
-     * @param queryThings the command.
-     * @param inputOptions parsed options of the command.
-     * @return a copy of this cursor with values from the command.
-     */
-    private ThingsSearchCursor override(final QueryThings queryThings, final List<Option> inputOptions) {
-        checkCursorValidity(queryThings, inputOptions)
-                .ifPresent(error -> {
-                    throw error;
-                });
-
-        final String newSelector =
-                queryThings.getFields().map(JsonFieldSelector::toString).orElse(this.jsonFieldSelector);
-        final List<Option> newOptions =
-                new OptionsBuilder().visitAll(options).visitAll(inputOptions).withSortOption(sortOption).build();
-        return new ThingsSearchCursor(newSelector, namespaces, correlationId, newOptions, filter, values);
     }
 
     /**
@@ -254,7 +224,7 @@ final class ThingsSearchCursor {
         final Optional<JsonArray> newValues = resultList.lastResultSortValues();
         if (newValues.isPresent()) {
             final ThingsSearchCursor newCursor =
-                    new ThingsSearchCursor(jsonFieldSelector, namespaces, correlationId, options, filter,
+                    new ThingsSearchCursor(namespaces, correlationId, sortOption, filter,
                             newValues.get());
             return searchResult.toBuilder()
                     .cursor(newCursor.encode())
@@ -269,14 +239,11 @@ final class ThingsSearchCursor {
      * @return Compute a {@code QueryThings} using content of this cursor.
      */
     private QueryThings adjustQueryThings(final QueryThings queryThings) {
-        final List<String> optionStrings = options.stream().map(Option::toString).collect(Collectors.toList());
-        final JsonFieldSelector selector = Optional.ofNullable(jsonFieldSelector)
-                .map(JsonFieldSelector::newInstance)
-                .orElse(null);
         final DittoHeaders headers = queryThings.getDittoHeaders().toBuilder()
                 .correlationId(combineCorrelationIds(correlationId, queryThings.getDittoHeaders()))
                 .build();
-        return QueryThings.of(filter, optionStrings, selector, namespaces, headers);
+        return QueryThings.of(filter, queryThings.getOptions().orElse(null), queryThings.getFields().orElse(null),
+                namespaces, headers);
     }
 
     /**
@@ -298,10 +265,9 @@ final class ThingsSearchCursor {
         final java.util.function.Predicate<JsonField> notNull = field -> !field.getValue().isNull();
         return JsonFactory.newObjectBuilder()
                 .set(FILTER, filter, notNull)
-                .set(JSON_FIELD_SELECTOR, jsonFieldSelector, notNull)
                 .set(NAMESPACES, renderNamespaces(), notNull)
                 .set(CORRELATION_ID, correlationId, notNull)
-                .set(OPTIONS, RqlOptionParser.unparse(options))
+                .set(SORT_OPTION, RqlOptionParser.unparse(Collections.singletonList(sortOption)))
                 .set(VALUES, values)
                 .build();
     }
@@ -394,7 +360,9 @@ final class ThingsSearchCursor {
                 return Source.failed(invalidCursor(LIMIT_OPTION_FORBIDDEN, queryThings));
             } else {
                 return Source.fromCompletionStage(decode(cursorOptions.get(0).getCursor(), materializer))
-                        .map(cursor -> Optional.of(cursor.override(queryThings, options)));
+                        .flatMapConcat(cursor -> cursor.checkCursorValidity(queryThings, options)
+                                .<Source<Optional<ThingsSearchCursor>, NotUsed>>map(Source::failed)
+                                .orElse(Source.single(Optional.of(cursor))));
             }
         } catch (final ParserException | IllegalArgumentException e) {
             return Source.failed(InvalidRqlExpressionException.newBuilder()
@@ -513,10 +481,9 @@ final class ThingsSearchCursor {
      */
     private static ThingsSearchCursor fromJson(final JsonObject json) {
         return new ThingsSearchCursor(
-                json.getValue(JSON_FIELD_SELECTOR).orElse(null),
                 json.getValue(NAMESPACES).map(ThingsSearchCursor::readNamespaces).orElse(null),
                 json.getValue(CORRELATION_ID).orElse(null),
-                RqlOptionParser.parseOptions(json.getValueOrThrow(OPTIONS)),
+                findUniqueSortOption(RqlOptionParser.parseOptions(json.getValueOrThrow(SORT_OPTION))),
                 json.getValue(FILTER).orElse(null),
                 json.getValueOrThrow(VALUES));
     }
@@ -596,25 +563,11 @@ final class ThingsSearchCursor {
      */
     private static ThingsSearchCursor computeNewCursor(final QueryThings queryThings, final ResultList<?> resultList) {
 
-        return new ThingsSearchCursor(queryThings.getFields().map(JsonFieldSelector::toString).orElse(null),
-                queryThings.getNamespaces().orElse(null),
+        return new ThingsSearchCursor(queryThings.getNamespaces().orElse(null),
                 queryThings.getDittoHeaders().getCorrelationId().orElse(null),
-                computeOptionsForNewCursor(queryThings),
+                sortOptionForNewCursor(queryThings),
                 queryThings.getFilter().orElse(null),
                 resultList.lastResultSortValues().orElse(JsonArray.empty()));
-    }
-
-    /**
-     * Compute options for a new cursor with special attention to ensure that at least one sort dimension is non-null
-     * for all things.
-     *
-     * @param queryThings the command.
-     * @return the options for the new cursor.
-     */
-    private static List<Option> computeOptionsForNewCursor(final QueryThings queryThings) {
-        return new OptionsBuilder().visitAll(getOptions(queryThings))
-                .withSortOption(sortOptionForNewCursor(queryThings))
-                .build();
     }
 
     /**

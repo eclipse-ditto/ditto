@@ -98,11 +98,10 @@ public final class ThingsSearchCursorTest {
     }
 
     private static ThingsSearchCursor randomCursor() {
-        return new ThingsSearchCursor("jsonFieldSelector-" + UUID.randomUUID().toString(),
+        return new ThingsSearchCursor(
                 new HashSet<>(Arrays.asList(UUID.randomUUID().toString(), UUID.randomUUID().toString())),
                 "correlation-id-" + UUID.randomUUID().toString(),
-                Collections.singletonList(
-                        SortOption.of(Collections.singletonList(ThingsSearchCursor.DEFAULT_SORT_OPTION_ENTRY))),
+                SortOption.of(Collections.singletonList(ThingsSearchCursor.DEFAULT_SORT_OPTION_ENTRY)),
                 "eq(attributes/x,\"" + UUID.randomUUID().toString() + "\")",
                 JsonArray.of(JsonValue.of("thingId:" + UUID.randomUUID().toString())));
     }
