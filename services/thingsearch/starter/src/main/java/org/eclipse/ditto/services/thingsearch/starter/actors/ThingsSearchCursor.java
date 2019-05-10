@@ -27,6 +27,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -247,8 +248,15 @@ final class ThingsSearchCursor {
         final DittoHeaders headers = queryThings.getDittoHeaders().toBuilder()
                 .correlationId(combineCorrelationIds(correlationId, queryThings.getDittoHeaders()))
                 .build();
-        return QueryThings.of(filter, queryThings.getOptions().orElse(null), queryThings.getFields().orElse(null),
-                namespaces, headers);
+        final List<String> adjustedOptions =
+                Stream.concat(
+                        Stream.of(RqlOptionParser.unparse(Collections.singletonList(sortOption))),
+                        queryThings.getOptions()
+                                .map(List::stream)
+                                .orElseGet(Stream::empty)
+                                .filter(option -> !option.startsWith("sort")))
+                        .collect(Collectors.toList());
+        return QueryThings.of(filter, adjustedOptions, queryThings.getFields().orElse(null), namespaces, headers);
     }
 
     /**
