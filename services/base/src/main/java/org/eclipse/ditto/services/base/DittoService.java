@@ -202,7 +202,16 @@ public abstract class DittoService<C extends ServiceConfigReader> {
      * </ul>
      */
     protected void initializeActorSystem(final Config config, final ActorSystem actorSystem) {
-        AkkaManagement.get(actorSystem).start();
+
+        logger.info("Starting AkkaManagement..");
+        AkkaManagement.get(actorSystem).start().whenComplete((uri, throwable) -> {
+            if (throwable != null) {
+                logger.error("Error during start of AkkaManagement: {}", throwable.getMessage(), throwable);
+            } else {
+                logger.info("Started AkkaManagement on URI: {}", uri);
+            }
+        });
+        logger.info("Starting ClusterBootstrap..");
         ClusterBootstrap.get(actorSystem).start();
 
         startStatusSupplierActor(actorSystem, config);

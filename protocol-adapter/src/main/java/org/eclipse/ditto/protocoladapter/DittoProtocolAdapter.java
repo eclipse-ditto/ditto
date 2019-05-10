@@ -27,7 +27,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
-import org.eclipse.ditto.signals.base.AbstractErrorRegistry;
+import org.eclipse.ditto.signals.base.ErrorRegistry;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 import org.eclipse.ditto.signals.base.Signal;
@@ -57,10 +57,10 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
     private final ThingQueryCommandResponseAdapter thingQueryCommandResponseAdapter;
     private final ThingEventAdapter thingEventAdapter;
 
-    private final AbstractErrorRegistry<DittoRuntimeException> errorRegistry;
+    private final ErrorRegistry<DittoRuntimeException> errorRegistry;
     private final HeaderTranslator headerTranslator;
 
-    protected DittoProtocolAdapter(final AbstractErrorRegistry<DittoRuntimeException> errorRegistry,
+    protected DittoProtocolAdapter(final ErrorRegistry<DittoRuntimeException> errorRegistry,
             final HeaderTranslator headerTranslator) {
         this.errorRegistry = errorRegistry;
         this.messageCommandAdapter = MessageCommandAdapter.of(headerTranslator);

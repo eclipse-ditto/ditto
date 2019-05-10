@@ -19,7 +19,6 @@ import java.util.Arrays;
 import java.util.UUID;
 
 import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
@@ -27,7 +26,6 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.utils.akka.JavaTestProbe;
 import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.base.JsonParsableRegistry;
-import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.batch.ExecuteBatch;
@@ -58,6 +56,7 @@ import akka.actor.Kill;
 import akka.actor.Props;
 import akka.event.Logging;
 import akka.japi.pf.ReceiveBuilder;
+import akka.routing.ConsistentHashingRouter;
 
 /**
  * Unit test for {@link BatchCoordinatorActor}.
@@ -79,9 +78,9 @@ public final class BatchCoordinatorActorTest {
     @BeforeClass
     public static void setUpActorSystem() {
         actorSystem = ActorSystem.create("AkkaTestSystem", CONFIG);
-        final ActorRef sharedRegionProxy = actorSystem.actorOf(Props.create(SharedRegionProxyMock.class));
+        final ActorRef enforcerActorMock = actorSystem.actorOf(Props.create(EnforcerActorMock.class));
         conciergeForwarder = actorSystem.actorOf(BatchSupervisorActorTest.ConciergeForwarderActorMock.props
-                (sharedRegionProxy), BatchSupervisorActorTest.ConciergeForwarderActorMock.ACTOR_NAME);
+                (enforcerActorMock), BatchSupervisorActorTest.ConciergeForwarderActorMock.ACTOR_NAME);
     }
 
     /** */
@@ -309,34 +308,31 @@ public final class BatchCoordinatorActorTest {
         return "BatchCoordinatorActorTest-" + UUID.randomUUID().toString();
     }
 
-    private static final class SharedRegionProxyMock extends AbstractActor {
+    private static final class EnforcerActorMock extends AbstractActor {
 
         private int modifyAttributesCount = 0;
-        private final JsonParsableRegistry<? extends Command> commandRegistry = GlobalCommandRegistry.getInstance();
 
-        SharedRegionProxyMock() {
+        EnforcerActorMock() {
         }
 
         @Override
         public Receive createReceive() {
             return ReceiveBuilder.create()
-                    .match(ShardedMessageEnvelope.class, this::extractCommandFromEnvelop)
+                    .match(ConsistentHashingRouter.ConsistentHashableEnvelope.class, this::extractCommandFromEnvelop)
                     .matchAny(this::unhandled)
                     .build();
         }
 
-        private void extractCommandFromEnvelop(ShardedMessageEnvelope shardedMessageEnvelope) {
-            final String type = shardedMessageEnvelope.getType();
-            final JsonObject jsonCommand = shardedMessageEnvelope.getMessage();
-            final DittoHeaders dittoHeaders = shardedMessageEnvelope.getDittoHeaders();
+        private void extractCommandFromEnvelop(ConsistentHashingRouter.ConsistentHashableEnvelope envelope) {
+            final Object obj = envelope.message();
 
-            if (type.equals(ModifyThing.TYPE)) {
-                final ModifyThing command = (ModifyThing) commandRegistry.parse(jsonCommand, dittoHeaders);
+            if (obj instanceof ModifyThing) {
+                final ModifyThing command = (ModifyThing) obj;
 
                 getSender().tell(ModifyThingResponse.modified(command.getId(),
                         command.getDittoHeaders()), getSelf());
-            } else if (type.equals(ModifyFeature.TYPE)) {
-                final ModifyFeature command = (ModifyFeature) commandRegistry.parse(jsonCommand, dittoHeaders);
+            } else if (obj instanceof ModifyFeature) {
+                final ModifyFeature command = (ModifyFeature) obj;
 
                 final String thingId = command.getThingId();
                 final String featureId = command.getFeatureId();
@@ -362,8 +358,8 @@ public final class BatchCoordinatorActorTest {
                     }
                 }
 
-            } else if (type.equals(ModifyAttributes.TYPE)) {
-                final ModifyAttributes command = (ModifyAttributes) commandRegistry.parse(jsonCommand, dittoHeaders);
+            } else if (obj instanceof ModifyAttributes) {
+                final ModifyAttributes command = (ModifyAttributes) obj;
 
                 if (command.getDittoHeaders().isDryRun()) {
                     respondToModifyAttributes(command);

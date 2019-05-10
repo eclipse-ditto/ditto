@@ -11,11 +11,11 @@ The Ditto Protocol JSON must be sent as `UTF-8` encoded String payload.
 
 ## WebSocket features
 
-The WebSocket provides an alternative to the [HTTP API](httpapi-overview.html) in order to manage your Digital Twins.
+The WebSocket provides an alternative to the [HTTP API](httpapi-overview.html) in order to manage your digital twins.
 
 The benefits of the WebSocket compared to HTTP are multiple ones:
 
-* a single connection (socket like) is established and for commands to Digital Twins no further HTTP overhead 
+* a single connection (socket like) is established and for commands to digital twins no further HTTP overhead 
   (e.g. HTTP headers, HTTP connection establishment) is produced which means you can get more commands/seconds 
   through the WebSocket compared to the HTTP endpoint
 * as the WebSocket is a duplex connection, [change notifications](basic-changenotifications.html) can be sent via the

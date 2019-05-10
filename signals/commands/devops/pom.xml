@@ -75,10 +75,9 @@
                 <configuration>
                     <parameter>
                         <excludes>
-                            <exclude>org.eclipse.ditto.signals.commands.devops.DevOpsCommandRegistry</exclude>
-                            <exclude>org.eclipse.ditto.signals.commands.devops.AggregatedDevOpsCommandResponse#fromJson(java.lang.String,org.eclipse.ditto.model.base.headers.DittoHeaders,java.util.Map)</exclude>
-                            <exclude>org.eclipse.ditto.signals.commands.devops.AggregatedDevOpsCommandResponse#fromJson(org.eclipse.ditto.json.JsonObject,org.eclipse.ditto.model.base.headers.DittoHeaders,java.util.Map)</exclude>
-                            <exclude>org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry</exclude>
+                            <exclude>org.eclipse.ditto.signals.commands.devops.ChangeLogLevel</exclude>
+                            <exclude>org.eclipse.ditto.signals.commands.devops.ExecutePiggybackCommand</exclude>
+                            <exclude>org.eclipse.ditto.signals.commands.devops.RetrieveLoggerConfig</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

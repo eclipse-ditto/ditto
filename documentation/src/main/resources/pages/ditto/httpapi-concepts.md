@@ -68,7 +68,7 @@ This maps to the following HTTP API endpoints:
 Additionally to that "static part" of the HTTP API which is defined by Ditto, the API is dynamically enhanced by the JSON 
 structure of the Thing.<br/>
 
-{% include note.html content="This automatically turns each small aspect of a **Digital Twin** into an API endpoint." %}
+{% include note.html content="This automatically turns each small aspect of a **digital twin** into an API endpoint." %}
 
 For example for a `Thing` with following content:
 ```json
@@ -144,7 +144,7 @@ This maps to the following HTTP API endpoints:
 Additionally to that "static part" of the HTTP API which is defined by Ditto, the API is dynamically enhanced by the JSON 
 structure of the Thing.<br/>
 
-{% include note.html content="This automatically turns each small aspect of a **Digital Twin** into an API endpoint." %}
+{% include note.html content="This automatically turns each small aspect of a **digital twin** into an API endpoint." %}
 
 For example for a `Thing` with following content:
 ```json

@@ -1,5 +1,5 @@
 ---
-title: "Search"
+title: "Search topics"
 tagName: search
 search: exclude
 permalink: tag_search.html

@@ -70,7 +70,7 @@ final class MqttConnectionSettingsFactory {
 
         final SSLContext sslContext = clientCredentials.accept(sslContextCreator);
 
-        return SocketFactoryExtension.withSocketFactory(connectionSettings, sslContext.getSocketFactory());
+        return connectionSettings.withSocketFactory(sslContext.getSocketFactory());
     }
 
     private boolean isSecureConnection(final Connection connection) {
