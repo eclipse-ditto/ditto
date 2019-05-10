@@ -396,7 +396,9 @@
                             <skipPomModules>true</skipPomModules>
                             <htmlTitle>${project.name} :: Binary Compatibility Report</htmlTitle>
                             <excludes>
-                               <exclude>org.eclipse.ditto.signals.base.AbstractErrorRegistry</exclude>
+                                <exclude>org.eclipse.ditto.signals.base.DittoJsonRegistry</exclude>
+                                <exclude>org.eclipse.ditto.signals.base.GlobalErrorRegistry</exclude>
+                                <exclude>org.eclipse.ditto.signals.base.AbstractErrorRegistry</exclude>
                             </excludes>
                         </parameter>
                     </configuration>
