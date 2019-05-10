@@ -274,7 +274,7 @@ public final class SearchActor extends AbstractActor {
 
     private DittoRuntimeException asDittoRuntimeException(final Throwable error, final WithDittoHeaders trigger) {
         if (error instanceof DittoRuntimeException) {
-            return (DittoRuntimeException) error;
+            return ((DittoRuntimeException) error).setDittoHeaders(trigger.getDittoHeaders());
         } else {
             log.error(error, "SearchActor failed to execute <{}>", trigger);
             return GatewayInternalErrorException.newBuilder()

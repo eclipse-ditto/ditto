@@ -27,13 +27,16 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.thingsearch.SortOption;
+import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import akka.actor.ActorSystem;
+import akka.japi.pf.PFBuilder;
 import akka.stream.ActorMaterializer;
+import akka.stream.javadsl.Sink;
 import akka.testkit.javadsl.TestKit;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -69,7 +72,9 @@ public final class ThingsSearchCursorTest {
     public void encodeAndDecodeAreInverse() {
         final ThingsSearchCursor input = randomCursor();
         final ThingsSearchCursor decoded =
-                ThingsSearchCursor.decode(input.encode(), materializer).toCompletableFuture().join();
+                ThingsSearchCursor.decode(input.encode(), materializer)
+                        .runWith(Sink.head(), materializer)
+                        .toCompletableFuture().join();
 
         assertThat(decoded).isEqualTo(input);
     }
@@ -95,6 +100,19 @@ public final class ThingsSearchCursorTest {
         // THEN: correlation ID of adjusted command contains those of both the cursor and the original command.
         assertThat(correlationIdOfAdjustedCommand).contains(correlationIdFromCursor);
         assertThat(correlationIdOfAdjustedCommand).contains(correlationIdFromCommand);
+    }
+
+    @Test
+    public void decodingInvalidCursorsFailsWithInvalidCursorException() {
+        assertThat(
+                ThingsSearchCursor.decode("null", materializer)
+                        .<Object>map(x -> x)
+                        .recover(new PFBuilder<Throwable, Object>().matchAny(x -> x).build())
+                        .runWith(Sink.head(), materializer)
+                        .toCompletableFuture()
+                        .join())
+                .isInstanceOf(InvalidOptionException.class);
+
     }
 
     private static ThingsSearchCursor randomCursor() {

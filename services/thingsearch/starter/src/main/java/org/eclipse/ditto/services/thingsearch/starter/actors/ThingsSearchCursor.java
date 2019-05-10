@@ -23,10 +23,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -52,7 +52,6 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.thingsearch.CursorOption;
 import org.eclipse.ditto.model.thingsearch.LimitOption;
 import org.eclipse.ditto.model.thingsearch.Option;
-import org.eclipse.ditto.model.thingsearch.OptionVisitor;
 import org.eclipse.ditto.model.thingsearch.SearchResult;
 import org.eclipse.ditto.model.thingsearch.SearchResultBuilder;
 import org.eclipse.ditto.model.thingsearch.SizeOption;
@@ -63,12 +62,16 @@ import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 import org.eclipse.ditto.services.thingsearch.persistence.write.mapping.JsonToBson;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import akka.NotUsed;
 import akka.http.javadsl.coding.Coder;
+import akka.japi.pf.PFBuilder;
 import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Source;
 import akka.util.ByteString;
+import scala.PartialFunction;
 
 /**
  * Package-private evaluator and generator of opaque cursors.
@@ -91,6 +94,8 @@ import akka.util.ByteString;
  */
 final class ThingsSearchCursor {
 
+    private static final Logger LOG = LoggerFactory.getLogger(ThingsSearchCursor.class);
+
     static final SortOptionEntry DEFAULT_SORT_OPTION_ENTRY =
             SortOptionEntry.asc(Thing.JsonFields.ID.getPointer());
 
@@ -103,6 +108,7 @@ final class ThingsSearchCursor {
     private static final String LIMIT_OPTION_FORBIDDEN = "The options 'cursor' and 'limit' must not be used together.";
 
     private static final Base64.Encoder BASE64_URL_ENCODER_WITHOUT_PADDING = Base64.getUrlEncoder().withoutPadding();
+    private static final PartialFunction<Throwable, Throwable> DECODE_ERROR_MAPPER = createDecodeErrorMapper();
 
     /*
      * Secret fields in JSON representation of a cursor.
@@ -224,8 +230,7 @@ final class ThingsSearchCursor {
         final Optional<JsonArray> newValues = resultList.lastResultSortValues();
         if (newValues.isPresent()) {
             final ThingsSearchCursor newCursor =
-                    new ThingsSearchCursor(namespaces, correlationId, sortOption, filter,
-                            newValues.get());
+                    new ThingsSearchCursor(namespaces, correlationId, sortOption, filter, newValues.get());
             return searchResult.toBuilder()
                     .cursor(newCursor.encode())
                     .nextPageOffset(null)
@@ -293,18 +298,35 @@ final class ThingsSearchCursor {
         return BASE64_URL_ENCODER_WITHOUT_PADDING.encodeToString(compressed.toByteBuffer().array());
     }
 
+
     /**
      * Decode the string representation of a cursor.
      *
      * @param cursorString the string representation.
      * @param materializer materializer of actors that will decode the cursor.
-     * @return future of the decoded cursor.
+     * @return source of the decoded cursor or a failed source containing a {@code DittoRuntimeException}.
      */
-    static CompletionStage<ThingsSearchCursor> decode(final String cursorString,
+    static Source<ThingsSearchCursor, NotUsed> decode(final String cursorString, final ActorMaterializer materializer) {
+        return Source.fromCompletionStage(decodeCS(cursorString, materializer)).mapError(DECODE_ERROR_MAPPER);
+    }
+
+    private static CompletionStage<ThingsSearchCursor> decodeCS(final String cursorString,
             final ActorMaterializer materializer) {
         final ByteString compressed = ByteString.fromArray(Base64.getUrlDecoder().decode(cursorString));
         return Coder.Deflate.decode(compressed, materializer)
                 .thenApply(decompressed -> fromJson(JsonFactory.newObject(decompressed.utf8String())));
+    }
+
+    private static PartialFunction<Throwable, Throwable> createDecodeErrorMapper() {
+        // offer no explanation for non-decodable cursors.
+        return new PFBuilder<Throwable, Throwable>()
+                .matchAny(error -> {
+                    final Throwable e = error instanceof CompletionException ? error.getCause() : error;
+                    LOG.info("Failed to decode cursor: {} '{}' due to {}", e.getClass(), e.getMessage(),
+                            Objects.toString(e.getCause()));
+                    return invalidCursorBuilder().build();
+                })
+                .build();
     }
 
     /**
@@ -359,7 +381,7 @@ final class ThingsSearchCursor {
             } else if (!limitOptions.isEmpty()) {
                 return Source.failed(invalidCursor(LIMIT_OPTION_FORBIDDEN, queryThings));
             } else {
-                return Source.fromCompletionStage(decode(cursorOptions.get(0).getCursor(), materializer))
+                return decode(cursorOptions.get(0).getCursor(), materializer)
                         .flatMapConcat(cursor -> cursor.checkCursorValidity(queryThings, options)
                                 .<Source<Optional<ThingsSearchCursor>, NotUsed>>map(Source::failed)
                                 .orElse(Source.single(Optional.of(cursor))));
@@ -800,52 +822,6 @@ final class ThingsSearchCursor {
                     .build());
         } else {
             return Optional.empty();
-        }
-    }
-
-    /**
-     * Visitor to set size and sort options.
-     */
-    private static final class OptionsBuilder implements OptionVisitor {
-
-        @Nullable private SortOption sortOption;
-        @Nullable private SizeOption sizeOption;
-
-        private OptionsBuilder visitAll(final List<Option> startingOptions) {
-            startingOptions.forEach(option -> option.accept(this));
-            return this;
-        }
-
-        private OptionsBuilder withSortOption(final SortOption sortOption) {
-            this.sortOption = sortOption;
-            return this;
-        }
-
-        @Override
-        public void visit(final LimitOption limitOption) {
-            // should not happen
-            throw invalidCursorBuilder().build();
-        }
-
-        @Override
-        public void visit(final SortOption sortOption) {
-            this.sortOption = sortOption;
-        }
-
-        @Override
-        public void visit(final CursorOption cursorOption) {
-            // do nothing; cursor options are ignored
-        }
-
-        @Override
-        public void visit(final SizeOption sizeOption) {
-            this.sizeOption = sizeOption;
-        }
-
-        private List<Option> build() {
-            return Stream.of(sortOption, sizeOption)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
         }
     }
 }
