@@ -18,6 +18,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.placeholders.EnforcementFilter;
@@ -143,6 +144,15 @@ public interface ExternalMessageBuilder {
      * @return this builder in order to enable method chaining
      */
     ExternalMessageBuilder asError(boolean error);
+
+    /**
+     * Attach headers of the signal that created the external message for generation of errors to send back
+     * into the Ditto cluster.
+     *
+     * @param internalHeaders headers of the signal.
+     * @return this builder.
+     */
+    ExternalMessageBuilder withInternalHeaders(DittoHeaders internalHeaders);
 
     /**
      * Builds the ExternalMessage.
