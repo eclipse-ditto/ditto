@@ -83,9 +83,6 @@
                 <configuration>
                     <parameter>
                         <excludes>
-                            <exclude>org.eclipse.ditto.model.policies.Policy#NAMESPACE_PREFIX_REGEX</exclude>
-                            <exclude>org.eclipse.ditto.model.policies.Policy#ID_NON_NAMESPACE_REGEX</exclude>
-                            <exclude>org.eclipse.ditto.model.policies.Policy#ID_REGEX</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

@@ -32,27 +32,6 @@ public final class Pipe {
     }
 
     /**
-     * Join a flow into a sink.
-     *
-     * @param step1 the flow.
-     * @param step2 the sink.
-     * @param <A> type of input.
-     * @param <B> type of intermediate messages.
-     * @return joined sink.
-     */
-    public static <A, B> Graph<SinkShape<A>, NotUsed> joinSink(
-            final Graph<FlowShape<A, B>, NotUsed> step1,
-            final Graph<SinkShape<B>, NotUsed> step2) {
-
-        return GraphDSL.create(builder -> {
-            final FlowShape<A, B> shape1 = builder.add(step1);
-            final SinkShape<B> shape2 = builder.add(step2);
-            builder.from(shape1.out()).to(shape2);
-            return SinkShape.of(shape1.in());
-        });
-    }
-
-    /**
      * Attach a sink to the output port of a filter.
      *
      * @param filter the filter.
@@ -134,4 +113,5 @@ public final class Pipe {
 
         return overallFlow;
     }
+
 }

@@ -153,11 +153,11 @@ public final class DevOpsRoute extends AbstractRoute {
 
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), instance ->
                 // /devops/<logging|piggyback>/<serviceName>/<instance>
-                routeBuilder.build(ctx, serviceName, Integer.parseInt(instance), dittoHeaders)
+                routeBuilder.build(ctx, serviceName, instance, dittoHeaders)
         );
     }
 
-    private Route routeLogging(final RequestContext ctx, final String serviceName, final Integer instance,
+    private Route routeLogging(final RequestContext ctx, final String serviceName, final String instance,
             final DittoHeaders dittoHeaders) {
 
         return route(
@@ -181,7 +181,7 @@ public final class DevOpsRoute extends AbstractRoute {
     }
 
     private Route routePiggyback(final RequestContext ctx, @Nullable final String serviceName,
-            @Nullable final Integer instance, final DittoHeaders dittoHeaders) {
+            @Nullable final String instance, final DittoHeaders dittoHeaders) {
         return post(() ->
                 extractDataBytes(payloadSource ->
                         handlePerRequest(ctx, dittoHeaders, payloadSource,
@@ -190,7 +190,7 @@ public final class DevOpsRoute extends AbstractRoute {
                                             JsonFactory.readFrom(piggybackCommandJson).asObject();
 
                                     final String serviceName1;
-                                    final Integer instance1;
+                                    final String instance1;
 
                                     // serviceName and instance from URL are preferred
                                     if (serviceName == null) {
@@ -215,7 +215,8 @@ public final class DevOpsRoute extends AbstractRoute {
                                                     .map(JsonValue::asObject)
                                                     .map(DittoHeaders::newBuilder)
                                                     .map(head -> head.putHeaders(dittoHeaders))
-                                                    .map(DittoHeadersBuilder::build)
+                                                    .map((java.util.function.Function<DittoHeadersBuilder, DittoHeaders>)
+                                                            DittoHeadersBuilder::build)
                                                     .orElse(dittoHeaders));
                                 }
                         )
@@ -223,7 +224,7 @@ public final class DevOpsRoute extends AbstractRoute {
         );
     }
 
-    private static Function<JsonValue, JsonValue> transformResponse(final String serviceName, final Integer instance) {
+    private static Function<JsonValue, JsonValue> transformResponse(final String serviceName, final String instance) {
         final JsonPointer transformerPointer = transformerPointer(serviceName, instance);
         if (transformerPointer.isEmpty()) {
             return resp -> resp;
@@ -235,13 +236,13 @@ public final class DevOpsRoute extends AbstractRoute {
     }
 
     private static JsonPointer transformerPointer(@Nullable final String serviceName,
-            @Nullable final Integer instance) {
+            @Nullable final String instance) {
         JsonPointer newPointer = JsonPointer.empty();
         if (serviceName != null) {
             newPointer = newPointer.append(JsonPointer.of(serviceName));
         }
         if (instance != null) {
-            newPointer = newPointer.append(JsonPointer.of(instance.toString()));
+            newPointer = newPointer.append(JsonPointer.of(instance));
         }
         return newPointer;
     }
@@ -256,7 +257,7 @@ public final class DevOpsRoute extends AbstractRoute {
     @FunctionalInterface
     private interface RouteBuilderWithOptionalServiceNameAndInstance {
 
-        Route build(final RequestContext ctx, final String serviceName, final Integer instance,
+        Route build(final RequestContext ctx, final String serviceName, final String instance,
                 final DittoHeaders dittoHeaders);
     }
 

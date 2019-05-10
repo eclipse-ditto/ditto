@@ -52,6 +52,8 @@ import org.eclipse.ditto.services.gateway.streaming.actors.CommandSubscriber;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
@@ -196,10 +198,19 @@ public final class WebsocketRoute {
             final ProtocolAdapter adapter,
             final HttpRequest request) {
 
+        final Counter inCounter = DittoMetrics.counter("streaming_messages")
+                .tag("type", "ws")
+                .tag("direction", "in")
+                .tag("session", connectionCorrelationId);
+
         final ProtocolMessageExtractor protocolMessageExtractor = new ProtocolMessageExtractor(connectionAuthContext,
                 connectionCorrelationId);
 
         final Flow<Message, String, NotUsed> extractStringFromMessage = Flow.<Message>create()
+                .via(Flow.fromFunction(msg -> {
+                    inCounter.increment();
+                    return msg;
+                }))
                 .via(incomingMessageSniffer.toAsyncFlow(request))
                 .filter(Message::isText)
                 .map(Message::asTextMessage)
@@ -246,6 +257,11 @@ public final class WebsocketRoute {
             final ProtocolAdapter adapter,
             final HttpRequest request) {
 
+        final Counter outCounter = DittoMetrics.counter("streaming_messages")
+                .tag("type", "ws")
+                .tag("direction", "out")
+                .tag("session", connectionCorrelationId);
+
         final Source<Jsonifiable.WithPredicate<JsonObject, JsonField>, NotUsed> eventAndResponseSource =
                 Source.<Jsonifiable.WithPredicate<JsonObject, JsonField>>actorPublisher(
                         EventAndResponsePublisher.props(publisherBackpressureBufferSize))
@@ -267,6 +283,10 @@ public final class WebsocketRoute {
                             return result;
                         }))
                         .<Message>map(TextMessage::create)
+                        .via(Flow.fromFunction(msg -> {
+                            outCounter.increment();
+                            return msg;
+                        }))
                         .via(outgoingMessageSniffer.toAsyncFlow(request));
 
         return joinOutgoingFlows(eventAndResponseSource, errorFlow, messageFlow);

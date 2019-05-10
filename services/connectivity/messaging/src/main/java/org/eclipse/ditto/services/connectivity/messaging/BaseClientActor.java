@@ -63,6 +63,8 @@ import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
@@ -110,6 +112,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final ActorRef conciergeForwarder;
+    private final Gauge clientGauge;
 
     @Nullable private ActorRef messageMappingProcessorActor;
 
@@ -132,6 +135,10 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         final FiniteDuration initTimeout = Duration.create(javaInitTimeout.toMillis(), TimeUnit.MILLISECONDS);
         final FiniteDuration connectingTimeout = Duration.create(CONNECTING_TIMEOUT, TimeUnit.SECONDS);
+
+        clientGauge = DittoMetrics.gauge("connection_client")
+                .tag("id", connection.getId())
+                .tag("type", connection.getConnectionType().getName());
 
         startWith(UNKNOWN, startingData, initTimeout);
 
@@ -384,6 +391,12 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private void onTransition(final BaseClientState from, final BaseClientState to) {
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
         log.debug("Transition: {} -> {}", from, to);
+        if (to == CONNECTED) {
+            clientGauge.increment();
+        }
+        if (to == DISCONNECTED) {
+            clientGauge.decrement();
+        }
     }
 
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inUnknownState() {

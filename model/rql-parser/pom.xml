@@ -107,7 +107,6 @@
                 <configuration>
                     <parameter>
                         <excludes>
-                            <exclude>org.eclipse.ditto.model.rqlparser.*</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

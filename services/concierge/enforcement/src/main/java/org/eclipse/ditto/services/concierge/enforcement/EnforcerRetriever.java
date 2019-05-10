@@ -22,9 +22,9 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.eclipse.ditto.model.enforcers.Enforcer;
-import org.eclipse.ditto.services.models.concierge.EntityId;
-import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.utils.cache.Cache;
+import org.eclipse.ditto.services.utils.cache.EntityId;
+import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

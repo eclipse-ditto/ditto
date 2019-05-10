@@ -5,7 +5,7 @@ tags: [model]
 permalink: basic-messages.html
 ---
 
-Messages *do not affect* the state of a Digital Twin or an actual device.
+Messages *do not affect* the state of a digital twin or an actual device.
 Therefore Ditto does not handle messages like [commands](basic-signals-command.html): there are no responses which are
 produced by Ditto and no events which are emitted for messages.
 

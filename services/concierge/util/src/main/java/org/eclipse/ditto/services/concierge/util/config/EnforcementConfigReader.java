@@ -27,6 +27,8 @@ import com.typesafe.config.Config;
 public final class EnforcementConfigReader extends AbstractConfigReader {
 
     private static final Duration DEFAULT_ASK_TIMEOUT = Duration.ofSeconds(10);
+    private static final int DEFAULT_BUFFER_SIZE = 1_000;
+    private static final int DEFAULT_PARALLELISM = 100;
 
     EnforcementConfigReader(final Config config) {
         super(config);
@@ -39,6 +41,24 @@ public final class EnforcementConfigReader extends AbstractConfigReader {
      */
     public Duration askTimeout() {
         return getIfPresent("ask-timeout", config::getDuration).orElse(DEFAULT_ASK_TIMEOUT);
+    }
+
+    /**
+     * Retrieve the buffer size used for the queue in the {@code EnforcerActor}.
+     *
+     * @return the buffer size.
+     */
+    public int bufferSize() {
+        return getIfPresent("buffer-size", config::getInt).orElse(DEFAULT_BUFFER_SIZE);
+    }
+
+    /**
+     * Retrieve the parallelism used for processing messages in parallel in {@code EnforcerActor}.
+     *
+     * @return the parallelism.
+     */
+    public int parallelism() {
+        return getIfPresent("parallelism", config::getInt).orElse(DEFAULT_PARALLELISM);
     }
 
 }
