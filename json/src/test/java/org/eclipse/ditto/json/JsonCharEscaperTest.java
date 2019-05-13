@@ -30,7 +30,11 @@ import com.eclipsesource.json.JsonValue;
  * Test cases are oriented on https://tools.ietf.org/html/rfc8259#section-7
  */
 public final class JsonCharEscaperTest {
-    
+
+    private static final String SHORTHAND_CONTROL_CHARACTERS = "\b\f\n\r\t";
+
+    private static final String SHORTHAND_CONTROL_CHARACTER_NAMES = "bfnrt";
+
     private JsonCharEscaper underTest;
 
     @Before
@@ -47,87 +51,79 @@ public final class JsonCharEscaperTest {
 
     @Test
     public void doNotEscapeSpace() {
-        final String unescapedSpace = underTest.apply((char) 0x0020);
+        final String unescapedSpace = underTest.apply(0x0020);
 
-        assertThat(unescapedSpace).isNull();
+        assertThat(unescapedSpace.chars()).containsExactly(0x0020);
     }
 
     @Test
     public void doNotEscapeExclamationMark() {
-        final String unescapedExclamationMark = underTest.apply((char) 0x0021);
+        final String unescapedExclamationMark = underTest.apply(0x0021);
 
-        assertThat(unescapedExclamationMark).isNull();
+        assertThat(unescapedExclamationMark.chars()).containsExactly(0x0021);
     }
 
     @Test
     public void doNotEscapeNormalCharactersBeforeBackslash() {
-        final char start = (char) 0x0023;
-        final char end = (char) 0x005B;
+        final int start = 0x0023;
+        final int end = 0x005B;
 
         IntStream.range(start, end)
-                .mapToObj(i -> (char) i)
                 .forEach(character -> {
                     final String notEscaped = underTest.apply(character);
-                    assertThat(notEscaped).isNull();
+                    assertThat(notEscaped.chars()).containsExactly(character);
                 });
     }
 
     @Test
-    public void doNotEscapeNormalCharactersAfterBackslash() {
-        final char start = (char) 0x005D;
-        final char end = (char) 0x10FFFF;
+    public void doNotEscapeMultilingualPlaneAfterBackslash() {
+        final int start = 0x005D;
+        final int end = 0x00FFFF;
 
         IntStream.range(start, end)
-                .filter(i -> '\u2028' != i && '\u2029' != i)
-                .mapToObj(i -> (char) i)
                 .forEach(character -> {
                     final String notEscaped = underTest.apply(character);
-                    assertThat(notEscaped)
+                    assertThat(notEscaped.chars())
                             .describedAs("Do not escape character %s", Integer.toHexString(character))
-                            .isNull();
+                            .containsExactly(character);
                 });
     }
 
     @Test
     public void escapeQuote() {
-        final String escapedQuote = underTest.apply('"');
+        final String escapedQuote = underTest.apply((int) '"');
 
         assertThat(escapedQuote).isEqualTo("\\\"");
     }
 
     @Test
     public void escapeReverseSolidus() {
-        final String escapedReverseSolidus = underTest.apply('\\');
+        final String escapedReverseSolidus = underTest.apply((int) '\\');
 
         assertThat(escapedReverseSolidus).isEqualTo("\\\\");
     }
 
     @Test
-    public void escapeBackspace() {
-        final String escapedBackspace = underTest.apply('\b');
-
-        assertThat(escapedBackspace).isEqualTo("\\b");
+    public void escapeControlCharactersWithoutShordhands() {
+        IntStream.range(0, 0x1F).forEach(character -> {
+            if (SHORTHAND_CONTROL_CHARACTERS.chars().noneMatch(i -> i == character)) {
+                final String unicodeEscaped = underTest.apply(character);
+                assertThat(unicodeEscaped)
+                        .describedAs("Do not escape character %s", Integer.toHexString(character))
+                        .startsWith("\\u");
+                assertThat(Integer.parseInt(unicodeEscaped.substring(2), 16)).isEqualTo(character);
+            }
+        });
     }
 
     @Test
-    public void escapeLineFeed() {
-        final String escapedBackspace = underTest.apply('\n');
-
-        assertThat(escapedBackspace).isEqualTo("\\n");
-    }
-
-    @Test
-    public void escapeCarriageReturn() {
-        final String escapedCarriageReturn = underTest.apply('\r');
-
-        assertThat(escapedCarriageReturn).isEqualTo("\\r");
-    }
-
-    @Test
-    public void escapeTab() {
-        final String escapedTab = underTest.apply('\t');
-
-        assertThat(escapedTab).isEqualTo("\\t");
+    public void escapeControlCharactersWithShorthands() {
+        SHORTHAND_CONTROL_CHARACTERS.chars().forEach(character -> {
+            final String escaped = underTest.apply(character);
+            final String expected =
+                    "\\" + SHORTHAND_CONTROL_CHARACTER_NAMES.charAt(SHORTHAND_CONTROL_CHARACTERS.indexOf(character));
+            assertThat(escaped).isEqualTo(expected);
+        });
     }
 
     @Test
