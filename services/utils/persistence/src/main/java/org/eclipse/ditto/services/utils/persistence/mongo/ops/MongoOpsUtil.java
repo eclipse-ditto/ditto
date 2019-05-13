@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.ops;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Collections;
 import java.util.List;
@@ -47,20 +47,16 @@ public final class MongoOpsUtil {
     }
 
     public static Source<List<Throwable>, NotUsed> drop(final MongoCollection<Document> collection) {
-        requireNonNull(collection);
 
-        return doDrop(collection)
-                .map(opt -> opt.isPresent() ? Collections.singletonList(opt.get()) : Collections.emptyList());
+        return doDrop(checkNotNull(collection, "collection"))
+                .map(opt -> opt.map(Collections::singletonList).orElse(Collections.emptyList()));
     }
 
     public static Source<List<Throwable>, NotUsed> deleteByFilter(final MongoCollection<Document> collection,
             final Bson filter) {
 
-        requireNonNull(collection);
-        requireNonNull(filter);
-
-        return doDeleteByFilter(collection, filter)
-                .map(opt -> opt.isPresent() ? Collections.singletonList(opt.get()) : Collections.emptyList());
+        return doDeleteByFilter(checkNotNull(collection, "collection"), checkNotNull(filter, "filter "))
+                .map(opt -> opt.map(Collections::singletonList).orElse(Collections.emptyList()));
     }
 
     private static Source<Optional<Throwable>, NotUsed> doDrop(final MongoCollection<Document> collection) {
