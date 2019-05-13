@@ -423,8 +423,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
     }
 
     private void checkLoggingEnabled() {
-        CheckConnectionLogsActive checkLoggingActive = CheckConnectionLogsActive.of(connectionId,
-                DittoHeaders.empty(), Instant.now());
+        CheckConnectionLogsActive checkLoggingActive = CheckConnectionLogsActive.of(connectionId, Instant.now());
         if (clientActorRouter != null) {
             // forward command to all client actors with no sender
             clientActorRouter.tell(new Broadcast(checkLoggingActive), ActorRef.noSender());
