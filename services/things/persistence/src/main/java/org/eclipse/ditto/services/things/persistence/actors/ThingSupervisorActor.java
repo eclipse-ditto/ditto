@@ -104,8 +104,8 @@ public final class ThingSupervisorActor extends AbstractActor {
     /**
      * Props for creating a {@code ThingSupervisorActor}.
      * <p>
-     * Exceptions in the child are handled with a supervision strategy that restarts the child on
-     * {@link NullPointerException}'s, stops it for {@link ActorKilledException}'s and escalates all others.
+     * Exceptions in the child are handled with a supervision strategy that stops the child
+     * for {@link ActorKilledException}'s and escalates all others.
      * </p>
      *
      * @param pubSubMediator Akka pub-sub mediator.
