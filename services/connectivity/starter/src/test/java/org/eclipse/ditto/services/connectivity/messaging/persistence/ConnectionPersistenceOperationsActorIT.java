@@ -45,10 +45,10 @@ import akka.actor.Props;
 import akka.testkit.TestProbe;
 
 /**
- * Tests {@link ConnectionOpsActor}.
+ * Tests {@link ConnectionPersistenceOperationsActor}.
  */
 @AllValuesAreNonnullByDefault
-public final class ConnectionOpsActorIT extends MongoEventSourceITAssertions {
+public final class ConnectionPersistenceOperationsActorIT extends MongoEventSourceITAssertions {
 
     @Test
     public void purgeEntitiesWithoutNamespace() {
@@ -103,8 +103,8 @@ public final class ConnectionOpsActorIT extends MongoEventSourceITAssertions {
     protected ActorRef startActorUnderTest(final ActorSystem actorSystem, final ActorRef pubSubMediator,
             final Config config) {
 
-        final Props opsActorProps = ConnectionOpsActor.props(pubSubMediator, config);
-        return actorSystem.actorOf(opsActorProps, ConnectionOpsActor.ACTOR_NAME);
+        final Props opsActorProps = ConnectionPersistenceOperationsActor.props(pubSubMediator, config);
+        return actorSystem.actorOf(opsActorProps, ConnectionPersistenceOperationsActor.ACTOR_NAME);
     }
 
     @Override

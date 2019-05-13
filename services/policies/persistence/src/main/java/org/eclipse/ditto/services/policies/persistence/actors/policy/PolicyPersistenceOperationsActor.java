@@ -15,12 +15,12 @@ package org.eclipse.ditto.services.policies.persistence.actors.policy;
 import java.util.Collections;
 
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.AbstractOpsActor;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.EntitiesOps;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.NamespaceOps;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEntitiesOps;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.AbstractPersistenceOperationsActor;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.EntityPersistenceOperations;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.NamespacePersistenceOperations;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEntitiesPersistenceOperations;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEventSourceSettings;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoNamespaceOps;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoNamespacePersistenceOperations;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
@@ -34,12 +34,12 @@ import akka.actor.Props;
  * Ops for the event-sourcing persistence of policies.
  */
 @AllValuesAreNonnullByDefault
-public final class PolicyOpsActor extends AbstractOpsActor {
+public final class PolicyPersistenceOperationsActor extends AbstractPersistenceOperationsActor {
 
     public static final String ACTOR_NAME = "policyOps";
 
-    private PolicyOpsActor(final ActorRef pubSubMediator, final NamespaceOps namespaceOps,
-            final EntitiesOps entitiesOps, final MongoClientWrapper mongoClient) {
+    private PolicyPersistenceOperationsActor(final ActorRef pubSubMediator, final NamespacePersistenceOperations namespaceOps,
+            final EntityPersistenceOperations entitiesOps, final MongoClientWrapper mongoClient) {
         super(pubSubMediator, PolicyCommand.RESOURCE_TYPE, namespaceOps, entitiesOps,
                 Collections.singleton(mongoClient));
     }
@@ -52,7 +52,7 @@ public final class PolicyOpsActor extends AbstractOpsActor {
      * @return a Props object.
      */
     public static Props props(final ActorRef pubSubMediator, final Config config) {
-        return Props.create(PolicyOpsActor.class, () -> {
+        return Props.create(PolicyPersistenceOperationsActor.class, () -> {
             final MongoEventSourceSettings eventSourceSettings =
                     MongoEventSourceSettings.fromConfig(config, PolicyPersistenceActor.PERSISTENCE_ID_PREFIX, true,
                             PolicyPersistenceActor.JOURNAL_PLUGIN_ID, PolicyPersistenceActor.SNAPSHOT_PLUGIN_ID);
@@ -60,10 +60,10 @@ public final class PolicyOpsActor extends AbstractOpsActor {
             final MongoClientWrapper mongoClient = MongoClientWrapper.newInstance(config);
             final MongoDatabase db = mongoClient.getDefaultDatabase();
 
-            final NamespaceOps namespaceOps = MongoNamespaceOps.of(db, eventSourceSettings);
-            final EntitiesOps entitiesOps = MongoEntitiesOps.of(db, eventSourceSettings);
+            final NamespacePersistenceOperations namespaceOps = MongoNamespacePersistenceOperations.of(db, eventSourceSettings);
+            final EntityPersistenceOperations entitiesOps = MongoEntitiesPersistenceOperations.of(db, eventSourceSettings);
 
-            return new PolicyOpsActor(pubSubMediator, namespaceOps, entitiesOps, mongoClient);
+            return new PolicyPersistenceOperationsActor(pubSubMediator, namespaceOps, entitiesOps, mongoClient);
         });
     }
 

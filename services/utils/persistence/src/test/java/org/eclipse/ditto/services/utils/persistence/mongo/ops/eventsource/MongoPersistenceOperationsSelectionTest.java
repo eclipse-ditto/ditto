@@ -25,9 +25,9 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link MongoOpsSelection}.
+ * Unit test for {@link MongoPersistenceOperationsSelection}.
  */
-public final class MongoOpsSelectionTest {
+public final class MongoPersistenceOperationsSelectionTest {
 
     private static final String COLLECTION_NAME = "thingsMetadata";
 
@@ -42,56 +42,62 @@ public final class MongoOpsSelectionTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(MongoOpsSelection.class,
+        assertInstancesOf(MongoPersistenceOperationsSelection.class,
                 areImmutable(),
                 assumingFields("filter").areNotModifiedAndDoNotEscape());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(MongoOpsSelection.class)
+        EqualsVerifier.forClass(MongoPersistenceOperationsSelection.class)
                 .usingGetClass()
                 .verify();
     }
 
     @Test
     public void getCollectionNameReturnsExpected() {
-        final MongoOpsSelection underTest = MongoOpsSelection.of(COLLECTION_NAME, namespaceFilter);
+        final MongoPersistenceOperationsSelection
+                underTest = MongoPersistenceOperationsSelection.of(COLLECTION_NAME, namespaceFilter);
 
         assertThat(underTest.getCollectionName()).isEqualTo(COLLECTION_NAME);
     }
 
     @Test
     public void getFilterReturnsExpected() {
-        final MongoOpsSelection underTest = MongoOpsSelection.of(COLLECTION_NAME, namespaceFilter);
+        final MongoPersistenceOperationsSelection
+                underTest = MongoPersistenceOperationsSelection.of(COLLECTION_NAME, namespaceFilter);
 
         assertThat(underTest.getFilter()).isEqualTo(namespaceFilter).isNotSameAs(namespaceFilter);
     }
 
     @Test
     public void emptyFilterIsEntireCollection() {
-        final MongoOpsSelection underTest = MongoOpsSelection.of(COLLECTION_NAME, emptyFilter);
+        final MongoPersistenceOperationsSelection
+                underTest = MongoPersistenceOperationsSelection.of(COLLECTION_NAME, emptyFilter);
 
         assertThat(underTest.isEntireCollection()).isTrue();
     }
 
     @Test
     public void nonEmptyFilterIsNotEntireCollection() {
-        final MongoOpsSelection underTest = MongoOpsSelection.of(COLLECTION_NAME, namespaceFilter);
+        final MongoPersistenceOperationsSelection
+                underTest = MongoPersistenceOperationsSelection.of(COLLECTION_NAME, namespaceFilter);
 
         assertThat(underTest.isEntireCollection()).isFalse();
     }
 
     @Test
     public void toStringOfSelectionWithFilterReturnsExpected() {
-        final MongoOpsSelection underTest = MongoOpsSelection.of(COLLECTION_NAME, namespaceFilter);
+        final MongoPersistenceOperationsSelection
+                underTest = MongoPersistenceOperationsSelection.of(COLLECTION_NAME, namespaceFilter);
 
         assertThat(underTest.toString()).isEqualTo(COLLECTION_NAME + " (filtered: " + namespaceFilter + ")");
     }
 
     @Test
     public void toStringOfSelectionWithoutFilterReturnsExpected() {
-        final MongoOpsSelection underTest = MongoOpsSelection.of(COLLECTION_NAME, emptyFilter);
+        final MongoPersistenceOperationsSelection
+                underTest = MongoPersistenceOperationsSelection.of(COLLECTION_NAME, emptyFilter);
 
         assertThat(underTest.toString()).isEqualTo(COLLECTION_NAME + " (complete)");
     }

@@ -33,10 +33,10 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 
 /**
- * Tests {@link ThingOpsActor} against a local MongoDB.
+ * Tests {@link ThingPersistenceOperationsActor} against a local MongoDB.
  */
 @AllValuesAreNonnullByDefault
-public final class ThingOpsActorIT extends MongoEventSourceITAssertions {
+public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITAssertions {
 
     @Test
     public void purgeNamespaceWithoutSuffix() {
@@ -88,8 +88,8 @@ public final class ThingOpsActorIT extends MongoEventSourceITAssertions {
     protected ActorRef startActorUnderTest(final ActorSystem actorSystem, final ActorRef pubSubMediator,
             final Config config) {
 
-        final Props opsActorProps = ThingOpsActor.props(pubSubMediator, config);
-        return actorSystem.actorOf(opsActorProps, ThingOpsActor.ACTOR_NAME);
+        final Props opsActorProps = ThingPersistenceOperationsActor.props(pubSubMediator, config);
+        return actorSystem.actorOf(opsActorProps, ThingPersistenceOperationsActor.ACTOR_NAME);
     }
 
     @Override

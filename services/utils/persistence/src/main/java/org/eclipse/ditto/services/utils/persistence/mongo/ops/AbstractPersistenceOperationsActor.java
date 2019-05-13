@@ -43,7 +43,7 @@ import akka.stream.javadsl.Sink;
  * Instances of the same type of this actor (running on different nodes) should register with the same group in order
  * to make sure that only one of those actors runs the command on the database.
  */
-public abstract class AbstractOpsActor extends AbstractActor {
+public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
 
     /**
      * The actor's logger.
@@ -53,9 +53,9 @@ public abstract class AbstractOpsActor extends AbstractActor {
     private final ActorRef pubSubMediator;
     private final String resourceType;
     @Nullable
-    private final NamespaceOps namespaceOps;
+    private final NamespacePersistenceOperations namespaceOps;
     @Nullable
-    private final EntitiesOps entitiesOps;
+    private final EntityPersistenceOperations entitiesOps;
     private final ActorMaterializer materializer;
     private final List<Closeable> toCloseWhenStopped;
 
@@ -64,12 +64,13 @@ public abstract class AbstractOpsActor extends AbstractActor {
      *
      * @param pubSubMediator the pubSubMediator
      * @param resourceType the resource type
-     * @param namespaceOps the {@link NamespaceOps}, maybe {@code null} when {@code entitiesOps} is not null
-     * @param entitiesOps the {@link EntitiesOps}, maybe {@code null} when {@code namespaceOps} is not null
+     * @param namespaceOps the {@link NamespacePersistenceOperations}, maybe {@code null} when {@code entitiesOps} is not null
+     * @param entitiesOps the {@link EntityPersistenceOperations}, maybe {@code null} when {@code namespaceOps} is not null
      * @param toCloseWhenStopped a list of {@link Closeable} which have to be closed when the actor is stopped
      */
-    protected AbstractOpsActor(final ActorRef pubSubMediator, final String resourceType,
-            @Nullable final NamespaceOps namespaceOps, @Nullable final EntitiesOps entitiesOps,
+    protected AbstractPersistenceOperationsActor(final ActorRef pubSubMediator, final String resourceType,
+            @Nullable final NamespacePersistenceOperations namespaceOps,
+            @Nullable final EntityPersistenceOperations entitiesOps,
             final Collection<Closeable> toCloseWhenStopped) {
         this.pubSubMediator = requireNonNull(pubSubMediator);
         this.resourceType = requireNonNull(resourceType);
@@ -87,11 +88,12 @@ public abstract class AbstractOpsActor extends AbstractActor {
      *
      * @param pubSubMediator the pubSubMediator
      * @param resourceType the resource type
-     * @param namespaceOps the {@link NamespaceOps}, maybe {@code null} when {@code entitiesOps} is not null
-     * @param entitiesOps the {@link EntitiesOps}, maybe {@code null} when {@code namespaceOps} is not null
+     * @param namespaceOps the {@link NamespacePersistenceOperations}, maybe {@code null} when {@code entitiesOps} is not null
+     * @param entitiesOps the {@link EntityPersistenceOperations}, maybe {@code null} when {@code namespaceOps} is not null
      */
-    protected AbstractOpsActor(final ActorRef pubSubMediator, final String resourceType,
-            @Nullable final NamespaceOps namespaceOps, @Nullable final EntitiesOps entitiesOps) {
+    protected AbstractPersistenceOperationsActor(final ActorRef pubSubMediator, final String resourceType,
+            @Nullable final NamespacePersistenceOperations namespaceOps,
+            @Nullable final EntityPersistenceOperations entitiesOps) {
         this(pubSubMediator, resourceType, namespaceOps, entitiesOps, Collections.emptyList());
     }
 

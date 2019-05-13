@@ -21,7 +21,7 @@ import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.SubjectType;
-import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicyOpsActor;
+import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicyPersistenceOperationsActor;
 import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicySupervisorActor;
 import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
@@ -41,10 +41,10 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 
 /**
- * Tests {@link PolicyOpsActor}.
+ * Tests {@link PolicyPersistenceOperationsActor}.
  */
 @AllValuesAreNonnullByDefault
-public final class PolicyOpsActorIT extends MongoEventSourceITAssertions {
+public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceITAssertions {
 
     @Test
     public void purgeNamespaceWithoutSuffix() {
@@ -111,8 +111,8 @@ public final class PolicyOpsActorIT extends MongoEventSourceITAssertions {
     protected ActorRef startActorUnderTest(final ActorSystem actorSystem, final ActorRef pubSubMediator,
             final Config config) {
 
-        final Props opsActorProps = PolicyOpsActor.props(pubSubMediator, config);
-        return actorSystem.actorOf(opsActorProps, PolicyOpsActor.ACTOR_NAME);
+        final Props opsActorProps = PolicyPersistenceOperationsActor.props(pubSubMediator, config);
+        return actorSystem.actorOf(opsActorProps, PolicyPersistenceOperationsActor.ACTOR_NAME);
     }
 
     @Override

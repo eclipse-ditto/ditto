@@ -24,7 +24,7 @@ import akka.stream.javadsl.Source;
  * Currently the only supported operation is 'purge'.
  * </p>
  */
-public interface EntitiesOps {
+public interface EntityPersistenceOperations {
 
     /**
      * Purge an entity by the given {@code entityId}.

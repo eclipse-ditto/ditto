@@ -18,8 +18,8 @@ import java.util.Collection;
 import java.util.List;
 
 import org.bson.Document;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.EntityPersistenceOperations;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.MongoOpsUtil;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.NamespaceOps;
 
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
@@ -28,17 +28,18 @@ import akka.NotUsed;
 import akka.stream.javadsl.Source;
 
 /**
- * Namespace Ops on MongoDB EventSource persistence.
+ * Entities Ops on MongoDB EventSource persistence.
  */
-public final class MongoNamespaceOps implements NamespaceOps {
+public final class MongoEntitiesPersistenceOperations implements EntityPersistenceOperations {
 
     private final MongoDatabase db;
-    private final MongoOpsSelectionProvider selectionProvider;
+    private final MongoPersistenceOperationsSelectionProvider selectionProvider;
 
-    private MongoNamespaceOps(final MongoDatabase db, final MongoEventSourceSettings eventSourceSettings) {
+    private MongoEntitiesPersistenceOperations(final MongoDatabase db,
+            final MongoEventSourceSettings eventSourceSettings) {
         this.db = requireNonNull(db);
         requireNonNull(eventSourceSettings);
-        this.selectionProvider = MongoOpsSelectionProvider.of(eventSourceSettings);
+        this.selectionProvider = MongoPersistenceOperationsSelectionProvider.of(eventSourceSettings);
     }
 
     /**
@@ -48,27 +49,29 @@ public final class MongoNamespaceOps implements NamespaceOps {
      * @param eventSourceSettings the {@link MongoEventSourceSettings}
      * @return the instance
      */
-    public static MongoNamespaceOps of(final MongoDatabase db, final MongoEventSourceSettings eventSourceSettings) {
-        return new MongoNamespaceOps(db, eventSourceSettings);
+    public static MongoEntitiesPersistenceOperations of(final MongoDatabase db,
+            final MongoEventSourceSettings eventSourceSettings) {
+        return new MongoEntitiesPersistenceOperations(db, eventSourceSettings);
     }
 
     @Override
-    public Source<List<Throwable>, NotUsed> purge(final CharSequence namespace) {
-        requireNonNull(namespace);
+    public Source<List<Throwable>, NotUsed> purgeEntity(final CharSequence entityId) {
+        requireNonNull(entityId);
 
-        final Collection<MongoOpsSelection> selections = selectNamespace(namespace.toString());
+        final Collection<MongoPersistenceOperationsSelection> selections = selectEntity(entityId.toString());
 
         return purgeAllSelections(selections);
     }
 
-    private Collection<MongoOpsSelection> selectNamespace(final String namespace) {
-        return selectionProvider.selectNamespace(namespace);
+    private Collection<MongoPersistenceOperationsSelection> selectEntity(final String entityId) {
+        return selectionProvider.selectEntity(entityId);
     }
 
-    private Source<List<Throwable>, NotUsed> purgeAllSelections(final Collection<MongoOpsSelection> selections) {
+    private Source<List<Throwable>, NotUsed> purgeAllSelections(
+            final Collection<MongoPersistenceOperationsSelection> selections) {
         Source<List<Throwable>, NotUsed> result = Source.empty();
 
-        for (MongoOpsSelection mongoOpsSelection : selections) {
+        for (MongoPersistenceOperationsSelection mongoOpsSelection : selections) {
             final Source<List<Throwable>, NotUsed> purge = purge(mongoOpsSelection);
             result = result.merge(purge);
         }
@@ -76,13 +79,10 @@ public final class MongoNamespaceOps implements NamespaceOps {
         return result;
     }
 
-    private Source<List<Throwable>, NotUsed> purge(final MongoOpsSelection selection) {
+    private Source<List<Throwable>, NotUsed> purge(final MongoPersistenceOperationsSelection selection) {
         final MongoCollection<Document> collection = db.getCollection(selection.getCollectionName());
-        if (selection.isEntireCollection()) {
-            return MongoOpsUtil.drop(collection);
-        } else {
-            return MongoOpsUtil.deleteByFilter(collection, selection.getFilter());
-        }
+
+        return MongoOpsUtil.deleteByFilter(collection, selection.getFilter());
     }
 
 }

@@ -24,12 +24,12 @@ import org.bson.Document;
  * Representation a selection for a MongoDB ops operation. Consists of a collection name and a filter in BSON format.
  */
 @Immutable
-final class MongoOpsSelection {
+final class MongoPersistenceOperationsSelection {
 
     private final String collectionName;
     private final Document filter;
 
-    private MongoOpsSelection(final String collectionName, final Document filter) {
+    private MongoPersistenceOperationsSelection(final String collectionName, final Document filter) {
         this.collectionName = requireNonNull(collectionName);
         this.filter = filter;
     }
@@ -41,8 +41,8 @@ final class MongoOpsSelection {
      * @param filter filter of documents in the namespace.
      * @return the instance.
      */
-    public static MongoOpsSelection of(final String collectionName, final Document filter) {
-        return new MongoOpsSelection(collectionName, filter);
+    public static MongoPersistenceOperationsSelection of(final String collectionName, final Document filter) {
+        return new MongoPersistenceOperationsSelection(collectionName, filter);
     }
 
     /**
@@ -74,7 +74,7 @@ final class MongoOpsSelection {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final MongoOpsSelection that = (MongoOpsSelection) o;
+        final MongoPersistenceOperationsSelection that = (MongoPersistenceOperationsSelection) o;
         return Objects.equals(collectionName, that.collectionName) && Objects.equals(filter, that.filter);
     }
 

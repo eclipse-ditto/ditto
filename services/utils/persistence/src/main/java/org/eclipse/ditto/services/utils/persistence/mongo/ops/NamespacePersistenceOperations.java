@@ -18,12 +18,12 @@ import akka.NotUsed;
 import akka.stream.javadsl.Source;
 
 /**
- * Persistence ops on namespaces.
+ * Persistence operations on namespaces.
  * <p>
  * Currently the only supported operation is 'purge'.
  * </p>
  */
-public interface NamespaceOps {
+public interface NamespacePersistenceOperations {
 
     /**
      * Purge a namespace from some persistent storage.

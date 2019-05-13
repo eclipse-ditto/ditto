@@ -29,6 +29,9 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommand;
  * Abstract base implementation of common commands.
  * </p>
  * <p>
+ * Allows to define a custom category.
+ * </p>
+ * <p>
  * <em>Note: Implementations of this class are required to be immutable.</em>
  * </p>
  *

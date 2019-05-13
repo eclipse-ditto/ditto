@@ -13,8 +13,8 @@
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.AbstractOpsActor;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.NamespaceOps;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.AbstractPersistenceOperationsActor;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.NamespacePersistenceOperations;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
 import akka.actor.ActorRef;
@@ -23,14 +23,15 @@ import akka.actor.Props;
 /**
  * Actor which performs ops on the search index.
  */
-public final class ThingsSearchOpsActor extends AbstractOpsActor {
+public final class ThingsSearchPersistenceOperationsActor extends AbstractPersistenceOperationsActor {
 
     /**
      * Name of this actor.
      */
     public static final String ACTOR_NAME = "thingsSearchOpsActor";
 
-    private ThingsSearchOpsActor(final ActorRef pubSubMediator, final NamespaceOps namespaceOps) {
+    private ThingsSearchPersistenceOperationsActor(final ActorRef pubSubMediator,
+            final NamespacePersistenceOperations namespaceOps) {
         super(pubSubMediator, ThingSearchCommand.RESOURCE_TYPE, namespaceOps, null);
     }
 
@@ -42,8 +43,8 @@ public final class ThingsSearchOpsActor extends AbstractOpsActor {
      * @return Props of this actor.
      */
     public static Props props(final ActorRef pubSubMediator, final ThingsSearchUpdaterPersistence persistence) {
-        return Props.create(ThingsSearchOpsActor.class,
-                () -> new ThingsSearchOpsActor(pubSubMediator, persistence));
+        return Props.create(ThingsSearchPersistenceOperationsActor.class,
+                () -> new ThingsSearchPersistenceOperationsActor(pubSubMediator, persistence));
     }
 
 }

@@ -129,8 +129,8 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final Props manualUpdaterProps = ManualUpdater.props(dittoMongoClient.getDefaultDatabase(), thingsUpdaterActor);
         startClusterSingletonActor(ManualUpdater.ACTOR_NAME, manualUpdaterProps);
 
-        startChildActor(ThingsSearchOpsActor.ACTOR_NAME,
-                ThingsSearchOpsActor.props(pubSubMediator, searchUpdaterPersistence));
+        startChildActor(ThingsSearchPersistenceOperationsActor.ACTOR_NAME,
+                ThingsSearchPersistenceOperationsActor.props(pubSubMediator, searchUpdaterPersistence));
 
         final boolean thingsSynchronizationActive = config.getBoolean(ConfigKeys.THINGS_SYNCER_ACTIVE);
         if (thingsSynchronizationActive) {

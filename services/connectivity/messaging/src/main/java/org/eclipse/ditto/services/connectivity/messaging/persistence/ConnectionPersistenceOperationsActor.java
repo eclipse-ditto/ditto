@@ -16,9 +16,9 @@ import java.util.Collections;
 
 import org.eclipse.ditto.services.connectivity.messaging.ConnectionActor;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.AbstractOpsActor;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.EntitiesOps;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEntitiesOps;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.AbstractPersistenceOperationsActor;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.EntityPersistenceOperations;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEntitiesPersistenceOperations;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEventSourceSettings;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 
@@ -31,11 +31,12 @@ import akka.actor.Props;
 /**
  * Ops for the event-sourcing persistence of things.
  */
-public final class ConnectionOpsActor extends AbstractOpsActor {
+public final class ConnectionPersistenceOperationsActor extends AbstractPersistenceOperationsActor {
 
     public static final String ACTOR_NAME = "connectionOps";
 
-    private ConnectionOpsActor(final ActorRef pubSubMediator, final EntitiesOps entitiesOps,
+    private ConnectionPersistenceOperationsActor(final ActorRef pubSubMediator,
+            final EntityPersistenceOperations entitiesOps,
             final MongoClientWrapper mongoClientWrapper) {
 
         super(pubSubMediator, ConnectivityCommand.RESOURCE_TYPE, null, entitiesOps,
@@ -50,7 +51,7 @@ public final class ConnectionOpsActor extends AbstractOpsActor {
      * @return a Props object.
      */
     public static Props props(final ActorRef pubSubMediator, final Config config) {
-        return Props.create(ConnectionOpsActor.class, () -> {
+        return Props.create(ConnectionPersistenceOperationsActor.class, () -> {
             final MongoEventSourceSettings eventSourceSettings =
                     MongoEventSourceSettings.fromConfig(config, ConnectionActor.PERSISTENCE_ID_PREFIX, false,
                             ConnectionActor.JOURNAL_PLUGIN_ID, ConnectionActor.SNAPSHOT_PLUGIN_ID);
@@ -58,9 +59,9 @@ public final class ConnectionOpsActor extends AbstractOpsActor {
             final MongoClientWrapper mongoClient = MongoClientWrapper.newInstance(config);
             final MongoDatabase db = mongoClient.getDefaultDatabase();
 
-            final EntitiesOps entitiesOps = MongoEntitiesOps.of(db, eventSourceSettings);
+            final EntityPersistenceOperations entitiesOps = MongoEntitiesPersistenceOperations.of(db, eventSourceSettings);
 
-            return new ConnectionOpsActor(pubSubMediator, entitiesOps, mongoClient);
+            return new ConnectionPersistenceOperationsActor(pubSubMediator, entitiesOps, mongoClient);
         });
     }
 

@@ -22,7 +22,6 @@ import java.util.UUID;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.AbstractOpsActor;
 import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.NamespaceSuffixCollectionNames;
 import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.SuffixBuilderConfig;
 import org.eclipse.ditto.services.utils.test.mongo.MongoDbResource;
@@ -45,7 +44,7 @@ import akka.cluster.pubsub.DistributedPubSub;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests subclasses of {@link AbstractOpsActor} which provide purging by namespace on a eventsource persistence.
+ * Tests subclasses of {@link AbstractPersistenceOperationsActor} which provide purging by namespace on a eventsource persistence.
  */
 public abstract class MongoEventSourceITAssertions {
 

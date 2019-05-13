@@ -25,9 +25,9 @@ import org.bson.Document;
 import org.junit.Test;
 
 /**
- * Tests {@link MongoOpsSelectionProvider}.
+ * Tests {@link MongoPersistenceOperationsSelectionProvider}.
  */
-public class MongoOpsSelectionProviderTest {
+public class MongoPersistenceOperationsSelectionProviderTest {
 
     private static final String KEY_PID = "pid";
 
@@ -46,26 +46,27 @@ public class MongoOpsSelectionProviderTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(MongoOpsSelectionProvider.class, areImmutable());
+        assertInstancesOf(MongoPersistenceOperationsSelectionProvider.class, areImmutable());
     }
 
     @Test
     public void selectNamespaceWhenNamespacesEnabledAndSuffixBuilderEnabled() {
         final MongoEventSourceSettings settings = MongoEventSourceSettings.of(PERSISTENCE_ID_PREFIX,
                 true, METADATA_COLLECTION_NAME, JOURNAL_COLLECTION_NAME, SNAPSHOT_COLLECTION_NAME, SUFFIX_SEPARATOR);
-        final MongoOpsSelectionProvider underTest = MongoOpsSelectionProvider.of(settings);
+        final MongoPersistenceOperationsSelectionProvider underTest =
+                MongoPersistenceOperationsSelectionProvider.of(settings);
 
-        final Collection<MongoOpsSelection> selections = underTest.selectNamespace(ENTITY_NS);
+        final Collection<MongoPersistenceOperationsSelection> selections = underTest.selectNamespace(ENTITY_NS);
 
         final String pidRegex = "^" + PERSISTENCE_ID_PREFIX + ENTITY_NS + NS_SEPARATOR;
-        final MongoOpsSelection expectedMetadataSelection =
-                MongoOpsSelection.of(METADATA_COLLECTION_NAME,
+        final MongoPersistenceOperationsSelection expectedMetadataSelection =
+                MongoPersistenceOperationsSelection.of(METADATA_COLLECTION_NAME,
                         new Document(KEY_PID, new BsonRegularExpression(pidRegex)));
-        final MongoOpsSelection expectedJournalSelection =
-                MongoOpsSelection.of(JOURNAL_COLLECTION_NAME + SUFFIX_SEPARATOR + ENTITY_NS,
+        final MongoPersistenceOperationsSelection expectedJournalSelection =
+                MongoPersistenceOperationsSelection.of(JOURNAL_COLLECTION_NAME + SUFFIX_SEPARATOR + ENTITY_NS,
                         EMPTY_FILTER);
-        final MongoOpsSelection expectedSnapshotSelection =
-                MongoOpsSelection.of(SNAPSHOT_COLLECTION_NAME + SUFFIX_SEPARATOR + ENTITY_NS,
+        final MongoPersistenceOperationsSelection expectedSnapshotSelection =
+                MongoPersistenceOperationsSelection.of(SNAPSHOT_COLLECTION_NAME + SUFFIX_SEPARATOR + ENTITY_NS,
                         EMPTY_FILTER);
         assertThat(selections)
                 .containsExactlyInAnyOrder(expectedMetadataSelection, expectedJournalSelection,
@@ -76,16 +77,20 @@ public class MongoOpsSelectionProviderTest {
     public void selectNamespaceWhenNamespacesEnabledAndSuffixBuilderDisabled() {
         final MongoEventSourceSettings settings = MongoEventSourceSettings.of(PERSISTENCE_ID_PREFIX,
                 true, METADATA_COLLECTION_NAME, JOURNAL_COLLECTION_NAME, SNAPSHOT_COLLECTION_NAME, null);
-        final MongoOpsSelectionProvider underTest = MongoOpsSelectionProvider.of(settings);
+        final MongoPersistenceOperationsSelectionProvider underTest =
+                MongoPersistenceOperationsSelectionProvider.of(settings);
 
-        final Collection<MongoOpsSelection> selections = underTest.selectNamespace(ENTITY_NS);
+        final Collection<MongoPersistenceOperationsSelection> selections = underTest.selectNamespace(ENTITY_NS);
 
         final String pidRegex = "^" + PERSISTENCE_ID_PREFIX + ENTITY_NS + NS_SEPARATOR;
-        final MongoOpsSelection expectedMetadataSelection = MongoOpsSelection.of(METADATA_COLLECTION_NAME,
+        final MongoPersistenceOperationsSelection expectedMetadataSelection =
+                MongoPersistenceOperationsSelection.of(METADATA_COLLECTION_NAME,
                 new Document(KEY_PID, new BsonRegularExpression(pidRegex)));
-        final MongoOpsSelection expectedJournalSelection = MongoOpsSelection.of(JOURNAL_COLLECTION_NAME,
+        final MongoPersistenceOperationsSelection expectedJournalSelection =
+                MongoPersistenceOperationsSelection.of(JOURNAL_COLLECTION_NAME,
                 new Document(KEY_PID, new BsonRegularExpression(pidRegex)));
-        final MongoOpsSelection expectedSnapshotSelection = MongoOpsSelection.of(SNAPSHOT_COLLECTION_NAME,
+        final MongoPersistenceOperationsSelection expectedSnapshotSelection =
+                MongoPersistenceOperationsSelection.of(SNAPSHOT_COLLECTION_NAME,
                 new Document(KEY_PID, new BsonRegularExpression(pidRegex)));
         assertThat(selections)
                 .containsExactlyInAnyOrder(expectedMetadataSelection, expectedJournalSelection,
@@ -96,7 +101,8 @@ public class MongoOpsSelectionProviderTest {
     public void selectNamespaceWhenNamespacesDisabledFails() {
         final MongoEventSourceSettings settings = MongoEventSourceSettings.of(PERSISTENCE_ID_PREFIX,
                 false, METADATA_COLLECTION_NAME, JOURNAL_COLLECTION_NAME, SNAPSHOT_COLLECTION_NAME, null);
-        final MongoOpsSelectionProvider underTest = MongoOpsSelectionProvider.of(settings);
+        final MongoPersistenceOperationsSelectionProvider underTest =
+                MongoPersistenceOperationsSelectionProvider.of(settings);
 
         assertThatExceptionOfType(UnsupportedOperationException.class)
                 .isThrownBy(() -> underTest.selectNamespace(ENTITY_NS));
@@ -106,19 +112,20 @@ public class MongoOpsSelectionProviderTest {
     public void selectEntityWhenNamespacesEnabledAndSuffixBuilderEnabled() {
         final MongoEventSourceSettings settings = MongoEventSourceSettings.of(PERSISTENCE_ID_PREFIX,
                 true, METADATA_COLLECTION_NAME, JOURNAL_COLLECTION_NAME, SNAPSHOT_COLLECTION_NAME, SUFFIX_SEPARATOR);
-        final MongoOpsSelectionProvider underTest = MongoOpsSelectionProvider.of(settings);
+        final MongoPersistenceOperationsSelectionProvider underTest =
+                MongoPersistenceOperationsSelectionProvider.of(settings);
 
-        final Collection<MongoOpsSelection> selections = underTest.selectEntity(ENTITY_ID);
+        final Collection<MongoPersistenceOperationsSelection> selections = underTest.selectEntity(ENTITY_ID);
 
         final String pid = PERSISTENCE_ID_PREFIX + ENTITY_ID;
         final Document pidFilter = new Document(KEY_PID, new BsonString(pid));
-        final MongoOpsSelection expectedMetadataSelection =
-                MongoOpsSelection.of(METADATA_COLLECTION_NAME, pidFilter);
-        final MongoOpsSelection expectedJournalSelection =
-                MongoOpsSelection.of(JOURNAL_COLLECTION_NAME + SUFFIX_SEPARATOR + ENTITY_NS,
+        final MongoPersistenceOperationsSelection expectedMetadataSelection =
+                MongoPersistenceOperationsSelection.of(METADATA_COLLECTION_NAME, pidFilter);
+        final MongoPersistenceOperationsSelection expectedJournalSelection =
+                MongoPersistenceOperationsSelection.of(JOURNAL_COLLECTION_NAME + SUFFIX_SEPARATOR + ENTITY_NS,
                         pidFilter);
-        final MongoOpsSelection expectedSnapshotSelection =
-                MongoOpsSelection.of(SNAPSHOT_COLLECTION_NAME + SUFFIX_SEPARATOR + ENTITY_NS,
+        final MongoPersistenceOperationsSelection expectedSnapshotSelection =
+                MongoPersistenceOperationsSelection.of(SNAPSHOT_COLLECTION_NAME + SUFFIX_SEPARATOR + ENTITY_NS,
                         pidFilter);
         assertThat(selections)
                 .containsExactlyInAnyOrder(expectedMetadataSelection, expectedJournalSelection,
@@ -129,18 +136,19 @@ public class MongoOpsSelectionProviderTest {
     public void selectEntityWhenNamespacesEnabledAndSuffixBuilderDisabled() {
         final MongoEventSourceSettings settings = MongoEventSourceSettings.of(PERSISTENCE_ID_PREFIX,
                 true, METADATA_COLLECTION_NAME, JOURNAL_COLLECTION_NAME, SNAPSHOT_COLLECTION_NAME, null);
-        final MongoOpsSelectionProvider underTest = MongoOpsSelectionProvider.of(settings);
+        final MongoPersistenceOperationsSelectionProvider underTest =
+                MongoPersistenceOperationsSelectionProvider.of(settings);
 
-        final Collection<MongoOpsSelection> selections = underTest.selectEntity(ENTITY_ID);
+        final Collection<MongoPersistenceOperationsSelection> selections = underTest.selectEntity(ENTITY_ID);
 
         final String pid = PERSISTENCE_ID_PREFIX + ENTITY_ID;
         final Document pidFilter = new Document(KEY_PID, new BsonString(pid));
-        final MongoOpsSelection expectedMetadataSelection =
-                MongoOpsSelection.of(METADATA_COLLECTION_NAME, pidFilter);
-        final MongoOpsSelection expectedJournalSelection =
-                MongoOpsSelection.of(JOURNAL_COLLECTION_NAME, pidFilter);
-        final MongoOpsSelection expectedSnapshotSelection =
-                MongoOpsSelection.of(SNAPSHOT_COLLECTION_NAME, pidFilter);
+        final MongoPersistenceOperationsSelection expectedMetadataSelection =
+                MongoPersistenceOperationsSelection.of(METADATA_COLLECTION_NAME, pidFilter);
+        final MongoPersistenceOperationsSelection expectedJournalSelection =
+                MongoPersistenceOperationsSelection.of(JOURNAL_COLLECTION_NAME, pidFilter);
+        final MongoPersistenceOperationsSelection expectedSnapshotSelection =
+                MongoPersistenceOperationsSelection.of(SNAPSHOT_COLLECTION_NAME, pidFilter);
         assertThat(selections)
                 .containsExactlyInAnyOrder(expectedMetadataSelection, expectedJournalSelection,
                         expectedSnapshotSelection);
@@ -150,7 +158,8 @@ public class MongoOpsSelectionProviderTest {
     public void selectEntityWithoutNamespaceWhenNamespacesEnabledFails() {
         final MongoEventSourceSettings settings = MongoEventSourceSettings.of(PERSISTENCE_ID_PREFIX,
                 true, METADATA_COLLECTION_NAME, JOURNAL_COLLECTION_NAME, SNAPSHOT_COLLECTION_NAME, null);
-        final MongoOpsSelectionProvider underTest = MongoOpsSelectionProvider.of(settings);
+        final MongoPersistenceOperationsSelectionProvider underTest =
+                MongoPersistenceOperationsSelectionProvider.of(settings);
 
         assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> underTest.selectEntity(ENTITY_NAME));
@@ -160,18 +169,19 @@ public class MongoOpsSelectionProviderTest {
     public void selectEntityWhenNamespacesDisabled() {
         final MongoEventSourceSettings settings = MongoEventSourceSettings.of(PERSISTENCE_ID_PREFIX,
                 false, METADATA_COLLECTION_NAME, JOURNAL_COLLECTION_NAME, SNAPSHOT_COLLECTION_NAME, null);
-        final MongoOpsSelectionProvider underTest = MongoOpsSelectionProvider.of(settings);
+        final MongoPersistenceOperationsSelectionProvider underTest =
+                MongoPersistenceOperationsSelectionProvider.of(settings);
 
-        final Collection<MongoOpsSelection> selections = underTest.selectEntity(ENTITY_NAME);
+        final Collection<MongoPersistenceOperationsSelection> selections = underTest.selectEntity(ENTITY_NAME);
 
         final String pid = PERSISTENCE_ID_PREFIX + ENTITY_NAME;
         final Document pidFilter = new Document(KEY_PID, new BsonString(pid));
-        final MongoOpsSelection expectedMetadataSelection =
-                MongoOpsSelection.of(METADATA_COLLECTION_NAME, pidFilter);
-        final MongoOpsSelection expectedJournalSelection =
-                MongoOpsSelection.of(JOURNAL_COLLECTION_NAME, pidFilter);
-        final MongoOpsSelection expectedSnapshotSelection =
-                MongoOpsSelection.of(SNAPSHOT_COLLECTION_NAME, pidFilter);
+        final MongoPersistenceOperationsSelection expectedMetadataSelection =
+                MongoPersistenceOperationsSelection.of(METADATA_COLLECTION_NAME, pidFilter);
+        final MongoPersistenceOperationsSelection expectedJournalSelection =
+                MongoPersistenceOperationsSelection.of(JOURNAL_COLLECTION_NAME, pidFilter);
+        final MongoPersistenceOperationsSelection expectedSnapshotSelection =
+                MongoPersistenceOperationsSelection.of(SNAPSHOT_COLLECTION_NAME, pidFilter);
         assertThat(selections)
                 .containsExactlyInAnyOrder(expectedMetadataSelection, expectedJournalSelection,
                         expectedSnapshotSelection);
