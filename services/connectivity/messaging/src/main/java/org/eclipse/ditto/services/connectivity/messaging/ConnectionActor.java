@@ -226,12 +226,14 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
         ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
 
-        // TODO: Intervall from Config.
-        enabledLoggingChecker = getContext().getSystem().scheduler().schedule(
-                java.time.Duration.ZERO, java.time.Duration.ofSeconds(5), getSelf(), CHECK_LOGGING_ENABLED,
+        final int loggingActiveCheckDuration = config.getInt("ditto.connectivity.monitoring.logger" +
+                ".loggingActiveCheckDuration");
+
+        this.enabledLoggingChecker = getContext().getSystem().scheduler().schedule(
+                java.time.Duration.ZERO, java.time.Duration.ofMinutes(loggingActiveCheckDuration), getSelf(),
+                CHECK_LOGGING_ENABLED,
                 getContext().getSystem().dispatcher(), null
         );
-
     }
 
     /**
@@ -248,7 +250,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory propsFactory,
-            @Nullable final Consumer<ConnectivityCommand<?>> commandValidator) {
+            @Nullable final Consumer<ConnectivityCommand<?>> commandValidator
+    ) {
 
         return Props.create(ConnectionActor.class, new Creator<ConnectionActor>() {
             private static final long serialVersionUID = 1L;
@@ -279,6 +282,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
     @Override
     public void postStop() {
         log.info("stopped connection <{}>", connectionId);
+        enabledLoggingChecker.cancel();
         cancelStopSelfIfDeletedTrigger();
         super.postStop();
     }
@@ -342,6 +346,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
         connection = theConnection;
         if (theConnection != null) {
             signalFilter = new SignalFilter(theConnection, connectionMonitorRegistry);
+        } else {
+            enabledLoggingChecker.cancel();
         }
     }
 
@@ -643,7 +649,6 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private void closeConnection(final CloseConnection command) {
         checkConnectionNotNull();
 
-        enabledLoggingChecker.cancel();
 
         final ConnectionClosed connectionClosed =
                 ConnectionClosed.of(command.getConnectionId(), command.getDittoHeaders());
@@ -793,7 +798,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
             // timeout before sending the (partial) response
             final java.time.Duration timeout =
                     java.time.Duration.ofMillis((long) (extractTimeoutFromCommand(command.getDittoHeaders()) * 0.75));
-            final ActorRef aggregator = getContext().actorOf(senderPropsForConnectionWithTimeout.apply(connection, timeout));
+            final ActorRef aggregator =
+                    getContext().actorOf(senderPropsForConnectionWithTimeout.apply(connection, timeout));
 
             // forward command to all client actors with aggregator as sender
             clientActorRouter.tell(new Broadcast(command), aggregator);
@@ -1006,6 +1012,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
     private void stopSelf() {
         log.info("Passivating / shutting down");
+        enabledLoggingChecker.cancel();
         final ShardRegion.Passivate passivateMessage = new ShardRegion.Passivate(PoisonPill.getInstance());
         getContext().getParent().tell(passivateMessage, getSelf());
     }

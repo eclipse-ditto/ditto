@@ -127,6 +127,19 @@ public final class ConnectionLoggerRegistryTest {
     }
 
     @Test
+    public void isStillActiveForConnection() {
+        final String connectionId = connectionId();
+        underTest.initForConnection(connection(connectionId));
+        assertThat(underTest.isActiveForConnection(connectionId)).isFalse();
+
+        underTest.unmuteForConnection(connectionId);
+        assertThat(underTest.isActiveForConnection(connectionId)).isTrue();
+
+        underTest.checkLoggingStillEnabled(connectionId, Instant.now());
+        assertThat(underTest.isActiveForConnection(connectionId)).isTrue();
+    }
+
+    @Test
     public void aggregatesLogs() {
         final String connectionId = connectionId();
         final String source = "a:b";

@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import static akka.actor.Actor.noSender;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.connectivity.messaging.MockClientActor.mockClientActorPropsFactory;
@@ -35,6 +36,7 @@ import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnavailableException;
+import org.eclipse.ditto.signals.commands.connectivity.modify.CheckConnectionLogsActive;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
@@ -661,7 +663,7 @@ public final class ConnectionActorTest extends WithMockServers {
             probe.expectMsg(openConnection);
             expectMsg(createConnectionResponse);
 
-            // reset metrics
+            // reset logs
             underTest.tell(resetConnectionLogs, getRef());
             probe.expectMsg(resetConnectionLogs);
 
