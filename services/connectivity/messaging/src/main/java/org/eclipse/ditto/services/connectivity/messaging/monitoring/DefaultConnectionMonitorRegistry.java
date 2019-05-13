@@ -159,11 +159,6 @@ public final class DefaultConnectionMonitorRegistry implements ConnectionMonitor
                 .build();
     }
 
-    @Nullable
-    public Instant getEnabledUntil(final String connectionId) {
-        return connectionLoggerRegistry.aggregateLogs(connectionId).getEnabledUntil();
-    }
-
     /**
      * Retrieve a specific monitor.
      * @param connectionId the connection.

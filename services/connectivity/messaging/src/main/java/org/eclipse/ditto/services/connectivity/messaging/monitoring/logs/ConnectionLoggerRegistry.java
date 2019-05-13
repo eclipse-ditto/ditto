@@ -104,7 +104,6 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
                     .map(ConnectionLogger::getLogs)
                     .flatMap(Collection::stream)
                     .collect(Collectors.toList());
-            LOGGER.info(getMetadata(connectionId).toString());
         } else {
             LOGGER.debug("Logging is disabled, will return empty logs for connection <{}>", connectionId);
 
@@ -122,7 +121,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
      * @param connectionId the connection to check.
      * @return true if logging is currently enabled for the connection.
      */
-    private boolean isActiveForConnection(final String connectionId) {
+    protected boolean isActiveForConnection(final String connectionId) {
         final boolean muted = streamLoggers(connectionId)
                 .findFirst()
                 .map(MuteableConnectionLogger::isMuted)
@@ -146,11 +145,11 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
 
         if (enabledUntil != null && timestamp.isAfter(enabledUntil)) {
             this.muteForConnection(connectionId);
-            LOGGER.info("Logging muted for connection <{}>.", connectionId);
+            LOGGER.debug("Logging for connection <{}> muted.", connectionId);
         }
     }
 
-    private void muteForConnection(final String connectionId) {
+    protected void muteForConnection(final String connectionId) {
         ConnectionLogUtil.enhanceLogWithConnectionId(connectionId);
         LOGGER.info("Muting loggers for connection <{}>.", connectionId);
 
