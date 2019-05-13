@@ -25,6 +25,8 @@ import static org.eclipse.ditto.services.gateway.endpoints.directives.RequestRes
 import static org.eclipse.ditto.services.gateway.endpoints.directives.auth.AuthorizationContextVersioningDirective.mapAuthorizationContext;
 import static org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils.enhanceLogWithCorrelationId;
 
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -402,18 +404,29 @@ public final class RootRoute {
     }
 
     private Map<String, String> getFilteredExternalHeaders(final HttpMessage httpRequest, final String correlationId) {
-        Map<String, String> externalHeaders =
-                StreamSupport.stream(httpRequest.getHeaders().spliterator(), false)
-                        .filter(header ->
-                                org.eclipse.ditto.services.gateway.security.HttpHeader.fromName(header.lowercaseName())
-                                        .map(org.eclipse.ditto.services.gateway.security.HttpHeader::shouldRetain)
-                                        .orElse(true))
-                        .collect(Collectors.toMap(HttpHeader::name, HttpHeader::value, (dv1, dv2) -> {
-                            throw GatewayDuplicateHeaderException
-                                    .newBuilder()
-                                    .dittoHeaders(DittoHeaders.newBuilder().correlationId(correlationId).build())
-                                    .build();
-                        }));
+        final Map<String, String> externalHeaders = new HashMap<>();
+
+        // check duplicate headers
+        httpRequest.getHeaders().forEach(header -> {
+            final String lowercaseName = header.lowercaseName();
+            if (externalHeaders.containsKey(lowercaseName)) {
+                throw GatewayDuplicateHeaderException
+                        .newBuilder()
+                        .dittoHeaders(DittoHeaders.newBuilder().correlationId(correlationId).build())
+                        .build();
+            } else {
+                externalHeaders.put(lowercaseName, header.value());
+            }
+        });
+
+        // remove non-retained headers
+        Arrays.stream(org.eclipse.ditto.services.gateway.security.HttpHeader.values())
+                .forEach(httpHeader -> {
+                    if (!httpHeader.shouldRetain()) {
+                        externalHeaders.remove(httpHeader.getName());
+                    }
+                });
+
         return headerTranslator.fromExternalHeaders(externalHeaders);
     }
 

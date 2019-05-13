@@ -287,8 +287,8 @@ public final class RootRouteTest extends EndpointTestBase {
     public void getExceptionForDuplicateHeaderFields() {
         final TestRouteResult result =
                 rootTestRoute.run(withHttps(withDummyAuthentication(HttpRequest.GET(THINGS_1_PATH_WITH_IDS)
-                                .addHeader(RawHeader.create("location", UUID.randomUUID().toString()))
-                                .addHeader(RawHeader.create("location", UUID.randomUUID().toString()))
+                                .addHeader(RawHeader.create("x-correlation-id", UUID.randomUUID().toString()))
+                                .addHeader(RawHeader.create("x-correlation-id", UUID.randomUUID().toString()))
                         ))
                 );
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
