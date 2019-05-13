@@ -63,17 +63,27 @@ public final class ThingSupervisorActor extends AbstractActor {
     private final Duration minBackOff;
     private final Duration maxBackOff;
     private final double randomFactor;
-    private final SupervisorStrategy supervisorStrategy;
     private final ShutdownNamespaceBehavior shutdownNamespaceBehavior;
 
     private ActorRef child;
     private long restartCount;
 
+    private final SupervisorStrategy supervisorStrategy = new OneForOneStrategy(true, DeciderBuilder
+            .match(ActorKilledException.class, e -> {
+                log.error(e, "ActorKilledException in ThingsPersistenceActor, stopping actor: {}", e.message());
+                return SupervisorStrategy.stop();
+            })
+            .matchAny(e -> {
+                log.error(e,"Passing unhandled error to ThingsRootActor: {}", e.getMessage());
+                return SupervisorStrategy.escalate();
+            })
+            .build());
+
+
     private ThingSupervisorActor(final Duration minBackOff,
             final Duration maxBackOff,
             final double randomFactor,
             final Function<String, Props> thingPersistenceActorPropsFactory,
-            final SupervisorStrategy supervisorStrategy,
             final ActorRef pubSubMediator) {
 
         try {
@@ -85,7 +95,6 @@ public final class ThingSupervisorActor extends AbstractActor {
         this.minBackOff = minBackOff;
         this.maxBackOff = maxBackOff;
         this.randomFactor = randomFactor;
-        this.supervisorStrategy = supervisorStrategy;
 
         shutdownNamespaceBehavior = ShutdownNamespaceBehavior.fromId(thingId, pubSubMediator, getSelf());
 
@@ -119,14 +128,8 @@ public final class ThingSupervisorActor extends AbstractActor {
 
             @Override
             public ThingSupervisorActor create() {
-                final OneForOneStrategy oneForOneStrategy = new OneForOneStrategy(true, DeciderBuilder
-                        .match(NullPointerException.class, e -> SupervisorStrategy.restart())
-                        .match(ActorKilledException.class, e -> SupervisorStrategy.stop())
-                        .matchAny(e -> SupervisorStrategy.escalate())
-                        .build());
-
                 return new ThingSupervisorActor(minBackOff, maxBackOff, randomFactor, thingPersistenceActorPropsFactory,
-                        oneForOneStrategy, pubSubMediator);
+                        pubSubMediator);
             }
         });
     }
