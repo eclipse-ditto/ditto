@@ -22,8 +22,10 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.concierge.cache.update.PolicyCacheUpdateActor;
 import org.eclipse.ditto.services.concierge.enforcement.EnforcementProvider;
 import org.eclipse.ditto.services.concierge.enforcement.EnforcerActor;
@@ -54,6 +56,7 @@ import org.eclipse.ditto.services.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespacesUpdater;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
@@ -67,6 +70,11 @@ import akka.cluster.pubsub.DistributedPubSubMediator;
  * Ditto default implementation of {@link AbstractEnforcerActorFactory}.
  */
 public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFactory<ConciergeConfigReader> {
+
+    /**
+     * Default namespace for {@code CreateThing} commands without any namespace.
+     */
+    private static final String DEFAULT_NAMESPACE = "org.eclipse.ditto";
 
     private static final String ENFORCER_CACHE_METRIC_NAME_PREFIX = "ditto_authorization_enforcer_cache_";
     private static final String ID_CACHE_METRIC_NAME_PREFIX = "ditto_authorization_id_cache_";
@@ -153,8 +161,9 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
         final Props enforcerProps =
                 EnforcerActor.props(pubSubMediator, enforcementProviders, enforcementAskTimeout,
                         conciergeForwarder, enforcerExecutor, enforcement.bufferSize(), enforcement.parallelism(),
-                        preEnforcer, thingIdCache, aclEnforcerCache, policyEnforcerCache) // passes in the caches to be able to invalidate cache entries
-                .withDispatcher(ENFORCER_DISPATCHER);
+                        preEnforcer, thingIdCache, aclEnforcerCache,
+                        policyEnforcerCache) // passes in the caches to be able to invalidate cache entries
+                        .withDispatcher(ENFORCER_DISPATCHER);
 
         return context.actorOf(enforcerProps, EnforcerActor.ACTOR_NAME);
     }
@@ -167,7 +176,23 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
                 BlockNamespaceBehavior.of(blockedNamespaces)
                         .block(withDittoHeaders)
                         .thenApply(CommandWithOptionalEntityValidator.getInstance())
+                        .thenApply(DefaultEnforcerActorFactory::prependDefaultNamespaceToCreateThing)
                         .thenCompose(placeholderSubstitution);
+    }
+
+    private static WithDittoHeaders prependDefaultNamespaceToCreateThing(final WithDittoHeaders signal) {
+        if (signal instanceof CreateThing) {
+            final CreateThing createThing = (CreateThing) signal;
+            if (!createThing.getThing().getNamespace().isPresent()) {
+                final Thing thingInDefaultNamespace = createThing.getThing()
+                        .toBuilder()
+                        .setId(DEFAULT_NAMESPACE + createThing.getThingId())
+                        .build();
+                final JsonObject initialPolicy = createThing.getInitialPolicy().orElse(null);
+                return CreateThing.of(thingInDefaultNamespace, initialPolicy, createThing.getDittoHeaders());
+            }
+        }
+        return signal;
     }
 
 }
