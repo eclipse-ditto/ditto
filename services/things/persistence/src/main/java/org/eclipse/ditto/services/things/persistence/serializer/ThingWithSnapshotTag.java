@@ -28,6 +28,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclEntry;
@@ -237,8 +238,8 @@ public final class ThingWithSnapshotTag implements Thing {
     }
 
     @Override
-    public void validate() {
-        delegee.validate();
+    public void validate(final DittoHeaders headers) {
+        delegee.validate(headers);
     }
 
     @Override
