@@ -167,9 +167,12 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     public CompletionStage<Void> enforce() {
         final ThingCommand signal = signal();
         LogUtil.enhanceLogWithCorrelationIdOrRandom(signal);
+
+        // Validate Thing in CreateThing. Other commands validate their payload in constructor.
         if (signal instanceof CreateThing) {
-            ((CreateThing) signal).getThing().validate();
+            ((CreateThing) signal).getThing().validate(signal.getDittoHeaders());
         }
+
         return thingEnforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             if (!enforcerEntry.exists()) {
                 enforceThingCommandByNonexistentEnforcer(enforcerKeyEntry);
@@ -696,7 +699,8 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
         final ThingCommand thingCommand = transformModifyThingToCreateThing(signal());
         if (thingCommand instanceof CreateThing) {
-            final CompletionStage<CreateThing> createThingFuture = replaceInitialPolicyWithCopiedPolicyIfPresent((CreateThing) thingCommand);
+            final CompletionStage<CreateThing> createThingFuture =
+                    replaceInitialPolicyWithCopiedPolicyIfPresent((CreateThing) thingCommand);
             return createThingFuture.thenApply(createThing -> {
                 final Optional<JsonObject> initialPolicyOptional = createThing.getInitialPolicy();
                 if (initialPolicyOptional.isPresent()) {
@@ -756,20 +760,20 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     private CompletionStage<Policy> retrievePolicyWithEnforcement(final String policyId) {
 
         return Patterns.ask(conciergeForwarder(), RetrievePolicy.of(policyId, dittoHeaders()), getAskTimeout())
-                        .thenApplyAsync(response -> {
-                            if (response instanceof RetrievePolicyResponse) {
-                                return ((RetrievePolicyResponse) response).getPolicy();
-                            } else if (response instanceof PolicyErrorResponse) {
-                                throw ((PolicyErrorResponse) response).getDittoRuntimeException();
-                            } else if (response instanceof DittoRuntimeException) {
-                                throw (DittoRuntimeException) response;
-                            } else {
-                                log().error(
-                                        "Got an unexpected response while retrieving a Policy that should be copied" +
-                                                " during Thing creation: {}", response);
-                                throw GatewayInternalErrorException.newBuilder().build();
-                            }
-                        }, getEnforcementExecutor());
+                .thenApplyAsync(response -> {
+                    if (response instanceof RetrievePolicyResponse) {
+                        return ((RetrievePolicyResponse) response).getPolicy();
+                    } else if (response instanceof PolicyErrorResponse) {
+                        throw ((PolicyErrorResponse) response).getDittoRuntimeException();
+                    } else if (response instanceof DittoRuntimeException) {
+                        throw (DittoRuntimeException) response;
+                    } else {
+                        log().error(
+                                "Got an unexpected response while retrieving a Policy that should be copied" +
+                                        " during Thing creation: {}", response);
+                        throw GatewayInternalErrorException.newBuilder().build();
+                    }
+                }, getEnforcementExecutor());
 
     }
 

@@ -37,6 +37,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.junit.Test;
@@ -184,7 +185,7 @@ public final class ImmutableThingTest {
                     FEATURES,
                     LIFECYCLE,
                     REVISION,
-                    MODIFIED).validate();
+                    MODIFIED).validate(DittoHeaders.empty());
         });
     }
 
@@ -203,7 +204,7 @@ public final class ImmutableThingTest {
                 MODIFIED);
 
         assertThatExceptionOfType(ThingPolicyIdInvalidException.class).isThrownBy(
-                () -> thing.setPolicyId(invalidPolicyId).validate());
+                () -> thing.setPolicyId(invalidPolicyId).validate(DittoHeaders.empty()));
     }
 
     @Test
@@ -962,7 +963,7 @@ public final class ImmutableThingTest {
                         FEATURES,
                         LIFECYCLE,
                         REVISION,
-                        MODIFIED).validate()
+                        MODIFIED).validate(DittoHeaders.empty())
             );
         });
 

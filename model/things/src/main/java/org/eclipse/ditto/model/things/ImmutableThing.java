@@ -354,10 +354,10 @@ final class ImmutableThing implements Thing {
     }
 
     @Override
-    public void validate() {
-        ThingIdValidator.getInstance().accept(thingId, DittoHeaders.empty());
+    public void validate(final DittoHeaders headers) {
+        ThingIdValidator.getInstance().accept(thingId, headers);
         if (policyId != null) {
-            ThingPolicyIdValidator.getInstance().accept(policyId, DittoHeaders.empty());
+            ThingPolicyIdValidator.getInstance().accept(policyId, headers);
         }
     }
 
