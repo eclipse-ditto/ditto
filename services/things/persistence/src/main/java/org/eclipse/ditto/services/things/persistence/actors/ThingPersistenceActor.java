@@ -108,8 +108,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     private Cancellable activityChecker;
     private Thing thing;
 
-    private int firstMessageCounter = 0;
-
     ThingPersistenceActor(final String thingId, final ActorRef pubSubMediator,
             final ThingSnapshotter.Create thingSnapshotterCreate) {
 
@@ -132,7 +130,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         final Runnable becomeDeletedRunnable = this::becomeThingDeletedHandler;
         defaultContext =
                 DefaultContext.getInstance(thingId, log, thingSnapshotter, becomeCreatedRunnable,
-                        becomeDeletedRunnable, this::stopThisActor, this::isFirstMessage);
+                        becomeDeletedRunnable);
 
         handleThingEvents = ReceiveBuilder.create()
                 .match(ThingEvent.class, event -> {
@@ -220,10 +218,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         return thingId;
     }
 
-    private boolean isFirstMessage() {
-        return firstMessageCounter <= 1;
-    }
-
     private void scheduleCheckForThingActivity(final long intervalInSeconds) {
         log.debug("Scheduling for Activity Check in <{}> seconds.", intervalInSeconds);
         // if there is a previous activity checker, cancel it
@@ -280,13 +274,17 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         return new StrategyAwareReceiveBuilder(receiveBuilder, log)
                 .match(new CheckForActivityStrategy())
                 .matchAny(new MatchAnyDuringInitializeStrategy())
-                .setPeekConsumer(getPeekConsumer())
+                .setPeekConsumer(getIncomingMessagesLoggerOrNull())
                 .build();
     }
 
     @Nullable
-    private Consumer<Object> getPeekConsumer() {
-        return new PeekConsumer(isLogIncomingMessages());
+    private Consumer<Object> getIncomingMessagesLoggerOrNull() {
+        if (isLogIncomingMessages()) {
+            return new LogIncomingMessagesConsumer();
+        } else {
+            return null;
+        }
     }
 
     @Override
@@ -389,7 +387,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 .matchEach(thingSnapshotter.strategies())
                 .match(new CheckForActivityStrategy())
                 .matchAny(new ThingNotFoundStrategy())
-                .setPeekConsumer(getPeekConsumer())
+                .setPeekConsumer(getIncomingMessagesLoggerOrNull())
                 .build();
 
         getContext().become(receive, true);
@@ -517,24 +515,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     // stop the supervisor (otherwise it'd restart this actor) which causes this actor to stop, too.
     private void stopThisActor() {
         getContext().getParent().tell(ThingSupervisorActor.Control.PASSIVATE, getSelf());
-    }
-
-    /**
-     * This consumer sets firstMessageCounter and calls other peek consumers as needed.
-     */
-    private final class PeekConsumer implements Consumer<Object> {
-
-        private final Consumer<Object> furtherConsumers;
-
-        private PeekConsumer(final boolean logIncomingMessages) {
-            furtherConsumers = logIncomingMessages ? new LogIncomingMessagesConsumer() : object -> {};
-        }
-
-        @Override
-        public void accept(final Object o) {
-            firstMessageCounter = Math.min(2, firstMessageCounter + 1);
-            furtherConsumers.accept(o);
-        }
     }
 
     /**
