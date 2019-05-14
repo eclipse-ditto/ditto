@@ -214,7 +214,7 @@ final class ThingsSearchCursor {
      * @param commandOptions options from a command.
      * @return whether the options contains an incompatible sort option.
      */
-    private boolean hasIncompatibleSortOption(final List<Option> commandOptions) {
+    boolean hasIncompatibleSortOption(final List<Option> commandOptions) {
         return findAll(SortOption.class, commandOptions).stream()
                 .anyMatch(sortOption -> !areCompatible(this.sortOption.getEntries(), sortOption.getEntries(), 0));
     }
@@ -286,7 +286,7 @@ final class ThingsSearchCursor {
     }
 
     /**
-     * @return naemspaces of this cursor as JSON array.
+     * @return namespaces of this cursor as JSON array.
      */
     @Nullable
     private JsonArray renderNamespaces() {

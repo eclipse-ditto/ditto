@@ -36,7 +36,7 @@ public final class ResultListImpl<E> implements ResultList<E> {
 
     private final List<E> items;
     private final long nextPageOffset;
-    @Nullable final JsonArray lastResultSortValues;
+    @Nullable private final JsonArray lastResultSortValues;
 
     /**
      * Constructor.

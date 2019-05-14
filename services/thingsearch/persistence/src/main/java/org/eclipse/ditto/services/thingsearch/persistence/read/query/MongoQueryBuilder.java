@@ -115,6 +115,12 @@ final class MongoQueryBuilder implements QueryBuilder {
     }
 
     @Override
+    public QueryBuilder size(final long n) {
+        limit = Validator.checkSize(n, maxLimit);
+        return this;
+    }
+
+    @Override
     public QueryBuilder skip(final long n) {
         skip = Validator.checkSkip(n);
         return this;

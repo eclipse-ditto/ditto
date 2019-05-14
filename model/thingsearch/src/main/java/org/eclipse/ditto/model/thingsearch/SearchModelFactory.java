@@ -57,20 +57,6 @@ public final class SearchModelFactory {
     }
 
     /**
-     * Creates a new {@link SearchResult}.
-     *
-     * @param items the items.
-     * @param nextPageOffset the offset of the next page or {@code null}.
-     * @param cursor cursor of the next page or {@code null}.
-     * @return the new immutable search results object.
-     * @throws NullPointerException if {@code items} is {@code null}.
-     */
-    public static SearchResult newSearchResult(final JsonArray items, @Nullable final Long nextPageOffset,
-            @Nullable final String cursor) {
-        return ImmutableSearchResult.of(items, nextPageOffset, cursor);
-    }
-
-    /**
      * Returns a new immutable empty {@link SearchResult}.
      *
      * @return the new immutable empty {@code SearchResult}.

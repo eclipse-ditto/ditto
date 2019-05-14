@@ -39,7 +39,7 @@ public interface ResultList<E> extends List<E> {
     /**
      * Get values of sort expressions of the last result.
      *
-     * @return
+     * @return the array of sort expressions of the last result
      */
     Optional<JsonArray> lastResultSortValues();
 }

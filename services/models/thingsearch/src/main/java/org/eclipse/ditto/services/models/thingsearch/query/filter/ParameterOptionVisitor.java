@@ -90,7 +90,7 @@ public final class ParameterOptionVisitor implements OptionVisitor {
 
     @Override
     public void visit(final SizeOption sizeOption) {
-        queryBuilder.skip(0L).limit(sizeOption.getSize());
+        queryBuilder.skip(0L).size(sizeOption.getSize());
     }
 
     private SortOption mapSort(final SortOptionEntry entry) {
