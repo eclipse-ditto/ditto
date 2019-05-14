@@ -88,7 +88,7 @@ public final class DittoHeadersSizeChecker {
      * @param dittoHeaders headers to check.
      * @param authorizationContext authorization context to check.
      * @param onSuccess what to do if headers are compliant.
-     * @param onError what to do if headers are not comnpliant.
+     * @param onError what to do if headers are not compliant.
      * @param <T> type of results.
      * @return the result of the handlers.
      */
@@ -110,12 +110,11 @@ public final class DittoHeadersSizeChecker {
         final List<Map.Entry<String, String>> headersList = headers.entrySet()
                 .stream()
                 .sorted((entry1, entry2) ->
-                        entry2.getKey().length() + entry2.getValue().length()
-                                - entry1.getKey().length() - entry1.getValue().length())
+                        entry1.getKey().length() + entry1.getValue().length()
+                                - entry2.getKey().length() - entry2.getValue().length())
                 .collect(Collectors.toList());
 
         final DittoHeadersBuilder builder = DittoHeaders.newBuilder();
-
         int quota = maxSize;
 
         for (final Map.Entry<String, String> entry : headersList) {
