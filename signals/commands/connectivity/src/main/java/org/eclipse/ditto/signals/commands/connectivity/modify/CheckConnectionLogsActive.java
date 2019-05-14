@@ -123,6 +123,14 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
         return CheckConnectionLogsActive.fromJson(jsonObject, now);
     }
 
+    public static CheckConnectionLogsActive fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandJsonDeserializer<CheckConnectionLogsActive>(TYPE, jsonObject).deserialize(() -> {
+            final String readConnectionId =
+                    jsonObject.getValueOrThrow(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID);
+            return of(readConnectionId, Instant.now(), dittoHeaders);
+        });
+    }
+
     public static CheckConnectionLogsActive fromJson(final JsonObject jsonObject, final Instant timestamp,
             final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<CheckConnectionLogsActive>(TYPE, jsonObject).deserialize(() -> {
