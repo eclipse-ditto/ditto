@@ -59,7 +59,7 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<EntityI
         final Function<Object, Entry<Enforcer>> responseTransformer =
                 PolicyEnforcerCacheLoader::handleSudoRetrievePolicyResponse;
 
-        this.delegate = ActorAskCacheLoader.forShard(askTimeout, PolicyCommand.RESOURCE_TYPE, policiesShardRegionProxy,
+        delegate = ActorAskCacheLoader.forShard(askTimeout, PolicyCommand.RESOURCE_TYPE, policiesShardRegionProxy,
                 commandCreator, responseTransformer);
     }
 

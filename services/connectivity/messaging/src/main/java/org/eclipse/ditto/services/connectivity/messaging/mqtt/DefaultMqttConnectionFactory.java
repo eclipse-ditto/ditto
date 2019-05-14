@@ -19,20 +19,15 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Source;
-import org.eclipse.paho.client.mqttv3.MqttClientPersistence;
-import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 import akka.Done;
 import akka.japi.Pair;
 import akka.stream.alpakka.mqtt.MqttConnectionSettings;
 import akka.stream.alpakka.mqtt.MqttMessage;
 import akka.stream.alpakka.mqtt.MqttQoS;
-import akka.stream.alpakka.mqtt.MqttSourceSettings;
 import akka.stream.alpakka.mqtt.MqttSubscriptions;
 import akka.stream.alpakka.mqtt.javadsl.MqttSink;
 import akka.stream.javadsl.Sink;
-import scala.collection.JavaConverters;
-import scala.collection.Seq;
 
 /**
  * Create MQTT sources and sinks.

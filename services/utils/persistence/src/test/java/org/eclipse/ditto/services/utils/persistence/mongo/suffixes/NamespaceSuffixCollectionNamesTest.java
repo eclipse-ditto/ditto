@@ -26,7 +26,7 @@ public class NamespaceSuffixCollectionNamesTest {
     @Before
     public void setup() {
         NamespaceSuffixCollectionNames.resetConfig();
-        this.sut = new NamespaceSuffixCollectionNames();
+        sut = new NamespaceSuffixCollectionNames();
     }
 
     @Test
@@ -90,5 +90,24 @@ public class NamespaceSuffixCollectionNamesTest {
         final String persistenceId = "thing:org.eclipse.ditto:test:thing";
 
         sut.getSuffixFromPersistenceId(persistenceId);
+    }
+
+    @Test(expected = NamespaceSuffixCollectionNames.PersistenceIdInvalidException.class)
+    public void getSuffixFromPersistenceIdThrowsIllegalStateException() {
+        NamespaceSuffixCollectionNames.setConfig(new SuffixBuilderConfig(Collections.singletonList("thing")));
+        final String persistenceId = "thing:::::::";
+
+        sut.getSuffixFromPersistenceId(persistenceId);
+    }
+
+    @Test
+    public void getSuffixFromPersistenceIdWithNamespaceAndOnlyColons() {
+        NamespaceSuffixCollectionNames.setConfig(new SuffixBuilderConfig(Collections.singletonList("thing")));
+        final String persistenceId = "thing:org.eclipse.ditto:::::::";
+
+        final String suffix = sut.getSuffixFromPersistenceId(persistenceId);
+
+        final String expectedSuffix = "org.eclipse.ditto";
+        assertThat(suffix).isEqualTo(expectedSuffix);
     }
 }
