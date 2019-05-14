@@ -202,7 +202,7 @@ public final class SearchActor extends AbstractActor {
     }
 
     private void query(final QueryThings queryThings) {
-        LogUtil.enhanceLogWithCorrelationId(log, queryThings.getDittoHeaders().getCorrelationId());
+        LogUtil.enhanceLogWithCorrelationId(log, queryThings);
         log.debug("Starting to process QueryThings command: {}", queryThings);
         final JsonSchemaVersion version = queryThings.getImplementedSchemaVersion();
 
@@ -217,10 +217,10 @@ public final class SearchActor extends AbstractActor {
                 ThingsSearchCursor.extractCursor(queryThings, materializer);
 
         final Source<Object, ?> replySource = cursorSource.flatMapConcat(cursor -> {
+            cursor.ifPresent(c -> c.logCursorCorrelationId(log, queryThings));
             final QueryThings command = ThingsSearchCursor.adjust(cursor, queryThings);
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
-            final Optional<String> correlationIdOpt = dittoHeaders.getCorrelationId();
-            LogUtil.enhanceLogWithCorrelationId(log, correlationIdOpt);
+            LogUtil.enhanceLogWithCorrelationId(log, queryThings);
             log.info("Processing QueryThings command: {}", queryThings);
             return createQuerySource(queryParser::parse, command)
                     .flatMapConcat(parsedQuery -> {

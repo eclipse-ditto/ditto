@@ -31,26 +31,20 @@ public enum HttpHeader {
     /**
      * x-correlation-id HTTP header.
      */
-    X_CORRELATION_ID("x-correlation-id", false),
+    X_CORRELATION_ID("x-correlation-id"),
 
     /**
      * HTTP header for dummy authentication (for dev purposes).
      */
-    X_DITTO_DUMMY_AUTH("x-ditto-dummy-auth", false);
+    X_DITTO_DUMMY_AUTH("x-ditto-dummy-auth");
 
     private static final Map<String, HttpHeader> BY_NAME =
             Arrays.stream(values()).collect(Collectors.toMap(HttpHeader::getName, Function.identity()));
 
     private final String name;
-    private final boolean retain;
 
     HttpHeader(final String name) {
-        this(name, true);
-    }
-
-    HttpHeader(final String name, final boolean retain) {
         this.name = name;
-        this.retain = retain;
     }
 
     /**
@@ -70,15 +64,6 @@ public enum HttpHeader {
      */
     public String getName() {
         return name;
-    }
-
-    /**
-     * Returns whether this header should be retained as Ditto header.
-     *
-     * @return whether this header should be retained.
-     */
-    public boolean shouldRetain() {
-        return retain;
     }
 
     @Override

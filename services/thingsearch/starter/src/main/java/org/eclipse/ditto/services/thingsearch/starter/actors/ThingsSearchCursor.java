@@ -61,12 +61,14 @@ import org.eclipse.ditto.model.thingsearch.SortOptionEntry;
 import org.eclipse.ditto.model.thingsearchparser.RqlOptionParser;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 import org.eclipse.ditto.services.thingsearch.persistence.write.mapping.JsonToBson;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import akka.NotUsed;
+import akka.event.DiagnosticLoggingAdapter;
 import akka.http.javadsl.coding.Coder;
 import akka.japi.pf.PFBuilder;
 import akka.stream.ActorMaterializer;
@@ -99,12 +101,6 @@ final class ThingsSearchCursor {
 
     static final SortOptionEntry DEFAULT_SORT_OPTION_ENTRY =
             SortOptionEntry.asc(Thing.JsonFields.ID.getPointer());
-
-    /**
-     * Delimiter between correlation IDs. The real correlation ID of a QueryThings command with cursor is
-     * "[correlation-id-of-cursor]:[correlation-id-of-command-headers]".
-     */
-    private static final String CORRELATION_ID_DELIMITER = ":";
 
     private static final String LIMIT_OPTION_FORBIDDEN = "The options 'cursor' and 'limit' must not be used together.";
 
@@ -168,6 +164,16 @@ final class ThingsSearchCursor {
     }
 
     /**
+     * Log the correlation ID of the query that generated the cursor.
+     *
+     * @param log the logger.
+     */
+    void logCursorCorrelationId(final DiagnosticLoggingAdapter log, final WithDittoHeaders command) {
+        LogUtil.enhanceLogWithCorrelationId(log, command);
+        log.info("CursorCorrelationId = {}", correlationId);
+    }
+
+    /**
      * Check whether this cursor is valid for a {@code QueryThings} command.
      * A cursor is compatible with a command if
      * <ul>
@@ -214,7 +220,7 @@ final class ThingsSearchCursor {
      * @param commandOptions options from a command.
      * @return whether the options contains an incompatible sort option.
      */
-    boolean hasIncompatibleSortOption(final List<Option> commandOptions) {
+    private boolean hasIncompatibleSortOption(final List<Option> commandOptions) {
         return findAll(SortOption.class, commandOptions).stream()
                 .anyMatch(sortOption -> !areCompatible(this.sortOption.getEntries(), sortOption.getEntries(), 0));
     }
@@ -245,9 +251,6 @@ final class ThingsSearchCursor {
      * @return Compute a {@code QueryThings} using content of this cursor.
      */
     private QueryThings adjustQueryThings(final QueryThings queryThings) {
-        final DittoHeaders headers = queryThings.getDittoHeaders().toBuilder()
-                .correlationId(combineCorrelationIds(correlationId, queryThings.getDittoHeaders()))
-                .build();
         final List<String> adjustedOptions =
                 Stream.concat(
                         Stream.of(RqlOptionParser.unparse(Collections.singletonList(sortOption))),
@@ -256,6 +259,8 @@ final class ThingsSearchCursor {
                                 .orElseGet(Stream::empty)
                                 .filter(option -> !option.startsWith("sort")))
                         .collect(Collectors.toList());
+        // leave correlation ID alone
+        final DittoHeaders headers = queryThings.getDittoHeaders();
         return QueryThings.of(filter, adjustedOptions, queryThings.getFields().orElse(null), namespaces, headers);
     }
 
@@ -788,23 +793,6 @@ final class ThingsSearchCursor {
                 return false;
             }
         }
-    }
-
-    /**
-     * Combine correlation IDs between the cursor and the command headers.
-     *
-     * @param cursorCorrelationId correlationId of a cursor.
-     * @param commandHeaders headers from a {@code QueryThings} command.
-     * @return a merged correlation ID.
-     */
-    @Nullable
-    private static String combineCorrelationIds(@Nullable final String cursorCorrelationId,
-            final DittoHeaders commandHeaders) {
-        return Optional.ofNullable(cursorCorrelationId)
-                .map(encodedCID -> commandHeaders.getCorrelationId()
-                        .map(newCID -> encodedCID + CORRELATION_ID_DELIMITER + newCID)
-                        .orElse(encodedCID))
-                .orElse(null);
     }
 
     /**

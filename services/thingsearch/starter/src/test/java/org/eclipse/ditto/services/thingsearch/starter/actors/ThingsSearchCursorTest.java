@@ -80,10 +80,9 @@ public final class ThingsSearchCursorTest {
     }
 
     @Test
-    public void correlationIdsAreConcatenated() {
+    public void correlationIdIsUnchanged() {
         // GIVEN: cursor and command have different correlation IDs
         final ThingsSearchCursor underTest = randomCursor();
-        final String correlationIdFromCursor = getCorrelationId(underTest);
 
         final String correlationIdFromCommand = "queryThingsCorrelationId";
         final QueryThings queryThings =
@@ -97,9 +96,9 @@ public final class ThingsSearchCursorTest {
                         .getCorrelationId()
                         .orElse(null);
 
-        // THEN: correlation ID of adjusted command contains those of both the cursor and the original command.
-        assertThat(correlationIdOfAdjustedCommand).contains(correlationIdFromCursor);
-        assertThat(correlationIdOfAdjustedCommand).contains(correlationIdFromCommand);
+        // THEN: correlation ID of adjusted command is identical to the command's correlation ID
+        assertThat(correlationIdOfAdjustedCommand).isEqualTo(correlationIdFromCommand);
+        assertThat(correlationIdOfAdjustedCommand).isNotEqualTo(getCorrelationId(underTest));
     }
 
     @Test
