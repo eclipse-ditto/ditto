@@ -44,6 +44,20 @@ public interface LimitsConfigReader {
     long messagesMaxSize();
 
     /**
+     * Retrieve the maximum possible size of Ditto headers in bytes.
+     *
+     * @return max size of headers in bytes.
+     */
+    int headersMaxSize();
+
+    /**
+     * Retrieve the maximum number of authorization subjects.
+     *
+     * @return max number of authorization subjects.
+     */
+    int authSubjectsCount();
+
+    /**
      * Retrieve the default pagination size to apply when searching for "Things" via "things-search".
      *
      * @return default pagination size.
