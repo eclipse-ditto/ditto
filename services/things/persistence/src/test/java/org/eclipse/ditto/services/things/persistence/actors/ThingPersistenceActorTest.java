@@ -635,7 +635,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final DittoHeaders headersMockWithOtherAuth =
                         createDittoHeadersMock(JsonSchemaVersion.V_2, AUTH_SUBJECT);
 
-                final String thingId = ":myThing";
+                final String thingId = "org.eclipse.ditto:myThing";
                 final Feature smokeDetector = ThingsModelFactory.newFeature("smokeDetector");
                 final Feature fireExtinguisher = ThingsModelFactory.newFeature("fireExtinguisher");
                 final Thing thing = ThingsModelFactory.newThingBuilder()
@@ -673,7 +673,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final DittoHeaders headersMockWithOtherAuth =
                         createDittoHeadersMock(JsonSchemaVersion.V_2, AUTH_SUBJECT);
 
-                final String thingId = ":myThing";
+                final String thingId = "org.eclipse.ditto:myThing";
 
                 final JsonPointer fooPointer = JsonFactory.newPointer("foo");
                 final JsonValue fooValue = JsonFactory.newValue("bar");
@@ -717,7 +717,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
         final Thing thing = ThingsModelFactory.newThingBuilder()
                 .setAttributes(ThingsModelFactory.newAttributes(attributes))
-                .setGeneratedId()
+                .setId(THING_ID)
                 .setPolicyId(POLICY_ID)
                 .build();
 
@@ -757,7 +757,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
         final Thing thing = ThingsModelFactory.newThingBuilder()
                 .setAttributes(ThingsModelFactory.newAttributes(attributes))
-                .setGeneratedId()
+                .setId(THING_ID)
                 .setPolicyId(POLICY_ID)
                 .build();
 
@@ -792,7 +792,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
         final Thing thing = ThingsModelFactory.newThingBuilder()
                 .setAttributes(ThingsModelFactory.newAttributes(attributes))
-                .setGeneratedId()
+                .setId(THING_ID)
                 .setPolicyId(POLICY_ID)
                 .build();
 

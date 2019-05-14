@@ -6,7 +6,7 @@ permalink: protocol-twinlive.html
 ---
 
 The Ditto Protocol furthermore covers two different communication channels to address different aspects of devices and 
-their **Digital Twins**.
+their **digital twins**.
 
 ## Twin
 

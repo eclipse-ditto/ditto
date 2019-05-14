@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.signals.commands.things.modify;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -21,12 +19,12 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.lang.ref.SoftReference;
 import java.text.MessageFormat;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -34,6 +32,7 @@ import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.PoliciesConflictingException;
+import org.junit.Rule;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -43,6 +42,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit test for {@link CreateThing}.
  */
 public final class CreateThingTest {
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, CreateThing.TYPE)
@@ -56,7 +58,6 @@ public final class CreateThingTest {
                 provided(Thing.class, JsonObject.class).isAlsoImmutable());
     }
 
-
     @Test
     public void testHashCodeAndEquals() {
         final SoftReference<JsonObject> red = new SoftReference<>(JsonFactory.newObject("{\"foo\": 1}"));
@@ -68,24 +69,10 @@ public final class CreateThingTest {
                 .verify();
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThing() {
         CreateThing.of(null, null, TestConstants.EMPTY_DITTO_HEADERS);
     }
-
-
-    @Test(expected = ThingIdInvalidException.class)
-    public void tryToCreateInstanceWithInvalidThingId() {
-        final Thing thing = ThingsModelFactory.newThingBuilder()
-                .setLifecycle(TestConstants.Thing.LIFECYCLE)
-                .setPolicyId(TestConstants.Thing.POLICY_ID)
-                .setId("test.ns:foo bar")
-                .build();
-
-        CreateThing.of(thing, null, TestConstants.EMPTY_DITTO_HEADERS);
-    }
-
 
     @Test
     public void createInstanceWithValidThingId() {
@@ -98,9 +85,8 @@ public final class CreateThingTest {
         final CreateThing createThing =
                 CreateThing.of(thing, null, TestConstants.EMPTY_DITTO_HEADERS);
 
-        assertThat(createThing).isNotNull();
+        softly.assertThat(createThing).isNotNull();
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
@@ -108,7 +94,7 @@ public final class CreateThingTest {
                 CreateThing.of(TestConstants.Thing.THING, null, TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
-        assertThat(actualJson).isEqualTo(KNOWN_JSON);
+        softly.assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
 
 
@@ -116,8 +102,8 @@ public final class CreateThingTest {
     public void createInstanceFromValidJson() {
         final CreateThing underTest = CreateThing.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
-        assertThat(underTest).isNotNull();
-        assertThat(underTest.getThing()).isEqualTo(TestConstants.Thing.THING);
+        softly.assertThat(underTest).isNotNull();
+        softly.assertThat(underTest.getThing()).isEqualTo(TestConstants.Thing.THING);
     }
 
     @Test
@@ -134,7 +120,7 @@ public final class CreateThingTest {
                 .setAttributes(largeAttributes)
                 .build();
 
-        assertThatThrownBy(() -> CreateThing.of(thing, null, DittoHeaders.empty()))
+        softly.assertThatThrownBy(() -> CreateThing.of(thing, null, DittoHeaders.empty()))
                 .isInstanceOf(ThingTooLargeException.class);
     }
 
@@ -143,8 +129,8 @@ public final class CreateThingTest {
         final CreateThing createThing =
                 CreateThing.of(TestConstants.Thing.THING, null, null, TestConstants.EMPTY_DITTO_HEADERS);
 
-        assertThat(createThing.getInitialPolicy()).isNotPresent();
-        assertThat(createThing.getPolicyIdOrPlaceholder()).isNotPresent();
+        softly.assertThat(createThing.getInitialPolicy()).isNotPresent();
+        softly.assertThat(createThing.getPolicyIdOrPlaceholder()).isNotPresent();
     }
 
     @Test
@@ -154,9 +140,9 @@ public final class CreateThingTest {
                 CreateThing.withCopiedPolicy(TestConstants.Thing.THING, thingReference,
                         TestConstants.EMPTY_DITTO_HEADERS);
 
-        assertThat(createThing.getInitialPolicy()).isNotPresent();
-        assertThat(createThing.getPolicyIdOrPlaceholder()).isPresent();
-        assertThat(createThing.getPolicyIdOrPlaceholder()).contains(thingReference);
+        softly.assertThat(createThing.getInitialPolicy()).isNotPresent();
+        softly.assertThat(createThing.getPolicyIdOrPlaceholder()).isPresent();
+        softly.assertThat(createThing.getPolicyIdOrPlaceholder()).contains(thingReference);
     }
 
     @Test
@@ -166,15 +152,15 @@ public final class CreateThingTest {
         final CreateThing createThing =
                 CreateThing.of(thing, null, thingReference, TestConstants.EMPTY_DITTO_HEADERS);
 
-        assertThat(createThing.getInitialPolicy()).isNotPresent();
-        assertThat(createThing.getPolicyIdOrPlaceholder()).isPresent();
-        assertThat(createThing.getPolicyIdOrPlaceholder()).contains(thingReference);
+        softly.assertThat(createThing.getInitialPolicy()).isNotPresent();
+        softly.assertThat(createThing.getPolicyIdOrPlaceholder()).isPresent();
+        softly.assertThat(createThing.getPolicyIdOrPlaceholder()).contains(thingReference);
     }
 
     @Test
     public void initializeWithCopiedPolicyAndWithInitialPolicy() {
         final String thingReference = "{{ ref:things/my_namespace:my_thing/policyId }}";
-        assertThatThrownBy(() ->
+        softly.assertThatThrownBy(() ->
                 CreateThing.of(TestConstants.Thing.THING, JsonObject.newBuilder().build(), thingReference,
                         TestConstants.EMPTY_DITTO_HEADERS))
                 .isInstanceOf(PoliciesConflictingException.class)
@@ -193,7 +179,7 @@ public final class CreateThingTest {
 
         final Command parsedCommand = commandRegistry.parse(jsonObject, TestConstants.DITTO_HEADERS);
 
-        assertThat(parsedCommand).isEqualTo(command);
+        softly.assertThat(parsedCommand).isEqualTo(command);
     }
 
 }

@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
@@ -32,14 +33,14 @@ import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.services.concierge.cache.AclEnforcerCacheLoader;
-import org.eclipse.ditto.services.concierge.cache.PolicyEnforcerCacheLoader;
-import org.eclipse.ditto.services.concierge.cache.ThingEnforcementIdCacheLoader;
 import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
-import org.eclipse.ditto.services.models.concierge.EntityId;
-import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
+import org.eclipse.ditto.services.utils.cache.EntityId;
+import org.eclipse.ditto.services.utils.cache.entry.Entry;
+import org.eclipse.ditto.services.utils.cacheloaders.AclEnforcerCacheLoader;
+import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcerCacheLoader;
+import org.eclipse.ditto.services.utils.cacheloaders.ThingEnforcementIdCacheLoader;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
@@ -51,6 +52,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.testkit.TestProbe;
+import akka.testkit.javadsl.TestKit;
 
 public class TestSetup {
 
@@ -106,8 +108,9 @@ public class TestSetup {
         enforcementProviders.add(
                 new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache, aclEnforcerCache));
 
-        final Props props = EnforcerActorCreator.props(testActorRef, enforcementProviders, Duration.ofSeconds(10),
-                conciergeForwarder, system.dispatcher(), preEnforcer, null);
+        final Props props = EnforcerActor.props(testActorRef, enforcementProviders, Duration.ofSeconds(10),
+                conciergeForwarder, system.dispatcher(), 1, 2,
+                preEnforcer, null, null, null);
         return system.actorOf(props, THING + ":" + THING_ID);
     }
 
@@ -134,5 +137,18 @@ public class TestSetup {
 
     public static ThingCommand writeCommand() {
         return ModifyFeature.of(THING_ID, Feature.newBuilder().withId("x").build(), headers(V_2));
+    }
+
+    /**
+     * Similar to {@link TestKit#expectMsgClass(Class)} but ignores other messages occurring while waiting for a
+     * message of the the passed {@code clazz}.
+     *
+     * @param testKit the TestKit to fish for messages in
+     * @param clazz the type of the message to wait for
+     * @param <T> the type of the waited for message
+     * @return the message
+     */
+    public static <T> T fishForMsgClass(final TestKit testKit, final Class<T> clazz) {
+        return (T) testKit.fishForMessage(scala.concurrent.duration.Duration.create(1, TimeUnit.SECONDS), clazz.getName(), clazz::isInstance);
     }
 }

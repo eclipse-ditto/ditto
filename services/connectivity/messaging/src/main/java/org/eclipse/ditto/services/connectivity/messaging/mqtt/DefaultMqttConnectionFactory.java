@@ -25,11 +25,9 @@ import akka.japi.Pair;
 import akka.stream.alpakka.mqtt.MqttConnectionSettings;
 import akka.stream.alpakka.mqtt.MqttMessage;
 import akka.stream.alpakka.mqtt.MqttQoS;
-import akka.stream.alpakka.mqtt.MqttSourceSettings;
+import akka.stream.alpakka.mqtt.MqttSubscriptions;
 import akka.stream.alpakka.mqtt.javadsl.MqttSink;
 import akka.stream.javadsl.Sink;
-import scala.collection.JavaConverters;
-import scala.collection.Seq;
 
 /**
  * Create MQTT sources and sinks.
@@ -56,10 +54,11 @@ final class DefaultMqttConnectionFactory implements MqttConnectionFactory {
     public akka.stream.javadsl.Source<MqttMessage, CompletionStage<Done>> newSource(final Source mqttSource,
             final int bufferSize) {
         final String clientId = connectionId() + "-source" + mqttSource.getIndex();
-        final MqttSourceSettings sourceSettings =
-                MqttSourceSettings.create(settings.withClientId(clientId))
-                        .withSubscriptions(getSubscriptions(mqttSource));
-        return akka.stream.alpakka.mqtt.javadsl.MqttSource.atMostOnce(sourceSettings, bufferSize);
+        final MqttConnectionSettings connectionSettings = settings.withClientId(clientId);
+        return akka.stream.alpakka.mqtt.javadsl.MqttSource.atMostOnce(
+                connectionSettings,
+                MqttSubscriptions.create(getSubscriptions(mqttSource)),
+                bufferSize);
     }
 
     @Override
@@ -68,14 +67,12 @@ final class DefaultMqttConnectionFactory implements MqttConnectionFactory {
         return MqttSink.create(settings.withClientId(clientId), MqttQoS.atMostOnce());
     }
 
-    private static Seq<Pair<String, MqttQoS>> getSubscriptions(final Source mqttSource) {
+    private static List<Pair<String, MqttQoS>> getSubscriptions(final Source mqttSource) {
         final int qos = mqttSource.getQos().orElse(DEFAULT_SOURCE_QOS);
         final MqttQoS mqttQos = MqttValidator.getQoS(qos);
-        final List<Pair<String, MqttQoS>> subscriptions =
-                mqttSource.getAddresses()
+        return mqttSource.getAddresses()
                         .stream()
                         .map(sourceAddress -> Pair.create(sourceAddress, mqttQos))
                         .collect(Collectors.toList());
-        return JavaConverters.asScalaBuffer(subscriptions);
     }
 }

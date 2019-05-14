@@ -1,0 +1,78 @@
+
+{{- if .Values.search.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.search.name }}
+  labels:
+    app: {{ .Values.search.name }}
+    app.kubernetes.io/name: {{ .Values.search.name }}
+    app.kubernetes.io/part-of: {{ .Chart.Name }}
+    app.kubernetes.io/version: "{{.Chart.Version}}"
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.search.name }}
+  replicas: {{ .Values.search.replicaCount }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.search.name }}
+        actorSystemName: ditto-cluster
+    spec:
+      containers:
+        - name: {{ .Values.search.name }}
+          image: "{{ .Values.search.image.repository }}:{{ .Values.search.image.tag }}"
+          imagePullPolicy: {{ .Values.search.image.imagePullPolicy }}
+          command: ["java"]
+          args: ["-jar", "/opt/ditto/starter.jar"]
+          ports:
+            - name: akka-remoting
+              containerPort: {{ .Values.akka.remoting.port }}
+              protocol: TCP
+            - name: akka-mgmt-http
+              containerPort: {{ .Values.akka.mgmthttp.port }}
+              protocol: TCP
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.akka.mgmthttp.port }}
+            initialDelaySeconds: 45
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.akka.remoting.port }}
+            initialDelaySeconds: 180
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 4
+          env:
+            - name: K8S_NAMESPACE
+              value: {{.Release.Namespace}}
+            - name: INSTANCE_INDEX
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+            - name: DISCOVERY_METHOD
+              value: "kubernetes-api"
+            - name: TZ
+              value: "{{ .Values.global.timezone }}"
+            - name: IBM_JAVA_OPTIONS
+              value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError{{ if .Values.mongodb.apps.concierge.ssl }} -Dorg.mongodb.async.type=netty{{ end }}"
+            - name: MONGO_DB_SSL_ENABLED
+              value: "{{ if .Values.mongodb.apps.concierge.ssl }}true{{ else }}false{{ end }}"
+            - name: MONGO_DB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb
+                  key: searchDB-uri
+
+{{- end }}

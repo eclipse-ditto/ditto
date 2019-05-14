@@ -34,6 +34,7 @@ import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.InboundExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -134,7 +135,8 @@ public final class MessageMappingProcessor {
     Optional<ExternalMessage> process(final Signal<?> signal) {
         final StartedTimer overAllProcessingTimer = startNewTimer().tag(DIRECTION_TAG_NAME, OUTBOUND);
         return withTimer(overAllProcessingTimer,
-                () -> convertToExternalMessage(() -> protocolAdapter.toAdaptable(signal), overAllProcessingTimer));
+                () -> convertToExternalMessage(signal, () -> protocolAdapter.toAdaptable(signal),
+                        overAllProcessingTimer));
     }
 
     /**
@@ -182,7 +184,9 @@ public final class MessageMappingProcessor {
         }
     }
 
-    private Optional<ExternalMessage> convertToExternalMessage(final Supplier<Adaptable> adaptableSupplier,
+    private Optional<ExternalMessage> convertToExternalMessage(
+            final Signal signal,
+            final Supplier<Adaptable> adaptableSupplier,
             final StartedTimer overAllProcessingTimer) {
         checkNotNull(adaptableSupplier);
 
@@ -195,7 +199,10 @@ public final class MessageMappingProcessor {
             return withTimer(overAllProcessingTimer.startNewSegment(PAYLOAD_SEGMENT_NAME),
                     () -> getMapper(adaptable)
                             .map(adaptable)
-                            .map(em -> em.withTopicPath(adaptable.getTopicPath()))
+                            .map(em -> ExternalMessageFactory.newExternalMessageBuilder(em)
+                                    .withTopicPath(adaptable.getTopicPath())
+                                    .withInternalHeaders(signal.getDittoHeaders())
+                                    .build())
             );
         } catch (final DittoRuntimeException e) {
             throw e;

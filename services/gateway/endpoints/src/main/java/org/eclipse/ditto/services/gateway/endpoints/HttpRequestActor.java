@@ -353,7 +353,7 @@ public final class HttpRequestActor extends AbstractActor {
                 .match(ReceiveTimeout.class, this::handleReceiveTimeout)
                 .match(Command.class, command -> { // receive Commands
                     LogUtil.enhanceLogWithCorrelationId(logger, command);
-                    logger.debug("Got <Command> message, telling the targetActor about it.");
+                    logger.debug("Got <Command> message {}, telling the targetActor about it.", command);
 
                     proxyActor.tell(command, getSelf());
 

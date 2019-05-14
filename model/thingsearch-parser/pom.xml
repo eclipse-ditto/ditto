@@ -119,7 +119,6 @@
                 <configuration>
                     <parameter>
                         <excludes>
-                            <exclude>org.eclipse.ditto.model.thingsearchparser.*</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

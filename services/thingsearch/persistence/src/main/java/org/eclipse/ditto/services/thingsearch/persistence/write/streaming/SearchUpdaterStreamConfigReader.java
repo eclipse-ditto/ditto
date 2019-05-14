@@ -14,12 +14,11 @@ package org.eclipse.ditto.services.thingsearch.persistence.write.streaming;
 
 import java.time.Duration;
 
-import org.eclipse.ditto.services.concierge.util.config.CacheConfigReader;
+import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
+import org.eclipse.ditto.services.utils.cache.config.CacheConfigReader;
 import org.eclipse.ditto.services.utils.config.AbstractConfigReader;
 
 import com.typesafe.config.Config;
-
-import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
 
 /**
  * Configuration of search updater stream.

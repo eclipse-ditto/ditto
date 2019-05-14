@@ -41,15 +41,15 @@ The `{channel}` specifies whether the Protocol message is addressed to the *digi
 ### Twin channel
 
 When addressing the *twin* channel, the `{criterion}` (e.g. a **command**) together with the optional `{action}` is
-applied to the digital representation, the **Digital Twin**, of a `Thing`.
-Ditto enforces that **Digital Twins** can only be accessed in an [authorized way](basic-auth.html) and responds with an 
+applied to the digital representation, the **digital twin**, of a `Thing`.
+Ditto enforces that **digital twins** can only be accessed in an [authorized way](basic-auth.html) and responds with an 
 error if the required permissions are not met.
 Addressing on the *twin* channel means addressing the backend representation of a `Thing` which might be outdated, but
 roundtrips to actual devices are saved (e.g. a device in sleep mode must not be waken up in order to retrieve its last
 reported state).
 
 Protocol messages with the *search* `{criterion}` are only possible on the *twin* channel as the search is done on the 
-server side representation of all Digital Twins. 
+server side representation of all digital twins. 
 
 ### Live channel
 
@@ -69,7 +69,7 @@ the defined `{channel}`.
 
 ### Commands criterion
 
-*commands* are sent to Ditto in order to do something, either on the Digital Twin or on a real connected device.
+*commands* are sent to Ditto in order to do something, either on the digital twin or on a real connected device.
 They are separated in ModifyCommands for creating, modifying, deleting and QueryCommands for retrieving.
 
 For each command Ditto processed a command response is created.
@@ -85,7 +85,7 @@ Each ModifyCommand causes a specific Event type to be published for which intere
 ### Search criterion
 
 *search* requests can only be put on the *twin channel*.
-They contain a query string defining on which data to search in the population of all **Digital Twins**.
+They contain a query string defining on which data to search in the population of all **digital twins**.
 Ditto respects the [authorization](basic-auth.html) information while searching for the requested data and returns the
 search result as paged list of search hits.
 
