@@ -186,7 +186,7 @@ final class GatewayRootActor extends AbstractActor {
         }
 
         httpBinding = Http.get(actorSystem)
-                .bindAndHandle(createRoute(actorSystem, config, proxyActor, streamingActor, healthCheckActor)
+                .bindAndHandle(createRoute(actorSystem, configReader, proxyActor, streamingActor, healthCheckActor)
                                 .flow(actorSystem, materializer),
                         ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
 
