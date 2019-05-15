@@ -35,6 +35,20 @@ public interface EnforcementConfig {
     Duration getAskTimeout();
 
     /**
+     * Returns the buffer size used for the queue in the enforcer actor.
+     *
+     * @return the buffer size.
+     */
+    int getBufferSize();
+
+    /**
+     * Returns the parallelism used for processing messages in parallel in enforcer actor.
+     *
+     * @return the parallelism.
+     */
+    int getParallelism();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code EnforcementConfig}.
      */
@@ -43,7 +57,17 @@ public interface EnforcementConfig {
         /**
          * The ask timeout duration: the duration to wait for entity shard regions.
          */
-        ASK_TIMEOUT("ask-timeout", Duration.ofSeconds(10));
+        ASK_TIMEOUT("ask-timeout", Duration.ofSeconds(10)),
+
+        /**
+         * The buffer size used for the queue in the enforcer actor.
+         */
+        BUFFER_SIZE("buffer-size", 1_000),
+
+        /**
+         * The parallelism used for processing messages in parallel in enforcer actor.
+         */
+        PARALLELISM("parallelism", 100);
 
         private final String path;
         private final Object defaultValue;

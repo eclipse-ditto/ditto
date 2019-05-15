@@ -89,6 +89,12 @@ public final class DefaultEnforcementConfigTest {
         softly.assertThat(underTest.getAskTimeout())
                 .as(EnforcementConfig.EnforcementConfigValue.ASK_TIMEOUT.getConfigPath())
                 .isEqualTo(EnforcementConfig.EnforcementConfigValue.ASK_TIMEOUT.getDefaultValue());
+        softly.assertThat(underTest.getBufferSize())
+                .as(EnforcementConfig.EnforcementConfigValue.BUFFER_SIZE.getConfigPath())
+                .isEqualTo(EnforcementConfig.EnforcementConfigValue.BUFFER_SIZE.getDefaultValue());
+        softly.assertThat(underTest.getParallelism())
+                .as(EnforcementConfig.EnforcementConfigValue.PARALLELISM.getConfigPath())
+                .isEqualTo(EnforcementConfig.EnforcementConfigValue.PARALLELISM.getDefaultValue());
     }
 
     @Test
@@ -98,5 +104,12 @@ public final class DefaultEnforcementConfigTest {
         softly.assertThat(underTest.getAskTimeout())
                 .as(EnforcementConfig.EnforcementConfigValue.ASK_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(30L));
+        softly.assertThat(underTest.getBufferSize())
+                .as(EnforcementConfig.EnforcementConfigValue.BUFFER_SIZE.getConfigPath())
+                .isEqualTo(1337);
+        softly.assertThat(underTest.getParallelism())
+                .as(EnforcementConfig.EnforcementConfigValue.PARALLELISM.getConfigPath())
+                .isEqualTo(73);
     }
+
 }

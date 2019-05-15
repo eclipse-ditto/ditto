@@ -19,7 +19,6 @@ import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 
@@ -34,9 +33,13 @@ public final class DefaultEnforcementConfig implements EnforcementConfig, Serial
     private static final long serialVersionUID = -3457993946046397252L;
 
     private final Duration askTimeout;
+    private final int bufferSize;
+    private final int parallelism;
 
-    private DefaultEnforcementConfig(final ScopedConfig config) {
-        askTimeout = config.getDuration(EnforcementConfigValue.ASK_TIMEOUT.getConfigPath());
+    private DefaultEnforcementConfig(final ConfigWithFallback configWithFallback) {
+        askTimeout = configWithFallback.getDuration(EnforcementConfigValue.ASK_TIMEOUT.getConfigPath());
+        bufferSize = configWithFallback.getInt(EnforcementConfigValue.BUFFER_SIZE.getConfigPath());
+        parallelism = configWithFallback.getInt(EnforcementConfigValue.PARALLELISM.getConfigPath());
     }
 
     /**
@@ -57,6 +60,16 @@ public final class DefaultEnforcementConfig implements EnforcementConfig, Serial
     }
 
     @Override
+    public int getBufferSize() {
+        return bufferSize;
+    }
+
+    @Override
+    public int getParallelism() {
+        return parallelism;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -65,18 +78,22 @@ public final class DefaultEnforcementConfig implements EnforcementConfig, Serial
             return false;
         }
         final DefaultEnforcementConfig that = (DefaultEnforcementConfig) o;
-        return askTimeout.equals(that.askTimeout);
+        return bufferSize == that.bufferSize &&
+                parallelism == that.parallelism &&
+                askTimeout.equals(that.askTimeout);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(askTimeout);
+        return Objects.hash(askTimeout, bufferSize, parallelism);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "askTimeout=" + askTimeout +
+                ", bufferSize=" + bufferSize +
+                ", parallelism=" + parallelism +
                 "]";
     }
 
