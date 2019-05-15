@@ -19,7 +19,6 @@ import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 
@@ -33,10 +32,12 @@ public final class DefaultCacheConfig implements CacheConfig, Serializable {
 
     private final long maximumSize;
     private final Duration expireAfterWrite;
+    private final Duration expireAfterAccess;
 
-    private DefaultCacheConfig(final ScopedConfig config) {
-        maximumSize = config.getLong(CacheConfigValue.MAXIMUM_SIZE.getConfigPath());
-        expireAfterWrite = config.getDuration(CacheConfigValue.EXPIRE_AFTER_WRITE.getConfigPath());
+    private DefaultCacheConfig(final ConfigWithFallback configWithFallback) {
+        maximumSize = configWithFallback.getLong(CacheConfigValue.MAXIMUM_SIZE.getConfigPath());
+        expireAfterWrite = configWithFallback.getDuration(CacheConfigValue.EXPIRE_AFTER_WRITE.getConfigPath());
+        expireAfterAccess = configWithFallback.getDuration(CacheConfigValue.EXPIRE_AFTER_ACCESS.getConfigPath());
     }
 
     /**
@@ -62,6 +63,11 @@ public final class DefaultCacheConfig implements CacheConfig, Serializable {
     }
 
     @Override
+    public Duration getExpireAfterAccess() {
+        return expireAfterAccess;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -70,12 +76,14 @@ public final class DefaultCacheConfig implements CacheConfig, Serializable {
             return false;
         }
         final DefaultCacheConfig that = (DefaultCacheConfig) o;
-        return maximumSize == that.maximumSize && expireAfterWrite.equals(that.expireAfterWrite);
+        return maximumSize == that.maximumSize &&
+                Objects.equals(expireAfterWrite, that.expireAfterWrite) &&
+                Objects.equals(expireAfterAccess, that.expireAfterAccess);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(maximumSize, expireAfterWrite);
+        return Objects.hash(maximumSize, expireAfterWrite, expireAfterAccess);
     }
 
     @Override
@@ -83,6 +91,7 @@ public final class DefaultCacheConfig implements CacheConfig, Serializable {
         return getClass().getSimpleName() + " [" +
                 "maximumSize=" + maximumSize +
                 ", expireAfterWrite=" + expireAfterWrite +
+                ", expireAfterAccess=" + expireAfterAccess +
                 "]";
     }
 

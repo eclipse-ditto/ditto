@@ -18,8 +18,6 @@ import java.util.concurrent.Executor;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.utils.cache.Cache;
-import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
@@ -97,7 +95,6 @@ public final class CacheFactory {
         return CaffeineCache.of(caffeine(cacheConfig, executor), cacheLoader, cacheName);
     }
 
-
     private static Caffeine<Object, Object> caffeine(final CacheConfig cacheConfig, final Executor executor) {
         checkNotNull(cacheConfig, "CacheConfig");
         checkNotNull(executor, "Executor");
@@ -105,7 +102,7 @@ public final class CacheFactory {
         final Caffeine<Object, Object> caffeine = Caffeine.newBuilder();
         caffeine.maximumSize(cacheConfig.getMaximumSize());
         caffeine.expireAfterWrite(cacheConfig.getExpireAfterWrite());
-        caffeine.expireAfterAccess(cacheConfigReader.expireAfterAccess());
+        caffeine.expireAfterAccess(cacheConfig.getExpireAfterAccess());
         caffeine.executor(executor);
         return caffeine;
     }

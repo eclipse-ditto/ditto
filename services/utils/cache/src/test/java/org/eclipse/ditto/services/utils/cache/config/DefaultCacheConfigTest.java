@@ -92,6 +92,9 @@ public final class DefaultCacheConfigTest {
         softly.assertThat(underTest.getExpireAfterWrite())
                 .as(CacheConfig.CacheConfigValue.EXPIRE_AFTER_WRITE.getConfigPath())
                 .isEqualTo(CacheConfig.CacheConfigValue.EXPIRE_AFTER_WRITE.getDefaultValue());
+        softly.assertThat(underTest.getExpireAfterAccess())
+                .as(CacheConfig.CacheConfigValue.EXPIRE_AFTER_ACCESS.getConfigPath())
+                .isEqualTo(CacheConfig.CacheConfigValue.EXPIRE_AFTER_ACCESS.getDefaultValue());
     }
 
     @Test
@@ -104,6 +107,9 @@ public final class DefaultCacheConfigTest {
         softly.assertThat(underTest.getExpireAfterWrite())
                 .as(CacheConfig.CacheConfigValue.EXPIRE_AFTER_WRITE.getConfigPath())
                 .isEqualTo(Duration.ofMinutes(3));
+        softly.assertThat(underTest.getExpireAfterAccess())
+                .as(CacheConfig.CacheConfigValue.EXPIRE_AFTER_ACCESS.getConfigPath())
+                .isEqualTo(Duration.ofMinutes(4));
     }
 
 }

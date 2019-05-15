@@ -35,11 +35,18 @@ public interface CacheConfig {
     long getMaximumSize();
 
     /**
-     * Returns duration after which a cache entry expires.
+     * Returns duration after which a written cache entry expires.
      *
      * @return the duration between write and expiration.
      */
     Duration getExpireAfterWrite();
+
+    /**
+     * Returns the duration after which an accessed cache entry expires.
+     *
+     * @return the duration between last access and expiration.
+     */
+    Duration getExpireAfterAccess();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for {@code CacheConfig}.
@@ -52,9 +59,14 @@ public interface CacheConfig {
         MAXIMUM_SIZE("maximum-size", 50_000L),
 
         /**
-         * Duration after which a cache entry expires.
+         * Duration after which a written cache entry expires.
          */
-        EXPIRE_AFTER_WRITE("expire-after-write", Duration.ofMinutes(15L));
+        EXPIRE_AFTER_WRITE("expire-after-write", Duration.ofMinutes(15L)),
+
+        /**
+         * Duration after which an accessed cache entry expires.
+         */
+        EXPIRE_AFTER_ACCESS("expire-after-access", Duration.ofMinutes(15L));
 
         private final String path;
         private final Object defaultValue;
