@@ -1,15 +1,19 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
+import static java.util.Collections.singletonList;
+import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -18,10 +22,14 @@ import java.util.Map;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
+import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceBuilder;
+import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.junit.Test;
@@ -56,6 +64,15 @@ public final class RabbitMQValidatorTest {
                 .build();
 
         UNDER_TEST.validateSource(source, DittoHeaders.empty(), () -> "testSource");
+    }
+
+    @Test
+    public void testValidTargetAddress() {
+        UNDER_TEST.validate(connectionWithTarget("ditto/rabbit"), DittoHeaders.empty());
+        UNDER_TEST.validate(connectionWithTarget("ditto"), DittoHeaders.empty());
+        UNDER_TEST.validate(connectionWithTarget("ditto/{{thing:id}}"), DittoHeaders.empty());
+        UNDER_TEST.validate(connectionWithTarget("ditto/{{topic:full}}"), DittoHeaders.empty());
+        UNDER_TEST.validate(connectionWithTarget("ditto/{{header:x}}"), DittoHeaders.empty());
     }
 
     @Test
@@ -100,6 +117,14 @@ public final class RabbitMQValidatorTest {
                 .address("telemetry/device")
                 .authorizationContext(
                         TestConstants.Authorization.AUTHORIZATION_CONTEXT);
+    }
+
+    private Connection connectionWithTarget(final String target) {
+        return ConnectivityModelFactory.newConnectionBuilder("rabbitmq", ConnectionType.AMQP_091,
+                ConnectivityStatus.OPEN, "amqp://localhost:1883")
+                .targets(singletonList(
+                        ConnectivityModelFactory.newTarget(target, AUTHORIZATION_CONTEXT, null, 1, Topic.LIVE_EVENTS)))
+                .build();
     }
 
 }

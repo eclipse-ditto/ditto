@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -18,7 +20,6 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.qpid.jms.message.JmsMessage;
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -30,7 +31,7 @@ import akka.stream.alpakka.mqtt.MqttMessage;
 import akka.stream.javadsl.Sink;
 import akka.testkit.TestProbe;
 
-public class MqttPublisherActorTest extends AbstractPublisherActorTest<JmsMessage> {
+public class MqttPublisherActorTest extends AbstractPublisherActorTest {
 
     public static final String OUTBOUND_ADDRESS = "mqtt/eclipse/ditto";
     private TestProbe probe;
@@ -51,7 +52,7 @@ public class MqttPublisherActorTest extends AbstractPublisherActorTest<JmsMessag
 
     @Override
     protected Props getPublisherActorProps() {
-        return MqttPublisherActor.props("theConnection", Collections.emptySet(), mqttConnectionFactory, probe.ref(), false);
+        return MqttPublisherActor.props("theConnection", Collections.emptyList(), mqttConnectionFactory, probe.ref(), false);
     }
 
     @Override

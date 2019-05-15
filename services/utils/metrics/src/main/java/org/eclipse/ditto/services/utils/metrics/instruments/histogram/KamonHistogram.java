@@ -1,21 +1,25 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.utils.metrics.instruments.histogram;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +33,7 @@ import scala.collection.Seq;
 /**
  * Kamon based implementation of {@link Histogram}.
  */
+@Immutable
 public class KamonHistogram implements Histogram {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KamonHistogram.class);
@@ -36,25 +41,27 @@ public class KamonHistogram implements Histogram {
     private final Map<String, String> tags;
     private final String name;
 
-    private KamonHistogram(final String name) {
+    private KamonHistogram(final String name, final Map<String, String> tags) {
         this.name = name;
-        this.tags = new HashMap<>();
+        this.tags = Collections.unmodifiableMap(new HashMap<>(tags));
     }
 
     public static Histogram newHistogram(final String name) {
-        return new KamonHistogram(name);
+        return new KamonHistogram(name, Collections.emptyMap());
     }
 
     @Override
     public Histogram tag(final String key, final String value) {
-        this.tags.put(key, value);
-        return this;
+        final HashMap<String, String> newMap = new HashMap<>(tags);
+        newMap.put(key, value);
+        return new KamonHistogram(name, newMap);
     }
 
     @Override
     public Histogram tags(final Map<String, String> tags) {
-        this.tags.putAll(tags);
-        return this;
+        final HashMap<String, String> newMap = new HashMap<>(this.tags);
+        newMap.putAll(tags);
+        return new KamonHistogram(name, newMap);
     }
 
     @Nullable
@@ -65,7 +72,7 @@ public class KamonHistogram implements Histogram {
 
     @Override
     public Map<String, String> getTags() {
-        return new HashMap<>(tags);
+        return tags;
     }
 
     @Override
@@ -120,8 +127,8 @@ public class KamonHistogram implements Histogram {
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "tags=" + tags +
-                ", name=" + name +
+                "name=" + name +
+                ", tags=" + tags +
                 "]";
     }
 }

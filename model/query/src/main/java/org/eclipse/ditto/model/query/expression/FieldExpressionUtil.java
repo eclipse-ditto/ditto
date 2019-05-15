@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -30,11 +32,6 @@ public final class FieldExpressionUtil {
      * ThingId field name.
      */
     public static final String FIELD_NAME_THING_ID = "thingId";
-
-    /**
-     * Owner field name.
-     */
-    public static final String FIELD_NAME_OWNER = "owner";
 
     /**
      * namespace field to be saved in field expressions.
@@ -110,14 +107,11 @@ public final class FieldExpressionUtil {
      */
     public static final class FeatureField {
 
-        private static final Pattern FIELD_NAME_FEATURE_PATTERN1 = Pattern.compile("^features/" +
-                "(?<featureId>[^\\*][^/]*)/properties/(?<property>.+)");
+        private static final Pattern FIELD_NAME_FEATURE_PATTERN1 =
+                Pattern.compile("^features/(?<featureId>[^/]++)/properties/(?<property>.+)");
 
         private static final Pattern FIELD_NAME_FEATURE_PATTERN2 =
-                Pattern.compile("^features/(?<featureId>[^\\*][^/]*)");
-
-        private static final Pattern FIELD_NAME_FEATURE_PATTERN3 =
-                Pattern.compile("^features/\\*/properties/(?<property>.+)");
+                Pattern.compile("^features/(?<featureId>[^/]++)");
 
         private final boolean matches;
         private final String featureId;
@@ -138,17 +132,9 @@ public final class FieldExpressionUtil {
                     this.featureId = matcher.group("featureId");
                     this.property = null;
                 } else {
-                    matcher = FIELD_NAME_FEATURE_PATTERN3.matcher(fieldName);
-
-                    if (matcher.matches()) {
-                        this.matches = true;
-                        this.featureId = null;
-                        this.property = matcher.group("property");
-                    } else {
-                        this.matches = false;
-                        this.featureId = null;
-                        this.property = null;
-                    }
+                    this.matches = false;
+                    this.featureId = null;
+                    this.property = null;
                 }
             }
         }

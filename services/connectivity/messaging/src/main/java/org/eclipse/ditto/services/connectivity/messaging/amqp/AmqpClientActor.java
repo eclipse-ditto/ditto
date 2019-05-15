@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -237,8 +239,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             jmsSession = c.session;
             consumers.clear();
             consumers.addAll(c.consumerList);
-            startCommandConsumers(consumers);
+            // note: start order is important (publisher -> mapping -> consumer actor)
             startAmqpPublisherActor();
+            startMessageMappingProcessor(connection().getMappingContext().orElse(null));
+            startCommandConsumers(consumers);
         } else {
             log.info("ClientConnected was not JmsConnected as expected, ignoring as this probably was a reconnection");
         }
@@ -248,6 +252,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     protected void cleanupResourcesForConnection() {
         log.debug("cleaning up");
         stopCommandConsumers();
+        stopMessageMappingProcessorActor();
         stopCommandProducer();
         // closing JMS connection closes all sessions and consumers
         ensureJmsConnectionClosed();
@@ -283,8 +288,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     @Override
-    protected Optional<ActorRef> getPublisherActor() {
-        return Optional.ofNullable(amqpPublisherActor);
+    protected ActorRef getPublisherActor() {
+        return amqpPublisherActor;
     }
 
     @Override
@@ -328,18 +333,16 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     private void startAmqpPublisherActor() {
-        if (isPublishing()) {
-            stopCommandProducer();
-            if (jmsSession != null) {
-                final String namePrefix = AmqpPublisherActor.ACTOR_NAME;
-                final Props props = AmqpPublisherActor.props(connectionId(), getTargetsOrEmptySet(), jmsSession);
-                amqpPublisherActor = startChildActorConflictFree(namePrefix, props);
-            } else {
-                throw new IllegalStateException(
-                        "Could not start AmqpPublisherActor due to missing jmsSession or connection");
-            }
+        stopCommandProducer();
+        final String namePrefix = AmqpPublisherActor.ACTOR_NAME;
+        if (jmsSession != null) {
+            final Props props = AmqpPublisherActor.props(connectionId(), getTargetsOrEmptyList(), jmsSession);
+            amqpPublisherActor = startChildActorConflictFree(namePrefix, props);
         } else {
-            log.info("This client is not configured for publishing, not starting AmqpPublisherActor");
+            throw ConnectionFailedException
+                    .newBuilder(connectionId())
+                    .message("Could not start publisher actor due to missing JMS session or connection!")
+                    .build();
         }
     }
 
@@ -458,6 +461,9 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                         }
                     });
         }
+
+        statusReport.getClosedProducer().ifPresent(p -> amqpPublisherActor.tell(statusReport, ActorRef.noSender()));
+
         return stay().using(data);
     }
 
@@ -523,59 +529,6 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
         JmsDisconnected(@Nullable final ActorRef origin) {
             super(origin);
-        }
-
-    }
-
-    /**
-     * Message for status reporter.
-     */
-    private static final class StatusReport {
-
-        private final boolean connectionRestored;
-        @Nullable private final ConnectionFailure failure;
-        @Nullable private final MessageConsumer closedConsumer;
-
-        private StatusReport(final boolean connectionRestored,
-                @Nullable final ConnectionFailure failure,
-                @Nullable final MessageConsumer closedConsumer,
-                @Nullable final MessageProducer closedProducer) {
-
-            this.connectionRestored = connectionRestored;
-            this.failure = failure;
-            this.closedConsumer = closedConsumer;
-        }
-
-        private static StatusReport connectionRestored() {
-            return new StatusReport(true, null, null, null);
-        }
-
-        private static StatusReport failure(final ConnectionFailure failure) {
-            return new StatusReport(false, failure, null, null);
-        }
-
-        private static StatusReport consumedMessage() {
-            return new StatusReport(false, null, null, null);
-        }
-
-        private static StatusReport consumerClosed(final MessageConsumer consumer) {
-            return new StatusReport(false, null, consumer, null);
-        }
-
-        private static StatusReport producerClosed(final MessageProducer producer) {
-            return new StatusReport(false, null, null, producer);
-        }
-
-        private boolean isConnectionRestored() {
-            return connectionRestored;
-        }
-
-        private Optional<ConnectionFailure> getFailure() {
-            return Optional.ofNullable(failure);
-        }
-
-        private Optional<MessageConsumer> getClosedConsumer() {
-            return Optional.ofNullable(closedConsumer);
         }
 
     }

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -37,7 +39,6 @@ import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
 import org.eclipse.ditto.services.utils.health.config.PersistenceConfig;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
-import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 
 import akka.Done;
 import akka.actor.AbstractActor;
@@ -62,7 +63,6 @@ import akka.http.javadsl.server.Route;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
-import akka.pattern.PatternsCS;
 import akka.stream.ActorMaterializer;
 
 /**
@@ -125,26 +125,19 @@ public final class ConciergeRootActor extends AbstractActor {
                 return SupervisorStrategy.escalate();
             }).build());
 
-    private final RetrieveStatisticsDetailsResponseSupplier retrieveStatisticsDetailsResponseSupplier;
-
-    private <C extends ConciergeConfig> ConciergeRootActor(final C conciergeConfig,
+    private <C extends ConciergeConfig> ConciergeRootActor(final C configReader,
             final ActorRef pubSubMediator,
             final AbstractEnforcerActorFactory<C> enforcerActorFactory,
             final ActorMaterializer materializer) {
 
+        pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
+
         final ActorContext context = getContext();
 
-        final ActorRef conciergeShardRegion =
-                enforcerActorFactory.startEnforcerActor(context, conciergeConfig, pubSubMediator);
+        authorizationProxyPropsFactory.startEnforcerActor(context, conciergeConfig, pubSubMediator);
 
-        retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(conciergeShardRegion,
-                ConciergeMessagingConstants.SHARD_REGION, log);
-
-        final ActorRef conciergeForwarder = startChildActor(context, ConciergeForwarderActor.ACTOR_NAME,
-                ConciergeForwarderActor.props(pubSubMediator, conciergeShardRegion));
-
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(conciergeForwarder), getSelf());
+        final ActorRef conciergeForwarder = context.findChild(ConciergeForwarderActor.ACTOR_NAME).orElseThrow(() ->
+                new IllegalStateException("ConciergeForwarder could not be found"));
 
         startClusterSingletonActor(context, BatchSupervisorActor.props(pubSubMediator, conciergeForwarder));
 
@@ -224,18 +217,11 @@ public final class ConciergeRootActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(RetrieveStatisticsDetails.class, this::handleRetrieveStatisticsDetails)
                 .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure <{}>!", f))
                 .matchAny(m -> {
                     log.warning("Unknown message <{}>.", m);
                     unhandled(m);
                 }).build();
-    }
-
-    private void handleRetrieveStatisticsDetails(final RetrieveStatisticsDetails command) {
-        log.info("Sending the namespace stats of the concierge shard as requested..");
-        PatternsCS.pipe(retrieveStatisticsDetailsResponseSupplier
-                .apply(command.getDittoHeaders()), getContext().dispatcher()).to(getSender());
     }
 
     private void bindHttpStatusRoute(final ActorRef healthCheckingActor, final HttpConfig httpConfig,

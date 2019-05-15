@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -12,22 +14,19 @@ package org.eclipse.ditto.services.utils.cluster;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Map;
 import java.util.UUID;
-import java.util.function.BiFunction;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
-import org.eclipse.ditto.signals.commands.things.ThingCommandRegistry;
-import org.eclipse.ditto.signals.commands.things.ThingCommandResponseRegistry;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
@@ -60,7 +59,7 @@ public final class JsonifiableSerializerTest {
     private JsonifiableSerializer underTestForThingCommands;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         final ExtendedActorSystem actorSystem =
                 (ExtendedActorSystem) ExtendedActorSystem.create("test", ConfigFactory.empty()
                         .withValue("ditto.mapping-strategy.implementation",
@@ -81,13 +80,12 @@ public final class JsonifiableSerializerTest {
         Assertions.assertThat(o).isEqualTo(DITTO_HEADERS);
     }
 
-    static final class DittoHeadersStrategy implements MappingStrategy {
+    static final class DittoHeadersStrategy extends AbstractMappingStrategies {
 
-        @Override
-        public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy() {
-            return MappingStrategiesBuilder.newInstance()
+        protected DittoHeadersStrategy() {
+            super(MappingStrategiesBuilder.newInstance()
                     .add(DittoHeaders.class, jsonObject -> DittoHeaders.newBuilder(jsonObject).build())
-                    .build();
+                    .build().getStrategies());
         }
 
     }
@@ -143,17 +141,19 @@ public final class JsonifiableSerializerTest {
                 .isEqualTo(shardedMessageEnvelope.getDittoHeaders());
     }
 
-    static final class ThingCommandsStrategy implements MappingStrategy {
+    static final class ThingCommandsStrategy extends AbstractMappingStrategies {
 
-        @Override
-        public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy() {
-            return MappingStrategiesBuilder.newInstance()
+        protected ThingCommandsStrategy() {
+            super(MappingStrategiesBuilder.newInstance()
                     .add(GlobalErrorRegistry.getInstance())
-                    .add(ThingCommandRegistry.newInstance())
-                    .add(ThingCommandResponseRegistry.newInstance())
-                    .add(Thing.class, (jsonObject) -> ThingsModelFactory.newThing(jsonObject)) // do not replace with lambda!
-                    .add(ShardedMessageEnvelope.class, (jsonObject) -> ShardedMessageEnvelope.fromJson(jsonObject)) // do not replace with lambda!
-                    .build();
+                    .add(GlobalCommandRegistry.getInstance())
+                    .add(GlobalCommandResponseRegistry.getInstance())
+                    .add(Thing.class,
+                            (jsonObject) -> ThingsModelFactory.newThing(jsonObject)) // do not replace with lambda!
+                    .add(ShardedMessageEnvelope.class,
+                            (jsonObject) -> ShardedMessageEnvelope.fromJson(jsonObject)) // do not replace with lambda!
+                    .build()
+                    .getStrategies());
         }
 
     }

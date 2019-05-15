@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -81,7 +83,7 @@ final class SignalFilter {
      * @throws org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException if the optional filter string of a
      * Target cannot be mapped to a valid criterion
      */
-    Set<Target> filter(final Signal<?> signal) {
+    List<Target> filter(final Signal<?> signal) {
         return connection.getTargets().stream()
                 .filter(t -> isTargetAuthorized(t, signal)) // this is cheaper, so check this first
                 // count authorized targets
@@ -91,7 +93,7 @@ final class SignalFilter {
                 // count authorized + filtered targets
                 .peek(filteredTarget -> ConnectivityCounterRegistry.getOutboundFilteredCounter(connection.getId(),
                         filteredTarget.getAddress()).recordSuccess())
-                .collect(Collectors.toSet());
+                .collect(Collectors.toList());
     }
 
     private static boolean isTargetAuthorized(final Target target, final Signal<?> signal) {

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -22,14 +24,9 @@ import akka.actor.Props;
 import akka.stream.ActorMaterializer;
 
 /**
- * Entry point of the Search service.
- * <ul>
- * <li>Reads configuration, enhances it with cloud environment settings.</li>
- * <li>Sets up Akka actor system.</li>
- * <li>Wires up Akka HTTP Routes.</li>
- * </ul>
+ * Entry point for the Things Search service.
  */
-public final class SearchService extends DittoService<SearchConfig> {
+public class SearchService extends DittoService<SearchConfig> {
 
     /**
      * Name of things-search service.
@@ -43,17 +40,18 @@ public final class SearchService extends DittoService<SearchConfig> {
     }
 
     /**
-     * Starts the Search service.
+     * Starts the Things service.
      *
      * @param args command line arguments.
      */
     public static void main(final String[] args) {
         final SearchService searchService = new SearchService();
-        searchService.start().getWhenTerminated().toCompletableFuture().join();
+        searchService.start();
     }
 
     @Override
     protected SearchConfig getServiceSpecificConfig(final ScopedConfig dittoConfig) {
+        // TODO
         return null;
     }
 
@@ -61,6 +59,7 @@ public final class SearchService extends DittoService<SearchConfig> {
     protected Props getMainRootActorProps(final SearchConfig searchConfig, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
+        // TODO
         return SearchRootActor.props(searchConfig, pubSubMediator, materializer);
     }
 

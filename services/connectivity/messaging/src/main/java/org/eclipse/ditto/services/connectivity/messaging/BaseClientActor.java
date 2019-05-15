@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -29,7 +31,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
@@ -65,6 +66,8 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
@@ -114,6 +117,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private final MappingConfig mappingConfig;
     private final ProtocolAdapterProvider protocolAdapterProvider;
     private final ActorRef conciergeForwarder;
+    private final Gauge clientGauge;
 
     @Nullable private ActorRef messageMappingProcessorActor;
 
@@ -140,6 +144,10 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         final java.time.Duration javaInitTimeout = clientConfig.getInitTimeout();
         final FiniteDuration initTimeout = Duration.create(javaInitTimeout.toMillis(), TimeUnit.MILLISECONDS);
+
+        clientGauge = DittoMetrics.gauge("connection_client")
+                .tag("id", connection.getId())
+                .tag("type", connection.getConnectionType().getName());
 
         startWith(UNKNOWN, startingData, initTimeout);
 
@@ -186,9 +194,9 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     protected abstract void cleanupResourcesForConnection();
 
     /**
-     * @return the optional Actor to use for Publishing commandResponses/events.
+     * @return the Actor to use for publishing commandResponses/events.
      */
-    protected abstract Optional<ActorRef> getPublisherActor();
+    protected abstract ActorRef getPublisherActor();
 
     /**
      * Invoked when this {@code Client} should connect.
@@ -241,10 +249,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return matchEvent(RetrieveConnectionMetrics.class, BaseClientData.class, this::retrieveConnectionMetrics)
                 .event(RetrieveConnectionStatus.class, BaseClientData.class, this::retrieveConnectionStatus)
                 .event(ResetConnectionMetrics.class, BaseClientData.class, this::resetConnectionMetrics)
-                .event(OutboundSignal.WithExternalMessage.class, BaseClientData.class, (outboundSignal, data) -> {
-                    handleExternalMessage(outboundSignal);
-                    return stay();
-                })
                 .event(OutboundSignal.class, BaseClientData.class, (signal, data) -> {
                     handleOutboundSignal(signal);
                     return stay();
@@ -371,16 +375,16 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     /**
-     * @return the sources configured for this connection or an empty set if no sources were configured.
+     * @return the sources configured for this connection or an empty list if no sources were configured.
      */
-    protected final List<Source> getSourcesOrEmptySet() {
+    protected final List<Source> getSourcesOrEmptyList() {
         return connection().getSources();
     }
 
     /**
-     * @return the targets configured for this connection or an empty set if no targets were configured.
+     * @return the targets configured for this connection or an empty list if no targets were configured.
      */
-    protected final Set<Target> getTargetsOrEmptySet() {
+    protected final List<Target> getTargetsOrEmptyList() {
         return connection().getTargets();
     }
 
@@ -396,6 +400,12 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private void onTransition(final BaseClientState from, final BaseClientState to) {
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
         log.debug("Transition: {} -> {}", from, to);
+        if (to == CONNECTED) {
+            clientGauge.increment();
+        }
+        if (to == DISCONNECTED) {
+            clientGauge.decrement();
+        }
     }
 
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inUnknownState() {
@@ -616,7 +626,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         return ifEventUpToDate(clientConnected, () -> {
             LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
-            startMessageMappingProcessor(data.getConnection().getMappingContext().orElse(null));
             allocateResourcesOnConnection(clientConnected);
             data.getSessionSender().ifPresent(origin -> origin.tell(new Status.Success(CONNECTED), getSelf()));
             return goTo(CONNECTED).using(data.resetSession()
@@ -630,7 +639,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         return ifEventUpToDate(event, () -> {
             LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
-            stopMessageMappingProcessorActor();
             cleanupResourcesForConnection();
             data.getSessionSender().ifPresent(sender -> sender.tell(new Status.Success(DISCONNECTED), getSelf()));
             return goTo(DISCONNECTED).using(data.resetSession()
@@ -676,8 +684,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         // send to all children (consumers, publishers, except mapping actor)
         getContext().getChildren().forEach(child -> {
             if (messageMappingProcessorActor != child) {
-
-
                 log.debug("Forwarding RetrieveAddressStatus to child: {}", child.path());
                 child.tell(RetrieveAddressStatus.getInstance(), getSender());
             }
@@ -774,7 +780,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         try (final Socket socket = new Socket()) {
             socket.connect(new InetSocketAddress(host, port), SOCKET_CHECK_TIMEOUT_MS);
             return true;
-        } catch (final IOException ex) {
+        } catch (final IOException | IllegalArgumentException ex) {
             LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
             log.warning("Socket could not be opened for <{}:{}> due to <{}:{}>", host, port,
                     ex.getClass().getCanonicalName(), ex.getMessage());
@@ -795,10 +801,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private void enhanceLogUtil(final WithDittoHeaders<?> signal) {
         LogUtil.enhanceLogWithCorrelationId(log, signal);
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
-    }
-
-    private void handleExternalMessage(final OutboundSignal.WithExternalMessage mappedOutboundSignal) {
-        getPublisherActor().ifPresent(publisher -> publisher.forward(mappedOutboundSignal, getContext()));
     }
 
     private Instant getInConnectionStatusSince() {
@@ -842,7 +844,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      *
      * @param mappingContext the MappingContext containing information about how to map external messages
      */
-    private Either<DittoRuntimeException, ActorRef> startMessageMappingProcessor(
+    protected Either<DittoRuntimeException, ActorRef> startMessageMappingProcessor(
             @Nullable final MappingContext mappingContext) {
 
         if (!getMessageMappingProcessorActor().isPresent()) {
@@ -866,7 +868,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             log.debug("Starting MessageMappingProcessorActor with pool size of <{}>.",
                     connection.getProcessorPoolSize());
             final Props props =
-                    MessageMappingProcessorActor.props(getSelf(), conciergeForwarder, processor, connectionId());
+                    MessageMappingProcessorActor.props(getPublisherActor(), conciergeForwarder, processor,
+                            connectionId());
 
             final Resizer resizer = new DefaultResizer(1, connection.getProcessorPoolSize());
             messageMappingProcessorActor = getContext().actorOf(new RoundRobinPool(1)
@@ -877,6 +880,14 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             log.info("MessageMappingProcessor already instantiated: not initializing again.");
         }
         return Right.apply(messageMappingProcessorActor);
+    }
+
+    protected void stopMessageMappingProcessorActor() {
+        if (messageMappingProcessorActor != null) {
+            log.debug("Stopping MessageMappingProcessorActor.");
+            getContext().stop(messageMappingProcessorActor);
+            messageMappingProcessorActor = null;
+        }
     }
 
     private String nextChildActorName(final String prefix) {
@@ -916,14 +927,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             answerToPublish = status;
         }
         return answerToPublish;
-    }
-
-    private void stopMessageMappingProcessorActor() {
-        if (messageMappingProcessorActor != null) {
-            log.debug("Stopping MessageMappingProcessorActor.");
-            getContext().stop(messageMappingProcessorActor);
-            messageMappingProcessorActor = null;
-        }
     }
 
     private static String describeEventualCause(final Throwable throwable) {

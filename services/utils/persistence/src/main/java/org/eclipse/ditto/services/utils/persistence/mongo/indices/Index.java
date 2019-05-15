@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -13,6 +15,10 @@ package org.eclipse.ditto.services.utils.persistence.mongo.indices;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+
+import javax.annotation.Nullable;
 
 import org.bson.BsonDocument;
 import org.bson.Document;
@@ -34,14 +40,19 @@ public final class Index {
     private final boolean background;
     private final BsonDocument partialFilterExpression;
 
+    @Nullable
+    private final Long expireAfterSeconds;
+
     private Index(final BsonDocument keys, final String name, final boolean unique, final boolean sparse,
-            final boolean background, final BsonDocument partialFilterExpression) {
+            final boolean background, final BsonDocument partialFilterExpression,
+            @Nullable final Long expireAfterSeconds) {
 
         this.keys = requireNonNull(keys);
         this.name = requireNonNull(name);
         this.unique = unique;
         this.sparse = sparse;
         this.background = background;
+        this.expireAfterSeconds = expireAfterSeconds;
         this.partialFilterExpression = partialFilterExpression;
     }
 
@@ -56,7 +67,8 @@ public final class Index {
      * @return the created {@link Index}.
      */
     static Index of(final BsonDocument keys, String name, boolean unique, boolean sparse, boolean background) {
-        return new Index(keys, name, unique, sparse, background, new BsonDocument());
+
+        return new Index(keys, name, unique, sparse, background, new BsonDocument(), null);
     }
 
     /**
@@ -74,6 +86,10 @@ public final class Index {
         final boolean unique = document.get("unique", false);
         final boolean sparse = document.get("sparse", false);
         final boolean background = document.get("background", false);
+        final Object expireAfterSecondsObject = document.get("expireAfterSeconds");
+        final Long expireAfterSeconds = expireAfterSecondsObject != null
+                ? ((Number) expireAfterSecondsObject).longValue()
+                : null;
 
         final String partialFilterExpressionName = "partialFilterExpression";
         final BsonDocument partialFilterExpression;
@@ -83,7 +99,18 @@ public final class Index {
             partialFilterExpression = new BsonDocument();
         }
 
-        return new Index(keyDbObject, name, unique, sparse, background, partialFilterExpression);
+        return new Index(keyDbObject, name, unique, sparse, background, partialFilterExpression, expireAfterSeconds);
+    }
+
+    /**
+     * Create a copy of this object with an expiration. Documents with indexed field smaller than the current epoch
+     * second by this much are deleted in background.
+     *
+     * @param expireAfterSeconds how many seconds the deletion threshold lies before the current epoch second.
+     * @return a copy of this object with expiration set.
+     */
+    public Index withExpireAfterSeconds(final long expireAfterSeconds) {
+        return new Index(keys, name, unique, sparse, background, partialFilterExpression, expireAfterSeconds);
     }
 
     /**
@@ -93,7 +120,7 @@ public final class Index {
      * @return a copy of this object with partial filter expression set.
      */
     public Index withPartialFilterExpression(final BsonDocument partialFilterExpression) {
-        return new Index(keys, name, unique, sparse, background, partialFilterExpression);
+        return new Index(keys, name, unique, sparse, background, partialFilterExpression, expireAfterSeconds);
     }
 
     /**
@@ -111,6 +138,8 @@ public final class Index {
         if (!partialFilterExpression.isEmpty()) {
             options.partialFilterExpression(partialFilterExpression);
         }
+
+        getExpireAfterSeconds().ifPresent(n -> options.expireAfter(n, TimeUnit.SECONDS));
 
         return new IndexModel(keys, options);
     }
@@ -160,6 +189,15 @@ public final class Index {
         return background;
     }
 
+    /**
+     * Returns the expiration threshold offset if it is set, or an empty optional if it is not set.
+     *
+     * @return the optional expiration threshold offset in seconds.
+     */
+    public Optional<Long> getExpireAfterSeconds() {
+        return Optional.ofNullable(expireAfterSeconds);
+    }
+
     @Override
     public boolean equals(final Object o) {
         if (this == o) {
@@ -174,12 +212,13 @@ public final class Index {
                 background == indexInfo.background &&
                 Objects.equals(keys, indexInfo.keys) &&
                 Objects.equals(name, indexInfo.name) &&
-                Objects.equals(partialFilterExpression, indexInfo.partialFilterExpression);
+                Objects.equals(partialFilterExpression, indexInfo.partialFilterExpression) &&
+                Objects.equals(expireAfterSeconds, indexInfo.expireAfterSeconds);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(keys, name, unique, sparse, background, partialFilterExpression);
+        return Objects.hash(keys, name, unique, sparse, background, partialFilterExpression, expireAfterSeconds);
     }
 
     @Override
@@ -191,6 +230,7 @@ public final class Index {
                 ", sparse=" + sparse +
                 ", background=" + background +
                 ", partialFilterExpression=" + partialFilterExpression +
+                ", expireAfterSeconds=" + expireAfterSeconds +
                 ']';
     }
 

@@ -1,18 +1,17 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.concierge.enforcement;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
@@ -27,37 +26,29 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.ResourceKey;
-import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.akka.controlflow.Consume;
-import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
+import org.eclipse.ditto.services.utils.cache.EntityId;
+import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
-import akka.NotUsed;
-import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.pattern.AskTimeoutException;
-import akka.stream.Graph;
-import akka.stream.SinkShape;
 
 /**
  * Contains self-type requirements for aspects of enforcer actor dealing with specific commands.
- * Implementations only need to implement {@link #enforce(Signal, ActorRef, DiagnosticLoggingAdapter)} in which they
- * check if the passed in {@link Signal} is authorized and forward it accordingly or respond with an error to the passed
+ * Implementations only need to implement {@link #enforce()} in which they
+ * check if the passed in {@code signal} is authorized and forward it accordingly or respond with an error to the passed
  * in {@code sender}.
- * <p>
- * Do NOT call the methods outside this package.
- * </p>
  */
 public abstract class AbstractEnforcement<T extends Signal> {
 
-    private final Context context;
+    private final Contextual<T> context;
 
-    protected AbstractEnforcement(final Context context) {
+    protected AbstractEnforcement(final Contextual<T> context) {
         this.context = context;
     }
 
@@ -65,34 +56,42 @@ public abstract class AbstractEnforcement<T extends Signal> {
      * @return the Executor to use in order to perform asynchronous operations in enforcement.
      */
     protected Executor getEnforcementExecutor() {
-        return context.enforcerExecutor;
+        return context.getEnforcerExecutor();
     }
 
     /**
      * Performs authorization enforcement for the passed {@code signal}.
      * If the signal is authorized, the implementation chooses to which target to forward. If it is not authorized, the
      * passed {@code sender} will get an authorization error response.
+     * CAUTION: May deliver a failed future.
      *
-     * @param signal the signal to authorize.
-     * @param sender sender of the signal.
-     * @param log the logger to use for logging.
      * @return future after enforcement was performed.
      */
-    public abstract CompletionStage<Void> enforce(T signal, ActorRef sender, DiagnosticLoggingAdapter log);
+    public abstract CompletionStage<Void> enforce();
 
-    Graph<SinkShape<WithSender<T>>, NotUsed> toGraph() {
-        return Consume.of((signal, sender) ->
-                enforce(signal, sender, context.log).whenComplete(handleEnforcementCompletion(signal, sender)));
+    /**
+     * Performs authorization enforcement for the passed {@code signal}.
+     * If the signal is authorized, the implementation chooses to which target to forward. If it is not authorized, the
+     * passed {@code sender} will get an authorization error response.
+     * The result future always succeeds.
+     *
+     * @return future after enforcement was performed.
+     */
+    public CompletionStage<Void> enforceSafely() {
+        return enforce().whenComplete(handleEnforcementCompletion());
     }
 
-    private BiConsumer<Void, Throwable> handleEnforcementCompletion(final T signal, final ActorRef sender) {
+    private BiConsumer<Void, Throwable> handleEnforcementCompletion() {
         return (_void, throwable) -> {
             if (throwable != null) {
                 final Throwable error = throwable instanceof CompletionException
                         ? throwable.getCause()
                         : throwable;
-                reportError("Error thrown during enforcement", sender, error, signal.getDittoHeaders());
+                reportError("Error thrown during enforcement", error);
             }
+            context.getStartedTimer()
+                    .map(startedTimer -> startedTimer.tag("outcome", throwable != null ? "fail" : "success"))
+                    .ifPresent(StartedTimer::stop);
         };
     }
 
@@ -100,27 +99,21 @@ public abstract class AbstractEnforcement<T extends Signal> {
      * Reply a message to sender.
      *
      * @param message message to forward.
-     * @param sender whom to reply to.
-     * @return true.
      */
-    protected boolean replyToSender(final Object message, final ActorRef sender) {
-        sender.tell(message, self());
-        return true;
+    protected void replyToSender(final Object message) {
+        sender().tell(message, self());
     }
 
     /**
      * Report unexpected error or unknown response.
      */
-    protected void reportUnexpectedErrorOrResponse(final String hint,
-            final ActorRef sender,
-            final Object response,
-            final Throwable error,
-            final DittoHeaders dittoHeaders) {
+    protected void reportUnexpectedErrorOrResponse(final String hint, final Object response,
+            @Nullable final Throwable error) {
 
         if (error != null) {
-            reportUnexpectedError(hint, sender, error, dittoHeaders);
+            reportUnexpectedError(hint, error);
         } else {
-            reportUnknownResponse(hint, sender, response, dittoHeaders);
+            reportUnknownResponse(hint, response);
         }
     }
 
@@ -129,46 +122,43 @@ public abstract class AbstractEnforcement<T extends Signal> {
      * {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException}, it is send to the {@code sender}
      * without modification, otherwise it is wrapped inside a {@link GatewayInternalErrorException}.
      */
-    protected void reportError(final String hint, final ActorRef sender, final Throwable error,
-            final DittoHeaders dittoHeaders) {
+    protected void reportError(final String hint, final Throwable error) {
         if (error instanceof DittoRuntimeException) {
-            log(dittoHeaders).error(error, hint);
-            sender.tell(error, self());
+            log().info("{} - {}: {}", hint, error.getClass().getSimpleName(), error.getMessage());
+            sender().tell(error, self());
         } else {
-            reportUnexpectedError(hint, sender, error, dittoHeaders);
+            reportUnexpectedError(hint, error);
         }
     }
 
     /**
      * Report unexpected error.
      */
-    protected void reportUnexpectedError(final String hint, final ActorRef sender, final Throwable error,
-            final DittoHeaders dittoHeaders) {
-        log(dittoHeaders).error(error, "Unexpected error {}", hint);
+    protected void reportUnexpectedError(final String hint, final Throwable error) {
+        log().error(error, "Unexpected error {} - {}: {}", hint, error.getClass().getSimpleName(),
+                error.getMessage());
 
-        sender.tell(mapToExternalException(error, dittoHeaders), self());
+        sender().tell(mapToExternalException(error), self());
     }
 
     /**
      * Report unknown response.
      */
-    protected void reportUnknownResponse(final String hint, final ActorRef sender, final Object response,
-            final DittoHeaders dittoHeaders) {
-        log(dittoHeaders).error("Unexpected response {}: <{}>", hint, response);
+    protected void reportUnknownResponse(final String hint, final Object response) {
+        log().error("Unexpected response {}: <{}>", hint, response);
 
-        sender.tell(GatewayInternalErrorException.newBuilder().dittoHeaders(dittoHeaders).build(), self());
+        sender().tell(GatewayInternalErrorException.newBuilder().dittoHeaders(dittoHeaders()).build(), self());
     }
 
-    private DittoRuntimeException mapToExternalException(final Throwable error,
-            final DittoHeaders dittoHeaders) {
+    private DittoRuntimeException mapToExternalException(final Throwable error) {
         if (error instanceof GatewayInternalErrorException) {
             return (GatewayInternalErrorException) error;
         } else {
-            log(dittoHeaders).error(error, "Unexpected non-DittoRuntimeException error - responding with " +
-                    "GatewayInternalErrorException: {} {}", error.getClass().getSimpleName(), error.getMessage());
+            log().error(error, "Unexpected non-DittoRuntimeException error - responding with " +
+                    "GatewayInternalErrorException - {} :{}", error.getClass().getSimpleName(), error.getMessage());
             return GatewayInternalErrorException.newBuilder()
                     .cause(error)
-                    .dittoHeaders(dittoHeaders)
+                    .dittoHeaders(dittoHeaders())
                     .build();
         }
     }
@@ -233,14 +223,14 @@ public abstract class AbstractEnforcement<T extends Signal> {
      * @return Timeout duration for asking entity shard regions.
      */
     protected Duration getAskTimeout() {
-        return context.askTimeout;
+        return context.getAskTimeout();
     }
 
     /**
      * @return the entity ID.
      */
     protected EntityId entityId() {
-        return context.entityId;
+        return context.getEntityId();
     }
 
     /**
@@ -252,106 +242,57 @@ public abstract class AbstractEnforcement<T extends Signal> {
         if (withPotentialDittoHeaders instanceof WithDittoHeaders) {
             return log(((WithDittoHeaders<?>) withPotentialDittoHeaders).getDittoHeaders());
         }
-        return context.log;
+        return context.getLog();
     }
 
     /**
-     * @param dittoHeaders the DittoHeaders from which a {@code correlation-id} can be extracted in order to enhance
-     * the returned DiagnosticLoggingAdapter.
      * @return the diagnostic logging adapter.
      */
-    protected DiagnosticLoggingAdapter log(final DittoHeaders dittoHeaders) {
-        if (context.log != null) {
-            LogUtil.enhanceLogWithCorrelationId(context.log, dittoHeaders);
-        }
-        return context.log;
+    protected DiagnosticLoggingAdapter log() {
+        LogUtil.enhanceLogWithCorrelationId(context.getLog(), dittoHeaders());
+        return context.getLog();
     }
 
     /**
      * @return Akka pubsub mediator.
      */
     protected ActorRef pubSubMediator() {
-        return context.pubSubMediator;
+        return context.getPubSubMediator();
     }
 
     /**
      * @return actor reference of the enforcer actor this object belongs to.
      */
     protected ActorRef self() {
-        return context.self;
+        return context.getSelf();
     }
-
-    protected ActorRef conciergeForwarder() { return context.conciergeForwarder;}
 
     /**
-     * Holds context information required by implementations of {@link AbstractEnforcement}.
+     * @return the sender of the sent {@link #signal()}
      */
-    public static final class Context {
-
-        private final ActorRef pubSubMediator;
-        private final Duration askTimeout;
-
-        @Nullable
-        private final EntityId entityId;
-
-        @Nullable
-        private final DiagnosticLoggingAdapter log;
-
-        @Nullable
-        private final ActorRef self;
-
-        private final ActorRef conciergeForwarder;
-
-        private final Executor enforcerExecutor;
-
-        Context(
-                final ActorRef pubSubMediator,
-                final Duration askTimeout,
-                final ActorRef conciergeForwarder, final Executor enforcerExecutor) {
-
-            this(pubSubMediator, askTimeout, conciergeForwarder, enforcerExecutor, null, null, null);
-        }
-
-        Context(
-                final ActorRef pubSubMediator,
-                final Duration askTimeout,
-                @Nullable final ActorRef conciergeForwarder,
-                final Executor enforcerExecutor,
-                @Nullable final EntityId entityId,
-                @Nullable final DiagnosticLoggingAdapter log,
-                @Nullable final ActorRef self) {
-            this.pubSubMediator = pubSubMediator;
-            this.askTimeout = askTimeout;
-            this.conciergeForwarder = conciergeForwarder;
-            this.enforcerExecutor = enforcerExecutor;
-            this.entityId = entityId;
-            this.log = log;
-            this.self = self;
-        }
-
-        /**
-         * Creates a new {@link Context} from this instance with the given parameters.
-         *
-         * @param actorContext the actor context.
-         * @param log the logger.
-         * @param enforcerExecutor the Executor to use in order to perform asynchronous operations in enforcement.
-         * @return the created instance.
-         */
-        public Context with(final AbstractActor.ActorContext actorContext, final DiagnosticLoggingAdapter log,
-                final Executor enforcerExecutor) {
-            final ActorRef contextSelf = actorContext.self();
-            return new Context(pubSubMediator, askTimeout, conciergeForwarder, enforcerExecutor,
-                    decodeEntityId(contextSelf), log, contextSelf);
-        }
-
-        private static EntityId decodeEntityId(final ActorRef self) {
-            final String name = self.path().name();
-            try {
-                final String typeWithPath = URLDecoder.decode(name, StandardCharsets.UTF_8.name());
-                return EntityId.readFrom(typeWithPath);
-            } catch (final UnsupportedEncodingException e) {
-                throw new IllegalStateException("Unsupported encoding", e);
-            }
-        }
+    protected ActorRef sender() {
+        return context.getSender();
     }
+
+    /**
+     * @return the sent Signal of subtype {@code <T>}
+     */
+    protected T signal() {
+        return context.getMessage();
+    }
+
+    /**
+     * @return the DittoHeaders of the sent {@link #signal()}
+     */
+    protected DittoHeaders dittoHeaders() {
+        return signal().getDittoHeaders();
+    }
+
+    /**
+     * @return the {@link org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor} reference
+     */
+    protected ActorRef conciergeForwarder() {
+        return context.getConciergeForwarder();
+    }
+
 }

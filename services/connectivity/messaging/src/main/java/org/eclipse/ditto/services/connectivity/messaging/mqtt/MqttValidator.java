@@ -1,17 +1,20 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
-import static org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory.newThingPlaceholder;
-import static org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory.newTopicPathPlaceholder;
+import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newHeadersPlaceholder;
+import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newThingPlaceholder;
+import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newTopicPathPlaceholder;
 
 import java.text.MessageFormat;
 import java.util.Arrays;
@@ -20,7 +23,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.function.Predicate;
+import java.util.function.IntPredicate;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
@@ -34,11 +37,11 @@ import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.placeholders.EnforcementFactoryFactory;
+import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.model.placeholders.SourceAddressPlaceholder;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
-import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFactoryFactory;
-import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory;
-import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFilter;
-import org.eclipse.ditto.services.models.connectivity.placeholder.SourceAddressPlaceholder;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttTopic;
 
@@ -122,7 +125,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
         }
 
         validateTargetQoS(qos.get(), dittoHeaders, targetDescription);
-        validateTemplate(target.getAddress(), dittoHeaders, newThingPlaceholder(), newTopicPathPlaceholder());
+        validateTemplate(target.getAddress(), dittoHeaders, newThingPlaceholder(), newTopicPathPlaceholder(), newHeadersPlaceholder());
     }
 
     /**
@@ -206,7 +209,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
     }
 
     private static void validateQoS(final int qos, final DittoHeaders dittoHeaders,
-            final Supplier<String> errorSiteDescription, final Predicate<Integer> predicate) {
+            final Supplier<String> errorSiteDescription, final IntPredicate predicate) {
 
         if (!predicate.test(qos)) {
             throw invalidValueForConfig(qos, QOS, errorSiteDescription.get())

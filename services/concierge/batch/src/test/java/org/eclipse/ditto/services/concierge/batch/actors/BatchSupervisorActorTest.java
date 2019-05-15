@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -16,7 +18,6 @@ import static org.eclipse.ditto.signals.commands.base.assertions.CommandAssertio
 import java.util.Arrays;
 import java.util.UUID;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
@@ -24,12 +25,11 @@ import org.eclipse.ditto.services.models.concierge.ConciergeWrapper;
 import org.eclipse.ditto.services.utils.akka.JavaTestProbe;
 import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.base.JsonParsableRegistry;
-import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.batch.ExecuteBatch;
 import org.eclipse.ditto.signals.commands.batch.ExecuteBatchResponse;
-import org.eclipse.ditto.signals.commands.things.ThingCommandRegistry;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
@@ -51,6 +51,7 @@ import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSub;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.japi.pf.ReceiveBuilder;
+import akka.routing.ConsistentHashingRouter;
 
 /**
  * Unit test for {@link BatchSupervisorActor}.
@@ -117,7 +118,7 @@ public final class BatchSupervisorActorTest {
 
     /** */
     @Test
-    public void batchExecutionResumesAfterRecovery() throws InterruptedException {
+    public void batchExecutionResumesAfterRecovery() {
         new JavaTestProbe(actorSystem) {
             {
                 subscribeToEvents(this, BatchExecutionStarted.TYPE, BatchExecutionFinished.TYPE);
@@ -210,7 +211,7 @@ public final class BatchSupervisorActorTest {
     private static final class SharedRegionProxyMock extends AbstractActor {
 
         private int modifyFeatureCount = 0;
-        private final JsonParsableRegistry<? extends Command> commandRegistry = ThingCommandRegistry.newInstance();
+        private final JsonParsableRegistry<? extends Command> commandRegistry = GlobalCommandRegistry.getInstance();
 
         SharedRegionProxyMock() {
         }
@@ -218,24 +219,22 @@ public final class BatchSupervisorActorTest {
         @Override
         public Receive createReceive() {
             return ReceiveBuilder.create()
-                    .match(ShardedMessageEnvelope.class, this::extractCommandFromEnvelop)
+                    .match(ConsistentHashingRouter.ConsistentHashableEnvelope.class, this::extractCommandFromEnvelop)
                     .matchAny(this::unhandled)
                     .build();
         }
 
-        private void extractCommandFromEnvelop(ShardedMessageEnvelope shardedMessageEnvelope) {
-            final String type = shardedMessageEnvelope.getType();
-            final JsonObject jsonCommand = shardedMessageEnvelope.getMessage();
-            final DittoHeaders dittoHeaders = shardedMessageEnvelope.getDittoHeaders();
+        private void extractCommandFromEnvelop(ConsistentHashingRouter.ConsistentHashableEnvelope envelope) {
+            final Object obj = envelope.message();
 
-            if (type.equals(ModifyThing.TYPE)) {
-                final ModifyThing command = (ModifyThing) commandRegistry.parse(jsonCommand, dittoHeaders);
+            if (obj instanceof ModifyThing) {
+                final ModifyThing command = (ModifyThing) obj;
 
                 getSender().tell(ModifyThingResponse.modified(command.getId(),
                         command.getDittoHeaders()), getSelf());
             }
-            else if (type.equals(ModifyFeature.TYPE)) {
-                final ModifyFeature command = (ModifyFeature) commandRegistry.parse(jsonCommand, dittoHeaders);
+            else if (obj instanceof ModifyFeature) {
+                final ModifyFeature command = (ModifyFeature) obj;
 
                 if (command.getDittoHeaders().isDryRun()) {
                     respondToModifyFeature(command);
@@ -259,31 +258,31 @@ public final class BatchSupervisorActorTest {
 
         public static final String ACTOR_NAME = "conciergeForwarder";
 
-        private final ActorRef enforcerShardRegion;
+        private final ActorRef enforcerActor;
 
-        private ConciergeForwarderActorMock(final ActorRef enforcerShardRegion) {
-            this.enforcerShardRegion = enforcerShardRegion;
+        private ConciergeForwarderActorMock(final ActorRef enforcerActor) {
+            this.enforcerActor = enforcerActor;
         }
 
 
         /**
          * Creates Akka configuration object Props for this actor.
          *
-         * @param enforcerShardRegion the ActorRef of the enforcerShardRegion.
+         * @param enforcerActor the ActorRef of the enforcerActor.
          * @return the Akka configuration Props object.
          */
-        public static Props props(final ActorRef enforcerShardRegion) {
+        public static Props props(final ActorRef enforcerActor) {
 
             return Props.create(ConciergeForwarderActorMock.class,
-                    () -> new ConciergeForwarderActorMock(enforcerShardRegion));
+                    () -> new ConciergeForwarderActorMock(enforcerActor));
         }
 
         @Override
         public AbstractActor.Receive createReceive() {
             return ReceiveBuilder.create()
                     .match(Signal.class, signal -> {
-                        final ShardedMessageEnvelope msg = ConciergeWrapper.wrapForEnforcer(signal);
-                        enforcerShardRegion.tell(msg, getSender());
+                        final Object msg = ConciergeWrapper.wrapForEnforcerRouter(signal);
+                        enforcerActor.tell(msg, getSender());
                     })
                     .build();
         }

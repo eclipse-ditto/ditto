@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -16,24 +18,28 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.THINGS_SYNC_STATE_COLLECTION_NAME;
 
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.query.QueryBuilderFactory;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
+import org.eclipse.ditto.model.query.expression.FieldExpressionUtil;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.thingsearch.common.util.RootSupervisorStrategyFactory;
-import org.eclipse.ditto.services.thingsearch.persistence.query.AggregationQueryActor;
-import org.eclipse.ditto.services.thingsearch.persistence.query.QueryActor;
-import org.eclipse.ditto.services.thingsearch.persistence.read.AggregationBuilderFactory;
+import org.eclipse.ditto.services.thingsearch.persistence.query.QueryParser;
 import org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.read.ThingsSearchPersistence;
-import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoAggregationBuilderFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQueryBuilderFactory;
 import org.eclipse.ditto.services.thingsearch.starter.config.SearchConfig;
 import org.eclipse.ditto.services.thingsearch.updater.actors.SearchUpdaterRootActor;
@@ -51,6 +57,7 @@ import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoTimesta
 
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;
+import com.mongodb.reactivestreams.client.MongoDatabase;
 
 import akka.Done;
 import akka.actor.AbstractActor;
@@ -110,11 +117,10 @@ public final class SearchRootActor extends AbstractActor {
         final ThingsSearchPersistence thingsSearchPersistence =
                 getThingsSearchPersistence(mongoDbClient, searchConfig.getIndexInitializationConfig());
         final ActorRef searchActor = initializeSearchActor(searchConfig.getLimitsConfig(), thingsSearchPersistence);
+        pubSubMediator.tell(new DistributedPubSubMediator.Put(searchActor), getSelf());
 
         final ActorRef healthCheckingActor =
                 initializeHealthCheckActor(searchConfig, thingsSyncPersistence, policiesSyncPersistence);
-
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(searchActor), getSelf());
 
         createHealthCheckingActorHttpBinding(searchConfig.getHttpConfig(), healthCheckingActor, materializer);
 
@@ -149,22 +155,27 @@ public final class SearchRootActor extends AbstractActor {
             log.info("Skipping IndexInitializer because it is disabled.");
         }
         return result;
+        // TODO: refactor config.
+//        final String hintsConfigKey = "ditto.things-search.mongo-hints-by-namespace";
+//        final MongoThingsSearchPersistence persistence = new MongoThingsSearchPersistence(db, actorSystem);
+//        if (config.hasPath(hintsConfigKey)) {
+//            final String mongoHints = config.getString(hintsConfigKey);
+//            log.info("Applying MongoDB hints: {}", mongoHints);
+//            return persistence.withHintsByNamespace(mongoHints);
+//        } else {
+//            return persistence;
+//        }
     }
 
     private ActorRef initializeSearchActor(final LimitsConfig limitsConfig,
             final ThingsSearchPersistence thingsSearchPersistence) {
 
         final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
-        final ThingsFieldExpressionFactory fieldExpressionFactory = new ThingsFieldExpressionFactoryImpl();
-        final AggregationBuilderFactory aggregationBuilderFactory = new MongoAggregationBuilderFactory(limitsConfig);
+        final ThingsFieldExpressionFactory fieldExpressionFactory = getThingsFieldExpressionFactory();
         final QueryBuilderFactory queryBuilderFactory = new MongoQueryBuilderFactory(limitsConfig);
-        final ActorRef aggregationQueryActor = startChildActor(AggregationQueryActor.ACTOR_NAME,
-                AggregationQueryActor.props(criteriaFactory, fieldExpressionFactory, aggregationBuilderFactory));
-        final ActorRef apiV1QueryActor = startChildActor(QueryActor.ACTOR_NAME,
-                QueryActor.props(criteriaFactory, fieldExpressionFactory, queryBuilderFactory));
+        final QueryParser queryFactory = QueryParser.of(criteriaFactory, fieldExpressionFactory, queryBuilderFactory);
 
-        return startChildActor(SearchActor.ACTOR_NAME,
-                SearchActor.props(aggregationQueryActor, apiV1QueryActor, thingsSearchPersistence));
+        return startChildActor(SearchActor.ACTOR_NAME, SearchActor.props(queryFactory, thingsSearchPersistence));
     }
 
     private ActorRef initializeHealthCheckActor(final SearchConfig searchConfig,
@@ -251,6 +262,23 @@ public final class SearchRootActor extends AbstractActor {
                 healthCheckingActor, actorSystem);
 
         return logRequest("http-request", () -> logResult("http-response", statusRoute::buildStatusRoute));
+    }
+
+    private static ThingsFieldExpressionFactory getThingsFieldExpressionFactory() {
+        final Map<String, String> mappings = new HashMap<>();
+        mappings.put(FieldExpressionUtil.FIELD_NAME_THING_ID, FieldExpressionUtil.FIELD_ID);
+        mappings.put(FieldExpressionUtil.FIELD_NAME_NAMESPACE, FieldExpressionUtil.FIELD_NAMESPACE);
+        addMapping(mappings, Thing.JsonFields.POLICY_ID);
+        addMapping(mappings, Thing.JsonFields.REVISION);
+        addMapping(mappings, Thing.JsonFields.MODIFIED);
+        return new ThingsFieldExpressionFactoryImpl(mappings);
+    }
+
+    private static void addMapping(final Map<String, String> fieldMappings, final JsonFieldDefinition<?> definition) {
+        final JsonPointer pointer = definition.getPointer();
+        final String key = pointer.getRoot().map(JsonKey::toString).orElse("");
+        final String value = pointer.toString();
+        fieldMappings.put(key, value);
     }
 
 }

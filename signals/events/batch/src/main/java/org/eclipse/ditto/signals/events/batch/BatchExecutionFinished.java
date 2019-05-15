@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -34,15 +36,17 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.commands.base.CommandResponseRegistry;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
 /**
  * This event is emitted after a batch finished.
  */
 @Immutable
+@JsonParsableEvent(name = BatchExecutionFinished.NAME, typePrefix= BatchExecutionFinished.TYPE_PREFIX)
 public final class BatchExecutionFinished extends AbstractBatchEvent<BatchExecutionFinished>
         implements BatchEvent<BatchExecutionFinished> {
 
@@ -115,7 +119,6 @@ public final class BatchExecutionFinished extends AbstractBatchEvent<BatchExecut
      *
      * @param jsonString the JSON string from which the event is to be created.
      * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @param commandResponseRegistry the {@link CommandResponseRegistry} to use in order to deserialize the command
      * responses in the JSON.
      * @return the event.
      * @throws NullPointerException if {@code jsonString} is {@code null}.
@@ -123,10 +126,9 @@ public final class BatchExecutionFinished extends AbstractBatchEvent<BatchExecut
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
      */
-    public static BatchExecutionFinished fromJson(final String jsonString, final DittoHeaders dittoHeaders,
-            final CommandResponseRegistry<? extends CommandResponse> commandResponseRegistry) {
+    public static BatchExecutionFinished fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
 
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders, commandResponseRegistry);
+        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
     /**
@@ -134,40 +136,41 @@ public final class BatchExecutionFinished extends AbstractBatchEvent<BatchExecut
      *
      * @param jsonObject the JSON object from which the event is to be created.
      * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @param commandResponseRegistry the {@link CommandResponseRegistry} to use in order to deserialize the command
      * responses in the JSON.
      * @return the event.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static BatchExecutionFinished fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders,
-            final CommandResponseRegistry<? extends CommandResponse> commandResponseRegistry) {
+    public static BatchExecutionFinished fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
 
         return new EventJsonDeserializer<BatchExecutionFinished>(TYPE, jsonObject)
                 .deserialize((revision, timestamp) -> {
-            final String id = jsonObject.getValueOrThrow(JsonFields.BATCH_ID);
-            final List<CommandResponse> commandResponses =
-                    jsonObject.getValueOrThrow(JsonFields.RESPONSES).stream()
-                            .filter(JsonValue::isObject)
-                            .map(JsonValue::asObject)
-                            .map(json -> {
-                                final DittoHeaders cmdHeaders = json.getValue(JsonFields.DITTO_HEADERS)
-                                        .map(JsonValue::asObject)
-                                        .map(DittoHeaders::newBuilder)
-                                        .map(DittoHeadersBuilder::build)
-                                        .orElseThrow(() -> new
-                                                JsonMissingFieldException(JsonFields.DITTO_HEADERS.getPointer()));
-                                return json.getValue(JsonFields.RESPONSE)
-                                        .map(JsonValue::asObject)
-                                        .map(responseJson -> commandResponseRegistry.parse(responseJson, cmdHeaders))
-                                        .orElseThrow(
-                                                () -> new JsonMissingFieldException(JsonFields.RESPONSE.getPointer()));
-                            })
-                            .collect(Collectors.toList());
+                    final String id = jsonObject.getValueOrThrow(JsonFields.BATCH_ID);
+                    final List<CommandResponse> commandResponses =
+                            jsonObject.getValueOrThrow(JsonFields.RESPONSES).stream()
+                                    .filter(JsonValue::isObject)
+                                    .map(JsonValue::asObject)
+                                    .map(json -> {
+                                        final DittoHeaders cmdHeaders = json.getValue(JsonFields.DITTO_HEADERS)
+                                                .map(JsonValue::asObject)
+                                                .map(DittoHeaders::newBuilder)
+                                                .map(DittoHeadersBuilder::build)
+                                                .orElseThrow(() -> new
+                                                        JsonMissingFieldException(
+                                                        JsonFields.DITTO_HEADERS.getPointer()));
+                                        return json.getValue(JsonFields.RESPONSE)
+                                                .map(JsonValue::asObject)
+                                                .map(responseJson -> GlobalCommandResponseRegistry.getInstance()
+                                                        .parse(responseJson, cmdHeaders))
+                                                .orElseThrow(
+                                                        () -> new JsonMissingFieldException(
+                                                                JsonFields.RESPONSE.getPointer()));
+                                    })
+                                    .collect(Collectors.toList());
 
-            return of(id, timestamp, commandResponses, dittoHeaders);
-        });
+                    return of(id, timestamp, commandResponses, dittoHeaders);
+                });
     }
 
     /**

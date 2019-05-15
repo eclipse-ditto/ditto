@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -14,17 +16,16 @@ import static akka.http.javadsl.server.Directives.complete;
 import static akka.http.javadsl.server.Directives.extractRequest;
 import static akka.http.javadsl.server.Directives.extractUpgradeToWebSocket;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.START_SEND_EVENTS;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.START_SEND_LIVE_COMMANDS;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.START_SEND_LIVE_EVENTS;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.START_SEND_MESSAGES;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.STOP_SEND_EVENTS;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.STOP_SEND_LIVE_COMMANDS;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.STOP_SEND_LIVE_EVENTS;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessages.STOP_SEND_MESSAGES;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -47,13 +48,13 @@ import org.eclipse.ditto.services.gateway.endpoints.config.WebSocketConfig;
 import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.ResponsePublished;
-import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
-import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
 import org.eclipse.ditto.services.gateway.streaming.actors.CommandSubscriber;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
@@ -94,18 +95,6 @@ import akka.stream.javadsl.Source;
  */
 public final class WebsocketRoute {
 
-    private static final String START_SEND_EVENTS = "START-SEND-EVENTS";
-    private static final String STOP_SEND_EVENTS = "STOP-SEND-EVENTS";
-
-    private static final String START_SEND_MESSAGES = "START-SEND-MESSAGES";
-    private static final String STOP_SEND_MESSAGES = "STOP-SEND-MESSAGES";
-
-    private static final String START_SEND_LIVE_COMMANDS = "START-SEND-LIVE-COMMANDS";
-    private static final String STOP_SEND_LIVE_COMMANDS = "STOP-SEND-LIVE-COMMANDS";
-
-    private static final String START_SEND_LIVE_EVENTS = "START-SEND-LIVE-EVENTS";
-    private static final String STOP_SEND_LIVE_EVENTS = "STOP-SEND-LIVE-EVENTS";
-
     /**
      * The backend sends the protocol message above suffixed by ":ACK" when the subscription was created. E.g.: {@code
      * START-SEND-EVENTS:ACK}
@@ -113,9 +102,6 @@ public final class WebsocketRoute {
     private static final String PROTOCOL_CMD_ACK_SUFFIX = ":ACK";
 
     private static final String STREAMING_TYPE_WS = "WS";
-
-    private static final String PARAM_FILTER = "filter";
-    private static final String PARAM_NAMESPACES = "namespaces";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketRoute.class);
 
@@ -210,7 +196,19 @@ public final class WebsocketRoute {
             final ProtocolAdapter adapter,
             final HttpRequest request) {
 
+        final Counter inCounter = DittoMetrics.counter("streaming_messages")
+                .tag("type", "ws")
+                .tag("direction", "in")
+                .tag("session", connectionCorrelationId);
+
+        final ProtocolMessageExtractor protocolMessageExtractor = new ProtocolMessageExtractor(connectionAuthContext,
+                connectionCorrelationId);
+
         final Flow<Message, String, NotUsed> extractStringFromMessage = Flow.<Message>create()
+                .via(Flow.fromFunction(msg -> {
+                    inCounter.increment();
+                    return msg;
+                }))
                 .via(incomingMessageSniffer.toAsyncFlow(request))
                 .filter(Message::isText)
                 .map(Message::asTextMessage)
@@ -229,8 +227,7 @@ public final class WebsocketRoute {
                 }))
                 .withAttributes(Attributes.createLogLevels(Logging.DebugLevel(), Logging.DebugLevel(),
                         Logging.WarningLevel()))
-                .filter(strictText ->
-                        processProtocolMessage(connectionAuthContext, connectionCorrelationId, strictText));
+                .filter(strictText -> processProtocolMessage(protocolMessageExtractor, strictText));
 
         final Props commandSubscriberProps =
                 CommandSubscriber.props(streamingActor, webSocketConfig.getSubscriberBackpressureQueueSize(),
@@ -244,67 +241,10 @@ public final class WebsocketRoute {
         return extractStringFromMessage.via(signalErrorFlow);
     }
 
-    private boolean processProtocolMessage(final AuthorizationContext authContext, final String connectionCorrelationId,
+    private boolean processProtocolMessage(final ProtocolMessageExtractor protocolMessageExtractor,
             final String protocolMessage) {
 
-        Object messageToTellStreamingActor;
-        switch (protocolMessage) {
-            case START_SEND_EVENTS:
-                messageToTellStreamingActor =
-                        new StartStreaming(StreamingType.EVENTS, connectionCorrelationId, authContext,
-                                Collections.emptyList(), null);
-                break;
-            case STOP_SEND_EVENTS:
-                messageToTellStreamingActor = new StopStreaming(StreamingType.EVENTS, connectionCorrelationId);
-                break;
-            case START_SEND_MESSAGES:
-                messageToTellStreamingActor =
-                        new StartStreaming(StreamingType.MESSAGES, connectionCorrelationId, authContext,
-                                Collections.emptyList(), null);
-                break;
-            case STOP_SEND_MESSAGES:
-                messageToTellStreamingActor = new StopStreaming(StreamingType.MESSAGES, connectionCorrelationId);
-                break;
-            case START_SEND_LIVE_COMMANDS:
-                messageToTellStreamingActor = new StartStreaming(StreamingType.LIVE_COMMANDS, connectionCorrelationId,
-                        authContext, Collections.emptyList(), null);
-                break;
-            case STOP_SEND_LIVE_COMMANDS:
-                messageToTellStreamingActor = new StopStreaming(StreamingType.LIVE_COMMANDS, connectionCorrelationId);
-                break;
-            case START_SEND_LIVE_EVENTS:
-                messageToTellStreamingActor =
-                        new StartStreaming(StreamingType.LIVE_EVENTS, connectionCorrelationId, authContext,
-                                Collections.emptyList(), null);
-                break;
-            case STOP_SEND_LIVE_EVENTS:
-                messageToTellStreamingActor = new StopStreaming(StreamingType.LIVE_EVENTS, connectionCorrelationId);
-                break;
-            default:
-                messageToTellStreamingActor = null;
-        }
-
-        final Map<String, String> params = determineParams(protocolMessage);
-        final List<String> namespaces = Optional.ofNullable(params.get(PARAM_NAMESPACES))
-                .map(ids -> ids.split(","))
-                .map(Arrays::asList)
-                .orElse(Collections.emptyList());
-        final String filter = params.get(PARAM_FILTER);
-
-        if (messageToTellStreamingActor == null && protocolMessage.startsWith(START_SEND_EVENTS + "?")) {
-            messageToTellStreamingActor = new StartStreaming(StreamingType.EVENTS, connectionCorrelationId,
-                    authContext, namespaces, filter);
-        } else if (messageToTellStreamingActor == null && protocolMessage.startsWith(START_SEND_LIVE_EVENTS + "?")) {
-            messageToTellStreamingActor = new StartStreaming(StreamingType.LIVE_EVENTS, connectionCorrelationId,
-                    authContext, namespaces, filter);
-        } else if (messageToTellStreamingActor == null && protocolMessage.startsWith(START_SEND_LIVE_COMMANDS + "?")) {
-            messageToTellStreamingActor = new StartStreaming(StreamingType.LIVE_COMMANDS, connectionCorrelationId,
-                    authContext, namespaces, null);
-        } else if (messageToTellStreamingActor == null && protocolMessage.startsWith(START_SEND_MESSAGES + "?")) {
-            messageToTellStreamingActor = new StartStreaming(StreamingType.MESSAGES, connectionCorrelationId,
-                    authContext, namespaces, null);
-        }
-
+        final Object messageToTellStreamingActor = protocolMessageExtractor.apply(protocolMessage);
         if (messageToTellStreamingActor != null) {
             streamingActor.tell(messageToTellStreamingActor, null);
             return false;
@@ -313,33 +253,13 @@ public final class WebsocketRoute {
         return true;
     }
 
-    /**
-     * Parses the passed {@code protocolMessage} for an optional parameters string (e.g. containing a "filter") and
-     * creating a Map from it.
-     *
-     * @param protocolMessage the protocolMessage containing parameters, e.g.: {@code START-SEND-EVENTS?filter=eq(foo,1)}
-     * @return the map containing the resolved params
-     */
-    private static Map<String, String> determineParams(final String protocolMessage) {
-        if (protocolMessage.contains("?")) {
-            final String parametersString = protocolMessage.split("\\?", 2)[1];
-            return Arrays.stream(parametersString.split("&"))
-                    .map(paramWithValue -> paramWithValue.split("=", 2))
-                    .collect(Collectors.toMap(pv -> urlDecode(pv[0]), pv -> urlDecode(pv[1])));
-        }
-        return Collections.emptyMap();
-    }
-
-    private static String urlDecode(final String value) {
-        try {
-            return URLDecoder.decode(value, StandardCharsets.UTF_8.name());
-        } catch (final UnsupportedEncodingException e) {
-            return URLDecoder.decode(value);
-        }
-    }
-
     private Flow<DittoRuntimeException, Message, NotUsed> createOutgoing(final String connectionCorrelationId,
             final ProtocolAdapter adapter, final HttpRequest request) {
+
+        final Counter outCounter = DittoMetrics.counter("streaming_messages")
+                .tag("type", "ws")
+                .tag("direction", "out")
+                .tag("session", connectionCorrelationId);
 
         final Source<Jsonifiable.WithPredicate<JsonObject, JsonField>, NotUsed> eventAndResponseSource =
                 Source.<Jsonifiable.WithPredicate<JsonObject, JsonField>>actorPublisher(
@@ -362,6 +282,10 @@ public final class WebsocketRoute {
                             return result;
                         }))
                         .<Message>map(TextMessage::create)
+                        .via(Flow.fromFunction(msg -> {
+                            outCounter.increment();
+                            return msg;
+                        }))
                         .via(outgoingMessageSniffer.toAsyncFlow(request));
 
         return joinOutgoingFlows(eventAndResponseSource, errorFlow, messageFlow);
@@ -389,8 +313,9 @@ public final class WebsocketRoute {
     private Jsonifiable.WithPredicate<JsonObject, JsonField> publishResponsePublishedEvent(
             final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable) {
 
-        if (jsonifiable instanceof CommandResponse) {
-            // only create ResponsePublished for CommandResponses, not for Events with the same correlationId
+        if (jsonifiable instanceof CommandResponse || jsonifiable instanceof DittoRuntimeException) {
+            // only create ResponsePublished for CommandResponses and DittoRuntimeExceptions
+            // not for Events with the same correlation ID
             ((WithDittoHeaders) jsonifiable).getDittoHeaders()
                     .getCorrelationId()
                     .map(ResponsePublished::new)
@@ -549,16 +474,16 @@ public final class WebsocketRoute {
         final String protocolMessage;
         switch (streamingType) {
             case EVENTS:
-                protocolMessage = subscribed ? START_SEND_EVENTS : STOP_SEND_EVENTS;
+                protocolMessage = subscribed ? START_SEND_EVENTS.toString() : STOP_SEND_EVENTS.toString();
                 break;
             case MESSAGES:
-                protocolMessage = subscribed ? START_SEND_MESSAGES : STOP_SEND_MESSAGES;
+                protocolMessage = subscribed ? START_SEND_MESSAGES.toString() : STOP_SEND_MESSAGES.toString();
                 break;
             case LIVE_COMMANDS:
-                protocolMessage = subscribed ? START_SEND_LIVE_COMMANDS : STOP_SEND_LIVE_COMMANDS;
+                protocolMessage = subscribed ? START_SEND_LIVE_COMMANDS.toString() : STOP_SEND_LIVE_COMMANDS.toString();
                 break;
             case LIVE_EVENTS:
-                protocolMessage = subscribed ? START_SEND_LIVE_EVENTS : STOP_SEND_LIVE_EVENTS;
+                protocolMessage = subscribed ? START_SEND_LIVE_EVENTS.toString() : STOP_SEND_LIVE_EVENTS.toString();
                 break;
             default:
                 throw new IllegalArgumentException("Unknown streamingType: " + streamingType);

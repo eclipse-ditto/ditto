@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -18,7 +20,6 @@ import java.io.StringWriter;
 import java.net.ConnectException;
 import java.time.Duration;
 import java.util.NoSuchElementException;
-import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.function.UnaryOperator;
 
@@ -34,6 +35,7 @@ import org.eclipse.ditto.services.connectivity.messaging.ConnectionSupervisorAct
 import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ReconnectActor;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
+import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -295,13 +297,17 @@ public final class ConnectivityRootActor extends AbstractActor {
             final ActorRef pubSubMediator,
             final UnaryOperator<Signal<?>> conciergeForwarderSignalTransformer) {
 
+        final ActorRef conciergeEnforcerRouter =
+                ConciergeEnforcerClusterRouterFactory.createConciergeEnforcerClusterRouter(getContext(),
+                        clusterConfig.getNumberOfShards());
+
         final ActorRef conciergeShardRegionProxy = ClusterSharding.get(actorSystem)
                 .startProxy(ConciergeMessagingConstants.SHARD_REGION,
                         Optional.of(ConciergeMessagingConstants.CLUSTER_ROLE),
                         ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem));
 
         return startChildActor(ConciergeForwarderActor.ACTOR_NAME,
-                ConciergeForwarderActor.props(pubSubMediator, conciergeShardRegionProxy,
+                ConciergeForwarderActor.props(pubSubMediator, conciergeEnforcerRouter, conciergeShardRegionProxy,
                         conciergeForwarderSignalTransformer));
     }
 

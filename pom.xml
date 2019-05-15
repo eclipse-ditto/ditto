@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+  ~ Copyright (c) 2017 Contributors to the Eclipse Foundation
   ~
-  ~ All rights reserved. This program and the accompanying materials
-  ~ are made available under the terms of the Eclipse Public License v2.0
-  ~ which accompanies this distribution, and is available at
-  ~ https://www.eclipse.org/org/documents/epl-2.0/index.php
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
   ~
   ~ SPDX-License-Identifier: EPL-2.0
   -->
@@ -191,16 +193,12 @@
         <release.scm.developerConnection>scm:git:https://github.com/eclipse/ditto.git</release.scm.developerConnection>
         <release.scm.url>https://github.com/eclipse/ditto.git</release.scm.url>
 
-        <ditto.it.report.path>${user.dir}/target/jacoco-it.exec</ditto.it.report.path>
-        <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
-        <sonar.jacoco.reportPaths>target/jacoco.exec, ${ditto.it.report.path}</sonar.jacoco.reportPaths>
-
         <argLine>-Dfile.encoding=${project.build.sourceEncoding}</argLine>
 
         <!-- globally set version for checking binary compatibility against -->
         <!-- whoever changes this to ${revision} or ${project.version} is responsible for API breakage caused by this! -->
         <!-- in other words: never do that here! exclude the 'breakages' locally in the japicmp maven plugin if you intentionally break something -->
-        <binary-compatibility-check.version>0.8.0</binary-compatibility-check.version>
+        <binary-compatibility-check.version>0.9.0-M2</binary-compatibility-check.version>
 
         <maven.skins.fluido.version>1.7</maven.skins.fluido.version>
         <doxia.markdown.version>1.8</doxia.markdown.version>
@@ -352,7 +350,7 @@
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>license-maven-plugin</artifactId>
-                    <version>1.16</version>
+                    <version>1.17</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -362,7 +360,7 @@
                 <plugin>
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
-                    <version>0.8.0</version>
+                    <version>0.8.3</version>
                 </plugin>
                 <plugin>
                     <groupId>io.fabric8</groupId>
@@ -398,21 +396,9 @@
                             <skipPomModules>true</skipPomModules>
                             <htmlTitle>${project.name} :: Binary Compatibility Report</htmlTitle>
                             <excludes>
-                                <exclude>org.eclipse.ditto.signals.commands.base.CommonErrorRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.policies.exceptions.PolicyErrorRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.things.exceptions.ThingErrorRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.things.ThingErrorResponse#fromJson(org.eclipse.ditto.signals.commands.things.exceptions.ThingErrorRegistry,org.eclipse.ditto.json.JsonObject,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.things.ThingErrorResponse#fromJson(org.eclipse.ditto.signals.commands.things.exceptions.ThingErrorRegistry,java.lang.String,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.batch.exceptions.BatchErrorRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorResponse#fromJson(org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorRegistry,org.eclipse.ditto.json.JsonObject,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorResponse#fromJson(org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorRegistry,java.lang.String,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.messages.MessageErrorRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.namespaces.NamespaceErrorRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.thingsearch.exceptions.ThingSearchErrorRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse#fromJson(org.eclipse.ditto.signals.commands.thingsearch.exceptions.ThingSearchErrorRegistry,org.eclipse.ditto.json.JsonObject,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse#fromJson(org.eclipse.ditto.signals.commands.thingsearch.exceptions.ThingSearchErrorRegistry,java.lang.String,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
-                                <exclude>org.eclipse.ditto.protocoladapter.DittoProtocolAdapter</exclude>
+                                <exclude>org.eclipse.ditto.signals.base.DittoJsonRegistry</exclude>
+                                <exclude>org.eclipse.ditto.signals.base.GlobalErrorRegistry</exclude>
+                                <exclude>org.eclipse.ditto.signals.base.AbstractErrorRegistry</exclude>
                             </excludes>
                         </parameter>
                     </configuration>
@@ -549,6 +535,10 @@
                 <inherited>false</inherited>
                 <configuration>
                     <header>${project.basedir}/src/license-header.txt</header>
+                    <validHeaders>
+                        <header>${project.basedir}/src/license-header-2017.txt</header>
+                        <header>${project.basedir}/src/license-header-2018.txt</header>
+                    </validHeaders>
                     <aggregate>true</aggregate>
                     <quiet>false</quiet>
                     <failIfMissing>true</failIfMissing>
@@ -558,6 +548,7 @@
                     </headerDefinitions>
                     <includes>
                         <include>**/*.java</include>
+                        <include>**/*.scala</include>
                         <include>**/*.sh</include>
                         <include>**/pom.xml</include>
                     </includes>
@@ -572,6 +563,7 @@
                         <goals>
                             <goal>check</goal>
                         </goals>
+                        <phase>validate</phase>
                     </execution>
                 </executions>
             </plugin>
@@ -579,34 +571,19 @@
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <executions>
-                    <execution>
-                        <id>prepare-agent-test</id>
-                        <goals>
-                            <goal>prepare-agent</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>prepare-agent-it</id>
-                        <goals>
-                            <goal>prepare-agent-integration</goal>
-                        </goals>
-                        <configuration>
-                            <destFile>${ditto.it.report.path}</destFile>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>report-test</id>
-                        <goals>
-                            <goal>report</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>report-it</id>
-                        <goals>
-                            <goal>report-integration</goal>
-                        </goals>
-                    </execution>
-                </executions>
+                      <execution>
+                            <id>prepare</id>
+                            <goals>
+                                <goal>prepare-agent</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>report</id>
+                            <goals>
+                                <goal>report-aggregate</goal>
+                            </goals>
+                        </execution>
+                    </executions>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>

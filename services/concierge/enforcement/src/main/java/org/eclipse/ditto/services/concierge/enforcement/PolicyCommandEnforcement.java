@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -27,12 +29,14 @@ import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.ResourceKey;
-import org.eclipse.ditto.services.concierge.cache.IdentityCache;
-import org.eclipse.ditto.services.models.concierge.EntityId;
-import org.eclipse.ditto.services.models.concierge.cache.Entry;
+import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cache.Cache;
+import org.eclipse.ditto.services.utils.cache.EntityId;
+import org.eclipse.ditto.services.utils.cache.InvalidateCacheEntry;
+import org.eclipse.ditto.services.utils.cache.entry.Entry;
+import org.eclipse.ditto.services.utils.cacheloaders.IdentityCache;
 import org.eclipse.ditto.signals.commands.base.CommandToExceptionRegistry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyCommandToAccessExceptionRegistry;
@@ -46,9 +50,9 @@ import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandResponse;
 
 import akka.actor.ActorRef;
-import akka.event.DiagnosticLoggingAdapter;
+import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.pattern.AskTimeoutException;
-import akka.pattern.PatternsCS;
+import akka.pattern.Patterns;
 
 /**
  * Authorize {@link PolicyCommand}.
@@ -64,7 +68,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
     private final EnforcerRetriever enforcerRetriever;
     private final Cache<EntityId, Entry<Enforcer>> enforcerCache;
 
-    private PolicyCommandEnforcement(final Context data, final ActorRef policiesShardRegion,
+    private PolicyCommandEnforcement(final Contextual<PolicyCommand> data, final ActorRef policiesShardRegion,
             final Cache<EntityId, Entry<Enforcer>> enforcerCache) {
 
         super(data);
@@ -158,51 +162,51 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
     }
 
     @Override
-    public CompletionStage<Void> enforce(final PolicyCommand signal, final ActorRef sender,
-            final DiagnosticLoggingAdapter log) {
-        LogUtil.enhanceLogWithCorrelationIdOrRandom(signal);
+    public CompletionStage<Void> enforce() {
+        final PolicyCommand command = signal();
+        LogUtil.enhanceLogWithCorrelationIdOrRandom(command);
         return enforcerRetriever.retrieve(entityId(), (idEntry, enforcerEntry) -> {
             if (enforcerEntry.exists()) {
-                enforcePolicyCommandByEnforcer(signal, enforcerEntry.getValue(), sender);
+                enforcePolicyCommandByEnforcer(enforcerEntry.getValueOrThrow());
             } else {
-                enforcePolicyCommandByNonexistentEnforcer(signal, sender);
+                enforcePolicyCommandByNonexistentEnforcer();
             }
         });
     }
 
-    private void enforcePolicyCommandByEnforcer(final PolicyCommand<?> policyCommand, final Enforcer enforcer,
-            final ActorRef sender) {
+    private void enforcePolicyCommandByEnforcer(final Enforcer enforcer) {
+        final PolicyCommand policyCommand = signal();
         final Optional<? extends PolicyCommand> authorizedCommandOpt = authorizePolicyCommand(policyCommand, enforcer);
         if (authorizedCommandOpt.isPresent()) {
             final PolicyCommand authorizedCommand = authorizedCommandOpt.get();
             if (authorizedCommand instanceof PolicyQueryCommand) {
                 final PolicyQueryCommand policyQueryCommand = (PolicyQueryCommand) authorizedCommand;
-                askPoliciesShardRegionAndBuildJsonView(policyQueryCommand, enforcer, sender);
+                askPoliciesShardRegionAndBuildJsonView(policyQueryCommand, enforcer);
             } else {
-                forwardToPoliciesShardRegion(authorizedCommand, sender);
+                forwardToPoliciesShardRegion(authorizedCommand, sender());
             }
         } else {
-            respondWithError(policyCommand, sender);
+            respondWithError();
         }
     }
 
-    private void enforcePolicyCommandByNonexistentEnforcer(final PolicyCommand receivedCommand, final ActorRef sender) {
-        final PolicyCommand policyCommand = transformModifyPolicyToCreatePolicy(receivedCommand);
+    private void enforcePolicyCommandByNonexistentEnforcer() {
+        final PolicyCommand policyCommand = transformModifyPolicyToCreatePolicy(signal());
         if (policyCommand instanceof CreatePolicy) {
             final CreatePolicy createPolicy = (CreatePolicy) policyCommand;
             final Enforcer enforcer = PolicyEnforcers.defaultEvaluator(createPolicy.getPolicy());
             final Optional<CreatePolicy> authorizedCommand = authorizePolicyCommand(createPolicy, enforcer);
             if (authorizedCommand.isPresent()) {
-                forwardToPoliciesShardRegion(createPolicy, sender);
+                forwardToPoliciesShardRegion(createPolicy, sender());
             } else {
-                respondWithError(receivedCommand, sender);
+                respondWithError();
             }
         } else {
             final PolicyNotAccessibleException policyNotAccessibleException =
-                    PolicyNotAccessibleException.newBuilder(receivedCommand.getId())
-                            .dittoHeaders(receivedCommand.getDittoHeaders())
+                    PolicyNotAccessibleException.newBuilder(policyCommand.getId())
+                            .dittoHeaders(policyCommand.getDittoHeaders())
                             .build();
-            replyToSender(policyNotAccessibleException, sender);
+            replyToSender(policyNotAccessibleException);
         }
     }
 
@@ -222,31 +226,33 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
     private void invalidateCaches(final String policyId) {
         final EntityId entityId = EntityId.of(PolicyCommand.RESOURCE_TYPE, policyId);
         enforcerCache.invalidate(entityId);
+        pubSubMediator().tell(new DistributedPubSubMediator.SendToAll(
+                        ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
+                        InvalidateCacheEntry.of(entityId),
+                        true),
+                self());
     }
 
-    private void respondWithError(final PolicyCommand policyCommand, final ActorRef sender) {
-        sender.tell(errorForPolicyCommand(policyCommand), self());
+    private void respondWithError() {
+        sender().tell(errorForPolicyCommand(signal()), self());
     }
 
     private void askPoliciesShardRegionAndBuildJsonView(
             final PolicyQueryCommand commandWithReadSubjects,
-            final Enforcer enforcer,
-            final ActorRef sender) {
+            final Enforcer enforcer) {
 
-        PatternsCS.ask(policiesShardRegion, commandWithReadSubjects, getAskTimeout().toMillis())
+        Patterns.ask(policiesShardRegion, commandWithReadSubjects, getAskTimeout())
                 .handleAsync((response, error) -> {
                     if (response instanceof PolicyQueryCommandResponse) {
-                        reportJsonViewForPolicyQuery(sender, (PolicyQueryCommandResponse) response, enforcer);
+                        reportJsonViewForPolicyQuery((PolicyQueryCommandResponse<?>) response, enforcer);
                     } else if (response instanceof DittoRuntimeException) {
-                        replyToSender(response, sender);
+                        replyToSender(response);
                     } else if (isAskTimeoutException(response, error)) {
-                        reportTimeoutForPolicyQuery(commandWithReadSubjects, sender, (AskTimeoutException) response);
+                        reportTimeoutForPolicyQuery(commandWithReadSubjects, (AskTimeoutException) response);
                     } else if (error != null) {
-                        reportUnexpectedError("before building JsonView", sender, error,
-                                commandWithReadSubjects.getDittoHeaders());
+                        reportUnexpectedError("before building JsonView", error);
                     } else {
-                        reportUnknownResponse("before building JsonView", sender, response,
-                                commandWithReadSubjects.getDittoHeaders());
+                        reportUnknownResponse("before building JsonView", response);
                     }
                     return null;
                 }, getEnforcementExecutor());
@@ -254,24 +260,23 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
 
     private void reportTimeoutForPolicyQuery(
             final PolicyQueryCommand command,
-            final ActorRef sender,
             final AskTimeoutException askTimeoutException) {
         log(command).error(askTimeoutException, "Timeout before building JsonView");
         replyToSender(PolicyUnavailableException.newBuilder(command.getId())
                 .dittoHeaders(command.getDittoHeaders())
-                .build(), sender);
+                .build());
     }
 
-    private void reportJsonViewForPolicyQuery(final ActorRef sender,
+    private void reportJsonViewForPolicyQuery(
             final PolicyQueryCommandResponse<?> thingQueryCommandResponse,
             final Enforcer enforcer) {
 
         try {
             final PolicyQueryCommandResponse responseWithLimitedJsonView =
                     buildJsonViewForPolicyQueryCommandResponse(thingQueryCommandResponse, enforcer);
-            replyToSender(responseWithLimitedJsonView, sender);
+            replyToSender(responseWithLimitedJsonView);
         } catch (final RuntimeException e) {
-            reportError("Error after building JsonView", sender, e, thingQueryCommandResponse.getDittoHeaders());
+            reportError("Error after building JsonView", e);
         }
     }
 
@@ -301,7 +306,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
         }
 
         @Override
-        public AbstractEnforcement<PolicyCommand> createEnforcement(final AbstractEnforcement.Context context) {
+        public AbstractEnforcement<PolicyCommand> createEnforcement(final Contextual<PolicyCommand> context) {
             return new PolicyCommandEnforcement(context, policiesShardRegion, enforcerCache);
         }
 

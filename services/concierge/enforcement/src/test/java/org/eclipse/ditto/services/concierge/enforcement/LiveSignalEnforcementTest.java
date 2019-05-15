@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -21,6 +23,7 @@ import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.POLICY_
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.SUBJECT;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.THING_ID;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.THING_SUDO;
+import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.fishForMsgClass;
 
 import java.util.UUID;
 
@@ -28,6 +31,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -46,8 +50,10 @@ import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessage;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
+import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.EventSendNotAllowedException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureNotModifiableException;
@@ -66,6 +72,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.testkit.TestActorRef;
+import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 @SuppressWarnings({"squid:S3599", "squid:S1171"})
@@ -105,7 +112,7 @@ public final class LiveSignalEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(readCommand(), getRef());
-            expectMsgClass(ThingNotAccessibleException.class);
+            fishForMsgClass(this, ThingNotAccessibleException.class);
 
             underTest.tell(writeCommand(), getRef());
             expectMsgClass(FeatureNotModifiableException.class);
@@ -131,7 +138,7 @@ public final class LiveSignalEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(readCommand(), getRef());
-            expectMsgClass(ThingNotAccessibleException.class);
+            fishForMsgClass(this, ThingNotAccessibleException.class);
 
             underTest.tell(writeCommand(), getRef());
             expectMsgClass(FeatureNotModifiableException.class);
@@ -155,7 +162,7 @@ public final class LiveSignalEnforcementTest {
             final ThingCommand read = readCommand();
             mockEntitiesActorInstance.setReply(read);
             underTest.tell(read, getRef());
-            final DistributedPubSubMediator.Publish publish = expectMsgClass(DistributedPubSubMediator.Publish.class);
+            final DistributedPubSubMediator.Publish publish = fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.LIVE_COMMANDS.getDistributedPubSubTopic());
             assertThat(publish.msg()).isInstanceOf(ThingCommand.class);
             assertThat(((ThingCommand) publish.msg()).getId()).isEqualTo(read.getId());
@@ -198,7 +205,7 @@ public final class LiveSignalEnforcementTest {
             final ThingCommand write = writeCommand();
             mockEntitiesActorInstance.setReply(write);
             underTest.tell(write, getRef());
-            final DistributedPubSubMediator.Publish publish = expectMsgClass(DistributedPubSubMediator.Publish.class);
+            final DistributedPubSubMediator.Publish publish = fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.LIVE_COMMANDS.getDistributedPubSubTopic());
             assertThat(publish.msg()).isInstanceOf(ThingCommand.class);
             assertThat(((ThingCommand) publish.msg()).getId()).isEqualTo(write.getId());
@@ -230,7 +237,7 @@ public final class LiveSignalEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(thingMessageCommand(), getRef());
-            expectMsgClass(MessageSendNotAllowedException.class);
+            fishForMsgClass(this, MessageSendNotAllowedException.class);
         }};
     }
 
@@ -253,7 +260,7 @@ public final class LiveSignalEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(thingMessageCommand(), getRef());
-            expectMsgClass(MessageSendNotAllowedException.class);
+            fishForMsgClass(this, MessageSendNotAllowedException.class);
         }};
     }
 
@@ -274,7 +281,7 @@ public final class LiveSignalEnforcementTest {
             final MessageCommand msgCommand = thingMessageCommand();
             mockEntitiesActorInstance.setReply(msgCommand);
             underTest.tell(msgCommand, getRef());
-            final DistributedPubSubMediator.Publish publish = expectMsgClass(DistributedPubSubMediator.Publish.class);
+            final DistributedPubSubMediator.Publish publish = fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.MESSAGES.getDistributedPubSubTopic());
             assertThat(publish.msg()).isInstanceOf(MessageCommand.class);
             assertThat(((MessageCommand) publish.msg()).getId()).isEqualTo(msgCommand.getId());
@@ -308,10 +315,37 @@ public final class LiveSignalEnforcementTest {
             final MessageCommand msgCommand = thingMessageCommand();
             mockEntitiesActorInstance.setReply(msgCommand);
             underTest.tell(msgCommand, getRef());
-            final DistributedPubSubMediator.Publish publish = expectMsgClass(DistributedPubSubMediator.Publish.class);
+            final DistributedPubSubMediator.Publish publish = fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.MESSAGES.getDistributedPubSubTopic());
             assertThat(publish.msg()).isInstanceOf(MessageCommand.class);
             assertThat(((MessageCommand) publish.msg()).getId()).isEqualTo(msgCommand.getId());
+        }};
+    }
+
+    @Test
+    public void acceptMessageCommandResponseByAcl() {
+        final JsonObject thingWithAcl = newThing()
+                .setPermissions(AclEntry.newInstance(SUBJECT, READ, WRITE, ADMINISTRATE))
+                .build()
+                .toJson(V_1, FieldType.all());
+        final SudoRetrieveThingResponse response =
+                SudoRetrieveThingResponse.of(thingWithAcl, DittoHeaders.empty());
+
+        new TestKit(system) {{
+            mockEntitiesActorInstance.setReply(THING_SUDO, response);
+
+            final TestProbe responseProbe = TestProbe.apply(system);
+
+            final ActorRef underTest = newEnforcerActor(getRef());
+            final MessageCommand msgCommand = thingMessageCommand();
+            mockEntitiesActorInstance.setReply(msgCommand);
+            underTest.tell(msgCommand, responseProbe.ref());
+            final DistributedPubSubMediator.Publish publish = fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
+            assertThat(publish.topic()).isEqualTo(StreamingType.MESSAGES.getDistributedPubSubTopic());
+
+            underTest.tell(thingMessageCommandResponse((MessageCommand) publish.msg()), getRef());
+            responseProbe.expectMsg(thingMessageCommandResponse((MessageCommand) publish.msg()));
+            assertThat(responseProbe.lastSender()).isEqualTo(getRef());
         }};
     }
 
@@ -341,7 +375,7 @@ public final class LiveSignalEnforcementTest {
             final MessageCommand msgCommand = featureMessageCommand();
             mockEntitiesActorInstance.setReply(msgCommand);
             underTest.tell(msgCommand, getRef());
-            final DistributedPubSubMediator.Publish publish = expectMsgClass(DistributedPubSubMediator.Publish.class);
+            final DistributedPubSubMediator.Publish publish = fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.MESSAGES.getDistributedPubSubTopic());
             assertThat(publish.msg()).isInstanceOf(MessageCommand.class);
             assertThat(((MessageCommand) publish.msg()).getId()).isEqualTo(msgCommand.getId());
@@ -362,7 +396,7 @@ public final class LiveSignalEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(liveEvent(), getRef());
-            expectMsgClass(EventSendNotAllowedException.class);
+            fishForMsgClass(this, EventSendNotAllowedException.class);
         }};
     }
 
@@ -385,7 +419,7 @@ public final class LiveSignalEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(liveEvent(), getRef());
-            expectMsgClass(EventSendNotAllowedException.class);
+            fishForMsgClass(this, EventSendNotAllowedException.class);
         }};
     }
 
@@ -406,7 +440,7 @@ public final class LiveSignalEnforcementTest {
             final ThingEvent liveEvent = liveEvent();
             mockEntitiesActorInstance.setReply(liveEvent);
             underTest.tell(liveEvent, getRef());
-            final DistributedPubSubMediator.Publish publish = expectMsgClass(DistributedPubSubMediator.Publish.class);
+            final DistributedPubSubMediator.Publish publish = fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.LIVE_EVENTS.getDistributedPubSubTopic());
             assertThat(publish.msg()).isInstanceOf(Event.class);
             assertThat(((Event) publish.msg()).getId()).isEqualTo(liveEvent.getId());
@@ -440,7 +474,8 @@ public final class LiveSignalEnforcementTest {
             final ThingEvent liveEvent = liveEvent();
             mockEntitiesActorInstance.setReply(liveEvent);
             underTest.tell(liveEvent, getRef());
-            final DistributedPubSubMediator.Publish publish = expectMsgClass(DistributedPubSubMediator.Publish.class);
+
+            final DistributedPubSubMediator.Publish publish = fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.LIVE_EVENTS.getDistributedPubSubTopic());
             assertThat(publish.msg()).isInstanceOf(Event.class);
             assertThat(((Event) publish.msg()).getId()).isEqualTo(liveEvent.getId());
@@ -482,13 +517,18 @@ public final class LiveSignalEnforcementTest {
     }
 
     private static MessageCommand thingMessageCommand() {
-        final Message<?> message = Message.newBuilder(
+        final Message<Object> message = Message.newBuilder(
                 MessageBuilder.newHeadersBuilder(MessageDirection.TO, THING_ID, "my-subject")
                         .contentType("text/plain")
                         .build())
                 .payload("Hello you!")
                 .build();
         return SendThingMessage.of(THING_ID, message, headers(V_2));
+    }
+
+    private static MessageCommandResponse thingMessageCommandResponse(final MessageCommand<?, ?> command) {
+        return SendThingMessageResponse.of(command.getThingId(), command.getMessage(),
+                HttpStatusCode.VARIANT_ALSO_NEGOTIATES, command.getDittoHeaders());
     }
 
     private static MessageCommand featureMessageCommand() {

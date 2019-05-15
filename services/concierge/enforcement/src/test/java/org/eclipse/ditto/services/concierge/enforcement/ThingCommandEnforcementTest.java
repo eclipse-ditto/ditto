@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -21,9 +23,11 @@ import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.POLICY_
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.SUBJECT;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.THING_ID;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.THING_SUDO;
+import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.fishForMsgClass;
 
 import java.time.Instant;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -68,6 +72,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.testkit.TestActorRef;
 import akka.testkit.javadsl.TestKit;
+import scala.concurrent.duration.Duration;
 
 @SuppressWarnings({"squid:S3599", "squid:S1171"})
 public final class ThingCommandEnforcementTest {
@@ -106,7 +111,7 @@ public final class ThingCommandEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(readCommand(), getRef());
-            expectMsgClass(ThingNotAccessibleException.class);
+            fishForMsgClass(this, ThingNotAccessibleException.class);
 
             underTest.tell(writeCommand(), getRef());
             expectMsgClass(FeatureNotModifiableException.class);
@@ -132,7 +137,7 @@ public final class ThingCommandEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(readCommand(), getRef());
-            expectMsgClass(ThingNotAccessibleException.class);
+            fishForMsgClass(this, ThingNotAccessibleException.class);
 
             underTest.tell(writeCommand(), getRef());
             expectMsgClass(FeatureNotModifiableException.class);
@@ -148,7 +153,7 @@ public final class ThingCommandEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(readCommand(), getRef());
-            expectMsg(error);
+            fishForMessage(Duration.create(500, TimeUnit.MILLISECONDS), "error", msg -> msg.equals(error));
         }};
     }
 
@@ -160,7 +165,7 @@ public final class ThingCommandEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(writeCommand(), getRef());
-            expectMsgClass(ThingNotAccessibleException.class);
+            fishForMsgClass(this, ThingNotAccessibleException.class);
         }};
     }
 
@@ -177,7 +182,7 @@ public final class ThingCommandEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(readCommand(), getRef());
-            final DittoRuntimeException error = expectMsgClass(ThingNotAccessibleException.class);
+            final DittoRuntimeException error = fishForMsgClass(this, ThingNotAccessibleException.class);
             assertThat(error.getMessage()).contains(policyId);
             assertThat(error.getDescription().orElse("")).contains(policyId);
         }};
@@ -196,7 +201,7 @@ public final class ThingCommandEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(writeCommand(), getRef());
-            final DittoRuntimeException error = expectMsgClass(ThingNotModifiableException.class);
+            final DittoRuntimeException error = fishForMsgClass(this, ThingNotModifiableException.class);
             assertThat(error.getMessage()).contains(policyId);
             assertThat(error.getDescription().orElse("")).contains(policyId);
         }};
@@ -219,7 +224,7 @@ public final class ThingCommandEnforcementTest {
             final ActorRef underTest = newEnforcerActor(getRef());
             final CreateThing createThing = CreateThing.of(thingWithEmptyAcl, null, headers(V_1));
             underTest.tell(createThing, getRef());
-            expectMsgClass(ThingNotModifiableException.class);
+            fishForMsgClass(this, ThingNotModifiableException.class);
         }};
     }
 
@@ -241,7 +246,7 @@ public final class ThingCommandEnforcementTest {
             final ActorRef underTest = newEnforcerActor(getRef());
             final CreateThing createThing = CreateThing.of(thing, policy.toJson(), headers(V_2));
             underTest.tell(createThing, getRef());
-            expectMsgClass(ThingNotModifiableException.class);
+            fishForMsgClass(this, ThingNotModifiableException.class);
         }};
 
     }
@@ -263,7 +268,7 @@ public final class ThingCommandEnforcementTest {
             final ThingCommand read = readCommand();
             mockEntitiesActorInstance.setReply(read);
             underTest.tell(read, getRef());
-            assertThat(expectMsgClass(read.getClass()).getId()).isEqualTo(read.getId());
+            assertThat(fishForMsgClass(this, read.getClass()).getId()).isEqualTo(read.getId());
 
             final ThingCommand write = writeCommand();
             mockEntitiesActorInstance.setReply(write);
@@ -300,7 +305,7 @@ public final class ThingCommandEnforcementTest {
             final ThingCommand write = writeCommand();
             mockEntitiesActorInstance.setReply(write);
             underTest.tell(write, getRef());
-            assertThat(expectMsgClass(write.getClass()).getId()).isEqualTo(write.getId());
+            assertThat(fishForMsgClass(this, write.getClass()).getId()).isEqualTo(write.getId());
 
             final ThingCommand read = readCommand();
             final RetrieveThingResponse retrieveThingResponse =
@@ -325,7 +330,7 @@ public final class ThingCommandEnforcementTest {
             final ActorRef underTest = newEnforcerActor(getRef());
             mockEntitiesActorInstance.setReply(createThing);
             underTest.tell(createThing, getRef());
-            final CreateThing filteredCreateThing = expectMsgClass(CreateThing.class);
+            final CreateThing filteredCreateThing = fishForMsgClass(this, CreateThing.class);
             assertThat(filteredCreateThing.getThing()).isEqualTo(thing);
         }};
     }
@@ -349,7 +354,7 @@ public final class ThingCommandEnforcementTest {
             mockEntitiesActorInstance.setReply(CreateThingResponse.of(thing, headers(V_2)))
                     .setReply(CreatePolicyResponse.of(THING_ID, policy, headers(V_2)));
             underTest.tell(createThing, getRef());
-            final CreateThingResponse expectedCreateThingResponse = expectMsgClass(CreateThingResponse.class);
+            final CreateThingResponse expectedCreateThingResponse = fishForMsgClass(this, CreateThingResponse.class);
             assertThat(expectedCreateThingResponse.getThingCreated().orElse(null)).isEqualTo(thing);
         }};
 
@@ -375,11 +380,11 @@ public final class ThingCommandEnforcementTest {
             underTest.tell(createThing, getRef());
 
             // cache should be invalidated before response is sent
-            expectMsgClass(CreateThingResponse.class);
+            fishForMsgClass(this, CreateThingResponse.class);
 
             // second Thing command should trigger cache load again
             underTest.tell(createThing, getRef());
-            expectMsgClass(CreateThingResponse.class);
+            fishForMsgClass(this, CreateThingResponse.class);
 
             // verify cache is loaded twice
             assertThat(sudoRetrieveThingCounter.get()).isEqualTo(2);
@@ -405,7 +410,7 @@ public final class ThingCommandEnforcementTest {
             mockEntitiesActorInstance.setReply(CreateThingResponse.of(thing, headers(V_2)))
                     .setReply(CreatePolicyResponse.of(THING_ID, policy, headers(V_2)));
             underTest.tell(createThing, getRef());
-            final CreateThingResponse expectedCreateThingResponse = expectMsgClass(CreateThingResponse.class);
+            final CreateThingResponse expectedCreateThingResponse = fishForMsgClass(this, CreateThingResponse.class);
             assertThat(expectedCreateThingResponse.getThingCreated().orElse(null)).isEqualTo(thing);
         }};
 
@@ -434,7 +439,7 @@ public final class ThingCommandEnforcementTest {
             underTest.tell(createThing, getRef());
 
             // result may not be an instance of PolicyIdInvalidException but should have the same error code.
-            final DittoRuntimeException response = expectMsgClass(DittoRuntimeException.class);
+            final DittoRuntimeException response = fishForMsgClass(this, DittoRuntimeException.class);
             assertThat(response.getErrorCode()).isEqualTo(PolicyIdInvalidException.ERROR_CODE);
         }};
     }
@@ -463,7 +468,7 @@ public final class ThingCommandEnforcementTest {
             underTest.tell(createThing, getRef());
 
             // result may not be an instance of PolicyInvalidException but should have the same error code.
-            final DittoRuntimeException response = expectMsgClass(DittoRuntimeException.class);
+            final DittoRuntimeException response = fishForMsgClass(this, DittoRuntimeException.class);
             assertThat(response.getErrorCode()).isEqualTo(PolicyInvalidException.ERROR_CODE);
         }};
 
@@ -478,7 +483,7 @@ public final class ThingCommandEnforcementTest {
             final ModifyThing modifyThing = ModifyThing.of(THING_ID, thingInPayload, null, headers(V_1));
             underTest.tell(modifyThing, getRef());
 
-            expectMsgClass(SudoRetrieveThing.class);
+            fishForMsgClass(this, SudoRetrieveThing.class);
             reply(ThingNotAccessibleException.newBuilder(THING_ID).build());
 
             expectMsgClass(CreateThing.class);

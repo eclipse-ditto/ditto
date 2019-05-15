@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -17,6 +19,7 @@ import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -39,6 +42,7 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
+import org.eclipse.ditto.services.connectivity.messaging.kafka.KafkaValidator;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.RetrieveConnectionMetricsAggregatorActor;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.RetrieveConnectionStatusAggregatorActor;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttValidator;
@@ -96,6 +100,7 @@ import akka.actor.Status;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.routing.ClusterRouterPool;
 import akka.cluster.routing.ClusterRouterPoolSettings;
+import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
@@ -136,7 +141,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private static final ConnectionValidator CONNECTION_VALIDATOR = ConnectionValidator.of(
             RabbitMQValidator.newInstance(),
             AmqpValidator.newInstance(),
-            MqttValidator.newInstance());
+            MqttValidator.newInstance(),
+            KafkaValidator.newInstance());
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -281,8 +287,10 @@ public final class ConnectionActor extends AbstractPersistentActor {
                             subscribeForEvents();
                         }
                         getContext().become(connectionCreatedBehaviour);
-                    } else {
+                    } else if (lastSequenceNr() > 0) {
+                        // if the last sequence number is already > 0 we can assume that the connection was deleted:
                         stopSelfIfDeletedAfterDelay();
+                        // otherwise not - as the connection may just be created!
                     }
 
                     getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
@@ -394,7 +402,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
             return;
         }
 
-        final Set<Target> subscribedAndAuthorizedTargets = signalFilter.filter(signal);
+        final List<Target> subscribedAndAuthorizedTargets = signalFilter.filter(signal);
         if (subscribedAndAuthorizedTargets.isEmpty()) {
             log.debug("Signal dropped: No subscribed and authorized targets present");
             return;
@@ -910,9 +918,9 @@ public final class ConnectionActor extends AbstractPersistentActor {
     }
 
     private void stopSelf() {
-        log.debug("Shutting down");
-        // stop the supervisor (otherwise it'd restart this actor) which causes this actor to stop, too.
-        getContext().getParent().tell(PoisonPill.getInstance(), getSelf());
+        log.info("Passivating / shutting down");
+        final ShardRegion.Passivate passivateMessage = new ShardRegion.Passivate(PoisonPill.getInstance());
+        getContext().getParent().tell(passivateMessage, getSelf());
     }
 
     private void stopSelfIfDeletedAfterDelay() {

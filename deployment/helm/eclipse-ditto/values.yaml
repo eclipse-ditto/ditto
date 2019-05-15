@@ -1,0 +1,103 @@
+# Default values for eclipse-ditto.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+service:
+  type: NodePort
+  port: 8080
+
+akka:
+  remoting:
+    port: 2551
+  mgmthttp:
+    port: 8558
+
+global:
+  timezone: Europe/Berlin
+
+concierge:
+  enabled: true
+  name: concierge
+  replicaCount: 1
+  image:
+    repository: docker.io/eclipse/ditto-concierge
+    imagePullPolicy: IfNotPresent
+    tag: 0.9.0-M2
+connectivity:
+  enabled: true
+  name: connectivity
+  replicaCount: 1
+  image:
+    repository: docker.io/eclipse/ditto-connectivity
+    imagePullPolicy: IfNotPresent
+    tag: 0.9.0-M2
+things:
+  enabled: true
+  name: things
+  replicaCount: 1
+  image:
+    repository: docker.io/eclipse/ditto-things
+    imagePullPolicy: IfNotPresent
+    tag: 0.9.0-M2
+search:
+  enabled: true
+  name: things-search
+  replicaCount: 1
+  image:
+    repository: docker.io/eclipse/ditto-things-search
+    imagePullPolicy: IfNotPresent
+    tag: 0.9.0-M2
+policies:
+  enabled: true
+  name: policies
+  replicaCount: 1
+  image:
+    repository: docker.io/eclipse/ditto-policies
+    imagePullPolicy: IfNotPresent
+    tag: 0.9.0-M2
+gateway:
+  enabled: true
+  name: gateway
+  replicaCount: 1
+  image:
+    repository: docker.io/eclipse/ditto-gateway
+    imagePullPolicy: IfNotPresent
+    tag: 0.9.0-M2
+
+nginx:
+  replicaCount: 1
+  version: 1.15
+swagger:
+  replicaCount: 1
+  version: 3.17.4
+
+
+##
+## MongoDB chart configuration
+##
+mongodb:
+## Disable in case an external MongoDB is used
+  embedded:
+    enabled: true
+## https://github.com/helm/charts/blob/master/stable/mongodb/values.yaml
+  usePassword: false
+  image:
+    tag: 3.6
+  persistence:
+    enabled: false
+  apps:
+    concierge:
+      uri: mongodb://ditto-mongodb:27017/concierge
+      ssl: false
+    connectivity:
+      uri: mongodb://ditto-mongodb:27017/connectivity
+      ssl: false
+    things:
+      uri: mongodb://ditto-mongodb:27017/things
+      ssl: false
+    searchDB:
+      uri: mongodb://ditto-mongodb:27017/searchDB
+      ssl: false
+    policies:
+      uri: mongodb://ditto-mongodb:27017/policies
+      ssl: false

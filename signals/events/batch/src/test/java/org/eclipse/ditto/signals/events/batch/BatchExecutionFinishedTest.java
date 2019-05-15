@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -27,7 +29,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.commands.things.ThingCommandResponseRegistry;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.junit.Test;
@@ -127,8 +129,7 @@ public final class BatchExecutionFinishedTest {
     @Test
     public void createInstanceFromValidJson() {
         final BatchExecutionFinished underTest =
-                BatchExecutionFinished.fromJson(KNOWN_JSON.toString(), DittoHeaders.empty(),
-                        ThingCommandResponseRegistry.newInstance());
+                BatchExecutionFinished.fromJson(KNOWN_JSON.toString(), DittoHeaders.empty());
 
         assertThat(underTest).isNotNull();
         assertThat(underTest.getBatchId()).isEqualTo(KNOWN_BATCH_ID);
@@ -138,8 +139,7 @@ public final class BatchExecutionFinishedTest {
     @Test
     public void retrieveEventName() {
         final String name =
-                BatchExecutionFinished.fromJson(KNOWN_JSON.toString(), DittoHeaders.empty(),
-                        ThingCommandResponseRegistry.newInstance()).getName();
+                BatchExecutionFinished.fromJson(KNOWN_JSON.toString(), DittoHeaders.empty()).getName();
         assertThat(name).isEqualTo(BatchExecutionFinished.NAME);
     }
 

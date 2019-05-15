@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -40,10 +42,11 @@ import org.eclipse.ditto.services.gateway.endpoints.utils.HttpClientFacade;
 import org.eclipse.ditto.services.gateway.health.DittoStatusAndHealthProviderFactory;
 import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
 import org.eclipse.ditto.services.gateway.health.config.HealthCheckConfig;
+import org.eclipse.ditto.services.gateway.health.GatewayHttpReadinessCheck;
 import org.eclipse.ditto.services.gateway.proxy.actors.ProxyActor;
 import org.eclipse.ditto.services.gateway.starter.config.GatewayConfig;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
-import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
+import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
@@ -76,6 +79,7 @@ import akka.actor.SupervisorStrategy;
 import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ClusterSharding;
+import akka.dispatch.MessageDispatcher;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
@@ -96,6 +100,8 @@ final class GatewayRootActor extends AbstractActor {
      * The name of this Actor in the ActorSystem.
      */
     static final String ACTOR_NAME = "gatewayRoot";
+
+    private static final String AUTHENTICATION_DISPATCHER_NAME = "authentication-dispatcher";
 
     private static final String CHILD_RESTART_INFO_MSG = "Restarting child ...";
 
@@ -145,6 +151,8 @@ final class GatewayRootActor extends AbstractActor {
                 return SupervisorStrategy.escalate();
             }).build());
 
+    private final CompletionStage<ServerBinding> httpBinding;
+
     private GatewayRootActor(final GatewayConfig gatewayConfig, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
@@ -169,13 +177,12 @@ final class GatewayRootActor extends AbstractActor {
                 DevOpsCommandsActor.props(LogbackLoggingFacade.newInstance(), GatewayService.SERVICE_NAME,
                         InstanceIdentifierSupplier.getInstance().get()));
 
-        final ActorRef conciergeShardRegionProxy = ClusterSharding.get(actorSystem)
-                .startProxy(ConciergeMessagingConstants.SHARD_REGION,
-                        Optional.of(ConciergeMessagingConstants.CLUSTER_ROLE),
-                        ShardRegionExtractor.of(numberOfShards, actorSystem));
+        final ActorRef conciergeEnforcerRouter =
+                ConciergeEnforcerClusterRouterFactory.createConciergeEnforcerClusterRouter(getContext(),
+                        numberOfShards);
 
         final ActorRef conciergeForwarder = startChildActor(ConciergeForwarderActor.ACTOR_NAME,
-                ConciergeForwarderActor.props(pubSubMediator, conciergeShardRegionProxy));
+                ConciergeForwarderActor.props(pubSubMediator, conciergeEnforcerRouter));
 
         final ActorRef proxyActor = startChildActor(ProxyActor.ACTOR_NAME,
                 ProxyActor.props(pubSubMediator, devOpsCommandsActor, conciergeForwarder,
@@ -196,12 +203,12 @@ final class GatewayRootActor extends AbstractActor {
             log.info("No explicit hostname configured, using HTTP hostname <{}>.", hostname);
         }
 
-        final CompletionStage<ServerBinding> binding = Http.get(actorSystem)
+        httpBinding = Http.get(actorSystem)
                 .bindAndHandle(createRoute(actorSystem, gatewayConfig, proxyActor, streamingActor, healthCheckActor,
                         healthCheckConfig).flow(actorSystem, materializer),
                         ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
 
-        binding.thenAccept(theBinding -> {
+        httpBinding.thenAccept(theBinding -> {
                     log.info("Serving HTTP requests on port <{}> ...", theBinding.localAddress().getPort());
                     CoordinatedShutdown.get(actorSystem).addTask(
                             CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_http_endpoint", () -> {
@@ -247,6 +254,11 @@ final class GatewayRootActor extends AbstractActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure: {}", f))
+                .matchEquals(GatewayHttpReadinessCheck.READINESS_ASK_MESSAGE, msg -> {
+                    final ActorRef sender = getSender();
+                    httpBinding.thenAccept(binding -> sender.tell(
+                            GatewayHttpReadinessCheck.READINESS_ASK_MESSAGE_RESPONSE, ActorRef.noSender()));
+                })
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
@@ -266,12 +278,13 @@ final class GatewayRootActor extends AbstractActor {
             final HealthCheckConfig healthCheckConfig) {
 
         final AuthenticationConfig authConfig = gatewayConfig.getAuthenticationConfig();
-        final HttpClientFacade httpClient = HttpClientFacade.getInstance(actorSystem, authConfig.getHttpProxyConfig());
-        final Supplier<ClusterStatus> clusterStateSupplier = new ClusterStatusSupplier(Cluster.get(actorSystem));
         final CachesConfig cachesConfig = gatewayConfig.getCachesConfig();
+        final HttpClientFacade httpClient = HttpClientFacade.getInstance(actorSystem, authConfig.getHttpProxyConfig());
+        final MessageDispatcher authenticationDispatcher = actorSystem.dispatchers().lookup(
+                AUTHENTICATION_DISPATCHER_NAME);
         final GatewayAuthenticationDirectiveFactory authenticationDirectiveFactory =
                 new DittoGatewayAuthenticationDirectiveFactory(authConfig, cachesConfig.getPublicKeysConfig(),
-                        httpClient);
+                        httpClient, authenticationDispatcher);
 
         final ProtocolAdapterProvider protocolAdapterProvider =
                 ProtocolAdapterProvider.load(gatewayConfig.getProtocolConfig(), actorSystem);
@@ -279,6 +292,7 @@ final class GatewayRootActor extends AbstractActor {
 
         final WebSocketConfig webSocketConfig = gatewayConfig.getWebSocketConfig();
 
+        final Supplier<ClusterStatus> clusterStateSupplier = new ClusterStatusSupplier(Cluster.get(actorSystem));
         final StatusAndHealthProvider statusAndHealthProvider =
                 DittoStatusAndHealthProviderFactory.of(actorSystem, clusterStateSupplier, healthCheckConfig);
 

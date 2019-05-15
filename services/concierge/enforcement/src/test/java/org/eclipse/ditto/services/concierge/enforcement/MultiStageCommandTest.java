@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -12,6 +14,7 @@ package org.eclipse.ditto.services.concierge.enforcement;
 
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
+import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.fishForMsgClass;
 
 import java.util.UUID;
 
@@ -133,7 +136,7 @@ public final class MultiStageCommandTest {
             underTest.tell(retrieveThing, getRef());
 
             // THEN: initial requester receives Thing with inline policy
-            final RetrieveThingResponse response = expectMsgClass(RetrieveThingResponse.class);
+            final RetrieveThingResponse response = fishForMsgClass(this, RetrieveThingResponse.class);
             assertThat(response.getThingId()).isEqualTo(thingId);
             assertThat(response.getEntity()).isObject();
             assertThat(response.getEntity().asObject().getValue("_policy/policyId"))
@@ -170,7 +173,7 @@ public final class MultiStageCommandTest {
             underTest.tell(retrieveThing, getRef());
 
             // THEN: initial requester receives Thing with inline policy
-            final RetrieveThingResponse response = expectMsgClass(RetrieveThingResponse.class);
+            final RetrieveThingResponse response = fishForMsgClass(this, RetrieveThingResponse.class);
             assertThat(response.getThingId()).isEqualTo(thingId);
             assertThat(response.getEntity()).isObject();
             assertThat(response.getEntity().asObject()).doesNotContain(JsonKey.of("_policy"));
@@ -207,7 +210,7 @@ public final class MultiStageCommandTest {
             underTest.tell(retrieveThing, getRef());
 
             // THEN: initial requester receives error
-            expectMsgClass(ThingNotAccessibleException.class);
+            fishForMsgClass(this, ThingNotAccessibleException.class);
 
             // WHEN: Thing exists but Policy exists only in cache
             mockThingsActor.underlyingActor()
@@ -252,7 +255,7 @@ public final class MultiStageCommandTest {
             underTest.tell(retrieveThing, getRef());
 
             // THEN: initial requester receives error
-            expectMsgClass(ThingUnavailableException.class);
+            fishForMsgClass(this, ThingUnavailableException.class);
 
             // WHEN: Thing is responsive but Policy times out
             mockThingsActor.underlyingActor()
@@ -293,7 +296,7 @@ public final class MultiStageCommandTest {
             underTest.tell(modifyThing, getRef());
 
             // THEN: initial requester receives success
-            expectMsgClass(ModifyThingResponse.class);
+            fishForMsgClass(this, ModifyThingResponse.class);
         }};
     }
 
@@ -321,7 +324,7 @@ public final class MultiStageCommandTest {
             underTest.tell(modifyThing, getRef());
 
             // THEN: initial requester receives success
-            expectMsgClass(CreateThingResponse.class);
+            fishForMsgClass(this, CreateThingResponse.class);
         }};
     }
 
@@ -348,7 +351,7 @@ public final class MultiStageCommandTest {
             underTest.tell(modifyThing, getRef());
 
             // THEN: initial requester receives success
-            expectMsgClass(CreateThingResponse.class);
+            fishForMsgClass(this, CreateThingResponse.class);
         }};
     }
 
@@ -374,7 +377,7 @@ public final class MultiStageCommandTest {
             underTest.tell(modifyThing, getRef());
 
             // THEN: initial requester receives failure
-            final ThingNotCreatableException error = expectMsgClass(ThingNotCreatableException.class);
+            final ThingNotCreatableException error = fishForMsgClass(this, ThingNotCreatableException.class);
             assertThat(error.getMessage()).contains("implicit Policy", "creation", "failed");
         }};
     }
@@ -403,7 +406,7 @@ public final class MultiStageCommandTest {
             underTest.tell(modifyThing, getRef());
 
             // THEN: initial requester receives success
-            expectMsgClass(CreateThingResponse.class);
+            fishForMsgClass(this, CreateThingResponse.class);
         }};
     }
 
@@ -431,7 +434,7 @@ public final class MultiStageCommandTest {
             underTest.tell(modifyThing, getRef());
 
             // THEN: initial requester receives error
-            expectMsgClass(ThingNotModifiableException.class);
+            fishForMsgClass(this, ThingNotModifiableException.class);
         }};
     }
 

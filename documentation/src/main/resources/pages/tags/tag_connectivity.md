@@ -1,5 +1,5 @@
 ---
-title: "Connectivity"
+title: "Connectivity topics"
 tagName: connectivity
 search: exclude
 permalink: tag_connectivity.html

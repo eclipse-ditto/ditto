@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -167,13 +169,13 @@ public final class DevOpsRoute extends AbstractRoute {
 
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), instance ->
                 // /devops/<logging|piggyback>/<serviceName>/<instance>
-                routeBuilder.build(ctx, serviceName, Integer.parseInt(instance), dittoHeaders)
+                routeBuilder.build(ctx, serviceName, instance, dittoHeaders)
         );
     }
 
     private Route routeLogging(final RequestContext ctx,
             final String serviceName,
-            final Integer instance,
+            final String instance,
             final DittoHeaders dittoHeaders) {
 
         return route(
@@ -198,7 +200,7 @@ public final class DevOpsRoute extends AbstractRoute {
 
     private Route routePiggyback(final RequestContext ctx,
             @Nullable final String serviceName,
-            @Nullable final Integer instance,
+            @Nullable final String instance,
             final DittoHeaders dittoHeaders) {
 
         return post(() ->
@@ -219,7 +221,8 @@ public final class DevOpsRoute extends AbstractRoute {
                                                     .map(JsonValue::asObject)
                                                     .map(DittoHeaders::newBuilder)
                                                     .map(head -> head.putHeaders(dittoHeaders))
-                                                    .map(DittoHeadersBuilder::build)
+                                                    .map((java.util.function.Function<DittoHeadersBuilder, DittoHeaders>)
+                                                            DittoHeadersBuilder::build)
                                                     .orElse(dittoHeaders));
                                 }
                         )
@@ -228,7 +231,7 @@ public final class DevOpsRoute extends AbstractRoute {
     }
 
     private static Function<JsonValue, JsonValue> transformResponse(final CharSequence serviceName,
-            final Integer instance) {
+            final String instance) {
 
         final JsonPointer transformerPointer = transformerPointer(serviceName, instance);
         if (transformerPointer.isEmpty()) {
@@ -240,14 +243,14 @@ public final class DevOpsRoute extends AbstractRoute {
     }
 
     private static JsonPointer transformerPointer(@Nullable final CharSequence serviceName,
-            @Nullable final Integer instance) {
+            @Nullable final String instance) {
 
         JsonPointer newPointer = JsonPointer.empty();
         if (serviceName != null) {
             newPointer = newPointer.append(JsonPointer.of(serviceName));
         }
         if (instance != null) {
-            newPointer = newPointer.append(JsonPointer.of(instance.toString()));
+            newPointer = newPointer.append(JsonPointer.of(instance));
         }
         return newPointer;
     }
@@ -262,7 +265,7 @@ public final class DevOpsRoute extends AbstractRoute {
     @FunctionalInterface
     private interface RouteBuilderWithOptionalServiceNameAndInstance {
 
-        Route build(RequestContext ctx, String serviceName, Integer instance, DittoHeaders dittoHeaders);
+        Route build(RequestContext ctx, String serviceName, String instance, DittoHeaders dittoHeaders);
 
     }
 

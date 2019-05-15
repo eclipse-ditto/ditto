@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: swagger-ui
+  labels:
+    app.kubernetes.io/part-of: {{ .Chart.Name }}
+    app.kubernetes.io/version: "{{ .Values.nginx.version }}"
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app: swagger-ui
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: swagger-ui
+  labels:
+    app: swagger-ui
+    app.kubernetes.io/name: swagger-ui
+    app.kubernetes.io/part-of: {{ .Chart.Name }}
+    app.kubernetes.io/version: "{{ .Values.nginx.version }}"
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  selector:
+    matchLabels:
+      app: swagger-ui
+  replicas: {{ .Values.swagger.replicaCount }}
+  template:
+    metadata:
+      labels:
+        app: swagger-ui
+    spec:
+      containers:
+      - name: swagger-ui
+        image: docker.io/swaggerapi/swagger-ui:{{ .Values.swagger.version }}
+        volumeMounts:
+        - name: swagger-ui-api
+          mountPath: /usr/share/nginx/html/openapi
+      volumes:
+      - name: swagger-ui-api
+        configMap:
+          name: swagger-ui-api

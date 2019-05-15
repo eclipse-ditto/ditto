@@ -1,16 +1,17 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
-import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -512,6 +513,21 @@ public final class AmqpClientActorTest extends WithMockServers {
     @Test
     public void testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponse() throws JMSException {
         testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponse(
+                connection, (id, headers) -> ModifyThingResponse.modified(id, DittoHeaders.of(headers)),
+                "replies",
+                message -> message.contains("\"status\":2"));
+    }
+
+    @Test
+    public void testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponseForConnectionWithoutTarget()
+            throws JMSException {
+
+        final String targetsKey = Connection.JsonFields.TARGETS.getPointer().toString();
+        final Connection connectionWithoutTargets
+                = ConnectivityModelFactory.connectionFromJson(connection.toJson().remove(targetsKey));
+
+        testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponse(
+                connectionWithoutTargets,
                 (id, headers) -> ModifyThingResponse.modified(id, DittoHeaders.of(headers)),
                 "replies",
                 message -> message.contains("\"status\":2"));
@@ -520,13 +536,14 @@ public final class AmqpClientActorTest extends WithMockServers {
     @Test
     public void testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveError() throws JMSException {
         testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponse(
-                (id, headers) -> ThingErrorResponse.of(id,
+                connection, (id, headers) -> ThingErrorResponse.of(id,
                         ThingNotModifiableException.newBuilder(id).dittoHeaders(headers).build()),
                 "replies",
                 message -> message.contains("ditto/thing/things/twin/errors"));
     }
 
     private void testConsumeMessageAndExpectForwardToConciergeForwarderAndReceiveResponse(
+            final Connection connection,
             final BiFunction<String, DittoHeaders, CommandResponse> responseSupplier,
             final String expectedAddress,
             final Predicate<String> messageTextPredicate) throws JMSException {
@@ -585,7 +602,7 @@ public final class AmqpClientActorTest extends WithMockServers {
             final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(singletonList(""));
 
             final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(thingModifiedEvent,
-                    singleton(ConnectivityModelFactory.newTarget(
+                    singletonList(ConnectivityModelFactory.newTarget(
                             TestConstants.Targets.TARGET_WITH_PLACEHOLDER.getAddress(),
                             Authorization.AUTHORIZATION_CONTEXT,
                             null, null, Topic.TWIN_EVENTS))
@@ -616,9 +633,10 @@ public final class AmqpClientActorTest extends WithMockServers {
             expectMsg(CONNECTED_SUCCESS);
 
             final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(singletonList(""));
-            final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(thingModifiedEvent, singleton(
-                    ConnectivityModelFactory.newTarget(expectedAddress, Authorization.AUTHORIZATION_CONTEXT, null, null,
-                            Topic.TWIN_EVENTS)));
+            final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(thingModifiedEvent,
+                    singletonList(
+                            ConnectivityModelFactory.newTarget(expectedAddress, Authorization.AUTHORIZATION_CONTEXT,
+                                    null, null, Topic.TWIN_EVENTS)));
 
             amqpClientActor.tell(outboundSignal, getRef());
 

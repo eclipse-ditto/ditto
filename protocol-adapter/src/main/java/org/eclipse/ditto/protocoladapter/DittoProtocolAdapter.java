@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -25,7 +27,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
-import org.eclipse.ditto.signals.base.AbstractErrorRegistry;
+import org.eclipse.ditto.signals.base.ErrorRegistry;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 import org.eclipse.ditto.signals.base.Signal;
@@ -47,7 +49,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  */
 public final class DittoProtocolAdapter implements ProtocolAdapter {
 
-    private final AbstractErrorRegistry<DittoRuntimeException> errorRegistry;
+    private final ErrorRegistry<DittoRuntimeException> errorRegistry;
     private final HeaderTranslator headerTranslator;
 
     private final MessageCommandAdapter messageCommandAdapter;
@@ -58,18 +60,27 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     private final ThingQueryCommandResponseAdapter thingQueryCommandResponseAdapter;
     private final ThingEventAdapter thingEventAdapter;
 
-    private DittoProtocolAdapter(final AbstractErrorRegistry<DittoRuntimeException> errorRegistry,
+    protected DittoProtocolAdapter(final ErrorRegistry<DittoRuntimeException> errorRegistry,
             final HeaderTranslator headerTranslator) {
 
-        this.errorRegistry = checkNotNull(errorRegistry, "error registry");
-        this.headerTranslator = checkNotNull(headerTranslator, "HeaderTranslator");
-        messageCommandAdapter = MessageCommandAdapter.of(headerTranslator);
-        messageCommandResponseAdapter = MessageCommandResponseAdapter.of(headerTranslator);
-        thingModifyCommandAdapter = ThingModifyCommandAdapter.of(headerTranslator);
-        thingModifyCommandResponseAdapter = ThingModifyCommandResponseAdapter.of(headerTranslator);
-        thingQueryCommandAdapter = ThingQueryCommandAdapter.of(headerTranslator);
-        thingQueryCommandResponseAdapter = ThingQueryCommandResponseAdapter.of(headerTranslator);
-        thingEventAdapter = ThingEventAdapter.of(headerTranslator);
+        this.errorRegistry = errorRegistry;
+        this.headerTranslator = headerTranslator;
+        this.messageCommandAdapter = MessageCommandAdapter.of(headerTranslator);
+        this.messageCommandResponseAdapter = MessageCommandResponseAdapter.of(headerTranslator);
+        this.thingModifyCommandAdapter = ThingModifyCommandAdapter.of(headerTranslator);
+        this.thingModifyCommandResponseAdapter = ThingModifyCommandResponseAdapter.of(headerTranslator);
+        this.thingQueryCommandAdapter = ThingQueryCommandAdapter.of(headerTranslator);
+        this.thingQueryCommandResponseAdapter = ThingQueryCommandResponseAdapter.of(headerTranslator);
+        this.thingEventAdapter = ThingEventAdapter.of(headerTranslator);
+    }
+
+    /**
+     * Creates a new {@code DittoProtocolAdapter} instance with the given header translator.
+     *
+     * @param headerTranslator translator between external and Ditto headers.
+     */
+    public static DittoProtocolAdapter of(final HeaderTranslator headerTranslator) {
+        return new DittoProtocolAdapter(GlobalErrorRegistry.getInstance(), requireNonNull(headerTranslator));
     }
 
     /**

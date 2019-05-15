@@ -1,15 +1,19 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.thingsearch.persistence.read.query;
 
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.DOT;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_SORTING;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
@@ -71,8 +75,9 @@ public final class MongoQueryTest {
                         new SortOption(sortExp2, SortDirection.DESC));
         final String thingIdFieldName = ((SimpleFieldExpressionImpl) EFT.sortByThingId()).getFieldName();
         final String attributeFieldName = "attributes.test";
-        knownSortOptionsExpectedBson =
-                Sorts.orderBy(Arrays.asList(Sorts.ascending(thingIdFieldName), Sorts.descending(attributeFieldName)));
+        knownSortOptionsExpectedBson = Sorts.orderBy(Arrays.asList(
+                Sorts.ascending(thingIdFieldName),
+                Sorts.descending(FIELD_SORTING + DOT + attributeFieldName)));
     }
 
     @Test
@@ -104,14 +109,6 @@ public final class MongoQueryTest {
         assertBson(new BsonDocument(), query.getSortOptionsAsBson());
     }
 
-    private static void assertBson(final Bson expected, final Bson actual) {
-        final BsonDocument expectedDoc =
-                org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil.toBsonDocument(expected);
-        final BsonDocument actualDoc =
-                org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil.toBsonDocument(actual);
-        assertThat(actualDoc).isEqualTo(expectedDoc);
-    }
-
     @Test
     public void sortOptionsAreCorrectlySet() {
         final MongoQuery query = new MongoQuery(KNOWN_CRIT, knownSortOptions, defaultPageSizeFromConfig,
@@ -120,6 +117,15 @@ public final class MongoQueryTest {
         assertThat(query.getCriteria()).isEqualTo(KNOWN_CRIT);
         assertThat(query.getSortOptions()).isEqualTo(knownSortOptions);
         assertBson(knownSortOptionsExpectedBson, query.getSortOptionsAsBson());
+    }
+
+    private static void assertBson(final Bson expected, final Bson actual) {
+        final BsonDocument expectedDoc =
+                org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil.toBsonDocument(expected);
+        final BsonDocument actualDoc =
+                org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil.toBsonDocument(actual);
+
+        assertThat(actualDoc).isEqualTo(expectedDoc);
     }
 
 }

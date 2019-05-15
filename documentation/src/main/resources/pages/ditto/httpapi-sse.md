@@ -6,7 +6,7 @@ permalink: httpapi-sse.html
 ---
 
 HTML5 <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.sse}}">SSEs</a> may be used in order 
-to get notified when the state of **Digital Twins** change.
+to get notified when the state of **digital twins** change.
 
 This is the second mechanism of Ditto in order to get [change notifications](basic-changenotifications.html).
 The benefit of this mechanism in contrary to the [WebSocket](httpapi-protocol-bindings-websocket.html) channel is that it is

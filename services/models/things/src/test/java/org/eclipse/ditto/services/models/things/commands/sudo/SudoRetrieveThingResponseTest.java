@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -22,6 +24,8 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -43,7 +47,6 @@ public final class SudoRetrieveThingResponseTest {
 
     private static final DittoHeaders EMPTY_DITTO_HEADERS = DittoHeaders.empty();
 
-    /** */
     @Test
     public void assertImmutability() {
         assertInstancesOf(SudoRetrieveThingResponse.class,
@@ -51,7 +54,6 @@ public final class SudoRetrieveThingResponseTest {
                 provided(JsonObject.class).isAlsoImmutable());
     }
 
-    /** */
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(SudoRetrieveThingResponse.class)
@@ -59,37 +61,32 @@ public final class SudoRetrieveThingResponseTest {
                 .verify();
     }
 
-    /** */
     @Test
     public void toJsonReturnsExpected() {
         final JsonObject thingJson = THING.toJson(FieldType.notHidden());
-        final SudoRetrieveThingResponse underTest =
-                SudoRetrieveThingResponse.of(thingJson, EMPTY_DITTO_HEADERS);
+        final SudoRetrieveThingResponse underTest = SudoRetrieveThingResponse.of(thingJson, EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.notHidden());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
 
-    /** */
     @Test
     public void createInstanceFromValidJson() {
-        final SudoRetrieveThingResponse underTest =
-                SudoRetrieveThingResponse.fromJson(KNOWN_JSON, EMPTY_DITTO_HEADERS);
+        final SudoRetrieveThingResponse underTest = SudoRetrieveThingResponse.fromJson(KNOWN_JSON, EMPTY_DITTO_HEADERS);
 
         Assertions.assertThat(underTest).isNotNull();
         Assertions.assertThat(underTest.getThing()).isEqualTo(THING);
     }
 
-    /** */
     @Test
     public void checkSudoCommandResponseRegistryWorks() {
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                 SudoRetrieveThingResponse.fromJson(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
 
-        final SudoCommandResponse sudoCommandResponse =
-                SudoCommandResponseRegistry.newInstance().parse(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
+        final CommandResponse commandResponse =
+                GlobalCommandResponseRegistry.getInstance().parse(KNOWN_JSON, EMPTY_DITTO_HEADERS);
 
-        assertThat(sudoRetrieveThingResponse).isEqualTo(sudoCommandResponse);
+        assertThat(sudoRetrieveThingResponse).isEqualTo(commandResponse);
     }
 
 }

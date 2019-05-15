@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -29,6 +31,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
@@ -39,6 +42,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a {@link Subject} was modified.
  */
 @Immutable
+@JsonParsableEvent(name = SubjectModified.NAME, typePrefix= SubjectModified.TYPE_PREFIX)
 public final class SubjectModified extends AbstractPolicyEvent<SubjectModified>
         implements PolicyEvent<SubjectModified> {
 
@@ -70,7 +74,7 @@ public final class SubjectModified extends AbstractPolicyEvent<SubjectModified>
             final long revision,
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
-        
+
         super(TYPE, checkNotNull(policyId, "Policy identifier"), revision, timestamp, dittoHeaders);
         this.label = checkNotNull(label, "Label");
         this.subject = checkNotNull(subject, "Subject");
@@ -92,7 +96,7 @@ public final class SubjectModified extends AbstractPolicyEvent<SubjectModified>
             final Subject subject,
             final long revision,
             final DittoHeaders dittoHeaders) {
-        
+
         return of(policyId, label, subject, revision, null, dittoHeaders);
     }
 
@@ -114,7 +118,7 @@ public final class SubjectModified extends AbstractPolicyEvent<SubjectModified>
             final long revision,
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
-        
+
         return new SubjectModified(policyId, label, subject, revision, timestamp, dittoHeaders);
     }
 

@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -20,9 +22,10 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
+import org.eclipse.ditto.model.placeholders.EnforcementFilter;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilter;
 
 /**
  * Implementation of {@link ExternalMessage} that SHOULD NOT be modified
@@ -43,6 +46,8 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
     @Nullable private final HeaderMapping headerMapping;
     @Nullable private final String sourceAddress;
 
+    private final DittoHeaders internalHeaders;
+
     UnmodifiableExternalMessage(final Map<String, String> headers,
             final boolean response,
             final boolean error,
@@ -53,7 +58,8 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
             @Nullable final TopicPath topicPath,
             @Nullable final EnforcementFilter<String> enforcementFilter,
             @Nullable final HeaderMapping headerMapping,
-            @Nullable final String sourceAddress) {
+            @Nullable final String sourceAddress,
+            final DittoHeaders internalHeaders) {
 
         this.headers = Collections.unmodifiableMap(new HashMap<>(headers));
         this.response = response;
@@ -66,6 +72,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
         this.enforcementFilter = enforcementFilter;
         this.headerMapping = headerMapping;
         this.sourceAddress = sourceAddress;
+        this.internalHeaders = internalHeaders;
     }
 
     @Override
@@ -162,6 +169,11 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
     }
 
     @Override
+    public DittoHeaders getInternalHeaders() {
+        return internalHeaders;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -180,13 +192,14 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
                 Objects.equals(sourceAddress, that.sourceAddress) &&
                 Objects.equals(response, that.response) &&
                 Objects.equals(error, that.error) &&
-                payloadType == that.payloadType;
+                payloadType == that.payloadType &&
+                Objects.equals(internalHeaders, that.internalHeaders);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(headers, textPayload, bytePayload, payloadType, response, error, authorizationContext,
-                topicPath, enforcementFilter, headerMapping, sourceAddress);
+                topicPath, enforcementFilter, headerMapping, sourceAddress, internalHeaders);
     }
 
     @Override
@@ -204,6 +217,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
                 ", textPayload=" + textPayload +
                 ", bytePayload=" +
                 (bytePayload == null ? "null" : ("<binary> (size :" + bytePayload.array().length + ")")) + "'" +
+                ", internalHeaders=" + internalHeaders +
                 "]";
     }
 }

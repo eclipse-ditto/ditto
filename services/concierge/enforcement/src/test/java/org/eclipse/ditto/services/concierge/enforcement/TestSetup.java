@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -18,6 +20,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
@@ -53,6 +56,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.testkit.TestProbe;
+import akka.testkit.javadsl.TestKit;
 
 public final class TestSetup {
 
@@ -116,8 +120,9 @@ public final class TestSetup {
         enforcementProviders.add(
                 new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache, aclEnforcerCache));
 
-        final Props props = EnforcerActorCreator.props(testActorRef, enforcementProviders, Duration.ofSeconds(10),
-                conciergeForwarder, system.dispatcher(), preEnforcer, null);
+        final Props props = EnforcerActor.props(testActorRef, enforcementProviders, Duration.ofSeconds(10),
+                conciergeForwarder, system.dispatcher(), 1, 2,
+                preEnforcer, null, null, null);
         return system.actorOf(props, THING + ":" + THING_ID);
     }
 
@@ -145,4 +150,18 @@ public final class TestSetup {
     public static ThingCommand writeCommand() {
         return ModifyFeature.of(THING_ID, Feature.newBuilder().withId("x").build(), headers(V_2));
     }
+
+    /**
+     * Similar to {@link TestKit#expectMsgClass(Class)} but ignores other messages occurring while waiting for a
+     * message of the the passed {@code clazz}.
+     *
+     * @param testKit the TestKit to fish for messages in
+     * @param clazz the type of the message to wait for
+     * @param <T> the type of the waited for message
+     * @return the message
+     */
+    public static <T> T fishForMsgClass(final TestKit testKit, final Class<T> clazz) {
+        return (T) testKit.fishForMessage(scala.concurrent.duration.Duration.create(1, TimeUnit.SECONDS), clazz.getName(), clazz::isInstance);
+    }
+
 }

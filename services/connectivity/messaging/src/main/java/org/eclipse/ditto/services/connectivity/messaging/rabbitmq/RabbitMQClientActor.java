@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -22,6 +24,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
@@ -208,6 +211,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     protected void allocateResourcesOnConnection(final ClientConnected clientConnected) {
         log.debug("Received ClientConnected");
         if (clientConnected instanceof RmqConsumerChannelCreated) {
+            startMessageMappingProcessor();
             final RmqConsumerChannelCreated rmqConsumerChannelCreated = (RmqConsumerChannelCreated) clientConnected;
             startCommandConsumers(rmqConsumerChannelCreated.getChannel());
         }
@@ -217,6 +221,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     protected void cleanupResourcesForConnection() {
         log.debug("cleaning up");
         stopCommandConsumers();
+        stopMessageMappingProcessorActor();
         stopCommandPublisher();
         if (rmqConnectionActor != null) {
             stopChildActor(rmqConnectionActor);
@@ -229,8 +234,8 @@ public final class RabbitMQClientActor extends BaseClientActor {
     }
 
     @Override
-    protected Optional<ActorRef> getPublisherActor() {
-        return Optional.ofNullable(rmqPublisherActor);
+    protected ActorRef getPublisherActor() {
+        return rmqPublisherActor;
     }
 
     private static Optional<ConnectionFactory> tryToCreateConnectionFactory(
@@ -336,15 +341,14 @@ public final class RabbitMQClientActor extends BaseClientActor {
         }
     }
 
-    @Nullable
     private ActorRef startRmqPublisherActor() {
-        if (isPublishing()) {
-            return getContext().findChild(RabbitMQPublisherActor.ACTOR_NAME).orElseGet(() -> {
-                final Props publisherProps = RabbitMQPublisherActor.props(connectionId(), getTargetsOrEmptySet());
-                return startChildActorConflictFree(RabbitMQPublisherActor.ACTOR_NAME, publisherProps);
-            });
-        }
-        return null;
+        return StreamSupport.stream(getContext().getChildren().spliterator(), false)
+                .filter(child -> child.path().name().startsWith(RabbitMQPublisherActor.ACTOR_NAME))
+                .findFirst()
+                .orElseGet(() -> {
+                    final Props publisherProps = RabbitMQPublisherActor.props(connectionId(), getTargetsOrEmptyList());
+                    return startChildActorConflictFree(RabbitMQPublisherActor.ACTOR_NAME, publisherProps);
+                });
     }
 
     private void stopCommandPublisher() {
@@ -367,7 +371,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     private void startConsumers(final Channel channel) {
         final Optional<ActorRef> messageMappingProcessor = getMessageMappingProcessorActor();
         if (messageMappingProcessor.isPresent()) {
-            getSourcesOrEmptySet().forEach(source ->
+            getSourcesOrEmptyList().forEach(source ->
                     source.getAddresses().forEach(sourceAddress -> {
                         for (int i = 0; i < source.getConsumerCount(); i++) {
                             final String addressWithIndex = sourceAddress + "-" + i;
@@ -397,7 +401,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
     private void ensureQueuesExist(final Channel channel) {
         final Collection<String> missingQueues = new ArrayList<>();
-        getSourcesOrEmptySet().forEach(consumer ->
+        getSourcesOrEmptyList().forEach(consumer ->
                 consumer.getAddresses().forEach(address -> {
                     try {
                         channel.queueDeclarePassive(address);

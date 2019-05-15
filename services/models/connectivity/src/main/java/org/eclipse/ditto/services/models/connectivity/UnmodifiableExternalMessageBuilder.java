@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -19,9 +21,10 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
+import org.eclipse.ditto.model.placeholders.EnforcementFilter;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilter;
 
 /**
  * Mutable builder for building new instances of ExternalMessage.
@@ -39,6 +42,7 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     @Nullable private EnforcementFilter<String> enforcementFilter;
     @Nullable private HeaderMapping headerMapping;
     @Nullable private String sourceAddress;
+    private DittoHeaders internalHeaders = DittoHeaders.empty();
 
     /**
      * Constructs a new MutableExternalMessageBuilder initialized with the passed {@code message}.
@@ -57,6 +61,7 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
         this.enforcementFilter = message.getEnforcementFilter().orElse(null);
         this.headerMapping = message.getHeaderMapping().orElse(null);
         this.sourceAddress = message.getSourceAddress().orElse(null);
+        this.internalHeaders = message.getInternalHeaders();
     }
 
     /**
@@ -162,9 +167,15 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     }
 
     @Override
+    public ExternalMessageBuilder withInternalHeaders(final DittoHeaders internalHeaders) {
+        this.internalHeaders = internalHeaders;
+        return this;
+    }
+
+    @Override
     public ExternalMessage build() {
         return new UnmodifiableExternalMessage(headers, response, error, payloadType, textPayload, bytePayload,
-                authorizationContext, topicPath, enforcementFilter, headerMapping, sourceAddress);
+                authorizationContext, topicPath, enforcementFilter, headerMapping, sourceAddress, internalHeaders);
     }
 
 }

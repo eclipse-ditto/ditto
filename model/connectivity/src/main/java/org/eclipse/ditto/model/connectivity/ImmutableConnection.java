@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -61,7 +63,7 @@ final class ImmutableConnection implements Connection {
     @Nullable private final String trustedCertificates;
 
     private final List<Source> sources;
-    private final Set<Target> targets;
+    private final List<Target> targets;
     private final int clientCount;
     private final boolean failOverEnabled;
     private final boolean validateCertificate;
@@ -79,7 +81,7 @@ final class ImmutableConnection implements Connection {
         trustedCertificates = builder.trustedCertificates;
         uri = ConnectionUri.of(checkNotNull(builder.uri, "uri"));
         sources = Collections.unmodifiableList(new ArrayList<>(builder.sources));
-        targets = Collections.unmodifiableSet(new HashSet<>(builder.targets));
+        targets = Collections.unmodifiableList(new ArrayList<>(builder.targets));
         clientCount = builder.clientCount;
         failOverEnabled = builder.failOverEnabled;
         validateCertificate = builder.validateCertificate;
@@ -204,14 +206,14 @@ final class ImmutableConnection implements Connection {
         }
     }
 
-    private static Set<Target> getTargets(final JsonObject jsonObject) {
+    private static List<Target> getTargets(final JsonObject jsonObject) {
         return jsonObject.getValue(JsonFields.TARGETS)
                 .map(array -> array.stream()
                         .filter(JsonValue::isObject)
                         .map(JsonValue::asObject)
                         .map(ConnectivityModelFactory::targetFromJson)
-                        .collect(Collectors.toSet()))
-                .orElse(Collections.emptySet());
+                        .collect(Collectors.toList()))
+                .orElse(Collections.emptyList());
     }
 
     private static Map<String, String> getSpecificConfiguration(final JsonObject jsonObject) {
@@ -259,7 +261,7 @@ final class ImmutableConnection implements Connection {
     }
 
     @Override
-    public Set<Target> getTargets() {
+    public List<Target> getTargets() {
         return targets;
     }
 
@@ -468,7 +470,7 @@ final class ImmutableConnection implements Connection {
         private boolean failOverEnabled = true;
         private boolean validateCertificate = true;
         private final List<Source> sources = new ArrayList<>();
-        private final Set<Target> targets = new HashSet<>();
+        private final List<Target> targets = new ArrayList<>();
         private int clientCount = 1;
         private int processorPoolSize = 5;
         private final Map<String, String> specificConfig = new HashMap<>();
@@ -539,7 +541,7 @@ final class ImmutableConnection implements Connection {
         }
 
         @Override
-        public ConnectionBuilder targets(final Set<Target> targets) {
+        public ConnectionBuilder targets(final List<Target> targets) {
             this.targets.addAll(checkNotNull(targets, "targets"));
             return this;
         }

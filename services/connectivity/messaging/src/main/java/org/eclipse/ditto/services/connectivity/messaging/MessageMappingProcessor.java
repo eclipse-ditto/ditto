@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -30,6 +32,7 @@ import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.InboundExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -129,7 +132,8 @@ public final class MessageMappingProcessor {
     Optional<ExternalMessage> process(final Signal<?> signal) {
         final StartedTimer overAllProcessingTimer = startNewTimer().tag(DIRECTION_TAG_NAME, OUTBOUND);
         return withTimer(overAllProcessingTimer,
-                () -> convertToExternalMessage(() -> protocolAdapter.toAdaptable(signal), overAllProcessingTimer));
+                () -> convertToExternalMessage(signal, () -> protocolAdapter.toAdaptable(signal),
+                        overAllProcessingTimer));
     }
 
     private Optional<InboundExternalMessage> convertMessage(final ExternalMessage message,
@@ -161,7 +165,9 @@ public final class MessageMappingProcessor {
         }
     }
 
-    private Optional<ExternalMessage> convertToExternalMessage(final Supplier<Adaptable> adaptableSupplier,
+    private Optional<ExternalMessage> convertToExternalMessage(
+            final Signal signal,
+            final Supplier<Adaptable> adaptableSupplier,
             final StartedTimer overAllProcessingTimer) {
 
         checkNotNull(adaptableSupplier);
@@ -175,7 +181,10 @@ public final class MessageMappingProcessor {
             return withTimer(overAllProcessingTimer.startNewSegment(PAYLOAD_SEGMENT_NAME),
                     () -> getMapper(adaptable)
                             .map(adaptable)
-                            .map(em -> em.withTopicPath(adaptable.getTopicPath()))
+                            .map(em -> ExternalMessageFactory.newExternalMessageBuilder(em)
+                                    .withTopicPath(adaptable.getTopicPath())
+                                    .withInternalHeaders(signal.getDittoHeaders())
+                                    .build())
             );
         } catch (final DittoRuntimeException e) {
             throw e;

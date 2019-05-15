@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -17,6 +19,7 @@ import static org.eclipse.ditto.model.things.Permission.READ;
 import static org.eclipse.ditto.model.things.Permission.WRITE;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.SUBJECT;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.THING_SUDO;
+import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.fishForMsgClass;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.newThing;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.readCommand;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.writeCommand;
@@ -73,8 +76,7 @@ public final class PreEnforcementTest {
     @Test
     public void acceptWhenPreEnforcementIsSuccessful() {
         final JsonObject thingWithAcl = newThing()
-                .setPermissions(
-                        AclEntry.newInstance(SUBJECT, READ, WRITE, ADMINISTRATE))
+                .setPermissions(AclEntry.newInstance(SUBJECT, READ, WRITE, ADMINISTRATE))
                 .build()
                 .toJson(V_1, FieldType.all());
         final SudoRetrieveThingResponse response =
@@ -87,12 +89,12 @@ public final class PreEnforcementTest {
             final ThingCommand read = readCommand();
             mockEntitiesActorInstance.setReply(read);
             underTest.tell(read, getRef());
-            assertThat(expectMsgClass(read.getClass()).getId()).isEqualTo(read.getId());
+            assertThat(fishForMsgClass(this, read.getClass()).getId()).isEqualTo(read.getId());
 
             final ThingCommand write = writeCommand();
             mockEntitiesActorInstance.setReply(write);
             underTest.tell(write, getRef());
-            assertThat(expectMsgClass(write.getClass()).getId()).isEqualTo(write.getId());
+            assertThat(fishForMsgClass(this, write.getClass()).getId()).isEqualTo(write.getId());
         }};
     }
 
@@ -119,11 +121,11 @@ public final class PreEnforcementTest {
             }));
             final ThingCommand read = readCommand();
             underTest.tell(read, getRef());
-            assertThat(expectMsgClass(mockedEx.getClass())).isEqualTo(mockedEx);
+            assertThat(fishForMsgClass(this, mockedEx.getClass())).isEqualTo(mockedEx);
 
             final ThingCommand write = writeCommand();
             underTest.tell(write, getRef());
-            assertThat(expectMsgClass(mockedEx.getClass())).isEqualTo(mockedEx);
+            assertThat(fishForMsgClass(this, mockedEx.getClass())).isEqualTo(mockedEx);
         }};
     }
 
@@ -152,11 +154,11 @@ public final class PreEnforcementTest {
             }));
             final ThingCommand read = readCommand();
             underTest.tell(read, getRef());
-            expectMsgClass(unexpectedExceptionResultClass);
+            fishForMsgClass(this, unexpectedExceptionResultClass);
 
             final ThingCommand write = writeCommand();
             underTest.tell(write, getRef());
-            expectMsgClass(unexpectedExceptionResultClass);
+            fishForMsgClass(this, unexpectedExceptionResultClass);
         }};
     }
 

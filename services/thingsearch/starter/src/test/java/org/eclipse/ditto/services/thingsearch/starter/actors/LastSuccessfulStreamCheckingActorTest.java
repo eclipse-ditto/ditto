@@ -1,15 +1,18 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.thingsearch.starter.actors;
 
+import static org.eclipse.ditto.services.thingsearch.starter.actors.health.LastSuccessfulStreamCheckingActor.SYNC_DISABLED_MESSAGE;
 import static java.time.Instant.now;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.never;
@@ -34,7 +37,6 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
@@ -81,7 +83,7 @@ public final class LastSuccessfulStreamCheckingActorTest {
     @Test
     public void triggerHealthRetrievalWithNoSuccessfulStream() {
         underTest = actorSystem.actorOf(LastSuccessfulStreamCheckingActor.props(syncConfig, searchSyncPersistence));
-        when(searchSyncPersistence.getTimestampAsync()).thenReturn(optionalEmpty());
+        when(searchSyncPersistence.getTimestampAsync()).thenReturn(Source.single(Optional.empty()));
 
         sendRetrieveHealth();
 
@@ -102,7 +104,8 @@ public final class LastSuccessfulStreamCheckingActorTest {
 
         // WHEN: last successful sync is over syncErrorOffset
         final Instant lastSuccessfulStream = now().minusSeconds(syncErrorOffset.getSeconds() + 60);
-        when(searchSyncPersistence.getTimestampAsync()).thenReturn(optionalOf(lastSuccessfulStream));
+        when(searchSyncPersistence.getTimestampAsync())
+                .thenReturn(Source.single(Optional.of(lastSuccessfulStream)));
 
         // THEN: status is ERROR
         sendRetrieveHealth();
@@ -118,7 +121,8 @@ public final class LastSuccessfulStreamCheckingActorTest {
     public void triggerHealthRetrievalWithExceededWarningOffset() {
         underTest = actorSystem.actorOf(LastSuccessfulStreamCheckingActor.props(syncConfig, searchSyncPersistence));
         final Instant lastSuccessfulStream = now().minusSeconds(syncWarningOffset.getSeconds() + 60);
-        when(searchSyncPersistence.getTimestampAsync()).thenReturn(optionalOf(lastSuccessfulStream));
+        when(searchSyncPersistence.getTimestampAsync())
+                .thenReturn(Source.single(Optional.of(lastSuccessfulStream)));
 
         sendRetrieveHealth();
 
@@ -150,7 +154,8 @@ public final class LastSuccessfulStreamCheckingActorTest {
     public void triggerHealthRetrievalWithSuccessfulStreamInTime() {
         underTest = actorSystem.actorOf(LastSuccessfulStreamCheckingActor.props(syncConfig, searchSyncPersistence));
         final Instant lastSuccessfulStream = now().minusSeconds(syncWarningOffset.getSeconds() - 10);
-        when(searchSyncPersistence.getTimestampAsync()).thenReturn(optionalOf(lastSuccessfulStream));
+        when(searchSyncPersistence.getTimestampAsync())
+                .thenReturn(Source.single(Optional.of(lastSuccessfulStream)));
 
         sendRetrieveHealth();
 
@@ -184,14 +189,6 @@ public final class LastSuccessfulStreamCheckingActorTest {
     private void expectStatusInfo(final StatusInfo expectedStatusInfo) {
         final StatusInfo statusInfo = testKit.expectMsgClass(StatusInfo.class);
         assertThat(statusInfo).isEqualTo(expectedStatusInfo);
-    }
-
-    private static Source<Optional<Instant>, NotUsed> optionalEmpty() {
-        return Source.single(Optional.empty());
-    }
-
-    private static Source<Optional<Instant>, NotUsed> optionalOf(final Instant instant) {
-        return Source.single(Optional.of(instant));
     }
 
 }

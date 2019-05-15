@@ -1,17 +1,19 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
 
 package org.eclipse.ditto.services.connectivity.messaging;
 
-import static java.util.Collections.emptySet;
+import static java.util.Collections.emptyList;
 import static org.eclipse.ditto.model.base.auth.AuthorizationModelFactory.newAuthContext;
 import static org.eclipse.ditto.model.base.auth.AuthorizationModelFactory.newAuthSubject;
 import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget;
@@ -24,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.assertj.core.api.Assertions;
@@ -79,23 +82,23 @@ public class SignalFilterTest {
 
         final Collection<Object[]> params = new ArrayList<>();
 
-        params.add(new Object[]{TWIN_EVENTS, readSubjects, asSet(twin_authd), asSet(twin_authd)});
-        params.add(new Object[]{TWIN_EVENTS, readSubjects, asSet(twin_authd, twin_unauthd), asSet(twin_authd)});
-        params.add(new Object[]{TWIN_EVENTS, readSubjects, asSet(twin_authd, twin_unauthd, live_authd),
-                asSet(twin_authd)});
-        params.add(new Object[]{TWIN_EVENTS, readSubjects, asSet(twin_authd, twin_unauthd, live_authd, live_unauthd),
-                asSet(twin_authd)});
+        params.add(new Object[]{TWIN_EVENTS, readSubjects, asList(twin_authd), asList(twin_authd)});
+        params.add(new Object[]{TWIN_EVENTS, readSubjects, asList(twin_authd, twin_unauthd), asList(twin_authd)});
+        params.add(new Object[]{TWIN_EVENTS, readSubjects, asList(twin_authd, twin_unauthd, live_authd),
+                asList(twin_authd)});
+        params.add(new Object[]{TWIN_EVENTS, readSubjects, asList(twin_authd, twin_unauthd, live_authd, live_unauthd),
+                asList(twin_authd)});
 
-        params.add(new Object[]{LIVE_EVENTS, readSubjects, asSet(twin_authd), emptySet()});
-        params.add(new Object[]{LIVE_EVENTS, readSubjects, asSet(twin_authd, twin_unauthd), emptySet()});
-        params.add(new Object[]{LIVE_EVENTS, readSubjects, asSet(twin_authd, twin_unauthd, live_authd),
-                asSet(live_authd)});
-        params.add(new Object[]{LIVE_EVENTS, readSubjects, asSet(twin_authd, twin_unauthd, live_authd, live_unauthd),
-                asSet(live_authd)});
+        params.add(new Object[]{LIVE_EVENTS, readSubjects, asList(twin_authd), emptyList()});
+        params.add(new Object[]{LIVE_EVENTS, readSubjects, asList(twin_authd, twin_unauthd), emptyList()});
+        params.add(new Object[]{LIVE_EVENTS, readSubjects, asList(twin_authd, twin_unauthd, live_authd),
+                asList(live_authd)});
+        params.add(new Object[]{LIVE_EVENTS, readSubjects, asList(twin_authd, twin_unauthd, live_authd, live_unauthd),
+                asList(live_authd)});
 
         params.add(new Object[]{LIVE_MESSAGES, readSubjects,
-                asSet(twin_authd, twin_unauthd, live_authd, live_unauthd),
-                asSet(twin_authd, live_authd)});
+                asList(twin_authd, twin_unauthd, live_authd, live_unauthd),
+                asList(twin_authd, live_authd)});
 
         // subject "ditto" is not authorized to read any signal
         addAllCombinationsExpectingEmptyResult(params,
@@ -124,9 +127,9 @@ public class SignalFilterTest {
     @Parameterized.Parameter(1)
     public Set<String> readSubjects;
     @Parameterized.Parameter(2)
-    public Set<Target> targets;
+    public List<Target> targets;
     @Parameterized.Parameter(3)
-    public Set<Target> expectedTargets;
+    public List<Target> expectedTargets;
 
     @Test
     public void test() {
@@ -137,7 +140,7 @@ public class SignalFilterTest {
                         URI).targets(targets).build();
 
         final SignalFilter signalFilter = new SignalFilter(connection);
-        final Set<Target> filteredTargets = signalFilter.filter(signal(signalTopic, readSubjects));
+        final List<Target> filteredTargets = signalFilter.filter(signal(signalTopic, readSubjects));
         Assertions
                 .assertThat(filteredTargets)
                 .isEqualTo(expectedTargets);
@@ -150,7 +153,7 @@ public class SignalFilterTest {
             for (final Set subject : subjects) {
                 final Set<Set> targetCombinations = getCombinations(targets, new HashSet<>());
                 for (final Set target : targetCombinations) {
-                    params.add(new Object[]{topic, subject, target, emptySet()});
+                    params.add(new Object[]{topic, subject, new ArrayList<>(target), emptyList()});
                 }
             }
         }
@@ -174,8 +177,13 @@ public class SignalFilterTest {
     }
 
     @SafeVarargs
+    private static <T> List<T> asList(final T... elements) {
+        return Arrays.asList(elements);
+    }
+
+    @SafeVarargs
     private static <T> Set<T> asSet(final T... elements) {
-        return new HashSet<>(Arrays.asList(elements));
+        return new HashSet<>(asList(elements));
     }
 
 

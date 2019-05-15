@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -19,13 +21,14 @@ import java.util.function.Supplier;
 
 import org.junit.Assume;
 import org.junit.rules.ExternalResource;
+import org.slf4j.Logger;
 
 import de.flapdoodle.embed.mongo.Command;
 import de.flapdoodle.embed.mongo.MongodExecutable;
 import de.flapdoodle.embed.mongo.MongodProcess;
 import de.flapdoodle.embed.mongo.MongodStarter;
-import de.flapdoodle.embed.mongo.config.ArtifactStoreBuilder;
 import de.flapdoodle.embed.mongo.config.DownloadConfigBuilder;
+import de.flapdoodle.embed.mongo.config.ExtractedArtifactStoreBuilder;
 import de.flapdoodle.embed.mongo.config.MongoCmdOptionsBuilder;
 import de.flapdoodle.embed.mongo.config.MongodConfigBuilder;
 import de.flapdoodle.embed.mongo.config.Net;
@@ -53,6 +56,8 @@ public final class MongoDbResource extends ExternalResource {
     private static final String MONGO_PORT_ENV_KEY = "MONGO_PORT";
 
     private final String bindIp;
+    private final Integer defaultPort;
+    private final Logger logger;
 
     /**
      * The MongoDB executable.
@@ -70,7 +75,30 @@ public final class MongoDbResource extends ExternalResource {
      * @param bindIp the IP to bind the DB on
      */
     public MongoDbResource(final String bindIp) {
+        this(bindIp, null, null);
+    }
+
+    /**
+     * Constructs a new {@code MongoDbResource} object.
+     *
+     * @param bindIp the IP to bind the DB on
+     * @param logger the logger used for mongod output, may be {@code null} (logging turned off)
+     */
+    public MongoDbResource(final String bindIp, final Logger logger) {
+        this(bindIp, null, logger);
+    }
+
+    /**
+     * Constructs a new {@code MongoDbResource} object.
+     *
+     * @param bindIp the IP to bind the DB on
+     * @param defaultPort the default listening port. Bind a random port if it is {@code null}.
+     * @param logger the logger used for mongod output, may be {@code null} (logging turned off)
+     */
+    public MongoDbResource(final String bindIp, final Integer defaultPort, final Logger logger) {
         this.bindIp = bindIp;
+        this.defaultPort = defaultPort;
+        this.logger = logger;
         mongodExecutable = null;
         mongodProcess = null;
     }
@@ -92,13 +120,14 @@ public final class MongoDbResource extends ExternalResource {
                 .map(URI::create)
                 .map(proxyURI -> (IProxyFactory) new HttpProxyFactory(proxyURI.getHost(), proxyURI.getPort()))
                 .orElse(new NoProxyFactory());
-        final int mongoDbPort;
-        if (System.getenv(MONGO_PORT_ENV_KEY) != null) {
-            mongoDbPort = Integer.parseInt(System.getenv(MONGO_PORT_ENV_KEY));
-        } else {
-            mongoDbPort = findFreePort();
-        }
-        mongodExecutable = tryToConfigureMongoDb(bindIp, mongoDbPort, proxyFactory);
+
+        final int mongoDbPort = defaultPort != null
+                ? defaultPort
+                : System.getenv(MONGO_PORT_ENV_KEY) != null
+                ? Integer.parseInt(System.getenv(MONGO_PORT_ENV_KEY))
+                : findFreePort();
+
+        mongodExecutable = tryToConfigureMongoDb(bindIp, mongoDbPort, proxyFactory, logger);
         mongodProcess = tryToStartMongoDb(mongodExecutable);
         Assume.assumeTrue("MongoDB resource failed to start.", isHealthy());
     }
@@ -145,35 +174,47 @@ public final class MongoDbResource extends ExternalResource {
         return freePortFinder.get();
     }
 
-    private static MongodExecutable tryToConfigureMongoDb(final String bindIp, final int mongoDbPort,
-            final IProxyFactory proxyFactory) {
+    private static MongodExecutable tryToConfigureMongoDb(final String bindIp,
+            final int mongoDbPort,
+            final IProxyFactory proxyFactory,
+            final Logger logger) {
 
         try {
-            return configureMongoDb(bindIp, mongoDbPort, proxyFactory);
+            return configureMongoDb(bindIp, mongoDbPort, proxyFactory, logger);
         } catch (final Throwable e) {
-            throw new IllegalStateException("Failed to get 'mongod' executable!", e);
+            return null;
         }
     }
 
-    private static MongodExecutable configureMongoDb(final String bindIp, final int mongoDbPort,
-            final IProxyFactory proxyFactory) throws IOException {
+    private static MongodExecutable configureMongoDb(final String bindIp,
+            final int mongoDbPort,
+            final IProxyFactory proxyFactory,
+            final Logger logger) throws IOException {
 
         final Command command = Command.MongoD;
 
+        final ProcessOutput processOutput;
+        if (logger != null) {
+            processOutput = ProcessOutput.getInstance("mongod", logger);
+        } else {
+            processOutput = ProcessOutput.getDefaultInstanceSilent();
+        }
+
         final MongodStarter mongodStarter = MongodStarter.getInstance(new RuntimeConfigBuilder()
                 .defaults(command)
-                .processOutput(ProcessOutput.getDefaultInstanceSilent())
-                .artifactStore(new ArtifactStoreBuilder()
+                .processOutput(processOutput)
+                .artifactStore(new ExtractedArtifactStoreBuilder()
                         .defaults(command)
                         .download(new DownloadConfigBuilder()
-                                .defaultsForCommand(command)
-                                .proxyFactory(proxyFactory)
-                                .progressListener(new StandardConsoleProgressListener())))
-                .build());
+                                        .defaultsForCommand(command)
+                                        .proxyFactory(proxyFactory)
+                                        .progressListener(new StandardConsoleProgressListener())
+                                        .build()))
+                        .build());
 
         return mongodStarter.prepare(new MongodConfigBuilder()
                 .net(new Net(bindIp, mongoDbPort, false))
-                .version(Version.Main.PRODUCTION)
+                .version(Version.Main.V3_6)
                 .cmdOptions(new MongoCmdOptionsBuilder()
                         .useStorageEngine("wiredTiger")
                         .useNoJournal(false)

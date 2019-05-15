@@ -1,10 +1,12 @@
 /*
-* Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -20,9 +22,7 @@ import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.actor.Props;
 import akka.cluster.sharding.ClusterSharding;
-import akka.cluster.sharding.ClusterShardingSettings;
 
 /**
  * Abstract class whose implementations create a sharded {@code EnforcerActor}.
@@ -52,26 +52,6 @@ public abstract class AbstractEnforcerActorFactory<C extends ConciergeConfig> {
 
         return ClusterSharding.get(actorSystem)
                 .startProxy(shardRegionName, Optional.of(clusterRole), shardRegionExtractor);
-    }
-
-    /**
-     * Start a shard region.
-     *
-     * @param actorSystem actor system to start the proxy in.
-     * @param clusterConfig the cluster configuration.
-     * @param props props of actors to start in the shard.
-     * @return actor reference to the shard region.
-     */
-    protected static ActorRef startShardRegion(final ActorSystem actorSystem, final ClusterConfig clusterConfig,
-            final Props props) {
-
-        final ClusterShardingSettings settings = ClusterShardingSettings.create(actorSystem)
-                .withRole(ConciergeMessagingConstants.CLUSTER_ROLE);
-
-        final ShardRegionExtractor extractor = ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem);
-
-        return ClusterSharding.get(actorSystem)
-                .start(ConciergeMessagingConstants.SHARD_REGION, props, settings, extractor);
     }
 
     /**

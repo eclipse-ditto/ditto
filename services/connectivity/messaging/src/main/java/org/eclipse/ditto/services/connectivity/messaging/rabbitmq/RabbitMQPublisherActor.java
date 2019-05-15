@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -13,6 +15,7 @@ package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -67,7 +70,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
 
     @Nullable private ActorRef channelActor;
 
-    private RabbitMQPublisherActor(final Set<Target> targets, final String connectionId) {
+    private RabbitMQPublisherActor(final List<Target> targets, final String connectionId) {
         super(connectionId, targets);
     }
 
@@ -78,7 +81,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
      * @param targets the targets to publish to
      * @return the Akka configuration Props object.
      */
-    static Props props(final String connectionId, final Set<Target> targets) {
+    static Props props(final String connectionId, final List<Target> targets) {
         return Props.create(RabbitMQPublisherActor.class, new Creator<RabbitMQPublisherActor>() {
             private static final long serialVersionUID = 1L;
 

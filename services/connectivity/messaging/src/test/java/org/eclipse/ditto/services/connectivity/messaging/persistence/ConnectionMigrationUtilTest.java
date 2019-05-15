@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -32,6 +34,7 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Enforcement;
+import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionMigrationUtil.MigrateAuthorizationContexts;
@@ -67,6 +70,13 @@ public class ConnectionMigrationUtilTest {
             .newBuilder()
             .set(Source.JsonFields.ADDRESSES, JsonFactory.newArrayBuilder().add("amqp/source2").build())
             .set(Source.JsonFields.CONSUMER_COUNT, 1)
+            .set(Source.JsonFields.HEADER_MAPPING, JsonObject.newBuilder()
+                    .set("source-action", JsonValue.of("source/{{ topic:action }}"))
+                    .set("source-subject", JsonValue.of("source/{{topic:action|subject }}"))
+                    .set("source-subject-next-gen", JsonValue.of("source/{{    topic:action-subject }}"))
+                    .set("source-some-header", JsonValue.of("source/{{ topic:full | fn:substring-before('/') }}"))
+                    .build()
+            )
             .build();
     private static final JsonArray OLD_SOURCES_JSON = JsonArray.newBuilder().add(SOURCE1_JSON, SOURCE2_JSON).build();
 
@@ -88,6 +98,13 @@ public class ConnectionMigrationUtilTest {
                     .build()
             )
             .set(Target.JsonFields.ADDRESS, "amqp/target2")
+            .set(Target.JsonFields.HEADER_MAPPING, JsonObject.newBuilder()
+                    .set("target-action", JsonValue.of("target/{{ topic:action }}"))
+                    .set("target-subject", JsonValue.of("target/{{topic:action|subject }}"))
+                    .set("target-subject-next-gen", JsonValue.of("target/{{    topic:action-subject }}"))
+                    .set("target-some-header", JsonValue.of("target/{{ topic:full | fn:substring-before('/') }}"))
+                    .build()
+            )
             .build();
     private static final JsonObject TARGET3_JSON = JsonObject
             .newBuilder()
@@ -97,7 +114,7 @@ public class ConnectionMigrationUtilTest {
                     .add(LIVE_COMMANDS.getName())
                     .build()
             )
-            .set(Target.JsonFields.ADDRESS, "amqp/target3")
+            .set(Target.JsonFields.ADDRESS, "amqp/target3/{{topic:action|subject}}")
             .build();
     private static final JsonArray OLD_TARGETS_JSON =
             JsonArray.newBuilder().add(TARGET1_JSON, TARGET2_JSON, TARGET3_JSON).build();
@@ -191,5 +208,36 @@ public class ConnectionMigrationUtilTest {
                 JsonArray.newBuilder().add(SOURCE1_JSON.toBuilder().remove(LEGACY_FIELD_FILTERS).build(),
                         SOURCE2_JSON).build()).build();
         assertThat(ConnectionMigrationUtil.MigrateSourceFilters.migrateSourceFilters(noFilters)).isSameAs(noFilters);
+    }
+
+    @Test
+    public void migratePlaceholderTopicActionSubject() {
+        final Connection migratedConnection =
+                ConnectionMigrationUtil.connectionFromJsonWithMigration(KNOWN_CONNECTION_JSON);
+
+        assertThat(migratedConnection.getSources().get(1).getHeaderMapping()).isPresent();
+        final HeaderMapping sourceHeaderMapping = migratedConnection.getSources().get(1).getHeaderMapping().get();
+        assertThat(sourceHeaderMapping.getMapping().get("source-action"))
+                .isEqualTo("source/{{ topic:action }}");
+        assertThat(sourceHeaderMapping.getMapping().get("source-subject"))
+                .isEqualTo("source/{{topic:action-subject }}");
+        assertThat(sourceHeaderMapping.getMapping().get("source-subject-next-gen"))
+                .isEqualTo("source/{{    topic:action-subject }}");
+        assertThat(sourceHeaderMapping.getMapping().get("source-some-header"))
+                .isEqualTo("source/{{ topic:full | fn:substring-before('/') }}");
+
+        assertThat(migratedConnection.getTargets().get(1).getHeaderMapping()).isPresent();
+        final HeaderMapping targetHeaderMapping = migratedConnection.getTargets().get(1).getHeaderMapping().get();
+        assertThat(targetHeaderMapping.getMapping().get("target-action"))
+                .isEqualTo("target/{{ topic:action }}");
+        assertThat(targetHeaderMapping.getMapping().get("target-subject"))
+                .isEqualTo("target/{{topic:action-subject }}");
+        assertThat(targetHeaderMapping.getMapping().get("target-subject-next-gen"))
+                .isEqualTo("target/{{    topic:action-subject }}");
+        assertThat(targetHeaderMapping.getMapping().get("target-some-header"))
+                .isEqualTo("target/{{ topic:full | fn:substring-before('/') }}");
+
+        assertThat(migratedConnection.getTargets().get(2).getAddress())
+                .isEqualTo("amqp/target3/{{topic:action-subject}}");
     }
 }

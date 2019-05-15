@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -19,196 +21,167 @@ import org.junit.Test;
  */
 public final class ThingsFieldExpressionFactoryImplTest {
 
+    private static final String SLASH = "/";
+
     private static final String KNOWN_STRING = "KNOWN_STRING";
     private static final String KNOWN_FEATURE_ID = "feature1";
     private static final String KNOWN_FEATURE = "features/" + KNOWN_FEATURE_ID;
-    private static final String KNOWN_FEATURE_PROPERTY = "features/*/properties/" + KNOWN_STRING;
     private static final String KNOWN_FEATURE_PROPERTY_WITH_ID =
             "features/" + KNOWN_FEATURE_ID + "/properties/" + KNOWN_STRING;
+
     private final ThingsFieldExpressionFactory ef = new ThingsFieldExpressionFactoryImpl();
 
-    /** */
     @Test(expected = NullPointerException.class)
-    public void getWithNullPropertyName() {
+    public void filterByWithNullPropertyName() {
         ef.filterBy(null);
     }
 
-    /** */
     @Test(expected = IllegalArgumentException.class)
-    public void getWithUnknownPropertyName() {
+    public void filterByWithUnknownPropertyName() {
         ef.filterBy("unknown");
     }
 
-    /** */
     @Test
-    public void getFilterByFeaturePropertyWithId() {
+    public void filterByWithFeaturePropertyWithId() {
         final FieldExpression fieldExpression = ef.filterBy(KNOWN_FEATURE_PROPERTY_WITH_ID);
-        assertThat(fieldExpression).isNotNull().isInstanceOf(FeatureIdPropertyExpressionImpl.class);
-        final FeatureIdPropertyExpressionImpl featureExpression = (FeatureIdPropertyExpressionImpl) fieldExpression;
-        assertThat(featureExpression.getFeatureId()).isEqualTo(KNOWN_FEATURE_ID);
-        assertThat(featureExpression.getProperty()).isEqualTo(KNOWN_STRING);
+
+        final FilterFieldExpression expected = new FeatureIdPropertyExpressionImpl(KNOWN_FEATURE_ID, KNOWN_STRING);
+        assertThat(fieldExpression).isEqualTo(expected);
     }
 
-    /** */
-    @Test
-    public void getFilterByFeaturePropertyWithoutId() {
-        final FieldExpression fieldExpression = ef.filterBy(KNOWN_FEATURE_PROPERTY);
-        assertThat(fieldExpression).isNotNull().isInstanceOf(FeaturePropertyExpressionImpl.class);
-        final FeaturePropertyExpressionImpl featureExpression = (FeaturePropertyExpressionImpl) fieldExpression;
-        assertThat(featureExpression.getProperty()).isEqualTo(KNOWN_STRING);
-    }
-
-    /** */
     @Test(expected = IllegalArgumentException.class)
-    public void getFilterByFeature() {
+    public void filterByWithFeature() {
         ef.filterBy(KNOWN_FEATURE);
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
-    public void existsWithNullPropertyName() {
+    public void existsByWithNullPropertyName() {
         ef.existsBy(null);
     }
 
-    /** */
     @Test(expected = IllegalArgumentException.class)
-    public void existsWithUnknownPropertyName() {
+    public void existsByWithUnknownPropertyName() {
         ef.existsBy("unknown");
     }
 
-    /** */
     @Test
-    public void existsByFeaturePropertyWithId() {
+    public void existsByWithFeaturePropertyWithId() {
         final FieldExpression fieldExpression = ef.existsBy(KNOWN_FEATURE_PROPERTY_WITH_ID);
-        assertThat(fieldExpression).isNotNull().isInstanceOf(FeatureIdPropertyExpressionImpl.class);
-        final FeatureIdPropertyExpressionImpl featureExpression = (FeatureIdPropertyExpressionImpl) fieldExpression;
-        assertThat(featureExpression.getFeatureId()).isEqualTo(KNOWN_FEATURE_ID);
-        assertThat(featureExpression.getProperty()).isEqualTo(KNOWN_STRING);
+
+        final ExistsFieldExpression expected = new FeatureIdPropertyExpressionImpl(KNOWN_FEATURE_ID, KNOWN_STRING);
+        assertThat(fieldExpression).isEqualTo(expected);
     }
 
-    /** */
     @Test
-    public void existsByFeaturePropertyWithoutId() {
-        final FieldExpression fieldExpression = ef.existsBy(KNOWN_FEATURE_PROPERTY);
-        assertThat(fieldExpression).isNotNull().isInstanceOf(FeaturePropertyExpressionImpl.class);
-        final FeaturePropertyExpressionImpl featureExpression = (FeaturePropertyExpressionImpl) fieldExpression;
-        assertThat(featureExpression.getProperty()).isEqualTo(KNOWN_STRING);
-    }
-
-    /** */
-    @Test
-    public void existsByFeature() {
+    public void existsByWithFeature() {
         final FieldExpression fieldExpression = ef.existsBy(KNOWN_FEATURE);
-        assertThat(fieldExpression).isNotNull().isInstanceOf(FeatureExpressionImpl.class);
-        final FeatureExpressionImpl featureExpression = (FeatureExpressionImpl) fieldExpression;
-        assertThat(featureExpression.getFeatureId()).isEqualTo(KNOWN_FEATURE_ID);
+
+        final ExistsFieldExpression expected = new FeatureExpressionImpl(KNOWN_FEATURE_ID);
+        assertThat(fieldExpression).isEqualTo(expected);
     }
 
-    /** */
     @Test
-    public void getSortByFeatureProperty() {
-        final FieldExpression fieldExpression = ef.sortBy(KNOWN_FEATURE_PROPERTY_WITH_ID);
-        assertThat(fieldExpression).isNotNull().isInstanceOf(FeatureIdPropertyExpressionImpl.class);
+    public void existsByWithJsonPointer() {
+        final FieldExpression fieldExpression = ef.existsBy(SLASH + KNOWN_FEATURE);
+
+        final ExistsFieldExpression expected = new FeatureExpressionImpl(KNOWN_FEATURE_ID);
+        assertThat(fieldExpression).isEqualTo(expected);
     }
 
-    /** */
+    @Test
+    public void sortByWithFeatureProperty() {
+        final FieldExpression fieldExpression = ef.sortBy(KNOWN_FEATURE_PROPERTY_WITH_ID);
+
+        final SortFieldExpression expected = new FeatureIdPropertyExpressionImpl(KNOWN_FEATURE_ID, KNOWN_STRING);
+        assertThat(fieldExpression).isEqualTo(expected);
+    }
+
+
+    @Test
+    public void sortByWithJsonPointer() {
+        final FieldExpression fieldExpression = ef.sortBy(SLASH + KNOWN_FEATURE_PROPERTY_WITH_ID);
+
+        final SortFieldExpression expected = new FeatureIdPropertyExpressionImpl(KNOWN_FEATURE_ID, KNOWN_STRING);
+        assertThat(fieldExpression).isEqualTo(expected);
+    }
+
     @Test(expected = IllegalArgumentException.class)
-    public void getSortByFeaturePropertyInvalid1() {
+    public void sortByWithFeaturePropertyInvalid1() {
         ef.sortBy(KNOWN_FEATURE);
     }
 
-    /** */
-    @Test(expected = IllegalArgumentException.class)
-    public void getSortByFeaturePropertyInvalid2() {
-        ef.sortBy(KNOWN_FEATURE_PROPERTY);
-    }
-
-    /** */
     @Test
-    public void getAttribute() {
+    public void filterByWithAttribute() {
         final FieldExpression fieldExpression = ef.filterBy(FieldExpressionUtil.addAttributesPrefix(KNOWN_STRING));
-        assertThat(fieldExpression).isNotNull().isInstanceOf(AttributeExpressionImpl.class);
-        assertThat(((AttributeExpressionImpl) fieldExpression).getKey()).isEqualTo(KNOWN_STRING);
+
+        final FilterFieldExpression expected = new AttributeExpressionImpl(KNOWN_STRING);
+        assertThat(fieldExpression).isEqualTo(expected);
     }
 
 
-    /** */
     @Test
-    public void getThingId() {
+    public void filterByWithThingId() {
         final FieldExpression fieldExpression = ef.filterBy(FieldExpressionUtil.FIELD_NAME_THING_ID);
-        assertThat(fieldExpression).isNotNull().isInstanceOf(SimpleFieldExpressionImpl.class);
+
+        final FilterFieldExpression expected = new SimpleFieldExpressionImpl(FieldExpressionUtil.FIELD_ID);
+        assertThat(fieldExpression).isEqualTo(expected);
     }
 
-    /** */
     @Test
-    public void filterByFeatureProperty() {
-        final FilterFieldExpression fieldExpression = ef.filterByFeatureProperty(KNOWN_STRING);
-        assertThat(fieldExpression).isNotNull().isInstanceOf(FeaturePropertyExpressionImpl.class);
+    public void filterByWithJsonPointer() {
+        final FieldExpression fieldExpression = ef.filterBy(SLASH + FieldExpressionUtil.FIELD_NAME_THING_ID);
+
+        final FilterFieldExpression expected = new SimpleFieldExpressionImpl(FieldExpressionUtil.FIELD_ID);
+        assertThat(fieldExpression).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void filterByFeatureIdAndProperty() {
         final FilterFieldExpression fieldExpression = ef.filterByFeatureProperty(KNOWN_FEATURE_ID, KNOWN_STRING);
-        assertThat(fieldExpression).isNotNull().isInstanceOf(FeatureIdPropertyExpressionImpl.class);
+
+        final FilterFieldExpression expected =
+                new FeatureIdPropertyExpressionImpl(KNOWN_FEATURE_ID, KNOWN_STRING);
+        assertThat(fieldExpression).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void sortByFeatureProperty() {
         final SortFieldExpression fieldExpression = ef.sortByFeatureProperty(KNOWN_FEATURE_ID, KNOWN_STRING);
-        assertThat(fieldExpression).isNotNull().isInstanceOf(FeatureIdPropertyExpressionImpl.class);
+
+        final SortFieldExpression expected =
+                new FeatureIdPropertyExpressionImpl(KNOWN_FEATURE_ID, KNOWN_STRING);
+        assertThat(fieldExpression).isEqualTo(expected);
     }
 
-    /** */
-    @Test(expected = NullPointerException.class)
-    public void filterByFeaturePropertyWithNullKey() {
-        ef.filterByFeatureProperty(null);
-    }
-
-    /** */
-    @Test(expected = NullPointerException.class)
-    public void sortByFeaturePropertyWithNullKey() {
-        ef.sortByFeatureProperty(null, null);
-    }
-
-    /** */
     @Test
     public void filterByAttribute() {
         final FilterFieldExpression fieldExpression = ef.filterByAttribute(KNOWN_STRING);
-        assertThat(fieldExpression).isNotNull().isInstanceOf(AttributeExpressionImpl.class);
+
+        final FilterFieldExpression expected = new AttributeExpressionImpl(KNOWN_STRING);
+        assertThat(fieldExpression).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void sortByAttribute() {
         final SortFieldExpression fieldExpression = ef.sortByAttribute(KNOWN_STRING);
-        assertThat(fieldExpression).isNotNull().isInstanceOf(AttributeExpressionImpl.class);
+
+        final SortFieldExpression expected = new AttributeExpressionImpl(KNOWN_STRING);
+        assertThat(fieldExpression).isEqualTo(expected);
     }
 
-    /** */
-    @Test(expected = NullPointerException.class)
-    public void filterByAttributeWithNullKey() {
-        ef.filterByAttribute(null);
-    }
-
-    /** */
-    @Test(expected = NullPointerException.class)
-    public void sortByAttributeWithNullKey() {
-        ef.sortByAttribute(null);
-    }
-
-    /** */
     @Test
     public void filterByThingId() {
         final FilterFieldExpression fieldExpression = ef.filterByThingId();
-        assertThat(fieldExpression).isNotNull().isInstanceOf(SimpleFieldExpressionImpl.class);
+
+        final FilterFieldExpression expected = new SimpleFieldExpressionImpl(FieldExpressionUtil.FIELD_ID);
+        assertThat(fieldExpression).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void sortByThingId() {
         final SortFieldExpression fieldExpression = ef.sortByThingId();
-        assertThat(fieldExpression).isNotNull().isInstanceOf(SimpleFieldExpressionImpl.class);
+
+        final SortFieldExpression expected = new SimpleFieldExpressionImpl(FieldExpressionUtil.FIELD_ID);
+        assertThat(fieldExpression).isEqualTo(expected);
     }
 }

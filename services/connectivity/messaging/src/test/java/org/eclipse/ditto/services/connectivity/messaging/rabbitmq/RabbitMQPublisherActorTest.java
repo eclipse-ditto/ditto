@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -19,7 +21,6 @@ import java.util.Collections;
 
 import javax.jms.JMSException;
 
-import org.apache.qpid.jms.message.JmsMessage;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
@@ -35,7 +36,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.testkit.TestProbe;
 
-public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest<JmsMessage> {
+public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest {
 
 
     private TestProbe probe;
@@ -53,7 +54,7 @@ public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest<JmsMe
 
     @Override
     protected Props getPublisherActorProps() {
-        return RabbitMQPublisherActor.props("theConnection", Collections.emptySet());
+        return RabbitMQPublisherActor.props("theConnection", Collections.emptyList());
     }
 
     @Override

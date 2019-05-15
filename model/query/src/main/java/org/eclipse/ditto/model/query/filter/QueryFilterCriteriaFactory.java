@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -12,7 +14,6 @@ package org.eclipse.ditto.model.query.filter;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Set;
 
 import org.eclipse.ditto.model.base.common.ConditionChecker;
@@ -42,15 +43,6 @@ public final class QueryFilterCriteriaFactory {
     }
 
     /**
-     * Returns the criteria factory with which this query filter criteria factory was created.
-     *
-     * @return the criteria factory.
-     */
-    public CriteriaFactory getCriteriaFactory() {
-        return criteriaFactory;
-    }
-
-    /**
      * Creates a filter criterion based on a filter string which includes only items in the given namespaces
      *
      * @param filter the filter string
@@ -62,39 +54,6 @@ public final class QueryFilterCriteriaFactory {
             final Set<String> namespaces) {
         final Criteria filterCriteria = filterCriteria(filter, dittoHeaders);
         return restrictByNamespace(namespaces, filterCriteria);
-    }
-
-    /**
-     * Creates a filter criterion based on a filter string which includes only items related to the given auth
-     * subjects
-     *
-     * @param filter the filter string
-     * @param dittoHeaders the corresponding command headers
-     * @param authorisationSubjectIds the auth subjects
-     * @return a filter criterion based on the filter string which includes only items related to the given auth
-     * subjects
-     */
-    public Criteria filterCriteriaRestrictedByAcl(final String filter, final DittoHeaders dittoHeaders,
-            final List<String> authorisationSubjectIds) {
-        final Criteria filterCriteria = filterCriteria(filter, dittoHeaders);
-        return restrictByAcl(authorisationSubjectIds, filterCriteria);
-    }
-
-    /**
-     * Creates a filter criterion based on a filter string which includes items related to the given auth
-     * subjects and namespaces
-     *
-     * @param filter the filter string
-     * @param dittoHeaders the corresponding command headers
-     * @param authorisationSubjectIds the auth subjects
-     * @param namespaces the namespaces
-     * @return a filter criterion based on the filter string which includes only items related elated to the given auth
-     * subjects and namespaces
-     */
-    public Criteria filterCriteriaRestrictedByAclAndNamespaces(final String filter, final DittoHeaders dittoHeaders,
-            final List<String> authorisationSubjectIds, final Set<String> namespaces) {
-        final Criteria filterCriteria = filterCriteria(filter, dittoHeaders);
-        return restrictByNamespace(namespaces, restrictByAcl(authorisationSubjectIds, filterCriteria));
     }
 
     /**
@@ -110,10 +69,6 @@ public final class QueryFilterCriteriaFactory {
         return null == filter ? criteriaFactory.any() : mapCriteria(filter, headers);
     }
 
-    private Criteria restrictByAcl(final List<String> authorisationSubjectIds, Criteria filterCriteria) {
-        return criteriaFactory.and(Arrays.asList(aclFilterCriteria(authorisationSubjectIds), filterCriteria));
-    }
-
     private Criteria restrictByNamespace(final Set<String> namespaces, Criteria filterCriteria) {
         return criteriaFactory.and(Arrays.asList(namespaceFilterCriteria(namespaces), filterCriteria));
     }
@@ -123,12 +78,6 @@ public final class QueryFilterCriteriaFactory {
         return criteriaFactory.fieldCriteria(
                 fieldExpressionFactory.filterByNamespace(),
                 criteriaFactory.in(new ArrayList<>(namespaces)));
-    }
-
-    private Criteria aclFilterCriteria(final List<String> authorisationSubjectIds) {
-        ConditionChecker.checkNotNull(authorisationSubjectIds);
-        return criteriaFactory.fieldCriteria(fieldExpressionFactory.filterByAcl(),
-                criteriaFactory.in(authorisationSubjectIds));
     }
 
     private Criteria mapCriteria(final String filter, final DittoHeaders dittoHeaders) {

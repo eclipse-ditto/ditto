@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -39,7 +41,7 @@ import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.PatternsCS;
+import akka.pattern.Patterns;
 import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.StreamRefs;
@@ -158,14 +160,14 @@ public final class ThingsAggregatorActor extends AbstractActor {
                                 .map(sf -> SudoRetrieveThing.of(thingId, sf, dittoHeaders))
                                 .orElse(SudoRetrieveThing.of(thingId, dittoHeaders));
                     }
-                    return ConciergeWrapper.wrapForEnforcer(toBeWrapped);
+                    return ConciergeWrapper.wrapForEnforcerRouter(toBeWrapped);
                 })
                 .ask(calculateParallelism(thingIds), targetActor, Jsonifiable.class,
                         Timeout.apply(retrieveSingleThingTimeout.toMillis(), TimeUnit.MILLISECONDS))
                 .log("command-response", log)
                 .runWith(StreamRefs.sourceRef(), actorMaterializer);
 
-        PatternsCS.pipe(commandResponseSource, aggregatorDispatcher)
+        Patterns.pipe(commandResponseSource, aggregatorDispatcher)
                 .to(resultReceiver);
     }
 

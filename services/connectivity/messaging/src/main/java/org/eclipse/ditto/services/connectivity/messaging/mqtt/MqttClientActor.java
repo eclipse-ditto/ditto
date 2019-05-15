@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -15,7 +17,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -173,8 +174,8 @@ public final class MqttClientActor extends BaseClientActor {
     }
 
     @Override
-    protected Optional<ActorRef> getPublisherActor() {
-        return Optional.ofNullable(mqttPublisherActor);
+    protected ActorRef getPublisherActor() {
+        return mqttPublisherActor;
     }
 
     @Override
@@ -201,10 +202,12 @@ public final class MqttClientActor extends BaseClientActor {
         // start publisher
         startMqttPublisher(factory, dryRun);
 
+        // start message mapping processor actor early so that consumer streams can be run.
+        // note that it has to be started after the publisher since the publisher actor is needed inside the mapping processor
+        final Either<DittoRuntimeException, ActorRef> messageMappingProcessor = startMessageMappingProcessor();
+
         // start consumers
         if (isConsuming()) {
-            // start message mapping processor actor early so that consumer streams can be run
-            final Either<DittoRuntimeException, ActorRef> messageMappingProcessor = startMessageMappingProcessor();
             if (messageMappingProcessor.isLeft()) {
                 final DittoRuntimeException e = messageMappingProcessor.left().get();
                 log.warning("failed to start mapping processor due to {}", e);
@@ -225,7 +228,7 @@ public final class MqttClientActor extends BaseClientActor {
         // ensure no previous publisher stays in memory
         stopMqttPublisher();
         mqttPublisherActor = startChildActorConflictFree(MqttPublisherActor.ACTOR_NAME,
-                MqttPublisherActor.props(connectionId(), getTargetsOrEmptySet(), factory, getSelf(), dryRun));
+                MqttPublisherActor.props(connectionId(), getTargetsOrEmptyList(), factory, getSelf(), dryRun));
         pendingStatusReportsFromStreams.add(mqttPublisherActor);
     }
 
@@ -293,10 +296,10 @@ public final class MqttClientActor extends BaseClientActor {
 
     @Override
     protected void cleanupResourcesForConnection() {
-
         pendingStatusReportsFromStreams.clear();
         activateConsumerKillSwitch();
         stopCommandConsumers();
+        stopMessageMappingProcessorActor();
         stopMqttPublisher();
     }
 

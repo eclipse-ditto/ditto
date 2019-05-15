@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -58,9 +60,11 @@ import org.junit.Test;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.cluster.pubsub.DistributedPubSub;
+import akka.cluster.sharding.ShardRegion;
 import akka.japi.Creator;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
@@ -448,6 +452,9 @@ public final class ConnectionActorTest extends WithMockServers {
             final Exception exception = parent.expectMsgClass(ConnectionConfigurationInvalidException.class);
             assertThat(exception).hasMessageContaining("validation failed...");
 
+            parent.expectMsgClass(ShardRegion.Passivate.class);
+            parent.send(parent.getLastSender(), PoisonPill.getInstance());
+
             // expect the connection actor is terminated
             expectTerminated(connectionActorRef);
         }};
@@ -478,6 +485,9 @@ public final class ConnectionActorTest extends WithMockServers {
             final ConnectionUnavailableException exception =
                     parent.expectMsgClass(ConnectionUnavailableException.class);
             assertThat(exception).hasMessageContaining("not valid");
+
+            parent.expectMsgClass(ShardRegion.Passivate.class);
+            parent.send(parent.getLastSender(), PoisonPill.getInstance());
 
             // expect the connection actor is terminated
             expectTerminated(connectionActorRef);
@@ -562,7 +572,7 @@ public final class ConnectionActorTest extends WithMockServers {
                 final OutboundSignal unmappedOutboundSignal =
                         probe.expectMsgClass(OutboundSignal.class);
                 assertThat(unmappedOutboundSignal.getSource()).isEqualTo(signal);
-                assertThat(unmappedOutboundSignal.getTargets()).isEqualTo(Collections.singleton(expectedTarget));
+                assertThat(unmappedOutboundSignal.getTargets()).isEqualTo(Collections.singletonList(expectedTarget));
             } else {
                 probe.expectNoMessage();
             }

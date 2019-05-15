@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -12,6 +14,7 @@ package org.eclipse.ditto.model.thingsearch;
 
 import java.util.Collection;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonPointer;
@@ -66,11 +69,10 @@ public interface SearchProperty {
     /**
      * Returns a new search filter for checking if the value of this property is equal to the given value.
      *
-     * @param value the value to compare the value of this property with.
+     * @param value the value to compare the value of this property with, may be {@code null}.
      * @return the new search filter.
-     * @throws NullPointerException if {@code value} is {@code null}.
      */
-    PropertySearchFilter eq(String value);
+    PropertySearchFilter eq(@Nullable String value);
 
     /**
      * Returns a new search filter for checking if the value of this property is not equal to the given value.
@@ -111,7 +113,7 @@ public interface SearchProperty {
      * @return the new search filter.
      * @throws NullPointerException if {@code value} is {@code null}.
      */
-    PropertySearchFilter ne(String value);
+    PropertySearchFilter ne(@Nullable String value);
 
     /**
      * Returns a new search filter for checking if the value of this property is greater than or equal to the given

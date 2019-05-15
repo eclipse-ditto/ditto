@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -34,20 +36,20 @@ public final class DirectivesLoggingUtils {
     /**
      * Enhances the passed {@link Supplier} with an "MDC" map entry for the passed {@code correlationId}.
      *
-     * @param correlationId the correlationId to set.
+     * @param correlationId the correlation ID to set.
      * @param supplier the Supplier to set the "MDC" on.
      */
-    public static <T> T enhanceLogWithCorrelationId(final String correlationId, final Supplier<T> supplier) {
+    public static <T> T enhanceLogWithCorrelationId(final CharSequence correlationId, final Supplier<T> supplier) {
         return new CorrelationIdLoggingSupplier<>(correlationId, supplier).get();
     }
 
     /**
      * Enhances the passed {@link Runnable} with an "MDC" map entry for the passed {@code correlationId}.
      *
-     * @param correlationId the correlationId to set.
+     * @param correlationId the correlation ID to set.
      * @param runnable the Runnable to set the "MDC" on.
      */
-    public static void enhanceLogWithCorrelationId(final String correlationId, final Runnable runnable) {
+    public static void enhanceLogWithCorrelationId(final CharSequence correlationId, final Runnable runnable) {
         new CorrelationIdLoggingSupplier<Void>(correlationId, () -> {
             runnable.run();
             return null;
@@ -61,8 +63,9 @@ public final class DirectivesLoggingUtils {
      * @param correlationIdOpt the optional correlationId to set.
      * @param supplier the Supplier to set the "MDC" on.
      */
-    public static <T> T enhanceLogWithCorrelationId(final Optional<String> correlationIdOpt, final Supplier<T>
-            supplier) {
+    public static <T> T enhanceLogWithCorrelationId(final Optional<String> correlationIdOpt,
+            final Supplier<T> supplier) {
+
         return correlationIdOpt.map(correlationId -> enhanceLogWithCorrelationId(correlationId, supplier))
                 .orElse(supplier.get());
     }
@@ -87,8 +90,8 @@ public final class DirectivesLoggingUtils {
         private final String correlationId;
         private final Supplier<T> wrapped;
 
-        private CorrelationIdLoggingSupplier(final String correlationId, final Supplier<T> wrapped) {
-            this.correlationId = requireNonNull(correlationId);
+        private CorrelationIdLoggingSupplier(final CharSequence correlationId, final Supplier<T> wrapped) {
+            this.correlationId = requireNonNull(correlationId).toString();
             this.wrapped = requireNonNull(wrapped);
         }
 
@@ -106,5 +109,7 @@ public final class DirectivesLoggingUtils {
                 }
             }
         }
+
     }
+
 }

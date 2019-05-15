@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
  */
@@ -268,7 +270,15 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * @param actorSystem the Akka ActorSystem to be initialized.
      */
     protected void initializeActorSystem(final ActorSystem actorSystem) {
-        AkkaManagement.get(actorSystem).start();
+        logger.info("Starting AkkaManagement ...");
+        AkkaManagement.get(actorSystem).start().whenComplete((uri, throwable) -> {
+            if (throwable != null) {
+                logger.error("Error during start of AkkaManagement: <{}>!", throwable.getMessage(), throwable);
+            } else {
+                logger.info("Started AkkaManagement on URI <{}>.", uri);
+            }
+        });
+        logger.info("Starting ClusterBootstrap..");
         ClusterBootstrap.get(actorSystem).start();
 
         startStatusSupplierActor(actorSystem);
