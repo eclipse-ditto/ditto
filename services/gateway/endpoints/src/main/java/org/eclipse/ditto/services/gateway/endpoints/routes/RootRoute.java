@@ -414,9 +414,9 @@ public final class RootRoute {
     }
 
     private Map<String, String> getFilteredExternalHeaders(final HttpMessage httpRequest, final String correlationId) {
-        Map<String, String> externalHeaders =
+        final Map<String, String> externalHeaders =
                 StreamSupport.stream(httpRequest.getHeaders().spliterator(), false)
-                        .collect(Collectors.toMap(HttpHeader::name, HttpHeader::value, (dv1, dv2) -> {
+                        .collect(Collectors.toMap(HttpHeader::lowercaseName, HttpHeader::value, (dv1, dv2) -> {
                             throw GatewayDuplicateHeaderException
                                     .newBuilder()
                                     .dittoHeaders(DittoHeaders.newBuilder().correlationId(correlationId).build())

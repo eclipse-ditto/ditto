@@ -21,13 +21,16 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
 import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.model.query.Query;
+import org.eclipse.ditto.model.query.SortOption;
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceReportResult;
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceResultEntry;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
@@ -35,6 +38,7 @@ import org.eclipse.ditto.services.thingsearch.common.model.ResultListImpl;
 import org.eclipse.ditto.services.thingsearch.persistence.Indices;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonVisitor;
+import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetSortBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQuery;
 import org.eclipse.ditto.services.utils.config.MongoConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil;
@@ -188,42 +192,50 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
 
         final int limit = query.getLimit();
         final int skip = query.getSkip();
-        final Bson projection = new Document(PersistenceConstants.FIELD_ID, 1);
+        final int limitPlusOne = limit + 1;
+        final Bson projection = GetSortBsonVisitor.projections(query.getSortOptions());
 
         return Source.fromPublisher(
                 collection.find(queryFilter, Document.class)
                         .hint(hints.getHint(namespaces).orElse(null))
                         .sort(sortOptions)
-                        .limit(limit + 1)
+                        .limit(limitPlusOne)
                         .skip(skip)
                         .projection(projection)
                         .maxTime(maxQueryTime.getSeconds(), TimeUnit.SECONDS))
-                .map(doc -> doc.getString(PersistenceConstants.FIELD_ID))
-                .fold(new ArrayList<String>(), (list, id) -> {
-                    list.add(id);
-                    return list;
-                })
-                .map(resultsPlus0ne -> toResultList(resultsPlus0ne, skip, limit))
+                .grouped(limitPlusOne)
+                .orElse(Source.single(Collections.emptyList()))
+                .map(resultsPlus0ne -> toResultList(resultsPlus0ne, skip, limit, query.getSortOptions()))
                 .mapError(handleMongoExecutionTimeExceededException())
                 .log("findAll");
     }
 
-    private ResultList<String> toResultList(final List<String> resultsPlus0ne, final int skip, final int limit) {
+    private ResultList<String> toResultList(final List<Document> resultsPlus0ne, final int skip, final int limit,
+            final List<SortOption> sortOptions) {
+
         log.debug("Creating paged ResultList from parameters: resultsPlusOne=<{}>,skip={},limit={}",
                 resultsPlus0ne, skip, limit);
 
         final ResultList<String> pagedResultList;
-        if (resultsPlus0ne.size() <= limit) {
-            pagedResultList = new ResultListImpl<>(resultsPlus0ne, ResultList.NO_NEXT_PAGE);
+        if (resultsPlus0ne.size() <= limit || limit <= 0) {
+            pagedResultList = new ResultListImpl<>(toIds(resultsPlus0ne), ResultList.NO_NEXT_PAGE);
         } else {
             // MongoDB returned limit + 1 items. However only <limit> items are of interest per page.
-            resultsPlus0ne.remove(limit);
+            final List<Document> results = resultsPlus0ne.subList(0, limit);
+            final Document lastResult = results.get(limit - 1);
             final long nextPageOffset = (long) skip + limit;
-            pagedResultList = new ResultListImpl<>(resultsPlus0ne, nextPageOffset);
+            final JsonArray sortValues = GetSortBsonVisitor.sortValuesAsArray(lastResult, sortOptions);
+            pagedResultList = new ResultListImpl<>(toIds(results), nextPageOffset, sortValues);
         }
 
         log.debug("Returning paged ResultList: {}", pagedResultList);
         return pagedResultList;
+    }
+
+    private static List<String> toIds(final List<Document> docs) {
+        return docs.stream()
+                .map(doc -> doc.getString(PersistenceConstants.FIELD_ID))
+                .collect(Collectors.toList());
     }
 
     private static BsonDocument getMongoFilter(final Query query,

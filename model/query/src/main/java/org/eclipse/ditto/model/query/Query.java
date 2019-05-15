@@ -41,4 +41,13 @@ public interface Query {
      */
     int getSkip();
 
+    /**
+     * Replace criteria of this query by another.
+     *
+     * @param criteria the new criteria.
+     * @return a copy of this query with the new criteria.
+     */
+    Query withCritera(Criteria criteria);
+
+
 }

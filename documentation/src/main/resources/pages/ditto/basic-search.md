@@ -49,8 +49,35 @@ In order to apply queries when searching, Ditto uses the [RQL notation](basic-rq
 scenarios (e.g. filtering [notifications](basic-changenotifications.html)).
 
 
+## Paging options
 
-## RQL paging
+```
+size(<count>)
+```
+
+Limits the search results to `<count>` items.
+
+If the paging option is not explicitly specified a **default value** of _25_ is used. The **maximum** allowed count is 
+_200_.
+
+```
+cursor(<cursor-id>)
+```
+Starts the search at the position of the cursor with ID `<cursor-id>`. The cursor ID is obtained from the field 
+`cursor` of a previous response and marks the **position after the last entry** of the previous search. A response 
+includes no cursor if there are no more results.
+
+If a request has a `cursor` option, then any included `filter` or `sort` option may not differ from the original request of the cursor. Otherwise, the request is rejected.
+
+**Example - return ten items with a cursor**
+```
+option=size(10),cursor(<cursor-from-previous-result>)
+```
+
+## RQL paging (deprecated)
+
+{% include note.html content="The limit option is deprecated, it may be removed in future releases. Use [cursor-based 
+paging](basic-search.html#paging-options) instead." %}
 
 The RQL limiting part specifies which part (or "page") should be returned of a large search result set.
 

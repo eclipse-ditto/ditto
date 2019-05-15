@@ -81,6 +81,11 @@ public final class MongoQuery implements Query {
         return skip;
     }
 
+    @Override
+    public Query withCritera(final Criteria criteria) {
+        return new MongoQuery(criteria, sortOptions, limit, skip);
+    }
+
     /**
      * Gets the SortOptions as {@link Bson}.
      *

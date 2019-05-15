@@ -13,6 +13,9 @@
 package org.eclipse.ditto.services.thingsearch.common.model;
 
 import java.util.List;
+import java.util.Optional;
+
+import org.eclipse.ditto.json.JsonArray;
 
 /**
  * ResultList defines the offset of the next page in addition to the standard list operations.
@@ -32,4 +35,11 @@ public interface ResultList<E> extends List<E> {
      * @return the offset of the next page
      */
     long nextPageOffset();
+
+    /**
+     * Get values of sort expressions of the last result.
+     *
+     * @return the array of sort expressions of the last result
+     */
+    Optional<JsonArray> lastResultSortValues();
 }

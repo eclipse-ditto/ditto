@@ -12,11 +12,14 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.read.query;
 
-import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ID;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ID;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.OptionalInt;
+import java.util.stream.IntStream;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -26,6 +29,7 @@ import org.eclipse.ditto.model.query.SortDirection;
 import org.eclipse.ditto.model.query.SortOption;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.expression.SimpleFieldExpressionImpl;
+import org.eclipse.ditto.model.query.expression.SortFieldExpression;
 
 /**
  * Mongo implementation for {@link QueryBuilder}.
@@ -45,8 +49,10 @@ final class MongoQueryBuilder implements QueryBuilder {
      */
     private static final int MAX_LIMIT_UNLIMITED = Integer.MAX_VALUE;
 
+    private static final SortFieldExpression ID_SORT_FIELD_EXPRESSION = new SimpleFieldExpressionImpl(FIELD_ID);
+
     private static final List<SortOption> DEFAULT_SORT_OPTIONS =
-            Collections.singletonList(new SortOption(new SimpleFieldExpressionImpl(FIELD_ID), SortDirection.ASC));
+            Collections.singletonList(new SortOption(ID_SORT_FIELD_EXPRESSION, SortDirection.ASC));
 
     private final Criteria criteria;
     private final int maxLimit;
@@ -55,6 +61,7 @@ final class MongoQueryBuilder implements QueryBuilder {
     private List<SortOption> sortOptions;
 
     private MongoQueryBuilder(final Criteria criteria, final int maxLimit, final int defaultLimit) {
+
         this.criteria = checkNotNull(criteria, "criteria");
         this.maxLimit = maxLimit;
         limit = defaultLimit;
@@ -86,13 +93,30 @@ final class MongoQueryBuilder implements QueryBuilder {
 
     @Override
     public QueryBuilder sort(final List<SortOption> sortOptions) {
-        this.sortOptions = checkNotNull(sortOptions, "sort options");
+        checkNotNull(sortOptions, "sort options");
+        final OptionalInt thingIdEntry = IntStream.range(0, sortOptions.size())
+                .filter(i -> ID_SORT_FIELD_EXPRESSION.equals(sortOptions.get(i).getSortExpression()))
+                .findFirst();
+        if (thingIdEntry.isPresent()) {
+            this.sortOptions = sortOptions.subList(0, thingIdEntry.getAsInt() + 1);
+        } else {
+            final List<SortOption> options = new ArrayList<>(sortOptions.size() + DEFAULT_SORT_OPTIONS.size());
+            options.addAll(sortOptions);
+            options.addAll(DEFAULT_SORT_OPTIONS);
+            this.sortOptions = options;
+        }
         return this;
     }
 
     @Override
     public QueryBuilder limit(final long n) {
         limit = Validator.checkLimit(n, maxLimit);
+        return this;
+    }
+
+    @Override
+    public QueryBuilder size(final long n) {
+        limit = Validator.checkSize(n, maxLimit);
         return this;
     }
 

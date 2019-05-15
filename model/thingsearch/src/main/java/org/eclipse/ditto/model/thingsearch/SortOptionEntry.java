@@ -21,6 +21,28 @@ import org.eclipse.ditto.json.JsonPointer;
 public interface SortOptionEntry {
 
     /**
+     * Sort for propertyPath ascending.
+     *
+     * @param propertyPath the propertyPath.
+     * @return the SortOptionEntry.
+     * @throws NullPointerException if {@code propertyPath} is {@code null}.
+     */
+    static SortOptionEntry asc(final CharSequence propertyPath) {
+        return ImmutableSortOptionEntry.asc(propertyPath);
+    }
+
+    /**
+     * Sort for propertyPath descending.
+     *
+     * @param propertyPath the propertyPath.
+     * @return the SortOptionEntry.
+     * @throws NullPointerException if {@code propertyPath} is {@code null}.
+     */
+    static SortOptionEntry desc(final CharSequence propertyPath) {
+        return ImmutableSortOptionEntry.desc(propertyPath);
+    }
+
+    /**
      * Returns the sort order of this entry.
      *
      * @return the sort order.
