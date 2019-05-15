@@ -121,15 +121,6 @@ public interface CommandStrategy<T extends Command> {
          */
         Runnable getBecomeDeletedRunnable();
 
-        /**
-         * @return the runnable to stop this actor.
-         */
-        Runnable getStopThisActorRunnable();
-
-        /**
-         * @return if this is the first message.
-         */
-        boolean isFirstMessage();
     }
 
 }
