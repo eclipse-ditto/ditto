@@ -24,8 +24,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.common.IdValidator;
-import org.eclipse.ditto.model.base.common.Validator;
 
 /**
  * A mutable builder for an immutable {@link Thing} from scratch.
@@ -385,14 +383,6 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
 
     @Override
     public FromScratch setId(@Nullable final String thingId) {
-        if (null != thingId) {
-            final Validator thingIdValidator = IdValidator.newInstance(thingId, Thing.ID_REGEX);
-            if (!thingIdValidator.isValid()) {
-                throw ThingIdInvalidException.newBuilder(thingId)
-                        .message(thingIdValidator.getReason().orElse(null))
-                        .build();
-            }
-        }
         id = thingId;
         return this;
     }

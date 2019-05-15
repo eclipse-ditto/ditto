@@ -35,7 +35,7 @@ public interface Entity<T extends Revision<T>> extends Jsonifiable.WithFieldSele
     /**
      * The regex pattern for a Namespace.
      */
-    String NAMESPACE_REGEX = "(?<ns>|(?:(?:[a-zA-Z]\\w*+)(?:\\.[a-zA-Z]\\w*+)*+))";
+    String NAMESPACE_REGEX = "(?<ns>(?:(?:[a-zA-Z]\\w*+)(?:\\.[a-zA-Z]\\w*+)*+))";
 
     /**
      * The regex pattern for an Entity Name. Has to be conform to
