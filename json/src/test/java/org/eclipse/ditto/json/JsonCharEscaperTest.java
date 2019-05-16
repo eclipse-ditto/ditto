@@ -65,8 +65,8 @@ public final class JsonCharEscaperTest {
 
     @Test
     public void doNotEscapeNormalCharactersBeforeBackslash() {
-        final int start = 0x0023;
-        final int end = 0x005B;
+        final int start = 0x0023; // '#'
+        final int end = 0x005B; // '['
 
         IntStream.range(start, end)
                 .forEach(character -> {
@@ -77,7 +77,7 @@ public final class JsonCharEscaperTest {
 
     @Test
     public void doNotEscapeMultilingualPlaneAfterBackslash() {
-        final int start = 0x005D;
+        final int start = 0x005D; // '\'
         final int end = 0x00FFFF;
 
         IntStream.range(start, end)
@@ -104,7 +104,7 @@ public final class JsonCharEscaperTest {
     }
 
     @Test
-    public void escapeControlCharactersWithoutShordhands() {
+    public void escapeControlCharactersWithoutShorthands() {
         IntStream.range(0, 0x1F).forEach(character -> {
             if (SHORTHAND_CONTROL_CHARACTERS.chars().noneMatch(i -> i == character)) {
                 final String unicodeEscaped = underTest.apply(character);
