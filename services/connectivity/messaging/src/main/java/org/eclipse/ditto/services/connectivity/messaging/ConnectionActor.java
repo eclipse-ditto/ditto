@@ -230,7 +230,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
                 ".loggingActiveCheckDuration");
 
         this.enabledLoggingChecker = getContext().getSystem().scheduler().schedule(
-                java.time.Duration.ZERO, java.time.Duration.ofMinutes(loggingActiveCheckDuration), getSelf(),
+                java.time.Duration.ofMinutes(loggingActiveCheckDuration),
+                java.time.Duration.ofMinutes(loggingActiveCheckDuration), getSelf(),
                 CHECK_LOGGING_ENABLED,
                 getContext().getSystem().dispatcher(), null
         );
