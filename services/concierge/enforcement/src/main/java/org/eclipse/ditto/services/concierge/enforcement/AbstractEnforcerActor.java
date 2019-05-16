@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.concierge.enforcement;
 
 import java.time.Duration;
-import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
@@ -39,6 +38,7 @@ import akka.actor.ActorRef;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.javadsl.Flow;
+import akka.stream.javadsl.Sink;
 
 /**
  * Extensible actor to execute enforcement behavior.
@@ -64,7 +64,6 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
      *
      * @param pubSubMediator Akka pub-sub-mediator.
      * @param conciergeForwarder the concierge forwarder.
-     * @param enforcerExecutor executor for enforcement steps.
      * @param askTimeout how long to wait for entity actors.
      * @param bufferSize the buffer size used for the Source queue.
      * @param parallelism parallelism to use for processing messages in parallel.
@@ -74,7 +73,6 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
      */
     protected AbstractEnforcerActor(final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
-            final Executor enforcerExecutor,
             final Duration askTimeout,
             final int bufferSize,
             final int parallelism,
@@ -89,8 +87,8 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
         this.policyEnforcerCache = policyEnforcerCache;
 
         contextual = new Contextual<>(null, getSelf(), getContext().getSystem().deadLetters(),
-                pubSubMediator, conciergeForwarder, enforcerExecutor, askTimeout, log, null, null,
-                createResponseReceiversCache());
+                pubSubMediator, conciergeForwarder, askTimeout, log, null, null,
+                null, null, createResponseReceiversCache());
 
         // register for sending messages via pub/sub to this enforcer
         // used for receiving cache invalidations from brother concierge nodes
@@ -122,9 +120,8 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     }
 
     @Override
-    protected Contextual<WithDittoHeaders> beforeHandleMessage(final Contextual<WithDittoHeaders> contextual) {
-        final StartedTimer timer = createTimer(contextual.getMessage());
-        return contextual.withTimer(timer);
+    protected Contextual<WithDittoHeaders> beforeProcessMessage(final Contextual<WithDittoHeaders> contextual) {
+        return contextual.withTimer(createTimer(contextual.getMessage()));
     }
 
     private StartedTimer createTimer(final WithDittoHeaders withDittoHeaders) {
@@ -143,7 +140,10 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     }
 
     @Override
-    protected abstract Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> getHandler();
+    protected abstract Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> processMessageFlow();
+
+    @Override
+    protected abstract Sink<Contextual<WithDittoHeaders>, ?> processedMessageSink();
 
     @Override
     protected Contextual<WithDittoHeaders> mapMessage(final WithDittoHeaders message) {
