@@ -46,27 +46,47 @@ public final class ThingIdValidatorTest {
     }
 
     @Test
-    public void validationOfValidThingIdSucceedsWithEmptyNamespace() {
-        final String thingIdWithoutThingName = ":test";
+    public void validationOfValidThingIdFailsWithEmptyNamespace() {
+        final String thingIdWithoutNamespace = ":test";
 
-        ThingIdValidator.getInstance().accept(thingIdWithoutThingName, DittoHeaders.empty());
+        assertThatExceptionOfType(ThingIdInvalidException.class)
+                .isThrownBy(() -> ThingIdValidator.getInstance().accept(thingIdWithoutNamespace, DittoHeaders.empty()))
+                .withNoCause();
     }
 
     @Test
     public void validationOfValidThingIdFailsWithEmptyNamespaceAndName() {
-        final String thingIdWithoutThingName = ":";
+        final String thingIdWithEmptyNamespaceAndName = ":";
 
         assertThatExceptionOfType(ThingIdInvalidException.class)
-                .isThrownBy(() -> ThingIdValidator.getInstance().accept(thingIdWithoutThingName, DittoHeaders.empty()))
+                .isThrownBy(() -> ThingIdValidator.getInstance()
+                        .accept(thingIdWithEmptyNamespaceAndName, DittoHeaders.empty()))
                 .withNoCause();
     }
 
     @Test
     public void validationOfValidThingIdFailsWithOnlyNamespace() {
-        final String thingIdWithoutThingName = "org.eclipse.ditto.test";
+        final String thingIdWithOnlyNamespace = "org.eclipse.ditto.test";
 
         assertThatExceptionOfType(ThingIdInvalidException.class)
-                .isThrownBy(() -> ThingIdValidator.getInstance().accept(thingIdWithoutThingName, DittoHeaders.empty()))
+                .isThrownBy(() -> ThingIdValidator.getInstance().accept(thingIdWithOnlyNamespace, DittoHeaders.empty()))
                 .withNoCause();
+    }
+
+    @Test
+    public void validationOfValidThingIdFailsWithSpecialId() {
+        final String thingIdConsistingOnlyOfColons = "::::::::";
+
+        assertThatExceptionOfType(ThingIdInvalidException.class)
+                .isThrownBy(() -> ThingIdValidator.getInstance()
+                        .accept(thingIdConsistingOnlyOfColons, DittoHeaders.empty()))
+                .withNoCause();
+    }
+
+    @Test
+    public void validationOfValidThingIdSuccedsWithOnlyNamespace() {
+        final String thingIdWithNamespaceAndColons = "org.eclipse.ditto::::::";
+
+        ThingIdValidator.getInstance().accept(thingIdWithNamespaceAndColons, DittoHeaders.empty());
     }
 }

@@ -52,10 +52,10 @@ private class RqlOptionParser(override val input: ParserInput) extends RqlParser
   }
 
   /**
-    * Option                     = Sort | Limit
+    * Option                     = Sort | Limit | Cursor | Size
     */
   private def Option: Rule1[thingsearch.Option] = rule {
-    Sort | Limit
+    Sort | Limit | Cursor | Size
   }
 
   /**
@@ -96,6 +96,26 @@ private class RqlOptionParser(override val input: ParserInput) extends RqlParser
   private def Limit: Rule1[LimitOption] = rule {
     "limit" ~ '(' ~ LongLiteral ~ ',' ~ LongLiteral ~ ')' ~> ((offset: java.lang.Long, count: java.lang.Long) =>
       SearchModelFactory.newLimitOption(offset.toInt, count.toInt))
+  }
+
+  /**
+    * Cursor                      = "cursor", '(', StringLiteral, ')'
+    */
+  private def Cursor[CursorOption] = rule {
+    "cursor" ~ '(' ~ CursorString ~ ')' ~>
+      ((cursor: String) => SearchModelFactory.newCursorOption(cursor))
+  }
+
+  /**
+    * Size                        = "size", '(', IntegerLiteral, ')'
+    */
+  private def Size[SizeOption] = rule {
+    "size" ~ '(' ~ capture(Digits) ~ ')' ~>
+      ((size: String) => SearchModelFactory.newSizeOption(java.lang.Integer.valueOf(size)))
+  }
+
+  private def CursorString: Rule1[String] = rule {
+    capture(oneOrMore(CharPredicate.from(_ != ')')))
   }
 }
 

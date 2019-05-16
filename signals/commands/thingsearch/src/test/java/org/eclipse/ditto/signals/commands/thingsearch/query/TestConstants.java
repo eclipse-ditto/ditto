@@ -12,12 +12,10 @@
  */
 package org.eclipse.ditto.signals.commands.thingsearch.query;
 
-import java.time.Instant;
 import java.util.Collections;
 import java.util.Set;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
@@ -45,74 +43,50 @@ public final class TestConstants {
     public static final DittoHeaders EMPTY_DITTO_HEADERS = DittoHeaders.empty();
 
     /**
-     * A known timestamp.
-     */
-    public static final Instant TIMESTAMP = Instant.EPOCH;
-    /**
      * Known JSON parse options.
      */
     public static final JsonParseOptions JSON_PARSE_OPTIONS =
             JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build();
     /**
-     * A known JSON field selector.
+     * A known filter string.
      */
-    public static final JsonFieldSelector JSON_FIELD_SELECTOR_ATTRIBUTES =
-            JsonFactory.newFieldSelector("attributes(location,maker)", JSON_PARSE_OPTIONS);
+    public static final String KNOWN_FILTER_STR = "eq(thingId,4711)";
     /**
-     * A known JSON field selector.
+     * A known option.
      */
-    public static final JsonFieldSelector JSON_FIELD_SELECTOR_ATTRIBUTES_WITH_THING_ID =
-            JsonFactory.newFieldSelector("thingId,attributes(location,maker)", JSON_PARSE_OPTIONS);
+    public static final String KNOWN_OPT_1 = "opt1";
     /**
-     * A known JSON field selector.
+     * A known message for {@code InvalidOptionException}.
      */
-    public static final JsonFieldSelector JSON_FIELD_SELECTOR_FEATURE_PROPERTIES =
-            JsonFactory.newFieldSelector("properties/target_year_1", JSON_PARSE_OPTIONS);
+    public static final String KNOWN_INVALID_OPTION_EXCEPTION_MESSAGE = "Invalid option: " + KNOWN_OPT_1;
+    /**
+     * A known {@code InvalidOptionException}.
+     */
+    public static final InvalidOptionException INVALID_OPTION_EXCEPTION =
+            InvalidOptionException
+                    .newBuilder().message(KNOWN_INVALID_OPTION_EXCEPTION_MESSAGE).build();
+    /**
+     * Another known option.
+     */
+    public static final String KNOWN_OPT_2 = "opt2";
+
+    /**
+     * Known namespace.
+     */
+    public static final String KNOWN_NAMESPACE = "com.bosch";
+
+    /**
+     * A cursor.
+     */
+    public static final String CURSOR = "next-page-cursor";
+
+    /**
+     * Kknown namespaces set.
+     */
+    public static final Set<String> KNOWN_NAMESPACES_SET = Collections.singleton(KNOWN_NAMESPACE);
 
     private TestConstants() {
         throw new AssertionError();
-    }
-
-
-    /**
-     * Search-related test constants.
-     */
-    public static final class Search {
-
-        /**
-         * A known filter string.
-         */
-        public static final String KNOWN_FILTER_STR = "eq(thingId,4711)";
-
-        /**
-         * A known option.
-         */
-        public static final String KNOWN_OPT_1 = "opt1";
-        /**
-         * Another known option.
-         */
-        public static final String KNOWN_OPT_2 = "opt2";
-
-        /**
-         * Kknown namespace.
-         */
-        public static final String KNOWN_NAMESPACE = "com.bosch";
-
-        /**
-         * Kknown namespaces set.
-         */
-        public static final Set<String> KNOWN_NAMESPACES_SET = Collections.singleton(KNOWN_NAMESPACE);
-
-        /**
-         * A known message for {@code InvalidOptionException}.
-         */
-        public static final String KNOWN_INVALID_OPTION_EXCEPTION_MESSAGE = "Invalid option: " + KNOWN_OPT_1;
-        /**
-         * A known {@code InvalidOptionException}.
-         */
-        public static final InvalidOptionException INVALID_OPTION_EXCEPTION =
-                InvalidOptionException
-                        .newBuilder().message(KNOWN_INVALID_OPTION_EXCEPTION_MESSAGE).build();
     }
 
 }

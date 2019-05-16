@@ -35,9 +35,9 @@ public final class ThingCommandToModifyExceptionRegistryTest {
 
     @Test
     public void mapModifyThingToThingNotModifiable() {
-        final DeleteAttribute modifyThing = DeleteAttribute.of(":thingId", JsonPointer.of("abc"), DittoHeaders.empty());
+        final DeleteAttribute modifyThing = DeleteAttribute.of("org.eclipse.ditto:thingId", JsonPointer.of("abc"), DittoHeaders.empty());
         final DittoRuntimeException mappedException = registryUnderTest.exceptionFrom(modifyThing);
-        final DittoRuntimeException expectedException = AttributeNotModifiableException.newBuilder(":thingId",
+        final DittoRuntimeException expectedException = AttributeNotModifiableException.newBuilder("org.eclipse.ditto:thingId",
                 JsonPointer.of("abc")).build();
 
         assertThat(mappedException).isEqualTo(expectedException);

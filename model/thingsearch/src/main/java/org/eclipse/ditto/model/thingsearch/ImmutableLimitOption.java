@@ -23,9 +23,9 @@ import javax.annotation.concurrent.Immutable;
 final class ImmutableLimitOption implements LimitOption {
 
     /**
-     * The maximum allow value for count.
+     * The maximum allowed value for count.
      */
-    static final int MAX_COUNT = 200;
+    static final int MAX_COUNT = ImmutableSizeOption.MAX_SIZE;
 
     private final int offset;
     private final int count;

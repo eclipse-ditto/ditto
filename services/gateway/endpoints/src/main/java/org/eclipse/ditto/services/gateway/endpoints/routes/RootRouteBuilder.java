@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.gateway.endpoints.routes;
 
 import java.util.List;
 
+import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthenticationDirective;
 import org.eclipse.ditto.services.gateway.endpoints.routes.devops.DevOpsRoute;
@@ -188,6 +189,13 @@ public interface RootRouteBuilder {
      * @return the Builder to allow method chaining.
      */
     RootRouteBuilder rejectionHandler(RejectionHandler handler);
+
+    /**
+     * Sets the headers size checker.
+     *
+     * @return the builder.
+     */
+    RootRouteBuilder dittoHeadersSizeChecker(DittoHeadersSizeChecker checker);
 
     /**
      * Builds the root route.

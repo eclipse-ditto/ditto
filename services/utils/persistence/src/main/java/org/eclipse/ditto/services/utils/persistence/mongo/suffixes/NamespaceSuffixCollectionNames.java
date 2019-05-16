@@ -63,10 +63,8 @@ public final class NamespaceSuffixCollectionNames implements CanSuffixCollection
 
         final String[] persistenceIdSplitByColons = persistenceId.split(":");
 
-        if (persistenceIdSplitByColons.length < 3) {
-            throw new IllegalStateException(
-                    String.format("Persistence id <%s> is not in the expected format of <prefix:namespace:name>",
-                            persistenceId));
+        if (persistenceIdSplitByColons.length < 2) {
+            throw new PersistenceIdInvalidException(persistenceId);
         }
 
         final String prefix = persistenceIdSplitByColons[0];
@@ -105,5 +103,14 @@ public final class NamespaceSuffixCollectionNames implements CanSuffixCollection
             return escaped.substring(0, MAX_SUFFIX_CHARS_LENGTH) + "@" + hash;
         }
         return escaped;
+    }
+
+    public static final class PersistenceIdInvalidException extends RuntimeException {
+
+        private static final long serialVersionUID = -4789912839628096316L;
+
+        private  PersistenceIdInvalidException(final String persistenceId){
+            super(String.format("Persistence id <%s> is not in the expected format of <prefix:namespace:name>", persistenceId));
+        }
     }
 }

@@ -32,10 +32,17 @@ public interface OptionVisitor {
     void visit(SortOption sortOption);
 
     /**
-     * Is called by a {@link Option} in its {@link Option#accept(OptionVisitor)} method.
+     * Is called by a {@link CursorOption} in its {@link CursorOption#accept(OptionVisitor)} method.
      *
-     * @param option an instance of the {@link Option}.
+     * @param cursorOption an instance of the {@link CursorOption}.
      */
-    void visit(Option option); // general catch all for custom Node implementations
+    void visit(CursorOption cursorOption);
+
+    /**
+     * Is called by a {@link SizeOption} in its {@link SizeOption#accept(OptionVisitor)} method.
+     *
+     * @param sizeOption an instance of the {@link SizeOption}.
+     */
+    void visit(SizeOption sizeOption);
 
 }
