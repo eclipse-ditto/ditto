@@ -69,9 +69,10 @@ public final class MongoNamespacePersistenceOperations implements NamespacePersi
 
     private Source<List<Throwable>, NotUsed> purgeAllSelections(
             final Collection<MongoPersistenceOperationsSelection> selections) {
+
         Source<List<Throwable>, NotUsed> result = Source.empty();
 
-        for (MongoPersistenceOperationsSelection mongoOpsSelection : selections) {
+        for (final MongoPersistenceOperationsSelection mongoOpsSelection : selections) {
             final Source<List<Throwable>, NotUsed> purge = purge(mongoOpsSelection);
             result = result.merge(purge);
         }
