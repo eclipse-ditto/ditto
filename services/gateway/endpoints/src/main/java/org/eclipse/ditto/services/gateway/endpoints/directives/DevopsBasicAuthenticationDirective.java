@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.directives;
 
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -27,16 +28,21 @@ import akka.http.javadsl.server.Route;
 import akka.http.javadsl.server.directives.SecurityDirectives;
 
 /**
- * Custom Akka Http directive performing basic auth for {@value #REALM_DEVOPS} realm.
+ * Custom Akka Http directive performing basic auth for realms {@value #REALM_DEVOPS} and {@value #REALM_STATUS}.
  */
 public class DevopsBasicAuthenticationDirective {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DevopsBasicAuthenticationDirective.class);
 
     /**
-     * The Http basic auth realm for the "ditto-devops" user used for /status resource.
+     * The Http basic auth realm for the "ditto-devops" user used for /devops resource.
      */
     public static final String REALM_DEVOPS = "DITTO-DEVOPS";
+
+    /**
+     * The Http basic auth realm for the "ditto-devops" user used for /status resource.
+     */
+    public static final String REALM_STATUS = "DITTO-STATUS";
 
     private static final String USER_DEVOPS = "devops";
 
@@ -54,16 +60,17 @@ public class DevopsBasicAuthenticationDirective {
     public static Route authenticateDevopsBasic(final String realm, final Route inner) {
         return Directives.extractActorSystem(actorSystem -> {
             final Config config = actorSystem.settings().config();
-            if (REALM_DEVOPS.equals(realm)) {
-                final boolean devopsSecureStatus = config.getBoolean(ConfigKeys.DEVOPS_SECURE_STATUS);
-                if (!devopsSecureStatus) {
-                    LOGGER.warn("DevOps resource is not secured by BasicAuth");
-                    return inner;
-                }
+            final boolean devopsSecureStatus = config.getBoolean(ConfigKeys.DEVOPS_SECURE_STATUS);
+            if (!devopsSecureStatus) {
+                LOGGER.warn("DevOps resource is not secured by BasicAuth");
+                return inner;
+            } else if (REALM_DEVOPS.equals(realm)) {
                 final String devOpsPassword = config.getString(ConfigKeys.SECRETS_DEVOPS_PASSWORD);
-                LOGGER.debug("Devops authentication is enabled.");
-                return Directives.authenticateBasic(REALM_DEVOPS, new Authenticator(USER_DEVOPS, devOpsPassword),
-                        userName -> inner);
+                return authenticate(realm, inner, devOpsPassword);
+            } else if (REALM_STATUS.equals(realm)) {
+                final String devOpsPassword = config.getString(ConfigKeys.SECRETS_DEVOPS_PASSWORD);
+                final String statusPassword = config.getString(ConfigKeys.SECRETS_STATUS_PASSWORD);
+                return authenticate(realm, inner, devOpsPassword, statusPassword);
             } else {
                 LOGGER.warn("Did not know realm '{}'. NOT letting the inner Route pass ..", realm);
                 return Directives.complete(StatusCodes.UNAUTHORIZED);
@@ -71,22 +78,25 @@ public class DevopsBasicAuthenticationDirective {
         });
     }
 
+    private static Route authenticate(final String realm, final Route inner, final String... usersAndPasswords) {
+        LOGGER.debug("DevOps authentication is enabled for {}.", realm);
+        return Directives.authenticateBasic(realm, new Authenticator(usersAndPasswords), userName -> inner);
+    }
+
     private static class Authenticator
             implements Function<Optional<SecurityDirectives.ProvidedCredentials>, Optional<String>> {
 
-        private final String username;
-        private final String password;
+        private final String[] passwords;
 
-        Authenticator(final String username, final String password) {
-            this.username = username;
-            this.password = password;
+        Authenticator(final String... passwords) {
+            this.passwords = passwords;
         }
 
         @Override
         public Optional<String> apply(final Optional<SecurityDirectives.ProvidedCredentials> credentials) {
             return credentials
-                    .filter(providedCredentials -> username.equals(providedCredentials.identifier()) &&
-                            providedCredentials.verify(password))
+                    .filter(providedCredentials -> USER_DEVOPS.equals(providedCredentials.identifier()))
+                    .filter(providedCredentials -> Arrays.stream(passwords).anyMatch(providedCredentials::verify))
                     .map(SecurityDirectives.ProvidedCredentials::identifier);
         }
     }

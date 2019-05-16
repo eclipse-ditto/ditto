@@ -164,6 +164,11 @@ public final class ConfigKeys {
      */
     public static final String SECRETS_DEVOPS_PASSWORD = SECRETS_PREFIX + "devops_password";
 
+    /**
+     * Key of status user password.
+     */
+    public static final String SECRETS_STATUS_PASSWORD = SECRETS_PREFIX + "status_password";
+
     private static final String AKKA_PREFIX = "akka.";
     private static final String AKKA_HTTP_PREFIX = AKKA_PREFIX + HTTP_MIDSECTION;
     /**

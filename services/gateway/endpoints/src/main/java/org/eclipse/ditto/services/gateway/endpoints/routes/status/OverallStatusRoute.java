@@ -20,7 +20,7 @@ import static akka.http.javadsl.server.Directives.pathEndOrSingleSlash;
 import static akka.http.javadsl.server.Directives.rawPathPrefix;
 import static akka.http.javadsl.server.Directives.route;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.REALM_DEVOPS;
+import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.REALM_STATUS;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.authenticateDevopsBasic;
 
 import java.util.concurrent.CompletionStage;
@@ -71,7 +71,7 @@ public final class OverallStatusRoute {
      */
     public Route buildOverallStatusRoute() {
         return rawPathPrefix(mergeDoubleSlashes().concat(PATH_OVERALL), () -> // /overall/*
-                authenticateDevopsBasic(REALM_DEVOPS, get(() -> // GET
+                authenticateDevopsBasic(REALM_STATUS, get(() -> // GET
                         // /overall/status
                         // /overall/status/health
                         // /overall/status/cluster
