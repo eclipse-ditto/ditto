@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.gateway.starter.service.util;
+package org.eclipse.ditto.services.gateway.util;
 
 import java.util.HashMap;
 import java.util.Map;

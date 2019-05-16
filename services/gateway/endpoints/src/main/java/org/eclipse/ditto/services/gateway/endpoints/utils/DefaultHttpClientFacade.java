@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -18,6 +18,7 @@ import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpProxyConfig;
+import org.eclipse.ditto.services.gateway.util.HttpClientFacade;
 import org.eclipse.ditto.services.utils.config.DittoConfigError;
 
 import akka.actor.ActorSystem;
@@ -30,17 +31,17 @@ import akka.http.javadsl.settings.ConnectionPoolSettings;
 import akka.stream.ActorMaterializer;
 
 /**
- * Provides a pre-configured Akka HTTP client.
+ * Default implementation of {@link HttpClientFacade}.
  */
-public final class HttpClientFacade {
+public final class DefaultHttpClientFacade implements HttpClientFacade {
 
-    @Nullable private static HttpClientFacade instance;
+    @Nullable private static DefaultHttpClientFacade instance;
 
     private final ActorSystem actorSystem;
     private final ConnectionPoolSettings connectionPoolSettings;
     private final ActorMaterializer actorMaterializer;
 
-    private HttpClientFacade(final ActorSystem actorSystem, final ActorMaterializer actorMaterializer,
+    private DefaultHttpClientFacade(final ActorSystem actorSystem, final ActorMaterializer actorMaterializer,
             final ConnectionPoolSettings connectionPoolSettings) {
 
         this.actorSystem = actorSystem;
@@ -55,11 +56,11 @@ public final class HttpClientFacade {
      * @param httpProxyConfig the config of the HTTP proxy.
      * @return the instance.
      */
-    public static HttpClientFacade getInstance(final ActorSystem actorSystem, final HttpProxyConfig httpProxyConfig) {
+    public static DefaultHttpClientFacade getInstance(final ActorSystem actorSystem, final HttpProxyConfig httpProxyConfig) {
 
         // the HttpClientProvider is only configured at the very first invocation of getInstance(Config) as we can
         // assume that the config does not change during runtime
-        HttpClientFacade result = instance;
+        DefaultHttpClientFacade result = instance;
         if (null == result) {
             result = createInstance(actorSystem, httpProxyConfig);
             instance = result;
@@ -67,12 +68,12 @@ public final class HttpClientFacade {
         return result;
     }
 
-    private static HttpClientFacade createInstance(final ActorSystem actorSystem, final HttpProxyConfig proxyConfig) {
+    private static DefaultHttpClientFacade createInstance(final ActorSystem actorSystem, final HttpProxyConfig proxyConfig) {
         ConnectionPoolSettings connectionPoolSettings = ConnectionPoolSettings.create(actorSystem);
         if (proxyConfig.isEnabled()) {
             connectionPoolSettings = connectionPoolSettings.withTransport(getProxyClientTransport(proxyConfig));
         }
-        return new HttpClientFacade(actorSystem, ActorMaterializer.create(actorSystem), connectionPoolSettings);
+        return new DefaultHttpClientFacade(actorSystem, ActorMaterializer.create(actorSystem), connectionPoolSettings);
     }
 
     private static ClientTransport getProxyClientTransport(final HttpProxyConfig proxyConfig) {
@@ -92,11 +93,7 @@ public final class HttpClientFacade {
         return ClientTransport.httpsProxy(inetSocketAddress);
     }
 
-    /**
-     * Creates a CompletionStage for the passed {@link HttpRequest} containing the {@link HttpResponse}.
-     *
-     * @return the HttpResponse CompletionStage.
-     */
+    @Override
     public CompletionStage<HttpResponse> createSingleHttpRequest(final HttpRequest request) {
         return Http.get(actorSystem).singleRequest(request,
                 Http.get(actorSystem).defaultClientHttpsContext(),
@@ -106,9 +103,7 @@ public final class HttpClientFacade {
         );
     }
 
-    /**
-     * @return an {@link ActorMaterializer} instance which can be used for stream execution.
-     */
+    @Override
     public ActorMaterializer getActorMaterializer() {
         return actorMaterializer;
     }

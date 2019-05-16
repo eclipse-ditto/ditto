@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints;
 
-import static org.eclipse.ditto.services.gateway.starter.service.util.FireAndForgetMessageUtil.isFireAndForgetMessage;
+import static org.eclipse.ditto.services.gateway.util.FireAndForgetMessageUtil.isFireAndForgetMessage;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;

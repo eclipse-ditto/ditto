@@ -38,7 +38,7 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsParamete
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebsocketRoute;
-import org.eclipse.ditto.services.gateway.endpoints.utils.HttpClientFacade;
+import org.eclipse.ditto.services.gateway.endpoints.utils.DefaultHttpClientFacade;
 import org.eclipse.ditto.services.gateway.health.DittoStatusAndHealthProviderFactory;
 import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
@@ -106,7 +106,7 @@ public final class RootRouteTest extends EndpointTestBase {
         final ProtocolAdapterProvider protocolAdapterProvider =
                 ProtocolAdapterProvider.load(protocolConfig, actorSystem);
         final HeaderTranslator headerTranslator = protocolAdapterProvider.getHttpHeaderTranslator();
-        final HttpClientFacade httpClient = HttpClientFacade.getInstance(actorSystem, authConfig.getHttpProxyConfig());
+        final DefaultHttpClientFacade httpClient = DefaultHttpClientFacade.getInstance(actorSystem, authConfig.getHttpProxyConfig());
         final GatewayAuthenticationDirectiveFactory authenticationDirectiveFactory =
                 new DittoGatewayAuthenticationDirectiveFactory(authConfig, cacheConfig, httpClient, messageDispatcher);
 

@@ -38,7 +38,7 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.status.OverallStatusR
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebsocketRoute;
-import org.eclipse.ditto.services.gateway.endpoints.utils.HttpClientFacade;
+import org.eclipse.ditto.services.gateway.endpoints.utils.DefaultHttpClientFacade;
 import org.eclipse.ditto.services.gateway.health.DittoStatusAndHealthProviderFactory;
 import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
 import org.eclipse.ditto.services.gateway.health.config.HealthCheckConfig;
@@ -279,7 +279,7 @@ final class GatewayRootActor extends AbstractActor {
 
         final AuthenticationConfig authConfig = gatewayConfig.getAuthenticationConfig();
         final CachesConfig cachesConfig = gatewayConfig.getCachesConfig();
-        final HttpClientFacade httpClient = HttpClientFacade.getInstance(actorSystem, authConfig.getHttpProxyConfig());
+        final DefaultHttpClientFacade httpClient = DefaultHttpClientFacade.getInstance(actorSystem, authConfig.getHttpProxyConfig());
         final MessageDispatcher authenticationDispatcher = actorSystem.dispatchers().lookup(
                 AUTHENTICATION_DISPATCHER_NAME);
         final GatewayAuthenticationDirectiveFactory authenticationDirectiveFactory =
