@@ -14,6 +14,7 @@ package org.eclipse.ditto.json;
 
 import java.util.function.Function;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 /**
@@ -60,13 +61,14 @@ final class JsonCharEscaper implements Function<Integer, String> {
      * @param i the character to be escaped.
      * @return the replacement for {@code c} or {@code null} if {@code c} does not have to be escaped.
      */
+    @Nullable
     @Override
     public String apply(final Integer i) {
         if (0 <= i && i < ESCAPE_TABLE.length) {
             return ESCAPE_TABLE[i];
         } else {
-            // higher characters are valid unescaped.
-            return new StringBuilder().appendCodePoint(i).toString();
+            // return null for higher characters which are valid unescaped.
+            return null;
         }
     }
 
@@ -78,7 +80,7 @@ final class JsonCharEscaper implements Function<Integer, String> {
         }
         // non-control characters may be retained except the 2 must-escape characters handled later
         for (char c = LAST_CONTROL_CHARACTER + 1; c < table.length; ++c) {
-            table[c] = String.valueOf(c);
+            table[c] = null;
         }
         // control characters with shorthand
         table['\b'] = "\\b";

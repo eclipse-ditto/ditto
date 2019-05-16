@@ -17,6 +17,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 /**
@@ -52,7 +53,17 @@ final class JavaStringToEscapedJsonString implements UnaryOperator<String> {
         requireNonNull(javaString, "The Java String to be converted must not be null");
         final StringBuilder stringBuilder = new StringBuilder(javaString.length() + 2);
         stringBuilder.append(QUOTE);
-        javaString.chars().forEachOrdered(codePoint -> stringBuilder.append(jsonCharEscaper.apply(codePoint)));
+        stringBuilder.append(javaString);
+        int i = 1; // offset of starting " char
+        for (final char c : javaString.toCharArray()) {
+            @Nullable final String replacement = jsonCharEscaper.apply((int) c);
+            if (null != replacement) {
+                stringBuilder.replace(i, i + 1, replacement);
+                i += replacement.length();
+            } else {
+                i++;
+            }
+        }
         stringBuilder.append(QUOTE);
         return stringBuilder.toString();
     }

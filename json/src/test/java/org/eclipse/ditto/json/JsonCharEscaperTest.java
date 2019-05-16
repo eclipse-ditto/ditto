@@ -50,42 +50,16 @@ public final class JsonCharEscaperTest {
     }
 
     @Test
-    public void doNotEscapeSpace() {
-        final String unescapedSpace = underTest.apply(0x0020);
-
-        assertThat(unescapedSpace.chars()).containsExactly(0x0020);
-    }
-
-    @Test
-    public void doNotEscapeExclamationMark() {
-        final String unescapedExclamationMark = underTest.apply(0x0021);
-
-        assertThat(unescapedExclamationMark.chars()).containsExactly(0x0021);
-    }
-
-    @Test
     public void doNotEscapeNormalCharactersBeforeBackslash() {
-        final int start = 0x0023; // '#'
-        final int end = 0x005B; // '['
-
-        IntStream.range(start, end)
-                .forEach(character -> {
-                    final String notEscaped = underTest.apply(character);
-                    assertThat(notEscaped.chars()).containsExactly(character);
-                });
-    }
-
-    @Test
-    public void doNotEscapeMultilingualPlaneAfterBackslash() {
-        final int start = 0x005D; // '\'
+        final int start = 0x0020; // ' '
         final int end = 0x00FFFF;
 
         IntStream.range(start, end)
+                .filter(i -> i != '"' && i != '\\')
                 .forEach(character -> {
                     final String notEscaped = underTest.apply(character);
-                    assertThat(notEscaped.chars())
-                            .describedAs("Do not escape character %s", Integer.toHexString(character))
-                            .containsExactly(character);
+                    assertThat(notEscaped)
+                            .isNull();
                 });
     }
 
