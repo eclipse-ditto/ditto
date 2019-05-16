@@ -12,21 +12,17 @@
  */
 package org.eclipse.ditto.services.utils.akka.controlflow;
 
-import java.util.concurrent.CompletionStage;
-
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 
-import akka.Done;
 import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorSystem;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.function.Function;
-import akka.japi.function.Function2;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.ActorMaterializer;
 import akka.stream.ActorMaterializerSettings;
@@ -35,7 +31,6 @@ import akka.stream.OverflowStrategy;
 import akka.stream.Supervision;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.GraphDSL;
-import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Merge;
 import akka.stream.javadsl.Partition;
 import akka.stream.javadsl.Sink;
@@ -128,10 +123,7 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
                         .via(Flow.fromFunction(this::beforeProcessMessage))
                         // second: partition by the message's ID in order to maintain order per ID
                         .via(partitionById(processMessageFlow(), parallelism))
-                        .async()
-                        .mergeSubstreams()
-                        .watchTermination(handleTermination())
-                        .toMat(processedMessageSink(), Keep.left())
+                        .to(processedMessageSink())
                         .run(materializer);
 
         final ReceiveBuilder receiveBuilder = ReceiveBuilder.create();
@@ -194,7 +186,7 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
                 (builder, partition, merge) -> {
                     for (int i = 0; i < parallelism; i++) {
                         builder.from(partition.out(i))
-                                .via(builder.add(flowToPartition.async()))
+                                .via(builder.add(flowToPartition))
                                 .toInlet(merge.in(i));
                     }
                     return FlowShape.of(partition.in(), merge.out());
@@ -207,21 +199,5 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
      * @param receiveBuilder the ReceiveBuilder to add other matchers to.
      */
     protected abstract void preEnhancement(final ReceiveBuilder receiveBuilder);
-
-    private Function2<SourceQueueWithComplete<T>, CompletionStage<Done>, SourceQueueWithComplete<T>> handleTermination() {
-
-        return (notUsed, doneCompletionStage) -> {
-            doneCompletionStage.whenComplete((done, ex) -> {
-                if (done != null) {
-                    log.warning("Stream was completed which should never happen.");
-                } else {
-                    log.warning(
-                            "Unexpected exception when watching Termination of stream - {}: {}",
-                            ex.getClass().getSimpleName(), ex.getMessage());
-                }
-            });
-            return notUsed;
-        };
-    }
 
 }

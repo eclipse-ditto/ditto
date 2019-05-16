@@ -1025,7 +1025,6 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                 .thenApply(policyResponse -> {
                     handlePolicyResponseForCreateThing(createPolicy, createThing, policyResponse);
 
-                    // TODO TJ invalidate the caches AFTER the thing was created .. but how!? should work for both ACL + policies based
                     invalidateThingCaches(createThing.getThingId());
 
                     return createThing;
