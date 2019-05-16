@@ -17,41 +17,41 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 
 /**
- * This class is the default implementation of the MQTT protocol.
+ * This class is the default implementation of {@link KafkaConfig}.
  */
 @Immutable
-public final class DefaultMqttConfig implements MqttConfig, Serializable {
+public final class DefaultKafkaConfig implements KafkaConfig, Serializable {
 
-    private static final String CONFIG_PATH = "mqtt";
+    private static final String CONFIG_PATH = "kafka";
 
-    private static final long serialVersionUID = 4895715266164857570L;
+    private static final long serialVersionUID = 728630119797660446L;
 
-    private final int sourceBufferSize;
+    private final Config internalProducerConfig;
 
-    private DefaultMqttConfig(final ScopedConfig config) {
-        sourceBufferSize = config.getInt(MqttConfigValue.SOURCE_BUFFER_SIZE.getConfigPath());
+    private DefaultKafkaConfig(final ScopedConfig kafkaScopedConfig) {
+        internalProducerConfig = kafkaScopedConfig.getConfig("producer.internal");
     }
 
     /**
-     * Returns an instance of {@code DefaultMqttConfig} based on the settings of the specified Config.
+     * Returns an instance of {@code DefaultKafkaConfig} based on the settings of the specified Config.
      *
-     * @param config is supposed to provide the settings of the JavaScript mapping config at {@value #CONFIG_PATH}.
+     * @param config is supposed to provide the Kafka config setting at {@value #CONFIG_PATH}.
      * @return the instance.
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
-    public static DefaultMqttConfig of(final Config config) {
-        return new DefaultMqttConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH, MqttConfigValue.values()));
+    public static DefaultKafkaConfig of(final Config config) {
+        return new DefaultKafkaConfig(DefaultScopedConfig.newInstance(config, CONFIG_PATH));
     }
 
     @Override
-    public int getSourceBufferSize() {
-        return sourceBufferSize;
+    public Config getInternalProducerConfig() {
+        return internalProducerConfig;
     }
 
     @Override
@@ -62,19 +62,19 @@ public final class DefaultMqttConfig implements MqttConfig, Serializable {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final DefaultMqttConfig that = (DefaultMqttConfig) o;
-        return Objects.equals(sourceBufferSize, that.sourceBufferSize);
+        final DefaultKafkaConfig that = (DefaultKafkaConfig) o;
+        return Objects.equals(internalProducerConfig, that.internalProducerConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(sourceBufferSize);
+        return Objects.hash(internalProducerConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "sourceBufferSize=" + sourceBufferSize +
+                "internalProducerConfig=" + internalProducerConfig +
                 "]";
     }
 

@@ -14,6 +14,9 @@ package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
 import java.util.List;
 
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.model.connectivity.Target;
 
 import akka.actor.ActorRef;
@@ -22,36 +25,43 @@ import akka.actor.Props;
 /**
  * Default implementation, providing a {@link org.eclipse.ditto.services.connectivity.messaging.kafka.KafkaPublisherActor}.
  */
+@Immutable
 public final class DefaultKafkaPublisherActorFactory implements KafkaPublisherActorFactory {
 
-    private static DefaultKafkaPublisherActorFactory instance;
+    @Nullable private static DefaultKafkaPublisherActorFactory instance;
 
     private static final long serialVersionUID = 5200344820825330940L;
 
     private DefaultKafkaPublisherActorFactory() {
-        // intentionally empty
+        super();
     }
 
     /**
-     * Get an instance of the publisher actor factory.
-     * @return an instance of the publisher actor factory.
+     * Gets an instance of the publisher actor factory.
+     *
+     * @return the instance.
      */
     public static DefaultKafkaPublisherActorFactory getInstance() {
-        if (null == instance) {
-            instance = new DefaultKafkaPublisherActorFactory();
+        DefaultKafkaPublisherActorFactory result = instance;
+        if (null == result) {
+            result = new DefaultKafkaPublisherActorFactory();
+            instance = result;
         }
-        return instance;
+        return result;
     }
 
     @Override
-    public String name() {
+    public String getActorName() {
         return KafkaPublisherActor.ACTOR_NAME;
     }
 
     @Override
-    public Props props(final String connectionId, final List<Target> targets,
-            final KafkaConnectionFactory factory, final ActorRef kafkaClientActor,
+    public Props props(final String connectionId,
+            final List<Target> targets,
+            final KafkaConnectionFactory factory,
+            final ActorRef kafkaClientActor,
             final boolean dryRun) {
+
         return KafkaPublisherActor.props(connectionId, targets, factory, kafkaClientActor, dryRun);
     }
 

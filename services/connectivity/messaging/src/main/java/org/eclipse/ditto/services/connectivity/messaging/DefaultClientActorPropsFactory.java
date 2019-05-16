@@ -40,17 +40,17 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
     private final ClientConfig clientConfig;
     private final MappingConfig mappingConfig;
     private final ProtocolConfig protocolConfig;
-    private final ConnectionConfig.MqttConfig mqttConfig;
+    private final ConnectionConfig connectionConfig;
 
     private DefaultClientActorPropsFactory(final ClientConfig clientConfig,
             final MappingConfig mappingConfig,
             final ProtocolConfig protocolConfig,
-            final ConnectionConfig.MqttConfig mqttConfig) {
+            final ConnectionConfig connectionConfig) {
 
         this.clientConfig = checkNotNull(clientConfig, "ClientConfig");
         this.mappingConfig = checkNotNull(mappingConfig, "MappingConfig");
         this.protocolConfig = checkNotNull(protocolConfig, "ProtocolConfig");
-        this.mqttConfig = checkNotNull(mqttConfig, "MqttConfig");
+        this.connectionConfig = checkNotNull(connectionConfig, "ConnectionConfig");
     }
 
     /**
@@ -68,8 +68,7 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
             final ProtocolConfig protocolConfig,
             final ConnectionConfig connectionConfig) {
 
-        return new DefaultClientActorPropsFactory(clientConfig, mappingConfig, protocolConfig,
-                connectionConfig.getMqttConfig());
+        return new DefaultClientActorPropsFactory(clientConfig, mappingConfig, protocolConfig, connectionConfig);
     }
 
     @Override
@@ -83,10 +82,11 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
                 return AmqpClientActor.props(connection, clientConfig, mappingConfig, protocolConfig,
                         conciergeForwarder);
             case MQTT:
-                return MqttClientActor.props(connection, clientConfig, mappingConfig, protocolConfig, mqttConfig,
-                        conciergeForwarder);
+                return MqttClientActor.props(connection, clientConfig, mappingConfig, protocolConfig,
+                        connectionConfig.getMqttConfig(), conciergeForwarder);
             case KAFKA:
-                return KafkaClientActor.props(connection, conciergeForwarder,
+                return KafkaClientActor.props(connection, clientConfig, mappingConfig, protocolConfig,
+                        connectionConfig.getKafkaConfig(), conciergeForwarder,
                         DefaultKafkaPublisherActorFactory.getInstance());
             default:
                 throw new IllegalArgumentException("ConnectionType <" + connectionType + "> is not supported.");

@@ -26,7 +26,7 @@ import com.typesafe.config.Config;
  * This class is the default implementation of the snapshotting behaviour config.
  */
 @Immutable
-public final class DefaultSnapshotConfig implements ConnectionConfig.SnapshotConfig, Serializable {
+public final class DefaultSnapshotConfig implements SnapshotConfig, Serializable {
 
     private static final String CONFIG_PATH = "snapshot";
 

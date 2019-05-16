@@ -21,7 +21,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.services.base.config.supervision.DefaultSupervisorConfig;
 import org.eclipse.ditto.services.base.config.supervision.SupervisorConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 
@@ -33,23 +32,23 @@ public final class DefaultConnectionConfig implements ConnectionConfig, Serializ
 
     private static final String CONFIG_PATH = "connection";
 
+    private static final long serialVersionUID = -8262639769154675241L;
+
     private final Duration flushPendingResponsesTimeout;
     private final Duration clientActorAskTimeout;
-    private final SupervisorConfig supervisorConfig;
-    private final SnapshotConfig snapshotConfig;
-    private final MqttConfig mqttConfig;
+    private final DefaultSupervisorConfig supervisorConfig;
+    private final DefaultSnapshotConfig snapshotConfig;
+    private final DefaultMqttConfig mqttConfig;
+    private final DefaultKafkaConfig kafkaConfig;
 
-    private DefaultConnectionConfig(final ScopedConfig config,
-            final SupervisorConfig theSupervisorConfig,
-            final SnapshotConfig theSnapshotConfig,
-            final MqttConfig theMqttConfig) {
-
+    private DefaultConnectionConfig(final ConfigWithFallback config) {
         flushPendingResponsesTimeout =
                 config.getDuration(ConnectionConfigValue.FLUSH_PENDING_RESPONSES_TIMEOUT.getConfigPath());
         clientActorAskTimeout = config.getDuration(ConnectionConfigValue.CLIENT_ACTOR_ASK_TIMEOUT.getConfigPath());
-        supervisorConfig = theSupervisorConfig;
-        snapshotConfig = theSnapshotConfig;
-        mqttConfig = theMqttConfig;
+        supervisorConfig = DefaultSupervisorConfig.of(config);
+        snapshotConfig = DefaultSnapshotConfig.of(config);
+        mqttConfig = DefaultMqttConfig.of(config);
+        kafkaConfig = DefaultKafkaConfig.of(config);
     }
 
     /**
@@ -60,13 +59,8 @@ public final class DefaultConnectionConfig implements ConnectionConfig, Serializ
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultConnectionConfig of(final Config config) {
-        final ConfigWithFallback connectionScopedConfig =
-                ConfigWithFallback.newInstance(config, CONFIG_PATH, ConnectionConfigValue.values());
-
-        return new DefaultConnectionConfig(connectionScopedConfig,
-                DefaultSupervisorConfig.of(connectionScopedConfig),
-                DefaultSnapshotConfig.of(connectionScopedConfig),
-                DefaultMqttConfig.of(connectionScopedConfig));
+        return new DefaultConnectionConfig(
+                ConfigWithFallback.newInstance(config, CONFIG_PATH, ConnectionConfigValue.values()));
     }
 
     @Override
@@ -95,6 +89,11 @@ public final class DefaultConnectionConfig implements ConnectionConfig, Serializ
     }
 
     @Override
+    public KafkaConfig getKafkaConfig() {
+        return kafkaConfig;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -107,13 +106,14 @@ public final class DefaultConnectionConfig implements ConnectionConfig, Serializ
                 Objects.equals(clientActorAskTimeout, that.clientActorAskTimeout) &&
                 Objects.equals(supervisorConfig, that.supervisorConfig) &&
                 Objects.equals(snapshotConfig, that.snapshotConfig) &&
-                Objects.equals(mqttConfig, that.mqttConfig);
+                Objects.equals(mqttConfig, that.mqttConfig) &&
+                Objects.equals(kafkaConfig, that.kafkaConfig);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(flushPendingResponsesTimeout, clientActorAskTimeout, supervisorConfig, snapshotConfig,
-                mqttConfig);
+                mqttConfig, kafkaConfig);
     }
 
     @Override
@@ -124,6 +124,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig, Serializ
                 ", supervisorConfig=" + supervisorConfig +
                 ", snapshotConfig=" + snapshotConfig +
                 ", mqttConfig=" + mqttConfig +
+                ", kafkaConfig=" + kafkaConfig +
                 "]";
     }
 

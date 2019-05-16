@@ -465,16 +465,10 @@ public final class TestConstants {
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory clientActorPropsFactory) {
 
-        final Duration minBackoff = Duration.ofSeconds(1);
-        final Duration maxBackoff = Duration.ofSeconds(5);
-        final Double randomFactor = 1.0;
-
-        final Props props = ConnectionSupervisorActor.props(minBackoff, maxBackoff, randomFactor, pubSubMediator,
-                conciergeForwarder, clientActorPropsFactory, null);
-        final Props shardRegionMockProps = Props.create(ShardRegionMockActor.class, props, connectionId);
-
         final Props props = ConnectionSupervisorActor.props(CONNECTION_CONFIG, pubSubMediator, conciergeForwarder,
                 clientActorPropsFactory, null);
+
+        final Props shardRegionMockProps = Props.create(ShardRegionMockActor.class, props, connectionId);
 
         final int maxAttempts = 5;
         final long backOffMs = 1000L;

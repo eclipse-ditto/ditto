@@ -42,6 +42,7 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.SnapshotConfig;
 import org.eclipse.ditto.services.connectivity.messaging.kafka.KafkaValidator;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.RetrieveConnectionMetricsAggregatorActor;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.RetrieveConnectionStatusAggregatorActor;
@@ -142,7 +143,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
             RabbitMQValidator.newInstance(),
             AmqpValidator.newInstance(),
             MqttValidator.newInstance(),
-            KafkaValidator.newInstance());
+            KafkaValidator.getInstance());
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -190,7 +191,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
             commandValidator = dittoCommandValidator;
         }
 
-        final ConnectionConfig.SnapshotConfig snapshotConfig = connectionConfig.getSnapshotConfig();
+        final SnapshotConfig snapshotConfig = connectionConfig.getSnapshotConfig();
         snapshotThreshold = snapshotConfig.getThreshold();
         snapshotAdapter = new ConnectionMongoSnapshotAdapter();
         connectionCreatedBehaviour = createConnectionCreatedBehaviour();

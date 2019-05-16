@@ -26,8 +26,8 @@ import java.io.ObjectOutputStream;
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
+import org.eclipse.ditto.services.base.config.supervision.DefaultSupervisorConfig;
 import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConfig;
-import org.eclipse.ditto.services.base.config.supervision.SupervisorConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -56,9 +56,10 @@ public final class DefaultConnectionConfigTest {
     public void assertImmutability() {
         assertInstancesOf(DefaultConnectionConfig.class,
                 areImmutable(),
-                provided(SupervisorConfig.class).isAlsoImmutable(),
-                provided(ConnectionConfig.SnapshotConfig.class).isAlsoImmutable(),
-                provided(ConnectionConfig.MqttConfig.class).isAlsoImmutable());
+                provided(DefaultSupervisorConfig.class).isAlsoImmutable(),
+                provided(SnapshotConfig.class).isAlsoImmutable(),
+                provided(MqttConfig.class).isAlsoImmutable(),
+                provided(DefaultKafkaConfig.class).isAlsoImmutable());
     }
 
     @Test
@@ -90,7 +91,6 @@ public final class DefaultConnectionConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultConnectionConfig underTest = DefaultConnectionConfig.of(connectionTestConf);
 
-
         softly.assertThat(underTest.getClientActorAskTimeout())
                 .as(ConnectionConfig.ConnectionConfigValue.CLIENT_ACTOR_ASK_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(10L));
@@ -118,15 +118,14 @@ public final class DefaultConnectionConfigTest {
         softly.assertThat(underTest.getSnapshotConfig())
                 .as("snapshotConfig")
                 .satisfies(snapshotConfig -> softly.assertThat(snapshotConfig.getThreshold())
-                        .as(ConnectionConfig.SnapshotConfig.SnapshotConfigValue.THRESHOLD.getConfigPath())
-                        .isEqualTo(20)
-                );
+                        .as(SnapshotConfig.SnapshotConfigValue.THRESHOLD.getConfigPath())
+                        .isEqualTo(20));
 
         softly.assertThat(underTest.getMqttConfig())
                 .as("mqttConfig")
                 .satisfies(mqttConfig -> softly.assertThat(mqttConfig.getSourceBufferSize())
-                        .as(ConnectionConfig.MqttConfig.MqttConfigValue.SOURCE_BUFFER_SIZE.getConfigPath())
-                        .isEqualTo(7)
-                );
+                        .as(MqttConfig.MqttConfigValue.SOURCE_BUFFER_SIZE.getConfigPath())
+                        .isEqualTo(7));
     }
+
 }

@@ -34,7 +34,7 @@ import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.config.ClientConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.MqttConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
@@ -82,7 +82,7 @@ public final class MqttClientActor extends BaseClientActor {
             final ClientConfig clientConfig,
             final MappingConfig mappingConfig,
             final ProtocolConfig protocolConfig,
-            final ConnectionConfig.MqttConfig mqttConfig,
+            final MqttConfig mqttConfig,
             final ActorRef conciergeForwarder,
             final BiFunction<Connection, DittoHeaders, MqttConnectionFactory> connectionFactoryCreator) {
 
@@ -100,7 +100,7 @@ public final class MqttClientActor extends BaseClientActor {
             final ClientConfig clientConfig,
             final MappingConfig mappingConfig,
             final ProtocolConfig protocolConfig,
-            final ConnectionConfig.MqttConfig mqttConfig,
+            final MqttConfig mqttConfig,
             final ActorRef conciergeForwarder) {
 
         this(connection, desiredConnectionStatus, clientConfig, mappingConfig, protocolConfig, mqttConfig,
@@ -122,7 +122,7 @@ public final class MqttClientActor extends BaseClientActor {
             final ClientConfig clientConfig,
             final MappingConfig mappingConfig,
             final ProtocolConfig protocolConfig,
-            final ConnectionConfig.MqttConfig mqttConfig,
+            final MqttConfig mqttConfig,
             final ActorRef conciergeForwarder) {
 
         return Props.create(MqttClientActor.class, validateConnection(connection), connection.getConnectionStatus(),

@@ -63,6 +63,13 @@ public interface ConnectionConfig extends WithSupervisorConfig {
     MqttConfig getMqttConfig();
 
     /**
+     * Returns the Kafka configuration settings.
+     *
+     * @return the config.
+     */
+    KafkaConfig getKafkaConfig();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code ConnectionConfig}.
      */
@@ -94,104 +101,6 @@ public interface ConnectionConfig extends WithSupervisorConfig {
         @Override
         public String getConfigPath() {
             return path;
-        }
-
-    }
-
-    /**
-     * Provides configuration settings for the snapshotting behaviour.
-     * <p>
-     * Java serialization is supported for {@code SnapshotConfig}.
-     * </p>
-     */
-    @Immutable
-    interface SnapshotConfig {
-
-        /**
-         * Returns the amount of changes after which a snapshot of the connection status is created.
-         *
-         * @return the snapshot threshold.
-         */
-        int getThreshold();
-
-        /**
-         * An enumeration of the known config path expressions and their associated default values for
-         * {@code SnapshotConfig}.
-         */
-        enum SnapshotConfigValue implements KnownConfigValue {
-
-            /**
-             * The amount of changes after which a snapshot of the connection status is created.
-             */
-            THRESHOLD("threshold", 10);
-
-            private final String path;
-            private final Object defaultValue;
-
-            private SnapshotConfigValue(final String thePath, final Object theDefaultValue) {
-                path = thePath;
-                defaultValue = theDefaultValue;
-            }
-
-            @Override
-            public Object getDefaultValue() {
-                return defaultValue;
-            }
-
-            @Override
-            public String getConfigPath() {
-                return path;
-            }
-
-        }
-
-    }
-
-    /**
-     * Provides configuration settings of the MQTT protocol.
-     * <p>
-     * Java serialization is supported for {@code MqttConfig}.
-     * </p>
-     */
-    @Immutable
-    interface MqttConfig {
-
-        /**
-         * Returns the maximum number of buffered messages for each MQTT source.
-         *
-         * @return the buffer size.
-         */
-        int getSourceBufferSize();
-
-        /**
-         * An enumeration of the known config path expressions and their associated default values for
-         * {@code MqttConfig}.
-         */
-        enum MqttConfigValue implements KnownConfigValue {
-
-            /**
-             * The maximum number of buffered messages for each MQTT source.
-             */
-            SOURCE_BUFFER_SIZE("source-buffer-size", 8);
-
-            private final String path;
-            private final Object defaultValue;
-
-            private MqttConfigValue(final String thePath, final Object theDefaultValue) {
-                path = thePath;
-                defaultValue = theDefaultValue;
-            }
-
-            @Override
-            public Object getDefaultValue() {
-                return defaultValue;
-            }
-
-            @Override
-            public String getConfigPath() {
-                return path;
-            }
-
         }
 
     }
