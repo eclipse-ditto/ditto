@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -86,6 +87,7 @@ public final class ConfigUtil {
 
     private static final String SECRETS_PATH = "/run/secrets";
     private static final String SECRETS_CONFIG_KEY = "secrets";
+    private static final String SECRET_NAMES_CONFIG_KEY = "secret_names";
 
     private static final Map<String, String> DEFAULT_CONFIG_ALIASES = new HashMap<>();
 
@@ -168,13 +170,13 @@ public final class ConfigUtil {
 
             // do the "-cloud" config parsing with fallback to vcap :
             final Config configFromVcap = transformVcapStringToConfig(vcap);
-            final Config configFromSecrets = transformSecretsToConfig();
+            final Config configFromSecrets = transformSecretsToConfig(SECRETS_PATH, initialConfig);
 
             return initialConfig
                     .withFallback(configFromVcap)
                     .withFallback(configFromSecrets);
         } else {
-            return initialConfig.withFallback(transformSecretsToConfig());
+            return initialConfig.withFallback(transformSecretsToConfig(SECRETS_PATH, initialConfig));
         }
     }
 
@@ -316,12 +318,15 @@ public final class ConfigUtil {
         return aliases;
     }
 
-    private static Config transformSecretsToConfig() {
-        try (final Stream<Path> filesStream = Files.list(Paths.get(SECRETS_PATH))) {
+    static Config transformSecretsToConfig(final String secretsPath, final Config initialConfig) {
+        try (final Stream<Path> filesStream = Files.list(Paths.get(secretsPath))) {
+            // get a map from docker secret name (filename) into Ditto service secret names
+            final Function<String, String> secretNameMap = getSecretNameMap(initialConfig);
+
             final Map<String, String> secrets = filesStream.map(ConfigUtil::readSecretFromPath)
                     .filter(Optional::isPresent)
                     .map(Optional::get)
-                    .collect(Collectors.toMap(Secret::getKey, Secret::getValue));
+                    .collect(Collectors.toMap(secretNameMap.compose(Secret::getKey), Secret::getValue));
 
             final Map<String, ConfigObject> config = new HashMap<>();
             config.put(SECRETS_CONFIG_KEY, ConfigValueFactory.fromMap(secrets));
@@ -332,6 +337,26 @@ public final class ConfigUtil {
         }
 
         return ConfigFactory.empty();
+    }
+
+    /**
+     * Parses {@code secret_names} config into a function mapping docker secret names (filenames) into Ditto service
+     * secret names.
+     *
+     * @param config the configuration containing secret names.
+     * @return map from docker secrets to Ditto service secrets.
+     */
+    private static Function<String, String> getSecretNameMap(final Config config) {
+        if (config.hasPath(SECRET_NAMES_CONFIG_KEY)) {
+            final Config secretNames = config.getConfig(SECRET_NAMES_CONFIG_KEY);
+            final Map<String, String> secretNameMap = secretNames.entrySet()
+                    .stream()
+                    .map(Map.Entry::getKey)
+                    .collect(Collectors.toMap(secretNames::getString, Function.identity()));
+            return dockerSecretName -> secretNameMap.getOrDefault(dockerSecretName, dockerSecretName);
+        } else {
+            return Function.identity();
+        }
     }
 
     /**
