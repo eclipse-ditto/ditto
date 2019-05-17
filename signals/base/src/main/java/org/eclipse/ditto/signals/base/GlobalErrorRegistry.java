@@ -15,6 +15,7 @@ package org.eclipse.ditto.signals.base;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFieldSelectorInvalidException;
@@ -68,21 +69,33 @@ public final class GlobalErrorRegistry
         private DittoJsonExceptionRegistry() {
             dittoJsonParseRegistries.put(JsonParseException.ERROR_CODE,
                     (jsonObject, dittoHeaders) -> new DittoJsonException(
-                            JsonParseException.newBuilder().message(getMessage(jsonObject)).build(), dittoHeaders));
+                            JsonParseException.newBuilder()
+                                    .message(getMessage(jsonObject))
+                                    .description(getDescription(jsonObject))
+                                    .build(), dittoHeaders));
 
             dittoJsonParseRegistries.put(JsonMissingFieldException.ERROR_CODE,
                     (jsonObject, dittoHeaders) -> new DittoJsonException(
-                            JsonMissingFieldException.newBuilder().message(getMessage(jsonObject)).build(),
+                            JsonMissingFieldException.newBuilder()
+                                    .message(getMessage(jsonObject))
+                                    .description(getDescription(jsonObject))
+                                    .build(),
                             dittoHeaders));
 
             dittoJsonParseRegistries.put(JsonFieldSelectorInvalidException.ERROR_CODE,
                     (jsonObject, dittoHeaders) -> new DittoJsonException(
-                            JsonFieldSelectorInvalidException.newBuilder().message(getMessage(jsonObject)).build(),
+                            JsonFieldSelectorInvalidException.newBuilder()
+                                    .message(getMessage(jsonObject))
+                                    .description(getDescription(jsonObject))
+                                    .build(),
                             dittoHeaders));
 
             dittoJsonParseRegistries.put(JsonPointerInvalidException.ERROR_CODE,
                     (jsonObject, dittoHeaders) -> new DittoJsonException(
-                            JsonPointerInvalidException.newBuilder().message(getMessage(jsonObject)).build(),
+                            JsonPointerInvalidException.newBuilder()
+                                    .message(getMessage(jsonObject))
+                                    .description(getDescription(jsonObject))
+                                    .build(),
                             dittoHeaders));
         }
 
@@ -90,6 +103,11 @@ public final class GlobalErrorRegistry
             return jsonObject.getValue(DittoJsonException.JsonFields.MESSAGE)
                     .orElseThrow(() -> JsonMissingFieldException.newBuilder()
                             .fieldName(DittoRuntimeException.JsonFields.MESSAGE.getPointer().toString()).build());
+        }
+
+        @Nullable
+        private static String getDescription(final JsonObject jsonObject) {
+            return jsonObject.getValue(DittoJsonException.JsonFields.DESCRIPTION).orElse(null);
         }
 
         private Map<String, JsonParsable<DittoRuntimeException>> getDittoJsonParseRegistries() {
