@@ -49,6 +49,7 @@ import com.newmotion.akka.rabbitmq.ChannelActor;
 import com.newmotion.akka.rabbitmq.ChannelCreated;
 import com.newmotion.akka.rabbitmq.CreateChannel;
 import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.AlreadyClosedException;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DefaultConsumer;
@@ -385,6 +386,17 @@ public final class RabbitMQClientActor extends BaseClientActor {
                     } catch (final IOException e) {
                         missingQueues.add(address);
                         log.warning("The queue <{}> does not exist.", address);
+                    } catch (final AlreadyClosedException e) {
+                        if (!missingQueues.isEmpty()) {
+                            // Our client will automatically close the connection if a queue does not exists. This will
+                            // cause an AlreadyClosedException for the following queue (e.g. ['existing1', 'notExisting', -->'existing2'])
+                            // That's why we will ignore this error if the missingQueues list isn't empty.
+                            log.warning("Received exception of type {} when trying to declare queue {}. This happens when a previous " +
+                                    "queue was missing and thus the connection got closed.", e.getClass().getName(), address);
+                        } else {
+                            log.error("Exception while declaring queue {}", address, e);
+                            throw e;
+                        }
                     }
                 })
         );
