@@ -177,8 +177,10 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
         final Optional<ActorRef> responseReceiver = responseReceivers.getBlocking(correlationId);
         if (responseReceiver.isPresent()) {
             responseReceivers.invalidate(correlationId);
-            log().debug("Sending CommandResponse <{}> to original sender: <{}>", liveSignal, sender);
-            return CompletableFuture.completedFuture(withMessageToReceiver(liveSignal, sender));
+            log().debug("Scheduling CommandResponse <{}> to original sender: <{}>", liveSignal,
+                    responseReceiver.get());
+            return CompletableFuture.completedFuture(withMessageToReceiver(liveSignal,
+                    responseReceiver.get()));
         } else {
             log(liveSignal).warning("No outstanding responses receiver for CommandResponse <{}>",
                     liveSignal.getType());
