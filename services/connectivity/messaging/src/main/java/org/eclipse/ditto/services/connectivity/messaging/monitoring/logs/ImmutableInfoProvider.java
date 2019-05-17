@@ -13,9 +13,7 @@
 
 package org.eclipse.ditto.services.connectivity.messaging.monitoring.logs;
 
-import java.nio.ByteBuffer;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,11 +23,7 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
-import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
-import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.base.WithThingId;
 
 /**
  * Immutable implementation fo {@link org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor.InfoProvider}.
