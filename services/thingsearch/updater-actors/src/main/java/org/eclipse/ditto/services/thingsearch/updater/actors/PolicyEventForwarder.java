@@ -22,6 +22,7 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
+import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
@@ -43,9 +44,6 @@ import akka.stream.KillSwitches;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
-
-import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
-import org.eclipse.ditto.services.thingsearch.persistence.write.streaming.SearchUpdaterStreamConfigReader;
 
 /**
  * Cluster singleton that forwards policy events to updater shard region with buffering.
@@ -70,12 +68,13 @@ final class PolicyEventForwarder extends AbstractActor {
     private PolicyEventForwarder(final ActorRef pubSubMediator,
             final ActorRef thingsUpdater,
             final BlockedNamespaces blockedNamespaces,
-            final ThingsSearchUpdaterPersistence persistence) {
+            final ThingsSearchUpdaterPersistence persistence,
+            final Duration writeInterval) {
 
         this.thingsUpdater = thingsUpdater;
         this.persistence = persistence;
         blockNamespaceBehavior = BlockNamespaceBehavior.of(blockedNamespaces);
-        interval = SearchUpdaterStreamConfigReader.of(getContext().getSystem().settings().config()).writeInterval();
+        interval = writeInterval;
 
         final Subscribe subscribe = new Subscribe(PolicyEvent.TYPE_PREFIX, ACTOR_NAME, getSelf());
         pubSubMediator.tell(subscribe, getSelf());
@@ -89,15 +88,18 @@ final class PolicyEventForwarder extends AbstractActor {
      * @param pubSubMediator Akka pub-sub-mediator
      * @param thingsUpdater thingsUpdater
      * @param blockedNamespaces blocked namespaces.
+     * @param writeInterval the minimal delay between event dumps.
      * @return the Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
             final ActorRef thingsUpdater,
             final BlockedNamespaces blockedNamespaces,
-            final ThingsSearchUpdaterPersistence persistence) {
+            final ThingsSearchUpdaterPersistence persistence,
+            final Duration writeInterval) {
 
         return Props.create(PolicyEventForwarder.class,
-                () -> new PolicyEventForwarder(pubSubMediator, thingsUpdater, blockedNamespaces, persistence));
+                () -> new PolicyEventForwarder(pubSubMediator, thingsUpdater, blockedNamespaces, persistence,
+                        writeInterval));
     }
 
     @Override
@@ -211,4 +213,5 @@ final class PolicyEventForwarder extends AbstractActor {
         DUMP_POLICY_REVISIONS,
         STREAM_COMPLETED
     }
+
 }

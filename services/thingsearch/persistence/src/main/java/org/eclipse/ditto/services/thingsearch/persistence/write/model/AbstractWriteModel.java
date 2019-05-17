@@ -14,6 +14,8 @@ package org.eclipse.ditto.services.thingsearch.persistence.write.model;
 
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ID;
 
+import java.util.Objects;
+
 import org.bson.BsonString;
 import org.bson.Document;
 import org.bson.conversions.Bson;
@@ -38,7 +40,7 @@ public abstract class AbstractWriteModel {
      *
      * @param metadata the metadata.
      */
-    AbstractWriteModel(final Metadata metadata) {
+    protected AbstractWriteModel(final Metadata metadata) {
         this.metadata = metadata;
     }
 
@@ -64,4 +66,22 @@ public abstract class AbstractWriteModel {
     public Bson getFilter() {
         return Filters.and(Filters.eq(FIELD_ID, new BsonString(metadata.getThingId())));
     }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final AbstractWriteModel that = (AbstractWriteModel) o;
+        return metadata.equals(that.metadata);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(metadata);
+    }
+
 }

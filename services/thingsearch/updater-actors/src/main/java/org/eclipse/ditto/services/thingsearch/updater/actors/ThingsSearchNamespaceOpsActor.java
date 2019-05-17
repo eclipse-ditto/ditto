@@ -26,7 +26,7 @@ import akka.actor.Props;
 /**
  * Cluster singleton to perform namespace operations on the search index.
  */
-public final class ThingsSearchNamespaceOpsActor extends AbstractNamespaceOpsActor<String> {
+final class ThingsSearchNamespaceOpsActor extends AbstractNamespaceOpsActor<String> {
 
     /**
      * Name of this actor.
@@ -58,4 +58,5 @@ public final class ThingsSearchNamespaceOpsActor extends AbstractNamespaceOpsAct
     protected Collection<String> selectNamespace(final String namespace) {
         return Collections.singletonList(namespace);
     }
+
 }

@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.thingsearch.starter.actors;
 
-import static org.eclipse.ditto.services.thingsearch.starter.actors.health.LastSuccessfulStreamCheckingActor.SYNC_DISABLED_MESSAGE;
 import static java.time.Instant.now;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.never;

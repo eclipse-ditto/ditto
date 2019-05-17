@@ -29,7 +29,7 @@ import akka.stream.javadsl.Source;
  * Creates an actor which is responsible for triggering a cyclic synchronization of all things which changed within a
  * specified time period.
  */
-public final class ThingsStreamSupervisorCreator {
+final class ThingsStreamSupervisorCreator {
 
     /**
      * The name of this Actor in the ActorSystem.

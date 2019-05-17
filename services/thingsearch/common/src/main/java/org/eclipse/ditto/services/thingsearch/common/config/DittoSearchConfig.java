@@ -10,10 +10,11 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.thingsearch.starter.config;
+package org.eclipse.ditto.services.thingsearch.common.config;
 
 import java.io.Serializable;
 import java.util.Objects;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -21,12 +22,8 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.services.base.config.DittoServiceConfig;
 import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
-import org.eclipse.ditto.services.thingsearch.updater.config.DefaultDeletionConfig;
-import org.eclipse.ditto.services.thingsearch.updater.config.DefaultUpdaterConfig;
-import org.eclipse.ditto.services.thingsearch.updater.config.DeletionConfig;
-import org.eclipse.ditto.services.thingsearch.updater.config.UpdaterConfig;
 import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.services.utils.health.config.DefaultHealthCheckConfig;
 import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
@@ -46,20 +43,27 @@ public final class DittoSearchConfig implements SearchConfig, Serializable {
 
     private static final long serialVersionUID = -2047392690545433509L;
 
+    @Nullable private final String mongoHintsByNamespace;
+    private final DefaultDeleteConfig deleteConfig;
     private final DefaultDeletionConfig deletionConfig;
     private final DefaultUpdaterConfig updaterConfig;
     private final DittoServiceConfig dittoServiceConfig;
     private final DefaultHealthCheckConfig healthCheckConfig;
     private final DefaultIndexInitializationConfig indexInitializationConfig;
     private final DefaultMongoDbConfig mongoDbConfig;
+    private final DefaultStreamConfig streamConfig;
 
-    private DittoSearchConfig(final ScopedConfig searchScopedConfig) {
-        deletionConfig = DefaultDeletionConfig.of(searchScopedConfig);
-        updaterConfig = DefaultUpdaterConfig.of(searchScopedConfig);
-        dittoServiceConfig = DittoServiceConfig.of(searchScopedConfig);
-        healthCheckConfig = DefaultHealthCheckConfig.of(searchScopedConfig);
-        indexInitializationConfig = DefaultIndexInitializationConfig.of(searchScopedConfig);
-        mongoDbConfig = DefaultMongoDbConfig.of(searchScopedConfig);
+    private DittoSearchConfig(final ConfigWithFallback configWithFallback) {
+        mongoHintsByNamespace =
+                configWithFallback.getString(SearchConfigValue.MONGO_HINTS_BY_NAMESPACE.getConfigPath());
+        deleteConfig = DefaultDeleteConfig.of(configWithFallback);
+        deletionConfig = DefaultDeletionConfig.of(configWithFallback);
+        updaterConfig = DefaultUpdaterConfig.of(configWithFallback);
+        dittoServiceConfig = DittoServiceConfig.of(configWithFallback);
+        healthCheckConfig = DefaultHealthCheckConfig.of(configWithFallback);
+        indexInitializationConfig = DefaultIndexInitializationConfig.of(configWithFallback);
+        mongoDbConfig = DefaultMongoDbConfig.of(configWithFallback);
+        streamConfig = DefaultStreamConfig.of(configWithFallback);
     }
 
     /**
@@ -71,7 +75,18 @@ public final class DittoSearchConfig implements SearchConfig, Serializable {
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DittoSearchConfig of(final ScopedConfig dittoScopedConfig) {
-        return new DittoSearchConfig(DefaultScopedConfig.newInstance(dittoScopedConfig, CONFIG_PATH));
+        return new DittoSearchConfig(
+                ConfigWithFallback.newInstance(dittoScopedConfig, CONFIG_PATH, SearchConfigValue.values()));
+    }
+
+    @Override
+    public Optional<String> getMongoHintsByNamespace() {
+        return Optional.ofNullable(mongoHintsByNamespace);
+    }
+
+    @Override
+    public DeleteConfig getDeleteConfig() {
+        return deleteConfig;
     }
 
     @Override
@@ -82,6 +97,11 @@ public final class DittoSearchConfig implements SearchConfig, Serializable {
     @Override
     public UpdaterConfig getUpdaterConfig() {
         return updaterConfig;
+    }
+
+    @Override
+    public StreamConfig getStreamConfig() {
+        return streamConfig;
     }
 
     @Override
@@ -119,8 +139,9 @@ public final class DittoSearchConfig implements SearchConfig, Serializable {
         return mongoDbConfig;
     }
 
+    @SuppressWarnings("OverlyComplexMethod")
     @Override
-    public boolean equals(@Nullable final Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -128,30 +149,35 @@ public final class DittoSearchConfig implements SearchConfig, Serializable {
             return false;
         }
         final DittoSearchConfig that = (DittoSearchConfig) o;
-        return deletionConfig.equals(that.deletionConfig) &&
-                updaterConfig.equals(that.updaterConfig) &&
-                dittoServiceConfig.equals(that.dittoServiceConfig) &&
-                healthCheckConfig.equals(that.healthCheckConfig) &&
-                indexInitializationConfig.equals(that.indexInitializationConfig) &&
-                mongoDbConfig.equals(that.mongoDbConfig);
+        return Objects.equals(mongoHintsByNamespace, that.mongoHintsByNamespace) &&
+                Objects.equals(deleteConfig, that.deleteConfig) &&
+                Objects.equals(deletionConfig, that.deletionConfig) &&
+                Objects.equals(updaterConfig, that.updaterConfig) &&
+                Objects.equals(dittoServiceConfig, that.dittoServiceConfig) &&
+                Objects.equals(healthCheckConfig, that.healthCheckConfig) &&
+                Objects.equals(indexInitializationConfig, that.indexInitializationConfig) &&
+                Objects.equals(mongoDbConfig, that.mongoDbConfig) &&
+                Objects.equals(streamConfig, that.streamConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(deletionConfig, updaterConfig, dittoServiceConfig, healthCheckConfig,
-                indexInitializationConfig,
-                mongoDbConfig);
+        return Objects.hash(mongoHintsByNamespace, deleteConfig, deletionConfig, updaterConfig, dittoServiceConfig,
+                healthCheckConfig, indexInitializationConfig, mongoDbConfig, streamConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "deletionConfig=" + deletionConfig +
+                "mongoHintsByNamespace=" + mongoHintsByNamespace +
+                ", deleteConfig=" + deleteConfig +
+                ", deletionConfig=" + deletionConfig +
                 ", updaterConfig=" + updaterConfig +
                 ", dittoServiceConfig=" + dittoServiceConfig +
                 ", healthCheckConfig=" + healthCheckConfig +
                 ", indexInitializationConfig=" + indexInitializationConfig +
                 ", mongoDbConfig=" + mongoDbConfig +
+                ", streamConfig=" + streamConfig +
                 "]";
     }
 

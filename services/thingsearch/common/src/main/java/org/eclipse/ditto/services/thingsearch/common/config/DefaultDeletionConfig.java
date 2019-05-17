@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.thingsearch.updater.config;
+package org.eclipse.ditto.services.thingsearch.common.config;
 
 import java.io.Serializable;
 import java.text.MessageFormat;

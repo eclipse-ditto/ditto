@@ -29,6 +29,8 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
+import org.eclipse.ditto.services.thingsearch.common.config.StreamCacheConfig;
+import org.eclipse.ditto.services.thingsearch.common.config.StreamConfig;
 import org.eclipse.ditto.services.thingsearch.persistence.write.mapping.EnforcedThingMapper;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
@@ -67,8 +69,11 @@ final class EnforcementFlow {
     private final boolean deleteEvent;
 
     private EnforcementFlow(final ActorRef thingsShardRegion,
-            final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache, final Duration thingsTimeout,
-            final Duration cacheRetryDelay, final int maxArraySize, final boolean deleteEvent) {
+            final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
+            final Duration thingsTimeout,
+            final Duration cacheRetryDelay,
+            final int maxArraySize,
+            final boolean deleteEvent) {
 
         this.thingsShardRegion = thingsShardRegion;
         this.policyEnforcerCache = policyEnforcerCache;
@@ -87,24 +92,23 @@ final class EnforcementFlow {
      * @param cacheDispatcher dispatcher for the enforcer cache.
      * @return an EnforcementFlow object.
      */
-    public static EnforcementFlow of(final SearchUpdaterStreamConfigReader updaterStreamConfig,
+    public static EnforcementFlow of(final StreamConfig updaterStreamConfig,
             final ActorRef thingsShardRegion,
             final ActorRef policiesShardRegion,
             final MessageDispatcher cacheDispatcher,
             final boolean deleteEvent) {
 
-        final Duration askTimeout = updaterStreamConfig.askTimeout();
-        final Duration cacheRetryDelay = updaterStreamConfig.cacheRetryDelay();
+        final Duration askTimeout = updaterStreamConfig.getAskTimeout();
+        final StreamCacheConfig streamCacheConfig = updaterStreamConfig.getCacheConfig();
+
         final AsyncCacheLoader<EntityId, Entry<Enforcer>> policyEnforcerCacheLoader =
                 new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegion);
         final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache =
-                CacheFactory.createCache(policyEnforcerCacheLoader,
-                        updaterStreamConfig.cache(),
-                        EnforcementFlow.class.getCanonicalName() + ".cache",
-                        cacheDispatcher);
+                CacheFactory.createCache(policyEnforcerCacheLoader, streamCacheConfig,
+                        EnforcementFlow.class.getCanonicalName() + ".cache", cacheDispatcher);
 
-        return new EnforcementFlow(thingsShardRegion, policyEnforcerCache, askTimeout, cacheRetryDelay,
-                updaterStreamConfig.maxArraySize(), deleteEvent);
+        return new EnforcementFlow(thingsShardRegion, policyEnforcerCache, askTimeout,
+                streamCacheConfig.getRetryDelay(), updaterStreamConfig.getMaxArraySize(), deleteEvent);
     }
 
     /**
@@ -114,7 +118,6 @@ final class EnforcementFlow {
      * @return the flow.
      */
     public Flow<Map<String, Metadata>, Source<AbstractWriteModel, NotUsed>, NotUsed> create(final int parallelism) {
-
         return Flow.<Map<String, Metadata>>create().map(changeMap -> {
             log.info("Updating search index of <{}> things", changeMap.size());
             return sudoRetrieveThingJsons(parallelism, changeMap.keySet()).flatMapConcat(responseMap ->
@@ -126,8 +129,7 @@ final class EnforcementFlow {
     }
 
     private Source<Map<String, SudoRetrieveThingResponse>, NotUsed> sudoRetrieveThingJsons(
-            final int parallelism,
-            final Collection<String> thingIds) {
+            final int parallelism, final Collection<String> thingIds) {
 
         return Source.fromIterator(thingIds::iterator)
                 .flatMapMerge(parallelism, this::sudoRetrieveThing)
@@ -172,7 +174,7 @@ final class EnforcementFlow {
     }
 
     private Source<AbstractWriteModel, NotUsed> computeWriteModel(final Metadata metadata,
-            @Nullable SudoRetrieveThingResponse sudoRetrieveThingResponse) {
+            @Nullable final SudoRetrieveThingResponse sudoRetrieveThingResponse) {
 
         if (sudoRetrieveThingResponse == null) {
             return deleteEvent
@@ -204,8 +206,7 @@ final class EnforcementFlow {
         }
     }
 
-    private Source<Entry<Enforcer>, NotUsed> readCachedEnforcer(final Metadata metadata,
-            final EntityId policyId,
+    private Source<Entry<Enforcer>, NotUsed> readCachedEnforcer(final Metadata metadata, final EntityId policyId,
             final int iteration) {
 
         final Source<Entry<Enforcer>, ?> lazySource = Source.lazily(() -> {
@@ -259,6 +260,7 @@ final class EnforcementFlow {
      */
     private static boolean shouldReloadCache(@Nullable final Entry<?> entry, final Metadata metadata,
             final int iteration) {
+
         if (iteration <= 0) {
             return entry == null || !entry.exists() || entry.getRevision() < metadata.getPolicyRevision();
         } else {
@@ -266,4 +268,5 @@ final class EnforcementFlow {
             return false;
         }
     }
+
 }

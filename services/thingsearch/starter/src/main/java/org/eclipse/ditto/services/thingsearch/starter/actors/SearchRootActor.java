@@ -36,12 +36,12 @@ import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
+import org.eclipse.ditto.services.thingsearch.common.config.SearchConfig;
 import org.eclipse.ditto.services.thingsearch.common.util.RootSupervisorStrategyFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.query.QueryParser;
 import org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.read.ThingsSearchPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQueryBuilderFactory;
-import org.eclipse.ditto.services.thingsearch.starter.config.SearchConfig;
 import org.eclipse.ditto.services.thingsearch.updater.actors.SearchUpdaterRootActor;
 import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
@@ -57,7 +57,6 @@ import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoTimesta
 
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;
-import com.mongodb.reactivestreams.client.MongoDatabase;
 
 import akka.Done;
 import akka.actor.AbstractActor;
@@ -91,12 +90,14 @@ public final class SearchRootActor extends AbstractActor {
 
     private static final String KAMON_METRICS_PREFIX = "search";
 
-    private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
-
-    private final SupervisorStrategy supervisorStrategy = RootSupervisorStrategyFactory.createStrategy(log);
+    private final LoggingAdapter log;
+    private final SupervisorStrategy supervisorStrategy;
 
     private SearchRootActor(final SearchConfig searchConfig, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
+
+        log = Logging.getLogger(getContext().system(), this);
+        supervisorStrategy = RootSupervisorStrategyFactory.createStrategy(log);
 
         final MongoDbConfig mongoDbConfig = searchConfig.getMongoDbConfig();
         final MongoDbConfig.MonitoringConfig monitoringConfig = mongoDbConfig.getMonitoringConfig();
@@ -106,6 +107,10 @@ public final class SearchRootActor extends AbstractActor {
                 .addConnectionPoolListener(getConnectionPoolListenerOrNull(monitoringConfig))
                 .build();
 
+        final ThingsSearchPersistence thingsSearchPersistence = getThingsSearchPersistence(searchConfig, mongoDbClient);
+        final ActorRef searchActor = initializeSearchActor(searchConfig.getLimitsConfig(), thingsSearchPersistence);
+        pubSubMediator.tell(new DistributedPubSubMediator.Put(searchActor), getSelf());
+
         final TimestampPersistence thingsSyncPersistence =
                 MongoTimestampPersistence.initializedInstance(THINGS_SYNC_STATE_COLLECTION_NAME, mongoDbClient,
                         materializer);
@@ -114,20 +119,13 @@ public final class SearchRootActor extends AbstractActor {
                 MongoTimestampPersistence.initializedInstance(POLICIES_SYNC_STATE_COLLECTION_NAME, mongoDbClient,
                         materializer);
 
-        final ThingsSearchPersistence thingsSearchPersistence =
-                getThingsSearchPersistence(mongoDbClient, searchConfig.getIndexInitializationConfig());
-        final ActorRef searchActor = initializeSearchActor(searchConfig.getLimitsConfig(), thingsSearchPersistence);
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(searchActor), getSelf());
-
         final ActorRef healthCheckingActor =
                 initializeHealthCheckActor(searchConfig, thingsSyncPersistence, policiesSyncPersistence);
 
         createHealthCheckingActorHttpBinding(searchConfig.getHttpConfig(), healthCheckingActor, materializer);
 
         startChildActor(SearchUpdaterRootActor.ACTOR_NAME,
-                SearchUpdaterRootActor.props(searchConfig.getClusterConfig(), mongoDbConfig,
-                        searchConfig.getIndexInitializationConfig(), searchConfig.getUpdaterConfig(),
-                        searchConfig.getDeletionConfig(), pubSubMediator, materializer, thingsSyncPersistence,
+                SearchUpdaterRootActor.props(searchConfig, pubSubMediator, materializer, thingsSyncPersistence,
                         policiesSyncPersistence));
     }
 
@@ -145,26 +143,26 @@ public final class SearchRootActor extends AbstractActor {
                 : null;
     }
 
-    private ThingsSearchPersistence getThingsSearchPersistence(final DittoMongoClient mongoClient,
-            final IndexInitializationConfig indexInitializationConfig) {
+    private ThingsSearchPersistence getThingsSearchPersistence(final SearchConfig searchConfig,
+            final DittoMongoClient mongoDbClient) {
 
-        final ThingsSearchPersistence result = new MongoThingsSearchPersistence(mongoClient, getContext().system());
+        final ActorContext context = getContext();
+        final MongoThingsSearchPersistence persistence =
+                new MongoThingsSearchPersistence(mongoDbClient, context.getSystem());
+
+        final IndexInitializationConfig indexInitializationConfig = searchConfig.getIndexInitializationConfig();
         if (indexInitializationConfig.isIndexInitializationConfigEnabled()) {
-            result.initializeIndices();
+            persistence.initializeIndices();
         } else {
             log.info("Skipping IndexInitializer because it is disabled.");
         }
-        return result;
-        // TODO: refactor config.
-//        final String hintsConfigKey = "ditto.things-search.mongo-hints-by-namespace";
-//        final MongoThingsSearchPersistence persistence = new MongoThingsSearchPersistence(db, actorSystem);
-//        if (config.hasPath(hintsConfigKey)) {
-//            final String mongoHints = config.getString(hintsConfigKey);
-//            log.info("Applying MongoDB hints: {}", mongoHints);
-//            return persistence.withHintsByNamespace(mongoHints);
-//        } else {
-//            return persistence;
-//        }
+
+        return searchConfig.getMongoHintsByNamespace()
+                .map(mongoHintsByNamespace -> {
+                    log.info("Applying MongoDB hints <{}>.", mongoHintsByNamespace);
+                    return persistence.withHintsByNamespace(mongoHintsByNamespace);
+                })
+                .orElse(persistence);
     }
 
     private ActorRef initializeSearchActor(final LimitsConfig limitsConfig,
@@ -173,14 +171,13 @@ public final class SearchRootActor extends AbstractActor {
         final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
         final ThingsFieldExpressionFactory fieldExpressionFactory = getThingsFieldExpressionFactory();
         final QueryBuilderFactory queryBuilderFactory = new MongoQueryBuilderFactory(limitsConfig);
-        final QueryParser queryFactory = QueryParser.of(criteriaFactory, fieldExpressionFactory, queryBuilderFactory);
+        final QueryParser queryParser = QueryParser.of(criteriaFactory, fieldExpressionFactory, queryBuilderFactory);
 
-        return startChildActor(SearchActor.ACTOR_NAME, SearchActor.props(queryFactory, thingsSearchPersistence));
+        return startChildActor(SearchActor.ACTOR_NAME, SearchActor.props(queryParser, thingsSearchPersistence));
     }
 
     private ActorRef initializeHealthCheckActor(final SearchConfig searchConfig,
-            final TimestampPersistence thingsSyncPersistence,
-            final TimestampPersistence policiesSyncPersistence) {
+            final TimestampPersistence thingsSyncPersistence, final TimestampPersistence policiesSyncPersistence) {
 
         return startChildActor(SearchHealthCheckingActorFactory.ACTOR_NAME,
                 SearchHealthCheckingActorFactory.props(searchConfig, thingsSyncPersistence, policiesSyncPersistence));
@@ -265,7 +262,7 @@ public final class SearchRootActor extends AbstractActor {
     }
 
     private static ThingsFieldExpressionFactory getThingsFieldExpressionFactory() {
-        final Map<String, String> mappings = new HashMap<>();
+        final Map<String, String> mappings = new HashMap<>(5);
         mappings.put(FieldExpressionUtil.FIELD_NAME_THING_ID, FieldExpressionUtil.FIELD_ID);
         mappings.put(FieldExpressionUtil.FIELD_NAME_NAMESPACE, FieldExpressionUtil.FIELD_NAMESPACE);
         addMapping(mappings, Thing.JsonFields.POLICY_ID);

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.write.model;
 
-import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.NotThreadSafe;
 
 import org.bson.Document;
 
@@ -23,7 +23,7 @@ import com.mongodb.client.model.WriteModel;
 /**
  * Write model for an entire Thing.
  */
-@Immutable
+@NotThreadSafe
 public final class ThingWriteModel extends AbstractWriteModel {
 
     private final Document thingDocument;
@@ -59,4 +59,5 @@ public final class ThingWriteModel extends AbstractWriteModel {
     private static UpdateOptions upsert() {
         return new UpdateOptions().upsert(true);
     }
+
 }

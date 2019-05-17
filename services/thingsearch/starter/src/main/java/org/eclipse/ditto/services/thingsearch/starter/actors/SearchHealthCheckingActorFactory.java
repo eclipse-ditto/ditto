@@ -15,8 +15,8 @@ package org.eclipse.ditto.services.thingsearch.starter.actors;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.eclipse.ditto.services.thingsearch.starter.config.SearchConfig;
-import org.eclipse.ditto.services.thingsearch.updater.config.UpdaterConfig;
+import org.eclipse.ditto.services.thingsearch.common.config.SearchConfig;
+import org.eclipse.ditto.services.thingsearch.common.config.UpdaterConfig;
 import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.services.utils.health.AbstractHealthCheckingActor;
 import org.eclipse.ditto.services.utils.health.CompositeCachingHealthCheckingActor;

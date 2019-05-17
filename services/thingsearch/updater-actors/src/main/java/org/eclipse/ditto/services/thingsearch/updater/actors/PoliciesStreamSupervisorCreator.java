@@ -16,6 +16,7 @@ import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
+import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.streaming.DefaultStreamSupervisor;
 import org.eclipse.ditto.services.utils.akka.streaming.SyncConfig;
 import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
@@ -27,13 +28,11 @@ import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Source;
 
-import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
-
 /**
  * Creates an actor which is responsible for triggering a cyclic synchronization of all policies which changed within a
  * specified time period.
  */
-public final class PoliciesStreamSupervisorCreator {
+final class PoliciesStreamSupervisorCreator {
 
     /**
      * The name of this Actor in the ActorSystem.

@@ -10,34 +10,28 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.thingsearch.starter.config;
+package org.eclipse.ditto.services.thingsearch.persistence.write.model;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.services.base.config.DittoServiceConfig;
-import org.eclipse.ditto.services.thingsearch.common.config.DittoSearchConfig;
-import org.eclipse.ditto.services.utils.health.config.DefaultHealthCheckConfig;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link DittoSearchConfig}.
+ * Unit test for {@link Metadata}.
  */
-public final class DittoSearchConfigTest {
+public final class MetadataTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DittoSearchConfig.class,
-                areImmutable(),
-                provided(DefaultHealthCheckConfig.class, DittoServiceConfig.class).areAlsoImmutable());
+        assertInstancesOf(Metadata.class, areImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(DittoSearchConfig.class)
+        EqualsVerifier.forClass(Metadata.class)
                 .usingGetClass()
                 .verify();
     }

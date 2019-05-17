@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.thingsearch.starter;
 
 import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.thingsearch.starter.actors.SearchRootActor;
-import org.eclipse.ditto.services.thingsearch.starter.config.SearchConfig;
+import org.eclipse.ditto.services.thingsearch.common.config.SearchConfig;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
