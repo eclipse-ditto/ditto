@@ -65,13 +65,13 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
 
         this.errorRegistry = errorRegistry;
         this.headerTranslator = headerTranslator;
-        this.messageCommandAdapter = MessageCommandAdapter.of(headerTranslator);
-        this.messageCommandResponseAdapter = MessageCommandResponseAdapter.of(headerTranslator);
-        this.thingModifyCommandAdapter = ThingModifyCommandAdapter.of(headerTranslator);
-        this.thingModifyCommandResponseAdapter = ThingModifyCommandResponseAdapter.of(headerTranslator);
-        this.thingQueryCommandAdapter = ThingQueryCommandAdapter.of(headerTranslator);
-        this.thingQueryCommandResponseAdapter = ThingQueryCommandResponseAdapter.of(headerTranslator);
-        this.thingEventAdapter = ThingEventAdapter.of(headerTranslator);
+        messageCommandAdapter = MessageCommandAdapter.of(headerTranslator);
+        messageCommandResponseAdapter = MessageCommandResponseAdapter.of(headerTranslator);
+        thingModifyCommandAdapter = ThingModifyCommandAdapter.of(headerTranslator);
+        thingModifyCommandResponseAdapter = ThingModifyCommandResponseAdapter.of(headerTranslator);
+        thingQueryCommandAdapter = ThingQueryCommandAdapter.of(headerTranslator);
+        thingQueryCommandResponseAdapter = ThingQueryCommandResponseAdapter.of(headerTranslator);
+        thingEventAdapter = ThingEventAdapter.of(headerTranslator);
     }
 
     /**
@@ -80,7 +80,8 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
      * @param headerTranslator translator between external and Ditto headers.
      */
     public static DittoProtocolAdapter of(final HeaderTranslator headerTranslator) {
-        return new DittoProtocolAdapter(GlobalErrorRegistry.getInstance(), requireNonNull(headerTranslator));
+        checkNotNull(headerTranslator, "headerTranslator");
+        return new DittoProtocolAdapter(GlobalErrorRegistry.getInstance(), headerTranslator);
     }
 
     /**
@@ -90,15 +91,6 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
      */
     public static DittoProtocolAdapter newInstance() {
         return new DittoProtocolAdapter(GlobalErrorRegistry.getInstance(), getHeaderTranslator());
-    }
-
-    /**
-     * Creates a new {@code DittoProtocolAdapter} instance with the given header translator.
-     *
-     * @param headerTranslator translator between external and Ditto headers.
-     */
-    public static DittoProtocolAdapter of(final HeaderTranslator headerTranslator) {
-        return new DittoProtocolAdapter(GlobalErrorRegistry.getInstance(), headerTranslator);
     }
 
     /**

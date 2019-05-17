@@ -107,7 +107,6 @@ public final class MongoDbUriSupplierTest {
         final String targetUri = underTest.get();
 
         assertThat(targetUri).isEqualTo(SOURCE_URI.replaceAll("ssl=true", "ssl=false"));
-        assertThat(getSslEnabledConfig(config)).isFalse();
     }
 
     @Test
@@ -116,13 +115,13 @@ public final class MongoDbUriSupplierTest {
         final Config options = ConfigFactory.parseString("ssl=true");
         final Config config = ConfigFactory.parseString(
                 String.format("%s=\"%s\"\n%s=%s", KEY_URI, SOURCE_URI, KEY_OPTIONS, options.root().render()));
+        final MongoDbUriSupplier underTest = MongoDbUriSupplier.of(config);
 
         // WHEN
-        final String targetUri = getMongoUri(config);
+        final String targetUri = underTest.get();
 
         // THEN
         assertThat(targetUri).isEqualTo(SOURCE_URI);
-        assertThat(getSslEnabledConfig(config)).isTrue();
     }
 
     @Test
@@ -195,21 +194,6 @@ public final class MongoDbUriSupplierTest {
         final String targetUri = underTest.get();
 
         assertThat(targetUri).isEqualTo(sourceUri + "?ssl=false");
-    }
-
-    private static String getMongoUri(final Config config) {
-        final MongoDbConfig mongoDbConfig = getMongoDbConfig(config);
-        return mongoDbConfig.getMongoDbUri();
-    }
-
-    private static boolean getSslEnabledConfig(final Config config) {
-        final MongoDbConfig mongoConfig = getMongoDbConfig(config);
-        final MongoDbConfig.OptionsConfig optionsConfig = mongoConfig.getOptionsConfig();
-        return optionsConfig.isSslEnabled();
-    }
-
-    private static MongoDbConfig getMongoDbConfig(final Config config) {
-        return DefaultMongoDbConfig.of(config);
     }
 
 }

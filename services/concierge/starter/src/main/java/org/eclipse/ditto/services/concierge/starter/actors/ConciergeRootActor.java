@@ -31,7 +31,6 @@ import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActo
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
-import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.services.utils.config.LocalHostAddressSupplier;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
@@ -125,7 +124,7 @@ public final class ConciergeRootActor extends AbstractActor {
                 return SupervisorStrategy.escalate();
             }).build());
 
-    private <C extends ConciergeConfig> ConciergeRootActor(final C configReader,
+    private <C extends ConciergeConfig> ConciergeRootActor(final C conciergeConfig,
             final ActorRef pubSubMediator,
             final AbstractEnforcerActorFactory<C> enforcerActorFactory,
             final ActorMaterializer materializer) {
@@ -134,7 +133,7 @@ public final class ConciergeRootActor extends AbstractActor {
 
         final ActorContext context = getContext();
 
-        authorizationProxyPropsFactory.startEnforcerActor(context, conciergeConfig, pubSubMediator);
+        enforcerActorFactory.startEnforcerActor(context, conciergeConfig, pubSubMediator);
 
         final ActorRef conciergeForwarder = context.findChild(ConciergeForwarderActor.ACTOR_NAME).orElseThrow(() ->
                 new IllegalStateException("ConciergeForwarder could not be found"));

@@ -34,7 +34,6 @@ import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory
 import org.eclipse.ditto.services.connectivity.messaging.ConnectionSupervisorActor;
 import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ReconnectActor;
-import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
@@ -163,9 +162,10 @@ public final class ConnectivityRootActor extends AbstractActor {
                 .getReadJournalFor(JavaDslMongoReadJournal.class, RECONNECT_READ_JOURNAL_PLUGIN_ID);
 
         final ActorRef conciergeForwarder =
-                getConciergeForwarder(clusterConfig, actorSystem, pubSubMediator, conciergeForwarderSignalTransformer);
+                getConciergeForwarder(clusterConfig, pubSubMediator, conciergeForwarderSignalTransformer);
         final Props connectionSupervisorProps =
                 getConnectionSupervisorProps(connectivityConfig, pubSubMediator, conciergeForwarder, commandValidator);
+
         startClusterSingletonActor(
                 ReconnectActor.props(getConnectionShardRegion(actorSystem, connectionSupervisorProps, clusterConfig),
                         mongoReadJournal::currentPersistenceIds, connectivityConfig.getReconnectConfig()));
@@ -173,7 +173,6 @@ public final class ConnectivityRootActor extends AbstractActor {
         final CompletionStage<ServerBinding> binding =
                 getHttpBinding(connectivityConfig.getHttpConfig(), actorSystem, materializer,
                         getHealthCheckingActor(connectivityConfig));
-
         binding.thenAccept(theBinding -> CoordinatedShutdown.get(actorSystem).addTask(
                 CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_health_http_endpoint", () -> {
                     log.info("Gracefully shutting down status/health HTTP endpoint ...");
@@ -292,22 +291,15 @@ public final class ConnectivityRootActor extends AbstractActor {
                         MongoHealthChecker.props(connectivityConfig.getMongoDbConfig())));
     }
 
-    private ActorRef getConciergeForwarder(final ClusterConfig clusterConfig,
-            final ActorSystem actorSystem,
-            final ActorRef pubSubMediator,
+    private ActorRef getConciergeForwarder(final ClusterConfig clusterConfig, final ActorRef pubSubMediator,
             final UnaryOperator<Signal<?>> conciergeForwarderSignalTransformer) {
 
         final ActorRef conciergeEnforcerRouter =
                 ConciergeEnforcerClusterRouterFactory.createConciergeEnforcerClusterRouter(getContext(),
                         clusterConfig.getNumberOfShards());
 
-        final ActorRef conciergeShardRegionProxy = ClusterSharding.get(actorSystem)
-                .startProxy(ConciergeMessagingConstants.SHARD_REGION,
-                        Optional.of(ConciergeMessagingConstants.CLUSTER_ROLE),
-                        ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem));
-
         return startChildActor(ConciergeForwarderActor.ACTOR_NAME,
-                ConciergeForwarderActor.props(pubSubMediator, conciergeEnforcerRouter, conciergeShardRegionProxy,
+                ConciergeForwarderActor.props(pubSubMediator, conciergeEnforcerRouter,
                         conciergeForwarderSignalTransformer));
     }
 
@@ -349,9 +341,9 @@ public final class ConnectivityRootActor extends AbstractActor {
             log.info("No explicit hostname configured, using HTTP hostname <{}>.", hostname);
         }
 
-        return Http.get(actorSystem).bindAndHandle(
-                createRoute(actorSystem, healthCheckingActor).flow(actorSystem, materializer),
-                ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
+        return Http.get(actorSystem)
+                .bindAndHandle(createRoute(actorSystem, healthCheckingActor).flow(actorSystem, materializer),
+                        ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
     }
 
 }

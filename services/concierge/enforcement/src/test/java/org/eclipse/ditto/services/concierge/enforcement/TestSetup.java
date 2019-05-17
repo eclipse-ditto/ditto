@@ -34,15 +34,15 @@ import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.base.DittoService;
-import org.eclipse.ditto.services.concierge.cache.AclEnforcerCacheLoader;
-import org.eclipse.ditto.services.concierge.cache.PolicyEnforcerCacheLoader;
-import org.eclipse.ditto.services.concierge.cache.ThingEnforcementIdCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.config.CachesConfig;
 import org.eclipse.ditto.services.concierge.cache.config.DefaultCachesConfig;
-import org.eclipse.ditto.services.models.concierge.EntityId;
-import org.eclipse.ditto.services.models.concierge.cache.Entry;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
+import org.eclipse.ditto.services.utils.cache.EntityId;
+import org.eclipse.ditto.services.utils.cache.entry.Entry;
+import org.eclipse.ditto.services.utils.cacheloaders.AclEnforcerCacheLoader;
+import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcerCacheLoader;
+import org.eclipse.ditto.services.utils.cacheloaders.ThingEnforcementIdCacheLoader;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
@@ -161,7 +161,8 @@ public final class TestSetup {
      * @return the message
      */
     public static <T> T fishForMsgClass(final TestKit testKit, final Class<T> clazz) {
-        return (T) testKit.fishForMessage(scala.concurrent.duration.Duration.create(1, TimeUnit.SECONDS), clazz.getName(), clazz::isInstance);
+        return (T) testKit.fishForMessage(scala.concurrent.duration.Duration.create(1, TimeUnit.SECONDS),
+                clazz.getName(), clazz::isInstance);
     }
 
 }

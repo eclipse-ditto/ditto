@@ -28,8 +28,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.base.config.ServiceSpecificConfig;
+import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.DittoConfigError;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
@@ -66,9 +66,10 @@ import akka.cluster.pubsub.DistributedPubSub;
 import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
+import akka.http.javadsl.model.Uri;
 import akka.http.javadsl.server.Route;
-import akka.management.AkkaManagement;
 import akka.management.cluster.bootstrap.ClusterBootstrap;
+import akka.management.javadsl.AkkaManagement;
 import akka.stream.ActorMaterializer;
 import kamon.Kamon;
 import kamon.prometheus.PrometheusReporter;
@@ -261,41 +262,22 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * automatically:</em>
      * </p>
      * <ul>
-     * <li>{@link #determineRawConfig()},</li>
-     * <li>{@link #createActorSystem(com.typesafe.config.Config)},</li>
-     * <li>{@link #startStatusSupplierActor(akka.actor.ActorSystem)},</li>
-     * <li>{@link #startServiceRootActors(akka.actor.ActorSystem, org.eclipse.ditto.services.base.config.ServiceSpecificConfig)}.</li>
+     * <li>{@link #startStatusSupplierActor(ActorSystem)},</li>
+     * <li>{@link #startDevOpsCommandsActor(ActorSystem)},</li>
+     * <li>{@link #startServiceRootActors(ActorSystem, ServiceSpecificConfig)}.</li>
      * </ul>
      *
      * @param actorSystem the Akka ActorSystem to be initialized.
      */
     protected void initializeActorSystem(final ActorSystem actorSystem) {
-        logger.info("Starting AkkaManagement ...");
-        AkkaManagement.get(actorSystem).start().whenComplete((uri, throwable) -> {
-            if (throwable != null) {
-                logger.error("Error during start of AkkaManagement: <{}>!", throwable.getMessage(), throwable);
-            } else {
-                logger.info("Started AkkaManagement on URI <{}>.", uri);
-            }
-        });
-        logger.info("Starting ClusterBootstrap..");
-        ClusterBootstrap.get(actorSystem).start();
+        startAkkaManagement(actorSystem);
+        startClusterBootstrap(actorSystem);
 
         startStatusSupplierActor(actorSystem);
         startDevOpsCommandsActor(actorSystem);
         startServiceRootActors(actorSystem, serviceSpecificConfig);
 
-        CoordinatedShutdown.get(actorSystem).addTask(
-                CoordinatedShutdown.PhaseBeforeServiceUnbind(), "log_shutdown_initiation", () -> {
-                    logger.info("Initiated coordinated shutdown - gracefully shutting down..");
-                    return CompletableFuture.completedFuture(Done.getInstance());
-                });
-
-        CoordinatedShutdown.get(actorSystem).addTask(
-                CoordinatedShutdown.PhaseBeforeActorSystemTerminate(), "log_successful_graceful_shutdown", () -> {
-                    logger.info("Graceful shutdown completed.");
-                    return CompletableFuture.completedFuture(Done.getInstance());
-                });
+        setUpCoordinatedShutdown(actorSystem);
     }
 
     /**
@@ -315,14 +297,14 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
 
             binding.thenAccept(theBinding -> CoordinatedShutdown.get(actorSystem).addTask(
                     CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_prometheus_http_endpoint", () -> {
-                        logger.info("Gracefully shutting down Prometheus HTTP endpoint..");
+                        logger.info("Gracefully shutting down Prometheus HTTP endpoint ...");
                         // prometheus requests don't get the luxury of being processed a long time after shutdown:
                         return theBinding.terminate(Duration.ofSeconds(1))
                                 .handle((httpTerminated, e) -> Done.getInstance());
                     })
             ).exceptionally(failure -> {
                 logger.error("Kamon Prometheus HTTP endpoint could not be started: {}", failure.getMessage(), failure);
-                logger.error("Terminating actorSystem!");
+                logger.error("Terminating ActorSystem!");
                 actorSystem.terminate();
                 return null;
             });
@@ -337,6 +319,25 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      */
     protected ActorSystem createActorSystem(final Config config) {
         return ActorSystem.create(CLUSTER_NAME, config);
+    }
+
+    private void startAkkaManagement(final ActorSystem actorSystem) {
+        logger.info("Starting AkkaManagement ...");
+        final AkkaManagement akkaManagement = AkkaManagement.get(actorSystem);
+        final CompletionStage<Uri> startPromise = akkaManagement.start();
+        startPromise.whenComplete((uri, throwable) -> {
+            if (null != throwable) {
+                logger.error("Error during start of AkkaManagement: <{}>!", throwable.getMessage(), throwable);
+            } else {
+                logger.info("Started AkkaManagement on URI <{}>.", uri);
+            }
+        });
+    }
+
+    private void startClusterBootstrap(final ActorSystem actorSystem) {
+        logger.info("Starting ClusterBootstrap ...");
+        final ClusterBootstrap clusterBootstrap = ClusterBootstrap.get(actorSystem);
+        clusterBootstrap.start();
     }
 
     /**
@@ -478,6 +479,19 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
         for (final RootActorInformation rootActorInformation : additionalRootActorsInformation) {
             startActor(actorSystem, rootActorInformation.props, rootActorInformation.name);
         }
+    }
+
+    private void setUpCoordinatedShutdown(final ActorSystem actorSystem) {
+        final CoordinatedShutdown coordinatedShutdown = CoordinatedShutdown.get(actorSystem);
+        coordinatedShutdown.addTask(CoordinatedShutdown.PhaseBeforeServiceUnbind(), "log_shutdown_initiation", () -> {
+            logger.info("Initiated coordinated shutdown; gracefully shutting down ...");
+            return CompletableFuture.completedFuture(Done.getInstance());
+        });
+        coordinatedShutdown.addTask(CoordinatedShutdown.PhaseBeforeActorSystemTerminate(),
+                "log_successful_graceful_shutdown", () -> {
+                    logger.info("Graceful shutdown completed.");
+                    return CompletableFuture.completedFuture(Done.getInstance());
+                });
     }
 
     /**

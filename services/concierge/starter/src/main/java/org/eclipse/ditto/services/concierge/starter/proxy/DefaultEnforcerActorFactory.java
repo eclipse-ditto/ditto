@@ -153,20 +153,20 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
                 ConciergeMessagingConstants.BLOCKED_NAMESPACES_UPDATER_NAME,
                 blockedNamespacesUpdaterProps);
 
-        final Duration enforcementAskTimeout = enforcementConfig.askTimeout();
+        final Duration enforcementAskTimeout = enforcementConfig.getAskTimeout();
         final Executor enforcerExecutor = actorSystem.dispatchers().lookup(ENFORCER_DISPATCHER);
         final Props enforcerProps =
-                EnforcerActor.props(pubSubMediator, enforcementProviders, enforcementAskTimeout,
-                        conciergeForwarder, enforcerExecutor, enforcement.bufferSize(), enforcement.parallelism(),
-                        preEnforcer, thingIdCache, aclEnforcerCache, policyEnforcerCache) // passes in the caches to be able to invalidate cache entries
+                EnforcerActor.props(pubSubMediator, enforcementProviders, enforcementAskTimeout, conciergeForwarder,
+                        enforcerExecutor, enforcementConfig.getBufferSize(), enforcementConfig.getParallelism(),
+                        preEnforcer, thingIdCache, aclEnforcerCache,
+                        policyEnforcerCache) // passes in the caches to be able to invalidate cache entries
                 .withDispatcher(ENFORCER_DISPATCHER);
 
         return context.actorOf(enforcerProps, EnforcerActor.ACTOR_NAME);
     }
 
     private static Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> newPreEnforcer(
-            final BlockedNamespaces blockedNamespaces,
-            final PlaceholderSubstitution placeholderSubstitution) {
+            final BlockedNamespaces blockedNamespaces, final PlaceholderSubstitution placeholderSubstitution) {
 
         return withDittoHeaders ->
                 BlockNamespaceBehavior.of(blockedNamespaces)

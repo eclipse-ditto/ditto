@@ -22,7 +22,7 @@ import java.util.Optional;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.services.concierge.util.config.AbstractConciergeConfigReader;
+import org.eclipse.ditto.services.concierge.starter.config.ConciergeConfig;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommand;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
@@ -58,7 +58,7 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
     private final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> handler;
     private final ActorRef thingsAggregatorActor;
 
-    private DispatcherActor(final AbstractConciergeConfigReader configReader,
+    private DispatcherActor(final ConciergeConfig conciergeConfig,
             final ActorRef enforcerActor,
             final ActorRef pubSubMediator,
             final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> handler,
@@ -68,7 +68,7 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
         super(bufferSize, parallelism);
 
         this.handler = handler;
-        final Props props = ThingsAggregatorActor.props(configReader, enforcerActor);
+        final Props props = ThingsAggregatorActor.props(conciergeConfig, enforcerActor);
         thingsAggregatorActor = getContext().actorOf(props, ThingsAggregatorActor.ACTOR_NAME);
 
         initActor(getSelf(), pubSubMediator);
@@ -92,23 +92,26 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
     /**
      * Create Akka actor configuration Props object without pre-enforcer.
      *
-     * @param configReader the configReader for the concierge service.
+     * @param conciergeConfig the configuration settings for the Concierge service.
      * @param pubSubMediator Akka pub-sub mediator.
      * @param enforcerActor address of the enforcer actor.
      * @param bufferSize the buffer size used for the Source queue.
      * @param parallelism parallelism to use for processing messages in parallel.
      * @return the Props object.
      */
-    public static Props props(final AbstractConciergeConfigReader configReader, final ActorRef pubSubMediator,
-            final ActorRef enforcerActor, final int bufferSize, final int parallelism) {
+    public static Props props(final ConciergeConfig conciergeConfig,
+            final ActorRef pubSubMediator,
+            final ActorRef enforcerActor,
+            final int bufferSize,
+            final int parallelism) {
 
-        return props(configReader, pubSubMediator, enforcerActor, Flow.create(), bufferSize, parallelism);
+        return props(conciergeConfig, pubSubMediator, enforcerActor, Flow.create(), bufferSize, parallelism);
     }
 
     /**
      * Create Akka actor configuration Props object with pre-enforcer.
      *
-     * @param configReader the configReader for the concierge service.
+     * @param conciergeConfig the configuration settings for the Concierge service.
      * @param pubSubMediator Akka pub-sub mediator.
      * @param enforcerActor the address of the enforcer actor.
      * @param preEnforcer the pre-enforcer as graph.
@@ -116,7 +119,7 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
      * @param parallelism parallelism to use for processing messages in parallel.
      * @return the Props object.
      */
-    public static Props props(final AbstractConciergeConfigReader configReader,
+    public static Props props(final ConciergeConfig conciergeConfig,
             final ActorRef pubSubMediator,
             final ActorRef enforcerActor,
             final Graph<FlowShape<WithSender, WithSender>, ?> preEnforcer,
@@ -130,7 +133,7 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
                 .via(dispatchFlow);
 
         return Props.create(DispatcherActor.class,
-                () -> new DispatcherActor(configReader, enforcerActor, pubSubMediator, handler, bufferSize,
+                () -> new DispatcherActor(conciergeConfig, enforcerActor, pubSubMediator, handler, bufferSize,
                         parallelism));
     }
 
@@ -142,8 +145,8 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
      */
     private static Graph<FlowShape<ImmutableDispatch, ImmutableDispatch>, NotUsed> createDispatchFlow(
             final ActorRef pubSubMediator) {
-        return GraphDSL.create(builder -> {
 
+        return GraphDSL.create(builder -> {
             final FanOutShape2<ImmutableDispatch, ImmutableDispatch, ImmutableDispatch> multiplexSearch =
                     builder.add(multiplexBy(ThingSearchCommand.class, ThingSearchSudoCommand.class));
 
@@ -164,6 +167,7 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
 
     private static Graph<FanOutShape2<ImmutableDispatch, ImmutableDispatch, ImmutableDispatch>, NotUsed> multiplexBy(
             final Class<?>... classes) {
+
         return Filter.multiplexBy(dispatch ->
                 Arrays.stream(classes).anyMatch(clazz -> clazz.isInstance(dispatch.getMessage()))
                         ? Optional.of(dispatch)
@@ -177,8 +181,8 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
     }
 
     private static Sink<ImmutableDispatch, ?> thingsAggregatorSink() {
-        return Sink.foreach(dispatch ->
-                dispatch.thingsAggregatorActor.tell(dispatch.getMessage(), dispatch.getSender()));
+        return Sink.foreach(
+                dispatch -> dispatch.thingsAggregatorActor.tell(dispatch.getMessage(), dispatch.getSender()));
     }
 
     private static Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> asContextualFlow(
@@ -231,6 +235,7 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
 
         private ImmutableDispatch(final WithDittoHeaders message, final ActorRef sender,
                 final ActorRef thingsAggregatorActor) {
+
             this.message = message;
             this.sender = sender;
             this.thingsAggregatorActor = thingsAggregatorActor;
@@ -275,7 +280,6 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
             return Objects.hash(message, sender, thingsAggregatorActor);
         }
 
-
         @Override
         public String toString() {
             return getClass().getSimpleName() + " [" +
@@ -284,5 +288,7 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
                     ", thingsAggregatorActor=" + thingsAggregatorActor +
                     "]";
         }
+
     }
+
 }
