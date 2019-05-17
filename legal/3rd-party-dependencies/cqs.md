@@ -106,9 +106,7 @@
 |com.typesafe.akka|akka-stream-testkit_2.12|2.5.22| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |com.typesafe.akka|akka-testkit_2.12|2.5.22| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |de.flapdoodle.embed|de.flapdoodle.embed.mongo|2.2.0| [19841](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19841) |
-|de.flapdoodle.embed|de.flapdoodle.embed.mongo|2.0.0| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |de.flapdoodle.embed|de.flapdoodle.embed.process|2.1.2| [19841](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19841) |
-|de.flapdoodle.embed|de.flapdoodle.embed.process|2.0.1| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |io.jsonwebtoken|jjwt-orgjson|0.10.6| [19841](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19841) |
 |junit|junit|4.12| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |net.bytebuddy|byte-buddy-agent|1.7.0| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
@@ -118,15 +116,12 @@
 |net.sf.jopt-simple|jopt-simple|4.6| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |nl.jqno.equalsverifier|equalsverifier|3.0.3| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19841) |
 |org.apache.commons|commons-compress|1.18| [19841](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19841) |
-|org.apache.commons|commons-compress|1.10| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.apache.commons|commons-lang3|3.1| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.apache.commons|commons-math3|3.2| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.assertj|assertj-core|3.11.1| [19841](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19841) |
-|org.assertj|assertj-core|3.8.0| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.awaitility|awaitility|3.1.0| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.hamcrest|hamcrest-core|1.3| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.hamcrest|hamcrest-library|1.3| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
-|org.json|json|20090211| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.json|json|20180130| [19841](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19841) |
 |org.mockito|mockito-core|2.9.0| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.mutabilitydetector|MutabilityDetector|0.9.6| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
@@ -151,7 +146,6 @@
 |org.apache.maven.plugins|maven-deploy-plugin|2.8.2| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.apache.maven.plugins|maven-enforcer-plugin|1.4.1| [19841](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19841) |
 |org.apache.maven.plugins|maven-failsafe-plugin|3.0.0-M1| [19841](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19841) |
-|org.apache.maven.plugins|maven-failsafe-plugin|2.20.1| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.apache.maven.plugins|maven-install-plugin|2.5.2| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.apache.maven.plugins|maven-jar-plugin|3.0.2| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.apache.maven.plugins|maven-javadoc-plugin|3.0.0| [19841](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19841) |
@@ -161,7 +155,6 @@
 |org.apache.maven.plugins|maven-site-plugin|3.7| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.apache.maven.plugins|maven-source-plugin|3.0.1| [19841](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19841) |
 |org.apache.maven.plugins|maven-surefire-plugin|3.0.0-M1| [19841](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19841) |
-|org.apache.maven.plugins|maven-surefire-plugin|2.22.0| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.codehaus.mojo|exec-maven-plugin|1.6.0| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.codehaus.mojo|flatten-maven-plugin|1.0.1| [17676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17676) |
 |org.codehaus.mojo|license-maven-plugin|1.17| [19841](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19841) |
