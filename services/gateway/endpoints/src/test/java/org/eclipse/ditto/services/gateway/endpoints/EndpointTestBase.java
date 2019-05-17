@@ -16,9 +16,6 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Collections;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -42,7 +39,6 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.ResponseEntity;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.testkit.JUnitRouteTest;
 import akka.http.javadsl.testkit.TestRouteResult;
@@ -121,19 +117,6 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
 
     protected HttpRequest withDevopsCredentials(final HttpRequest httpRequest) {
         return httpRequest.addCredentials(EndpointTestConstants.DEVOPS_CREDENTIALS);
-    }
-
-    protected String entityToString(final ResponseEntity entity) {
-        try {
-            final int timeoutMillis = 10_000;
-            return entity.toStrict(timeoutMillis, materializer())
-                    .toCompletableFuture()
-                    .get(timeoutMillis, TimeUnit.MILLISECONDS)
-                    .getData()
-                    .utf8String();
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            throw new IllegalStateException(e);
-        }
     }
 
     protected void assertWebsocketUpgradeExpectedResult(final TestRouteResult result) {
