@@ -29,7 +29,6 @@
 		<module>batch</module>
         <module>cache</module>
         <module>enforcement</module>
-        <module>util</module>
         <module>starter</module>
     </modules>
 
