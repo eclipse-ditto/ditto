@@ -149,6 +149,6 @@ public class TestSetup {
      * @return the message
      */
     public static <T> T fishForMsgClass(final TestKit testKit, final Class<T> clazz) {
-        return (T) testKit.fishForMessage(scala.concurrent.duration.Duration.create(1, TimeUnit.SECONDS), clazz.getName(), clazz::isInstance);
+        return (T) testKit.fishForMessage(scala.concurrent.duration.Duration.create(3, TimeUnit.SECONDS), clazz.getName(), clazz::isInstance);
     }
 }
