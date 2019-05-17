@@ -104,8 +104,8 @@ final class EvictingConnectionLogger implements ConnectionLogger {
 
     @Override
     public void success(final ConnectionMonitor.InfoProvider infoProvider, final String message, final Object... messageArguments) {
-        logTraceWithCorrelationId(infoProvider.getCorrelationId(), "success", infoProvider, message);
         final String formattedMessage = formatMessage(infoProvider, message, messageArguments);
+        logTraceWithCorrelationId(infoProvider.getCorrelationId(), "success", infoProvider, formattedMessage);
         successLogs.add(getLogEntry(infoProvider, formattedMessage, LogLevel.SUCCESS));
 
     }
@@ -123,8 +123,8 @@ final class EvictingConnectionLogger implements ConnectionLogger {
     @Override
     public void failure(final ConnectionMonitor.InfoProvider infoProvider, final String message,
             final Object... messageArguments) {
-        logTraceWithCorrelationId(infoProvider.getCorrelationId(), "failure", infoProvider, message);
         final String formattedMessage = formatMessage(infoProvider, message, messageArguments);
+        logTraceWithCorrelationId(infoProvider.getCorrelationId(), "failure", infoProvider, formattedMessage);
         failureLogs.add(getLogEntry(infoProvider, formattedMessage, LogLevel.FAILURE));
     }
 
@@ -136,8 +136,8 @@ final class EvictingConnectionLogger implements ConnectionLogger {
     @Override
     public void exception(final ConnectionMonitor.InfoProvider infoProvider, final String message,
             final Object... messageArguments) {
-        logTraceWithCorrelationId(infoProvider.getCorrelationId(), "exception", infoProvider, message);
         final String formattedMessage = formatMessage(infoProvider, message, messageArguments);
+        logTraceWithCorrelationId(infoProvider.getCorrelationId(), "exception", infoProvider, formattedMessage);
         failureLogs.add(getLogEntry(infoProvider, formattedMessage, LogLevel.FAILURE));
     }
 

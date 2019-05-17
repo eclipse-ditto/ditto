@@ -24,7 +24,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ImmutableInfoProvider;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.ConnectionMetricsCounter;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.signals.base.Signal;
@@ -51,7 +51,7 @@ public interface ConnectionMonitor {
      * @param signal that was processed during the success event.
      */
     default void success(final Signal<?> signal) {
-        success(ImmutableInfoProvider.forSignal(signal));
+        success(InfoProviderFactory.forSignal(signal));
     }
 
     /**
@@ -59,7 +59,7 @@ public interface ConnectionMonitor {
      * @param externalMessage that was processed during the success event.
      */
     default void success(final ExternalMessage externalMessage) {
-        success(ImmutableInfoProvider.forExternalMessage(externalMessage));
+        success(InfoProviderFactory.forExternalMessage(externalMessage));
     }
 
     /**
@@ -79,7 +79,7 @@ public interface ConnectionMonitor {
      * {@link java.text.MessageFormat#format(String, Object...)} is used for applying message arguments to {@code message}.
      */
     default void success(final Signal<?> signal, final String message, final Object... messageArguments) {
-        getLogger().success(ImmutableInfoProvider.forSignal(signal), message, messageArguments);
+        getLogger().success(InfoProviderFactory.forSignal(signal), message, messageArguments);
         getCounter().recordSuccess();
     }
 
@@ -88,7 +88,7 @@ public interface ConnectionMonitor {
      * @param signal that was processed during the failure.
      */
     default void failure(final Signal<?> signal) {
-        getLogger().failure(ImmutableInfoProvider.forSignal(signal));
+        getLogger().failure(InfoProviderFactory.forSignal(signal));
         getCounter().recordFailure();
     }
 
@@ -98,7 +98,7 @@ public interface ConnectionMonitor {
      * @param dittoRuntimeException the exception that caused the failure. Its message will be used in the log message.
      */
     default void failure(final Signal<?> signal, final DittoRuntimeException dittoRuntimeException) {
-        failure(ImmutableInfoProvider.forSignal(signal), dittoRuntimeException);
+        failure(InfoProviderFactory.forSignal(signal), dittoRuntimeException);
     }
 
     /**
@@ -116,7 +116,7 @@ public interface ConnectionMonitor {
      * @param dittoRuntimeException the exception that caused the failure. Its message will be used in the log message.
      */
     default void failure(final DittoRuntimeException dittoRuntimeException) {
-        failure(ImmutableInfoProvider.empty(), dittoRuntimeException);
+        failure(InfoProviderFactory.empty(), dittoRuntimeException);
     }
 
     /**
@@ -127,7 +127,7 @@ public interface ConnectionMonitor {
      * {@link java.text.MessageFormat#format(String, Object...)} is used for applying message arguments to {@code message}.
      */
     default void failure(final Signal<?> signal, final String message, final Object... messageArguments) {
-        getLogger().failure(ImmutableInfoProvider.forSignal(signal), message, messageArguments);
+        getLogger().failure(InfoProviderFactory.forSignal(signal), message, messageArguments);
         getCounter().recordFailure();
     }
 
@@ -137,7 +137,7 @@ public interface ConnectionMonitor {
      * @param dittoRuntimeException the exception that caused the failure. Its message will be used in the log message.
      */
     default void failure(final Map<String, String> headers, final DittoRuntimeException dittoRuntimeException) {
-        failure(ImmutableInfoProvider.forHeaders(headers), dittoRuntimeException);
+        failure(InfoProviderFactory.forHeaders(headers), dittoRuntimeException);
     }
 
     /**
@@ -146,7 +146,7 @@ public interface ConnectionMonitor {
      * @param dittoRuntimeException the exception that caused the failure. Its message will be used in the log message.
      */
     default void failure(final ExternalMessage externalMessage, final DittoRuntimeException dittoRuntimeException) {
-        failure(ImmutableInfoProvider.forExternalMessage(externalMessage), dittoRuntimeException);
+        failure(InfoProviderFactory.forExternalMessage(externalMessage), dittoRuntimeException);
     }
 
     /**
@@ -157,7 +157,7 @@ public interface ConnectionMonitor {
      * {@link java.text.MessageFormat#format(String, Object...)} is used for applying message arguments to {@code message}.
      */
     default void failure(final ExternalMessage externalMessage, final String message, final Object... messageArguments) {
-        getLogger().failure(ImmutableInfoProvider.forExternalMessage(externalMessage), message, messageArguments);
+        getLogger().failure(InfoProviderFactory.forExternalMessage(externalMessage), message, messageArguments);
         getCounter().recordFailure();
     }
 
@@ -167,7 +167,7 @@ public interface ConnectionMonitor {
      * @param exception the exception.
      */
     default void exception(final Signal<?> signal, final Exception exception) {
-        exception(ImmutableInfoProvider.forSignal(signal), exception);
+        exception(InfoProviderFactory.forSignal(signal), exception);
     }
 
     /**
@@ -175,7 +175,7 @@ public interface ConnectionMonitor {
      * @param exception the exception.
      */
     default void exception(final Exception exception) {
-        exception(ImmutableInfoProvider.empty(), exception);
+        exception(InfoProviderFactory.empty(), exception);
     }
 
     /**
@@ -184,7 +184,7 @@ public interface ConnectionMonitor {
      * @param exception the exception.
      */
     default void exception(final Map<String, String> headers, final Exception exception) {
-        exception(ImmutableInfoProvider.forHeaders(headers), exception);
+        exception(InfoProviderFactory.forHeaders(headers), exception);
     }
 
     /**
@@ -193,7 +193,7 @@ public interface ConnectionMonitor {
      * @param exception the exception that caused the failure.
      */
     default void exception(final ExternalMessage externalMessage, final Exception exception) {
-        exception(ImmutableInfoProvider.forExternalMessage(externalMessage), exception);
+        exception(InfoProviderFactory.forExternalMessage(externalMessage), exception);
     }
 
     /**
@@ -214,7 +214,7 @@ public interface ConnectionMonitor {
      * {@link java.text.MessageFormat#format(String, Object...)} is used for applying message arguments to {@code message}.
      */
     default void exception(final ExternalMessage externalMessage, final String message, final Object... messageArguments) {
-        getLogger().exception(ImmutableInfoProvider.forExternalMessage(externalMessage), message, messageArguments);
+        getLogger().exception(InfoProviderFactory.forExternalMessage(externalMessage), message, messageArguments);
         getCounter().recordFailure();
     }
 
@@ -250,7 +250,7 @@ public interface ConnectionMonitor {
      */
     static WrappedConnectionMonitor wrapExecution(final Collection<ConnectionMonitor> monitors,
             final Signal signal) {
-        return wrapExecution(monitors, ImmutableInfoProvider.forSignal(signal));
+        return wrapExecution(monitors, InfoProviderFactory.forSignal(signal));
     }
 
     /**
@@ -263,7 +263,7 @@ public interface ConnectionMonitor {
      */
     static WrappedConnectionMonitor wrapExecution(final Collection<ConnectionMonitor> monitors,
             final ExternalMessage message) {
-        return wrapExecution(monitors, ImmutableInfoProvider.forExternalMessage(message));
+        return wrapExecution(monitors, InfoProviderFactory.forExternalMessage(message));
     }
 
     /**

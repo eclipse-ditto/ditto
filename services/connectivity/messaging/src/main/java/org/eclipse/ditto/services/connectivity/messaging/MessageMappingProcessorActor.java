@@ -192,8 +192,10 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         try {
             mapExternalMessageToSignalAndForwardToConcierge(externalMessage);
         } catch (final DittoRuntimeException e) {
+            responseMappedMonitor.getLogger().failure("Got exception {0} when processing external message: {1}", e.getErrorCode(), e.getMessage());
             handleDittoRuntimeException(e, externalMessage.getHeaders());
         } catch (final Exception e) {
+            responseMappedMonitor.getLogger().failure("Got unknown exception when processing external message: {1}", e.getMessage());
             log.warning("Got <{}> when message was processed: <{}>", e.getClass().getSimpleName(), e.getMessage());
         }
     }
@@ -257,7 +259,6 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         final String stackTrace = stackTraceAsString(exception);
         log.info("Got DittoRuntimeException '{}' when ExternalMessage was processed: {} - {}. StackTrace: {}",
                 exception.getErrorCode(), exception.getMessage(), exception.getDescription().orElse(""), stackTrace);
-
         handleCommandResponse(errorResponse);
     }
 

@@ -46,6 +46,8 @@ import org.eclipse.ditto.services.connectivity.messaging.kafka.KafkaValidator;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLoggerRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.RetrieveConnectionLogsAggregatorActor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.RetrieveConnectionMetricsAggregatorActor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.RetrieveConnectionStatusAggregatorActor;
@@ -58,6 +60,7 @@ import org.eclipse.ditto.services.connectivity.messaging.validation.DittoConnect
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.connectivity.util.ConnectionConfigReader;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
+import org.eclipse.ditto.services.connectivity.util.MonitoringConfigReader;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -129,8 +132,8 @@ import akka.persistence.SnapshotOffer;
 import akka.routing.Broadcast;
 import akka.routing.RoundRobinPool;
 import scala.concurrent.ExecutionContextExecutor;
-import scala.concurrent.duration.FiniteDuration;
 import scala.concurrent.duration.Duration;
+import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Handles {@code *Connection} commands and manages the persistence of connection. The actual connection handling to the
@@ -171,6 +174,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private final ClientActorPropsFactory propsFactory;
     private final Consumer<ConnectivityCommand<?>> commandValidator;
     private final Receive connectionCreatedBehaviour;
+    private final ConnectionLogger connectionLogger;
     private Instant connectionClosedAt = Instant.now();
 
     @Nullable private ActorRef clientActorRouter;
@@ -221,8 +225,12 @@ public final class ConnectionActor extends AbstractPersistentActor {
                 TimeUnit.MILLISECONDS);
         clientActorAskTimeout = configReader.clientActorAskTimeout();
 
+        final MonitoringConfigReader monitoringConfigReader = ConfigKeys.Monitoring.fromRawConfig(config);
         connectionMonitorRegistry =
-                DefaultConnectionMonitorRegistry.fromConfig(ConfigKeys.Monitoring.fromRawConfig(config));
+                DefaultConnectionMonitorRegistry.fromConfig(monitoringConfigReader);
+        final ConnectionLoggerRegistry loggerRegistry =
+                ConnectionLoggerRegistry.fromConfig(monitoringConfigReader.logger());
+        connectionLogger = loggerRegistry.forConnection(connectionId);
 
         ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
 
@@ -845,6 +853,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
         if (sendExceptionResponse) {
             origin.tell(dre, getSelf());
         }
+        connectionLogger.failure("Operation {0} failed due to {1}", action, dre.getMessage());
         log.warning("Operation <{}> on connection <{}> failed due to {}: {}.", action, connectionId,
                 dre.getClass().getSimpleName(), dre.getMessage());
     }
