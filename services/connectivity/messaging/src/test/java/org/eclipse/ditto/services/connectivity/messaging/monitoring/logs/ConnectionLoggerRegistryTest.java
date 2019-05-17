@@ -188,7 +188,7 @@ public final class ConnectionLoggerRegistryTest {
     }
 
     private ConnectionMonitor.InfoProvider randomInfoProvider() {
-        return ImmutableInfoProvider.forHeaders(DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build());
+        return InfoProviderFactory.forHeaders(DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build());
     }
 
     @Test

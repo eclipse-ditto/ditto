@@ -18,7 +18,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-import java.time.Instant;
 import java.util.Collection;
 
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
@@ -43,11 +42,9 @@ import nl.jqno.equalsverifier.Warning;
 @RunWith(MockitoJUnitRunner.class)
 public final class DefaultMuteableConnectionLoggerTest {
 
-    private static final ConnectionMonitor.InfoProvider INFO_PROVIDER = ImmutableInfoProvider.empty();
-    private static final String CORRELATION_ID = "theCorrelation";
+    private static final ConnectionMonitor.InfoProvider INFO_PROVIDER = InfoProviderFactory.empty();
     private static final String MESSAGE = "something happened to {0}";
     private static final Object[] MESSAGE_ARGUMENTS = {"ditto"};
-    private static final Instant TIMESTAMP = Instant.now();
     private static final String THING_ID = "the:thing";
     private static final Signal<?> SIGNAL = RetrieveConnectionLogs.of("connectionId", DittoHeaders.empty());
     private static final DittoRuntimeException DITTO_RUNTIME_EXCEPTION = DittoRuntimeException.newBuilder("any.error", HttpStatusCode.BAD_REQUEST).build();

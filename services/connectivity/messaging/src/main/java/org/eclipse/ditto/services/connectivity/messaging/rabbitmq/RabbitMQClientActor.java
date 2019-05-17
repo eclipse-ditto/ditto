@@ -365,6 +365,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                                 log.debug("Consuming queue <{}>, consumer tag is <{}>.", addressWithIndex, consumerTag);
                                 consumedTagsToAddresses.put(consumerTag, addressWithIndex);
                             } catch (final IOException e) {
+                                connectionLogger.failure("Failed to consume queue {0}: {1}", addressWithIndex, e.getMessage());
                                 log.warning("Failed to consume queue <{}>: <{}>", addressWithIndex, e.getMessage());
                             }
                         }
@@ -390,6 +391,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
         if (!missingQueues.isEmpty()) {
             log.warning("Stopping RMQ client actor for connection <{}> as queues to connect to are missing: <{}>",
                     connectionId(), missingQueues);
+            connectionLogger.failure("Can not connect to RabbitMQ as queues are missing: {0}", missingQueues);
             throw ConnectionFailedException.newBuilder(connectionId())
                     .description("The queues " + missingQueues + " to connect to are missing.")
                     .build();
@@ -493,11 +495,13 @@ public final class RabbitMQClientActor extends BaseClientActor {
             try {
                 consumerActor.tell(new Delivery(envelope, properties, body), RabbitMQClientActor.this.getSelf());
             } catch (final Exception e) {
+                connectionLogger.failure("Failed to process delivery {0}: {1}", envelope.getDeliveryTag(), e.getMessage());
                 log.info("Failed to process delivery <{}>: {}", envelope.getDeliveryTag(), e.getMessage());
             } finally {
                 try {
                     getChannel().basicAck(envelope.getDeliveryTag(), false);
                 } catch (final IOException e) {
+                    connectionLogger.failure("Failed to ack delivery {0}: {1}", envelope.getDeliveryTag(), e.getMessage());
                     log.info("Failed to ack delivery <{}>: {}", envelope.getDeliveryTag(), e.getMessage());
                 }
             }
@@ -510,6 +514,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
             final String consumingQueueByTag = consumedTagsToAddresses.get(consumerTag);
             if (null != consumingQueueByTag) {
+                connectionLogger.success("Consume OK for consumer queue {0}", consumingQueueByTag);
                 log.info("Consume OK for consumer queue <{}> on connection <{}>.", consumingQueueByTag, connectionId());
             }
 
@@ -523,6 +528,8 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
             final String consumingQueueByTag = consumedTagsToAddresses.get(consumerTag);
             if (null != consumingQueueByTag) {
+                connectionLogger.failure("Consumer with queue {0} was cancelled. This can happen for example " +
+                        "when the queue was deleted.", consumingQueueByTag);
                 log.warning("Consumer with queue <{}> was cancelled on connection <{}>. This can happen for " +
                         "example when the queue was deleted.", consumingQueueByTag, connectionId());
             }
@@ -537,6 +544,8 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
             final String consumingQueueByTag = consumedTagsToAddresses.get(consumerTag);
             if (null != consumingQueueByTag) {
+                connectionLogger.failure("Consumer with queue <{}> shutdown as the channel or the underlying connection has " +
+                        "been shut down.", consumingQueueByTag);
                 log.warning("Consumer with queue <{}> shutdown as the channel or the underlying connection has " +
                         "been shut down on connection <{}>.", consumingQueueByTag, connectionId());
             }
@@ -550,7 +559,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
             super.handleRecoverOk(consumerTag);
             ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
 
-            log.info("recovered OK for consumer with tag <{}> " + "on connection <{}>", consumerTag, connectionId());
+            log.info("Recovered OK for consumer with tag <{}> on connection <{}>", consumerTag, connectionId());
 
             getSelf().tell((ClientConnected) Optional::empty, getSelf());
         }

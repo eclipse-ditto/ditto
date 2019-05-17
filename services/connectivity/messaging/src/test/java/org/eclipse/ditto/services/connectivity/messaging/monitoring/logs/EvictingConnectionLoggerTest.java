@@ -299,27 +299,27 @@ public final class EvictingConnectionLoggerTest {
     }
 
     private ConnectionMonitor.InfoProvider randomInfoProvider() {
-        return ImmutableInfoProvider.forHeaders(DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build());
+        return InfoProviderFactory.forHeaders(DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build());
     }
 
     private static ConnectionMonitor.InfoProvider infoProviderWithThingId(final String thingId) {
-        return ImmutableInfoProvider.forSignal(RetrieveThing.of(thingId, DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build()));
+        return InfoProviderFactory.forSignal(RetrieveThing.of(thingId, DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build()));
     }
 
     private static ConnectionMonitor.InfoProvider infoProviderWithHeadersDebugLogging() {
-        return ImmutableInfoProvider.forHeaders(DittoHeaders.newBuilder().putHeader("foo", "bar").putHeader("connectivity-debug-log", "HEADER").build());
+        return InfoProviderFactory.forHeaders(DittoHeaders.newBuilder().putHeader("foo", "bar").putHeader("connectivity-debug-log", "HEADER").build());
     }
 
     private static ConnectionMonitor.InfoProvider infoProviderWithPayloadDebugLogging(final String textPayload) {
         final DittoHeaders headers = DittoHeaders.newBuilder().putHeader("foo", "bar").putHeader("connectivity-debug-log", "PAYLOAD").build();
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).withText(textPayload).build();
-        return ImmutableInfoProvider.forExternalMessage(externalMessage);
+        return InfoProviderFactory.forExternalMessage(externalMessage);
     }
 
     private static ConnectionMonitor.InfoProvider infoProviderWithHeaderAndPayloadDebugLogging(final String textPayload) {
         final DittoHeaders headers = DittoHeaders.newBuilder().putHeader("foo", "bar").putHeader("connectivity-debug-log", "ALL").build();
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).withText(textPayload).build();
-        return ImmutableInfoProvider.forExternalMessage(externalMessage);
+        return InfoProviderFactory.forExternalMessage(externalMessage);
     }
 
     private static class LogEntryAssert extends AbstractAssert<LogEntryAssert, LogEntry> {

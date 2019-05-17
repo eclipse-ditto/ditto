@@ -86,6 +86,24 @@ public interface ConnectionLogger {
     void clear();
 
     /**
+     * Log a success event.
+     * @param message a custom message that is used for logging the event.
+     * @param messageArguments additional message arguments that are part of {@code message}.
+     */
+    default void success(final String message, final Object... messageArguments) {
+        success(InfoProviderFactory.empty(), message, messageArguments);
+    }
+
+    /**
+     * Log a failure event.
+     * @param message a custom message that is used for logging the event.
+     * @param messageArguments additional message arguments that are part of {@code message}.
+     */
+    default void failure(final String message, final Object... messageArguments) {
+        failure(InfoProviderFactory.empty(), message, messageArguments);
+    }
+
+    /**
      * Log a failure event.
      * @param infoProvider containing additional information on the event.
      */
@@ -99,7 +117,16 @@ public interface ConnectionLogger {
      * @param exception the exception that caused a failure. Its message is used in the log entry.
      */
     default void failure(final Signal<?> signal, @Nullable final DittoRuntimeException exception) {
-        failure(ImmutableInfoProvider.forSignal(signal), exception);
+        failure(InfoProviderFactory.forSignal(signal), exception);
+    }
+
+    /**
+     * Log an exception event.
+     * @param message a custom message that is used for logging the event.
+     * @param messageArguments additional message arguments that are part of {@code message}.
+     */
+    default void exception(final String message, final Object... messageArguments) {
+        exception(InfoProviderFactory.empty(), message, messageArguments);
     }
 
     /**
