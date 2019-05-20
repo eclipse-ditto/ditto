@@ -268,6 +268,27 @@ public final class ConnectionLoggerRegistryTest {
     }
 
     @Test
+    public void disableConnectionLogsMutesTheLoggersAndStopsTimer() {
+        final String connectionId = connectionId();
+        underTest.initForConnection(connection(connectionId));
+
+        final MuteableConnectionLogger anyLoggerOfConnection =
+                (MuteableConnectionLogger) underTest.forConnection(connectionId);
+
+        underTest.unmuteForConnection(connectionId);
+        assertThat(anyLoggerOfConnection.isMuted()).isFalse();
+
+        underTest.muteForConnection(connectionId);
+        assertThat(anyLoggerOfConnection.isMuted()).isTrue();
+        final ConnectionLogs connectionLogs = underTest.aggregateLogs(connectionId);
+        assertThat(connectionLogs.getEnabledSince())
+                .isNull();
+        assertThat(connectionLogs.getEnabledUntil())
+                .isNull();
+
+    }
+
+    @Test
     public void testEqualsAndHashcode() {
         forClass(ConnectionLoggerRegistry.class)
                 .verify();
