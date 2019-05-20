@@ -155,7 +155,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
 
         streamLoggers(connectionId)
                 .forEach(MuteableConnectionLogger::mute);
-        // TODO: stopMetadata -> should either remove the metadata or set to LotMetadata#empty.
+        stopMetadata(connectionId);
     }
 
     /**
@@ -230,7 +230,6 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
                 .forEach(MuteableConnectionLogger::clear);
     }
 
-
     private LogMetadata refreshMetadata(final String connectionId) {
         return metadata.compute(connectionId, (c, oldTimings) -> {
             final Instant now = Instant.now();
@@ -245,6 +244,10 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         final Instant now = Instant.now();
         final LogMetadata timing = new LogMetadata(now, now.plus(loggingDuration));
         metadata.put(connectionId, timing);
+    }
+
+    private void stopMetadata(final String connectionId) {
+        metadata.remove(connectionId);
     }
 
     private LogMetadata getMetadata(final String connectionId) {
