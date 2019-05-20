@@ -167,8 +167,10 @@ public final class DevOpsCommandsActor extends AbstractActor {
             } else {
                 topic = command.getType();
             }
-            log.info("Publishing DevOpsCommand <{}> into cluster on topic <{}>", command.getType(), topic);
-            pubSubMediator.tell(new Publish(topic, command), responseCorrelationActor.get());
+            final boolean isGroupTopic = isGroupTopic(command.getDittoHeaders());
+            log.info("Publishing DevOpsCommand <{}> into cluster on topic <{}> with " +
+                    "'sendOneMessageToEachGroup'=<{}>", command.getType(), topic, isGroupTopic);
+            pubSubMediator.tell(new Publish(topic, command, isGroupTopic), responseCorrelationActor.get());
         }
     }
 
@@ -195,9 +197,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
                                         .orElseGet(() -> executePiggyback.getPiggybackCommand()
                                                 .getValue(Command.JsonFields.TYPE));
                         if (topic.isPresent()) {
-                            final String isGroupTopicValue = dittoHeaders.get(IS_GROUP_TOPIC_HEADER);
-                            final boolean isGroupTopic =
-                                    isGroupTopicValue != null && !"false".equalsIgnoreCase(isGroupTopicValue);
+                            final boolean isGroupTopic = isGroupTopic(dittoHeaders);
                             onSuccess.accept(new Publish(topic.get(), jsonifiable, isGroupTopic));
                         } else {
                             onError.accept(getErrorResponse(command));
@@ -211,6 +211,11 @@ public final class DevOpsCommandsActor extends AbstractActor {
                     GatewayInternalErrorException.newBuilder().dittoHeaders(command.getDittoHeaders()).build().toJson();
             onError.accept(getErrorResponse(command, error));
         }
+    }
+
+    private static boolean isGroupTopic(final DittoHeaders dittoHeaders) {
+        final String isGroupTopicValue = dittoHeaders.get(IS_GROUP_TOPIC_HEADER);
+        return isGroupTopicValue != null && !"false".equalsIgnoreCase(isGroupTopicValue);
     }
 
     private void handleDevOpsCommandViaPubSub(final DevOpsCommandViaPubSub devOpsCommandViaPubSub) {
@@ -337,9 +342,9 @@ public final class DevOpsCommandsActor extends AbstractActor {
                 final String serviceName,
                 final String instance) {
 
-            pubSubMediator.tell(new Subscribe(topic, getSelf()), getSelf());
-            pubSubMediator.tell(new Subscribe(String.join(":", topic, serviceName), getSelf()), getSelf());
-            pubSubMediator.tell(new Subscribe(String.join(":", topic, serviceName, instance), getSelf()), getSelf());
+            pubSubMediator.tell(new Subscribe(topic, serviceName, getSelf()), getSelf());
+            pubSubMediator.tell(new Subscribe(String.join(":", topic, serviceName), serviceName, getSelf()), getSelf());
+            pubSubMediator.tell(new Subscribe(String.join(":", topic, serviceName, instance), serviceName, getSelf()), getSelf());
         }
 
         @Override
