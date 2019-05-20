@@ -167,10 +167,15 @@ public final class DevOpsCommandsActor extends AbstractActor {
             } else {
                 topic = command.getType();
             }
-            final boolean isGroupTopic = isGroupTopic(command.getDittoHeaders());
+            final Publish msg;
+            if (isGroupTopic(command.getDittoHeaders())) {
+                msg = new Publish(topic, command, true);
+            } else {
+                msg = new Publish(topic, command);
+            }
             log.info("Publishing DevOpsCommand <{}> into cluster on topic <{}> with " +
-                    "'sendOneMessageToEachGroup'=<{}>", command.getType(), topic, isGroupTopic);
-            pubSubMediator.tell(new Publish(topic, command, isGroupTopic), responseCorrelationActor.get());
+                    "sendOneMessageToEachGroup=<{}>", command.getType(), msg.topic(), msg.sendOneMessageToEachGroup());
+            pubSubMediator.tell(msg, responseCorrelationActor.get());
         }
     }
 
@@ -342,9 +347,10 @@ public final class DevOpsCommandsActor extends AbstractActor {
                 final String serviceName,
                 final String instance) {
 
-            pubSubMediator.tell(new Subscribe(topic, serviceName, getSelf()), getSelf());
+            pubSubMediator.tell(new Subscribe(topic, getSelf()), getSelf());
+            pubSubMediator.tell(new Subscribe(String.join(":", topic, serviceName), getSelf()), getSelf());
             pubSubMediator.tell(new Subscribe(String.join(":", topic, serviceName), serviceName, getSelf()), getSelf());
-            pubSubMediator.tell(new Subscribe(String.join(":", topic, serviceName, instance), serviceName, getSelf()), getSelf());
+            pubSubMediator.tell(new Subscribe(String.join(":", topic, serviceName, instance), getSelf()), getSelf());
         }
 
         @Override
