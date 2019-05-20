@@ -13,10 +13,7 @@
 
 package org.eclipse.ditto.services.connectivity.messaging.monitoring;
 
-import java.time.Instant;
-
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLoggerRegistry;
 
 /**
  * Registry that provides monitors for the different use cases inside a connection.

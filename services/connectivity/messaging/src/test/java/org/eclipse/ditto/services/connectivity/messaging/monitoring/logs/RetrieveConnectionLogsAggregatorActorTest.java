@@ -58,92 +58,92 @@ public final class RetrieveConnectionLogsAggregatorActorTest {
         TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS), false);
     }
 
-//    @Test
-//    public void withOneClient() {
-//        new TestKit(actorSystem) {{
-//            final TestProbe sender = TestProbe.apply(actorSystem);
-//            final Connection connection = createConnectionWithClients(1);
-//
-//            final RetrieveConnectionLogsResponse expectedResponse =
-//                    createRetrieveConnectionLogsResponse(connection.getId(), Instant.now().minusSeconds(123),
-//                            Instant.now().plusSeconds(444));
-//
-//            final ActorRef underTest = childActorOf(
-//                    RetrieveConnectionLogsAggregatorActor.props(connection, sender.ref(), DITTO_HEADERS,
-//                            DEFAULT_TIMEOUT));
-//
-//            underTest.tell(expectedResponse, getRef());
-//
-//            sender.expectMsg(expectedResponse);
-//        }};
-//    }
+    @Test
+    public void withOneClient() {
+        new TestKit(actorSystem) {{
+            final TestProbe sender = TestProbe.apply(actorSystem);
+            final Connection connection = createConnectionWithClients(1);
 
-//    @Test
-//    public void withMultipleClients() {
-//        new TestKit(actorSystem) {{
-//            final TestProbe sender = TestProbe.apply(actorSystem);
-//            final Connection connection = createConnectionWithClients(3);
-//
-//            final Instant since = Instant.now().minusSeconds(333);
-//            final Instant until = Instant.now().plusSeconds(555);
-//            final Collection<RetrieveConnectionLogsResponse> responses = Arrays.asList(
-//                    createRetrieveConnectionLogsResponse(connection.getId(), since, until),
-//                    createRetrieveConnectionLogsResponse(connection.getId(), since, until),
-//                    createRetrieveConnectionLogsResponse(connection.getId(), since, until)
-//            );
-//            final RetrieveConnectionLogsResponse expectedResponse = createExpectedResponse(responses);
-//
-//            final ActorRef underTest = childActorOf(
-//                    RetrieveConnectionLogsAggregatorActor.props(connection, sender.ref(), DITTO_HEADERS,
-//                            DEFAULT_TIMEOUT));
-//
-//            responses.forEach(response -> underTest.tell(response, getRef()));
-//
-//            sender.expectMsg(expectedResponse);
-//        }};
-//    }
+            final RetrieveConnectionLogsResponse expectedResponse =
+                    createRetrieveConnectionLogsResponse(connection.getId(), Instant.now().minusSeconds(123),
+                            Instant.now().plusSeconds(444));
 
-//    @Test
-//    public void withTimeoutAndWithoutMessages() {
-//        new TestKit(actorSystem) {{
-//            final TestProbe sender = TestProbe.apply(actorSystem);
-//            final Connection connection = createConnectionWithClients(1);
-//            final Duration shortTimeout = Duration.ofMillis(10);
-//
-//            final ActorRef underTest = childActorOf(
-//                    RetrieveConnectionLogsAggregatorActor.props(connection, sender.ref(), DITTO_HEADERS,
-//                            shortTimeout));
-//
-//
-//            sender.expectMsgClass(ConnectionTimeoutException.class);
-//        }};
-//    }
+            final ActorRef underTest = childActorOf(
+                    RetrieveConnectionLogsAggregatorActor.props(connection, sender.ref(), DITTO_HEADERS,
+                            DEFAULT_TIMEOUT));
 
-//    @Test
-//    public void withTimeoutWithMessages() {
-//        new TestKit(actorSystem) {{
-//            final TestProbe sender = TestProbe.apply(actorSystem);
-//            final Duration aggregatorTimeout = Duration.ofSeconds(5);
-//            final FiniteDuration expectMessageTimeout = FiniteDuration.apply(aggregatorTimeout.getSeconds() + 1, TimeUnit.SECONDS);
-//
-//            // create connection with more clients than responses
-//            final Connection connection = createConnectionWithClients(2);
-//
-//            final ActorRef underTest = childActorOf(
-//                    RetrieveConnectionLogsAggregatorActor.props(connection, sender.ref(), DITTO_HEADERS,
-//                            aggregatorTimeout));
-//
-//            // only send one response
-//            final RetrieveConnectionLogsResponse expectedResponse =
-//                    createRetrieveConnectionLogsResponse(connection.getId(), Instant.now().minusSeconds(123),
-//                            Instant.now().plusSeconds(444));
-//
-//            underTest.tell(expectedResponse, getRef());
-//
-//            // expect that known response will be sent, ignoring missing responses
-//            sender.expectMsg(expectMessageTimeout, expectedResponse);
-//        }};
-//    }
+            underTest.tell(expectedResponse, getRef());
+
+            sender.expectMsg(expectedResponse);
+        }};
+    }
+
+    @Test
+    public void withMultipleClients() {
+        new TestKit(actorSystem) {{
+            final TestProbe sender = TestProbe.apply(actorSystem);
+            final Connection connection = createConnectionWithClients(3);
+
+            final Instant since = Instant.now().minusSeconds(333);
+            final Instant until = Instant.now().plusSeconds(555);
+            final Collection<RetrieveConnectionLogsResponse> responses = Arrays.asList(
+                    createRetrieveConnectionLogsResponse(connection.getId(), since, until),
+                    createRetrieveConnectionLogsResponse(connection.getId(), since, until),
+                    createRetrieveConnectionLogsResponse(connection.getId(), since, until)
+            );
+            final RetrieveConnectionLogsResponse expectedResponse = createExpectedResponse(responses);
+
+            final ActorRef underTest = childActorOf(
+                    RetrieveConnectionLogsAggregatorActor.props(connection, sender.ref(), DITTO_HEADERS,
+                            DEFAULT_TIMEOUT));
+
+            responses.forEach(response -> underTest.tell(response, getRef()));
+
+            sender.expectMsg(expectedResponse);
+        }};
+    }
+
+    @Test
+    public void withTimeoutAndWithoutMessages() {
+        new TestKit(actorSystem) {{
+            final TestProbe sender = TestProbe.apply(actorSystem);
+            final Connection connection = createConnectionWithClients(1);
+            final Duration shortTimeout = Duration.ofMillis(10);
+
+            final ActorRef underTest = childActorOf(
+                    RetrieveConnectionLogsAggregatorActor.props(connection, sender.ref(), DITTO_HEADERS,
+                            shortTimeout));
+
+
+            sender.expectMsgClass(ConnectionTimeoutException.class);
+        }};
+    }
+
+    @Test
+    public void withTimeoutWithMessages() {
+        new TestKit(actorSystem) {{
+            final TestProbe sender = TestProbe.apply(actorSystem);
+            final Duration aggregatorTimeout = Duration.ofSeconds(5);
+            final FiniteDuration expectMessageTimeout = FiniteDuration.apply(aggregatorTimeout.getSeconds() + 1, TimeUnit.SECONDS);
+
+            // create connection with more clients than responses
+            final Connection connection = createConnectionWithClients(2);
+
+            final ActorRef underTest = childActorOf(
+                    RetrieveConnectionLogsAggregatorActor.props(connection, sender.ref(), DITTO_HEADERS,
+                            aggregatorTimeout));
+
+            // only send one response
+            final RetrieveConnectionLogsResponse expectedResponse =
+                    createRetrieveConnectionLogsResponse(connection.getId(), Instant.now().minusSeconds(123),
+                            Instant.now().plusSeconds(444));
+
+            underTest.tell(expectedResponse, getRef());
+
+            // expect that known response will be sent, ignoring missing responses
+            sender.expectMsg(expectMessageTimeout, expectedResponse);
+        }};
+    }
 
     private Collection<RetrieveConnectionLogsResponse> createRetrieveConnectionLogsResponses(final int amount,
             final String connectionId, @Nullable final Instant enabledSince, @Nullable final Instant enabledUntil) {

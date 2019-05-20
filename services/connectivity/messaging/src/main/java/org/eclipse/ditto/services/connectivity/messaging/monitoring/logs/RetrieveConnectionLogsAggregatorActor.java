@@ -66,7 +66,7 @@ public final class RetrieveConnectionLogsAggregatorActor extends AbstractActor {
      * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection, final ActorRef sender,
-            final DittoHeaders originalHeaders, final Duration timeout, ActorRef connectionActor) {
+            final DittoHeaders originalHeaders, final Duration timeout) {
         return Props.create(RetrieveConnectionLogsAggregatorActor.class, connection, sender, originalHeaders,
                 timeout);
     }
