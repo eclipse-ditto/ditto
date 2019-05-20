@@ -84,7 +84,7 @@ public abstract class AbstractEnforcement<T extends Signal> {
                 final Throwable error = throwable instanceof CompletionException
                         ? throwable.getCause()
                         : throwable;
-                throw reportError("Error thrown during enforcement", error);
+                return withMessageToReceiver(reportError("Error thrown during enforcement", error), sender());
             } else {
                 return result;
             }
