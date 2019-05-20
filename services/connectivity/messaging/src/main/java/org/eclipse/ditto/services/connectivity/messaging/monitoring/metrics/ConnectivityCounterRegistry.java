@@ -70,12 +70,10 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
         // intentionally empty
     }
 
-
     public static ConnectivityCounterRegistry fromConfig(final MonitoringConfigReader.MonitoringCounterConfigReader config) {
         checkNotNull(config);
         return new ConnectivityCounterRegistry();
     }
-
 
     /**
      * Initializes the global {@code counters} Map with the address information of the passed {@code connection}.

@@ -144,8 +144,8 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         final Instant enabledUntil = getMetadata(connectionId).getEnabledUntil();
 
         if (enabledUntil != null && timestamp.isAfter(enabledUntil)) {
+            LOGGER.debug("Logging for connection <{}> expired.", connectionId);
             this.muteForConnection(connectionId);
-            LOGGER.debug("Logging for connection <{}> muted.", connectionId);
         }
     }
 

@@ -432,7 +432,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
     }
 
     private void checkLoggingEnabled() {
-        CheckConnectionLogsActive checkLoggingActive = CheckConnectionLogsActive.of(connectionId, Instant.now());
+        final CheckConnectionLogsActive checkLoggingActive = CheckConnectionLogsActive.of(connectionId, Instant.now());
         if (clientActorRouter != null) {
             // forward command to all client actors with no sender
             clientActorRouter.tell(new Broadcast(checkLoggingActive), ActorRef.noSender());
@@ -657,7 +657,6 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private void closeConnection(final CloseConnection command) {
         checkConnectionNotNull();
 
-
         final ConnectionClosed connectionClosed =
                 ConnectionClosed.of(command.getConnectionId(), command.getDittoHeaders());
         final ActorRef origin = getSender();
@@ -722,7 +721,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private void retrieveConnectionLogs(final RetrieveConnectionLogs command) {
         broadcastCommandWithDifferentSender(command,
                 (existingConnection, timeout) -> RetrieveConnectionLogsAggregatorActor.props(
-                        existingConnection, getSender(), command.getDittoHeaders(), timeout, getSelf()),
+                        existingConnection, getSender(), command.getDittoHeaders(), timeout),
                 () -> respondWithEmptyLogs(command, this.getSender()));
     }
 
