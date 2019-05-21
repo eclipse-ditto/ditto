@@ -80,6 +80,10 @@ public interface ConnectivityCommand<T extends ConnectivityCommand> extends Comm
                 JsonFactory.newStringFieldDefinition("connectionId", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
+        public static final JsonFieldDefinition<String> JSON_TIMESTAMP =
+                JsonFactory.newStringFieldDefinition("timestamp", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
     }
 
 }

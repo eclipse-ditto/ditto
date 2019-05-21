@@ -192,8 +192,9 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
     private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
 
-    private final Cancellable enabledLoggingChecker;
-    private static final String CHECK_LOGGING_ENABLED = "checkLoggingActive";
+    @Nullable private Cancellable enabledLoggingChecker;
+    private static CheckLoggingActive CHECK_LOGGING_ENABLED = new CheckLoggingActive();
+    private final java.time.Duration checkLoggingActiveDuration;
 
     private ConnectionActor(final String connectionId,
             final ActorRef pubSubMediator,
@@ -234,15 +235,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
         ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
 
-        final int loggingActiveCheckDuration = config.getInt("ditto.connectivity.monitoring.logger" +
-                ".loggingActiveCheckDuration");
-
-        this.enabledLoggingChecker = getContext().getSystem().scheduler().schedule(
-                java.time.Duration.ofMinutes(loggingActiveCheckDuration),
-                java.time.Duration.ofMinutes(loggingActiveCheckDuration), getSelf(),
-                CHECK_LOGGING_ENABLED,
-                getContext().getSystem().dispatcher(), null
-        );
+        this.checkLoggingActiveDuration =
+                monitoringConfigReader.logger().loggingActiveCheckDuration();
     }
 
     /**
@@ -291,7 +285,9 @@ public final class ConnectionActor extends AbstractPersistentActor {
     @Override
     public void postStop() {
         log.info("stopped connection <{}>", connectionId);
-        enabledLoggingChecker.cancel();
+        if (enabledLoggingChecker != null && !enabledLoggingChecker.isCancelled()) {
+            enabledLoggingChecker.cancel();
+        }
         cancelStopSelfIfDeletedTrigger();
         super.postStop();
     }
@@ -355,8 +351,6 @@ public final class ConnectionActor extends AbstractPersistentActor {
         connection = theConnection;
         if (theConnection != null) {
             signalFilter = new SignalFilter(theConnection, connectionMonitorRegistry);
-        } else {
-            enabledLoggingChecker.cancel();
         }
     }
 
@@ -411,6 +405,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
                 .match(Status.Failure.class, f -> log.warning("Got failure in connectionCreated behaviour with " +
                         "cause {}: {}", f.cause().getClass().getSimpleName(), f.cause().getMessage()))
                 .match(PerformTask.class, this::performTask)
+                .match(CheckConnectionLogsActive.class, this::handleLoggingMuted)
                 .matchEquals(STOP_SELF_IF_DELETED, msg ->
                         // do nothing; this connection is not deleted.
                         cancelStopSelfIfDeletedTrigger()
@@ -435,7 +430,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
         final CheckConnectionLogsActive checkLoggingActive = CheckConnectionLogsActive.of(connectionId, Instant.now());
         if (clientActorRouter != null) {
             // forward command to all client actors with no sender
-            clientActorRouter.tell(new Broadcast(checkLoggingActive), ActorRef.noSender());
+            clientActorRouter.tell(new Broadcast(checkLoggingActive), getSelf());
         }
     }
 
@@ -672,7 +667,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
                     response -> {
                         final PerformTask performTask =
                                 new PerformTask(
-                                        "unsubscribe from events on connection closed, stop client actor and schdeule response",
+                                        "unsubscribe from events on connection closed, stop client actor and " +
+                                                "schedule response",
                                         connectionActor -> {
                                             connectionActor.unsubscribeFromEvents();
                                             connectionActor.stopClientActor();
@@ -700,6 +696,10 @@ public final class ConnectionActor extends AbstractPersistentActor {
             origin.tell(DeleteConnectionResponse.of(connectionId, command.getDittoHeaders()), self);
             stopSelf();
         });
+
+        if (this.enabledLoggingChecker != null && !this.enabledLoggingChecker.isCancelled()) {
+            this.enabledLoggingChecker.cancel();
+        }
     }
 
     private void resetConnectionMetrics(final ResetConnectionMetrics command) {
@@ -716,6 +716,23 @@ public final class ConnectionActor extends AbstractPersistentActor {
             clientActorRouter.tell(new Broadcast(command), ActorRef.noSender());
         }
         getSender().tell(EnableConnectionLogsResponse.of(connectionId, command.getDittoHeaders()), getSelf());
+
+        // start check logging scheduler
+        this.enabledLoggingChecker = getContext().getSystem().scheduler().schedule(
+                null,
+                this.checkLoggingActiveDuration,
+                getSelf(),
+                CHECK_LOGGING_ENABLED,
+                getContext().getSystem().dispatcher(),
+                null
+        );
+    }
+
+    private void handleLoggingMuted(final CheckConnectionLogsActive ccla) {
+        log.debug("Cancelling scheduler checking if logging still active for <{}>", ccla.getConnectionId());
+        if (this.enabledLoggingChecker != null && !this.enabledLoggingChecker.isCancelled()) {
+            this.enabledLoggingChecker.cancel();
+        }
     }
 
     private void retrieveConnectionLogs(final RetrieveConnectionLogs command) {
@@ -1020,7 +1037,6 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
     private void stopSelf() {
         log.info("Passivating / shutting down");
-        enabledLoggingChecker.cancel();
         final ShardRegion.Passivate passivateMessage = new ShardRegion.Passivate(PoisonPill.getInstance());
         getContext().getParent().tell(passivateMessage, getSelf());
     }
@@ -1071,6 +1087,17 @@ public final class ConnectionActor extends AbstractPersistentActor {
             connectionActor.subscribeForEvents();
             connectionActor.schedulePendingResponse(response, sender);
         };
+    }
+
+    /**
+     * Message that will be sent by scheduler and indicates a check if logging is still enabled for this connection.
+     */
+    static final class CheckLoggingActive {
+
+        static final CheckLoggingActive INSTANCE = new CheckLoggingActive();
+
+        private CheckLoggingActive() {
+        }
     }
 
     /**

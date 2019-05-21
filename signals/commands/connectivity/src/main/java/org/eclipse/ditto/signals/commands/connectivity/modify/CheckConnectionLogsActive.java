@@ -13,12 +13,17 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
+
+import sun.rmi.runtime.Log;
+import sun.util.locale.provider.LocaleServiceProviderPool;
 
 /**
  * Command that will enable logging in a {@link org.eclipse.ditto.model.connectivity.Connection}.
@@ -32,7 +37,7 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
     /**
      * Name of this command.
      */
-    public static final String NAME = "CheckConnectionLogsActive";
+    public static final String NAME = "checkConnectionLogsActive";
 
     /**
      * Type of this command.
@@ -40,7 +45,7 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     private final String connectionId;
-    private final Instant timestamp;
+    @Nullable private final Instant timestamp;
 
     private CheckConnectionLogsActive(final String connectionId,
             final Instant timestamp) {
@@ -81,6 +86,7 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
             final Instant timestamp, final DittoHeaders dittoHeaders) {
         checkNotNull(connectionId, "Connection ID");
         checkNotNull(timestamp, "timestamp");
+        checkNotNull(dittoHeaders, "dittoHeaders");
         return new CheckConnectionLogsActive(connectionId, timestamp, dittoHeaders);
     }
 
@@ -94,9 +100,8 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
      */
-    public static CheckConnectionLogsActive fromJson(final String jsonString,
-            final Instant timestamp) {
-        return fromJson(JsonFactory.newObject(jsonString), timestamp);
+    public static CheckConnectionLogsActive fromJson(final String jsonString) {
+        return fromJson(JsonFactory.newObject(jsonString));
     }
 
     /**
@@ -108,41 +113,34 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static CheckConnectionLogsActive fromJson(final JsonObject jsonObject,
-            Instant timestamp) {
-        return new CommandJsonDeserializer<CheckConnectionLogsActive>(TYPE, jsonObject).deserialize(() -> {
-            final String readConnectionId =
-                    jsonObject.getValueOrThrow(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID);
-            return of(readConnectionId, timestamp);
-        });
-    }
-
-    /* unused */
-    public static CheckConnectionLogsActive fromJson(final JsonObject jsonObject) {
-        final Instant now = Instant.now();
-        return CheckConnectionLogsActive.fromJson(jsonObject, now);
-    }
-
     public static CheckConnectionLogsActive fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<CheckConnectionLogsActive>(TYPE, jsonObject).deserialize(() -> {
             final String readConnectionId =
                     jsonObject.getValueOrThrow(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID);
-            return of(readConnectionId, Instant.now(), dittoHeaders);
+            final Instant readTimeStamp =
+                    getTimestampAsInstant(
+                            jsonObject.getValueOrThrow(ConnectivityModifyCommand.JsonFields.JSON_TIMESTAMP));
+            return of(readConnectionId, readTimeStamp, dittoHeaders);
         });
     }
 
-    public static CheckConnectionLogsActive fromJson(final JsonObject jsonObject, final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
+    public static CheckConnectionLogsActive fromJson(final JsonObject jsonObject) {
         return new CommandJsonDeserializer<CheckConnectionLogsActive>(TYPE, jsonObject).deserialize(() -> {
             final String readConnectionId =
                     jsonObject.getValueOrThrow(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID);
-            return of(readConnectionId, timestamp, dittoHeaders);
+            final Instant readTimeStamp =
+                    getTimestampAsInstant(
+                            jsonObject.getValueOrThrow(ConnectivityModifyCommand.JsonFields.JSON_TIMESTAMP));
+            return of(readConnectionId, readTimeStamp);
         });
     }
 
-    public static CheckConnectionLogsActive fromJson(final String jsonString, final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), timestamp, dittoHeaders);
+    private static Instant getTimestampAsInstant(final String value) {
+        try {
+            return Instant.parse(value);
+        } catch (final JsonParseException e) {
+            throw new DittoJsonException(e);
+        }
     }
 
     @Override
@@ -150,6 +148,9 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID, connectionId, predicate);
+        if (timestamp != null) {
+            jsonObjectBuilder.set(ConnectivityCommand.JsonFields.JSON_TIMESTAMP, timestamp.toString(), predicate);
+        }
     }
 
     @Override
@@ -157,8 +158,9 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
         return connectionId;
     }
 
+    @Nullable
     public Instant getTimestamp() {
-        return timestamp;
+        return this.timestamp;
     }
 
     @Override
@@ -168,7 +170,7 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
 
     @Override
     public CheckConnectionLogsActive setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(connectionId, timestamp);
+        return of(connectionId, timestamp, dittoHeaders);
     }
 
     @Override
@@ -177,31 +179,25 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
     }
 
     @Override
-    public boolean equals(@Nullable final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        if (!super.equals(o)) {
-            return false;
-        }
+    public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
         final CheckConnectionLogsActive that = (CheckConnectionLogsActive) o;
-        return Objects.equals(connectionId, that.connectionId);
+        return Objects.equals(connectionId, that.connectionId) &&
+                Objects.equals(timestamp, that.timestamp);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), connectionId);
+        return Objects.hash(super.hashCode(), connectionId, timestamp);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                super.toString() +
-                ", connectionId=" + connectionId +
+                "connectionId=" + connectionId +
+                ", timestamp=" + timestamp +
                 "]";
     }
-
 }
