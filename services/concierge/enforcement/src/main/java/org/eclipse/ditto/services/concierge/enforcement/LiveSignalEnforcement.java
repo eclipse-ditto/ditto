@@ -148,7 +148,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
                         publishMessageCommand((SendClaimMessage) liveSignal, enforcer));
 
             } else if (liveSignal instanceof CommandResponse) {
-                return enforceLiveCommandResponse(liveSignal, sender, correlationId);
+                return enforceLiveCommandResponse(liveSignal, correlationId);
             } else if (liveSignal instanceof Command) {
                 return enforceLiveCommand(liveSignal, sender, enforcer, correlationId);
             } else if (liveSignal instanceof ThingEvent) {
@@ -172,20 +172,21 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
     }
 
     private CompletionStage<Contextual<WithDittoHeaders>> enforceLiveCommandResponse(final Signal liveSignal,
-            final ActorRef sender, final String correlationId) {
+            final String correlationId) {
         // no enforcement for responses required - the original sender will get the answer:
-        final Optional<ActorRef> responseReceiver = responseReceivers.getBlocking(correlationId);
-        if (responseReceiver.isPresent()) {
-            responseReceivers.invalidate(correlationId);
-            log().debug("Scheduling CommandResponse <{}> to original sender: <{}>", liveSignal,
-                    responseReceiver.get());
-            return CompletableFuture.completedFuture(withMessageToReceiver(liveSignal,
-                    responseReceiver.get()));
-        } else {
-            log(liveSignal).warning("No outstanding responses receiver for CommandResponse <{}>",
-                    liveSignal.getType());
-            return CompletableFuture.completedFuture(withoutReceiver());
-        }
+        return responseReceivers.get(correlationId)
+                .thenApply(responseReceiver -> {
+                    if (responseReceiver.isPresent()) {
+                        responseReceivers.invalidate(correlationId);
+                        log().debug("Scheduling CommandResponse <{}> to original sender: <{}>", liveSignal,
+                                responseReceiver.get());
+                        return withMessageToReceiver(liveSignal, responseReceiver.get());
+                    } else {
+                        log(liveSignal).warning("No outstanding responses receiver for CommandResponse <{}>",
+                                liveSignal.getType());
+                        return withoutReceiver();
+                    }
+                });
     }
 
     private CompletionStage<Contextual<WithDittoHeaders>> enforceLiveCommand(final Signal liveSignal,

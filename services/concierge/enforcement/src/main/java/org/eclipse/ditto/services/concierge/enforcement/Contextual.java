@@ -114,7 +114,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
     }
 
     @Override
-    public <S extends WithDittoHeaders> Contextual<S> withMessage(final S message) {
+    public <S extends WithDittoHeaders> Contextual<S> withMessage(@Nullable final S message) {
         return withReceivedMessage(message, sender);
     }
 
@@ -165,7 +165,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
         return f.apply(getMessage()).map(this::withMessage);
     }
 
-    <S extends WithDittoHeaders> Contextual<S> withReceivedMessage(final S message, final ActorRef sender) {
+    <S extends WithDittoHeaders> Contextual<S> withReceivedMessage(@Nullable final S message,final ActorRef sender) {
         return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout,
                 log, entityIdFor(message), startedTimer, receiver, receiverWrapperFunction, responseReceivers);
     }

@@ -79,11 +79,11 @@ public final class EnforcerRetriever {
      * By an entity cache key, look up the enforcer cache key and the enforcer itself.
      *
      * @param entityKey cache key of an entity.
-     * @param consumer handler of cache lookup results.
+     * @param handler handler of cache lookup results.
      * @return future after retrieved cache entries are given to the consumer.
      */
     public CompletionStage<Contextual<WithDittoHeaders>> retrieve(final EntityId entityKey,
-            final BiFunction<Entry<EntityId>, Entry<Enforcer>, CompletionStage<Contextual<WithDittoHeaders>>> consumer) {
+            final BiFunction<Entry<EntityId>, Entry<Enforcer>, CompletionStage<Contextual<WithDittoHeaders>>> handler) {
         return idCache.get(entityKey).thenCompose(enforcerKeyEntryOptional -> {
             if (!enforcerKeyEntryOptional.isPresent()) {
                 // must not happen
@@ -102,9 +102,9 @@ public final class EnforcerRetriever {
                                 .build();
                     }
                     return retrieveByEnforcerKey(enforcerKey, enforcerEntry ->
-                            consumer.apply(enforcerKeyEntry, enforcerEntry));
+                            handler.apply(enforcerKeyEntry, enforcerEntry));
                 } else {
-                    return consumer.apply(enforcerKeyEntry, Entry.nonexistent());
+                    return handler.apply(enforcerKeyEntry, Entry.nonexistent());
                 }
             }
         });
@@ -114,10 +114,10 @@ public final class EnforcerRetriever {
      * Lookup the enforcer by its own key (as opposed to the key of an entity it governs).
      *
      * @param enforcerKey key of the enforcer.
-     * @param consumer what to do with the enforcer.
+     * @param handler what to do with the enforcer.
      */
     public CompletionStage<Contextual<WithDittoHeaders>> retrieveByEnforcerKey(final EntityId enforcerKey,
-            final Function<Entry<Enforcer>, CompletionStage<Contextual<WithDittoHeaders>>> consumer) {
+            final Function<Entry<Enforcer>, CompletionStage<Contextual<WithDittoHeaders>>> handler) {
         final String resourceType = enforcerKey.getResourceType();
         final Cache<EntityId, Entry<Enforcer>> enforcerCache =
                 enforcerCacheFunction.apply(resourceType);
@@ -133,7 +133,7 @@ public final class EnforcerRetriever {
                                 .build();
                     } else {
                         final Entry<Enforcer> enforcerEntry = enforcerEntryOptional.get();
-                        return consumer.apply(enforcerEntry);
+                        return handler.apply(enforcerEntry);
                     }
                 });
 

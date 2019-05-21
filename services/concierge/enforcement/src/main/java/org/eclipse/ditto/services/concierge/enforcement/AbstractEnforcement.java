@@ -273,17 +273,6 @@ public abstract class AbstractEnforcement<T extends Signal> {
     }
 
     /**
-     * Inserts the passed {@code message} into the current {@link Contextual} {@link #context}.
-     *
-     * @param message the message to insert into the current context.
-     * @param <S> the message's type
-     * @return the adjusted context.
-     */
-    protected <S extends WithDittoHeaders> Contextual<S> withMessage(final S message) {
-        return context.withMessage(message);
-    }
-
-    /**
      * Inserts the passed {@code message} and {@code receiver} into the current {@link Contextual} {@link #context}.
      *
      * @param message the message to insert into the current context.
@@ -318,7 +307,7 @@ public abstract class AbstractEnforcement<T extends Signal> {
      * @return the adjusted context.
      */
     protected <S extends WithDittoHeaders> Contextual<S> withoutReceiver() {
-        return (Contextual<S>) context.withReceiver(null);
+        return context.<S>withMessage(null).withReceiver(null);
     }
 
     /**
@@ -344,12 +333,11 @@ public abstract class AbstractEnforcement<T extends Signal> {
     protected Contextual<WithDittoHeaders> handleExceptionally(final Throwable throwable) {
         final Contextual<T> newContext = context.withReceiver(context.getSender());
 
-        Throwable cause = throwable;
-        if (throwable instanceof CompletionException) {
+        final Throwable cause;
+        if (throwable instanceof CompletionException || throwable instanceof ExecutionException) {
             cause = throwable.getCause();
-        }
-        if (throwable instanceof ExecutionException) {
-            cause = throwable.getCause();
+        } else {
+            cause = throwable;
         }
 
         if (cause instanceof DittoRuntimeException) {

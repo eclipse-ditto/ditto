@@ -85,13 +85,13 @@ public interface EnforcementProvider<T extends Signal> {
                             );
 
             // by default, ignore unhandled messages:
-            final SinkShape<Contextual<WithDittoHeaders>> logUnhandled = builder.add(Sink.ignore());
+            final SinkShape<Contextual<WithDittoHeaders>> unhandledSink = builder.add(Sink.ignore());
 
             final FlowShape<Contextual<T>, Contextual<WithDittoHeaders>> enforcementShape =
                     builder.add(enforcementFlow);
 
             builder.from(fanout.out0()).toInlet(enforcementShape.in());
-            builder.from(fanout.out1()).to(logUnhandled);
+            builder.from(fanout.out1()).to(unhandledSink);
 
             return FlowShape.of(fanout.in(), enforcementShape.out());
         });
