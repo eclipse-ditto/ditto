@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,6 +43,10 @@ import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.connectivity.util.MonitoringConfigReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import akka.actor.ActorRef;
+
+import org.eclipse.ditto.signals.commands.connectivity.modify.CheckConnectionLogsActive;
 
 /**
  * This registry holds loggers for the connectivity service. The loggers are identified by the connection ID, a {@link
@@ -99,10 +104,10 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
             LOGGER.trace("Logging is enabled, will aggregate logs for connection <{}>", connectionId);
 
             timing = refreshMetadata(connectionId);
-            // TODO: should we sort the log entries by date?
             logs = streamLoggers(connectionId)
                     .map(ConnectionLogger::getLogs)
                     .flatMap(Collection::stream)
+                    .sorted(Comparator.comparing(LogEntry::getTimestamp))
                     .collect(Collectors.toList());
         } else {
             LOGGER.debug("Logging is disabled, will return empty logs for connection <{}>", connectionId);
@@ -135,7 +140,8 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
      * @param connectionId the connection to check.
      * @param timestamp the actual time. If timestamp is after enabledUntil -> deactivate logging.
      */
-    public void checkLoggingStillEnabled(final String connectionId, final Instant timestamp) {
+    public void disableLoggingIfEnabledUntilExpired(final String connectionId, final Instant timestamp,
+            ActorRef connectionActor) {
 
         if (!isActiveForConnection(connectionId)) {
             return;
@@ -146,6 +152,8 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         if (enabledUntil != null && timestamp.isAfter(enabledUntil)) {
             LOGGER.debug("Logging for connection <{}> expired.", connectionId);
             this.muteForConnection(connectionId);
+            final CheckConnectionLogsActive logsNotActiveAnymore = CheckConnectionLogsActive.of(connectionId, null);
+            connectionActor.tell(logsNotActiveAnymore, ActorRef.noSender());
         }
     }
 
