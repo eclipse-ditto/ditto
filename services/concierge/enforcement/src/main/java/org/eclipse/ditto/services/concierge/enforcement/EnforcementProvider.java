@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -12,14 +12,19 @@
  */
 package org.eclipse.ditto.services.concierge.enforcement;
 
+import java.util.Optional;
+
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
-import org.eclipse.ditto.services.utils.akka.controlflow.Pipe;
-import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
 import org.eclipse.ditto.signals.base.Signal;
 
 import akka.NotUsed;
+import akka.stream.FanOutShape2;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
+import akka.stream.SinkShape;
+import akka.stream.javadsl.GraphDSL;
+import akka.stream.javadsl.Sink;
 
 /**
  * Provider interface for {@link AbstractEnforcement}.
@@ -51,18 +56,30 @@ public interface EnforcementProvider<T extends Signal> {
      * @param context the context.
      * @return the {@link AbstractEnforcement}.
      */
-    AbstractEnforcement<T> createEnforcement(final AbstractEnforcement.Context context);
+    AbstractEnforcement<T> createEnforcement(Contextual<T> context);
 
     /**
-     * Create a processing unit of Akka stream graph. Unhandled messages are passed downstream.
+     * Convert this enforcement provider into a stream of contextual messages.
      *
-     * @param context the enforcement context.
-     * @return a processing unit.
+     * @return the stream.
      */
-    default Graph<FlowShape<WithSender, WithSender>, NotUsed> toGraph(
-            final AbstractEnforcement.Context context) {
+    default Graph<FlowShape<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>>, NotUsed> toContextualFlow() {
 
-        return Pipe.joinFilteredSink(Filter.of(getCommandClass(), this::isApplicable),
-                createEnforcement(context).toGraph());
+        final Sink<Contextual<T>, ?> sink = Sink.foreach(contextual -> createEnforcement(contextual).enforceSafely());
+
+        final Graph<FanOutShape2<Contextual<WithDittoHeaders>, Contextual<T>, Contextual<WithDittoHeaders>>, NotUsed> multiplexer =
+                Filter.multiplexBy(contextual ->
+                        contextual.tryToMapMessage(message -> getCommandClass().isInstance(message)
+                                ? Optional.of(getCommandClass().cast(message)).filter(this::isApplicable)
+                                : Optional.empty()));
+
+        return GraphDSL.create(builder -> {
+            final FanOutShape2<Contextual<WithDittoHeaders>, Contextual<T>, Contextual<WithDittoHeaders>> fanout = builder.add(multiplexer);
+            final SinkShape<Contextual<T>> handler = builder.add(sink);
+
+            builder.from(fanout.out0()).to(handler);
+
+            return FlowShape.of(fanout.in(), fanout.out1());
+        });
     }
 }

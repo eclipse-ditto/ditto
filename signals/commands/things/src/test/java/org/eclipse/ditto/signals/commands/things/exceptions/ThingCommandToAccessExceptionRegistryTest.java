@@ -37,10 +37,10 @@ public final class ThingCommandToAccessExceptionRegistryTest {
     @Test
     public void mapRetrieveAttributeToAttributeNotAccessible() {
         final RetrieveAttribute retrieveAttribute =
-                RetrieveAttribute.of(":thingId", JsonFactory.newPointer("abc"), DittoHeaders.empty());
+                RetrieveAttribute.of("org.eclipse.ditto:thingId", JsonFactory.newPointer("abc"), DittoHeaders.empty());
         final DittoRuntimeException mappedException = registryUnderTest.exceptionFrom(retrieveAttribute);
         final DittoRuntimeException expectedException =
-                AttributeNotAccessibleException.newBuilder(":thingId", JsonPointer.of("abc")).build();
+                AttributeNotAccessibleException.newBuilder("org.eclipse.ditto:thingId", JsonPointer.of("abc")).build();
         assertThat(mappedException).isEqualTo(expectedException);
     }
 

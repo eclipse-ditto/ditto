@@ -88,7 +88,7 @@ public final class DittoMessageMapper implements MessageMapper {
                         .withText(jsonString)
                         .asResponse(isResponse)
                         .asError(isError)
-                .build());
+                        .build());
     }
 
     private static String extractPayloadAsString(final ExternalMessage message) {

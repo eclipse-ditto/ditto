@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.base.config.HttpConfigReader;
+import org.eclipse.ditto.services.base.config.LimitsConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
 import org.eclipse.ditto.services.thingsearch.common.util.RootSupervisorStrategyFactory;
@@ -143,10 +144,7 @@ public final class SearchRootActor extends AbstractActor {
             log.info("Skipping IndexInitializer because it is disabled.");
         }
 
-        final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
-        final ThingsFieldExpressionFactory expressionFactory = getThingsFieldExpressionFactory();
-        final QueryBuilderFactory queryBuilderFactory = new MongoQueryBuilderFactory(configReader.limits());
-        final QueryParser queryFactory = QueryParser.of(criteriaFactory, expressionFactory, queryBuilderFactory);
+        final QueryParser queryFactory = getQueryParser(configReader.limits());
 
         final Props searchActorProps = SearchActor.props(queryFactory, thingsSearchPersistence);
 
@@ -260,13 +258,17 @@ public final class SearchRootActor extends AbstractActor {
         fieldMappings.put(key, value);
     }
 
-    private static ThingsFieldExpressionFactory getThingsFieldExpressionFactory() {
+    static QueryParser getQueryParser(final LimitsConfigReader limitsConfigReader) {
         final Map<String, String> mappings = new HashMap<>();
         mappings.put(FieldExpressionUtil.FIELD_NAME_THING_ID, FieldExpressionUtil.FIELD_ID);
         mappings.put(FieldExpressionUtil.FIELD_NAME_NAMESPACE, FieldExpressionUtil.FIELD_NAMESPACE);
         addMapping(mappings, Thing.JsonFields.POLICY_ID);
         addMapping(mappings, Thing.JsonFields.REVISION);
         addMapping(mappings, Thing.JsonFields.MODIFIED);
-        return new ThingsFieldExpressionFactoryImpl(mappings);
+
+        final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
+        final ThingsFieldExpressionFactory expressionFactory = new ThingsFieldExpressionFactoryImpl(mappings);
+        final QueryBuilderFactory queryBuilderFactory = new MongoQueryBuilderFactory(limitsConfigReader);
+        return QueryParser.of(criteriaFactory, expressionFactory, queryBuilderFactory);
     }
 }

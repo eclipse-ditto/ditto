@@ -26,6 +26,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.entity.Entity;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
@@ -503,6 +504,16 @@ public interface Thing extends Entity<ThingRevision> {
      * @return a copy of this Thing without the Feature with the given ID.
      */
     Thing removeFeature(String featureId);
+
+    /**
+     * Validates the thingId and policyId of this Thing.
+     *
+     * @param headers headers of exceptions to be thrown.
+     *
+     * @throws ThingIdInvalidException if {@code thingId} is invalid.
+     * @throws ThingPolicyIdInvalidException if {@code policyId} is invalid.
+     */
+    void validate(DittoHeaders headers);
 
     /**
      * An enumeration of the known {@link JsonField}s of a Thing.

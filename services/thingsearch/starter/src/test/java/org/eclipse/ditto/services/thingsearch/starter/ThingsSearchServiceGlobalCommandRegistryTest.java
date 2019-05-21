@@ -17,11 +17,8 @@ import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.services.utils.test.GlobalCommandRegistryTestCases;
-import org.eclipse.ditto.signals.commands.batch.ExecuteBatch;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
 import org.eclipse.ditto.signals.commands.common.purge.PurgeEntities;
-import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
-import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnection;
 import org.eclipse.ditto.signals.commands.devops.ExecutePiggybackCommand;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespace;
@@ -39,7 +36,6 @@ public final class ThingsSearchServiceGlobalCommandRegistryTest extends GlobalCo
                 SudoRetrievePolicy.class,
                 SudoCountThings.class,
                 QueryThings.class,
-                ExecuteBatch.class,
                 RetrieveFeature.class,
                 ModifyFeatureProperty.class,
                 ExecutePiggybackCommand.class,
@@ -48,8 +44,6 @@ public final class ThingsSearchServiceGlobalCommandRegistryTest extends GlobalCo
                 PurgeNamespace.class,
                 RetrieveResource.class,
                 DeleteSubject.class,
-                CreateConnection.class,
-                RetrieveConnection.class,
                 PurgeEntities.class);
     }
 

@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -21,15 +22,19 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
+import org.eclipse.ditto.services.base.config.DittoLimitsConfigReader;
+import org.eclipse.ditto.services.base.config.LimitsConfigReader;
 import org.eclipse.ditto.services.connectivity.mapping.DefaultMessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.InboundExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -38,6 +43,8 @@ import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.protocol.ProtocolConfigReader;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.signals.base.Signal;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 import akka.event.DiagnosticLoggingAdapter;
@@ -59,13 +66,16 @@ public final class MessageMappingProcessor {
     private final MessageMapperRegistry registry;
     private final DiagnosticLoggingAdapter log;
     private final ProtocolAdapter protocolAdapter;
+    private final DittoHeadersSizeChecker dittoHeadersSizeChecker;
 
     private MessageMappingProcessor(final String connectionId, final MessageMapperRegistry registry,
-            final DiagnosticLoggingAdapter log, final ProtocolAdapter protocolAdapter) {
+            final DiagnosticLoggingAdapter log, final ProtocolAdapter protocolAdapter,
+            final DittoHeadersSizeChecker dittoHeadersSizeChecker) {
         this.connectionId = connectionId;
         this.registry = registry;
         this.log = log;
         this.protocolAdapter = protocolAdapter;
+        this.dittoHeadersSizeChecker = dittoHeadersSizeChecker;
     }
 
     /**
@@ -86,11 +96,16 @@ public final class MessageMappingProcessor {
         final MessageMapperRegistry registry =
                 DefaultMessageMapperFactory.of(connectionId, actorSystem, log)
                         .registryOf(DittoMessageMapper.CONTEXT, mappingContext);
+        final Config rawConfig = actorSystem.settings().config();
         final ProtocolConfigReader protocolConfigReader =
-                ProtocolConfigReader.fromRawConfig(actorSystem.settings().config());
+                ProtocolConfigReader.fromRawConfig(rawConfig);
         final ProtocolAdapter protocolAdapter =
                 protocolConfigReader.loadProtocolAdapterProvider(actorSystem).getProtocolAdapter(null);
-        return new MessageMappingProcessor(connectionId, registry, log, protocolAdapter);
+        final LimitsConfigReader limitsConfigReader =
+                DittoLimitsConfigReader.fromRawConfig(rawConfig);
+        final DittoHeadersSizeChecker dittoHeadersSizeChecker =
+                DittoHeadersSizeChecker.of(limitsConfigReader.headersMaxSize(), limitsConfigReader.authSubjectsCount());
+        return new MessageMappingProcessor(connectionId, registry, log, protocolAdapter, dittoHeadersSizeChecker);
     }
 
     /**
@@ -120,7 +135,19 @@ public final class MessageMappingProcessor {
     Optional<ExternalMessage> process(final Signal<?> signal) {
         final StartedTimer overAllProcessingTimer = startNewTimer().tag(DIRECTION_TAG_NAME, OUTBOUND);
         return withTimer(overAllProcessingTimer,
-                () -> convertToExternalMessage(() -> protocolAdapter.toAdaptable(signal), overAllProcessingTimer));
+                () -> convertToExternalMessage(signal, () -> protocolAdapter.toAdaptable(signal),
+                        overAllProcessingTimer));
+    }
+
+    /**
+     * Truncate headers to send in an error response. This is necessary because the consumer actor and the publisher
+     * actor may not reside in the same connectivity instance due to cluster routing.
+     *
+     * @param externalHeaders headers of the external message that generated the error response.
+     * @return the error response.
+     */
+    DittoHeaders truncateHeadersForErrorResponse(final Map<String, String> externalHeaders) {
+        return dittoHeadersSizeChecker.truncateHeaders(externalHeaders);
     }
 
     private Optional<InboundExternalMessage> convertMessage(final ExternalMessage message,
@@ -137,7 +164,13 @@ public final class MessageMappingProcessor {
                 final Signal<?> signal = this.<Signal<?>>withTimer(
                         overAllProcessingTimer.startNewSegment(PROTOCOL_SEGMENT_NAME),
                         () -> protocolAdapter.fromAdaptable(adaptable));
-                return MappedInboundExternalMessage.of(message, adaptable.getTopicPath(), signal);
+
+                return dittoHeadersSizeChecker.run(signal.getDittoHeaders(),
+                        signal.getDittoHeaders().getAuthorizationContext(),
+                        headers -> MappedInboundExternalMessage.of(message, adaptable.getTopicPath(), signal),
+                        error -> {
+                            throw error;
+                        });
             });
         } catch (final DittoRuntimeException e) {
             throw e;
@@ -151,7 +184,9 @@ public final class MessageMappingProcessor {
         }
     }
 
-    private Optional<ExternalMessage> convertToExternalMessage(final Supplier<Adaptable> adaptableSupplier,
+    private Optional<ExternalMessage> convertToExternalMessage(
+            final Signal signal,
+            final Supplier<Adaptable> adaptableSupplier,
             final StartedTimer overAllProcessingTimer) {
         checkNotNull(adaptableSupplier);
 
@@ -164,7 +199,10 @@ public final class MessageMappingProcessor {
             return withTimer(overAllProcessingTimer.startNewSegment(PAYLOAD_SEGMENT_NAME),
                     () -> getMapper(adaptable)
                             .map(adaptable)
-                            .map(em -> em.withTopicPath(adaptable.getTopicPath()))
+                            .map(em -> ExternalMessageFactory.newExternalMessageBuilder(em)
+                                    .withTopicPath(adaptable.getTopicPath())
+                                    .withInternalHeaders(signal.getDittoHeaders())
+                                    .build())
             );
         } catch (final DittoRuntimeException e) {
             throw e;

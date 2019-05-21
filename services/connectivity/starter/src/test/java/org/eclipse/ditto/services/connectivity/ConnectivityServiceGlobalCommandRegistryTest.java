@@ -14,8 +14,10 @@ package org.eclipse.ditto.services.connectivity;
 
 import java.util.Arrays;
 
+import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
+import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.services.utils.test.GlobalCommandRegistryTestCases;
 import org.eclipse.ditto.signals.commands.batch.ExecuteBatch;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
@@ -37,6 +39,8 @@ public class ConnectivityServiceGlobalCommandRegistryTest extends GlobalCommandR
         super(Arrays.asList(
                 SudoStreamModifiedEntities.class,
                 SudoRetrieveThing.class,
+                SudoRetrievePolicy.class,
+                SudoCountThings.class,
                 QueryThings.class,
                 RetrieveConnection.class,
                 OpenConnection.class,

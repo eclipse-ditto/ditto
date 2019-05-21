@@ -41,15 +41,33 @@
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-models-things</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-batch</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-events-batch</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-models-things</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-models-policies</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-models-thingsearch</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-models-connectivity</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-utils-cache</artifactId>
         </dependency>
 
         <dependency>
@@ -68,13 +86,10 @@
                 <groupId>com.github.siom79.japicmp</groupId>
                 <artifactId>japicmp-maven-plugin</artifactId>
                 <configuration>
+                    <!-- TODO remove after next release: -->
+                    <skip>true</skip>
                     <parameter>
                         <excludes>
-                            <exclude>org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants</exclude>
-                            <exclude>org.eclipse.ditto.services.models.concierge.cache.Entry</exclude>
-                            <exclude>org.eclipse.ditto.services.models.concierge.batch.BatchStepCommandRegistry</exclude>
-                            <exclude>org.eclipse.ditto.services.models.concierge.batch.BatchStepCommandResponseRegistry</exclude>
-                            <exclude>org.eclipse.ditto.services.models.concierge.batch.BatchMappingStrategy</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

@@ -540,7 +540,7 @@ public abstract class AbstractPolicyAlgorithmTest {
     public void grantedPolicyTypeDoesNotGrantThingAccess() {
         final String SUBJECT_ALL_POLICY_GRANTED = "sid_policy_all";
 
-        final Policy POLICY = Policy.newBuilder(":" + UUID.randomUUID().toString().replace("-", ""))
+        final Policy POLICY = Policy.newBuilder("org.eclipse.ditto:" + UUID.randomUUID().toString().replace("-", ""))
                 .forLabel("DEFAULT")
                 .setSubject(Subject.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ALL_POLICY_GRANTED))
                 .setGrantedPermissions(PoliciesResourceType.policyResource("/"),

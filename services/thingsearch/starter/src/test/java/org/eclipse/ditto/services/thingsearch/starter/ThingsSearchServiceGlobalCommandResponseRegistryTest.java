@@ -16,11 +16,7 @@ import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePoli
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoRetrieveNamespaceReportResponse;
 import org.eclipse.ditto.services.utils.test.GlobalCommandResponseRegistryTestCases;
-import org.eclipse.ditto.signals.commands.batch.ExecuteBatchResponse;
 import org.eclipse.ditto.signals.commands.common.purge.PurgeEntitiesResponse;
-import org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorResponse;
-import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnectionResponse;
-import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionResponse;
 import org.eclipse.ditto.signals.commands.devops.RetrieveLoggerConfigResponse;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessageResponse;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespaceResponse;
@@ -39,7 +35,6 @@ public final class ThingsSearchServiceGlobalCommandResponseRegistryTest extends 
         super(SudoRetrieveThingResponse.class,
                 SudoRetrievePolicyResponse.class,
                 QueryThingsResponse.class,
-                ExecuteBatchResponse.class,
                 RetrieveFeatureResponse.class,
                 ModifyFeaturePropertyResponse.class,
                 SendClaimMessageResponse.class,
@@ -51,10 +46,8 @@ public final class ThingsSearchServiceGlobalCommandResponseRegistryTest extends 
                 PolicyErrorResponse.class,
                 RetrieveLoggerConfigResponse.class,
                 SudoRetrieveNamespaceReportResponse.class,
-                CreateConnectionResponse.class,
-                RetrieveConnectionResponse.class,
-                ConnectivityErrorResponse.class,
-                PurgeEntitiesResponse.class);
+                PurgeEntitiesResponse.class,
+                SudoRetrieveNamespaceReportResponse.class);
     }
 
 }

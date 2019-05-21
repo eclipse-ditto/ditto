@@ -11,7 +11,10 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.connectivity;
+
+import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
+import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoRetrieveNamespaceReportResponse;
 import org.eclipse.ditto.services.utils.test.GlobalCommandResponseRegistryTestCases;
 import org.eclipse.ditto.signals.commands.batch.ExecuteBatchResponse;
 import org.eclipse.ditto.signals.commands.common.purge.PurgeEntitiesResponse;
@@ -34,6 +37,8 @@ public final class ConnectivityServiceGlobalCommandResponseRegistryTest extends 
 
     public ConnectivityServiceGlobalCommandResponseRegistryTest() {
         super(SudoRetrieveThingResponse.class,
+                SudoRetrievePolicyResponse.class,
+                SudoRetrieveNamespaceReportResponse.class,
                 QueryThingsResponse.class,
                 RetrieveConnectionResponse.class,
                 OpenConnectionResponse.class,

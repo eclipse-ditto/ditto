@@ -20,7 +20,6 @@ import java.io.StringWriter;
 import java.net.ConnectException;
 import java.time.Duration;
 import java.util.NoSuchElementException;
-import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
@@ -36,7 +35,7 @@ import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorProps
 import org.eclipse.ditto.services.connectivity.messaging.ReconnectActor;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceOperationsActor;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
-import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
+import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -174,14 +173,14 @@ public final class ConnectivityRootActor extends AbstractActor {
                 config.getDouble(ConfigKeys.Connection.SUPERVISOR_EXPONENTIAL_BACKOFF_RANDOM_FACTOR);
         final int numberOfShards = config.getInt(ConfigKeys.Cluster.NUMBER_OF_SHARDS);
 
-        final ActorSystem actorSystem = this.getContext().system();
-        final ActorRef conciergeShardRegionProxy = ClusterSharding.get(actorSystem)
-                .startProxy(ConciergeMessagingConstants.SHARD_REGION,
-                        Optional.of(ConciergeMessagingConstants.CLUSTER_ROLE),
-                        ShardRegionExtractor.of(numberOfShards, actorSystem));
+        final ActorSystem actorSystem = getContext().system();
+
+        final ActorRef conciergeEnforcerRouter =
+                ConciergeEnforcerClusterRouterFactory.createConciergeEnforcerClusterRouter(getContext(),
+                        configReader.cluster().numberOfShards());
 
         final ActorRef conciergeForwarder = startChildActor(ConciergeForwarderActor.ACTOR_NAME,
-                ConciergeForwarderActor.props(pubSubMediator, conciergeShardRegionProxy,
+                ConciergeForwarderActor.props(pubSubMediator, conciergeEnforcerRouter,
                         conciergeForwarderSignalTransformer));
 
         final ClientActorPropsFactory propsFactory = DefaultClientActorPropsFactory.getInstance();

@@ -1,5 +1,5 @@
 ---
-title: "RQL"
+title: "RQL topics"
 tagName: rql
 search: exclude
 permalink: tag_rql.html

@@ -21,19 +21,26 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_REVISION;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_SORTING;
 
+import java.util.Map;
+import java.util.stream.Stream;
+
 import org.bson.BsonArray;
 import org.bson.BsonString;
 import org.bson.BsonValue;
 import org.bson.Document;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonNumber;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.models.policies.Permission;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
-
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.ThingWriteModel;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 /**
  * Map Thing with Enforcer to Document.
@@ -92,7 +99,7 @@ public final class EnforcedThingMapper {
         final Metadata metadata = Metadata.of(thingId, thingRevision, nullablePolicyId, policyRevision);
 
         // hierarchical values for sorting
-        final BsonValue thingCopyForSorting = JsonToBson.convert(thing);
+        final BsonValue thingCopyForSorting = JsonToBson.convert(pruneArrays(thing, maxArraySize));
 
         // flattened values for querying with special handling for thingId and namespace
         final BsonArray flattenedValues = EnforcedThingFlattener.flattenJson(thing, enforcer, maxArraySize);
@@ -120,5 +127,56 @@ public final class EnforcedThingMapper {
                 .forEach(bsonArray::add);
 
         return bsonArray;
+    }
+
+    /**
+     * Truncate large arrays from the sort field.
+     *
+     * @param thing JSON representation of a thing.
+     * @param maxArraySize how large arrays may be in the search index.
+     * @return thing with large arrays truncated.
+     */
+    private static JsonObject pruneArrays(final JsonObject thing, final long maxArraySize) {
+        return maxArraySize < 0 ? thing : new ArrayPruner(maxArraySize).eval(thing).asObject();
+    }
+
+    private static final class ArrayPruner implements JsonInternalVisitor<JsonValue> {
+
+        private final long maxArraySize;
+
+        private ArrayPruner(final long maxArraySize) {
+            this.maxArraySize = maxArraySize;
+        }
+
+        @Override
+        public JsonValue nullValue() {
+            return JsonValue.nullLiteral();
+        }
+
+        @Override
+        public JsonValue bool(final boolean value) {
+            return JsonValue.of(value);
+        }
+
+        @Override
+        public JsonValue string(final String value) {
+            return JsonValue.of(value);
+        }
+
+        @Override
+        public JsonValue number(final JsonNumber value) {
+            return value;
+        }
+
+        @Override
+        public JsonValue array(final Stream<JsonValue> values) {
+            return values.limit(maxArraySize).collect(JsonCollectors.valuesToArray());
+        }
+
+        @Override
+        public JsonValue object(final Stream<Map.Entry<String, JsonValue>> values) {
+            return values.map(entry -> JsonFactory.newField(JsonKey.of(entry.getKey()), entry.getValue()))
+                    .collect(JsonCollectors.fieldsToObject());
+        }
     }
 }

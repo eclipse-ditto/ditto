@@ -93,14 +93,21 @@
                     </newVersion>
                     <parameter>
                         <excludes>
+                            <exclude>org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings</exclude>
+                            <exclude>org.eclipse.ditto.signals.commands.thingsearch.exceptions.ThingSearchErrorRegistry</exclude>
+                            <exclude>org.eclipse.ditto.signals.commands.thingsearch.SearchCommandRegistry</exclude>
+                            <exclude>org.eclipse.ditto.signals.commands.thingsearch.SearchCommandResponseRegistry</exclude>
+                            <exclude>org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse</exclude>
+                            <exclude>org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommandRegistry</exclude>
+                            <exclude>org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommandResponseRegistry</exclude>
                         </excludes>
+                        <ignoreMissingClasses>false</ignoreMissingClasses>
                         <onlyModified>true</onlyModified>
                         <accessModifier>public</accessModifier>
                         <breakBuildOnModifications>false</breakBuildOnModifications>
                         <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
                         <onlyBinaryIncompatible>false</onlyBinaryIncompatible>
                         <includeSynthetic>false</includeSynthetic>
-                        <ignoreMissingClasses>false</ignoreMissingClasses>
                         <skipPomModules>true</skipPomModules>
                         <htmlTitle>${project.name} :: Binary Compatibility Report</htmlTitle>
                     </parameter>

@@ -30,6 +30,7 @@ import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
+
 import org.apache.qpid.jms.JmsQueue;
 import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.message.facade.JmsMessageFacade;
@@ -167,7 +168,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                 log.warning("No producer for destination {} available.", publishTarget);
                 final MessageSendingFailedException sendFailedException = MessageSendingFailedException.newBuilder()
                         .message("Failed to send message, no producer available.")
-                        .dittoHeaders(DittoHeaders.of(message.getHeaders()))
+                        .dittoHeaders(DittoHeaders.of(message.getInternalHeaders()))
                         .build();
                 getSender().tell(sendFailedException, getSelf());
             }
@@ -181,7 +182,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         log.info("Failed to send JMS message: [{}] {}", e.getClass().getSimpleName(), e.getMessage());
         final MessageSendingFailedException sendFailedException = MessageSendingFailedException.newBuilder()
                 .cause(e)
-                .dittoHeaders(DittoHeaders.of(message.getHeaders()))
+                .dittoHeaders(DittoHeaders.of(message.getInternalHeaders()))
                 .build();
         publishedCounter.recordFailure();
         sender.tell(sendFailedException, getSelf());

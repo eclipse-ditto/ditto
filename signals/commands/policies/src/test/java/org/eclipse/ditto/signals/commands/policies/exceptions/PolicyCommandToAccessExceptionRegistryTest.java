@@ -34,7 +34,7 @@ public final class PolicyCommandToAccessExceptionRegistryTest {
 
     @Test
     public void mapRetrievePolicyToPolicyNotAccessible() {
-        final RetrievePolicy retrieveAttribute = RetrievePolicy.of(":thingId",
+        final RetrievePolicy retrieveAttribute = RetrievePolicy.of("org.eclipse.ditto:thingId",
                 DittoHeaders.empty());
         final DittoRuntimeException mappedException = registryUnderTest.exceptionFrom(retrieveAttribute);
         final DittoRuntimeException expectedException = PolicyNotAccessibleException.newBuilder(":thingId").build();

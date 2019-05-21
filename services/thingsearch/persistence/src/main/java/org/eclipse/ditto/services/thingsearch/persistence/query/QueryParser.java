@@ -98,6 +98,13 @@ public final class QueryParser {
         return queryBuilderFactory.newUnlimitedBuilder(criteria).build();
     }
 
+    /**
+     * @return the criteria factory.
+     */
+    public CriteriaFactory getCriteriaFactory() {
+        return queryFilterCriteriaFactory.toCriteriaFactory();
+    }
+
     private Criteria parseCriteria(final ThingSearchQueryCommand<?> command) {
         final DittoHeaders headers = command.getDittoHeaders();
         final Set<String> namespaces = command.getNamespaces().orElse(null);

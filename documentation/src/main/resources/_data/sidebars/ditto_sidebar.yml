@@ -13,7 +13,7 @@ entries:
       url: /intro-overview.html
       output: web
       type: homepage
-    - title: Digital Twins
+    - title: Digital twins
       url: /intro-digitaltwins.html
       output: web
     - title: Hello world
@@ -58,6 +58,9 @@ entries:
           output: web
         - title: 0.9.0-M1
           url: /release_notes_090-M1.html
+          output: web
+        - title: 0.9.0-M2
+          url: /release_notes_090-M2.html
           output: web
 
   - title: Installation

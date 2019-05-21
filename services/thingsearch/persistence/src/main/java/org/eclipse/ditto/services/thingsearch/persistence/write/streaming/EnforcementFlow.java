@@ -27,9 +27,6 @@ import org.eclipse.ditto.model.enforcers.AclEnforcer;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.services.concierge.cache.CacheFactory;
-import org.eclipse.ditto.services.concierge.cache.PolicyEnforcerCacheLoader;
-import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.thingsearch.persistence.write.mapping.EnforcedThingMapper;
@@ -37,7 +34,10 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.model.AbstractWr
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.ThingDeleteModel;
 import org.eclipse.ditto.services.utils.cache.Cache;
+import org.eclipse.ditto.services.utils.cache.CacheFactory;
+import org.eclipse.ditto.services.utils.cache.EntityId;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
+import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.slf4j.Logger;
@@ -48,7 +48,7 @@ import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.dispatch.MessageDispatcher;
-import akka.pattern.PatternsCS;
+import akka.pattern.Patterns;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Source;
@@ -143,13 +143,11 @@ final class EnforcementFlow {
 
     private Source<SudoRetrieveThingResponse, NotUsed> sudoRetrieveThing(final String thingId) {
         if (!thingId.isEmpty()) {
-            // Request recipient to go back to sleep after handling this command because
-            // indexing activities should not keep inactive entities in memory.
             final SudoRetrieveThing command =
-                    SudoRetrieveThing.withOriginalSchemaVersion(thingId, DittoHeaders.empty()).goBackToSleep();
+                    SudoRetrieveThing.withOriginalSchemaVersion(thingId, DittoHeaders.empty());
             final CompletionStage<Source<SudoRetrieveThingResponse, NotUsed>> responseFuture =
                     // using default thread-pool for asking Things shard region
-                    PatternsCS.ask(thingsShardRegion, command, thingsTimeout)
+                    Patterns.ask(thingsShardRegion, command, thingsTimeout)
                             .handle((response, error) -> {
                                 if (response instanceof SudoRetrieveThingResponse) {
                                     return Source.single((SudoRetrieveThingResponse) response);
