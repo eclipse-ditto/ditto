@@ -15,9 +15,11 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.signals.commands.connectivity.modify.CheckConnectionLogsActive;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
+import org.eclipse.ditto.signals.commands.connectivity.modify.EnableConnectionLogs;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionLogs;
@@ -117,6 +119,14 @@ public class MockClientActor extends AbstractActor {
                         log.error("No delegate found in MockClientActor. RetrieveConnectionLogs needs a delegate which" +
                                 " needs to respond with a RetrieveConnectionLogsResponse to the sender of the command");
                     }
+                })
+                .match(EnableConnectionLogs.class, ecl-> {
+                    log.info("Enable connection logs...");
+                    forward(ecl);
+                })
+                .match(CheckConnectionLogsActive.class, ccla -> {
+                    log.info("Check connection logs active...");
+                    forward(ccla);
                 })
                 .matchAny(unhandled -> {
                     log.info("Received unhandled message: {}", unhandled.getClass().getName());
