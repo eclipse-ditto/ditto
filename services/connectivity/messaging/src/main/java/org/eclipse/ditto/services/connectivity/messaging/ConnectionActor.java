@@ -124,7 +124,7 @@ import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.PatternsCS;
+import akka.pattern.Patterns;
 import akka.persistence.AbstractPersistentActor;
 import akka.persistence.RecoveryCompleted;
 import akka.persistence.SaveSnapshotSuccess;
@@ -194,6 +194,9 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private static CheckLoggingActive CHECK_LOGGING_ENABLED = new CheckLoggingActive();
     private final Duration checkLoggingActiveInterval;
 
+    @Nullable private Instant loggingEnabledUntil;
+    private final Duration loggingEnabledDuration;
+
     private ConnectionActor(final String connectionId,
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
@@ -231,6 +234,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
         ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
 
+        this.loggingEnabledDuration = monitoringConfigReader.logger().logDuration();
         this.checkLoggingActiveInterval = monitoringConfigReader.logger().loggingActiveCheckInterval();
     }
 
@@ -280,9 +284,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
     @Override
     public void postStop() {
         log.info("stopped connection <{}>", connectionId);
-        if (enabledLoggingChecker != null && !enabledLoggingChecker.isCancelled()) {
-            enabledLoggingChecker.cancel();
-        }
+        this.loggingDisabled();
         cancelStopSelfIfDeletedTrigger();
         super.postStop();
     }
@@ -609,6 +611,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
                                         subscribeForEventsAndScheduleResponse(commandResponse, origin));
                         parent.tell(ConnectionSupervisorActor.ManualReset.getInstance(), self);
                         self.tell(performTask, ActorRef.noSender());
+                        this.updateLoggingIfEnabled();
                     },
                     error -> handleException("connect-after-modify", origin, error)
             );
@@ -691,50 +694,73 @@ public final class ConnectionActor extends AbstractPersistentActor {
             origin.tell(DeleteConnectionResponse.of(connectionId, command.getDittoHeaders()), self);
             stopSelf();
         });
+        this.loggingDisabled();
+    }
 
+    private void resetConnectionMetrics(final ResetConnectionMetrics command) {
+        tellClientActorIfStarted(command, ActorRef.noSender());
+
+        getSender().tell(ResetConnectionMetricsResponse.of(connectionId, command.getDittoHeaders()), getSelf());
+    }
+
+    private void enableConnectionLogs(final EnableConnectionLogs command) {
+        tellClientActorIfStarted(command, ActorRef.noSender());
+
+        getSender().tell(EnableConnectionLogsResponse.of(connectionId, command.getDittoHeaders()), getSelf());
+        this.loggingEnabled();
+    }
+
+    private void handleLoggingMuted(final CheckConnectionLogsActive ccla) {
+        log.debug("Cancelling scheduler checking if logging still active for <{}>", ccla.getConnectionId());
+        this.loggingDisabled();
+    }
+
+    private void retrieveConnectionLogs(final RetrieveConnectionLogs command) {
+        this.updateLoggingIfEnabled();
+        broadcastCommandWithDifferentSender(command,
+                (existingConnection, timeout) -> RetrieveConnectionLogsAggregatorActor.props(
+                        existingConnection, getSender(), command.getDittoHeaders(), timeout),
+                () -> respondWithEmptyLogs(command, this.getSender()));
+    }
+
+    private boolean isLoggingEnabled() {
+        return this.loggingEnabledUntil != null && Instant.now().isBefore(this.loggingEnabledUntil);
+    }
+
+    private void loggingEnabled() {
+        // start check logging scheduler
+        this.startEnabledLoggingChecker();
+        this.loggingEnabledUntil = Instant.now().plus(this.loggingEnabledDuration);
+    }
+
+    private void updateLoggingIfEnabled() {
+        if (this.isLoggingEnabled()) {
+            this.loggingEnabledUntil = Instant.now().plus(this.loggingEnabledDuration);
+            tellClientActorIfStarted(EnableConnectionLogs.of(connectionId, DittoHeaders.empty()), ActorRef.noSender());
+        }
+    }
+
+    private void loggingDisabled() {
+        this.loggingEnabledUntil = null;
+        this.cancelEnabledLoggingChecker();
+    }
+
+    private void cancelEnabledLoggingChecker() {
         if (this.enabledLoggingChecker != null && !this.enabledLoggingChecker.isCancelled()) {
             this.enabledLoggingChecker.cancel();
         }
     }
 
-    private void resetConnectionMetrics(final ResetConnectionMetrics command) {
-        if (clientActorRouter != null) {
-            // forward command to all client actors with no sender
-            clientActorRouter.tell(new Broadcast(command), ActorRef.noSender());
-        }
-        getSender().tell(ResetConnectionMetricsResponse.of(connectionId, command.getDittoHeaders()), getSelf());
-    }
-
-    private void enableConnectionLogs(final EnableConnectionLogs command) {
-        if (clientActorRouter != null) {
-            // forward command to all client actors with no sender
-            clientActorRouter.tell(new Broadcast(command), ActorRef.noSender());
-        }
-        getSender().tell(EnableConnectionLogsResponse.of(connectionId, command.getDittoHeaders()), getSelf());
-
-        // start check logging scheduler
+    private void startEnabledLoggingChecker() {
+        this.cancelEnabledLoggingChecker();
         this.enabledLoggingChecker = getContext().getSystem().scheduler().schedule(
-                null,
+                this.checkLoggingActiveInterval,
                 this.checkLoggingActiveInterval,
                 getSelf(),
                 CHECK_LOGGING_ENABLED,
                 getContext().getSystem().dispatcher(),
                 null
         );
-    }
-
-    private void handleLoggingMuted(final CheckConnectionLogsActive ccla) {
-        log.debug("Cancelling scheduler checking if logging still active for <{}>", ccla.getConnectionId());
-        if (this.enabledLoggingChecker != null && !this.enabledLoggingChecker.isCancelled()) {
-            this.enabledLoggingChecker.cancel();
-        }
-    }
-
-    private void retrieveConnectionLogs(final RetrieveConnectionLogs command) {
-        broadcastCommandWithDifferentSender(command,
-                (existingConnection, timeout) -> RetrieveConnectionLogsAggregatorActor.props(
-                        existingConnection, getSender(), command.getDittoHeaders(), timeout),
-                () -> respondWithEmptyLogs(command, this.getSender()));
     }
 
     private void respondWithEmptyLogs(final RetrieveConnectionLogs command, final ActorRef origin) {
@@ -750,10 +776,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
     }
 
     private void resetConnectionLogs(final ResetConnectionLogs command) {
-        if (clientActorRouter != null) {
-            // forward command to all client actors with no sender
-            clientActorRouter.tell(new Broadcast(command), ActorRef.noSender());
-        }
+        tellClientActorIfStarted(command, ActorRef.noSender());
         getSender().tell(ResetConnectionLogsResponse.of(connectionId, command.getDittoHeaders()), getSelf());
     }
 
@@ -772,7 +795,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
         if (clientActorRouter != null && connection != null) {
             final ActorRef aggregationActor = getContext().actorOf(
                     AggregateActor.props(clientActorRouter, connection.getClientCount(), responseTimeout));
-            PatternsCS.ask(aggregationActor, cmd, clientActorAskTimeout.toMillis())
+            Patterns.ask(aggregationActor, cmd, clientActorAskTimeout)
                     .whenComplete((response, exception) -> {
                         log.debug("Got response to {}: {}", cmd.getType(),
                                 exception == null ? response : exception);
@@ -795,6 +818,12 @@ public final class ConnectionActor extends AbstractPersistentActor {
             final NullPointerException nullPointerException = new NullPointerException(message);
             log.error(message);
             onError.accept(nullPointerException);
+        }
+    }
+
+    private void tellClientActorIfStarted(final Command<?> cmd, final ActorRef sender) {
+        if (clientActorRouter != null && connection != null) {
+            clientActorRouter.tell(new Broadcast(cmd), sender);
         }
     }
 
