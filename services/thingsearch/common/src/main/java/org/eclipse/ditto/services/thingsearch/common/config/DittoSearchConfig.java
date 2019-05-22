@@ -54,8 +54,7 @@ public final class DittoSearchConfig implements SearchConfig, Serializable {
     private final DefaultStreamConfig streamConfig;
 
     private DittoSearchConfig(final ConfigWithFallback configWithFallback) {
-        mongoHintsByNamespace =
-                configWithFallback.getString(SearchConfigValue.MONGO_HINTS_BY_NAMESPACE.getConfigPath());
+        mongoHintsByNamespace = configWithFallback.getStringOrNull(SearchConfigValue.MONGO_HINTS_BY_NAMESPACE);
         deleteConfig = DefaultDeleteConfig.of(configWithFallback);
         deletionConfig = DefaultDeletionConfig.of(configWithFallback);
         updaterConfig = DefaultUpdaterConfig.of(configWithFallback);

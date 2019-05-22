@@ -25,6 +25,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import com.typesafe.config.Config;
@@ -109,25 +110,39 @@ public final class ConfigWithFallback implements ScopedConfig, Serializable {
     }
 
     @Override
-    public ConfigObject root() {return baseConfig.root();}
+    public ConfigObject root() {
+        return baseConfig.root();
+    }
 
     @Override
-    public ConfigOrigin origin() {return baseConfig.origin();}
+    public ConfigOrigin origin() {
+        return baseConfig.origin();
+    }
 
     @Override
-    public Config withFallback(final ConfigMergeable other) {return baseConfig.withFallback(other);}
+    public Config withFallback(final ConfigMergeable other) {
+        return baseConfig.withFallback(other);
+    }
 
     @Override
-    public Config resolve() {return baseConfig.resolve();}
+    public Config resolve() {
+        return baseConfig.resolve();
+    }
 
     @Override
-    public Config resolve(final ConfigResolveOptions options) {return baseConfig.resolve(options);}
+    public Config resolve(final ConfigResolveOptions options) {
+        return baseConfig.resolve(options);
+    }
 
     @Override
-    public boolean isResolved() {return baseConfig.isResolved();}
+    public boolean isResolved() {
+        return baseConfig.isResolved();
+    }
 
     @Override
-    public Config resolveWith(final Config source) {return baseConfig.resolveWith(source);}
+    public Config resolveWith(final Config source) {
+        return baseConfig.resolveWith(source);
+    }
 
     @Override
     public Config resolveWith(final Config source, final ConfigResolveOptions options) {
@@ -140,37 +155,80 @@ public final class ConfigWithFallback implements ScopedConfig, Serializable {
     }
 
     @Override
-    public boolean hasPath(final String path) {return baseConfig.hasPath(path);}
+    public boolean hasPath(final String path) {
+        return baseConfig.hasPath(path);
+    }
 
     @Override
-    public boolean hasPathOrNull(final String path) {return baseConfig.hasPathOrNull(path);}
+    public boolean hasPathOrNull(final String path) {
+        return baseConfig.hasPathOrNull(path);
+    }
 
     @Override
-    public boolean isEmpty() {return baseConfig.isEmpty();}
+    public boolean isEmpty() {
+        return baseConfig.isEmpty();
+    }
 
     @Override
-    public Set<Map.Entry<String, ConfigValue>> entrySet() {return baseConfig.entrySet();}
+    public Set<Map.Entry<String, ConfigValue>> entrySet() {
+        return baseConfig.entrySet();
+    }
 
     @Override
-    public boolean getIsNull(final String path) {return baseConfig.getIsNull(path);}
+    public boolean getIsNull(final String path) {
+        return baseConfig.getIsNull(path);
+    }
 
     @Override
-    public boolean getBoolean(final String path) {return baseConfig.getBoolean(path);}
+    public boolean getBoolean(final String path) {
+        return baseConfig.getBoolean(path);
+    }
 
     @Override
-    public Number getNumber(final String path) {return baseConfig.getNumber(path);}
+    public Number getNumber(final String path) {
+        return baseConfig.getNumber(path);
+    }
 
     @Override
-    public int getInt(final String path) {return baseConfig.getInt(path);}
+    public int getInt(final String path) {
+        return baseConfig.getInt(path);
+    }
 
     @Override
-    public long getLong(final String path) {return baseConfig.getLong(path);}
+    public long getLong(final String path) {
+        return baseConfig.getLong(path);
+    }
 
     @Override
-    public double getDouble(final String path) {return baseConfig.getDouble(path);}
+    public double getDouble(final String path) {
+        return baseConfig.getDouble(path);
+    }
 
     @Override
-    public String getString(final String path) {return baseConfig.getString(path);}
+    public String getString(final String path) {
+        return baseConfig.getString(path);
+    }
+
+    /**
+     * Returns the string value at the specified path expression.
+     * If the value is absent or {@code null} this method returns {@code null} instead of throwing
+     * {@link com.typesafe.config.ConfigException.Missing}.
+     *
+     * @param withConfigPath provides the path expression.
+     * @return the string value at the requested path or {@code null}.
+     * @throws com.typesafe.config.ConfigException.WrongType if value is not convertible to a string.
+     */
+    @Nullable
+    public String getStringOrNull(final WithConfigPath withConfigPath) {
+        if (baseConfig.hasPath(withConfigPath.getConfigPath())) {
+            if (baseConfig.getIsNull(withConfigPath.getConfigPath())) {
+                return null;
+            }
+            return baseConfig.getString(withConfigPath.getConfigPath());
+        }
+
+        return null;
+    }
 
     @Override
     public <T extends Enum<T>> T getEnum(final Class<T> enumClass, final String path) {
@@ -178,90 +236,144 @@ public final class ConfigWithFallback implements ScopedConfig, Serializable {
     }
 
     @Override
-    public ConfigObject getObject(final String path) {return baseConfig.getObject(path);}
+    public ConfigObject getObject(final String path) {
+        return baseConfig.getObject(path);
+    }
 
     @Override
-    public Config getConfig(final String path) {return baseConfig.getConfig(path);}
+    public Config getConfig(final String path) {
+        return baseConfig.getConfig(path);
+    }
 
     @Override
-    public Object getAnyRef(final String path) {return baseConfig.getAnyRef(path);}
+    public Object getAnyRef(final String path) {
+        return baseConfig.getAnyRef(path);
+    }
 
     @Override
-    public ConfigValue getValue(final String path) {return baseConfig.getValue(path);}
+    public ConfigValue getValue(final String path) {
+        return baseConfig.getValue(path);
+    }
 
     @Override
-    public Long getBytes(final String path) {return baseConfig.getBytes(path);}
+    public Long getBytes(final String path) {
+        return baseConfig.getBytes(path);
+    }
 
     @Override
-    public ConfigMemorySize getMemorySize(final String path) {return baseConfig.getMemorySize(path);}
+    public ConfigMemorySize getMemorySize(final String path) {
+        return baseConfig.getMemorySize(path);
+    }
 
     @Override
     @Deprecated
-    public Long getMilliseconds(final String path) {return baseConfig.getMilliseconds(path);}
+    public Long getMilliseconds(final String path) {
+        return baseConfig.getMilliseconds(path);
+    }
 
     @Override
     @Deprecated
-    public Long getNanoseconds(final String path) {return baseConfig.getNanoseconds(path);}
+    public Long getNanoseconds(final String path) {
+        return baseConfig.getNanoseconds(path);
+    }
 
     @Override
-    public long getDuration(final String path, final TimeUnit unit) {return baseConfig.getDuration(path, unit);}
+    public long getDuration(final String path, final TimeUnit unit) {
+        return baseConfig.getDuration(path, unit);
+    }
 
     @Override
-    public Duration getDuration(final String path) {return baseConfig.getDuration(path);}
+    public Duration getDuration(final String path) {
+        return baseConfig.getDuration(path);
+    }
 
     @Override
-    public Period getPeriod(final String path) {return baseConfig.getPeriod(path);}
+    public Period getPeriod(final String path) {
+        return baseConfig.getPeriod(path);
+    }
 
     @Override
-    public TemporalAmount getTemporal(final String path) {return baseConfig.getTemporal(path);}
+    public TemporalAmount getTemporal(final String path) {
+        return baseConfig.getTemporal(path);
+    }
 
     @Override
-    public ConfigList getList(final String path) {return baseConfig.getList(path);}
+    public ConfigList getList(final String path) {
+        return baseConfig.getList(path);
+    }
 
     @Override
-    public List<Boolean> getBooleanList(final String path) {return baseConfig.getBooleanList(path);}
+    public List<Boolean> getBooleanList(final String path) {
+        return baseConfig.getBooleanList(path);
+    }
 
     @Override
-    public List<Number> getNumberList(final String path) {return baseConfig.getNumberList(path);}
+    public List<Number> getNumberList(final String path) {
+        return baseConfig.getNumberList(path);
+    }
 
     @Override
-    public List<Integer> getIntList(final String path) {return baseConfig.getIntList(path);}
+    public List<Integer> getIntList(final String path) {
+        return baseConfig.getIntList(path);
+    }
 
     @Override
-    public List<Long> getLongList(final String path) {return baseConfig.getLongList(path);}
+    public List<Long> getLongList(final String path) {
+        return baseConfig.getLongList(path);
+    }
 
     @Override
-    public List<Double> getDoubleList(final String path) {return baseConfig.getDoubleList(path);}
+    public List<Double> getDoubleList(final String path) {
+        return baseConfig.getDoubleList(path);
+    }
 
     @Override
-    public List<String> getStringList(final String path) {return baseConfig.getStringList(path);}
+    public List<String> getStringList(final String path) {
+        return baseConfig.getStringList(path);
+    }
 
     @Override
     public <T extends Enum<T>> List<T> getEnumList(final Class<T> enumClass,
-            final String path) {return baseConfig.getEnumList(enumClass, path);}
+            final String path) {
+        return baseConfig.getEnumList(enumClass, path);
+    }
 
     @Override
-    public List<? extends ConfigObject> getObjectList(final String path) {return baseConfig.getObjectList(path);}
+    public List<? extends ConfigObject> getObjectList(final String path) {
+        return baseConfig.getObjectList(path);
+    }
 
     @Override
-    public List<? extends Config> getConfigList(final String path) {return baseConfig.getConfigList(path);}
+    public List<? extends Config> getConfigList(final String path) {
+        return baseConfig.getConfigList(path);
+    }
 
     @Override
-    public List<? extends Object> getAnyRefList(final String path) {return baseConfig.getAnyRefList(path);}
+    public List<? extends Object> getAnyRefList(final String path) {
+        return baseConfig.getAnyRefList(path);
+    }
 
     @Override
-    public List<Long> getBytesList(final String path) {return baseConfig.getBytesList(path);}
+    public List<Long> getBytesList(final String path) {
+        return baseConfig.getBytesList(path);
+    }
 
     @Override
-    public List<ConfigMemorySize> getMemorySizeList(final String path) {return baseConfig.getMemorySizeList(path);}
+    public List<ConfigMemorySize> getMemorySizeList(final String path) {
+        return baseConfig.getMemorySizeList(path);
+    }
 
     @Override
     @Deprecated
-    public List<Long> getMillisecondsList(final String path) {return baseConfig.getMillisecondsList(path);}
+    public List<Long> getMillisecondsList(final String path) {
+        return baseConfig.getMillisecondsList(path);
+    }
 
     @Override
     @Deprecated
-    public List<Long> getNanosecondsList(final String path) {return baseConfig.getNanosecondsList(path);}
+    public List<Long> getNanosecondsList(final String path) {
+        return baseConfig.getNanosecondsList(path);
+    }
 
     @Override
     public List<Long> getDurationList(final String path, final TimeUnit unit) {
@@ -269,16 +381,24 @@ public final class ConfigWithFallback implements ScopedConfig, Serializable {
     }
 
     @Override
-    public List<Duration> getDurationList(final String path) {return baseConfig.getDurationList(path);}
+    public List<Duration> getDurationList(final String path) {
+        return baseConfig.getDurationList(path);
+    }
 
     @Override
-    public Config withOnlyPath(final String path) {return baseConfig.withOnlyPath(path);}
+    public Config withOnlyPath(final String path) {
+        return baseConfig.withOnlyPath(path);
+    }
 
     @Override
-    public Config withoutPath(final String path) {return baseConfig.withoutPath(path);}
+    public Config withoutPath(final String path) {
+        return baseConfig.withoutPath(path);
+    }
 
     @Override
-    public Config atPath(final String path) {return baseConfig.atPath(path);}
+    public Config atPath(final String path) {
+        return baseConfig.atPath(path);
+    }
 
     @Override
     public Config atKey(final String key) {
@@ -286,7 +406,9 @@ public final class ConfigWithFallback implements ScopedConfig, Serializable {
     }
 
     @Override
-    public Config withValue(final String path, final ConfigValue value) {return baseConfig.withValue(path, value);}
+    public Config withValue(final String path, final ConfigValue value) {
+        return baseConfig.withValue(path, value);
+    }
 
     @Override
     public String getConfigPath() {
