@@ -32,6 +32,8 @@ import java.util.stream.Stream;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
@@ -273,4 +275,21 @@ public final class RetrieveConnectionStatusResponseTest {
         assertThat(actual.getSourceStatus()).containsAll(expected.getSourceStatus());
         assertThat(actual.getTargetStatus()).containsAll(expected.getTargetStatus());
     }
+
+    @Test
+    public void getResourcePathReturnsExpected() {
+        final JsonPointer expectedResourcePath =
+                JsonFactory.newPointer("/status");
+
+        final RetrieveConnectionStatusResponse underTest =
+                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectivityStatus.OPEN, ConnectivityStatus.CLOSED,
+                        IN_CONNECTION_STATUS_SINCE,
+                        Collections.emptyList(),
+                        Collections.emptyList(),
+                        Collections.emptyList(),
+                        DittoHeaders.empty());
+
+        DittoJsonAssertions.assertThat(underTest.getResourcePath()).isEqualTo(expectedResourcePath);
+    }
+
 }

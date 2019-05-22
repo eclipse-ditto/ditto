@@ -33,6 +33,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -198,8 +199,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
                 });
     }
 
-    private static List<ResourceStatus> readAddressStatus(
-            final JsonArray jsonArray) {
+    private static List<ResourceStatus> readAddressStatus(final JsonArray jsonArray) {
         return jsonArray.stream()
                 .filter(JsonValue::isObject)
                 .map(JsonValue::asObject)
@@ -345,7 +345,21 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
 
     @Override
     public RetrieveConnectionStatusResponse setEntity(final JsonValue entity) {
-        return fromJson(entity.asObject(), getDittoHeaders());
+        final JsonObject jsonObject = entity.asObject();
+
+        final String connSinceStr = jsonObject.getValue(JsonFields.CONNECTED_SINCE).orElse(null);
+        final Instant connectedSince1 = connSinceStr != null ? Instant.parse(connSinceStr) : null;
+
+        return of(jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID),
+                ConnectivityStatus.forName(jsonObject.getValueOrThrow(JsonFields.CONNECTION_STATUS))
+                        .orElse(ConnectivityStatus.UNKNOWN),
+                ConnectivityStatus.forName(jsonObject.getValueOrThrow(JsonFields.LIVE_STATUS))
+                        .orElse(ConnectivityStatus.UNKNOWN),
+                connectedSince1,
+                readAddressStatus(jsonObject.getValueOrThrow(JsonFields.CLIENT_STATUS)),
+                readAddressStatus(jsonObject.getValueOrThrow(JsonFields.SOURCE_STATUS)),
+                readAddressStatus(jsonObject.getValueOrThrow(JsonFields.TARGET_STATUS)),
+                getDittoHeaders());
     }
 
     @Override
@@ -353,6 +367,11 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
         appendPayload(jsonObjectBuilder, schemaVersion, field -> true);
         return jsonObjectBuilder.build();
+    }
+
+    @Override
+    public JsonPointer getResourcePath() {
+        return JsonPointer.of("/status");
     }
 
     @Override

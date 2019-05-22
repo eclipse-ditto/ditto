@@ -129,7 +129,7 @@ public final class RetrieveConnectionResponse extends AbstractCommandResponse<Re
 
     @Override
     public RetrieveConnectionResponse setEntity(final JsonValue entity) {
-        return fromJson(entity.asObject(), getDittoHeaders());
+        return of(ConnectivityModelFactory.connectionFromJson(entity.asObject()), getDittoHeaders());
     }
 
     @Override

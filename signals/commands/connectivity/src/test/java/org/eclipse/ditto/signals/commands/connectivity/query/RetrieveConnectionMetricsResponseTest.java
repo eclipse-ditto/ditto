@@ -22,7 +22,10 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.util.Collections;
 import java.util.HashMap;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
@@ -112,6 +115,21 @@ public final class RetrieveConnectionMetricsResponseTest {
         System.out.println(actual);
 
         assertThat(actual).isEqualTo(KNOWN_JSON);
+    }
+
+    @Test
+    public void getResourcePathReturnsExpected() {
+        final JsonPointer expectedResourcePath =
+                JsonFactory.newPointer("/metrics");
+
+        final RetrieveConnectionMetricsResponse underTest =
+                RetrieveConnectionMetricsResponse.of(ID,
+                        Metrics.CONNECTION_METRICS,
+                        Metrics.SOURCE_METRICS1,
+                        Metrics.TARGET_METRICS1,
+                        DittoHeaders.empty());
+
+        DittoJsonAssertions.assertThat(underTest.getResourcePath()).isEqualTo(expectedResourcePath);
     }
 
 }

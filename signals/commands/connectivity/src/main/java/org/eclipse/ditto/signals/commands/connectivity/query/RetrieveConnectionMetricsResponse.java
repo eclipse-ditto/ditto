@@ -25,6 +25,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -203,8 +204,20 @@ public final class RetrieveConnectionMetricsResponse
     }
 
     @Override
+    public JsonPointer getResourcePath() {
+        return JsonPointer.of("/metrics");
+    }
+
+    @Override
     public RetrieveConnectionMetricsResponse setEntity(final JsonValue entity) {
-        return fromJson(entity.asObject(), getDittoHeaders());
+        return of(ConnectivityModelFactory.connectionFromJson(entity.asObject()).getId(),
+                ConnectivityModelFactory.connectionMetricsFromJson(
+                        entity.asObject().getValueOrThrow(JsonFields.CONNECTION_METRICS)),
+                ConnectivityModelFactory.sourceMetricsFromJson(
+                        entity.asObject().getValueOrThrow(JsonFields.SOURCE_METRICS)),
+                ConnectivityModelFactory.targetMetricsFromJson(
+                        entity.asObject().getValueOrThrow(JsonFields.TARGET_METRICS)),
+                getDittoHeaders());
     }
 
     @Override
