@@ -16,6 +16,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants.CLUSTER_ROLE;
 
 import java.text.MessageFormat;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
@@ -23,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -132,8 +132,6 @@ import akka.persistence.SnapshotOffer;
 import akka.routing.Broadcast;
 import akka.routing.RoundRobinPool;
 import scala.concurrent.ExecutionContextExecutor;
-import scala.concurrent.duration.Duration;
-import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Handles {@code *Connection} commands and manages the persistence of connection. The actual connection handling to the
@@ -141,7 +139,7 @@ import scala.concurrent.duration.FiniteDuration;
  */
 public final class ConnectionActor extends AbstractPersistentActor {
 
-    private static final FiniteDuration DELETED_ACTOR_LIFETIME = Duration.create(10L, TimeUnit.SECONDS);
+    private static final Duration DELETED_ACTOR_LIFETIME = Duration.ofSeconds(10);
     private static final long DEFAULT_RETRIEVE_STATUS_TIMEOUT = 500L;
     static final String PERSISTENCE_ID_PREFIX = "connection:";
 
@@ -186,15 +184,15 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
     private Set<Topic> uniqueTopics = Collections.emptySet();
 
-    private final FiniteDuration flushPendingResponsesTimeout;
-    private final java.time.Duration clientActorAskTimeout;
+    private final Duration flushPendingResponsesTimeout;
+    private final Duration clientActorAskTimeout;
     @Nullable private Cancellable stopSelfIfDeletedTrigger;
 
     private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
 
     @Nullable private Cancellable enabledLoggingChecker;
     private static CheckLoggingActive CHECK_LOGGING_ENABLED = new CheckLoggingActive();
-    private final java.time.Duration checkLoggingActiveDuration;
+    private final Duration checkLoggingActiveInterval;
 
     private ConnectionActor(final String connectionId,
             final ActorRef pubSubMediator,
@@ -221,9 +219,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
         snapshotAdapter = new ConnectionMongoSnapshotAdapter();
         connectionCreatedBehaviour = createConnectionCreatedBehaviour();
 
-        final java.time.Duration javaFlushTimeout = configReader.flushPendingResponsesTimeout();
-        flushPendingResponsesTimeout = Duration.create(javaFlushTimeout.toMillis(),
-                TimeUnit.MILLISECONDS);
+        flushPendingResponsesTimeout = configReader.flushPendingResponsesTimeout();
         clientActorAskTimeout = configReader.clientActorAskTimeout();
 
         final MonitoringConfigReader monitoringConfigReader = ConfigKeys.Monitoring.fromRawConfig(config);
@@ -235,8 +231,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
         ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
 
-        this.checkLoggingActiveDuration =
-                monitoringConfigReader.logger().loggingActiveCheckDuration();
+        this.checkLoggingActiveInterval = monitoringConfigReader.logger().loggingActiveCheckInterval();
     }
 
     /**
@@ -720,7 +715,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
         // start check logging scheduler
         this.enabledLoggingChecker = getContext().getSystem().scheduler().schedule(
                 null,
-                this.checkLoggingActiveDuration,
+                this.checkLoggingActiveInterval,
                 getSelf(),
                 CHECK_LOGGING_ENABLED,
                 getContext().getSystem().dispatcher(),
@@ -816,12 +811,12 @@ public final class ConnectionActor extends AbstractPersistentActor {
     }
 
     private void broadcastCommandWithDifferentSender(final ConnectivityQueryCommand<?> command,
-            final BiFunction<Connection, java.time.Duration, Props> senderPropsForConnectionWithTimeout,
+            final BiFunction<Connection, Duration, Props> senderPropsForConnectionWithTimeout,
             final Runnable onClientActorNotStarted) {
         if (clientActorRouter != null && connection != null) {
             // timeout before sending the (partial) response
-            final java.time.Duration timeout =
-                    java.time.Duration.ofMillis((long) (extractTimeoutFromCommand(command.getDittoHeaders()) * 0.75));
+            final Duration timeout =
+                    Duration.ofMillis((long) (extractTimeoutFromCommand(command.getDittoHeaders()) * 0.75));
             final ActorRef aggregator =
                     getContext().actorOf(senderPropsForConnectionWithTimeout.apply(connection, timeout));
 
@@ -882,8 +877,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private void retrieveConnectionStatus(final RetrieveConnectionStatus command) {
         checkNotNull(connection, "Connection");
         // timeout before sending the (partial) response
-        final java.time.Duration timeout =
-                java.time.Duration.ofMillis((long) (extractTimeoutFromCommand(command.getDittoHeaders()) * 0.75));
+        final Duration timeout =
+                Duration.ofMillis((long) (extractTimeoutFromCommand(command.getDittoHeaders()) * 0.75));
         final Props props = RetrieveConnectionStatusAggregatorActor.props(connection, getSender(),
                 command.getDittoHeaders(), timeout);
         forwardToClientActors(props, command, () -> respondWithEmptyStatus(command, this.getSender()));
@@ -1174,8 +1169,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
                         clientActor.tell(new Broadcast(command), getSelf());
                         originHeaders = command.getDittoHeaders();
                         origin = getSender();
-                        getContext().setReceiveTimeout(
-                                Duration.create(timeout / 2.0, TimeUnit.MILLISECONDS));
+
+                        getContext().setReceiveTimeout(Duration.ofMillis(timeout / 2));
                     })
                     .match(ReceiveTimeout.class, receiveTimeout ->
                             // send back (partially) gathered responses

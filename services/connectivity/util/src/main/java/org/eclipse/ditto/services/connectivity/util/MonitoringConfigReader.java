@@ -79,7 +79,7 @@ public final class MonitoringConfigReader extends AbstractConfigReader {
             return config.getInt("failureCapacity");
         }
 
-        public Duration loggingActiveCheckDuration() { return config.getDuration("loggingActiveCheckDuration"); }
+        public Duration loggingActiveCheckInterval() { return config.getDuration("loggingActiveCheckInterval"); }
 
     }
 
