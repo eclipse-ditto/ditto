@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.gateway.endpoints;
+package org.eclipse.ditto.services.gateway.endpoints.actors;
 
 import static org.eclipse.ditto.services.gateway.starter.service.util.FireAndForgetMessageUtil.isFireAndForgetMessage;
 
@@ -49,7 +49,6 @@ import com.typesafe.config.Config;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
-import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
@@ -65,18 +64,13 @@ import akka.http.javadsl.model.headers.Location;
 import akka.http.javadsl.model.headers.RawHeader;
 import akka.http.scaladsl.model.ContentType$;
 import akka.http.scaladsl.model.EntityStreamSizeException;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
 import akka.util.ByteString;
 import scala.concurrent.duration.Duration;
 import scala.util.Either;
 
-/**
- * Every HTTP Request causes one new Actor instance of this one to be created.
- * It holds the original sender of an issued {@link Command} and tells this one the completed HttpResponse.
- */
-public final class HttpRequestActor extends AbstractActor {
+public abstract class AbstractHttpRequestActor extends AbstractActor {
 
     /**
      * Signals the completion of a stream request.
@@ -92,12 +86,12 @@ public final class HttpRequestActor extends AbstractActor {
     private final HeaderTranslator headerTranslator;
     private final CompletableFuture<HttpResponse> httpResponseFuture;
     private final java.time.Duration serverRequestTimeout;
-    private final Receive commandResponseAwaiting;
+    private final AbstractActor.Receive commandResponseAwaiting;
 
     private java.time.Duration messageTimeout;
     private boolean isFireAndForgetMessage = false;
 
-    private HttpRequestActor(final ActorRef proxyActor,
+    protected AbstractHttpRequestActor(final ActorRef proxyActor,
             final HeaderTranslator headerTranslator,
             final HttpRequest request,
             final CompletableFuture<HttpResponse> httpResponseFuture) {
@@ -216,10 +210,10 @@ public final class HttpRequestActor extends AbstractActor {
 
         final UnaryOperator<HttpResponse> addExternalDittoHeaders =
                 response -> enhanceResponseWithExternalDittoHeaders(response, commandResponse.getDittoHeaders());
-        final UnaryOperator<HttpResponse> addModifiedLocationHeaderForCreatedResponse =
-                createModifiedLocationHeaderAddingResponseMapper(request, commandResponse);
+        final UnaryOperator<HttpResponse> modifyResponseOperator =
+                response -> modifyResponse(request, commandResponse, response);
         final Function<HttpResponse, HttpResponse> addHeaders =
-                addExternalDittoHeaders.andThen(addModifiedLocationHeaderForCreatedResponse);
+                addExternalDittoHeaders.andThen(modifyResponseOperator);
 
         final UnaryOperator<HttpResponse> addBodyIfEntityExists =
                 createBodyAddingResponseMapper(commandResponse, withOptionalEntity);
@@ -240,37 +234,50 @@ public final class HttpRequestActor extends AbstractActor {
         };
     }
 
-    private static UnaryOperator<HttpResponse> createModifiedLocationHeaderAddingResponseMapper(
-            final HttpRequest request, final CommandResponse commandResponse) {
+    /**
+     * Modify an HTTP response according to the request and the command response.
+     *
+     * @param request the HTTP request.
+     * @param commandResponse the command response to the HTTP request.
+     * @param response the candidate HTTP response.
+     * @return the modified HTTP response.
+     */
+    protected HttpResponse modifyResponse(final HttpRequest request,
+            final CommandResponse commandResponse,
+            final HttpResponse response) {
 
-        return response -> {
-            if (HttpStatusCode.CREATED == commandResponse.getStatusCode()) {
-                Uri newUri = request.getUri();
-                if (!request.method().isIdempotent()) {
-                    // only for not idempotent requests (e.g.: POST), add the "createdId" to the path:
-                    final String uriStr = newUri.toString();
-                    String createdLocation;
-                    final int uriIdIndex = uriStr.indexOf(commandResponse.getId());
-
-                    // if the URI contains the ID, but *not* at the beginning
-                    if (uriIdIndex > 0) {
-                        createdLocation =
-                                uriStr.substring(0, uriIdIndex) + commandResponse.getId() +
-                                        commandResponse.getResourcePath().toString();
-                    } else {
-                        createdLocation = uriStr + "/" + commandResponse.getId() + commandResponse.getResourcePath()
-                                .toString();
-                    }
-
-                    if (createdLocation.endsWith("/")) {
-                        createdLocation = createdLocation.substring(0, createdLocation.length() - 1);
-                    }
-                    newUri = Uri.create(createdLocation);
-                }
-                return response.addHeader(Location.create(newUri));
-            }
+        if (HttpStatusCode.CREATED == commandResponse.getStatusCode()) {
+            return response.addHeader(Location.create(getUriForLocationHeader(request, commandResponse)));
+        } else {
             return response;
-        };
+        }
+    }
+
+    protected Uri getUriForLocationHeader(final HttpRequest request, final CommandResponse commandResponse) {
+        if (!request.method().isIdempotent()) {
+            // only for not idempotent requests (e.g.: POST), add the "createdId" to the path:
+            final String uriStr = request.getUri().toString();
+            String createdLocation;
+            final int uriIdIndex = uriStr.indexOf(commandResponse.getId());
+
+            // if the URI contains the ID, but *not* at the beginning
+            if (uriIdIndex > 0) {
+                createdLocation =
+                        uriStr.substring(0, uriIdIndex) + commandResponse.getId() +
+                                commandResponse.getResourcePath().toString();
+            } else {
+                createdLocation = uriStr + "/" + commandResponse.getId() + commandResponse.getResourcePath()
+                        .toString();
+            }
+
+            if (createdLocation.endsWith("/")) {
+                createdLocation = createdLocation.substring(0, createdLocation.length() - 1);
+            }
+
+            return Uri.create(createdLocation);
+        } else {
+            return request.getUri();
+        }
     }
 
     private static HttpResponse createHttpResponseWithHeadersAndBody(final CommandResponse commandResponse,
@@ -281,33 +288,8 @@ public final class HttpRequestActor extends AbstractActor {
         return addBody.apply(addHeaders.apply(response));
     }
 
-    /**
-     * Creates the Akka configuration object for this {@code HttpRequestActor} for the given {@code proxyActor}, {@code
-     * request}, and {@code httpResponseFuture} which will be completed with a {@link HttpResponse}.
-     *
-     * @param proxyActor the proxy actor which delegates commands.
-     * @param headerTranslator the {@link HeaderTranslator} used to map ditto headers to (external) Http headers.
-     * @param request the HTTP request
-     * @param httpResponseFuture the completable future which is completed with a HTTP response.
-     * @return the configuration object.
-     */
-    public static Props props(final ActorRef proxyActor,
-            final HeaderTranslator headerTranslator,
-            final HttpRequest request,
-            final CompletableFuture<HttpResponse> httpResponseFuture) {
-
-        return Props.create(HttpRequestActor.class, new Creator<HttpRequestActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public HttpRequestActor create() {
-                return new HttpRequestActor(proxyActor, headerTranslator, request, httpResponseFuture);
-            }
-        });
-    }
-
     @Override
-    public Receive createReceive() {
+    public AbstractActor.Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(MessageCommand.class, command -> { // receive MessageCommands
                     LogUtil.enhanceLogWithCorrelationId(logger, command);
