@@ -144,7 +144,7 @@ public final class DefaultScopedConfig implements ScopedConfig, Serializable {
 
     @Override
     public Config withFallback(final ConfigMergeable other) {
-        return config.withFallback(other);
+        return new DefaultScopedConfig(config.withFallback(other), configPath);
     }
 
     @Override

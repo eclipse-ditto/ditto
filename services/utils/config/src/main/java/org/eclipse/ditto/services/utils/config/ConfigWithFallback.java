@@ -39,8 +39,8 @@ import com.typesafe.config.ConfigResolveOptions;
 import com.typesafe.config.ConfigValue;
 
 /**
- * This implementation of {@link com.typesafe.config.Config} is guaranteed to contain only the settings at a particular
- * path config path and fallback values for not originally configured settings.
+ * This implementation of {@link ScopedConfig} is guaranteed to contain only the settings at a particular path config
+ * path and fallback values for not originally configured settings.
  */
 @Immutable
 public final class ConfigWithFallback implements ScopedConfig, Serializable {
@@ -78,7 +78,7 @@ public final class ConfigWithFallback implements ScopedConfig, Serializable {
         if (originalConfig.hasPath(configPath)) {
             baseConfig = DefaultScopedConfig.newInstance(originalConfig, configPath);
         } else {
-            baseConfig = ConfigFactory.empty();
+            baseConfig = DefaultScopedConfig.empty(configPath);
         }
         if (0 < fallBackValues.length) {
             baseConfig = baseConfig.withFallback(arrayToConfig(fallBackValues));
@@ -216,7 +216,7 @@ public final class ConfigWithFallback implements ScopedConfig, Serializable {
      *
      * @param withConfigPath provides the path expression.
      * @return the string value at the requested path or {@code null}.
-     * @throws com.typesafe.config.ConfigException.WrongType if value is not convertible to a string.
+     * @throws DittoConfigError if value is not convertible to a string.
      */
     @Nullable
     public String getStringOrNull(final WithConfigPath withConfigPath) {
