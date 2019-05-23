@@ -153,7 +153,9 @@ public final class ConnectionLoggerRegistryTest {
 
         final Instant twentyFourHoursFromNow = Instant.now().plus(Duration.ofDays(1));
 
-        assertThat(underTest.loggingExpired(connectionId, twentyFourHoursFromNow)).isTrue();
+        if (underTest.loggingExpired(connectionId, twentyFourHoursFromNow)) {
+            underTest.muteForConnection(connectionId);
+        }
         assertThat(underTest.isActiveForConnection(connectionId)).isFalse();
     }
 
