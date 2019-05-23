@@ -70,6 +70,11 @@ import akka.util.ByteString;
 import scala.concurrent.duration.Duration;
 import scala.util.Either;
 
+/**
+ * Abstract actor to handle one HTTP request. It is created with an HTTP request and a promise of an HTTP response that
+ * it should fulfill. When it receives a command response, exception, status or timeout message, it renders the message
+ * into an HTTP response and stops itself. Its behavior can be modified by overriding the protected instance methods.
+ */
 public abstract class AbstractHttpRequestActor extends AbstractActor {
 
     /**
