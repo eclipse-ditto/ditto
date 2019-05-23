@@ -42,6 +42,7 @@ import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
+import org.eclipse.ditto.services.utils.persistence.mongo.MongoMetricsReporter;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 
 import com.typesafe.config.Config;
@@ -180,7 +181,10 @@ public final class PoliciesRootActor extends AbstractActor {
 
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
         final Props healthCheckingActorProps =
-                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, MongoHealthChecker.props());
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions,
+                        MongoHealthChecker.props(),
+                        MongoMetricsReporter.props(Duration.ofSeconds(5L), 6) // TODO: configure.
+                );
         final ActorRef healthCheckingActor =
                 startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME, healthCheckingActorProps);
 

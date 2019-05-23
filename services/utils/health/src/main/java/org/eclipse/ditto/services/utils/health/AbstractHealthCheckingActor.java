@@ -18,6 +18,7 @@ import java.util.Set;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.actor.AbstractActor;
+import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
@@ -25,7 +26,7 @@ import akka.japi.pf.ReceiveBuilder;
 /**
  * Abstract base implementations for actors which check the health of a subsystem.
  */
-public abstract class AbstractHealthCheckingActor extends AbstractActor {
+public abstract class AbstractHealthCheckingActor extends AbstractActorWithTimers {
 
     /**
      * The required actor name of the Actor to be created in the ActorSystem.
