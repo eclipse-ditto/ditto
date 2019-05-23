@@ -22,9 +22,6 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 
-import sun.rmi.runtime.Log;
-import sun.util.locale.provider.LocaleServiceProviderPool;
-
 /**
  * Command that will enable logging in a {@link org.eclipse.ditto.model.connectivity.Connection}.
  */
@@ -32,7 +29,6 @@ import sun.util.locale.provider.LocaleServiceProviderPool;
 @JsonParsableCommand(typePrefix = CheckConnectionLogsActive.TYPE_PREFIX, name = CheckConnectionLogsActive.NAME)
 public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnectionLogsActive>
         implements ConnectivityModifyCommand<CheckConnectionLogsActive> {
-
 
     /**
      * Name of this command.

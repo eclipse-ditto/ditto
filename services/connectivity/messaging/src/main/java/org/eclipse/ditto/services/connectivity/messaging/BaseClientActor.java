@@ -27,13 +27,13 @@ import java.net.Socket;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
@@ -94,8 +94,6 @@ import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.routing.DefaultResizer;
 import akka.routing.Resizer;
 import akka.routing.RoundRobinPool;
-import scala.concurrent.duration.Duration;
-import scala.concurrent.duration.FiniteDuration;
 import scala.util.Either;
 import scala.util.Left;
 import scala.util.Right;
@@ -133,15 +131,14 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         ConnectionLogUtil.enhanceLogWithConnectionId(log, connection.getId());
 
         final Config config = getContext().getSystem().settings().config();
-        final java.time.Duration javaInitTimeout = config.getDuration(ConfigKeys.Client.INIT_TIMEOUT);
         this.conciergeForwarder = conciergeForwarder;
 
         final BaseClientData startingData =
                 new BaseClientData(connection.getId(), connection, ConnectivityStatus.UNKNOWN,
                         desiredConnectionStatus, "initialized", Instant.now(), null, null);
 
-        final FiniteDuration initTimeout = Duration.create(javaInitTimeout.toMillis(), TimeUnit.MILLISECONDS);
-        final FiniteDuration connectingTimeout = Duration.create(CONNECTING_TIMEOUT, TimeUnit.SECONDS);
+        final Duration initTimeout = config.getDuration(ConfigKeys.Client.INIT_TIMEOUT);
+        final Duration connectingTimeout = Duration.ofSeconds(CONNECTING_TIMEOUT);
 
         startWith(UNKNOWN, startingData, initTimeout);
 
