@@ -45,7 +45,7 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     private final String connectionId;
-    @Nullable private final Instant timestamp;
+    private final Instant timestamp;
 
     private CheckConnectionLogsActive(final String connectionId,
             final Instant timestamp) {
@@ -85,8 +85,8 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
     public static CheckConnectionLogsActive of(final String connectionId,
             final Instant timestamp, final DittoHeaders dittoHeaders) {
         checkNotNull(connectionId, "Connection ID");
-        checkNotNull(timestamp, "timestamp");
         checkNotNull(dittoHeaders, "dittoHeaders");
+        checkNotNull(timestamp, "timestamp");
         return new CheckConnectionLogsActive(connectionId, timestamp, dittoHeaders);
     }
 
@@ -148,9 +148,8 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID, connectionId, predicate);
-        if (timestamp != null) {
-            jsonObjectBuilder.set(ConnectivityCommand.JsonFields.JSON_TIMESTAMP, timestamp.toString(), predicate);
-        }
+        jsonObjectBuilder.set(ConnectivityCommand.JsonFields.JSON_TIMESTAMP, timestamp.toString(), predicate);
+
     }
 
     @Override
@@ -158,7 +157,6 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
         return connectionId;
     }
 
-    @Nullable
     public Instant getTimestamp() {
         return this.timestamp;
     }
@@ -175,7 +173,7 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof EnableConnectionLogs);
+        return (other instanceof CheckConnectionLogsActive);
     }
 
     @Override

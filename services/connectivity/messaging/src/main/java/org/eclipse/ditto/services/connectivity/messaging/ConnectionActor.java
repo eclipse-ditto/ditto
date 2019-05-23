@@ -731,6 +731,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private void handleLoggingMuted(final CheckConnectionLogsActive ccla) {
         log.debug("Cancelling scheduler checking if logging still active for <{}>", ccla.getConnectionId());
         if (this.enabledLoggingChecker != null && !this.enabledLoggingChecker.isCancelled()) {
+            log.debug("Scheduler <enabledLoggingChecker> stopped at <{}>", ccla.getTimestamp());
             this.enabledLoggingChecker.cancel();
         }
     }
