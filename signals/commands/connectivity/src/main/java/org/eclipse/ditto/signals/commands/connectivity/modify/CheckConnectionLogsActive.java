@@ -1,3 +1,16 @@
+/*
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ *
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
+
 package org.eclipse.ditto.signals.commands.connectivity.modify;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
@@ -174,9 +187,15 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
         final CheckConnectionLogsActive that = (CheckConnectionLogsActive) o;
         return Objects.equals(connectionId, that.connectionId) &&
                 Objects.equals(timestamp, that.timestamp);
