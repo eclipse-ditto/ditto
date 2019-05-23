@@ -40,9 +40,11 @@ public final class ConnectionNotAccessibleException extends DittoRuntimeExceptio
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "connection.notfound";
 
-    private static final String MESSAGE_TEMPLATE = "The Connection with ID ''{0}'' could not be found.";
+    private static final String MESSAGE_TEMPLATE = "The Connection with ID ''{0}'' could not be found or " +
+            "requester had insufficient permissions to access it.";
 
-    private static final String DEFAULT_DESCRIPTION = "Check if the ID of your requested Connection was correct.";
+    private static final String DEFAULT_DESCRIPTION = "Check if the ID of your requested Connection was correct and" +
+            " you have sufficient permissions.";
 
     private static final long serialVersionUID = -3207647419678933094L;
 
