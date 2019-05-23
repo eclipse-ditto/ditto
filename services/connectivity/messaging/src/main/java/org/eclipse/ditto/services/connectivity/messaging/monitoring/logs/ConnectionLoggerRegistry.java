@@ -142,24 +142,22 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
      * @param connectionId the connection to check.
      * @param timestamp the actual time. If timestamp is after enabledUntil -> deactivate logging.
      */
-    public boolean disabledDueToEnabledUntilExpired(final String connectionId, final Instant timestamp) {
+    public boolean loggingExpired(final String connectionId, final Instant timestamp) {
 
         if (!isActiveForConnection(connectionId)) {
             return false;
         }
 
         final Instant enabledUntil = getMetadata(connectionId).getEnabledUntil();
-
         if (enabledUntil != null && timestamp.isAfter(enabledUntil)) {
             LOGGER.debug("Logging for connection <{}> expired.", connectionId);
-            this.muteForConnection(connectionId);
             return true;
         }
 
         return false;
     }
 
-    protected void muteForConnection(final String connectionId) {
+    public void muteForConnection(final String connectionId) {
         ConnectionLogUtil.enhanceLogWithConnectionId(connectionId);
         LOGGER.info("Muting loggers for connection <{}>.", connectionId);
 
