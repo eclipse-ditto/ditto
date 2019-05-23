@@ -191,7 +191,6 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
 
     @Nullable private Cancellable enabledLoggingChecker;
-    private static CheckLoggingActive CHECK_LOGGING_ENABLED = new CheckLoggingActive();
     private final Duration checkLoggingActiveInterval;
 
     @Nullable private Instant loggingEnabledUntil;
@@ -407,7 +406,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
                         // do nothing; this connection is not deleted.
                         cancelStopSelfIfDeletedTrigger()
                 )
-                .matchEquals(CHECK_LOGGING_ENABLED, msg -> this.checkLoggingEnabled())
+                .matchEquals(CheckLoggingActive.INSTANCE, msg -> this.checkLoggingEnabled())
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
@@ -757,7 +756,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
                 this.checkLoggingActiveInterval,
                 this.checkLoggingActiveInterval,
                 getSelf(),
-                CHECK_LOGGING_ENABLED,
+                CheckLoggingActive.INSTANCE,
                 getContext().getSystem().dispatcher(),
                 null
         );
