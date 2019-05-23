@@ -19,6 +19,7 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
@@ -49,6 +50,8 @@ import org.junit.Test;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+
+import akka.actor.ActorRef;
 
 /**
  * Unit test for {@link ConnectionLoggerRegistry}.
@@ -135,9 +138,23 @@ public final class ConnectionLoggerRegistryTest {
         underTest.unmuteForConnection(connectionId);
         assertThat(underTest.isActiveForConnection(connectionId)).isTrue();
 
-//        TODO: Fix test
-//        underTest.disableLoggingIfEnabledUntilExpired(connectionId);
-//        assertThat(underTest.isActiveForConnection(connectionId)).isTrue();
+        assertThat(underTest.disabledDueToEnabledUntilExpired(connectionId, Instant.now())).isFalse();
+        assertThat(underTest.isActiveForConnection(connectionId)).isTrue();
+    }
+
+    @Test
+    public void isTerminatedForConnectionDueToExpiredEnabledUntil() {
+        final String connectionId = connectionId();
+        underTest.initForConnection(connection(connectionId));
+        assertThat(underTest.isActiveForConnection(connectionId)).isFalse();
+
+        underTest.unmuteForConnection(connectionId);
+        assertThat(underTest.isActiveForConnection(connectionId)).isTrue();
+
+        final Instant twentyFourHoursFromNow = Instant.now().plus(Duration.ofDays(1));
+
+        assertThat(underTest.disabledDueToEnabledUntilExpired(connectionId, twentyFourHoursFromNow)).isTrue();
+        assertThat(underTest.isActiveForConnection(connectionId)).isFalse();
     }
 
     @Test

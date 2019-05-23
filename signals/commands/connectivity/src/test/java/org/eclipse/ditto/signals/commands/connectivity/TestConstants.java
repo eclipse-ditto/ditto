@@ -61,6 +61,8 @@ public final class TestConstants {
 
     public static String ID = "myConnectionId";
 
+    public static String TIMESTAMP = "2019-05-21T11:06:54.210Z";
+
     public static ConnectionType TYPE = ConnectionType.AMQP_10;
     public static ConnectivityStatus STATUS = ConnectivityStatus.OPEN;
 
