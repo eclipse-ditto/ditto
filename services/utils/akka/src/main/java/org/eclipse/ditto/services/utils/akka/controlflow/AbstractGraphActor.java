@@ -180,7 +180,7 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
                         return Math.abs(msg.hashCode() % parallelism);
                     }
                 }),
-                Merge.<T>create(parallelism),
+                Merge.<T>create(parallelism, true),
 
                 (nA, nB) -> nA,
                 (builder, partition, merge) -> {

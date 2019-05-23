@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.concierge.enforcement;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
@@ -164,11 +165,12 @@ public final class EnforcerActor extends AbstractEnforcerActor {
                 (notUsed1, notUsed2) -> notUsed1,
                 (builder, bcast, merge) -> {
 
-                    enforcementProviders.forEach(enforcementProvider ->
-                            builder.from(bcast)
-                                    .via(builder.add(enforcementProvider.toContextualFlow()))
-                                    .toFanIn(merge)
-                    );
+                    final ArrayList<EnforcementProvider<?>> providers = new ArrayList<>(enforcementProviders);
+                    for (int i=0; i<providers.size(); i++) {
+                        builder.from(bcast.out(i))
+                                .via(builder.add(providers.get(i).toContextualFlow()))
+                                .toInlet(merge.in(i));
+                    }
 
                     return FlowShape.of(bcast.in(), merge.out());
                 });
