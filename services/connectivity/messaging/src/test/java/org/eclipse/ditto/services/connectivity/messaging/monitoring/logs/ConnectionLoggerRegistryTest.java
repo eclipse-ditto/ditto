@@ -138,7 +138,7 @@ public final class ConnectionLoggerRegistryTest {
         underTest.unmuteForConnection(connectionId);
         assertThat(underTest.isActiveForConnection(connectionId)).isTrue();
 
-        assertThat(underTest.disabledDueToEnabledUntilExpired(connectionId, Instant.now())).isFalse();
+        assertThat(underTest.loggingExpired(connectionId, Instant.now())).isFalse();
         assertThat(underTest.isActiveForConnection(connectionId)).isTrue();
     }
 
@@ -153,7 +153,7 @@ public final class ConnectionLoggerRegistryTest {
 
         final Instant twentyFourHoursFromNow = Instant.now().plus(Duration.ofDays(1));
 
-        assertThat(underTest.disabledDueToEnabledUntilExpired(connectionId, twentyFourHoursFromNow)).isTrue();
+        assertThat(underTest.loggingExpired(connectionId, twentyFourHoursFromNow)).isTrue();
         assertThat(underTest.isActiveForConnection(connectionId)).isFalse();
     }
 

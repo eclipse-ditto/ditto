@@ -72,6 +72,7 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.CheckConnectionLog
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.EnableConnectionLogs;
+import org.eclipse.ditto.signals.commands.connectivity.modify.LoggingExpired;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionLogs;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionMetrics;
@@ -740,10 +741,9 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         log.debug("Received checkLoggingActive message, check if Logging for connection <{}> is expired.",
                 connectionId);
 
-        if (this.connectionLoggerRegistry.disabledDueToEnabledUntilExpired(connectionId, timestamp)) {
-            final CheckConnectionLogsActive logsNotActiveAnymore = CheckConnectionLogsActive.of(connectionId,
-                    Instant.now());
-            getSender().tell(logsNotActiveAnymore, ActorRef.noSender());
+        if (this.connectionLoggerRegistry.loggingExpired(connectionId, timestamp)){
+            this.connectionLoggerRegistry.muteForConnection(connectionId);
+            getSender().tell(LoggingExpired.of(connectionId), ActorRef.noSender());
         }
 
         return stay();

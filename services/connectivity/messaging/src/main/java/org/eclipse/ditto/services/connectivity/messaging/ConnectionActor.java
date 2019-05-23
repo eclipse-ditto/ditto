@@ -82,6 +82,7 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.EnableConnectionLogs;
 import org.eclipse.ditto.signals.commands.connectivity.modify.EnableConnectionLogsResponse;
+import org.eclipse.ditto.signals.commands.connectivity.modify.LoggingExpired;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
@@ -401,7 +402,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
                 .match(Status.Failure.class, f -> log.warning("Got failure in connectionCreated behaviour with " +
                         "cause {}: {}", f.cause().getClass().getSimpleName(), f.cause().getMessage()))
                 .match(PerformTask.class, this::performTask)
-                .match(CheckConnectionLogsActive.class, this::handleLoggingMuted)
+                .match(LoggingExpired.class, this::loggingExpired)
                 .matchEquals(STOP_SELF_IF_DELETED, msg ->
                         // do nothing; this connection is not deleted.
                         cancelStopSelfIfDeletedTrigger()
@@ -709,7 +710,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
         this.loggingEnabled();
     }
 
-    private void handleLoggingMuted(final CheckConnectionLogsActive ccla) {
+    private void loggingExpired(final LoggingExpired ccla) {
         log.debug("Cancelling scheduler checking if logging still active for <{}>", ccla.getConnectionId());
         this.loggingDisabled();
     }
