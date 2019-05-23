@@ -132,7 +132,6 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
     public static CreateThing of(final Thing newThing, @Nullable final JsonObject initialPolicy,
             final DittoHeaders dittoHeaders) {
         checkNotNull(newThing, "new Thing");
-        ensureThingIdPresence(newThing, dittoHeaders);
         return new CreateThing(newThing, initialPolicy, dittoHeaders);
     }
 
@@ -156,7 +155,6 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
             final DittoHeaders dittoHeaders) {
         checkNotNull(newThing, "new Thing");
         checkNotNull(newThing, "policyIdOrPlaceholder");
-        ensureThingIdPresence(newThing, dittoHeaders);
         return new CreateThing(newThing, policyIdOrPlaceholder, dittoHeaders);
     }
 
@@ -186,15 +184,6 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
             return of(newThing, initialPolicy, dittoHeaders);
         } else {
             return withCopiedPolicy(newThing, policyIdOrPlaceholder, dittoHeaders);
-        }
-    }
-
-    private static void ensureThingIdPresence(final Thing newThing, final DittoHeaders dittoHeaders) {
-        if (!newThing.getId().isPresent()) {
-            throw ThingIdInvalidException.newBuilder("")
-                    .message("Thing ID must be present in 'CreateThing' payload")
-                    .dittoHeaders(dittoHeaders)
-                    .build();
         }
     }
 

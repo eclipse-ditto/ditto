@@ -231,12 +231,9 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     }
 
     private void handleDittoRuntimeException(final DittoRuntimeException exception,
-            final Map<String, String> dittoHeaders) {
+            final Map<String, String> externalHeaders) {
 
-        final ThingErrorResponse errorResponse =
-                ThingErrorResponse.of(exception, DittoHeaders.newBuilder(exception.getDittoHeaders())
-                        .putHeaders(dittoHeaders)
-                        .build());
+        final ThingErrorResponse errorResponse = convertExceptionToErrorResponse(exception, externalHeaders);
 
         enhanceLogUtil(exception);
 
@@ -251,6 +248,16 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         final StringWriter stringWriter = new StringWriter();
         exception.printStackTrace(new PrintWriter(stringWriter));
         return stringWriter.toString();
+    }
+
+    private ThingErrorResponse convertExceptionToErrorResponse(
+            final DittoRuntimeException exception,
+            final Map<String, String> externalHeaders) {
+
+        final DittoHeaders mergedDittoHeaders =
+                DittoHeaders.newBuilder(exception.getDittoHeaders()).putHeaders(externalHeaders).build();
+
+        return ThingErrorResponse.of(exception, processor.truncateHeadersForErrorResponse(mergedDittoHeaders));
     }
 
     private void handleCommandResponse(final CommandResponse<?> response) {
@@ -408,7 +415,8 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
                 final ExpressionResolver expressionResolver = PlaceholderFactory.newExpressionResolver(
                         PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, externalMessage.getHeaders()),
-                        PlaceholderFactory.newPlaceholderResolver(THING_PLACEHOLDER, outboundSignal.getSource().getId()),
+                        PlaceholderFactory.newPlaceholderResolver(THING_PLACEHOLDER,
+                                outboundSignal.getSource().getId()),
                         PlaceholderFactory.newPlaceholderResolver(TOPIC_PLACEHOLDER, topicPathOpt.orElse(null))
                 );
 
@@ -434,7 +442,8 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         public ExternalMessage apply(final ExternalMessage externalMessage) {
             final AuthorizationContext authorizationContext = getAuthorizationContextFromMessage(externalMessage);
             final AuthorizationContext filteredContext =
-                    PlaceholderFilter.applyHeadersPlaceholderToAuthContext(authorizationContext, externalMessage.getHeaders());
+                    PlaceholderFilter.applyHeadersPlaceholderToAuthContext(authorizationContext,
+                            externalMessage.getHeaders());
             final JsonArray authSubjectsArray = mapAuthorizationContextToSubjectsArray(filteredContext);
             final ExternalMessage externalMessageWithSourceHeader = authSubjectsArray.get(0)
                     .map(JsonValue::asString)
@@ -544,7 +553,8 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 final ExpressionResolver expressionResolver = PlaceholderFactory.newExpressionResolver(
                         PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, dittoHeaders),
                         PlaceholderFactory.newPlaceholderResolver(THING_PLACEHOLDER, thingId),
-                        PlaceholderFactory.newPlaceholderResolver(TOPIC_PLACEHOLDER, inboundExternalMessage.getTopicPath())
+                        PlaceholderFactory.newPlaceholderResolver(TOPIC_PLACEHOLDER,
+                                inboundExternalMessage.getTopicPath())
                 );
 
                 final DittoHeadersBuilder dittoHeadersBuilder = dittoHeaders.toBuilder();

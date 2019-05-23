@@ -64,11 +64,22 @@ public final class ThingSupervisorActor extends AbstractActor {
     private final String thingId;
     private final Props persistenceActorProps;
     private final ExponentialBackOffConfig exponentialBackOffConfig;
-    private final SupervisorStrategy supervisorStrategy;
     private final ShutdownNamespaceBehavior shutdownNamespaceBehavior;
 
     @Nullable private ActorRef child;
     private long restartCount;
+
+    private final SupervisorStrategy supervisorStrategy = new OneForOneStrategy(true, DeciderBuilder
+            .match(ActorKilledException.class, e -> {
+                log.error(e, "ActorKilledException in ThingsPersistenceActor, stopping actor: {}", e.message());
+                return SupervisorStrategy.stop();
+            })
+            .matchAny(e -> {
+                log.error(e,"Passing unhandled error to ThingsRootActor: {}", e.getMessage());
+                return SupervisorStrategy.escalate();
+            })
+            .build());
+
 
     private ThingSupervisorActor(final ActorRef pubSubMediator,
             final ThingConfig thingConfig,
@@ -82,7 +93,6 @@ public final class ThingSupervisorActor extends AbstractActor {
         }
         persistenceActorProps = thingPersistenceActorPropsFactory.apply(thingId);
         exponentialBackOffConfig = thingConfig.getSupervisorConfig().getExponentialBackOffConfig();
-        this.supervisorStrategy = supervisorStrategy;
         shutdownNamespaceBehavior = ShutdownNamespaceBehavior.fromId(thingId, pubSubMediator, getSelf());
 
         child = null;
@@ -92,8 +102,8 @@ public final class ThingSupervisorActor extends AbstractActor {
     /**
      * Props for creating a {@code ThingSupervisorActor}.
      * <p>
-     * Exceptions in the child are handled with a supervision strategy that restarts the child on
-     * {@link NullPointerException}'s, stops it for {@link ActorKilledException}'s and escalates all others.
+     * Exceptions in the child are handled with a supervision strategy that stops the child
+     * for {@link ActorKilledException}'s and escalates all others.
      * </p>
      *
      * @param pubSubMediator Akka pub-sub mediator.
@@ -111,14 +121,8 @@ public final class ThingSupervisorActor extends AbstractActor {
 
             @Override
             public ThingSupervisorActor create() {
-                final OneForOneStrategy oneForOneStrategy = new OneForOneStrategy(true, DeciderBuilder
-                        .match(NullPointerException.class, e -> SupervisorStrategy.restart())
-                        .match(ActorKilledException.class, e -> SupervisorStrategy.stop())
-                        .matchAny(e -> SupervisorStrategy.escalate())
-                        .build());
-
-                return new ThingSupervisorActor(pubSubMediator, thingConfig, thingPersistenceActorPropsFactory,
-                        oneForOneStrategy);
+                return new ThingSupervisorActor(minBackOff, maxBackOff, randomFactor, thingPersistenceActorPropsFactory,
+                        pubSubMediator);
             }
         });
     }

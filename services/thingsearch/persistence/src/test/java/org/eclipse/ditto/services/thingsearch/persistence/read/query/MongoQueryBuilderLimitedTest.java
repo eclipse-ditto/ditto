@@ -13,7 +13,7 @@
 package org.eclipse.ditto.services.thingsearch.persistence.read.query;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ID;
 
 import java.util.Collections;
 import java.util.List;
@@ -22,7 +22,7 @@ import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.query.SortDirection;
 import org.eclipse.ditto.model.query.SortOption;
 import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.model.query.expression.SortFieldExpression;
+import org.eclipse.ditto.model.query.expression.SimpleFieldExpressionImpl;
 import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.junit.Before;
@@ -39,7 +39,7 @@ import com.typesafe.config.ConfigFactory;
 public final class MongoQueryBuilderLimitedTest {
 
     private static final SortOption KNOWN_SORT_OPTION =
-            new SortOption(mock(SortFieldExpression.class), SortDirection.ASC);
+            new SortOption(new SimpleFieldExpressionImpl(FIELD_ID), SortDirection.DESC);
 
     private static DefaultLimitsConfig limitsConfig;
 
@@ -74,11 +74,22 @@ public final class MongoQueryBuilderLimitedTest {
         assertThat(query.getCriteria()).isEqualTo(criteria);
     }
 
+    @Test
     public void buildWithSort() {
         final List<SortOption> sortOptions = Collections.singletonList(KNOWN_SORT_OPTION);
         final Query query = underTest.sort(sortOptions).build();
 
         assertThat(query.getSortOptions()).isEqualTo(sortOptions);
+    }
+
+    @Test
+    public void appendDefaultSortOption() {
+        final SortOption defaultSortOption =
+                new SortOption(new SimpleFieldExpressionImpl(FIELD_ID), SortDirection.ASC);
+        final List<SortOption> sortOptions = Collections.singletonList(Mockito.mock(SortOption.class));
+        final Query query = underTest.sort(sortOptions).build();
+
+        assertThat(query.getSortOptions()).contains(defaultSortOption);
     }
 
     @Test

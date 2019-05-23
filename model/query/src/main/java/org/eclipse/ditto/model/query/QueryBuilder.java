@@ -37,6 +37,14 @@ public interface QueryBuilder {
     QueryBuilder limit(long n);
 
     /**
+     * Limits the number of elements returned by the query.
+     *
+     * @param n the (maximum) number of elements to be returned
+     * @return this builder
+     */
+    QueryBuilder size(long n);
+
+    /**
      * Discards the given number of elements at the beginning of the query result.
      *
      * @param n the number of elements to be skipped

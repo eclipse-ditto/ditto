@@ -20,6 +20,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.config.AuthenticationConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.CachesConfig;
@@ -277,6 +278,8 @@ final class GatewayRootActor extends AbstractActor {
             final ActorRef healthCheckingActor,
             final HealthCheckConfig healthCheckConfig) {
 
+        final Config config = configReader.getRawConfig();
+
         final AuthenticationConfig authConfig = gatewayConfig.getAuthenticationConfig();
         final CachesConfig cachesConfig = gatewayConfig.getCachesConfig();
         final DefaultHttpClientFacade httpClient = DefaultHttpClientFacade.getInstance(actorSystem, authConfig.getHttpProxyConfig());
@@ -295,6 +298,9 @@ final class GatewayRootActor extends AbstractActor {
         final Supplier<ClusterStatus> clusterStateSupplier = new ClusterStatusSupplier(Cluster.get(actorSystem));
         final StatusAndHealthProvider statusAndHealthProvider =
                 DittoStatusAndHealthProviderFactory.of(actorSystem, clusterStateSupplier, healthCheckConfig);
+        final DittoHeadersSizeChecker dittoHeadersSizeChecker =
+                DittoHeadersSizeChecker.of(configReader.limits().headersMaxSize(),
+                        configReader.limits().authSubjectsCount());
 
         final HttpConfig httpConfig = gatewayConfig.getHttpConfig();
         final DevOpsConfig devOpsConfig = authConfig.getDevOpsConfig();
@@ -318,6 +324,7 @@ final class GatewayRootActor extends AbstractActor {
                 .headerTranslator(headerTranslator)
                 .httpAuthenticationDirective(authenticationDirectiveFactory.buildHttpAuthentication())
                 .wsAuthenticationDirective(authenticationDirectiveFactory.buildWsAuthentication())
+                .dittoHeadersSizeChecker(dittoHeadersSizeChecker)
                 .build();
     }
 

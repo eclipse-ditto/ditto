@@ -121,8 +121,11 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         // Snapshotting
         thingSnapshotter = getSnapshotter(thingSnapshotterCreate);
 
-        defaultContext = DefaultContext.getInstance(thingId, log, thingSnapshotter, this::becomeThingCreatedHandler,
-                this::becomeThingDeletedHandler, this::stopThisActor, this::isFirstMessage);
+        final Runnable becomeCreatedRunnable = this::becomeThingCreatedHandler;
+        final Runnable becomeDeletedRunnable = this::becomeThingDeletedHandler;
+        defaultContext =
+                DefaultContext.getInstance(thingId, log, thingSnapshotter, becomeCreatedRunnable,
+                        becomeDeletedRunnable);
 
         handleThingEvents = ReceiveBuilder.create()
                 .match(ThingEvent.class, event -> {
@@ -216,8 +219,18 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         return thingId;
     }
 
-    private boolean isFirstMessage() {
-        return firstMessageCounter <= 1;
+    private void scheduleCheckForThingActivity(final long intervalInSeconds) {
+        log.debug("Scheduling for Activity Check in <{}> seconds.", intervalInSeconds);
+        // if there is a previous activity checker, cancel it
+        if (activityChecker != null) {
+            activityChecker.cancel();
+        }
+        // send a message to ourselves:
+        activityChecker = getContext()
+                .system()
+                .scheduler()
+                .scheduleOnce(Duration.apply(intervalInSeconds, TimeUnit.SECONDS), getSelf(),
+                        new CheckForActivity(getRevisionNumber(), accessCounter), getContext().dispatcher(), null);
     }
 
     private long getRevisionNumber() {
@@ -262,12 +275,16 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         return new StrategyAwareReceiveBuilder(receiveBuilder, log)
                 .match(new CheckForActivityStrategy())
                 .matchAny(new MatchAnyDuringInitializeStrategy())
-                .setPeekConsumer(getPeekConsumer())
+                .setPeekConsumer(getIncomingMessagesLoggerOrNull())
                 .build();
     }
 
-    private Consumer<Object> getPeekConsumer() {
-        return new PeekConsumer(logIncomingMessages);
+    @Nullable
+    private Consumer<Object> getIncomingMessagesLoggerOrNull() {
+        if (isLogIncomingMessages()) {
+            return new LogIncomingMessagesConsumer();
+        }
+        return null;
     }
 
     @Override
@@ -370,7 +387,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 .matchEach(thingSnapshotter.strategies())
                 .match(new CheckForActivityStrategy())
                 .matchAny(new ThingNotFoundStrategy())
-                .setPeekConsumer(getPeekConsumer())
+                .setPeekConsumer(getIncomingMessagesLoggerOrNull())
                 .build();
 
         getContext().become(receive, true);
@@ -499,24 +516,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     // stop the supervisor (otherwise it'd restart this actor) which causes this actor to stop, too.
     private void stopThisActor() {
         getContext().getParent().tell(ThingSupervisorActor.Control.PASSIVATE, getSelf());
-    }
-
-    /**
-     * This consumer sets firstMessageCounter and calls other peek consumers as needed.
-     */
-    private final class PeekConsumer implements Consumer<Object> {
-
-        private final Consumer<Object> furtherConsumers;
-
-        private PeekConsumer(final boolean logIncomingMessages) {
-            furtherConsumers = logIncomingMessages ? new LogIncomingMessagesConsumer() : object -> {};
-        }
-
-        @Override
-        public void accept(final Object o) {
-            firstMessageCounter = Math.min(2, firstMessageCounter + 1);
-            furtherConsumers.accept(o);
-        }
     }
 
     /**

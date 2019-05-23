@@ -60,7 +60,6 @@ public final class ThingWithSnapshotTagTest {
     private static final JsonPointer KNOWN_FEATURE_PROPERTY_PATH = JsonFactory.newPointer("target_year_1");
     private static final JsonValue KNOWN_FEATURE_PROPERTY_VALUE = JsonFactory.newValue(1955);
 
-    /** */
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ThingWithSnapshotTag.class)
@@ -68,13 +67,11 @@ public final class ThingWithSnapshotTagTest {
                 .verify();
     }
 
-    /** */
     @Test
     public void assertImmutability() {
         assertInstancesOf(ThingWithSnapshotTag.class, areImmutable(), provided(Thing.class).isAlsoImmutable());
     }
 
-    /** */
     @SuppressWarnings("ConstantConditions")
     @Test
     public void tryToCreateInstanceWithNullDelegee() {
@@ -84,7 +81,6 @@ public final class ThingWithSnapshotTagTest {
                 .withNoCause();
     }
 
-    /** */
     @SuppressWarnings("ConstantConditions")
     @Test
     public void tryToCreateInstanceWithNullSnapshotTag() {
@@ -94,43 +90,36 @@ public final class ThingWithSnapshotTagTest {
                 .withNoCause();
     }
 
-    /** */
     @Test
     public void createNewInstanceWhereDelegeeIsTargetReturnsDelegee() {
         assertThat(ThingWithSnapshotTag.newInstance(KNOWN_THING, SnapshotTag.PROTECTED)).isEqualTo(KNOWN_THING);
     }
 
-    /** */
     @Test
     public void getSnapshotTagReturnsExpected() {
         assertThat(KNOWN_THING.getSnapshotTag()).isEqualTo(SnapshotTag.PROTECTED);
     }
 
-    /** */
     @Test
     public void getRevisionReturnsExpected() {
         assertThat(KNOWN_THING).hasRevision(REVISION);
     }
 
-    /** */
     @Test
     public void getModifiedReturnsExpected() {
         assertThat(KNOWN_THING).hasModified(MODIFIED);
     }
 
-    /** */
     @Test
     public void getIdReturnsExpected() {
         assertThat(KNOWN_THING).hasId(THING_ID);
     }
 
-    /** */
     @Test
     public void getNamespaceReturnsExpected() {
         assertThat(KNOWN_THING).hasNamespace(THING_V1.getNamespace().orElse(null));
     }
 
-    /** */
     @Test
     public void setAclWorksAsExpected() {
         final AccessControlList newAcl = ThingsModelFactory.newAclBuilder(ACL)
@@ -149,7 +138,6 @@ public final class ThingWithSnapshotTagTest {
                 .hasRevision(REVISION);
     }
 
-    /** */
     @Test
     public void setAclEntryWorksAsExpected() {
         final AclEntry newAclEntry = ThingsModelFactory.newAclEntry(AUTH_SUBJECT_GRIMES, Permission.WRITE);
@@ -169,7 +157,6 @@ public final class ThingWithSnapshotTagTest {
                 .hasRevision(REVISION);
     }
 
-    /** */
     @Test
     public void removeAllPermissionsWorksAsExpected() {
         final AccessControlList newAcl = ThingsModelFactory.newAclBuilder(ACL)
@@ -188,7 +175,6 @@ public final class ThingWithSnapshotTagTest {
                 .hasRevision(REVISION);
     }
 
-    /** */
     @Test
     public void setFeaturesWorksAsExpected() {
         final Thing changedThing = KNOWN_THING.setFeatures(EMPTY_FEATURES);
@@ -203,7 +189,6 @@ public final class ThingWithSnapshotTagTest {
                 .hasRevision(REVISION);
     }
 
-    /** */
     @Test
     public void removeFeaturesWorksAsExpected() {
         final Thing changedThing = KNOWN_THING.removeFeatures();
@@ -218,7 +203,6 @@ public final class ThingWithSnapshotTagTest {
                 .hasRevision(REVISION);
     }
 
-    /** */
     @Test
     public void setFeaturePropertiesWorksAsExpected() {
         final FeatureProperties newFeatureProperties =
@@ -238,7 +222,6 @@ public final class ThingWithSnapshotTagTest {
                 .hasRevision(REVISION);
     }
 
-    /** */
     @Test
     public void removeFeaturePropertiesWorksAsExpected() {
         final Thing changedThing = KNOWN_THING.removeFeatureProperties(FLUX_CAPACITOR_ID);
@@ -253,7 +236,6 @@ public final class ThingWithSnapshotTagTest {
                 .hasRevision(REVISION);
     }
 
-    /** */
     @Test
     public void setLifecycleWorksAsExpected() {
         final Thing changedThing = KNOWN_THING.setLifecycle(ThingLifecycle.DELETED);
@@ -268,7 +250,6 @@ public final class ThingWithSnapshotTagTest {
                 .hasRevision(REVISION);
     }
 
-    /** */
     @Test
     public void setAttributesWorksAsExpected() {
         final Attributes newAttributes = ThingsModelFactory.newAttributesBuilder()
@@ -287,7 +268,6 @@ public final class ThingWithSnapshotTagTest {
                 .hasRevision(REVISION);
     }
 
-    /** */
     @Test
     public void setAttributeWorksAsExpected() {
         final JsonPointer attributePath = JsonFactory.newPointer("maker");
@@ -305,7 +285,6 @@ public final class ThingWithSnapshotTagTest {
                 .hasRevision(REVISION);
     }
 
-    /** */
     @Test
     public void removeAttributesWorksAsExpected() {
         final Thing changedThing = KNOWN_THING.removeAttributes();
@@ -320,7 +299,6 @@ public final class ThingWithSnapshotTagTest {
                 .hasRevision(REVISION);
     }
 
-    /** */
     @Test
     public void removeAttributeWorksAsExpected() {
         final JsonPointer attributePath = JsonFactory.newPointer("maker");
@@ -337,7 +315,6 @@ public final class ThingWithSnapshotTagTest {
                 .hasRevision(REVISION);
     }
 
-    /** */
     @Test
     public void setFeatureWorksAsExpected() {
         final String newFeatureId = "lamp";
@@ -359,7 +336,6 @@ public final class ThingWithSnapshotTagTest {
                 .hasRevision(REVISION);
     }
 
-    /** */
     @Test
     public void removeFeatureWorksAsExpected() {
         final Thing changedThing = KNOWN_THING.removeFeature(FLUX_CAPACITOR_ID);
@@ -374,7 +350,6 @@ public final class ThingWithSnapshotTagTest {
                 .hasRevision(REVISION);
     }
 
-    /** */
     @Test
     public void setFeaturePropertyWorksAsExpected() {
         final JsonPointer propertyPath = JsonFactory.newPointer("target_year_4");
@@ -392,7 +367,6 @@ public final class ThingWithSnapshotTagTest {
                 .hasRevision(REVISION);
     }
 
-    /** */
     @Test
     public void removeFeaturePropertyWorksAsExpected() {
         final JsonPointer propertyPath = JsonFactory.newPointer("target_year_2");
@@ -409,7 +383,6 @@ public final class ThingWithSnapshotTagTest {
                 .hasRevision(REVISION);
     }
 
-    /** */
     @Test
     public void setAclEntryToThingWithoutAcl() {
         final Thing thing = ThingsModelFactory.newThingBuilder()
@@ -426,13 +399,11 @@ public final class ThingWithSnapshotTagTest {
         assertThat(withAcl).hasAclEntry(ACL_ENTRY_GRIMES);
     }
 
-    /** */
     @Test
     public void setSameAclEntryAgain() {
         assertThat(KNOWN_THING.setAclEntry(ACL_ENTRY_OLDMAN)).isEqualTo(KNOWN_THING);
     }
 
-    /** */
     @Test
     public void removeAllPermissionsOfAuthSubjectWhichIsNotInAcl() {
         final Thing thing = ThingsModelFactory.newThingBuilder()
@@ -449,7 +420,6 @@ public final class ThingWithSnapshotTagTest {
         assertThat(thingWithSnapshotTag.removeAllPermissionsOf(AUTH_SUBJECT_GRIMES)).isEqualTo(thingWithSnapshotTag);
     }
 
-    /** */
     @Test
     public void setAttributeToThingWithoutAttributes() {
         final Thing thing = ThingsModelFactory.newThingBuilder()
@@ -471,7 +441,6 @@ public final class ThingWithSnapshotTagTest {
         assertThat(withAttribute).hasAttribute(latitudePath, latitudeValue);
     }
 
-    /** */
     @Test
     public void removeAttributeFromThingWithoutAttributes() {
         final Thing thing = ThingsModelFactory.newThingBuilder()
@@ -489,13 +458,11 @@ public final class ThingWithSnapshotTagTest {
         assertThat(withoutVersionAttribute).isEqualTo(withoutAttributes);
     }
 
-    /** */
     @Test
     public void setSameAttributesAgain() {
         assertThat(KNOWN_THING.setAttributes(ATTRIBUTES)).isEqualTo(KNOWN_THING);
     }
 
-    /** */
     @Test
     public void setSameAttributeAgain() {
         final JsonPointer latitudePath = JsonFactory.newPointer("location/latitude");
@@ -506,7 +473,6 @@ public final class ThingWithSnapshotTagTest {
         assertThat(withAttribute).isEqualTo(KNOWN_THING);
     }
 
-    /** */
     @Test
     public void setAttributesToThingWithoutAttributes() {
         final Thing thing = ThingsModelFactory.newThingBuilder()
@@ -523,7 +489,6 @@ public final class ThingWithSnapshotTagTest {
         assertThat(withAttributes).hasAttributes(ATTRIBUTES);
     }
 
-    /** */
     @Test
     public void removeAttributesFromThingWithoutAttributes() {
         final Thing thing = ThingsModelFactory.newThingBuilder()
@@ -540,7 +505,6 @@ public final class ThingWithSnapshotTagTest {
         assertThat(stillWithoutAttributes).isEqualTo(withoutAttributes);
     }
 
-    /** */
     @Test
     public void setFeaturesToThingWithoutFeatures() {
         final Thing thing = ThingsModelFactory.newThingBuilder()
@@ -557,7 +521,6 @@ public final class ThingWithSnapshotTagTest {
         assertThat(withFeatures).hasFeatures(FEATURES);
     }
 
-    /** */
     @Test
     public void removeFeaturesFromThingWithoutFeatures() {
         final Thing thing = ThingsModelFactory.newThingBuilder()
@@ -574,13 +537,11 @@ public final class ThingWithSnapshotTagTest {
         assertThat(stillWithoutFeatures).isEqualTo(withoutFeatures);
     }
 
-    /** */
     @Test
     public void setSameFeaturesAgain() {
         assertThat(KNOWN_THING.setFeatures(FEATURES)).isEqualTo(KNOWN_THING);
     }
 
-    /** */
     @Test
     public void setFeatureToThingWithoutFeatures() {
         final Thing thing = ThingsModelFactory.newThingBuilder()
@@ -597,13 +558,11 @@ public final class ThingWithSnapshotTagTest {
         assertThat(withFeature).hasFeature(FLUX_CAPACITOR);
     }
 
-    /** */
     @Test
     public void setSameFeatureAgain() {
         assertThat(KNOWN_THING.setFeature(FLUX_CAPACITOR)).isEqualTo(KNOWN_THING);
     }
 
-    /** */
     @Test
     public void removeFeatureFromThingWithoutFeatures() {
         final Thing thing = ThingsModelFactory.newThingBuilder()
@@ -619,7 +578,6 @@ public final class ThingWithSnapshotTagTest {
         assertThat(withoutFeatures.removeFeature(FLUX_CAPACITOR_ID)).isEqualTo(withoutFeatures);
     }
 
-    /** */
     @Test
     public void removeFeature() {
         final Thing withoutFluxCapacitor = KNOWN_THING.removeFeature(FLUX_CAPACITOR_ID);
@@ -627,13 +585,11 @@ public final class ThingWithSnapshotTagTest {
         assertThat(withoutFluxCapacitor).hasNotFeatureWithId(FLUX_CAPACITOR_ID);
     }
 
-    /** */
     @Test
     public void removeNonExistingFeature() {
         assertThat(KNOWN_THING.removeFeature("Waldo")).isEqualTo(KNOWN_THING);
     }
 
-    /** */
     @Test
     public void setFeaturePropertiesToThingWithoutFeatures() {
         final Thing thing = ThingsModelFactory.newThingBuilder()
@@ -651,14 +607,12 @@ public final class ThingWithSnapshotTagTest {
         assertThat(withFluxCapacitor).hasFeatureProperties(FLUX_CAPACITOR_ID, FLUX_CAPACITOR_PROPERTIES);
     }
 
-    /** */
     @Test
     public void setSameFeaturePropertiesAgain() {
         assertThat(KNOWN_THING.setFeatureProperties(FLUX_CAPACITOR_ID, FLUX_CAPACITOR_PROPERTIES))
                 .isEqualTo(KNOWN_THING);
     }
 
-    /** */
     @Test
     public void removeFeaturePropertiesFromThingWithoutFeatures() {
         final Thing thing = ThingsModelFactory.newThingBuilder()
@@ -674,7 +628,6 @@ public final class ThingWithSnapshotTagTest {
         assertThat(withoutFeatures.removeFeatureProperties(FLUX_CAPACITOR_ID)).isEqualTo(withoutFeatures);
     }
 
-    /** */
     @Test
     public void removeFeaturePropertiesFromFeatureWithoutProperties() {
         final Thing thing = ThingsModelFactory.newThingBuilder()
@@ -693,7 +646,6 @@ public final class ThingWithSnapshotTagTest {
         assertThat(thing.removeFeatureProperties(FLUX_CAPACITOR_ID)).isEqualTo(thing);
     }
 
-    /** */
     @Test
     public void setFeaturePropertyToThingWithoutFeatures() {
         final Thing thing = ThingsModelFactory.newThingBuilder()
@@ -713,7 +665,6 @@ public final class ThingWithSnapshotTagTest {
                 KNOWN_FEATURE_PROPERTY_VALUE);
     }
 
-    /** */
     @Test
     public void setFeaturePropertyToThingWithFeatureWithoutProperties() {
         final Thing thing = ThingsModelFactory.newThingBuilder()
@@ -735,14 +686,12 @@ public final class ThingWithSnapshotTagTest {
                 KNOWN_FEATURE_PROPERTY_VALUE);
     }
 
-    /** */
     @Test
     public void setSameFeaturePropertyAgain() {
         assertThat(KNOWN_THING.setFeatureProperty(FLUX_CAPACITOR_ID, KNOWN_FEATURE_PROPERTY_PATH,
                 KNOWN_FEATURE_PROPERTY_VALUE)).isEqualTo(KNOWN_THING);
     }
 
-    /** */
     @Test
     public void removeFeaturePropertyFromThingWithoutFeatures() {
         final Thing thing = ThingsModelFactory.newThingBuilder()
@@ -759,7 +708,6 @@ public final class ThingWithSnapshotTagTest {
                 .isEqualTo(withoutFeatures);
     }
 
-    /** */
     @Test
     public void removeFeaturePropertyFromFeatureWithoutThisProperty() {
         final Thing thing = ThingsModelFactory.newThingBuilder()
@@ -777,7 +725,6 @@ public final class ThingWithSnapshotTagTest {
                 .isEqualTo(thingWithSnapshotTag);
     }
 
-    /** */
     @Test
     public void removeFeatureProperty() {
         final Thing thing = ThingsModelFactory.newThingBuilder()

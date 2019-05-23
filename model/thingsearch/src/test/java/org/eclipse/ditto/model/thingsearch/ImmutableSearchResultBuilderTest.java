@@ -42,7 +42,7 @@ public final class ImmutableSearchResultBuilderTest {
         final long offset = 25;
         final SearchResult searchResult = SearchModelFactory.newSearchResult(items, offset);
 
-        final ImmutableSearchResultBuilder underTest = ImmutableSearchResultBuilder.of(searchResult);
+        final SearchResultBuilder underTest = ImmutableSearchResultBuilder.of(searchResult);
 
         assertThat(underTest.build()).isEqualTo(searchResult);
     }

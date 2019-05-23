@@ -13,11 +13,13 @@
 package org.eclipse.ditto.model.thingsearch;
 
 import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
 import java.util.Collections;
 import java.util.List;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -51,7 +53,7 @@ public final class SearchModelFactory {
      * @throws NullPointerException if {@code items} is {@code null}.
      */
     public static SearchResult newSearchResult(final JsonArray items, final long nextPageOffset) {
-        return ImmutableSearchResult.of(items, nextPageOffset);
+        return ImmutableSearchResult.of(items, nextPageOffset, null);
     }
 
     /**
@@ -276,6 +278,26 @@ public final class SearchModelFactory {
      */
     public static LimitOption newLimitOption(final int offset, final int count) {
         return ImmutableLimitOption.of(offset, count);
+    }
+
+    /**
+     * Creates a new {@link SizeOption}.
+     *
+     * @param size the maximum number of results
+     * @return the SizeOption
+     */
+    public static SizeOption newSizeOption(final int size) {
+        return ImmutableSizeOption.of(size);
+    }
+
+    /**
+     * Creates a new {@link CursorOption}.
+     *
+     * @param cursor cursor of the new  page
+     * @return the CursorOption
+     */
+    public static CursorOption newCursorOption(final String cursor) {
+        return ImmutableCursorOption.of(checkNotNull(cursor, "cursor"));
     }
 
 }

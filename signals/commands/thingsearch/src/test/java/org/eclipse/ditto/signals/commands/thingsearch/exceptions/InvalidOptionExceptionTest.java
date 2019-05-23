@@ -32,18 +32,18 @@ import org.junit.Test;
  */
 public class InvalidOptionExceptionTest {
 
-    private static final String EXPECTED_MESSAGE = TestConstants.Search.KNOWN_INVALID_OPTION_EXCEPTION_MESSAGE;
+    private static final String EXPECTED_MESSAGE = TestConstants.KNOWN_INVALID_OPTION_EXCEPTION_MESSAGE;
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(DittoRuntimeException.JsonFields.STATUS, InvalidOptionException.STATUS_CODE.toInt())
             .set(DittoRuntimeException.JsonFields.ERROR_CODE, InvalidOptionException.ERROR_CODE)
             .set(DittoRuntimeException.JsonFields.MESSAGE,
-                    TestConstants.Search.INVALID_OPTION_EXCEPTION.getMessage())
+                    TestConstants.INVALID_OPTION_EXCEPTION.getMessage())
             .set(DittoRuntimeException.JsonFields.DESCRIPTION,
-                    TestConstants.Search.INVALID_OPTION_EXCEPTION.getDescription().orElse(null),
+                    TestConstants.INVALID_OPTION_EXCEPTION.getDescription().orElse(null),
                     JsonField.isValueNonNull())
             .set(DittoRuntimeException.JsonFields.HREF,
-                    TestConstants.Search.INVALID_OPTION_EXCEPTION.getHref().map(URI::toString).orElse(null),
+                    TestConstants.INVALID_OPTION_EXCEPTION.getHref().map(URI::toString).orElse(null),
                     JsonField.isValueNonNull())
             .build();
 
@@ -56,7 +56,7 @@ public class InvalidOptionExceptionTest {
 
     @Test
     public void toJsonReturnsExpected() {
-        final JsonObject jsonObject = TestConstants.Search.INVALID_OPTION_EXCEPTION.toJson();
+        final JsonObject jsonObject = TestConstants.INVALID_OPTION_EXCEPTION.toJson();
 
         assertThat(jsonObject).isEqualTo(KNOWN_JSON);
     }
@@ -67,7 +67,7 @@ public class InvalidOptionExceptionTest {
         final InvalidOptionException underTest = InvalidOptionException.fromJson(KNOWN_JSON, TestConstants
                 .EMPTY_DITTO_HEADERS);
 
-        assertThat(underTest).isEqualTo(TestConstants.Search.INVALID_OPTION_EXCEPTION);
+        assertThat(underTest).isEqualTo(TestConstants.INVALID_OPTION_EXCEPTION);
     }
 
 
@@ -76,24 +76,24 @@ public class InvalidOptionExceptionTest {
         final DittoRuntimeException actual =
                 GlobalErrorRegistry.getInstance().parse(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
 
-        assertThat(actual).isEqualTo(TestConstants.Search.INVALID_OPTION_EXCEPTION);
+        assertThat(actual).isEqualTo(TestConstants.INVALID_OPTION_EXCEPTION);
     }
 
 
     @Test
     public void copy() {
         final DittoRuntimeException copy =
-                DittoRuntimeException.newBuilder(TestConstants.Search.INVALID_OPTION_EXCEPTION).build();
-        assertThat(copy).isEqualTo(TestConstants.Search.INVALID_OPTION_EXCEPTION);
+                DittoRuntimeException.newBuilder(TestConstants.INVALID_OPTION_EXCEPTION).build();
+        assertThat(copy).isEqualTo(TestConstants.INVALID_OPTION_EXCEPTION);
     }
 
 
     @Test
     public void checkGetters() {
-        Assertions.assertThat(TestConstants.Search.INVALID_OPTION_EXCEPTION.getMessage()).isEqualTo(EXPECTED_MESSAGE);
-        Assertions.assertThat(TestConstants.Search.INVALID_OPTION_EXCEPTION.getStatusCode())
+        Assertions.assertThat(TestConstants.INVALID_OPTION_EXCEPTION.getMessage()).isEqualTo(EXPECTED_MESSAGE);
+        Assertions.assertThat(TestConstants.INVALID_OPTION_EXCEPTION.getStatusCode())
                 .isEqualTo(InvalidOptionException.STATUS_CODE);
-        Assertions.assertThat(TestConstants.Search.INVALID_OPTION_EXCEPTION.getDescription().orElse(null)).isEqualTo(
+        Assertions.assertThat(TestConstants.INVALID_OPTION_EXCEPTION.getDescription().orElse(null)).isEqualTo(
                 InvalidOptionException.DEFAULT_DESCRIPTION);
     }
 }

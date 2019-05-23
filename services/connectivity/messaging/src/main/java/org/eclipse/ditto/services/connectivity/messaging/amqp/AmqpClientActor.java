@@ -63,7 +63,7 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.FSMStateFunctionBuilder;
-import akka.pattern.PatternsCS;
+import akka.pattern.Patterns;
 
 /**
  * Actor which manages a connection to an AMQP 1.0 server using the Qpid JMS client.
@@ -194,8 +194,22 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     @Override
     protected CompletionStage<Status.Status> doTestConnection(final Connection connection) {
         // delegate to child actor because the QPID JMS client is blocking until connection is opened/closed
-        return PatternsCS.ask(getTestConnectionHandler(connection),
+        return Patterns.ask(getTestConnectionHandler(connection),
                 new JmsConnect(getSender()), Duration.ofSeconds(TEST_CONNECTION_TIMEOUT))
+                // compose the disconnect because otherwise the actor hierarchy might be stopped too fast
+                .thenCompose(response -> {
+                    log.debug("Closing JMS connection after testing connection.");
+                    if (response instanceof JmsConnected) {
+                        final JmsConnection jmsConnection = ((JmsConnected) response).connection;
+                        final JmsDisconnect jmsDisconnect = new JmsDisconnect(ActorRef.noSender(), jmsConnection);
+                        return Patterns.ask(getDisconnectConnectionHandler(connection), jmsDisconnect,
+                                Duration.ofSeconds(TEST_CONNECTION_TIMEOUT))
+                                // replace jmsDisconnected message with original response
+                                .thenApply(jmsDisconnected -> response);
+                    } else {
+                        return CompletableFuture.completedFuture(response);
+                    }
+                })
                 .handle((response, throwable) -> {
                     if (throwable != null || response instanceof Status.Failure || response instanceof Throwable) {
                         final Throwable ex =

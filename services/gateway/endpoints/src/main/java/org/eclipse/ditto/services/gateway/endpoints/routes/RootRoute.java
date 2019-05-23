@@ -19,6 +19,7 @@ import static akka.http.javadsl.server.Directives.handleRejections;
 import static akka.http.javadsl.server.Directives.parameterOptional;
 import static akka.http.javadsl.server.Directives.rawPathPrefix;
 import static akka.http.javadsl.server.Directives.route;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CorrelationIdEnsuringDirective.ensureCorrelationId;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.RequestResultLoggingDirective.logRequestResult;
@@ -47,6 +48,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
@@ -122,6 +124,8 @@ public final class RootRoute {
     private final CustomHeadersHandler customHeadersHandler;
     private final RejectionHandler rejectionHandler;
 
+    private final DittoHeadersSizeChecker dittoHeadersSizeChecker;
+
     private RootRoute(final Builder builder) {
         httpConfig = builder.httpConfig;
         ownStatusRoute = builder.statusRoute;
@@ -143,6 +147,7 @@ public final class RootRoute {
         headerTranslator = builder.headerTranslator;
         customHeadersHandler = builder.customHeadersHandler;
         rejectionHandler = builder.rejectionHandler;
+        dittoHeadersSizeChecker = checkNotNull(builder.dittoHeadersSizeChecker, "dittoHeadersSizeChecker");
     }
 
     public static RootRouteBuilder getBuilder(final HttpConfig httpConfig) {
@@ -245,6 +250,7 @@ public final class RootRoute {
                                                                         liveParam ->
                                                                                 withDittoHeaders(
                                                                                         authContext,
+                                                                                        authContextWithPrefixedSubjects,
                                                                                         apiVersion,
                                                                                         correlationId,
                                                                                         ctx,
@@ -322,7 +328,8 @@ public final class RootRoute {
                         wsAuthentication(correlationId, authContextWithPrefixedSubjects ->
                                 mapAuthorizationContext(correlationId, wsVersion, authContextWithPrefixedSubjects,
                                         authContext ->
-                                                withDittoHeaders(authContext, wsVersion, correlationId, ctx, null,
+                                                withDittoHeaders(authContext, authContextWithPrefixedSubjects,
+                                                        wsVersion, correlationId, ctx, null,
                                                         CustomHeadersHandler.RequestType.WS, dittoHeaders -> {
 
                                                             final String userAgent = extractUserAgent(ctx).orElse(null);
@@ -350,6 +357,7 @@ public final class RootRoute {
     }
 
     private Route withDittoHeaders(final AuthorizationContext authorizationContext,
+            final AuthorizationContext authContextWithPrefixedSubjects,
             final Integer version,
             final String correlationId,
             final RequestContext ctx,
@@ -359,7 +367,11 @@ public final class RootRoute {
 
         final DittoHeaders dittoHeaders =
                 buildDittoHeaders(authorizationContext, version, correlationId, ctx, liveParam, requestType);
-        return inner.apply(dittoHeaders);
+
+        return dittoHeadersSizeChecker.run(dittoHeaders, authContextWithPrefixedSubjects, inner, error ->
+                handleExceptions(exceptionHandler, () -> {
+                    throw error;
+                }));
     }
 
     private DittoHeaders overwriteDittoHeaders(final RequestContext ctx, final DittoHeaders dittoHeaders,
@@ -410,10 +422,10 @@ public final class RootRoute {
                 authorizationContext, dittoDefaultHeaders);
     }
 
-    private Map<String, String> getFilteredExternalHeaders(final HttpMessage httpRequest, final String correlationId ) {
-        Map<String, String> externalHeaders =
+    private Map<String, String> getFilteredExternalHeaders(final HttpMessage httpRequest, final String correlationId) {
+        final Map<String, String> externalHeaders =
                 StreamSupport.stream(httpRequest.getHeaders().spliterator(), false)
-                        .collect(Collectors.toMap(HttpHeader::name, HttpHeader::value, (dv1, dv2) -> {
+                        .collect(Collectors.toMap(HttpHeader::lowercaseName, HttpHeader::value, (dv1, dv2) -> {
                             throw GatewayDuplicateHeaderException
                                     .newBuilder()
                                     .dittoHeaders(DittoHeaders.newBuilder().correlationId(correlationId).build())
@@ -480,6 +492,8 @@ public final class RootRoute {
         private HeaderTranslator headerTranslator;
         private CustomHeadersHandler customHeadersHandler;
         private RejectionHandler rejectionHandler;
+
+        private DittoHeadersSizeChecker dittoHeadersSizeChecker;
 
         private Builder(final HttpConfig httpConfig) {
             this.httpConfig = httpConfig;
@@ -596,6 +610,12 @@ public final class RootRoute {
         @Override
         public RootRouteBuilder rejectionHandler(final RejectionHandler handler) {
             rejectionHandler = handler;
+            return this;
+        }
+
+        @Override
+        public RootRouteBuilder dittoHeadersSizeChecker(final DittoHeadersSizeChecker checker) {
+            dittoHeadersSizeChecker = checker;
             return this;
         }
 

@@ -17,10 +17,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
 import org.bson.Document;
+import org.eclipse.ditto.services.thingsearch.persistence.write.model.AbstractWriteModel;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -28,6 +31,7 @@ import org.mockito.Mockito;
 import org.reactivestreams.Publisher;
 
 import com.mongodb.MongoBulkWriteException;
+import com.mongodb.MongoException;
 import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.model.BulkWriteOptions;
 import com.mongodb.client.model.DeleteOneModel;
@@ -43,8 +47,6 @@ import akka.stream.javadsl.RestartSink;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.testkit.javadsl.TestKit;
-
-import org.eclipse.ditto.services.thingsearch.persistence.write.model.AbstractWriteModel;
 
 /**
  * Tests {@link MongoSearchUpdaterFlow}.
@@ -67,19 +69,29 @@ public final class MongoSearchUpdaterFlowTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void streamIsRestartableAfterMongoBulkWriteException() throws Exception {
+        final BulkWriteResult bulkWriteResult = Mockito.mock(BulkWriteResult.class);
+        final MongoBulkWriteException error = Mockito.mock(MongoBulkWriteException.class);
+        Mockito.when(error.getWriteResult()).thenReturn(bulkWriteResult);
+
+        testStreamRestart(() -> error);
+    }
+
+    @Test
+    public void streamIsRestartableAfterGenericMongoException() throws Exception {
+        testStreamRestart(new FakeMongoExceptionSupplier());
+    }
+
+    @SuppressWarnings("unchecked")
+    private void testStreamRestart(final Supplier<Throwable> errorSupplier) throws Exception {
 
         new TestKit(actorSystem) {{
 
-            // GIVEN: The persistence fails with MongoBulkWriteException on every write
-            final BulkWriteResult bulkWriteResult = Mockito.mock(BulkWriteResult.class);
-            final MongoBulkWriteException error = Mockito.mock(MongoBulkWriteException.class);
-            Mockito.when(error.getWriteResult()).thenReturn(bulkWriteResult);
+            // GIVEN: The persistence fails with an error on every write
 
             final MongoDatabase db = Mockito.mock(MongoDatabase.class);
             final MongoCollection<Document> collection = Mockito.mock(MongoCollection.class);
-            final Publisher<BulkWriteResult> publisher = s -> s.onError(error);
+            final Publisher<BulkWriteResult> publisher = s -> s.onError(errorSupplier.get());
             Mockito.when(db.getCollection(Mockito.any())).thenReturn(collection);
             Mockito.when(collection.bulkWrite(Mockito.any(), Mockito.any(BulkWriteOptions.class)))
                     .thenReturn(publisher);
@@ -116,6 +128,23 @@ public final class MongoSearchUpdaterFlowTest {
             latch.await(5L, TimeUnit.SECONDS);
             assertThat(latch.getCount()).isZero();
         }};
+    }
+
+    private static final class FakeMongoException extends MongoException {
+
+        private FakeMongoException(final int i) {
+            super("Fake MongoException #" + i);
+        }
+    }
+
+    private static final class FakeMongoExceptionSupplier implements Supplier<Throwable> {
+
+        private static final AtomicInteger i = new AtomicInteger();
+
+        @Override
+        public MongoException get() {
+            return new FakeMongoException(i.incrementAndGet());
+        }
     }
 
 }

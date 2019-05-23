@@ -47,6 +47,8 @@ import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
+import org.eclipse.ditto.model.things.ThingPolicyIdInvalidException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
@@ -476,7 +478,7 @@ public final class ThingCommandEnforcementTest {
 
     @Test
     public void transformModifyThingToCreateThing() {
-        final Thing thingInPayload = newThing().setId(null).build();
+        final Thing thingInPayload = newThing().setId(THING_ID).build();
 
         new TestKit(system) {{
             final ActorRef underTest = TestSetup.newEnforcerActor(system, getRef(), getRef());
@@ -487,6 +489,32 @@ public final class ThingCommandEnforcementTest {
             reply(ThingNotAccessibleException.newBuilder(THING_ID).build());
 
             expectMsgClass(CreateThing.class);
+        }};
+    }
+
+    @Test
+    public void rejectCreateThingByInvalidThingId() {
+        final String badId = ":::::::";
+        final Thing thingInPayload = newThing().setId(badId).build();
+
+        new TestKit(system) {{
+            final ActorRef underTest = TestSetup.newEnforcerActor(system, getRef(), getRef());
+            final CreateThing createThing = CreateThing.of(thingInPayload, null, headers(V_1));
+            underTest.tell(createThing, getRef());
+            fishForMsgClass(this, ThingIdInvalidException.class);
+        }};
+    }
+
+    @Test
+    public void rejectCreateThingByInvalidPolicyId() {
+        final String badId = ":::::::";
+        final Thing thingInPayload = newThing().setId(THING_ID).setPolicyId(badId).build();
+
+        new TestKit(system) {{
+            final ActorRef underTest = TestSetup.newEnforcerActor(system, getRef(), getRef());
+            final CreateThing createThing = CreateThing.of(thingInPayload, null, headers(V_2));
+            underTest.tell(createThing, getRef());
+            fishForMsgClass(this, ThingPolicyIdInvalidException.class);
         }};
     }
 

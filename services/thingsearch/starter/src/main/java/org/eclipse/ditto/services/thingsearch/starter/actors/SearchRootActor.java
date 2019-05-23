@@ -268,7 +268,11 @@ public final class SearchRootActor extends AbstractActor {
         addMapping(mappings, Thing.JsonFields.POLICY_ID);
         addMapping(mappings, Thing.JsonFields.REVISION);
         addMapping(mappings, Thing.JsonFields.MODIFIED);
-        return new ThingsFieldExpressionFactoryImpl(mappings);
+
+        final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
+        final ThingsFieldExpressionFactory expressionFactory = new ThingsFieldExpressionFactoryImpl(mappings);
+        final QueryBuilderFactory queryBuilderFactory = new MongoQueryBuilderFactory(limitsConfigReader);
+        return QueryParser.of(criteriaFactory, expressionFactory, queryBuilderFactory);
     }
 
     private static void addMapping(final Map<String, String> fieldMappings, final JsonFieldDefinition<?> definition) {

@@ -26,13 +26,12 @@ import org.bson.BsonString;
 import org.bson.BsonValue;
 import org.eclipse.ditto.json.JsonNumber;
 import org.eclipse.ditto.json.JsonValue;
-
 import org.eclipse.ditto.services.thingsearch.common.util.KeyEscapeUtil;
 
 /**
  * Converts JSON to BSON.
  */
-final class JsonToBson implements JsonInternalVisitor<BsonValue> {
+public final class JsonToBson implements JsonInternalVisitor<BsonValue> {
 
     /**
      * Converts a JSON value to a BSON value.

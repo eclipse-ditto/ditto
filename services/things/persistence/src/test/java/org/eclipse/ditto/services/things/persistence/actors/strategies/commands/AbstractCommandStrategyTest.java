@@ -67,7 +67,7 @@ public abstract class AbstractCommandStrategyTest {
         final Runnable becomeCreatedRunnable = mock(Runnable.class);
         final Runnable becomeDeletedRunnable = mock(Runnable.class);
         return DefaultContext.getInstance(THING_ID, logger, thingSnapshotter, becomeCreatedRunnable,
-                becomeDeletedRunnable, () -> {}, () -> false);
+                becomeDeletedRunnable);
     }
 
     protected static void assertModificationResult(final CommandStrategy underTest,

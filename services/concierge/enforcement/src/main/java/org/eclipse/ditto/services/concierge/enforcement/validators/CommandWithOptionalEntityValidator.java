@@ -80,7 +80,8 @@ public final class CommandWithOptionalEntityValidator implements
 
     private static DittoRuntimeException buildError(final WithDittoHeaders withDittoHeaders) {
         final JsonParseException jsonException = JsonParseException.newBuilder()
-                .message("JSON contains forbidden character '\\u0000'")
+                .message("JSON contains a string with the forbidden character '\\u0000'")
+                .description("We do not accept any JSON strings containing the null character.")
                 .build();
         return new DittoJsonException(jsonException).setDittoHeaders(withDittoHeaders.getDittoHeaders());
     }

@@ -373,6 +373,22 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
         };
     }
 
+    @Test
+    public void actorCannotBeStartedWithNegativeSnapshotThreshold() {
+        final Config customConfig = createNewDefaultTestConfig().
+                withValue(ConfigKeys.Policy.SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(-1));
+        setup(customConfig);
+
+        disableLogging();
+        new TestKit(actorSystem) {
+            {
+                final ActorRef underTest = createPersistenceActorFor("fail");
+                watch(underTest);
+                expectTerminated(underTest);
+            }
+        };
+    }
+
     private void assertSnapshotsEmpty(final String policyId) {
         assertSnapshots(policyId, Collections.emptyList());
     }

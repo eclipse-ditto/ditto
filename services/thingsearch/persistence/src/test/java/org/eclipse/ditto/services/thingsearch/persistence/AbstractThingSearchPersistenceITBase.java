@@ -178,16 +178,10 @@ public abstract class AbstractThingSearchPersistenceITBase {
     }
 
     protected Long count(final Query query, @Nullable final List<String> subjectIds) {
-        try {
-            return readPersistence.count(query, subjectIds)
-                    .limit(1)
-                    .runWith(Sink.seq(), actorMaterializer)
-                    .toCompletableFuture()
-                    .get()
-                    .get(0);
-        } catch (final Exception e) {
-            throw mapAsRuntimeException(e);
-        }
+        return readPersistence.count(query, subjectIds)
+                .runWith(Sink.head(), actorMaterializer)
+                .toCompletableFuture()
+                .join();
     }
 
     protected ResultList<String> findAll(final Query query) {
@@ -195,40 +189,15 @@ public abstract class AbstractThingSearchPersistenceITBase {
     }
 
     protected ResultList<String> findAll(final Query query, final List<String> subjectIds) {
-        try {
-            return readPersistence.findAll(query, subjectIds)
-                    .limit(1)
-                    .runWith(Sink.seq(), actorMaterializer)
-                    .toCompletableFuture()
-                    .get()
-                    .get(0);
-        } catch (final Exception e) {
-            throw mapAsRuntimeException(e);
-        }
+        return readPersistence.findAll(query, subjectIds)
+                .runWith(Sink.head(), actorMaterializer)
+                .toCompletableFuture()
+                .join();
     }
 
     protected <T> T runBlockingWithReturn(final Source<T, NotUsed> publisher) {
         final CompletionStage<T> done = publisher.runWith(Sink.last(), actorMaterializer);
-        try {
-            return done.toCompletableFuture().get();
-        } catch (final Exception e) {
-            throw mapAsRuntimeException(e);
-        }
-    }
-
-    private static RuntimeException mapAsRuntimeException(final Throwable t) {
-        // shortcut: RTEs can be returned as-is
-        if (t instanceof RuntimeException) {
-            return (RuntimeException) t;
-        }
-
-        // for ExecutionExceptions, extract the cause
-        if (t instanceof ExecutionException && t.getCause() != null) {
-            return mapAsRuntimeException(t.getCause());
-        }
-
-        // wrap non-RTEs as IllegalStateException
-        return new IllegalStateException(t);
+        return done.toCompletableFuture().join();
     }
 
     protected final DittoMongoClient getClient() {

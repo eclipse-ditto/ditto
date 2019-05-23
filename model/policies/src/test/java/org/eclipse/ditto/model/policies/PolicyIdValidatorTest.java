@@ -46,10 +46,12 @@ public final class PolicyIdValidatorTest {
     }
 
     @Test
-    public void validationOfValidPolicyIdSucceedsWithEmptyNamespace() {
+    public void validationOfValidPolicyIdFailsWithEmptyNamespace() {
         final String policyIdWithoutPolicyName = ":test";
 
-        PolicyIdValidator.getInstance().accept(policyIdWithoutPolicyName, DittoHeaders.empty());
+        assertThatExceptionOfType(PolicyIdInvalidException.class)
+                .isThrownBy(() -> PolicyIdValidator.getInstance().accept(policyIdWithoutPolicyName, DittoHeaders.empty()))
+                .withNoCause();
     }
 
     @Test

@@ -51,10 +51,10 @@ public final class ImmutableSearchResultTest {
         final JsonArray items = JsonFactory.newArray("[1,2,3]");
         final long nextPageOffset = 10L;
 
-        final SearchResult searchResult = ImmutableSearchResult.of(items, nextPageOffset);
+        final SearchResult searchResult = ImmutableSearchResult.of(items, nextPageOffset, null);
 
         assertThat(searchResult.getItems()).isEqualTo(items);
-        assertThat(searchResult.getNextPageOffset()).isEqualTo(nextPageOffset);
+        assertThat(searchResult.getNextPageOffset()).contains(nextPageOffset);
         assertThat(searchResult.hasNextPage()).isTrue();
     }
 
@@ -65,22 +65,22 @@ public final class ImmutableSearchResultTest {
         assertThat(searchResult.isEmpty()).isTrue();
         assertThat(searchResult.getSize()).isZero();
         assertThat(searchResult.getItems()).isEqualTo(JsonFactory.newArray());
-        assertThat(searchResult.getNextPageOffset()).isEqualTo(SearchResult.NO_NEXT_PAGE);
+        assertThat(searchResult.getNextPageOffset()).contains(SearchResult.NO_NEXT_PAGE);
         assertThat(searchResult.hasNextPage()).isFalse();
     }
 
     @Test
     public void toJsonReturnsExpected() {
-        final JsonArray items = JsonFactory.newArrayBuilder() //
-                .add(1, 2, 3) //
+        final JsonArray items = JsonFactory.newArrayBuilder()
+                .add(1, 2, 3)
                 .build();
         final long nextPageOffset = 10L;
-        final JsonObject expected = JsonFactory.newObjectBuilder() //
-                .set(SearchResult.JsonFields.ITEMS, items) //
-                .set(SearchResult.JsonFields.NEXT_PAGE_OFFSET, nextPageOffset) //
+        final JsonObject expected = JsonFactory.newObjectBuilder()
+                .set(SearchResult.JsonFields.ITEMS, items)
+                .set(SearchResult.JsonFields.NEXT_PAGE_OFFSET, nextPageOffset)
                 .build();
 
-        final Jsonifiable underTest = ImmutableSearchResult.of(items, nextPageOffset);
+        final Jsonifiable underTest = ImmutableSearchResult.of(items, nextPageOffset, null);
 
         assertThat(underTest.toJson()).isEqualTo(expected);
     }
@@ -90,7 +90,7 @@ public final class ImmutableSearchResultTest {
         final String itemsArray = "[1,2,3]";
         final JsonArray items = JsonFactory.newArray(itemsArray);
         final long nextPageOffset = 10L;
-        final ImmutableSearchResult searchResult = ImmutableSearchResult.of(items, nextPageOffset);
+        final ImmutableSearchResult searchResult = ImmutableSearchResult.of(items, nextPageOffset, null);
 
         final String jsonStr = searchResult.toJsonString(FieldType.regularOrSpecial());
 
@@ -104,7 +104,7 @@ public final class ImmutableSearchResultTest {
         final String itemsArray = "[1,2,3]";
         final JsonArray items = JsonFactory.newArray(itemsArray);
         final long nextPageOffset = 10L;
-        final ImmutableSearchResult searchResult = ImmutableSearchResult.of(items, nextPageOffset);
+        final ImmutableSearchResult searchResult = ImmutableSearchResult.of(items, nextPageOffset, null);
 
         final String jsonStr = searchResult.toJsonString();
 
@@ -130,7 +130,7 @@ public final class ImmutableSearchResultTest {
         final SearchResult searchResult = ImmutableSearchResult.fromJson(jsonObject);
 
         assertThat(searchResult.getItems()).isEqualTo(JsonFactory.newArray(itemsArray));
-        assertThat(searchResult.getNextPageOffset()).isEqualTo(nextPageOffset);
+        assertThat(searchResult.getNextPageOffset()).contains(nextPageOffset);
     }
 
     @Test
@@ -148,7 +148,7 @@ public final class ImmutableSearchResultTest {
         final String itemsArray = "[1,2,3]";
         final JsonArray items = JsonFactory.newArray(itemsArray);
         final long nextPageOffset = 10L;
-        final ImmutableSearchResult searchResult = ImmutableSearchResult.of(items, nextPageOffset);
+        final ImmutableSearchResult searchResult = ImmutableSearchResult.of(items, nextPageOffset, null);
 
         final SearchResultBuilder searchResultBuilder = SearchResult.newBuilder()
                 .addAll(items)
@@ -162,7 +162,7 @@ public final class ImmutableSearchResultTest {
         final String itemsArray = "[1,2,3]";
         final JsonArray items = JsonFactory.newArray(itemsArray);
         final long nextPageOffset = 10L;
-        final ImmutableSearchResult searchResult = ImmutableSearchResult.of(items, nextPageOffset);
+        final ImmutableSearchResult searchResult = ImmutableSearchResult.of(items, nextPageOffset, null);
 
         DittoJsonAssertions.assertThat(searchResult).isEqualTo(searchResult.toBuilder().build());
     }

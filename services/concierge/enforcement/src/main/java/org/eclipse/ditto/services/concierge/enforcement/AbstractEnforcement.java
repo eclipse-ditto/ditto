@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.concierge.enforcement;
 
 import java.time.Duration;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
@@ -78,7 +79,12 @@ public abstract class AbstractEnforcement<T extends Signal> {
      * @return future after enforcement was performed.
      */
     public CompletionStage<Void> enforceSafely() {
-        return enforce().whenComplete(handleEnforcementCompletion());
+        try {
+            return enforce().whenComplete(handleEnforcementCompletion());
+        } catch (final DittoRuntimeException e) {
+            handleEnforcementCompletion().accept(null, e);
+            return CompletableFuture.completedFuture(null);
+        }
     }
 
     private BiConsumer<Void, Throwable> handleEnforcementCompletion() {

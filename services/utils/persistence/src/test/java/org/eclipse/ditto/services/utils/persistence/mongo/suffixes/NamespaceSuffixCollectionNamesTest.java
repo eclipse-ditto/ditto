@@ -99,4 +99,30 @@ public final class NamespaceSuffixCollectionNamesTest {
         assertThat(sanitizedString).doesNotEndWith(invalidInput);
     }
 
+    @Test(expected = NullPointerException.class)
+    public void validateMongoCharactersThrowsNullpointerExceptionWithoutConfig() {
+        final String persistenceId = "thing:org.eclipse.ditto:test:thing";
+
+        underTest.getSuffixFromPersistenceId(persistenceId);
+    }
+
+    @Test(expected = NamespaceSuffixCollectionNames.PersistenceIdInvalidException.class)
+    public void getSuffixFromPersistenceIdThrowsIllegalStateException() {
+        NamespaceSuffixCollectionNames.setConfig(new SuffixBuilderConfig(Collections.singletonList("thing")));
+        final String persistenceId = "thing:::::::";
+
+        underTest.getSuffixFromPersistenceId(persistenceId);
+    }
+
+    @Test
+    public void getSuffixFromPersistenceIdWithNamespaceAndOnlyColons() {
+        NamespaceSuffixCollectionNames.setConfig(new SuffixBuilderConfig(Collections.singletonList("thing")));
+        final String persistenceId = "thing:org.eclipse.ditto:::::::";
+
+        final String suffix = underTest.getSuffixFromPersistenceId(persistenceId);
+
+        final String expectedSuffix = "org.eclipse.ditto";
+        assertThat(suffix).isEqualTo(expectedSuffix);
+    }
+
 }

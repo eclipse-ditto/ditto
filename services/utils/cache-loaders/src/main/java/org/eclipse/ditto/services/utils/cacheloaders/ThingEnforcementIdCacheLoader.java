@@ -55,7 +55,7 @@ public final class ThingEnforcementIdCacheLoader implements AsyncCacheLoader<Ent
         final Function<Object, Entry<EntityId>> responseTransformer =
                 ThingEnforcementIdCacheLoader::handleSudoRetrieveThingResponse;
 
-        this.delegate =
+        delegate =
                 ActorAskCacheLoader.forShard(askTimeout, ThingCommand.RESOURCE_TYPE, shardRegionProxy, commandCreator,
                         responseTransformer);
     }

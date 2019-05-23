@@ -114,7 +114,7 @@ final class MongoSearchUpdaterFlow {
 
     private Source<BulkWriteResult, NotUsed> executeBulkWrite(final List<WriteModel<Document>> writeModel) {
         return Source.fromPublisher(collection.bulkWrite(writeModel, new BulkWriteOptions().ordered(false)))
-                .recoverWith(new PFBuilder<Throwable, Source<BulkWriteResult, NotUsed>>()
+                .recoverWithRetries(1, new PFBuilder<Throwable, Source<BulkWriteResult, NotUsed>>()
                         .match(MongoBulkWriteException.class, bulkWriteException -> {
                             log.info("Got MongoBulkWriteException; may ignore if all are duplicate key errors:",
                                     bulkWriteException);
