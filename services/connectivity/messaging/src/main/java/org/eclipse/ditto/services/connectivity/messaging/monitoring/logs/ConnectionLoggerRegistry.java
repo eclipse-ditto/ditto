@@ -140,7 +140,8 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
      * Checks if logging is still enabled for the given connection.
      *
      * @param connectionId the connection to check.
-     * @param timestamp the actual time. If timestamp is after enabledUntil -> deactivate logging.
+     * @param timestamp the actual time. If timestamp is after enabledUntil then deactivate logging.
+     * @return true if either the logging is not active anyway or the logging is expired.
      */
     public boolean loggingExpired(final String connectionId, final Instant timestamp) {
 
