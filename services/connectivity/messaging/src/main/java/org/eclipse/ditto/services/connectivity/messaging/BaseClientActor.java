@@ -741,7 +741,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         log.debug("Received checkLoggingActive message, check if Logging for connection <{}> is expired.",
                 connectionId);
 
-        if (this.connectionLoggerRegistry.loggingExpired(connectionId, timestamp)){
+        if (this.connectionLoggerRegistry.isLoggingExpired(connectionId, timestamp)){
             this.connectionLoggerRegistry.muteForConnection(connectionId);
             getSender().tell(LoggingExpired.of(connectionId), ActorRef.noSender());
         }
