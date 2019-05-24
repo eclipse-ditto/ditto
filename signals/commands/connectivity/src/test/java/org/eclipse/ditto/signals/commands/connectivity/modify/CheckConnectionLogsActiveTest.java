@@ -36,7 +36,7 @@ public final class CheckConnectionLogsActiveTest {
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(Command.JsonFields.TYPE, CheckConnectionLogsActive.TYPE)
             .set(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID, TestConstants.ID)
-            .set(CheckConnectionLogsActive.JsonFields.JSON_TIMESTAMP, TestConstants.TIMESTAMP)
+            .set(CheckConnectionLogsActive.JSON_TIMESTAMP, TestConstants.TIMESTAMP)
             .build();
 
     @Test
