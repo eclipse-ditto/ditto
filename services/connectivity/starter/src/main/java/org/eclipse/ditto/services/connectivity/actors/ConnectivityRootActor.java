@@ -167,7 +167,7 @@ public final class ConnectivityRootActor extends AbstractActor {
         final ActorRef healthCheckingActor = startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
                 DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions,
                         MongoHealthChecker.props(),
-                        MongoMetricsReporter.props(Duration.ofSeconds(5L), 6) // TODO: configure.
+                        MongoMetricsReporter.props(Duration.ofSeconds(5L), 6, pubSubMediator) // TODO: configure.
                 ));
 
         final Duration minBackoff = config.getDuration(ConfigKeys.Connection.SUPERVISOR_EXPONENTIAL_BACKOFF_MIN);

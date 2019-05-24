@@ -26,7 +26,9 @@ import org.eclipse.ditto.services.utils.health.StatusDetailMessage;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
 import org.eclipse.ditto.services.utils.metrics.mongo.MongoMetricsBuilder;
 
+import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -34,18 +36,22 @@ import akka.japi.pf.ReceiveBuilder;
  */
 public final class MongoMetricsReporter extends AbstractHealthCheckingActor {
 
+    private static final String ACTOR_NAME = MongoMetricsReporter.class.getSimpleName();
+
     private static final Tick TICK = new Tick();
 
     private final Duration resolution;
     private final int history;
     private final Deque<Long> maxTimerNanos;
 
-    private MongoMetricsReporter(final Duration resolution, final int history) {
+    private MongoMetricsReporter(final Duration resolution, final int history, final ActorRef pubSubMediator) {
         this.resolution = resolution;
         this.history = Math.max(1, history);
         maxTimerNanos = new ArrayDeque<>(history);
 
         getTimers().startPeriodicTimer(TICK, TICK, resolution);
+
+        subscribeForTopicWithoutGroup(pubSubMediator);
     }
 
     /**
@@ -55,14 +61,16 @@ public final class MongoMetricsReporter extends AbstractHealthCheckingActor {
      * @param history How many historical items to keep.
      * @return Props for creating healthMongo metrics reporters.
      */
-    public static Props props(final Duration resolution, final int history) {
-        return Props.create(MongoMetricsReporter.class, () -> new MongoMetricsReporter(resolution, history));
+    public static Props props(final Duration resolution, final int history, final ActorRef pubSubMediator) {
+        return Props.create(MongoMetricsReporter.class,
+                () -> new MongoMetricsReporter(resolution, history, pubSubMediator));
     }
 
     @Override
     protected Receive matchCustomMessages() {
         return ReceiveBuilder.create()
                 .matchEquals(TICK, this::tick)
+                .match(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck)
                 .build();
     }
 
@@ -94,6 +102,15 @@ public final class MongoMetricsReporter extends AbstractHealthCheckingActor {
             maxTimerNanos.removeLast();
         }
         maxTimerNanos.addFirst(nanos);
+    }
+
+    private void subscribeForTopicWithoutGroup(final ActorRef pubSubMediator) {
+        final Object subscribe = new DistributedPubSubMediator.Subscribe(ACTOR_NAME, getSelf());
+        pubSubMediator.tell(subscribe, getSelf());
+    }
+
+    private void subscribeAck(final DistributedPubSubMediator.SubscribeAck subscribeAck) {
+        log.info("Subscribed: {}", subscribeAck.subscribe());
     }
 
     private static final class Tick {}

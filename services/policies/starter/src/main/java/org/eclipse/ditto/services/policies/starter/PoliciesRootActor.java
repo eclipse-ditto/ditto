@@ -183,7 +183,7 @@ public final class PoliciesRootActor extends AbstractActor {
         final Props healthCheckingActorProps =
                 DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions,
                         MongoHealthChecker.props(),
-                        MongoMetricsReporter.props(Duration.ofSeconds(5L), 6) // TODO: configure.
+                        MongoMetricsReporter.props(Duration.ofSeconds(5L), 6, pubSubMediator) // TODO: configure.
                 );
         final ActorRef healthCheckingActor =
                 startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME, healthCheckingActorProps);

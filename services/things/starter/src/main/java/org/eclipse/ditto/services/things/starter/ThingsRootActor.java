@@ -182,7 +182,7 @@ final class ThingsRootActor extends AbstractActor {
         final ActorRef healthCheckingActor = startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
                 DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions,
                         MongoHealthChecker.props(),
-                        MongoMetricsReporter.props(Duration.ofSeconds(5L), 6) // TODO: configure.
+                        MongoMetricsReporter.props(Duration.ofSeconds(5L), 6, pubSubMediator) // TODO: configure.
                 ));
 
         final int tagsStreamingCacheSize = config.getInt(ConfigKeys.THINGS_TAGS_STREAMING_CACHE_SIZE);
