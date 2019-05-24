@@ -56,6 +56,7 @@ import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
+import akka.routing.ConsistentHashingRouter;
 
 /**
  * Actor which receives message from an AMQP source and forwards them to a {@code MessageMappingProcessorActor}.
@@ -162,7 +163,8 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                 log.debug("Received message from AMQP 1.0 ({}): {}", externalMessage.getHeaders(),
                         externalMessage.getTextPayload().orElse("binary"));
             }
-            messageMappingProcessor.forward(externalMessage, getContext());
+            final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(externalMessage, sourceAddress);
+            messageMappingProcessor.forward(msg, getContext());
         } catch (final DittoRuntimeException e) {
             inboundCounter.recordFailure();
             log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());

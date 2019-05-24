@@ -35,6 +35,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
+import akka.routing.ConsistentHashingRouter;
 import akka.stream.alpakka.mqtt.MqttMessage;
 
 /**
@@ -122,7 +123,9 @@ public final class MqttConsumerActor extends BaseConsumerActor {
                     .withSourceAddress(sourceAddress)
                     .build();
             inboundCounter.recordSuccess();
-            messageMappingProcessor.tell(externalMessage, getSelf());
+
+            final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(externalMessage, message.topic());
+            messageMappingProcessor.tell(msg, getSelf());
             replyStreamAck();
         } catch (final Exception e) {
             inboundCounter.recordFailure();

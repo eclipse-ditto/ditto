@@ -51,6 +51,7 @@ import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
+import akka.routing.ConsistentHashingRouter;
 
 
 /**
@@ -142,7 +143,8 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
             externalMessageBuilder.withSourceAddress(sourceAddress);
             final ExternalMessage externalMessage = externalMessageBuilder.build();
             inboundCounter.recordSuccess();
-            messageMappingProcessor.forward(externalMessage, getContext());
+            final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(externalMessage, sourceAddress);
+            messageMappingProcessor.forward(msg, getContext());
         } catch (final DittoRuntimeException e) {
             log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage(), e);
             inboundCounter.recordFailure();
