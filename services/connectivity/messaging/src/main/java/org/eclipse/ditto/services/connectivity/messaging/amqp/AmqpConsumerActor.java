@@ -171,7 +171,9 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
             if (headers != null) {
                 // forwarding to messageMappingProcessor only make sense if we were able to extract the headers,
                 // because we need a reply-to address to send the error response
-                messageMappingProcessor.forward(e.setDittoHeaders(DittoHeaders.of(headers)), getContext());
+                final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(
+                        e.setDittoHeaders(DittoHeaders.of(headers)), sourceAddress);
+                messageMappingProcessor.forward(msg, getContext());
             }
         } catch (final Exception e) {
             inboundCounter.recordFailure();

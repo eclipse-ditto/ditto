@@ -150,7 +150,9 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
             inboundCounter.recordFailure();
             if (headers != null) {
                 // send response if headers were extracted successfully
-                messageMappingProcessor.forward(e.setDittoHeaders(DittoHeaders.of(headers)), getContext());
+                final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(
+                        e.setDittoHeaders(DittoHeaders.of(headers)), sourceAddress);
+                messageMappingProcessor.forward(msg, getContext());
             }
         } catch (final Exception e) {
             log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage(), e);

@@ -46,8 +46,8 @@ import org.mockito.Mockito;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
+import akka.routing.ConsistentHashingPool;
 import akka.routing.DefaultResizer;
-import akka.routing.RoundRobinPool;
 import akka.testkit.javadsl.TestKit;
 
 /**
@@ -142,13 +142,7 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
                             .getProperties()
             );
 
-            final MessageMappingProcessor mappingProcessor = getMessageMappingProcessor(mappingContext);
-
-            final Props messageMappingProcessorProps =
-                    MessageMappingProcessorActor.props(getRef(), getRef(), mappingProcessor, CONNECTION_ID);
-
-            final ActorRef processor = actorSystem.actorOf(messageMappingProcessorProps,
-                    MessageMappingProcessorActor.ACTOR_NAME + "-plainStringMappingTest");
+            final ActorRef processor = setupActor(getRef(), getRef(), mappingContext);
 
             final Source source = Mockito.mock(Source.class);
             Mockito.when(source.getAuthorizationContext())
@@ -207,7 +201,7 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
 
         final DefaultResizer resizer = new DefaultResizer(1, 5);
 
-        return actorSystem.actorOf(new RoundRobinPool(2)
+        return actorSystem.actorOf(new ConsistentHashingPool(2)
                         .withDispatcher("message-mapping-processor-dispatcher")
                         .withResizer(resizer)
                         .props(messageMappingProcessorProps),
@@ -219,13 +213,7 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
         new TestKit(actorSystem) {{
 
             final ActorRef testActor = getTestActor();
-            final MessageMappingProcessor mappingProcessor = getMessageMappingProcessor(null);
-
-            final Props messageMappingProcessorProps =
-                    MessageMappingProcessorActor.props(testActor, testActor, mappingProcessor, CONNECTION_ID);
-
-            final ActorRef processor = actorSystem.actorOf(messageMappingProcessorProps,
-                    MessageMappingProcessorActor.ACTOR_NAME + "-jmsMessageWithNullPropertyAndNullContentTypeTest");
+            final ActorRef processor = setupActor(testActor, testActor, null);
 
             final Source source = Mockito.mock(Source.class);
             Mockito.when(source.getAuthorizationContext())
