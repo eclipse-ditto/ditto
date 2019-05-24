@@ -51,8 +51,6 @@ import org.junit.Test;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorRef;
-
 /**
  * Unit test for {@link ConnectionLoggerRegistry}.
  */
@@ -63,6 +61,10 @@ public final class ConnectionLoggerRegistryTest {
 
     private final ConnectionLoggerRegistry underTest =
             ConnectionLoggerRegistry.fromConfig(TestConstants.Monitoring.MONITORING_CONFIG_READER.logger());
+
+    private final Duration moreThanLoggingDuration =
+            TestConstants.Monitoring.MONITORING_CONFIG_READER.logger().logDuration()
+                    .plusMinutes(1);
 
     @Test
     public void addsLoggerToRegistryOnRetrieve() {
@@ -130,33 +132,45 @@ public final class ConnectionLoggerRegistryTest {
     }
 
     @Test
-    public void isStillActiveForConnection() {
+    public void isLoggingExpiredIsTrueByDefault() {
         final String connectionId = connectionId();
         underTest.initForConnection(connection(connectionId));
-        assertThat(underTest.isActiveForConnection(connectionId)).isFalse();
 
-        underTest.unmuteForConnection(connectionId);
-        assertThat(underTest.isActiveForConnection(connectionId)).isTrue();
-
-        assertThat(underTest.loggingExpired(connectionId, Instant.now())).isFalse();
-        assertThat(underTest.isActiveForConnection(connectionId)).isTrue();
+        assertThat(underTest.isLoggingExpired(connectionId, Instant.now())).isTrue();
     }
 
     @Test
-    public void isTerminatedForConnectionDueToExpiredEnabledUntil() {
+    public void isLoggingExpiredIsFalseForCurrentTimestamp() {
         final String connectionId = connectionId();
         underTest.initForConnection(connection(connectionId));
-        assertThat(underTest.isActiveForConnection(connectionId)).isFalse();
 
         underTest.unmuteForConnection(connectionId);
-        assertThat(underTest.isActiveForConnection(connectionId)).isTrue();
 
-        final Instant twentyFourHoursFromNow = Instant.now().plus(Duration.ofDays(1));
+        assertThat(underTest.isLoggingExpired(connectionId, Instant.now())).isFalse();
+    }
 
-        if (underTest.loggingExpired(connectionId, twentyFourHoursFromNow)) {
-            underTest.muteForConnection(connectionId);
-        }
-        assertThat(underTest.isActiveForConnection(connectionId)).isFalse();
+    @Test
+    public void isLoggingExpiredIsTrueForFutureTimestamp() {
+        final String connectionId = connectionId();
+        underTest.initForConnection(connection(connectionId));
+
+        underTest.unmuteForConnection(connectionId);
+
+        assertThat(underTest.isLoggingExpired(connectionId, Instant.now().plus(moreThanLoggingDuration))).isTrue();
+    }
+
+    @Test
+    public void isLoggingExpiredIsTrueAfterMutingConnections() {
+        final String connectionId = connectionId();
+        underTest.initForConnection(connection(connectionId));
+
+        underTest.unmuteForConnection(connectionId);
+
+        assertThat(underTest.isLoggingExpired(connectionId, Instant.now())).isFalse();
+
+        underTest.muteForConnection(connectionId);
+
+        assertThat(underTest.isLoggingExpired(connectionId, Instant.now())).isTrue();
     }
 
     @Test
@@ -208,14 +222,16 @@ public final class ConnectionLoggerRegistryTest {
     }
 
     private ConnectionMonitor.InfoProvider randomInfoProvider() {
-        return InfoProviderFactory.forHeaders(DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build());
+        return InfoProviderFactory.forHeaders(
+                DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build());
     }
 
     @Test
     public void usesCorrectCapacitiesFromConfig() {
         final int successCapacity = 2;
         final int failureCapacity = 1;
-        final MonitoringConfigReader.MonitoringLoggerConfigReader specialConfig = configWithCapacities(successCapacity, failureCapacity);
+        final MonitoringConfigReader.MonitoringLoggerConfigReader specialConfig =
+                configWithCapacities(successCapacity, failureCapacity);
         final ConnectionLoggerRegistry specialLoggerRegistry = ConnectionLoggerRegistry.fromConfig(specialConfig);
 
         final String connectionId = connectionId();
@@ -240,7 +256,7 @@ public final class ConnectionLoggerRegistryTest {
     }
 
     private long countByLevel(final Collection<LogEntry> logEntries, final LogLevel level) {
-       return logEntries.stream()
+        return logEntries.stream()
                 .map(LogEntry::getLogLevel)
                 .filter(level::equals)
                 .count();
@@ -252,7 +268,8 @@ public final class ConnectionLoggerRegistryTest {
                 .forEach(i -> logger.accept(randomInfoProvider()));
     }
 
-    private MonitoringConfigReader.MonitoringLoggerConfigReader configWithCapacities(final int successCapacity, final int failureCapacity) {
+    private MonitoringConfigReader.MonitoringLoggerConfigReader configWithCapacities(final int successCapacity,
+            final int failureCapacity) {
         final Map<String, Object> loggerEntries = new HashMap<>();
         loggerEntries.put("successCapacity", successCapacity);
         loggerEntries.put("failureCapacity", failureCapacity);
@@ -320,8 +337,10 @@ public final class ConnectionLoggerRegistryTest {
 
     private Connection connection(final String connectionId) {
         final Source source = ConnectivityModelFactory.newSource(
-                AuthorizationContext.newInstance(AuthorizationSubject.newInstance("integration:solution:dummy")), "a:b");
-        return ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.AMQP_10, ConnectivityStatus.CLOSED, "amqp://uri:5672")
+                AuthorizationContext.newInstance(AuthorizationSubject.newInstance("integration:solution:dummy")),
+                "a:b");
+        return ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.AMQP_10,
+                ConnectivityStatus.CLOSED, "amqp://uri:5672")
                 .sources(Collections.singletonList(source))
                 .build();
     }

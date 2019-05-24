@@ -32,7 +32,6 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.LogCategory;
 import org.eclipse.ditto.model.connectivity.LogEntry;
@@ -44,11 +43,6 @@ import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.connectivity.util.MonitoringConfigReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import akka.AkkaException;
-import akka.actor.ActorRef;
-
-import org.eclipse.ditto.signals.commands.connectivity.modify.CheckConnectionLogsActive;
 
 /**
  * This registry holds loggers for the connectivity service. The loggers are identified by the connection ID, a {@link
@@ -137,20 +131,15 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     }
 
     /**
-     * Checks if logging is still enabled for the given connection.
+     * Checks if logging is expired for the given connection.
      *
      * @param connectionId the connection to check.
      * @param timestamp the actual time. If timestamp is after enabledUntil then deactivate logging.
      * @return true if either the logging is not active anyway or the logging is expired.
      */
-    public boolean loggingExpired(final String connectionId, final Instant timestamp) {
-
-        if (!isActiveForConnection(connectionId)) {
-            return false;
-        }
-
+    public boolean isLoggingExpired(final String connectionId, final Instant timestamp) {
         final Instant enabledUntil = getMetadata(connectionId).getEnabledUntil();
-        if (enabledUntil != null && timestamp.isAfter(enabledUntil)) {
+        if (enabledUntil == null || timestamp.isAfter(enabledUntil)) {
             LOGGER.debug("Logging for connection <{}> expired.", connectionId);
             return true;
         }
