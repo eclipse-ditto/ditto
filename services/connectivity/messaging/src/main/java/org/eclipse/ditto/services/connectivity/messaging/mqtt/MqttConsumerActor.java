@@ -109,7 +109,10 @@ public final class MqttConsumerActor extends BaseConsumerActor {
 
     private void handleMqttMessage(final MqttMessage message) {
         try {
-            log.debug("Received MQTT message on topic {}: {}", message.topic(), message.payload().utf8String());
+            if (log.isDebugEnabled()) {
+                log.debug("Received MQTT message on topic <{}>: {}", message.topic(),
+                        message.payload().utf8String());
+            }
             final HashMap<String, String> headers = new HashMap<>();
             headers.put(MQTT_TOPIC_HEADER, message.topic());
             final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers)
