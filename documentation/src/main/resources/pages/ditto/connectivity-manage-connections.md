@@ -143,6 +143,9 @@ The following commands are available to help creating connections and retrieving
 * [retrieve connection status](#retrieve-connection-status)
 * [retrieve connection metrics](#retrieve-connection-metrics)
 * [reset connection metrics](#reset-connection-metrics)
+* [enable connection logs](#enable-connection-logs)
+* [retrieve connection logs](#retrieve-connection-logs)
+* [reset connection logs](#reset-connection-logs)
 
 ### Test connection
 
@@ -222,6 +225,74 @@ necessary for retrieving the connection metrics is the `connectionId`:
         "type": "connectivity.commands:resetConnectionMetrics",
         "connectionId":"<connectionID>"
     }
+}
+```
+
+### Enable connection logs
+
+Enables the connection logging feature for a connection for 24 hours.
+As soon as connection logging is enabled, you will be able to [retrieve connection logs](#retrieve-connection-logs). The
+logs will contain a fixed amount of success and failure logs for each source and target of your connection and correlate
+with the metrics of the connection. This will allow you more insight in what goes and and more importantly what goes wrong.
+
+The default duration and the maximum amount of logs stored for one connection can be configured in Dittos connectivity service
+configuration.
+
+```json
+{
+
+    "targetActorSelection": "/system/sharding/connection",
+    "headers": {
+        "aggregate": false
+    },
+    "piggybackCommand":{
+		"type": "connectivity.commands:enableConnectionLogs",
+		"connectionId": "<connectionID>"
+	}
+}
+```
+
+### Retrieve connection logs
+
+This command will return a list of success and failure log entries containing information on messages processed by the
+connection. The logs have a maximum amount of entries that they can hold. If the connection produces more log entries,
+the older entries will be dropped. So keep in mind that you might miss some of the log entries.
+ 
+The response will also provide information on how long the logging feature will still be enabled. Since the timer will
+always be reset when retrieving the logs, the timestamp will always be 24 hours from now.
+
+The default duration and the maximum amount of logs stored for one connection can be configured in Dittos connectivity service
+configuration.
+
+```json
+{
+
+    "targetActorSelection": "/system/sharding/connection",
+    "headers": {
+        "aggregate": false
+    },
+    "piggybackCommand":{
+		"type": "connectivity.commands:retrieveConnectionLogs",
+		"connectionId": "<connectionID>"
+	}
+}
+```
+
+### Reset connection logs
+
+Clears all currently stored connection logs.
+
+```json
+{
+
+    "targetActorSelection": "/system/sharding/connection",
+    "headers": {
+        "aggregate": false
+    },
+    "piggybackCommand":{
+		"type": "connectivity.commands:resetConnectionLogs",
+		"connectionId": "<connectionID>"
+	}
 }
 ```
 
