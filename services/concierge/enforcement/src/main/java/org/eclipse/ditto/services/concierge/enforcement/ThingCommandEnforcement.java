@@ -697,21 +697,20 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
         final ThingCommand thingCommand = transformModifyThingToCreateThing(signal());
         if (thingCommand instanceof CreateThing) {
-            final CompletionStage<CreateThing> createThingFuture =
-                    replaceInitialPolicyWithCopiedPolicyIfPresent((CreateThing) thingCommand);
-            return createThingFuture.thenApply(createThing -> {
-                final Optional<JsonObject> initialPolicyOptional = createThing.getInitialPolicy();
-                if (initialPolicyOptional.isPresent()) {
-                    return enforceCreateThingByOwnInlinedPolicy(createThing, initialPolicyOptional.get())
-                            .orElse(null);
-                } else {
-                    final Optional<AccessControlList> aclOptional =
-                            createThing.getThing().getAccessControlList().filter(acl -> !acl.isEmpty());
-                    return aclOptional.map(aclEntries -> enforceCreateThingByOwnAcl(createThing, aclEntries))
-                            .orElseGet(() -> enforceCreateThingByAuthorizationContext(createThing))
-                            .orElse(null);
-                }
-            });
+            return replaceInitialPolicyWithCopiedPolicyIfPresent((CreateThing) thingCommand)
+                    .thenApply(createThing -> {
+                        final Optional<JsonObject> initialPolicyOptional = createThing.getInitialPolicy();
+                        if (initialPolicyOptional.isPresent()) {
+                            return enforceCreateThingByOwnInlinedPolicy(createThing, initialPolicyOptional.get())
+                                    .orElse(null);
+                        } else {
+                            final Optional<AccessControlList> aclOptional =
+                                    createThing.getThing().getAccessControlList().filter(acl -> !acl.isEmpty());
+                            return aclOptional.map(aclEntries -> enforceCreateThingByOwnAcl(createThing, aclEntries))
+                                    .orElseGet(() -> enforceCreateThingByAuthorizationContext(createThing))
+                                    .orElse(null);
+                        }
+                    });
         } else {
             // Other commands cannot be authorized by ACL or policy contained in self.
             final DittoRuntimeException error =
@@ -726,9 +725,11 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
     private CompletionStage<CreateThing> replaceInitialPolicyWithCopiedPolicyIfPresent(final CreateThing createThing) {
 
-        return getInitialPolicyOrCopiedPolicy(createThing).thenApply(initialPolicyOrCopiedPolicy ->
-                CreateThing.of(createThing.getThing(), initialPolicyOrCopiedPolicy, createThing.getDittoHeaders())
-        );
+        return getInitialPolicyOrCopiedPolicy(createThing)
+                .thenApply(initialPolicyOrCopiedPolicy ->
+                        CreateThing.of(createThing.getThing(), initialPolicyOrCopiedPolicy,
+                                createThing.getDittoHeaders())
+                );
     }
 
     private CompletionStage<JsonObject> getInitialPolicyOrCopiedPolicy(final CreateThing createThing) {

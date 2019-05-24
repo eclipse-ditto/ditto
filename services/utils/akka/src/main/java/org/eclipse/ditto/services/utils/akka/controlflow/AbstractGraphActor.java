@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.utils.akka.controlflow;
 
+import java.util.Optional;
+
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -41,6 +43,11 @@ import akka.stream.javadsl.SourceQueueWithComplete;
  * Actor whose behavior is defined entirely by an Akka stream graph.
  */
 public abstract class AbstractGraphActor<T> extends AbstractActor {
+
+    /**
+     * Header field for marking that a wrapped Signal must be processed in a special enforcement lane.
+     */
+    public static final String DITTO_INTERNAL_SPECIAL_ENFORCEMENT_LANE = "ditto-internal-special-enforcement-lane";
 
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -172,25 +179,44 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
     private static <T> Flow<T, T, NotUsed> partitionById(final Flow<T, T, NotUsed> flowToPartition,
             final int parallelism) {
 
+        final int parallelismWithSpecialLane = parallelism + 1;
+
         return Flow.fromGraph(GraphDSL.create(
-                Partition.<T>create(parallelism, msg -> {
+                Partition.<T>create(parallelismWithSpecialLane, msg -> {
+                    if (checkForSpecialLane(msg))
+                        return 0; // 0 is a special "lane" which is required in some special cases
                     if (msg instanceof WithId) {
-                        return Math.abs(((WithId) msg).getId().hashCode() % parallelism);
+                        return Math.abs(((WithId) msg).getId().hashCode() % parallelism) + 1;
                     } else {
-                        return Math.abs(msg.hashCode() % parallelism);
+                        return 0;
                     }
                 }),
-                Merge.<T>create(parallelism, true),
+                Merge.<T>create(parallelismWithSpecialLane, true),
 
                 (nA, nB) -> nA,
                 (builder, partition, merge) -> {
-                    for (int i = 0; i < parallelism; i++) {
+                    for (int i = 0; i < parallelismWithSpecialLane; i++) {
                         builder.from(partition.out(i))
                                 .via(builder.add(flowToPartition))
                                 .toInlet(merge.in(i));
                     }
                     return FlowShape.of(partition.in(), merge.out());
                 }));
+    }
+
+    /**
+     * Checks whether a special lane is required for the passed {@code msg}. This is for example required when during
+     * an enforcement another call to the enforcer is done, the hash of the 2 messages might collide and block
+     * each other.
+     *
+     * @param msg the message to check for whether to use the special lane.
+     * @param <T> the type of the message
+     * @return whether to use the special lane or not.
+     */
+    private static <T> boolean checkForSpecialLane(final T msg) {
+        return msg instanceof WithDittoHeaders && Optional.ofNullable(((WithDittoHeaders) msg).getDittoHeaders()
+                        .get(DITTO_INTERNAL_SPECIAL_ENFORCEMENT_LANE))
+                        .isPresent();
     }
 
     /**
