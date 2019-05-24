@@ -344,6 +344,25 @@ public final class ImmutableDittoHeadersTest {
         assertThat(underTest.isEntriesSizeGreaterThan(comparisonSize)).isTrue();
     }
 
+    @Test
+    public void truncateLargeHeaders() {
+        final HashMap<String, String> oversizeMap = new HashMap<>();
+        oversizeMap.put("k", ""); // header size=1, total size=1
+        oversizeMap.put("m", "1"); // header size=2, total size=3
+        oversizeMap.put("f", "12"); // header size=3, total size=6
+        oversizeMap.put("d", "123"); // header size=4, total size=10
+        oversizeMap.put("M", "1234"); // header size=5, total size=15
+        final DittoHeaders oversizeHeaders = ImmutableDittoHeaders.of(oversizeMap);
+
+        final DittoHeaders truncatedHeaders = oversizeHeaders.truncate(8L);
+
+        final Map<String, String> expected = new HashMap<>(oversizeMap);
+        expected.remove("d");
+        expected.remove("M");
+
+        assertThat(truncatedHeaders).isEqualTo(expected);
+    }
+
     private static Map<String, String> createMapContainingAllKnownHeaders() {
         final Map<String, String> result = new HashMap<>();
         result.put(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), toJsonArray(AUTH_SUBJECTS).toString());
