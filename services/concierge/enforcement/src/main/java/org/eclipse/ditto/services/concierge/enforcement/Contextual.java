@@ -19,6 +19,7 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
 import org.eclipse.ditto.services.utils.cache.Cache;
@@ -35,7 +36,7 @@ import akka.event.DiagnosticLoggingAdapter;
 /**
  * A message together with contextual information about the actor processing it.
  */
-public final class Contextual<T extends WithDittoHeaders> implements WithSender<T>, WithId {
+public final class Contextual<T extends WithDittoHeaders> implements WithSender<T>, WithId, WithDittoHeaders<T> {
 
     @Nullable
     private final T message;
@@ -110,6 +111,24 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
             return String.valueOf(message.hashCode());
         } else {
             return "";
+        }
+    }
+
+    @Override
+    public DittoHeaders getDittoHeaders() {
+        if (message != null) {
+            return message.getDittoHeaders();
+        } else {
+            return DittoHeaders.empty();
+        }
+    }
+
+    @Override
+    public T setDittoHeaders(final DittoHeaders dittoHeaders) {
+        if (message != null) {
+            return (T) message.setDittoHeaders(dittoHeaders);
+        } else {
+            return null;
         }
     }
 
@@ -221,4 +240,5 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
                 ", responseReceivers=" + responseReceivers +
                 "]";
     }
+
 }

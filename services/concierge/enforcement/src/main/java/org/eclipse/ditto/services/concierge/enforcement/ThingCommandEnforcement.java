@@ -17,6 +17,7 @@ import static org.eclipse.ditto.model.things.Permission.ADMINISTRATE;
 import static org.eclipse.ditto.services.models.policies.Permission.MIN_REQUIRED_POLICY_PERMISSIONS;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -69,6 +70,7 @@ import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.models.policies.PoliciesAclMigrations;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.EntityId;
 import org.eclipse.ditto.services.utils.cache.InvalidateCacheEntry;
@@ -757,7 +759,11 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
     private CompletionStage<Policy> retrievePolicyWithEnforcement(final String policyId) {
 
-        return Patterns.ask(conciergeForwarder(), RetrievePolicy.of(policyId, dittoHeaders()), getAskTimeout())
+        final HashMap<String, String> enhancedMap = new HashMap<>(dittoHeaders());
+        enhancedMap.put(AbstractGraphActor.DITTO_INTERNAL_SPECIAL_ENFORCEMENT_LANE, "true");
+        final DittoHeaders adjustedHeaders = DittoHeaders.of(enhancedMap);
+
+        return Patterns.ask(conciergeForwarder(), RetrievePolicy.of(policyId, adjustedHeaders), getAskTimeout())
                 .thenApply(response -> {
                     if (response instanceof RetrievePolicyResponse) {
                         return ((RetrievePolicyResponse) response).getPolicy();
