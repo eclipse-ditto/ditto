@@ -55,6 +55,10 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
+    protected static final JsonFieldDefinition<String> JSON_TIMESTAMP =
+            JsonFactory.newStringFieldDefinition("timestamp", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
+
     private final String connectionId;
     private final Instant timestamp;
 
@@ -130,7 +134,7 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
                     jsonObject.getValueOrThrow(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID);
             final Instant readTimeStamp =
                     getTimestampAsInstant(
-                            jsonObject.getValueOrThrow(JsonFields.JSON_TIMESTAMP));
+                            jsonObject.getValueOrThrow(JSON_TIMESTAMP));
             return of(readConnectionId, readTimeStamp, dittoHeaders);
         });
     }
@@ -141,7 +145,7 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
                     jsonObject.getValueOrThrow(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID);
             final Instant readTimeStamp =
                     getTimestampAsInstant(
-                            jsonObject.getValueOrThrow(JsonFields.JSON_TIMESTAMP));
+                            jsonObject.getValueOrThrow(JSON_TIMESTAMP));
             return of(readConnectionId, readTimeStamp);
         });
     }
@@ -159,7 +163,7 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID, connectionId, predicate);
-        jsonObjectBuilder.set(JsonFields.JSON_TIMESTAMP, timestamp.toString(), predicate);
+        jsonObjectBuilder.set(JSON_TIMESTAMP, timestamp.toString(), predicate);
 
     }
 
@@ -169,7 +173,7 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
     }
 
     public Instant getTimestamp() {
-        return this.timestamp;
+        return timestamp;
     }
 
     @Override
@@ -214,27 +218,5 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
                 "connectionId=" + connectionId +
                 ", timestamp=" + timestamp +
                 "]";
-    }
-
-
-    /**
-     * This class contains common definitions for all fields of a {@code Command}'s JSON representation.
-     * Implementation of {@code Command} may add additional fields by extending this class.
-     */
-    @Immutable
-    abstract static class JsonFields {
-
-        /**
-         * JSON field containing the command's identification as String.
-         */
-        protected static final JsonFieldDefinition<String> JSON_TIMESTAMP =
-                JsonFactory.newStringFieldDefinition("command", FieldType.REGULAR, JsonSchemaVersion.V_1);
-
-        /**
-         * Constructs a new {@code JsonFields} object.
-         */
-        protected JsonFields() {
-            super();
-        }
     }
 }
