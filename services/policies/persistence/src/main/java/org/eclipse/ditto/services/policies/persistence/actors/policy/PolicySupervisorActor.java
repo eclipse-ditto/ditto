@@ -26,7 +26,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.services.base.actors.ShutdownNamespaceBehavior;
+import org.eclipse.ditto.services.base.actors.ShutdownBehaviour;
 import org.eclipse.ditto.services.policies.persistence.actors.AbstractReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.ReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.StrategyAwareReceiveBuilder;
@@ -54,7 +54,7 @@ import scala.concurrent.duration.FiniteDuration;
  * Between the termination of the child and the restart, this actor answers to all requests with a {@link
  * PolicyUnavailableException} as fail fast strategy.
  */
-public class PolicySupervisorActor extends AbstractActor {
+public final class PolicySupervisorActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -64,7 +64,7 @@ public class PolicySupervisorActor extends AbstractActor {
     private final Duration maxBackoff;
     private final double randomFactor;
     private final SupervisorStrategy supervisorStrategy;
-    private final ShutdownNamespaceBehavior shutdownNamespaceBehavior;
+    private final ShutdownBehaviour shutdownBehaviour;
 
     private ActorRef child;
     private long restartCount;
@@ -87,7 +87,7 @@ public class PolicySupervisorActor extends AbstractActor {
         this.randomFactor = randomFactor;
         this.supervisorStrategy = supervisorStrategy;
 
-        shutdownNamespaceBehavior = ShutdownNamespaceBehavior.fromId(policyId, pubSubMediator, getSelf());
+        shutdownBehaviour = ShutdownBehaviour.fromId(policyId, pubSubMediator, getSelf());
     }
 
     /**
@@ -154,7 +154,7 @@ public class PolicySupervisorActor extends AbstractActor {
         receiveStrategies.forEach(strategyAwareReceiveBuilder::match);
         strategyAwareReceiveBuilder.matchAny(new MatchAnyStrategy());
 
-        return shutdownNamespaceBehavior.createReceive().build().orElse(strategyAwareReceiveBuilder.build());
+        return shutdownBehaviour.createReceive().build().orElse(strategyAwareReceiveBuilder.build());
     }
 
     private Optional<ActorRef> getChild() {

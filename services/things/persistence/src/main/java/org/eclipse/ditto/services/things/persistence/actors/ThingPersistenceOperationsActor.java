@@ -17,6 +17,7 @@ import java.util.Collections;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.AbstractPersistenceOperationsActor;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.NamespacePersistenceOperations;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.PersistenceOperationsConfiguration;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEventSourceSettings;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoNamespacePersistenceOperations;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
@@ -38,10 +39,17 @@ public final class ThingPersistenceOperationsActor extends AbstractPersistenceOp
 
     private ThingPersistenceOperationsActor(final ActorRef pubSubMediator,
             final NamespacePersistenceOperations namespaceOps,
-            final MongoClientWrapper mongoClientWrapper) {
+            final MongoClientWrapper mongoClientWrapper,
+            final PersistenceOperationsConfiguration persistenceOperationsConfiguration) {
 
-        super(pubSubMediator, ThingCommand.RESOURCE_TYPE, namespaceOps, null,
-                Collections.singleton(mongoClientWrapper));
+        super(
+                pubSubMediator,
+                ThingCommand.RESOURCE_TYPE,
+                namespaceOps,
+                null,
+                Collections.singleton(mongoClientWrapper),
+                persistenceOperationsConfiguration
+        );
     }
 
     /**
@@ -61,8 +69,15 @@ public final class ThingPersistenceOperationsActor extends AbstractPersistenceOp
             final MongoDatabase db = mongoClient.getDefaultDatabase();
 
             final NamespacePersistenceOperations namespaceOps = MongoNamespacePersistenceOperations.of(db, eventSourceSettings);
+            final PersistenceOperationsConfiguration persistenceOperationsConfiguration =
+                    PersistenceOperationsConfiguration.fromConfig(config);
 
-            return new ThingPersistenceOperationsActor(pubSubMediator, namespaceOps, mongoClient);
+            return new ThingPersistenceOperationsActor(
+                    pubSubMediator,
+                    namespaceOps,
+                    mongoClient,
+                    persistenceOperationsConfiguration
+            );
         });
     }
 

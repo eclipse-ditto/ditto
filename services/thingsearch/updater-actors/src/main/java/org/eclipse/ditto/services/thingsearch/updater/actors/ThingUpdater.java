@@ -19,11 +19,12 @@ import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.Objects;
 
-import org.eclipse.ditto.services.base.actors.ShutdownNamespaceBehavior;
+import org.eclipse.ditto.services.base.actors.ShutdownBehaviour;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.streaming.IdentifiableStreamingMessage;
 import org.eclipse.ditto.services.models.things.ThingTag;
+import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
@@ -36,8 +37,6 @@ import akka.actor.ReceiveTimeout;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.event.Logging;
 
-import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
-
 /**
  * This Actor initiates persistence updates related to 1 thing.
  */
@@ -46,7 +45,7 @@ final class ThingUpdater extends AbstractActor {
     private final DiagnosticLoggingAdapter log = Logging.apply(this);
 
     private final String thingId;
-    private final ShutdownNamespaceBehavior shutdownNamespaceBehavior;
+    private final ShutdownBehaviour shutdownBehaviour;
     private final ActorRef changeQueueActor;
 
     // state of Thing and Policy
@@ -59,7 +58,7 @@ final class ThingUpdater extends AbstractActor {
             final java.time.Duration maxIdleTime) {
 
         thingId = tryToGetThingId();
-        shutdownNamespaceBehavior = ShutdownNamespaceBehavior.fromId(thingId, pubSubMediator, getSelf());
+        shutdownBehaviour = ShutdownBehaviour.fromId(thingId, pubSubMediator, getSelf());
         this.changeQueueActor = changeQueueActor;
 
         getContext().setReceiveTimeout(maxIdleTime);
@@ -83,7 +82,7 @@ final class ThingUpdater extends AbstractActor {
 
     @Override
     public Receive createReceive() {
-        return shutdownNamespaceBehavior.createReceive()
+        return shutdownBehaviour.createReceive()
                 .match(ThingEvent.class, this::processThingEvent)
                 .match(ThingTag.class, this::processThingTag)
                 .match(PolicyReferenceTag.class, this::processPolicyReferenceTag)

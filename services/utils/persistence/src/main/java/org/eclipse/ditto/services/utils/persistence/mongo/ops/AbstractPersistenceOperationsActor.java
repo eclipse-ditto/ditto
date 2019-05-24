@@ -16,6 +16,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -24,6 +25,9 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.signals.commands.common.Shutdown;
+import org.eclipse.ditto.signals.commands.common.ShutdownReason;
+import org.eclipse.ditto.signals.commands.common.ShutdownReasonFactory;
 import org.eclipse.ditto.signals.commands.common.purge.PurgeEntities;
 import org.eclipse.ditto.signals.commands.common.purge.PurgeEntitiesResponse;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespace;
@@ -59,6 +63,8 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
     private final ActorMaterializer materializer;
     private final List<Closeable> toCloseWhenStopped;
 
+    private final Duration delayAfterPersistenceActorShutdown;
+
     /**
      * Create a new instance of this actor.
      *
@@ -71,7 +77,9 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
     protected AbstractPersistenceOperationsActor(final ActorRef pubSubMediator, final String resourceType,
             @Nullable final NamespacePersistenceOperations namespaceOps,
             @Nullable final EntityPersistenceOperations entitiesOps,
-            final Collection<Closeable> toCloseWhenStopped) {
+            final Collection<Closeable> toCloseWhenStopped,
+            final PersistenceOperationsConfiguration persistenceOperationsConfiguration) {
+
         this.pubSubMediator = requireNonNull(pubSubMediator);
         this.resourceType = requireNonNull(resourceType);
         if (namespaceOps == null && entitiesOps == null) {
@@ -81,6 +89,7 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
         this.entitiesOps = entitiesOps;
         this.toCloseWhenStopped = Collections.unmodifiableList(new ArrayList<>(requireNonNull(toCloseWhenStopped)));
         materializer = ActorMaterializer.create(getContext());
+        delayAfterPersistenceActorShutdown = persistenceOperationsConfiguration.getDelayAfterPersistenceActorShutdown();
     }
 
     /**
@@ -93,8 +102,17 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
      */
     protected AbstractPersistenceOperationsActor(final ActorRef pubSubMediator, final String resourceType,
             @Nullable final NamespacePersistenceOperations namespaceOps,
-            @Nullable final EntityPersistenceOperations entitiesOps) {
-        this(pubSubMediator, resourceType, namespaceOps, entitiesOps, Collections.emptyList());
+            @Nullable final EntityPersistenceOperations entitiesOps,
+            final PersistenceOperationsConfiguration persistenceOperationsConfiguration) {
+
+        this(
+                pubSubMediator,
+                resourceType,
+                namespaceOps,
+                entitiesOps,
+                Collections.emptyList(),
+                persistenceOperationsConfiguration
+        );
     }
 
     @Override
@@ -188,6 +206,7 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
     }
 
     private void purgeEntities(final PurgeEntities purgeEntities) {
+
         if (entitiesOps == null) {
             log.warning("Cannot handle entities command: <{}>", purgeEntities);
             return;
@@ -197,11 +216,34 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
             return;
         }
 
+        shutDownPersistenceActorsOfEntitiesToPurge(purgeEntities);
+        schedulePurgingEntitesIn(delayAfterPersistenceActorShutdown, purgeEntities);
+    }
+
+    private void shutDownPersistenceActorsOfEntitiesToPurge(final PurgeEntities purgeEntities) {
+        final ShutdownReason reason = ShutdownReasonFactory.getPurgeEntitiesReason(purgeEntities.getEntityIds());
+        final Shutdown shutdown = Shutdown.getInstance(reason, purgeEntities.getDittoHeaders());
+        final DistributedPubSubMediator.Publish publish = new DistributedPubSubMediator.Publish(shutdown.getType(), shutdown);
+        pubSubMediator.tell(publish, getSelf());
+    }
+
+    private void schedulePurgingEntitesIn(final Duration delay, final PurgeEntities purgeEntities) {
+        final ActorRef initiator = getSender();
+        getContext().system()
+                .scheduler()
+                .scheduleOnce(delay, () -> doPurgeEntities(purgeEntities, initiator), getContext().dispatcher());
+    }
+
+    private void doPurgeEntities(final PurgeEntities purgeEntities, final ActorRef initiator) {
+        if (entitiesOps == null) {
+            log.warning("Cannot handle entities command: <{}>", purgeEntities);
+            return;
+        }
+
         LogUtil.enhanceLogWithCorrelationId(log, purgeEntities);
         log.info("Running <{}>.", purgeEntities);
         final String entityType = purgeEntities.getEntityType();
         final List<String> entityIds = purgeEntities.getEntityIds();
-        final ActorRef sender = getSender();
 
         entitiesOps.purgeEntities(purgeEntities.getEntityIds())
                 .runWith(Sink.head(), materializer)
@@ -216,7 +258,7 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
                         response = PurgeEntitiesResponse.failed(purgeEntities.getEntityType(),
                                 purgeEntities.getDittoHeaders());
                     }
-                    sender.tell(response, getSelf());
+                    initiator.tell(response, getSelf());
                     log.info("Successfully purged entities of type <{}>: <{}>", entityType, entityIds);
                 })
                 .exceptionally(error -> {

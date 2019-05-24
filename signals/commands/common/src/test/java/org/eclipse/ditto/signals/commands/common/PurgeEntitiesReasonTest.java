@@ -19,10 +19,13 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.Arrays;
+import java.util.List;
+
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -31,29 +34,29 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.signals.commands.common.PurgeNamespaceReason}.
+ * Unit test for {@link PurgeNamespaceReason}.
  */
-public final class PurgeNamespaceReasonTest {
+public final class PurgeEntitiesReasonTest {
 
-    private static ShutdownReasonType purgeNamespaceType;
-    private static String knownNamespace;
+    private static ShutdownReasonType purgeEntitiesType;
+    private static List<String> knownEntityIds;
     private static JsonObject knownJsonRepresentation;
 
-    private PurgeNamespaceReason underTest;
+    private PurgeEntitiesReason underTest;
 
     @BeforeClass
     public static void initTestConstants() {
-        purgeNamespaceType = ShutdownReasonType.Known.PURGE_NAMESPACE;
-        knownNamespace = "com.example.test";
+        purgeEntitiesType = ShutdownReasonType.Known.PURGE_ENTITIES;
+        knownEntityIds = Arrays.asList("x:y", "a:b", "f:oo");
         knownJsonRepresentation = JsonFactory.newObjectBuilder()
-                .set(ShutdownReason.JsonFields.TYPE, purgeNamespaceType.toString())
-                .set(ShutdownReason.JsonFields.DETAILS, JsonValue.of(knownNamespace))
+                .set(ShutdownReason.JsonFields.TYPE, purgeEntitiesType.toString())
+                .set(ShutdownReason.JsonFields.DETAILS, JsonArray.of(knownEntityIds))
                 .build();
     }
 
     @Before
     public void setUp() {
-        underTest = PurgeNamespaceReason.of(knownNamespace);
+        underTest = PurgeEntitiesReason.of(knownEntityIds);
     }
 
     @Test
@@ -69,8 +72,8 @@ public final class PurgeNamespaceReasonTest {
     }
 
     @Test
-    public void getTypeReturnsPurgeNamespace() {
-        assertThat(underTest.getType()).isEqualTo(purgeNamespaceType);
+    public void getTypeReturnsPurgeEntities() {
+        assertThat(underTest.getType()).isEqualTo(purgeEntitiesType);
     }
 
     @Test
@@ -94,7 +97,7 @@ public final class PurgeNamespaceReasonTest {
 
     @Test
     public void fromJson() {
-        assertThat(PurgeNamespaceReason.fromJson(knownJsonRepresentation)).isEqualTo(underTest);
+        assertThat(PurgeEntitiesReason.fromJson(knownJsonRepresentation)).isEqualTo(underTest);
     }
 
     @Test
@@ -104,26 +107,24 @@ public final class PurgeNamespaceReasonTest {
                 .build();
 
         assertThatExceptionOfType(JsonMissingFieldException.class).isThrownBy(
-                () -> PurgeNamespaceReason.fromJson(shutDownNamespaceReasonWithoutDetails))
-                .withMessageContaining(ShutdownReason.JsonFields.DETAILS.getPointer().toString())
-                .withNoCause();
+                () -> PurgeNamespaceReason.fromJson(shutDownNamespaceReasonWithoutDetails));
     }
 
     @Test
     public void isRelevantForIsTrueIfNamespaceIsEqual() {
-        assertThat(underTest.isRelevantFor(knownNamespace)).isTrue();
+        assertThat(underTest.isRelevantFor("f:oo")).isTrue();
     }
 
     @Test
     public void isRelevantForIsFalseIfNamespaceIsNotEqual() {
-        assertThat(underTest.isRelevantFor(knownNamespace + "X")).isFalse();
+        assertThat(underTest.isRelevantFor("b:ar")).isFalse();
     }
 
     @Test
     public void toStringContainsExpected() {
         assertThat(underTest.toString())
                 .contains(underTest.getClass().getSimpleName())
-                .contains(knownNamespace);
+                .contains(knownEntityIds.toString());
     }
 
 }

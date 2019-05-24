@@ -15,7 +15,10 @@ package org.eclipse.ditto.services.thingsearch.updater.actors;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.AbstractPersistenceOperationsActor;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.NamespacePersistenceOperations;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.PersistenceOperationsConfiguration;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -31,8 +34,16 @@ public final class ThingsSearchPersistenceOperationsActor extends AbstractPersis
     public static final String ACTOR_NAME = "thingsSearchOpsActor";
 
     private ThingsSearchPersistenceOperationsActor(final ActorRef pubSubMediator,
-            final NamespacePersistenceOperations namespaceOps) {
-        super(pubSubMediator, ThingSearchCommand.RESOURCE_TYPE, namespaceOps, null);
+            final NamespacePersistenceOperations namespaceOps,
+            final PersistenceOperationsConfiguration persistenceOperationsConfiguration) {
+
+        super(
+                pubSubMediator,
+                ThingSearchCommand.RESOURCE_TYPE,
+                namespaceOps,
+                null,
+                persistenceOperationsConfiguration
+        );
     }
 
     /**
@@ -40,11 +51,24 @@ public final class ThingsSearchPersistenceOperationsActor extends AbstractPersis
      *
      * @param pubSubMediator Akka pub-sub mediator.
      * @param persistence the search updater persistence.
+     * @param config the akka config.
      * @return Props of this actor.
      */
-    public static Props props(final ActorRef pubSubMediator, final ThingsSearchUpdaterPersistence persistence) {
+    public static Props props(final ActorRef pubSubMediator, final ThingsSearchUpdaterPersistence persistence,
+            final Config config) {
+
         return Props.create(ThingsSearchPersistenceOperationsActor.class,
-                () -> new ThingsSearchPersistenceOperationsActor(pubSubMediator, persistence));
+                () -> {
+                    final PersistenceOperationsConfiguration persistenceOperationsConfiguration =
+                            PersistenceOperationsConfiguration.fromConfig(config);
+
+                    return new ThingsSearchPersistenceOperationsActor(
+                            pubSubMediator,
+                            persistence,
+                            persistenceOperationsConfiguration
+                    );
+                });
+
     }
 
 }

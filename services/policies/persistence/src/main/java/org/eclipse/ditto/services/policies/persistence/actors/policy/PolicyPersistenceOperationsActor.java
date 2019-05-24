@@ -18,6 +18,7 @@ import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.AbstractPersistenceOperationsActor;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.EntityPersistenceOperations;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.NamespacePersistenceOperations;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.PersistenceOperationsConfiguration;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEntitiesPersistenceOperations;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEventSourceSettings;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoNamespacePersistenceOperations;
@@ -38,10 +39,20 @@ public final class PolicyPersistenceOperationsActor extends AbstractPersistenceO
 
     public static final String ACTOR_NAME = "policyOps";
 
-    private PolicyPersistenceOperationsActor(final ActorRef pubSubMediator, final NamespacePersistenceOperations namespaceOps,
-            final EntityPersistenceOperations entitiesOps, final MongoClientWrapper mongoClient) {
-        super(pubSubMediator, PolicyCommand.RESOURCE_TYPE, namespaceOps, entitiesOps,
-                Collections.singleton(mongoClient));
+    private PolicyPersistenceOperationsActor(final ActorRef pubSubMediator,
+            final NamespacePersistenceOperations namespaceOps,
+            final EntityPersistenceOperations entitiesOps,
+            final MongoClientWrapper mongoClient,
+            final PersistenceOperationsConfiguration persistenceOperationsConfiguration) {
+
+        super(
+                pubSubMediator,
+                PolicyCommand.RESOURCE_TYPE,
+                namespaceOps,
+                entitiesOps,
+                Collections.singleton(mongoClient),
+                persistenceOperationsConfiguration
+        );
     }
 
     /**
@@ -62,8 +73,16 @@ public final class PolicyPersistenceOperationsActor extends AbstractPersistenceO
 
             final NamespacePersistenceOperations namespaceOps = MongoNamespacePersistenceOperations.of(db, eventSourceSettings);
             final EntityPersistenceOperations entitiesOps = MongoEntitiesPersistenceOperations.of(db, eventSourceSettings);
+            final PersistenceOperationsConfiguration persistenceOperationsConfiguration =
+                    PersistenceOperationsConfiguration.fromConfig(config);
 
-            return new PolicyPersistenceOperationsActor(pubSubMediator, namespaceOps, entitiesOps, mongoClient);
+            return new PolicyPersistenceOperationsActor(
+                    pubSubMediator,
+                    namespaceOps,
+                    entitiesOps,
+                    mongoClient,
+                    persistenceOperationsConfiguration
+            );
         });
     }
 

@@ -25,7 +25,7 @@ import java.util.function.Function;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.services.base.actors.ShutdownNamespaceBehavior;
+import org.eclipse.ditto.services.base.actors.ShutdownBehaviour;
 import org.eclipse.ditto.services.things.persistence.strategies.AbstractReceiveStrategy;
 import org.eclipse.ditto.services.things.persistence.strategies.ReceiveStrategy;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -63,7 +63,7 @@ public final class ThingSupervisorActor extends AbstractActor {
     private final Duration minBackOff;
     private final Duration maxBackOff;
     private final double randomFactor;
-    private final ShutdownNamespaceBehavior shutdownNamespaceBehavior;
+    private final ShutdownBehaviour shutdownBehaviour;
 
     private ActorRef child;
     private long restartCount;
@@ -96,7 +96,7 @@ public final class ThingSupervisorActor extends AbstractActor {
         this.maxBackOff = maxBackOff;
         this.randomFactor = randomFactor;
 
-        shutdownNamespaceBehavior = ShutdownNamespaceBehavior.fromId(thingId, pubSubMediator, getSelf());
+        shutdownBehaviour = ShutdownBehaviour.fromId(thingId, pubSubMediator, getSelf());
 
         child = null;
     }
@@ -162,7 +162,7 @@ public final class ThingSupervisorActor extends AbstractActor {
         strategyAwareReceiveBuilder.matchEach(receiveStrategies);
         strategyAwareReceiveBuilder.matchAny(new MatchAnyStrategy());
 
-        return shutdownNamespaceBehavior.createReceive()
+        return shutdownBehaviour.createReceive()
                 .matchEquals(Control.PASSIVATE, this::passivate)
                 .build()
                 .orElse(strategyAwareReceiveBuilder.build());

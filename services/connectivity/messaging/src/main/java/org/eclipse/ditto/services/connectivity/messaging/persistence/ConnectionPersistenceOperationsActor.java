@@ -18,6 +18,7 @@ import org.eclipse.ditto.services.connectivity.messaging.ConnectionActor;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.AbstractPersistenceOperationsActor;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.EntityPersistenceOperations;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.PersistenceOperationsConfiguration;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEntitiesPersistenceOperations;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEventSourceSettings;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
@@ -37,10 +38,17 @@ public final class ConnectionPersistenceOperationsActor extends AbstractPersiste
 
     private ConnectionPersistenceOperationsActor(final ActorRef pubSubMediator,
             final EntityPersistenceOperations entitiesOps,
-            final MongoClientWrapper mongoClientWrapper) {
+            final MongoClientWrapper mongoClientWrapper,
+            final PersistenceOperationsConfiguration persistenceOperationsConfiguration) {
 
-        super(pubSubMediator, ConnectivityCommand.RESOURCE_TYPE, null, entitiesOps,
-                Collections.singleton(mongoClientWrapper));
+        super(
+                pubSubMediator,
+                ConnectivityCommand.RESOURCE_TYPE,
+                null,
+                entitiesOps,
+                Collections.singleton(mongoClientWrapper),
+                persistenceOperationsConfiguration
+        );
     }
 
     /**
@@ -60,8 +68,15 @@ public final class ConnectionPersistenceOperationsActor extends AbstractPersiste
             final MongoDatabase db = mongoClient.getDefaultDatabase();
 
             final EntityPersistenceOperations entitiesOps = MongoEntitiesPersistenceOperations.of(db, eventSourceSettings);
+            final PersistenceOperationsConfiguration persistenceOperationsConfiguration =
+                    PersistenceOperationsConfiguration.fromConfig(config);
 
-            return new ConnectionPersistenceOperationsActor(pubSubMediator, entitiesOps, mongoClient);
+            return new ConnectionPersistenceOperationsActor(
+                    pubSubMediator,
+                    entitiesOps,
+                    mongoClient,
+                    persistenceOperationsConfiguration
+            );
         });
     }
 

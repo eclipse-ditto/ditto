@@ -303,7 +303,7 @@ public abstract class MongoEventSourceITAssertions {
             final PurgeEntities purgeEntities =
                     PurgeEntities.of(entityType, Arrays.asList(purgedId1, purgedId2), dittoHeaders);
             underTest.tell(purgeEntities, getRef());
-            expectMsg(PurgeEntitiesResponse.successful(entityType, dittoHeaders));
+            expectMsg(Duration.ofSeconds(8), PurgeEntitiesResponse.successful(entityType, dittoHeaders));
 
             // restart the actors for the purged entities - they should work as if its entity never existed
             final ActorRef purgedActor1 = watch(startEntityActor(actorSystem, pubSubMediator, purgedId1));

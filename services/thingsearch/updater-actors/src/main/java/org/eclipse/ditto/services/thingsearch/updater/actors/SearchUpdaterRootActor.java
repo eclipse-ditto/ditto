@@ -130,7 +130,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         startClusterSingletonActor(ManualUpdater.ACTOR_NAME, manualUpdaterProps);
 
         startChildActor(ThingsSearchPersistenceOperationsActor.ACTOR_NAME,
-                ThingsSearchPersistenceOperationsActor.props(pubSubMediator, searchUpdaterPersistence));
+                ThingsSearchPersistenceOperationsActor.props(pubSubMediator, searchUpdaterPersistence, config));
 
         final boolean thingsSynchronizationActive = config.getBoolean(ConfigKeys.THINGS_SYNCER_ACTIVE);
         if (thingsSynchronizationActive) {

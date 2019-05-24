@@ -14,11 +14,14 @@ package org.eclipse.ditto.signals.commands.common;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
@@ -28,33 +31,37 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
- * A dedicated {@link ShutdownReason} for purging a namespace.
+ * A dedicated {@link org.eclipse.ditto.signals.commands.common.ShutdownReason} for purging a namespace.
  * The details are guaranteed to be the non-empty namespace.
  */
 @Immutable
-final class PurgeNamespaceReason implements ShutdownReason {
+final class PurgeEntitiesReason implements ShutdownReason {
 
-    private static final ShutdownReasonType type = ShutdownReasonType.Known.PURGE_NAMESPACE;
-    private final String namespaceToPurge;
+    private static final ShutdownReasonType type = ShutdownReasonType.Known.PURGE_ENTITIES;
+    private final List<String> entityIdsToPurge;
 
-    private PurgeNamespaceReason(final String namespaceToPurge) {
-        this.namespaceToPurge = namespaceToPurge;
+    private PurgeEntitiesReason(final List<String> entityIdsToPurge) {
+        this.entityIdsToPurge = entityIdsToPurge;
     }
 
     /**
      * Returns an instance of {@code PurgeNamespaceReason}.
      *
-     * @param namespace the namespace to be purged.
+     * @param entityIdsToPurge the entities that should be purged.
      * @return the instance.
      * @throws NullPointerException if {@code namespace} is {@code null}.
      * @throws IllegalArgumentException if {@code namespace} is empty.
      */
-    public static PurgeNamespaceReason of(final CharSequence namespace) {
-        return new PurgeNamespaceReason(argumentNotEmpty(namespace, "namespace").toString());
+    public static PurgeEntitiesReason of(final List<String> entityIdsToPurge) {
+        return new PurgeEntitiesReason(argumentNotEmpty(entityIdsToPurge, "namespace"));
     }
 
-    static PurgeNamespaceReason fromJson(final JsonObject jsonObject) {
-        return new PurgeNamespaceReason(jsonObject.getValueOrThrow(JsonFields.DETAILS).asString());
+    static PurgeEntitiesReason fromJson(final JsonObject jsonObject) {
+        final List<String> entityIdsToPurge = jsonObject.getValueOrThrow(JsonFields.DETAILS).asArray().stream()
+                .map(JsonValue::asString)
+                .collect(Collectors.toList());
+
+        return new PurgeEntitiesReason(entityIdsToPurge);
     }
 
     @Override
@@ -64,7 +71,7 @@ final class PurgeNamespaceReason implements ShutdownReason {
 
     @Override
     public boolean isRelevantFor(final String value) {
-        return namespaceToPurge.equals(value);
+        return entityIdsToPurge.contains(value);
     }
 
     @Override
@@ -78,7 +85,7 @@ final class PurgeNamespaceReason implements ShutdownReason {
 
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder()
                 .set(JsonFields.TYPE, getType().toString(), extendedPredicate);
-        jsonObjectBuilder.set(JsonFields.DETAILS, JsonValue.of(namespaceToPurge), extendedPredicate);
+        jsonObjectBuilder.set(JsonFields.DETAILS, JsonArray.of(entityIdsToPurge), extendedPredicate);
 
         return jsonObjectBuilder.build();
     }
@@ -88,23 +95,24 @@ final class PurgeNamespaceReason implements ShutdownReason {
         if (this == o) {
             return true;
         }
+
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final PurgeNamespaceReason that = (PurgeNamespaceReason) o;
-        return Objects.equals(namespaceToPurge, that.namespaceToPurge);
+
+        final PurgeEntitiesReason that = (PurgeEntitiesReason) o;
+        return entityIdsToPurge.equals(that.entityIdsToPurge);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(namespaceToPurge);
+        return Objects.hash(entityIdsToPurge);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "namespaceToPurge=" + namespaceToPurge +
+                "entityIdsToPurge=" + entityIdsToPurge +
                 "]";
     }
-
 }
