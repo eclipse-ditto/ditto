@@ -35,6 +35,7 @@ import org.eclipse.ditto.services.connectivity.messaging.AbstractConsumerActorTe
 import org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessor;
 import org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessorActor;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -145,8 +146,10 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
 
             final MessageMappingProcessor mappingProcessor = getMessageMappingProcessor(mappingContext);
 
+            final ConnectivityConfig connectivityConfig = TestConstants.CONNECTIVITY_CONFIG;
             final Props messageMappingProcessorProps =
-                    MessageMappingProcessorActor.props(getRef(), getRef(), mappingProcessor, CONNECTION_ID);
+                    MessageMappingProcessorActor.props(getRef(), getRef(), mappingProcessor, CONNECTION_ID,
+                            connectivityConfig.getLimitsConfig());
 
             final ActorRef processor = actorSystem.actorOf(messageMappingProcessorProps,
                     MessageMappingProcessorActor.ACTOR_NAME + "-plainStringMappingTest");
@@ -201,9 +204,10 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
     private ActorRef setupActor(final ActorRef publisherActor, final ActorRef conciergeForwarderActor) {
         final MessageMappingProcessor mappingProcessor = getMessageMappingProcessor(null);
 
+        final ConnectivityConfig connectivityConfig = TestConstants.CONNECTIVITY_CONFIG;
         final Props messageMappingProcessorProps =
                 MessageMappingProcessorActor.props(publisherActor, conciergeForwarderActor, mappingProcessor,
-                        CONNECTION_ID);
+                        CONNECTION_ID, connectivityConfig.getLimitsConfig());
 
         final Resizer resizer = new DefaultResizer(1, 5);
 
@@ -221,8 +225,10 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
             final ActorRef testActor = getTestActor();
             final MessageMappingProcessor mappingProcessor = getMessageMappingProcessor(null);
 
+            final ConnectivityConfig connectivityConfig = TestConstants.CONNECTIVITY_CONFIG;
             final Props messageMappingProcessorProps =
-                    MessageMappingProcessorActor.props(testActor, testActor, mappingProcessor, CONNECTION_ID);
+                    MessageMappingProcessorActor.props(testActor, testActor, mappingProcessor, CONNECTION_ID,
+                            connectivityConfig.getLimitsConfig());
 
             final ActorRef processor = actorSystem.actorOf(messageMappingProcessorProps,
                     MessageMappingProcessorActor.ACTOR_NAME + "-jmsMessageWithNullPropertyAndNullContentTypeTest");
@@ -259,8 +265,8 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
     }
 
     private static MessageMappingProcessor getMessageMappingProcessor(@Nullable final MappingContext mappingContext) {
-        return MessageMappingProcessor.of(CONNECTION_ID, mappingContext, actorSystem,
-                TestConstants.MAPPING_CONFIG, protocolAdapterProvider, Mockito.mock(DiagnosticLoggingAdapter.class));
+        return MessageMappingProcessor.of(CONNECTION_ID, mappingContext, actorSystem, TestConstants.CONNECTIVITY_CONFIG,
+                protocolAdapterProvider, Mockito.mock(DiagnosticLoggingAdapter.class));
     }
 
 }

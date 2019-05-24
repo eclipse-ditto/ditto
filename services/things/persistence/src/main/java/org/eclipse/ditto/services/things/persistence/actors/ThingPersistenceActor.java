@@ -18,6 +18,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -103,7 +104,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     private long accessCounter;
     private Cancellable activityChecker;
     private Thing thing;
-    private int firstMessageCounter;
 
     ThingPersistenceActor(final String thingId,
             final ActorRef pubSubMediator,
@@ -136,7 +136,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         accessCounter = 0L;
         activityChecker = null;
         thing = null;
-        firstMessageCounter = 0;
     }
 
     private ThingSnapshotter<?, ?> getSnapshotter(final ThingSnapshotter.Create snapshotterCreate) {
@@ -219,20 +218,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         return thingId;
     }
 
-    private void scheduleCheckForThingActivity(final long intervalInSeconds) {
-        log.debug("Scheduling for Activity Check in <{}> seconds.", intervalInSeconds);
-        // if there is a previous activity checker, cancel it
-        if (activityChecker != null) {
-            activityChecker.cancel();
-        }
-        // send a message to ourselves:
-        activityChecker = getContext()
-                .system()
-                .scheduler()
-                .scheduleOnce(Duration.apply(intervalInSeconds, TimeUnit.SECONDS), getSelf(),
-                        new CheckForActivity(getRevisionNumber(), accessCounter), getContext().dispatcher(), null);
-    }
-
     private long getRevisionNumber() {
         return lastSequenceNr();
     }
@@ -281,7 +266,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     @Nullable
     private Consumer<Object> getIncomingMessagesLoggerOrNull() {
-        if (isLogIncomingMessages()) {
+        if (logIncomingMessages) {
             return new LogIncomingMessagesConsumer();
         }
         return null;

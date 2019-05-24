@@ -47,9 +47,7 @@ public final class DefaultClientActorPropsFactoryTest extends WithMockServers {
     public void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
         serialization = SerializationExtension.get(actorSystem);
-        underTest =
-                DefaultClientActorPropsFactory.getInstance(TestConstants.CLIENT_CONFIG, TestConstants.MAPPING_CONFIG,
-                        TestConstants.PROTOCOL_CONFIG, TestConstants.CONNECTION_CONFIG);
+        underTest = DefaultClientActorPropsFactory.getInstance(TestConstants.CONNECTIVITY_CONFIG);
     }
 
     @After

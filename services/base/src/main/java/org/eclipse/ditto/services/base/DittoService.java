@@ -134,6 +134,9 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
         this.rootActorName = argumentNotEmpty(rootActorName, "root actor name");
         rawConfig = determineRawConfig();
         serviceSpecificConfig = getServiceSpecificConfig(tryToGetDittoConfigOrEmpty(rawConfig));
+        if (null == serviceSpecificConfig) {
+            throw new DittoConfigError("The service specific config must not be null!");
+        }
         logger.debug("Using service specific config: <{}>.", serviceSpecificConfig);
     }
 

@@ -226,8 +226,7 @@ public final class KafkaClientActorTest {
     }
 
     private Props getKafkaClientActorProps(final ActorRef conciergeForwarder) {
-        return KafkaClientActor.props(connection, TestConstants.CLIENT_CONFIG, TestConstants.MAPPING_CONFIG,
-                TestConstants.PROTOCOL_CONFIG, TestConstants.CONNECTION_CONFIG.getKafkaConfig(), conciergeForwarder,
+        return KafkaClientActor.props(connection, TestConstants.CONNECTIVITY_CONFIG, conciergeForwarder,
                 publisherActorFactory);
     }
 

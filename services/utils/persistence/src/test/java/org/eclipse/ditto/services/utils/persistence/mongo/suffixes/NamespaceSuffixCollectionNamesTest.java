@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.utils.persistence.mongo.suffixes;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.util.Collections;
 
@@ -31,17 +30,6 @@ public final class NamespaceSuffixCollectionNamesTest {
     public void setup() {
         NamespaceSuffixCollectionNames.resetConfig();
         underTest = new NamespaceSuffixCollectionNames();
-    }
-
-    @Test
-    public void tryToGetSuffixFromInvalidPersistenceId() {
-        NamespaceSuffixCollectionNames.setSupportedPrefixes(Collections.singleton("thing"));
-        final String persistenceId = "thing:org.eclipse.ditto";
-
-        assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> underTest.getSuffixFromPersistenceId(persistenceId))
-                .withMessageContaining(persistenceId)
-                .withNoCause();
     }
 
     @Test
@@ -99,16 +87,9 @@ public final class NamespaceSuffixCollectionNamesTest {
         assertThat(sanitizedString).doesNotEndWith(invalidInput);
     }
 
-    @Test(expected = NullPointerException.class)
-    public void validateMongoCharactersThrowsNullpointerExceptionWithoutConfig() {
-        final String persistenceId = "thing:org.eclipse.ditto:test:thing";
-
-        underTest.getSuffixFromPersistenceId(persistenceId);
-    }
-
     @Test(expected = NamespaceSuffixCollectionNames.PersistenceIdInvalidException.class)
     public void getSuffixFromPersistenceIdThrowsIllegalStateException() {
-        NamespaceSuffixCollectionNames.setConfig(new SuffixBuilderConfig(Collections.singletonList("thing")));
+        NamespaceSuffixCollectionNames.setSupportedPrefixes(Collections.singletonList("thing"));
         final String persistenceId = "thing:::::::";
 
         underTest.getSuffixFromPersistenceId(persistenceId);
@@ -116,7 +97,7 @@ public final class NamespaceSuffixCollectionNamesTest {
 
     @Test
     public void getSuffixFromPersistenceIdWithNamespaceAndOnlyColons() {
-        NamespaceSuffixCollectionNames.setConfig(new SuffixBuilderConfig(Collections.singletonList("thing")));
+        NamespaceSuffixCollectionNames.setSupportedPrefixes(Collections.singletonList("thing"));
         final String persistenceId = "thing:org.eclipse.ditto:::::::";
 
         final String suffix = underTest.getSuffixFromPersistenceId(persistenceId);

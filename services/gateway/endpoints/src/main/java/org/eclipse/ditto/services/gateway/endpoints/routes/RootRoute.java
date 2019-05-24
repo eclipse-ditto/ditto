@@ -250,7 +250,6 @@ public final class RootRoute {
                                                                         liveParam ->
                                                                                 withDittoHeaders(
                                                                                         authContext,
-                                                                                        authContextWithPrefixedSubjects,
                                                                                         apiVersion,
                                                                                         correlationId,
                                                                                         ctx,
@@ -328,7 +327,7 @@ public final class RootRoute {
                         wsAuthentication(correlationId, authContextWithPrefixedSubjects ->
                                 mapAuthorizationContext(correlationId, wsVersion, authContextWithPrefixedSubjects,
                                         authContext ->
-                                                withDittoHeaders(authContext, authContextWithPrefixedSubjects,
+                                                withDittoHeaders(authContext,
                                                         wsVersion, correlationId, ctx, null,
                                                         CustomHeadersHandler.RequestType.WS, dittoHeaders -> {
 
@@ -357,7 +356,6 @@ public final class RootRoute {
     }
 
     private Route withDittoHeaders(final AuthorizationContext authorizationContext,
-            final AuthorizationContext authContextWithPrefixedSubjects,
             final Integer version,
             final String correlationId,
             final RequestContext ctx,
@@ -368,10 +366,10 @@ public final class RootRoute {
         final DittoHeaders dittoHeaders =
                 buildDittoHeaders(authorizationContext, version, correlationId, ctx, liveParam, requestType);
 
-        return dittoHeadersSizeChecker.run(dittoHeaders, authContextWithPrefixedSubjects, inner, error ->
-                handleExceptions(exceptionHandler, () -> {
-                    throw error;
-                }));
+        return handleExceptions(exceptionHandler, () -> {
+           dittoHeadersSizeChecker.check(dittoHeaders);
+            return inner.apply(dittoHeaders);
+        });
     }
 
     private DittoHeaders overwriteDittoHeaders(final RequestContext ctx, final DittoHeaders dittoHeaders,

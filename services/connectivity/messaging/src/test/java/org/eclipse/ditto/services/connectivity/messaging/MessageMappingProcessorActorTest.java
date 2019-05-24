@@ -52,6 +52,7 @@ import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -243,7 +244,7 @@ public final class MessageMappingProcessorActorTest {
                 });
     }
 
-    private <T> void testMessageMapping(final String correlationId,
+    private static <T> void testMessageMapping(final String correlationId,
             final AuthorizationContext context,
             final Class<T> expectedMessageClass,
             final Consumer<T> verifyReceivedMessage) {
@@ -317,14 +318,15 @@ public final class MessageMappingProcessorActorTest {
     }
 
     private static ActorRef createMessageMappingProcessorActor(final ActorRef publisherActor) {
+        final ConnectivityConfig connectivityConfig = TestConstants.CONNECTIVITY_CONFIG;
         final Props props =
                 MessageMappingProcessorActor.props(publisherActor, publisherActor, getMessageMappingProcessor(),
-                        CONNECTION_ID);
+                        CONNECTION_ID, connectivityConfig.getLimitsConfig());
         return actorSystem.actorOf(props);
     }
 
     private static MessageMappingProcessor getMessageMappingProcessor() {
-        return MessageMappingProcessor.of(CONNECTION_ID, null, actorSystem, TestConstants.MAPPING_CONFIG,
+        return MessageMappingProcessor.of(CONNECTION_ID, null, actorSystem, TestConstants.CONNECTIVITY_CONFIG,
                 protocolAdapterProvider, Mockito.mock(DiagnosticLoggingAdapter.class));
     }
 

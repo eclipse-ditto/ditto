@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.config;
+package org.eclipse.ditto.services.connectivity.messaging.config;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -23,12 +23,6 @@ import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.connectivity.mapping.DefaultMappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.ClientConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.DefaultClientConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.DefaultConnectionConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.DefaultReconnectConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.ReconnectConfig;
 import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.services.utils.health.config.DefaultHealthCheckConfig;

@@ -168,12 +168,16 @@ public final class SearchRootActor extends AbstractActor {
     private ActorRef initializeSearchActor(final LimitsConfig limitsConfig,
             final ThingsSearchPersistence thingsSearchPersistence) {
 
+        final QueryParser queryParser = getQueryParser(limitsConfig);
+
+        return startChildActor(SearchActor.ACTOR_NAME, SearchActor.props(queryParser, thingsSearchPersistence));
+    }
+
+    static QueryParser getQueryParser(final LimitsConfig limitsConfig) {
         final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
         final ThingsFieldExpressionFactory fieldExpressionFactory = getThingsFieldExpressionFactory();
         final QueryBuilderFactory queryBuilderFactory = new MongoQueryBuilderFactory(limitsConfig);
-        final QueryParser queryParser = QueryParser.of(criteriaFactory, fieldExpressionFactory, queryBuilderFactory);
-
-        return startChildActor(SearchActor.ACTOR_NAME, SearchActor.props(queryParser, thingsSearchPersistence));
+        return QueryParser.of(criteriaFactory, fieldExpressionFactory, queryBuilderFactory);
     }
 
     private ActorRef initializeHealthCheckActor(final SearchConfig searchConfig,
@@ -268,11 +272,7 @@ public final class SearchRootActor extends AbstractActor {
         addMapping(mappings, Thing.JsonFields.POLICY_ID);
         addMapping(mappings, Thing.JsonFields.REVISION);
         addMapping(mappings, Thing.JsonFields.MODIFIED);
-
-        final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
-        final ThingsFieldExpressionFactory expressionFactory = new ThingsFieldExpressionFactoryImpl(mappings);
-        final QueryBuilderFactory queryBuilderFactory = new MongoQueryBuilderFactory(limitsConfigReader);
-        return QueryParser.of(criteriaFactory, expressionFactory, queryBuilderFactory);
+        return new ThingsFieldExpressionFactoryImpl(mappings);
     }
 
     private static void addMapping(final Map<String, String> fieldMappings, final JsonFieldDefinition<?> definition) {

@@ -37,10 +37,10 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     /**
      * Returns an empty {@code DittoHeaders} object.
      *
-     * @return empty ditto headers.
+     * @return empty DittoHeaders.
      */
     static DittoHeaders empty() {
-        return DefaultDittoHeadersBuilder.newInstance().build();
+        return DefaultDittoHeadersBuilder.getEmptyHeaders();
     }
 
     /**
@@ -224,4 +224,23 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * @return the entity-tags contained in the If-None-Match header.
      */
     Optional<EntityTagMatchers> getIfNoneMatch();
+
+    /**
+     * Indicates whether the size of the headers entries is greater than the specified size.
+     *
+     * @param size the size to compare to.
+     * @return {@code true} if the size of the headers entries exceeds {@code size}, {@code false} else.
+     * @throws IllegalArgumentException if {@code maxSizeBytes} is negative.
+     */
+    boolean isEntriesSizeGreaterThan(long size);
+
+    /**
+     * Truncates this headers to the specified size limit, keeping as many header entries as possible.
+     *
+     * @param maxSizeBytes the maximum allowed size in bytes.
+     * @return the headers within the size limit.
+     * @throws IllegalArgumentException if {@code maxSizeBytes} is negative.
+     */
+    DittoHeaders truncate(long maxSizeBytes);
+
 }

@@ -22,17 +22,16 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
-import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
-import org.eclipse.ditto.services.connectivity.messaging.config.ClientConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.KafkaConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
-import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -55,14 +54,13 @@ public final class KafkaClientActor extends BaseClientActor {
     @SuppressWarnings("unused") // used by `props` via reflection
     private KafkaClientActor(final Connection connection,
             final ConnectivityStatus desiredConnectionStatus,
-            final ClientConfig clientConfig,
-            final MappingConfig mappingConfig,
-            final ProtocolConfig protocolConfig,
-            final KafkaConfig kafkaConfig,
+            final ConnectivityConfig connectivityConfig,
             final ActorRef conciergeForwarder,
             final KafkaPublisherActorFactory factory) {
 
-        super(connection, desiredConnectionStatus, clientConfig, mappingConfig, protocolConfig, conciergeForwarder);
+        super(connection, desiredConnectionStatus, connectivityConfig, conciergeForwarder);
+        final ConnectionConfig connectionConfig = connectivityConfig.getConnectionConfig();
+        final KafkaConfig kafkaConfig = connectionConfig.getKafkaConfig();
         connectionFactory = DefaultKafkaConnectionFactory.getInstance(connection, kafkaConfig);
         publisherActorFactory = factory;
         pendingStatusReportsFromStreams = new HashSet<>();
@@ -72,23 +70,17 @@ public final class KafkaClientActor extends BaseClientActor {
      * Creates Akka configuration object for this actor.
      *
      * @param connection the connection.
-     * @param clientConfig the client config.
-     * @param mappingConfig the mapping config.
-     * @param protocolConfig the configuration settings for protocol mapping.
-     * @param kafkaConfig the Kafka configuration settings.
+     * @param connectivityConfig the configuration settings of the Connectivity service.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
      * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection,
-            final ClientConfig clientConfig,
-            final MappingConfig mappingConfig,
-            final ProtocolConfig protocolConfig,
-            final KafkaConfig kafkaConfig,
+            final ConnectivityConfig connectivityConfig,
             final ActorRef conciergeForwarder,
             final KafkaPublisherActorFactory factory) {
 
         return Props.create(KafkaClientActor.class, validateConnection(connection), connection.getConnectionStatus(),
-                clientConfig, mappingConfig, protocolConfig, kafkaConfig, conciergeForwarder, factory);
+                connectivityConfig, conciergeForwarder, factory);
     }
 
     private static Connection validateConnection(final Connection connection) {
@@ -116,7 +108,7 @@ public final class KafkaClientActor extends BaseClientActor {
     @Override
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectingState() {
         return super.inConnectingState()
-                .event(Status.Status.class, (status, data) -> this.handleStatusReportFromChildren(status));
+                .event(Status.Status.class, (status, data) -> handleStatusReportFromChildren(status));
     }
 
     @Override

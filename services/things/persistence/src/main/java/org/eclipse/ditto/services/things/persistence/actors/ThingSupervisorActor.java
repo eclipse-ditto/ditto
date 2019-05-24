@@ -81,10 +81,8 @@ public final class ThingSupervisorActor extends AbstractActor {
             .build());
 
 
-    private ThingSupervisorActor(final ActorRef pubSubMediator,
-            final ThingConfig thingConfig,
-            final Function<String, Props> thingPersistenceActorPropsFactory,
-            final SupervisorStrategy supervisorStrategy) {
+    private ThingSupervisorActor(final ActorRef pubSubMediator, final ThingConfig thingConfig,
+            final Function<String, Props> thingPersistenceActorPropsFactory) {
 
         try {
             thingId = URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name());
@@ -121,8 +119,7 @@ public final class ThingSupervisorActor extends AbstractActor {
 
             @Override
             public ThingSupervisorActor create() {
-                return new ThingSupervisorActor(minBackOff, maxBackOff, randomFactor, thingPersistenceActorPropsFactory,
-                        pubSubMediator);
+                return new ThingSupervisorActor(pubSubMediator, thingConfig, thingPersistenceActorPropsFactory);
             }
         });
     }

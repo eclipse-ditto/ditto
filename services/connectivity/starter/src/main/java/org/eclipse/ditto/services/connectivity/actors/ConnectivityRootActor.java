@@ -29,7 +29,7 @@ import javax.naming.NamingException;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.base.config.http.HttpConfig;
-import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ConnectionSupervisorActor;
 import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorPropsFactory;
@@ -309,9 +309,7 @@ public final class ConnectivityRootActor extends AbstractActor {
             @Nullable final ConnectivityCommandInterceptor commandValidator) {
 
         final ClientActorPropsFactory clientActorPropsFactory =
-                DefaultClientActorPropsFactory.getInstance(connectivityConfig.getClientConfig(),
-                        connectivityConfig.getMappingConfig(), connectivityConfig.getProtocolConfig(),
-                        connectivityConfig.getConnectionConfig());
+                DefaultClientActorPropsFactory.getInstance(connectivityConfig);
 
         return ConnectionSupervisorActor.props(connectivityConfig.getConnectionConfig(), pubSubMediator,
                 conciergeForwarder, clientActorPropsFactory, commandValidator);

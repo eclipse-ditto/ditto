@@ -54,8 +54,8 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
-import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ClientConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
@@ -64,10 +64,9 @@ import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCou
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
-import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
-import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
+import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
@@ -114,7 +113,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final MappingConfig mappingConfig;
+    private final ConnectivityConfig connectivityConfig;
     private final ProtocolAdapterProvider protocolAdapterProvider;
     private final ActorRef conciergeForwarder;
     private final Gauge clientGauge;
@@ -126,30 +125,27 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     protected BaseClientActor(final Connection connection,
             final ConnectivityStatus desiredConnectionStatus,
-            final ClientConfig clientConfig,
-            final MappingConfig mappingConfig,
-            final ProtocolConfig protocolConfig,
+            final ConnectivityConfig connectivityConfig,
             final ActorRef conciergeForwarder) {
 
         checkNotNull(connection, "connection");
 
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connection.getId());
 
-        this.mappingConfig = mappingConfig;
+        this.connectivityConfig = connectivityConfig;
         this.conciergeForwarder = conciergeForwarder;
-        protocolAdapterProvider = ProtocolAdapterProvider.load(protocolConfig, getContext().getSystem());
+        protocolAdapterProvider =
+                ProtocolAdapterProvider.load(connectivityConfig.getProtocolConfig(), getContext().getSystem());
 
         final BaseClientData startingData = new BaseClientData(connection.getId(), connection,
                 ConnectivityStatus.UNKNOWN, desiredConnectionStatus, "initialized", Instant.now(), null, null);
 
-        final java.time.Duration javaInitTimeout = clientConfig.getInitTimeout();
-        final FiniteDuration initTimeout = Duration.create(javaInitTimeout.toMillis(), TimeUnit.MILLISECONDS);
 
         clientGauge = DittoMetrics.gauge("connection_client")
                 .tag("id", connection.getId())
                 .tag("type", connection.getConnectionType().getName());
 
-        startWith(UNKNOWN, startingData, initTimeout);
+        startWith(UNKNOWN, startingData, getInitTimeout());
 
         // stable states
         when(UNKNOWN, inUnknownState());
@@ -169,6 +165,12 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         ConnectivityCounterRegistry.initCountersForConnection(connection);
 
         initialize();
+    }
+
+    private FiniteDuration getInitTimeout() {
+        final ClientConfig clientConfig = connectivityConfig.getClientConfig();
+        final java.time.Duration javaInitTimeout = clientConfig.getInitTimeout();
+        return Duration.create(javaInitTimeout.toMillis(), TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -718,10 +720,10 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         final ConnectionMetrics connectionMetrics =
                 ConnectivityCounterRegistry.aggregateConnectionMetrics(sourceMetrics, targetMetrics);
 
-        this.getSender().tell(
+        getSender().tell(
                 RetrieveConnectionMetricsResponse.of(connectionId(), connectionMetrics, sourceMetrics, targetMetrics,
                         dittoHeaders),
-                this.getSelf());
+                getSelf());
         return stay();
     }
 
@@ -824,8 +826,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         final ActorSystem actorSystem = getContext().getSystem();
 
         // this one throws DittoRuntimeExceptions when the mapper could not be configured
-        MessageMappingProcessor.of(connectionId(), mappingContext, actorSystem, mappingConfig, protocolAdapterProvider,
-                log);
+        MessageMappingProcessor.of(connectionId(), mappingContext, actorSystem, connectivityConfig,
+                protocolAdapterProvider, log);
         return CompletableFuture.completedFuture(new Status.Success("mapping"));
     }
 
@@ -854,7 +856,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             try {
                 // this one throws DittoRuntimeExceptions when the mapper could not be configured
                 processor = MessageMappingProcessor.of(connectionId(), mappingContext, getContext().getSystem(),
-                        mappingConfig, protocolAdapterProvider, log);
+                        connectivityConfig, protocolAdapterProvider, log);
             } catch (final DittoRuntimeException dre) {
                 log.info(
                         "Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
@@ -869,7 +871,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                     connection.getProcessorPoolSize());
             final Props props =
                     MessageMappingProcessorActor.props(getPublisherActor(), conciergeForwarder, processor,
-                            connectionId());
+                            connectionId(), connectivityConfig.getLimitsConfig());
 
             final Resizer resizer = new DefaultResizer(1, connection.getProcessorPoolSize());
             messageMappingProcessorActor = getContext().actorOf(new RoundRobinPool(1)

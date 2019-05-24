@@ -66,8 +66,7 @@ public final class NamespaceSuffixCollectionNames implements CanSuffixCollection
      *
      * @param persistenceId the persistence ID of the entity.
      * @return the suffix for the collection name without any forbidden characters.
-     * @throws java.lang.IllegalArgumentException if {@code persistenceId} did not contain at least two colons
-     * ({@code ":"}.
+     * @throws PersistenceIdInvalidException if {@code persistenceId} did not contain at least two colons ({@code ":"}.
      */
     @Override
     public String getSuffixFromPersistenceId(final String persistenceId) {
@@ -119,8 +118,8 @@ public final class NamespaceSuffixCollectionNames implements CanSuffixCollection
         private static final long serialVersionUID = -4789912839628096316L;
 
         private  PersistenceIdInvalidException(final String persistenceId){
-            final String msgPattern = "Persistence ID <{0}> is not in the expected format of <prefix:namespace:name>!";
-            super(MessageFormat.format(msgPattern, persistenceId));
+            super(MessageFormat.format("Persistence ID <{0}> is not in the expected format of <prefix:namespace:name>!",
+                    persistenceId));
         }
 
     }

@@ -387,10 +387,9 @@ public final class MqttClientActorTest {
     private static Props mqttClientActor(final Connection connection, final ActorRef testProbe,
             final BiFunction<Connection, DittoHeaders, MqttConnectionFactory> factoryCreator) {
 
-        return Props.create(MqttClientActor.class, () ->
-                new MqttClientActor(connection, connection.getConnectionStatus(), TestConstants.CLIENT_CONFIG,
-                        TestConstants.MAPPING_CONFIG, TestConstants.PROTOCOL_CONFIG,
-                        TestConstants.CONNECTION_CONFIG.getMqttConfig(), testProbe, factoryCreator));
+        return Props.create(MqttClientActor.class,
+                () -> new MqttClientActor(connection, connection.getConnectionStatus(),
+                        TestConstants.CONNECTIVITY_CONFIG, testProbe, factoryCreator));
     }
 
     private static MqttMessage mqttMessage(final String topic, final String payload) {

@@ -24,7 +24,7 @@ import org.junit.Test;
 /**
  * Unit test for {@link DittoHeadersTooLargeException}.
  */
-public class DittoHeadersTooLargeExceptionTest {
+public final class DittoHeadersTooLargeExceptionTest {
 
     @Test
     public void assertImmutability() {
@@ -40,7 +40,7 @@ public class DittoHeadersTooLargeExceptionTest {
                 "\"status\":431," +
                 "\"error\":\"headers.too.large\"," +
                 "\"message\":\"The headers are too large.\"," +
-                "\"description\":\"The number of bytes exceeded the maximum allowed value 5.\"" +
+                "\"description\":\"The number of bytes exceeded the maximum allowed value <5>!\"" +
                 "}"));
 
         final DittoHeadersTooLargeException deserialized =
@@ -59,7 +59,7 @@ public class DittoHeadersTooLargeExceptionTest {
                 "\"status\":431," +
                 "\"error\":\"headers.too.large\"," +
                 "\"message\":\"The headers are too large.\"," +
-                "\"description\":\"The number of authorization subjects 1 exceeded the maximum allowed value 2.\"" +
+                "\"description\":\"The number of authorization subjects <1> exceeded the maximum allowed value <2>.\"" +
                 "}"));
 
         final DittoHeadersTooLargeException deserialized =

@@ -15,10 +15,10 @@ package org.eclipse.ditto.services.base.config.limits;
 import java.io.Serializable;
 import java.util.Objects;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.services.utils.config.WithConfigPath;
 
 import com.typesafe.config.Config;
@@ -36,13 +36,17 @@ public final class DefaultLimitsConfig implements LimitsConfig, Serializable, Wi
 
     private static final long serialVersionUID = -2234806942804455395L;
 
+    private final long headersMaxSize;
+    private final int authSubjectsMaxSize;
     private final long thingsMaxSize;
     private final long policiesMaxSize;
     private final long messagesMaxSize;
     private final int thingsSearchDefaultPageSize;
     private final int thingsSearchMaxPageSize;
 
-    private DefaultLimitsConfig(final ScopedConfig config) {
+    private DefaultLimitsConfig(final ConfigWithFallback config) {
+        headersMaxSize = config.getBytes(LimitsConfigValue.HEADERS_MAX_SIZE.getConfigPath());
+        authSubjectsMaxSize = config.getInt(LimitsConfigValue.AUTH_SUBJECTS_MAX_SIZE.getConfigPath());
         thingsMaxSize = config.getBytes(LimitsConfigValue.THINGS_MAX_SIZE.getConfigPath());
         policiesMaxSize = config.getBytes(LimitsConfigValue.POLICIES_MAX_SIZE.getConfigPath());
         messagesMaxSize = config.getBytes(LimitsConfigValue.MESSAGES_MAX_SIZE.getConfigPath());
@@ -59,6 +63,16 @@ public final class DefaultLimitsConfig implements LimitsConfig, Serializable, Wi
      */
     public static DefaultLimitsConfig of(final Config config) {
         return new DefaultLimitsConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH, LimitsConfigValue.values()));
+    }
+
+    @Override
+    public long getHeadersMaxSize() {
+        return headersMaxSize;
+    }
+
+    @Override
+    public int getAuthSubjectsMaxCount() {
+        return authSubjectsMaxSize;
     }
 
     @Override
@@ -95,7 +109,7 @@ public final class DefaultLimitsConfig implements LimitsConfig, Serializable, Wi
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
@@ -103,7 +117,9 @@ public final class DefaultLimitsConfig implements LimitsConfig, Serializable, Wi
             return false;
         }
         final DefaultLimitsConfig that = (DefaultLimitsConfig) o;
-        return thingsMaxSize == that.thingsMaxSize &&
+        return headersMaxSize == that.headersMaxSize &&
+                authSubjectsMaxSize == that.authSubjectsMaxSize &&
+                thingsMaxSize == that.thingsMaxSize &&
                 policiesMaxSize == that.policiesMaxSize &&
                 messagesMaxSize == that.messagesMaxSize &&
                 thingsSearchDefaultPageSize == that.thingsSearchDefaultPageSize &&
@@ -112,14 +128,16 @@ public final class DefaultLimitsConfig implements LimitsConfig, Serializable, Wi
 
     @Override
     public int hashCode() {
-        return Objects.hash(thingsMaxSize, policiesMaxSize, messagesMaxSize, thingsSearchDefaultPageSize,
-                thingsSearchMaxPageSize);
+        return Objects.hash(headersMaxSize, authSubjectsMaxSize, thingsMaxSize, policiesMaxSize, messagesMaxSize,
+                thingsSearchDefaultPageSize, thingsSearchMaxPageSize);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "thingsMaxSize=" + thingsMaxSize +
+                "headersMaxSize=" + headersMaxSize +
+                ", authSubjectsMaxSize=" + authSubjectsMaxSize +
+                ", thingsMaxSize=" + thingsMaxSize +
                 ", policiesMaxSize=" + policiesMaxSize +
                 ", messagesMaxSize=" + messagesMaxSize +
                 ", thingsSearchDefaultPageSize=" + thingsSearchDefaultPageSize +

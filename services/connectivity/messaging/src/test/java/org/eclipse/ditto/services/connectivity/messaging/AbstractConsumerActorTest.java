@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedE
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.base.Signal;
@@ -171,11 +172,12 @@ public abstract class AbstractConsumerActorTest<M> {
     private ActorRef setupMessageMappingProcessorActor(final ActorRef publisherActor,
             final ActorRef conciergeForwarderActor) {
 
+        final ConnectivityConfig connectivityConfig = TestConstants.CONNECTIVITY_CONFIG;
         final MessageMappingProcessor mappingProcessor = MessageMappingProcessor.of(CONNECTION_ID, null, actorSystem,
-                TestConstants.MAPPING_CONFIG, protocolAdapterProvider, Mockito.mock(DiagnosticLoggingAdapter.class));
+                connectivityConfig, protocolAdapterProvider, Mockito.mock(DiagnosticLoggingAdapter.class));
         final Props messageMappingProcessorProps =
                 MessageMappingProcessorActor.props(publisherActor, conciergeForwarderActor, mappingProcessor,
-                        CONNECTION_ID);
+                        CONNECTION_ID, connectivityConfig.getLimitsConfig());
 
         return actorSystem.actorOf(messageMappingProcessorProps,
                 MessageMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());

@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.thingsearch.starter;
 
 import org.eclipse.ditto.services.base.DittoService;
+import org.eclipse.ditto.services.thingsearch.common.config.DittoSearchConfig;
 import org.eclipse.ditto.services.thingsearch.starter.actors.SearchRootActor;
 import org.eclipse.ditto.services.thingsearch.common.config.SearchConfig;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
@@ -51,15 +52,13 @@ public class SearchService extends DittoService<SearchConfig> {
 
     @Override
     protected SearchConfig getServiceSpecificConfig(final ScopedConfig dittoConfig) {
-        // TODO
-        return null;
+        return DittoSearchConfig.of(dittoConfig);
     }
 
     @Override
     protected Props getMainRootActorProps(final SearchConfig searchConfig, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
-        // TODO
         return SearchRootActor.props(searchConfig, pubSubMediator, materializer);
     }
 

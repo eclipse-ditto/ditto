@@ -69,19 +69,16 @@ import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.base.DittoService;
-import org.eclipse.ditto.services.connectivity.mapping.DefaultMappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ClientConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.DefaultClientConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.DefaultConnectionConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.DefaultReconnectConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ReconnectConfig;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.services.utils.protocol.config.DefaultProtocolConfig;
 import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
@@ -112,6 +109,7 @@ public final class TestConstants {
 
     public static final Config CONFIG = ConfigFactory.load("test");
 
+    public static final ConnectivityConfig CONNECTIVITY_CONFIG;
     public static final MappingConfig MAPPING_CONFIG;
     public static final ConnectionConfig CONNECTION_CONFIG;
     public static final ClientConfig CLIENT_CONFIG;
@@ -121,14 +119,13 @@ public final class TestConstants {
     static {
         final DefaultScopedConfig dittoScopedConfig =
                 DefaultScopedConfig.newInstance(CONFIG, DittoService.DITTO_CONFIG_PATH);
-        final DefaultScopedConfig connectivityScopedConfig =
-                DefaultScopedConfig.newInstance(dittoScopedConfig, "connectivity");
 
-        MAPPING_CONFIG = DefaultMappingConfig.of(connectivityScopedConfig);
-        CONNECTION_CONFIG = DefaultConnectionConfig.of(connectivityScopedConfig);
-        CLIENT_CONFIG = DefaultClientConfig.of(connectivityScopedConfig);
-        RECONNECT_CONFIG = DefaultReconnectConfig.of(connectivityScopedConfig);
-        PROTOCOL_CONFIG = DefaultProtocolConfig.of(dittoScopedConfig);
+        CONNECTIVITY_CONFIG = DittoConnectivityConfig.of(dittoScopedConfig);
+        MAPPING_CONFIG = CONNECTIVITY_CONFIG.getMappingConfig();
+        CONNECTION_CONFIG = CONNECTIVITY_CONFIG.getConnectionConfig();
+        CLIENT_CONFIG = CONNECTIVITY_CONFIG.getClientConfig();
+        RECONNECT_CONFIG = CONNECTIVITY_CONFIG.getReconnectConfig();
+        PROTOCOL_CONFIG = CONNECTIVITY_CONFIG.getProtocolConfig();
     }
 
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
