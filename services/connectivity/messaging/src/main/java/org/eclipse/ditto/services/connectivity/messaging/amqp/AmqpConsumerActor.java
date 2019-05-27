@@ -150,7 +150,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
         Map<String, String> headers = null;
         String hashKey = "";
         try {
-            hashKey = message.getJMSDestination().toString();
+            hashKey = message.getJMSDestination() != null ? message.getJMSDestination().toString() : sourceAddress;
             headers = extractHeadersMapFromJmsMessage(message);
             final ExternalMessageBuilder builder = ExternalMessageFactory.newExternalMessageBuilder(headers);
             final ExternalMessage externalMessage = extractPayloadFromMessage(message, builder)
