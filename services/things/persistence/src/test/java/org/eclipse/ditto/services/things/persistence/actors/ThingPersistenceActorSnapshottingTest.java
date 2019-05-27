@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 
 import org.bson.BsonDocument;
@@ -75,7 +74,6 @@ import akka.actor.ActorRef;
 import akka.actor.ExtendedActorSystem;
 import akka.actor.PoisonPill;
 import akka.testkit.javadsl.TestKit;
-import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Unit test for the snapshotting functionality of {@link ThingPersistenceActor}.
@@ -672,90 +670,6 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 assertThat(tagThingResponse2).isEqualTo(TagThingResponse.of(thingId, 3, dittoHeadersV2));
 
                 assertSnapshots(thingId, Arrays.asList(thingForModify, thingForModify2));
-            }
-        };
-    }
-
-    @Test
-    public void retrieveThingWithSnapshotRevision() {
-        final Config customConfig = createNewDefaultTestConfig().withValue(ConfigKeys.Thing.SNAPSHOT_THRESHOLD,
-                ConfigValueFactory.fromAnyRef(NEVER_TAKE_SNAPSHOT_THRESHOLD));
-        setup(customConfig);
-
-        new TestKit(actorSystem) {
-            {
-                final Thing thing = createThingV2WithRandomId();
-                final String thingId = thing.getId().orElseThrow(IllegalStateException::new);
-
-                final ActorRef underTest = createPersistenceActorFor(thingId);
-
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
-                underTest.tell(createThing, getRef());
-
-                final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
-                final Thing createdThing = createThingResponse.getThingCreated()
-                        .orElseThrow(IllegalStateException::new);
-                assertThingInResponse(createdThing, thing, 1);
-
-                final Event expectedCreatedEvent = toEvent(createThing, 1);
-                assertJournal(thingId, Collections.singletonList(expectedCreatedEvent));
-                assertSnapshotsEmpty(thingId);
-
-                final Thing thingForModify = ThingsModelFactory.newThingBuilder(thing)
-                        .setAttribute(JsonFactory.newPointer("/foo"), JsonValue.of("bar"))
-                        .setRevision(2)
-                        .build();
-                final ModifyThing modifyThing = ModifyThing.of(thingId, thingForModify, null, dittoHeadersV2);
-                underTest.tell(modifyThing, getRef());
-
-                final ModifyThingResponse modifyThingResponse1 = expectMsgClass(ModifyThingResponse.class);
-                ThingCommandAssertions.assertThat(modifyThingResponse1).hasStatus(HttpStatusCode.NO_CONTENT);
-
-                underTest.tell(TagThing.of(thingId, dittoHeadersV2), getRef());
-                final TagThingResponse tagThingResponse = expectMsgClass(TagThingResponse.class);
-                assertThat(tagThingResponse).isEqualTo(TagThingResponse.of(thingId, 2, dittoHeadersV2));
-                assertSnapshots(thingId, Collections.singletonList(thingForModify));
-                final long revision = tagThingResponse.getSnapshotRevision();
-
-                final Thing thingForModify2 = ThingsModelFactory.newThingBuilder(thing)
-                        .setAttribute(JsonFactory.newPointer("/foo"), JsonValue.of("bar2"))
-                        .setRevision(3)
-                        .build();
-
-                final ModifyThing modifyThing2 = ModifyThing.of(thingId, thingForModify2, null, dittoHeadersV2);
-                underTest.tell(modifyThing2, getRef());
-
-                final ModifyThingResponse modifyThingResponse2 = expectMsgClass(ModifyThingResponse.class);
-                ThingCommandAssertions.assertThat(modifyThingResponse2).hasStatus(HttpStatusCode.NO_CONTENT);
-
-
-                underTest.tell(TagThing.of(thingId, dittoHeadersV2), getRef());
-                final TagThingResponse tagThingResponse2 = expectMsgClass(TagThingResponse.class);
-                assertThat(tagThingResponse2).isEqualTo(TagThingResponse.of(thingId, 3, dittoHeadersV2));
-                assertSnapshots(thingId, Arrays.asList(thingForModify, thingForModify2));
-
-                final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, dittoHeadersV2).build();
-
-                underTest.tell(retrieveThing, getRef());
-                final RetrieveThingResponse retrieveThingResponse = expectMsgClass(RetrieveThingResponse.class);
-                assertThat(getAttributeValue(retrieveThingResponse, "/foo")).isEqualTo("bar2");
-
-                final RetrieveThing retrieveThingWithSnapshot = RetrieveThing.getBuilder(thingId, dittoHeadersV2)
-                        .withSnapshotRevision(revision)
-                        .build();
-
-                underTest.tell(retrieveThingWithSnapshot, getRef());
-                // set duration higher than the default timeout of 3 seconds, because it is too low for
-                // retrieving the snapshot from the persistence
-                final RetrieveThingResponse retrieveThingWithSnapshotResponse = expectMsgClass(
-                        new FiniteDuration(5, TimeUnit.SECONDS),
-                        RetrieveThingResponse.class);
-                assertThat(getAttributeValue(retrieveThingWithSnapshotResponse, "/foo")).isEqualTo("bar");
-
-            }
-
-            private String getAttributeValue(final RetrieveThingResponse retrieveThingResponse, final String key) {
-                return retrieveThingResponse.getThing().getAttributes().get().getValue(key).get().asString();
             }
         };
     }

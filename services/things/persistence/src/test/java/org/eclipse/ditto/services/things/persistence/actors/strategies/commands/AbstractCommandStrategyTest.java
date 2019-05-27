@@ -107,16 +107,6 @@ public abstract class AbstractCommandStrategyTest {
         assertInfoResult(result, expectedCommandResponse);
     }
 
-    protected static void assertFutureResult(final CommandStrategy underTest,
-            @Nullable final Thing thing, final Command command,
-            final WithDittoHeaders expectedResponse) {
-
-        final CommandStrategy.Context context = getDefaultContext();
-        final CommandStrategy.Result result = applyStrategy(underTest, context, thing, command);
-
-        assertInfoResult(context, result, expectedResponse, true);
-    }
-
     protected static void assertUnhandledResult(final AbstractCommandStrategy underTest,
             @Nullable final Thing thing, final Command command,
             final WithDittoHeaders expectedResponse) {
