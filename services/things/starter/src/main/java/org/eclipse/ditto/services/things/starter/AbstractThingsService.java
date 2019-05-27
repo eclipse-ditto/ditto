@@ -50,7 +50,8 @@ public abstract class AbstractThingsService extends DittoService<ServiceConfigRe
     protected Props getMainRootActorProps(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
-        return ThingsRootActor.props(configReader, pubSubMediator, materializer);
+        return ThingsRootActor.props(configReader, pubSubMediator, materializer,
+                ThingPersistenceActorPropsFactory.getInstance(pubSubMediator));
     }
 
 }

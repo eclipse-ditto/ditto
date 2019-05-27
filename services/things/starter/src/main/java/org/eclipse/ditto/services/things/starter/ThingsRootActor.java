@@ -20,6 +20,7 @@ import java.net.ConnectException;
 import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.base.config.HealthConfigReader;
@@ -65,7 +66,6 @@ import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.server.Route;
-import akka.japi.Creator;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
@@ -75,7 +75,7 @@ import akka.stream.ActorMaterializer;
 /**
  * Our "Parent" Actor which takes care of supervision of all other Actors in our system.
  */
-final class ThingsRootActor extends AbstractActor {
+public final class ThingsRootActor extends AbstractActor {
 
     /**
      * The name of this Actor in the ActorSystem.
@@ -145,12 +145,14 @@ final class ThingsRootActor extends AbstractActor {
 
     private ThingsRootActor(final ServiceConfigReader configReader,
             final ActorRef pubSubMediator,
-            final ActorMaterializer materializer) {
+            final ActorMaterializer materializer,
+            final Function<String, Props> thingPersistenceActorPropsFactory) {
 
         final int numberOfShards = configReader.cluster().numberOfShards();
         final Config config = configReader.getRawConfig();
 
-        final Props thingSupervisorProps = getThingSupervisorActorProps(config, pubSubMediator);
+        final Props thingSupervisorProps = getThingSupervisorActorProps(config, pubSubMediator,
+                thingPersistenceActorPropsFactory);
 
         final ClusterShardingSettings shardingSettings =
                 ClusterShardingSettings.create(getContext().system())
@@ -223,20 +225,16 @@ final class ThingsRootActor extends AbstractActor {
      * @param configReader the configuration reader of this service.
      * @param pubSubMediator the PubSub mediator Actor.
      * @param materializer the materializer for the akka actor system
+     * @param thingPersistenceActorPropsFactory factory of props of thing persistence actors.
      * @return the Akka configuration Props object.
      */
-    static Props props(final ServiceConfigReader configReader,
+    public static Props props(final ServiceConfigReader configReader,
             final ActorRef pubSubMediator,
-            final ActorMaterializer materializer) {
+            final ActorMaterializer materializer,
+            final Function<String, Props> thingPersistenceActorPropsFactory) {
 
-        return Props.create(ThingsRootActor.class, new Creator<ThingsRootActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public ThingsRootActor create() {
-                return new ThingsRootActor(configReader, pubSubMediator, materializer);
-            }
-        });
+        return Props.create(ThingsRootActor.class, () ->
+                new ThingsRootActor(configReader, pubSubMediator, materializer, thingPersistenceActorPropsFactory));
     }
 
     private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {
@@ -278,14 +276,15 @@ final class ThingsRootActor extends AbstractActor {
                 serverBinding.localAddress().getPort());
     }
 
-    private static Props getThingSupervisorActorProps(final Config config, final ActorRef pubSubMediator) {
+    private static Props getThingSupervisorActorProps(final Config config, final ActorRef pubSubMediator,
+            final Function<String, Props> thingPersistenceActorPropsFactory) {
 
         final Duration minBackOff = config.getDuration(ConfigKeys.Thing.SUPERVISOR_EXPONENTIAL_BACKOFF_MIN);
         final Duration maxBackOff = config.getDuration(ConfigKeys.Thing.SUPERVISOR_EXPONENTIAL_BACKOFF_MAX);
         final double randomFactor = config.getDouble(ConfigKeys.Thing.SUPERVISOR_EXPONENTIAL_BACKOFF_RANDOM_FACTOR);
 
         return ThingSupervisorActor.props(pubSubMediator, minBackOff, maxBackOff, randomFactor,
-                ThingPersistenceActorPropsFactory.getInstance(pubSubMediator));
+                thingPersistenceActorPropsFactory);
     }
 
 }

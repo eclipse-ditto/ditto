@@ -41,6 +41,7 @@ import org.eclipse.ditto.services.things.persistence.strategies.AbstractReceiveS
 import org.eclipse.ditto.services.things.persistence.strategies.ReceiveStrategy;
 import org.eclipse.ditto.services.things.starter.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.signals.base.WithThingId;
 import org.eclipse.ditto.signals.base.WithType;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -72,8 +73,6 @@ import scala.Option;
  */
 public final class ThingPersistenceActor extends AbstractPersistentActorWithTimers {
 
-    private static final ThingMongoSnapshotAdapter SNAPSHOT_ADAPTER = new ThingMongoSnapshotAdapter();
-
     /**
      * The prefix of the persistenceId for Things.
      */
@@ -94,6 +93,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
 
     private final String thingId;
     private final ActorRef pubSubMediator;
+    private final SnapshotAdapter<ThingWithSnapshotTag> snapshotAdapter;
     private final DiagnosticLoggingAdapter log;
     private final Duration activityCheckInterval;
     private final Duration activityCheckDeletedInterval;
@@ -110,10 +110,12 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
     private long accessCounter;
     private Thing thing;
 
-    ThingPersistenceActor(final String thingId, final ActorRef pubSubMediator) {
+    ThingPersistenceActor(final String thingId, final ActorRef pubSubMediator,
+            final SnapshotAdapter<ThingWithSnapshotTag> snapshotAdapter) {
 
         this.thingId = thingId;
         this.pubSubMediator = pubSubMediator;
+        this.snapshotAdapter = snapshotAdapter;
         log = LogUtil.obtain(this);
         thing = null;
 
@@ -151,11 +153,25 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
      *
      * @param thingId the Thing ID this Actor manages.
      * @param pubSubMediator the PubSub mediator actor.
+     * @param snapshotAdapter the snapshot adapter.
+     * @return the Akka configuration Props object
+     */
+    public static Props props(final String thingId, final ActorRef pubSubMediator,
+            final SnapshotAdapter<ThingWithSnapshotTag> snapshotAdapter) {
+
+        return Props.create(ThingPersistenceActor.class,
+                () -> new ThingPersistenceActor(thingId, pubSubMediator, snapshotAdapter));
+    }
+
+    /**
+     * Creates Akka configuration object {@link Props} for this ThingPersistenceActor.
+     *
+     * @param thingId the Thing ID this Actor manages.
+     * @param pubSubMediator the PubSub mediator actor.
      * @return the Akka configuration Props object
      */
     public static Props props(final String thingId, final ActorRef pubSubMediator) {
-
-        return Props.create(ThingPersistenceActor.class, () -> new ThingPersistenceActor(thingId, pubSubMediator));
+        return props(thingId, pubSubMediator, new ThingMongoSnapshotAdapter());
     }
 
     private static Thing enhanceThingWithLifecycle(final Thing thing) {
@@ -391,7 +407,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
 
             final ThingWithSnapshotTag thingWithSnapshotTag =
                     ThingWithSnapshotTag.newInstance(thing, SnapshotTag.UNPROTECTED);
-            final Object snapshotSubject = SNAPSHOT_ADAPTER.toSnapshotStore(thingWithSnapshotTag);
+            final Object snapshotSubject = snapshotAdapter.toSnapshotStore(thingWithSnapshotTag);
             saveSnapshot(snapshotSubject);
 
             lastSnapshotRevision = revision;
@@ -416,7 +432,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
         return null != thing && thing.hasLifecycle(ThingLifecycle.ACTIVE);
     }
 
-    boolean isThingDeleted() {
+    private boolean isThingDeleted() {
         return null == thing || thing.hasLifecycle(ThingLifecycle.DELETED);
     }
 
@@ -471,7 +487,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
     }
 
     private void recoverFromSnapshotOffer(final SnapshotOffer snapshotOffer) {
-        thing = SNAPSHOT_ADAPTER.fromSnapshotStore(snapshotOffer);
+        thing = snapshotAdapter.fromSnapshotStore(snapshotOffer);
         lastSnapshotRevision = snapshotOffer.metadata().sequenceNr();
     }
 
