@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.things.starter;
 
-import org.eclipse.ditto.services.things.persistence.snapshotting.DittoThingSnapshotter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +28,7 @@ public final class ThingsService extends AbstractThingsService {
     private static final Logger LOGGER = LoggerFactory.getLogger(ThingsService.class);
 
     private ThingsService() {
-        super(LOGGER, DittoThingSnapshotter::getInstance);
+        super(LOGGER);
     }
 
     /**

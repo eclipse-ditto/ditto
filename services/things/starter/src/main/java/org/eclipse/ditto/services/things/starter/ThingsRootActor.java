@@ -29,7 +29,6 @@ import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.things.persistence.actors.ThingNamespaceOpsActor;
 import org.eclipse.ditto.services.things.persistence.actors.ThingSupervisorActor;
 import org.eclipse.ditto.services.things.persistence.actors.ThingsPersistenceStreamingActorCreator;
-import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
 import org.eclipse.ditto.services.things.starter.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
@@ -146,13 +145,12 @@ final class ThingsRootActor extends AbstractActor {
 
     private ThingsRootActor(final ServiceConfigReader configReader,
             final ActorRef pubSubMediator,
-            final ActorMaterializer materializer,
-            final ThingSnapshotter.Create thingSnapshotterCreate) {
+            final ActorMaterializer materializer) {
 
         final int numberOfShards = configReader.cluster().numberOfShards();
         final Config config = configReader.getRawConfig();
 
-        final Props thingSupervisorProps = getThingSupervisorActorProps(config, pubSubMediator, thingSnapshotterCreate);
+        final Props thingSupervisorProps = getThingSupervisorActorProps(config, pubSubMediator);
 
         final ClusterShardingSettings shardingSettings =
                 ClusterShardingSettings.create(getContext().system())
@@ -229,15 +227,14 @@ final class ThingsRootActor extends AbstractActor {
      */
     static Props props(final ServiceConfigReader configReader,
             final ActorRef pubSubMediator,
-            final ActorMaterializer materializer,
-            final ThingSnapshotter.Create thingSnapshotterCreate) {
+            final ActorMaterializer materializer) {
 
         return Props.create(ThingsRootActor.class, new Creator<ThingsRootActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public ThingsRootActor create() {
-                return new ThingsRootActor(configReader, pubSubMediator, materializer, thingSnapshotterCreate);
+                return new ThingsRootActor(configReader, pubSubMediator, materializer);
             }
         });
     }
@@ -281,15 +278,14 @@ final class ThingsRootActor extends AbstractActor {
                 serverBinding.localAddress().getPort());
     }
 
-    private static Props getThingSupervisorActorProps(final Config config, final ActorRef pubSubMediator,
-            final ThingSnapshotter.Create thingSnapshotterCreate) {
+    private static Props getThingSupervisorActorProps(final Config config, final ActorRef pubSubMediator) {
 
         final Duration minBackOff = config.getDuration(ConfigKeys.Thing.SUPERVISOR_EXPONENTIAL_BACKOFF_MIN);
         final Duration maxBackOff = config.getDuration(ConfigKeys.Thing.SUPERVISOR_EXPONENTIAL_BACKOFF_MAX);
         final double randomFactor = config.getDouble(ConfigKeys.Thing.SUPERVISOR_EXPONENTIAL_BACKOFF_RANDOM_FACTOR);
 
         return ThingSupervisorActor.props(pubSubMediator, minBackOff, maxBackOff, randomFactor,
-                ThingPersistenceActorPropsFactory.getInstance(pubSubMediator, thingSnapshotterCreate));
+                ThingPersistenceActorPropsFactory.getInstance(pubSubMediator));
     }
 
 }

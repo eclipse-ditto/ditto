@@ -12,12 +12,9 @@
  */
 package org.eclipse.ditto.services.things.starter;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-
 import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
-import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
 import org.slf4j.Logger;
 
 import akka.actor.ActorRef;
@@ -39,25 +36,21 @@ public abstract class AbstractThingsService extends DittoService<ServiceConfigRe
      */
     private static final String SERVICE_NAME = "things";
 
-    private final ThingSnapshotter.Create thingSnapshotterCreate;
-
     /**
      * Constructs a new {@code AbstractThingsService} object.
      *
      * @param logger the logger to be used.
-     * @param thingSnapshotterCreate functional interface for the constructor of snapshotter classes.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    protected AbstractThingsService(final Logger logger, final ThingSnapshotter.Create thingSnapshotterCreate) {
+    protected AbstractThingsService(final Logger logger) {
         super(logger, SERVICE_NAME, ThingsRootActor.ACTOR_NAME, DittoServiceConfigReader.from(SERVICE_NAME));
-        this.thingSnapshotterCreate = checkNotNull(thingSnapshotterCreate);
     }
 
     @Override
     protected Props getMainRootActorProps(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
-        return ThingsRootActor.props(configReader, pubSubMediator, materializer, thingSnapshotterCreate);
+        return ThingsRootActor.props(configReader, pubSubMediator, materializer);
     }
 
 }

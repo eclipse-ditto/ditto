@@ -12,14 +12,10 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
-import org.junit.Ignore;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import akka.actor.ActorPath;
 import akka.actor.RootActorPath;
-import akka.event.DiagnosticLoggingAdapter;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
@@ -27,11 +23,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class DefaultContextTest {
 
-    private static final String THING_ID = "com.example.iot:myThing";
-    private static final DiagnosticLoggingAdapter LOG = Mockito.mock(DiagnosticLoggingAdapter.class);
-    private static final ThingSnapshotter SNAPSHOTTER = Mockito.mock(ThingSnapshotter.class);
-
-    @Ignore("EqualsVerifier cannot cope with abstract method in ActorRef")
     @Test
     public void testHashCodeAndEquals() {
         final ActorPath red = new RootActorPath(null, "John Titor");
