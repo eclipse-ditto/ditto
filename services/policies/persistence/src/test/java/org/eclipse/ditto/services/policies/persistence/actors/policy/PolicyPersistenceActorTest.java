@@ -932,37 +932,6 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    @Test
-    @Ignore
-    public void checkForActivityOfNonexistentPolicy() {
-        new TestKit(actorSystem) {
-            {
-                // GIVEN: props increments counter whenever a PolicyPersistenceActor is created
-                final AtomicInteger restartCounter = new AtomicInteger(0);
-                final String policyId = "test.ns:nonexistent.policy";
-                final Props props = Props.create(PolicyPersistenceActor.class, () -> {
-                    restartCounter.incrementAndGet();
-                    return new PolicyPersistenceActor(policyId, new PolicyMongoSnapshotAdapter(), pubSubMediator);
-                });
-
-                // WHEN: CheckForActivity is sent to a persistence actor of nonexistent policy after startup
-                final ActorRef underTest = actorSystem.actorOf(props);
-                watch(underTest);
-
-                final Object checkForActivity = new PolicyPersistenceActor.CheckForActivity(1L, 1L);
-                underTest.tell(checkForActivity, ActorRef.noSender());
-                underTest.tell(checkForActivity, ActorRef.noSender());
-                underTest.tell(checkForActivity, ActorRef.noSender());
-
-                // THEN: persistence actor shuts down parent (user guardian)
-                expectTerminated(Duration.create(10, TimeUnit.SECONDS), underTest);
-
-                // THEN: actor should not restart itself.
-                assertThat(restartCounter.get()).isEqualTo(1);
-            }
-        };
-    }
-
     private ActorRef createPersistenceActorFor(final Policy policy) {
         return createPersistenceActorFor(policy.getId().orElse(null));
     }

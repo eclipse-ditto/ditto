@@ -84,7 +84,7 @@ public abstract class PersistenceActorTestBase {
 
     private static final PolicyEntry POLICY_ENTRY =
             PoliciesModelFactory.newPolicyEntry(POLICY_LABEL, POLICY_SUBJECTS, POLICY_RESOURCES_ALL);
-    private static final PolicyEntry ANOTHER_POLICY_ENTRY =
+    protected static final PolicyEntry ANOTHER_POLICY_ENTRY =
             PoliciesModelFactory.newPolicyEntry(ANOTHER_POLICY_LABEL, POLICY_SUBJECTS, POLICY_RESOURCES_READ);
     private static final long POLICY_REVISION = 0;
     protected ActorSystem actorSystem = null;

@@ -13,14 +13,16 @@
 package org.eclipse.ditto.services.policies.persistence.actors.policy;
 
 import java.text.MessageFormat;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -125,7 +127,6 @@ import com.typesafe.config.Config;
 import akka.ConfigurationException;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.actor.Cancellable;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
@@ -135,22 +136,16 @@ import akka.japi.Creator;
 import akka.japi.function.Procedure;
 import akka.japi.pf.FI;
 import akka.japi.pf.ReceiveBuilder;
-import akka.persistence.AbstractPersistentActor;
-import akka.persistence.DeleteMessagesFailure;
-import akka.persistence.DeleteMessagesSuccess;
-import akka.persistence.DeleteSnapshotFailure;
-import akka.persistence.DeleteSnapshotSuccess;
+import akka.persistence.AbstractPersistentActorWithTimers;
 import akka.persistence.RecoveryCompleted;
 import akka.persistence.SaveSnapshotFailure;
 import akka.persistence.SaveSnapshotSuccess;
-import akka.persistence.SnapshotMetadata;
 import akka.persistence.SnapshotOffer;
-import scala.concurrent.duration.Duration;
 
 /**
  * PersistentActor which "knows" the state of a single {@link Policy}.
  */
-public final class PolicyPersistenceActor extends AbstractPersistentActor {
+public final class PolicyPersistenceActor extends AbstractPersistentActorWithTimers {
 
     /**
      * The prefix of the persistenceId for Policies.
@@ -171,20 +166,13 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
     private final String policyId;
     private final SnapshotAdapter<Policy> snapshotAdapter;
     private final ActorRef pubSubMediator;
-    private final java.time.Duration activityCheckInterval;
-    private final java.time.Duration activityCheckDeletedInterval;
-    private final java.time.Duration snapshotInterval;
+    private final Duration activityCheckInterval;
+    private final Duration activityCheckDeletedInterval;
     private final long snapshotThreshold;
     private final Receive handlePolicyEvents;
-    private final boolean snapshotDeleteOld;
-    private final boolean eventsDeleteOld;
     private Policy policy;
     private long accessCounter;
-    private long lastSnapshotSequenceNr = -1;
-    private Cancellable activityChecker;
-    private Cancellable snapshotter;
-    private Runnable invokeAfterSnapshotRunnable;
-    private boolean snapshotInProgress;
+    private long lastSnapshotSequenceNr = 0L;
 
     PolicyPersistenceActor(final String policyId,
             final SnapshotAdapter<Policy> snapshotAdapter,
@@ -197,15 +185,15 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         final Config config = getContext().system().settings().config();
         activityCheckInterval = config.getDuration(ConfigKeys.Policy.ACTIVITY_CHECK_INTERVAL);
         activityCheckDeletedInterval = config.getDuration(ConfigKeys.Policy.ACTIVITY_CHECK_DELETED_INTERVAL);
-        snapshotInterval = config.getDuration(ConfigKeys.Policy.SNAPSHOT_INTERVAL);
-        snapshotThreshold = config.getLong(ConfigKeys.Policy.SNAPSHOT_THRESHOLD);
-        snapshotDeleteOld = config.getBoolean(ConfigKeys.Policy.SNAPSHOT_DELETE_OLD);
-        eventsDeleteOld = config.getBoolean(ConfigKeys.Policy.EVENTS_DELETE_OLD);
+        scheduleCheckForPolicyActivity(activityCheckInterval);
 
+        snapshotThreshold = config.getLong(ConfigKeys.Policy.SNAPSHOT_THRESHOLD);
         if (snapshotThreshold < 0) {
             throw new ConfigurationException(String.format("Config setting '%s' must be positive, but is: %d.",
                     ConfigKeys.Policy.SNAPSHOT_THRESHOLD, snapshotThreshold));
         }
+        final Duration snapshotInterval = config.getDuration(ConfigKeys.Policy.SNAPSHOT_INTERVAL);
+        scheduleSnapshot(snapshotInterval);
 
         handlePolicyEvents = ReceiveBuilder.create()
 
@@ -389,22 +377,13 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         return Instant.now();
     }
 
-    private void scheduleCheckForPolicyActivity(final long intervalInSeconds) {
-        if (activityChecker != null) {
-            activityChecker.cancel();
-        }
-        // send a message to ourselves:
-        activityChecker = getContext().system().scheduler()
-                .scheduleOnce(Duration.apply(intervalInSeconds, TimeUnit.SECONDS), getSelf(),
-                        new CheckForActivity(lastSequenceNr(), accessCounter), getContext().dispatcher(), null);
+    private void scheduleCheckForPolicyActivity(final Duration delay) {
+        final Object checkForActivity = new CheckForActivity(lastSequenceNr(), accessCounter);
+        timers().startSingleTimer("activityCheck", checkForActivity, delay);
     }
 
-    private void scheduleSnapshot(final long intervalInSeconds) {
-        // send a message to ourselft:
-        snapshotter = getContext().system().scheduler()
-                .scheduleOnce(Duration.apply(intervalInSeconds, TimeUnit.SECONDS), getSelf(),
-                        TakeSnapshotInternal.INSTANCE,
-                        getContext().dispatcher(), null);
+    private void scheduleSnapshot(final Duration interval) {
+        timers().startPeriodicTimer("takeSnapshot", new TakeSnapshot(), interval);
     }
 
     @Override
@@ -420,18 +399,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
     @Override
     public String snapshotPluginId() {
         return SNAPSHOT_PLUGIN_ID;
-    }
-
-    @Override
-    public void postStop() {
-        super.postStop();
-        invokeAfterSnapshotRunnable = null;
-        if (activityChecker != null) {
-            activityChecker.cancel();
-        }
-        if (snapshotter != null) {
-            snapshotter.cancel();
-        }
     }
 
     @Override
@@ -491,9 +458,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
         getContext().become(strategyAwareReceiveBuilder.build(), true);
         getContext().getParent().tell(new PolicySupervisorActor.ManualReset(), getSelf());
-
-        scheduleCheckForPolicyActivity(activityCheckInterval.getSeconds());
-        scheduleSnapshot(snapshotInterval.getSeconds());
     }
 
     private Collection<ReceiveStrategy<?>> initPolicyCreatedStrategies() {
@@ -530,16 +494,9 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
         // Sudo
         result.add(new SudoRetrievePolicyStrategy());
-
-        // Persistence specific
-        result.add(new SaveSnapshotSuccessStrategy());
-        result.add(new SaveSnapshotFailureStrategy());
-        result.add(new DeleteSnapshotSuccessStrategy());
-        result.add(new DeleteSnapshotFailureStrategy());
-        result.add(new DeleteMessagesSuccessStrategy());
-        result.add(new DeleteMessagesFailureStrategy());
         result.add(new CheckForActivityStrategy());
-        result.add(new TakeSnapshotInternalStrategy());
+
+        result.addAll(getTakeSnapshotStrategies());
 
         return result;
     }
@@ -552,34 +509,13 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
         getContext().become(strategyAwareReceiveBuilder.build(), true);
         getContext().getParent().tell(new PolicySupervisorActor.ManualReset(), getSelf());
-
-        if (activityChecker != null) {
-            activityChecker.cancel();
-        }
-        if (snapshotter != null) {
-            snapshotter.cancel();
-        }
-        /*
-         * Check in the next X minutes and therefore
-         * - stay in-memory for a short amount of minutes after deletion
-         * - get a Snapshot when removed from memory
-         */
-        scheduleCheckForPolicyActivity(activityCheckDeletedInterval.getSeconds());
     }
 
     private Collection<ReceiveStrategy<?>> initPolicyDeletedStrategies() {
         final Collection<ReceiveStrategy<?>> result = new ArrayList<>();
         result.add(new CreatePolicyStrategy());
-
-        // Persistence specific
-        result.add(new SaveSnapshotSuccessStrategy());
-        result.add(new SaveSnapshotFailureStrategy());
-        result.add(new DeleteSnapshotSuccessStrategy());
-        result.add(new DeleteSnapshotFailureStrategy());
-        result.add(new DeleteMessagesSuccessStrategy());
-        result.add(new DeleteMessagesFailureStrategy());
         result.add(new CheckForActivityStrategy());
-
+        result.addAll(getTakeSnapshotStrategies());
         return result;
     }
 
@@ -600,8 +536,8 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             handler.apply(persistedEvent);
 
             // save a snapshot if there were too many changes since the last snapshot
-            if ((lastSequenceNr() - lastSnapshotSequenceNr) > snapshotThreshold) {
-                doSaveSnapshot(null);
+            if ((lastSequenceNr() - lastSnapshotSequenceNr) >= snapshotThreshold) {
+                takeSnapshot("snapshot threshold is reached");
             }
             notifySubscribers(event);
         });
@@ -623,17 +559,27 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         return null != policy && policy.hasLifecycle(PolicyLifecycle.DELETED);
     }
 
-    private void doSaveSnapshot(final Runnable invokeAfterSnapshotRunnable) {
-        if (snapshotInProgress) {
-            log.debug("Already requested taking a Snapshot - not doing it again.");
+    private void takeSnapshot(final String reason) {
+        final long revision = lastSequenceNr();
+        if (policy != null && lastSnapshotSequenceNr != revision) {
+            log.info("Taking snapshot for policy with ID <{}> and revision <{}> because {}.", policy, revision, reason);
+            final Object snapshotSubject = snapshotAdapter.toSnapshotStore(policy);
+            saveSnapshot(snapshotSubject);
+            lastSnapshotSequenceNr = revision;
+        } else if (lastSnapshotSequenceNr == revision) {
+            log.info("Not taking duplicate snapshot for policy <{}> with revision <{}> even if {}.", policy, revision,
+                    reason);
         } else {
-            snapshotInProgress = true;
-            this.invokeAfterSnapshotRunnable = invokeAfterSnapshotRunnable;
-            log.debug("Attempting to save Snapshot for <{}> ...", policy);
-            // save a snapshot
-            final Object snapshotToStore = snapshotAdapter.toSnapshotStore(policy);
-            saveSnapshot(snapshotToStore);
+            log.info("Not taking snapshot for nonexistent policy <{}> even if {}.", policyId, reason);
         }
+    }
+
+    private Collection<ReceiveStrategy<?>> getTakeSnapshotStrategies() {
+        return Arrays.asList(
+                SimpleStrategy.of(TakeSnapshot.class, t -> takeSnapshot("snapshot interval has passed")),
+                SimpleStrategy.of(SaveSnapshotSuccess.class, s -> log.info("Got {}", s)),
+                SimpleStrategy.of(SaveSnapshotFailure.class, s -> log.error("Got {}", s, s.cause()))
+        );
     }
 
     private void notifySubscribers(final PolicyEvent event) {
@@ -1913,179 +1859,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
     }
 
     /**
-     * This strategy handles the success of saving a snapshot by logging the Policy's ID.
-     */
-    @NotThreadSafe
-    private final class SaveSnapshotSuccessStrategy extends AbstractReceiveStrategy<SaveSnapshotSuccess> {
-
-        /**
-         * Constructs a new {@code SaveSnapshotSuccessStrategy} object.
-         */
-        SaveSnapshotSuccessStrategy() {
-            super(SaveSnapshotSuccess.class, log);
-        }
-
-        @Override
-        protected void doApply(final SaveSnapshotSuccess message) {
-            final SnapshotMetadata snapshotMetadata = message.metadata();
-            log.debug("Snapshot taken for Policy <{}> with metadata <{}>.", policyId, snapshotMetadata);
-
-            final long newSnapShotSequenceNumber = snapshotMetadata.sequenceNr();
-            if (newSnapShotSequenceNumber <= lastSnapshotSequenceNr) {
-                log.warning("Policy <{}> has been already snap-shot with a newer or equal sequence number." +
-                                " Last sequence number: <{}>, new snapshot metadata: <{}>.", policyId,
-                        lastSnapshotSequenceNr, snapshotMetadata);
-                resetSnapshotInProgress();
-            } else {
-                deleteSnapshot(lastSnapshotSequenceNr);
-                deleteEventsOlderThan(newSnapShotSequenceNumber);
-
-                lastSnapshotSequenceNr = newSnapShotSequenceNumber;
-
-                resetSnapshotInProgress();
-            }
-        }
-
-        private void deleteEventsOlderThan(final long newestSequenceNumber) {
-            if (eventsDeleteOld && newestSequenceNumber > 1) {
-                final long upToSequenceNumber = newestSequenceNumber - 1;
-                log.debug("Delete all event messages for Policy <{}> up to sequence number <{}>.", policy,
-                        upToSequenceNumber);
-                deleteMessages(upToSequenceNumber);
-            }
-        }
-
-        private void deleteSnapshot(final long sequenceNumber) {
-            if (snapshotDeleteOld && sequenceNumber != -1) {
-                log.debug("Delete old snapshot for Policy <{}> with sequence number <{}>.", policyId, sequenceNumber);
-                PolicyPersistenceActor.this.deleteSnapshot(sequenceNumber);
-            }
-        }
-
-        private void resetSnapshotInProgress() {
-            if (invokeAfterSnapshotRunnable != null) {
-                invokeAfterSnapshotRunnable.run();
-                invokeAfterSnapshotRunnable = null;
-            }
-            snapshotInProgress = false;
-        }
-
-    }
-
-    /**
-     * This strategy handles the failure of saving a snapshot by logging an error.
-     */
-    @NotThreadSafe
-    private final class SaveSnapshotFailureStrategy extends AbstractReceiveStrategy<SaveSnapshotFailure> {
-
-        /**
-         * Constructs a new {@code SaveSnapshotFailureStrategy} object.
-         */
-        SaveSnapshotFailureStrategy() {
-            super(SaveSnapshotFailure.class, log);
-        }
-
-        @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
-        @Override
-        protected void doApply(final SaveSnapshotFailure message) {
-            final Throwable cause = message.cause();
-            final String causeMessage = cause.getMessage();
-            if (isPolicyDeleted()) {
-                log.error(cause, "Failed to save snapshot for delete operation of <{}>. Cause: {}.", policyId,
-                        causeMessage);
-            } else {
-                log.error(cause, "Failed to save snapshot for <{}>. Cause: {}.", policyId, causeMessage);
-            }
-        }
-
-    }
-
-    /**
-     * This strategy handles the success of deleting a snapshot by logging an info.
-     */
-    @NotThreadSafe
-    private final class DeleteSnapshotSuccessStrategy extends AbstractReceiveStrategy<DeleteSnapshotSuccess> {
-
-        /**
-         * Constructs a new {@code DeleteSnapshotSuccessStrategy} object.
-         */
-        DeleteSnapshotSuccessStrategy() {
-            super(DeleteSnapshotSuccess.class, log);
-        }
-
-        @Override
-        protected void doApply(final DeleteSnapshotSuccess message) {
-            log.debug("Deleting snapshot with sequence number <{}> for Policy <{}> was successful.",
-                    message.metadata().sequenceNr(), policyId);
-        }
-
-    }
-
-    /**
-     * This strategy handles the failure of deleting a snapshot by logging an error.
-     */
-    @NotThreadSafe
-    private final class DeleteSnapshotFailureStrategy extends AbstractReceiveStrategy<DeleteSnapshotFailure> {
-
-        /**
-         * Constructs a new {@code DeleteSnapshotFailureStrategy} object.
-         */
-        DeleteSnapshotFailureStrategy() {
-            super(DeleteSnapshotFailure.class, log);
-        }
-
-        @Override
-        protected void doApply(final DeleteSnapshotFailure message) {
-            final Throwable cause = message.cause();
-            log.error(cause, "Deleting snapshot with sequence number <{}> for Policy <{}> failed. Cause {}: {}",
-                    message.metadata().sequenceNr(), policyId, cause.getClass().getSimpleName(), cause.getMessage());
-        }
-
-    }
-
-    /**
-     * This strategy handles the success of deleting messages by logging an info.
-     */
-    @NotThreadSafe
-    private final class DeleteMessagesSuccessStrategy extends AbstractReceiveStrategy<DeleteMessagesSuccess> {
-
-        /**
-         * Constructs a new {@code DeleteMessagesSuccessStrategy} object.
-         */
-        DeleteMessagesSuccessStrategy() {
-            super(DeleteMessagesSuccess.class, log);
-        }
-
-        @Override
-        protected void doApply(final DeleteMessagesSuccess message) {
-            log.debug("Deleting messages for Policy <{}> was successful.", policyId);
-        }
-
-    }
-
-    /**
-     * This strategy handles the failure of deleting messages by logging an error.
-     */
-    @NotThreadSafe
-    private final class DeleteMessagesFailureStrategy extends AbstractReceiveStrategy<DeleteMessagesFailure> {
-
-        /**
-         * Constructs a new {@code DeleteMessagesFailureStrategy} object.
-         */
-        DeleteMessagesFailureStrategy() {
-            super(DeleteMessagesFailure.class, log);
-        }
-
-        @Override
-        protected void doApply(final DeleteMessagesFailure message) {
-            final Throwable cause = message.cause();
-            log.error(cause, "Deleting messages up to sequence number <{}> for Policy <{}> failed. Cause {}: {}",
-                    policyId, message.toSequenceNr(), cause.getClass().getSimpleName(), cause.getMessage());
-        }
-
-    }
-
-    /**
      * This strategy handles all commands which were not explicitly handled beforehand. Those commands are logged as
      * unknown messages and are marked as unhandled.
      */
@@ -2132,11 +1905,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                 builder.dittoHeaders(((WithDittoHeaders) message).getDittoHeaders());
             }
             notifySender(builder.build());
-
-            // Make sure activity checker is on, but there is no need to schedule it more than once.
-            if (activityChecker == null) {
-                scheduleCheckForPolicyActivity(activityCheckInterval.getSeconds());
-            }
         }
 
     }
@@ -2185,13 +1953,12 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             if (policyExistsAsDeleted() && lastSnapshotSequenceNr < lastSequenceNr()) {
                 // take a snapshot after a period of inactivity if:
                 // - thing is deleted,
-                // - the latest snapshot is out of date or is still ongoing.
-                final Object snapshotToStore = snapshotAdapter.toSnapshotStore(policy);
-                saveSnapshot(snapshotToStore);
-                scheduleCheckForPolicyActivity(activityCheckDeletedInterval.getSeconds());
+                // - the latest snapshot is out of date
+                takeSnapshot("the policy is deleted and has no up-to-date snapshot");
+                scheduleCheckForPolicyActivity(activityCheckDeletedInterval);
             } else if (accessCounter > message.getCurrentAccessCounter()) {
                 // if the Thing was accessed in any way since the last check
-                scheduleCheckForPolicyActivity(activityCheckInterval.getSeconds());
+                scheduleCheckForPolicyActivity(activityCheckInterval);
             } else {
                 // safe to shutdown after a period of inactivity if:
                 // - policy is active (and taking regular snapshots of itself), or
@@ -2212,69 +1979,37 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     }
 
-    /**
-     * This strategy handles the {@link TakeSnapshotInternal} message which checks for the need to take a snapshot
-     * and
-     * does so if needed.
-     */
-    @NotThreadSafe
-    private final class TakeSnapshotInternalStrategy extends AbstractTakeSnapshotStrategy<TakeSnapshotInternal> {
+    private static final class SimpleStrategy<T> implements ReceiveStrategy<T> {
 
-        /**
-         * Constructs a new {@code TakeSnapshotInternalStrategy} object.
-         */
-        TakeSnapshotInternalStrategy() {
-            super(TakeSnapshotInternal.class);
+        private final Class<T> clazz;
+        private final Consumer<T> consumer;
+
+        private SimpleStrategy(final Class<T> clazz, final Consumer<T> consumer) {
+            this.clazz = clazz;
+            this.consumer = consumer;
+        }
+
+        private static <T> ReceiveStrategy<T> of(final Class<T> clazz, final Consumer<T> consumer) {
+            return new SimpleStrategy<>(clazz, consumer);
         }
 
         @Override
-        void onCompleted(final TakeSnapshotInternal requestMessage, final ActorRef requestSender,
-                final boolean snapshotCreated) {
-
-            log.debug("Completed internal request for snapshot: snapshotCreated={}", snapshotCreated);
+        public Class<T> getMatchingClass() {
+            return clazz;
         }
-
-    }
-
-    /**
-     * Abstract base class for handling snapshot requests.
-     */
-    @NotThreadSafe
-    private abstract class AbstractTakeSnapshotStrategy<T> extends AbstractReceiveStrategy<T> {
-
-        AbstractTakeSnapshotStrategy(final Class<T> clazz) {
-            super(clazz, log);
-        }
-
-        /**
-         * Hook for reacting on completion of taking the snapshot.
-         *
-         * @param requestMessage the request message
-         * @param requestSender the sender of the request message
-         * @param snapshotCreated whether a snapshot has actually been created; may be {@code false}, if there was
-         * already an existing snapshot for the latest sequence number
-         */
-        abstract void onCompleted(final T requestMessage, final ActorRef requestSender, boolean snapshotCreated);
 
         @Override
-        protected void doApply(final T message) {
-            log.debug("Received request to SaveSnapshot. Message: {}", message);
-            final ActorRef sender = getSender();
-            // if there was any modifying activity since the last taken snapshot:
-            if (lastSequenceNr() > lastSnapshotSequenceNr) {
-                doSaveSnapshot(() -> onCompleted(message, sender, true));
-            } else {
-                // if a snapshot already exists, don't take another one and signal success
-                onCompleted(message, sender, false);
-            }
-
-            // if the Policy is not "deleted":
-            if (isPolicyActive()) {
-                // schedule the next snapshot:
-                scheduleSnapshot(snapshotInterval.getSeconds());
-            }
+        public FI.UnitApply<T> getApplyFunction() {
+            return consumer::accept;
         }
 
+        @Override
+        public FI.UnitApply<T> getUnhandledFunction() {
+            // not used
+            return x -> {};
+        }
     }
+
+    private static final class TakeSnapshot {}
 
 }

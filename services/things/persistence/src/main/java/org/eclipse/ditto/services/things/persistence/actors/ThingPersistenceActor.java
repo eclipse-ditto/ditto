@@ -309,8 +309,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
     private void handleCommand(final Command command, final CommandStrategy commandStrategy) {
         final CommandStrategy.Result result;
         try {
-            result = commandStrategy.apply(defaultContext, thing,
-                    getNextRevisionNumber(), command);
+            result = commandStrategy.apply(defaultContext, thing, getNextRevisionNumber(), command);
         } catch (final DittoRuntimeException e) {
             getSender().tell(e, getSelf());
             return;
@@ -400,8 +399,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
     }
 
     private void takeSnapshot(final String reason) {
-        final long revision = getNextRevisionNumber();
-        if (thing != null) {
+        final long revision = getRevisionNumber();
+        if (thing != null && lastSnapshotRevision != revision) {
             log.info("Taking snapshot for Thing with ID <{}> and sequence number <{}> because {}.", thingId, revision,
                     reason);
 
@@ -411,6 +410,9 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
             saveSnapshot(snapshotSubject);
 
             lastSnapshotRevision = revision;
+        } else if (lastSnapshotRevision == revision) {
+            log.info("Not taking duplicate snapshot for thing <{}> with revision <{}> even if {}.", thing, revision,
+                    reason);
         } else {
             log.info("Not taking snapshot for nonexistent thing <{}> even if {}.", thingId, reason);
         }
