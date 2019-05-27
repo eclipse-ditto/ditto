@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
 import javax.jms.BytesMessage;
@@ -81,10 +82,8 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     private final Duration throttlingInterval;
     // the configured maximum of messages per interval
     private final int throttlingLimit;
-    // the current interval for which messages are counted
-    private long currentInterval = 0;
-    // number of messages within this interval
-    private int messagesPerInterval = 0;
+    // the state for message throttling
+    private final AtomicReference<ThrottleState> throttleState;
 
     private AmqpConsumerActor(final String connectionId, final String sourceAddress,
             final MessageConsumer messageConsumer,
@@ -97,6 +96,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
         final Config config = getContext().getSystem().settings().config();
         throttlingInterval = config.getDuration(ConfigKeys.AmqpConsumer.THROTTLING_INTERVAL);
         throttlingLimit = config.getInt(ConfigKeys.AmqpConsumer.THROTTLING_LIMIT);
+        throttleState = new AtomicReference<>(new ThrottleState(0L, 0));
 
         final Enforcement enforcement = source.getEnforcement().orElse(null);
 
@@ -178,13 +178,16 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
      */
     private void throttleMessageConsumer() {
         final long interval = System.currentTimeMillis() / throttlingInterval.toMillis();
-        if (interval == currentInterval) {
-            messagesPerInterval++;
-        } else {
-            messagesPerInterval = 1;
-            currentInterval = interval;
-        }
-        if (messagesPerInterval >= throttlingLimit) {
+        final ThrottleState state = throttleState.updateAndGet(previousState -> {
+            final int nextMessages;
+            if (interval == previousState.currentInterval) {
+                nextMessages = previousState.currentMessagePerInterval + 1;
+            } else {
+                nextMessages = 1;
+            }
+            return new ThrottleState(interval, nextMessages);
+        });
+        if (state.currentMessagePerInterval >= throttlingLimit) {
             log.info("Stopping message consumer, message limit of {}/{} exceeded.", throttlingLimit,
                     throttlingInterval);
             ((JmsMessageConsumer) messageConsumer).stop();
@@ -327,7 +330,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
         }
     }
 
-    private class RestartMessageConsumer {
+    private static final class RestartMessageConsumer {
 
         private long restartAt;
 
@@ -337,6 +340,17 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
 
         private long getRestartAt() {
             return restartAt;
+        }
+    }
+
+    private static final class ThrottleState {
+
+        private final long currentInterval;
+        private final int currentMessagePerInterval;
+
+        private ThrottleState(final long currentInterval, final int currentMessagePerInterval) {
+            this.currentInterval = currentInterval;
+            this.currentMessagePerInterval = currentMessagePerInterval;
         }
     }
 }
