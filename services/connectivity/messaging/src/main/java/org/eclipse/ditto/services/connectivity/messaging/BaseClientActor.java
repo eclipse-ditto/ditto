@@ -88,8 +88,6 @@ import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.routing.ConsistentHashingPool;
 import akka.routing.ConsistentHashingRouter;
-import akka.routing.DefaultResizer;
-import akka.routing.Resizer;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 import scala.util.Either;
@@ -852,8 +850,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                     MessageMappingProcessorActor.props(getPublisherActor(), conciergeForwarder, processor,
                             connectionId());
 
-            final Resizer resizer = new DefaultResizer(1, connection.getProcessorPoolSize());
-
             /*
              * By using a ConsistentHashingPool, messages sent to this actor which are wrapped into
              * akka.routing.ConsistentHashingRouter.ConsistentHashableEnvelope may define which consistent hashing
@@ -867,9 +863,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
              * This however will also limit throughput as the used hashing key is often connection source address based
              * and does not yet "know" of the Thing ID.
              */
-            messageMappingProcessorActor = getContext().actorOf(new ConsistentHashingPool(1)
+            messageMappingProcessorActor = getContext().actorOf(new ConsistentHashingPool(connection.getProcessorPoolSize())
                     .withDispatcher("message-mapping-processor-dispatcher")
-                    .withResizer(resizer)
                     .props(props), nextChildActorName(MessageMappingProcessorActor.ACTOR_NAME));
         } else {
             log.info("MessageMappingProcessor already instantiated: not initializing again.");
