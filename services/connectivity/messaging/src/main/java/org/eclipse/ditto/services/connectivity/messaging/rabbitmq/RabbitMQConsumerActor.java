@@ -118,6 +118,7 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
         final BasicProperties properties = delivery.getProperties();
         final Envelope envelope = delivery.getEnvelope();
         final byte[] body = delivery.getBody();
+        final String hashKey = envelope.getExchange() + ":" + envelope.getRoutingKey();
 
         Map<String, String> headers = null;
         try {
@@ -143,7 +144,7 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
             externalMessageBuilder.withSourceAddress(sourceAddress);
             final ExternalMessage externalMessage = externalMessageBuilder.build();
             inboundCounter.recordSuccess();
-            final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(externalMessage, sourceAddress);
+            final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(externalMessage, hashKey);
             messageMappingProcessor.forward(msg, getContext());
         } catch (final DittoRuntimeException e) {
             log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage(), e);
@@ -151,7 +152,7 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
             if (headers != null) {
                 // send response if headers were extracted successfully
                 final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(
-                        e.setDittoHeaders(DittoHeaders.of(headers)), sourceAddress);
+                        e.setDittoHeaders(DittoHeaders.of(headers)), hashKey);
                 messageMappingProcessor.forward(msg, getContext());
             }
         } catch (final Exception e) {

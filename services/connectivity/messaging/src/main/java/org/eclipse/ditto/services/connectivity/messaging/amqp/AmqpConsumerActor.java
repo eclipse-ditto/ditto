@@ -148,7 +148,9 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
 
     private void handleJmsMessage(final JmsMessage message) {
         Map<String, String> headers = null;
+        String hashKey = "";
         try {
+            hashKey = message.getJMSDestination().toString();
             headers = extractHeadersMapFromJmsMessage(message);
             final ExternalMessageBuilder builder = ExternalMessageFactory.newExternalMessageBuilder(headers);
             final ExternalMessage externalMessage = extractPayloadFromMessage(message, builder)
@@ -163,7 +165,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                 log.debug("Received message from AMQP 1.0 ({}): {}", externalMessage.getHeaders(),
                         externalMessage.getTextPayload().orElse("binary"));
             }
-            final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(externalMessage, sourceAddress);
+            final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(externalMessage, hashKey);
             messageMappingProcessor.forward(msg, getContext());
         } catch (final DittoRuntimeException e) {
             inboundCounter.recordFailure();
@@ -172,7 +174,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                 // forwarding to messageMappingProcessor only make sense if we were able to extract the headers,
                 // because we need a reply-to address to send the error response
                 final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(
-                        e.setDittoHeaders(DittoHeaders.of(headers)), sourceAddress);
+                        e.setDittoHeaders(DittoHeaders.of(headers)), hashKey);
                 messageMappingProcessor.forward(msg, getContext());
             }
         } catch (final Exception e) {
