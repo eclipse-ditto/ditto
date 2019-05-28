@@ -1,5 +1,5 @@
 ---
-title: "Model"
+title: "Model topics"
 tagName: model
 search: exclude
 permalink: tag_model.html

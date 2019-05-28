@@ -19,6 +19,7 @@ import static org.eclipse.ditto.model.things.Permission.READ;
 import static org.eclipse.ditto.model.things.Permission.WRITE;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.SUBJECT;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.THING_SUDO;
+import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.fishForMsgClass;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.newThing;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.readCommand;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.writeCommand;
@@ -34,10 +35,13 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.AclEntry;
+import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -75,8 +79,7 @@ public final class PreEnforcementTest {
     @Test
     public void acceptWhenPreEnforcementIsSuccessful() {
         final JsonObject thingWithAcl = newThing()
-                .setPermissions(
-                        AclEntry.newInstance(SUBJECT, READ, WRITE, ADMINISTRATE))
+                .setPermissions(AclEntry.newInstance(SUBJECT, READ, WRITE, ADMINISTRATE))
                 .build()
                 .toJson(V_1, FieldType.all());
         final SudoRetrieveThingResponse response =
@@ -89,12 +92,12 @@ public final class PreEnforcementTest {
             final ThingCommand read = readCommand();
             mockEntitiesActorInstance.setReply(read);
             underTest.tell(read, getRef());
-            assertThat(expectMsgClass(read.getClass()).getId()).isEqualTo(read.getId());
+            assertThat(fishForMsgClass(this, read.getClass()).getId()).isEqualTo(read.getId());
 
             final ThingCommand write = writeCommand();
             mockEntitiesActorInstance.setReply(write);
             underTest.tell(write, getRef());
-            assertThat(expectMsgClass(write.getClass()).getId()).isEqualTo(write.getId());
+            assertThat(fishForMsgClass(this, write.getClass()).getId()).isEqualTo(write.getId());
         }};
     }
 
@@ -121,14 +124,42 @@ public final class PreEnforcementTest {
             }));
             final ThingCommand read = readCommand();
             underTest.tell(read, getRef());
-            assertThat(expectMsgClass(mockedEx.getClass())).isEqualTo(mockedEx);
+            assertThat(fishForMsgClass(this, mockedEx.getClass())).isEqualTo(mockedEx);
 
             final ThingCommand write = writeCommand();
             underTest.tell(write, getRef());
-            assertThat(expectMsgClass(mockedEx.getClass())).isEqualTo(mockedEx);
+            assertThat(fishForMsgClass(this, mockedEx.getClass())).isEqualTo(mockedEx);
         }};
     }
 
+    @Test
+    public void rejectWhenPreEnforcementThrowsThingIdInvalidException() {
+        disableLogging();
+
+        final String invalidThingId = "invalidThingId";
+        final Thing thing = newThing()
+                .setId(invalidThingId)
+                .setPermissions(
+                        AclEntry.newInstance(SUBJECT, READ, WRITE, ADMINISTRATE))
+                .build();
+        final SudoRetrieveThingResponse response =
+                SudoRetrieveThingResponse.of(thing.toJson(), DittoHeaders.empty());
+
+        new TestKit(system) {{
+            mockEntitiesActorInstance.setReply(THING_SUDO, response);
+
+            final ThingIdInvalidException mockedEx =
+                    ThingIdInvalidException.newBuilder(invalidThingId).build();
+
+            final ActorRef underTest = newEnforcerActor(getRef(), msg -> CompletableFuture.supplyAsync(() -> {
+                throw mockedEx;
+            }));
+
+            final ThingCommand create = CreateThing.of(thing, null, DittoHeaders.empty());
+            underTest.tell(create, getRef());
+            assertThat(fishForMsgClass(this, mockedEx.getClass())).isEqualTo(mockedEx);
+        }};
+    }
 
     @Test
     public void rejectWhenPreEnforcementReturnsUnexpectedException() {
@@ -154,11 +185,11 @@ public final class PreEnforcementTest {
             }));
             final ThingCommand read = readCommand();
             underTest.tell(read, getRef());
-            expectMsgClass(unexpectedExceptionResultClass);
+            fishForMsgClass(this, unexpectedExceptionResultClass);
 
             final ThingCommand write = writeCommand();
             underTest.tell(write, getRef());
-            expectMsgClass(unexpectedExceptionResultClass);
+            fishForMsgClass(this, unexpectedExceptionResultClass);
         }};
     }
 

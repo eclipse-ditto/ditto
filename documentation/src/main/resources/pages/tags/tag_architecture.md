@@ -1,5 +1,5 @@
 ---
-title: "Architecture"
+title: "Architecture topics"
 tagName: architecture
 search: exclude
 permalink: tag_architecture.html

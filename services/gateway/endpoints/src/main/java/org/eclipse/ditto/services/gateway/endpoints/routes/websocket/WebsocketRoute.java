@@ -52,6 +52,8 @@ import org.eclipse.ditto.services.gateway.streaming.actors.CommandSubscriber;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
@@ -109,8 +111,8 @@ public final class WebsocketRoute {
 
     private final EventStream eventStream;
 
-    private final EventSniffer<Message> incomingMessageSniffer;
-    private final EventSniffer<Message> outgoingMessageSniffer;
+    private final EventSniffer<String> incomingMessageSniffer;
+    private final EventSniffer<String> outgoingMessageSniffer;
 
     /**
      * Constructs the {@code /ws} route builder.
@@ -134,8 +136,8 @@ public final class WebsocketRoute {
             final int subscriberBackpressureQueueSize,
             final int publisherBackpressureBufferSize,
             final EventStream eventStream,
-            final EventSniffer<Message> incomingMessageSniffer,
-            final EventSniffer<Message> outgoingMessageSniffer) {
+            final EventSniffer<String> incomingMessageSniffer,
+            final EventSniffer<String> outgoingMessageSniffer) {
         this.streamingActor = streamingActor;
         this.subscriberBackpressureQueueSize = subscriberBackpressureQueueSize;
         this.publisherBackpressureBufferSize = publisherBackpressureBufferSize;
@@ -151,8 +153,8 @@ public final class WebsocketRoute {
      * @param outgoingMessageSniffer sniffer of outgoing messages.
      * @return a copy of this object with the message sniffers.
      */
-    public WebsocketRoute withMessageSniffers(final EventSniffer<Message> incomingMessageSniffer,
-            final EventSniffer<Message> outgoingMessageSniffer) {
+    public WebsocketRoute withMessageSniffers(final EventSniffer<String> incomingMessageSniffer,
+            final EventSniffer<String> outgoingMessageSniffer) {
 
         return new WebsocketRoute(streamingActor, subscriberBackpressureQueueSize, publisherBackpressureBufferSize,
                 eventStream, incomingMessageSniffer, outgoingMessageSniffer);
@@ -196,11 +198,19 @@ public final class WebsocketRoute {
             final ProtocolAdapter adapter,
             final HttpRequest request) {
 
+        final Counter inCounter = DittoMetrics.counter("streaming_messages")
+                .tag("type", "ws")
+                .tag("direction", "in")
+                .tag("session", connectionCorrelationId);
+
         final ProtocolMessageExtractor protocolMessageExtractor = new ProtocolMessageExtractor(connectionAuthContext,
                 connectionCorrelationId);
 
         final Flow<Message, String, NotUsed> extractStringFromMessage = Flow.<Message>create()
-                .via(incomingMessageSniffer.toAsyncFlow(request))
+                .via(Flow.fromFunction(msg -> {
+                    inCounter.increment();
+                    return msg;
+                }))
                 .filter(Message::isText)
                 .map(Message::asTextMessage)
                 .map(textMsg -> {
@@ -211,6 +221,7 @@ public final class WebsocketRoute {
                     }
                 })
                 .flatMapConcat(textMsg -> textMsg.<String>fold("", (str1, str2) -> str1 + str2))
+                .via(incomingMessageSniffer.toAsyncFlow(request))
                 .via(Flow.fromFunction(result -> {
                     LogUtil.logWithCorrelationId(LOGGER, connectionCorrelationId, logger ->
                             logger.debug("Received incoming WebSocket message: {}", result));
@@ -246,6 +257,11 @@ public final class WebsocketRoute {
             final ProtocolAdapter adapter,
             final HttpRequest request) {
 
+        final Counter outCounter = DittoMetrics.counter("streaming_messages")
+                .tag("type", "ws")
+                .tag("direction", "out")
+                .tag("session", connectionCorrelationId);
+
         final Source<Jsonifiable.WithPredicate<JsonObject, JsonField>, NotUsed> eventAndResponseSource =
                 Source.<Jsonifiable.WithPredicate<JsonObject, JsonField>>actorPublisher(
                         EventAndResponsePublisher.props(publisherBackpressureBufferSize))
@@ -266,8 +282,12 @@ public final class WebsocketRoute {
                                     logger.debug("Sending outgoing WebSocket message: {}", result));
                             return result;
                         }))
+                        .via(outgoingMessageSniffer.toAsyncFlow(request))
                         .<Message>map(TextMessage::create)
-                        .via(outgoingMessageSniffer.toAsyncFlow(request));
+                        .via(Flow.fromFunction(msg -> {
+                            outCounter.increment();
+                            return msg;
+                        }));
 
         return joinOutgoingFlows(eventAndResponseSource, errorFlow, messageFlow);
     }
@@ -293,8 +313,9 @@ public final class WebsocketRoute {
 
     private Jsonifiable.WithPredicate<JsonObject, JsonField> publishResponsePublishedEvent(
             final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable) {
-        if (jsonifiable instanceof CommandResponse) {
-            // only create ResponsePublished for CommandResponses, not for Events with the same correlationId
+        if (jsonifiable instanceof CommandResponse || jsonifiable instanceof DittoRuntimeException) {
+            // only create ResponsePublished for CommandResponses and DittoRuntimeExceptions
+            //  not for Events with the same correlationId
             ((WithDittoHeaders) jsonifiable).getDittoHeaders()
                     .getCorrelationId()
                     .map(ResponsePublished::new)

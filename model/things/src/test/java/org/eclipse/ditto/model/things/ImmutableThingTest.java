@@ -29,12 +29,15 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.lang.ref.SoftReference;
+import java.util.Arrays;
+import java.util.List;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.junit.Test;
@@ -182,7 +185,7 @@ public final class ImmutableThingTest {
                     FEATURES,
                     LIFECYCLE,
                     REVISION,
-                    MODIFIED);
+                    MODIFIED).validate(DittoHeaders.empty());
         });
     }
 
@@ -200,7 +203,8 @@ public final class ImmutableThingTest {
                 REVISION,
                 MODIFIED);
 
-        assertThatExceptionOfType(ThingPolicyIdInvalidException.class).isThrownBy(() -> thing.setPolicyId(invalidPolicyId));
+        assertThatExceptionOfType(ThingPolicyIdInvalidException.class).isThrownBy(
+                () -> thing.setPolicyId(invalidPolicyId).validate(DittoHeaders.empty()));
     }
 
     @Test
@@ -943,4 +947,25 @@ public final class ImmutableThingTest {
                 .contains(Thing.JsonFields.MODIFIED, JsonValue.of(MODIFIED.toString()));
     }
 
+    @Test
+    public void createThingWithInvalidIds() {
+        final List<String> invalidThingIds =
+                Arrays.asList("", "foobar2000", "foo-bar:foobar2000", "foo.bar%bum:foobar2000",
+                        ".namespace:foobar2000", "namespace.:foobar2000", "namespace..invalid:foobar2000",
+                        "namespace.42:foobar2000", ":foobar2000");
+
+        invalidThingIds.forEach(invalidId -> {
+            assertThatExceptionOfType(ThingIdInvalidException.class).isThrownBy(() ->
+                ImmutableThing.of(
+                        invalidId,
+                        ACL,
+                        ATTRIBUTES,
+                        FEATURES,
+                        LIFECYCLE,
+                        REVISION,
+                        MODIFIED).validate(DittoHeaders.empty())
+            );
+        });
+
+    }
 }

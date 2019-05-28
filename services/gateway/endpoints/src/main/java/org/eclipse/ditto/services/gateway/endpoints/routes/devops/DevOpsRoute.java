@@ -37,6 +37,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.devops.ImmutableLoggerConfig;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.signals.commands.devops.ChangeLogLevel;
+import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
 import org.eclipse.ditto.signals.commands.devops.ExecutePiggybackCommand;
 import org.eclipse.ditto.signals.commands.devops.RetrieveLoggerConfig;
 
@@ -152,11 +153,11 @@ public final class DevOpsRoute extends AbstractRoute {
 
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), instance ->
                 // /devops/<logging|piggyback>/<serviceName>/<instance>
-                routeBuilder.build(ctx, serviceName, Integer.parseInt(instance), dittoHeaders)
+                routeBuilder.build(ctx, serviceName, instance, dittoHeaders)
         );
     }
 
-    private Route routeLogging(final RequestContext ctx, final String serviceName, final Integer instance,
+    private Route routeLogging(final RequestContext ctx, final String serviceName, final String instance,
             final DittoHeaders dittoHeaders) {
 
         return route(
@@ -180,7 +181,7 @@ public final class DevOpsRoute extends AbstractRoute {
     }
 
     private Route routePiggyback(final RequestContext ctx, @Nullable final String serviceName,
-            @Nullable final Integer instance, final DittoHeaders dittoHeaders) {
+            @Nullable final String instance, final DittoHeaders dittoHeaders) {
         return post(() ->
                 extractDataBytes(payloadSource ->
                         handlePerRequest(ctx, dittoHeaders, payloadSource,
@@ -188,7 +189,23 @@ public final class DevOpsRoute extends AbstractRoute {
                                     final JsonObject parsedJson =
                                             JsonFactory.readFrom(piggybackCommandJson).asObject();
 
-                                    return ExecutePiggybackCommand.of(serviceName, instance,
+                                    final String serviceName1;
+                                    final String instance1;
+
+                                    // serviceName and instance from URL are preferred
+                                    if (serviceName == null) {
+                                        serviceName1 = parsedJson.getValue(DevOpsCommand.JsonFields.JSON_SERVICE_NAME).orElse(serviceName);
+                                    } else {
+                                        serviceName1 = serviceName;
+                                    }
+
+                                    if (instance == null) {
+                                        instance1 = parsedJson.getValue(DevOpsCommand.JsonFields.JSON_INSTANCE).orElse(instance);
+                                    } else {
+                                        instance1 = instance;
+                                    }
+
+                                    return ExecutePiggybackCommand.of(serviceName1, instance1,
                                             parsedJson.getValueOrThrow(
                                                     ExecutePiggybackCommand.JSON_TARGET_ACTORSELECTION),
                                             parsedJson.getValueOrThrow(
@@ -198,7 +215,8 @@ public final class DevOpsRoute extends AbstractRoute {
                                                     .map(JsonValue::asObject)
                                                     .map(DittoHeaders::newBuilder)
                                                     .map(head -> head.putHeaders(dittoHeaders))
-                                                    .map(DittoHeadersBuilder::build)
+                                                    .map((java.util.function.Function<DittoHeadersBuilder, DittoHeaders>)
+                                                            DittoHeadersBuilder::build)
                                                     .orElse(dittoHeaders));
                                 }
                         )
@@ -206,7 +224,7 @@ public final class DevOpsRoute extends AbstractRoute {
         );
     }
 
-    private static Function<JsonValue, JsonValue> transformResponse(final String serviceName, final Integer instance) {
+    private static Function<JsonValue, JsonValue> transformResponse(final String serviceName, final String instance) {
         final JsonPointer transformerPointer = transformerPointer(serviceName, instance);
         if (transformerPointer.isEmpty()) {
             return resp -> resp;
@@ -218,13 +236,13 @@ public final class DevOpsRoute extends AbstractRoute {
     }
 
     private static JsonPointer transformerPointer(@Nullable final String serviceName,
-            @Nullable final Integer instance) {
+            @Nullable final String instance) {
         JsonPointer newPointer = JsonPointer.empty();
         if (serviceName != null) {
             newPointer = newPointer.append(JsonPointer.of(serviceName));
         }
         if (instance != null) {
-            newPointer = newPointer.append(JsonPointer.of(instance.toString()));
+            newPointer = newPointer.append(JsonPointer.of(instance));
         }
         return newPointer;
     }
@@ -239,7 +257,7 @@ public final class DevOpsRoute extends AbstractRoute {
     @FunctionalInterface
     private interface RouteBuilderWithOptionalServiceNameAndInstance {
 
-        Route build(final RequestContext ctx, final String serviceName, final Integer instance,
+        Route build(final RequestContext ctx, final String serviceName, final String instance,
                 final DittoHeaders dittoHeaders);
     }
 

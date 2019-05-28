@@ -32,7 +32,6 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.models.thingsearch.ThingsSearchConstants;
@@ -69,12 +68,10 @@ public final class StatisticsActor extends AbstractActor {
 
     private static final String SR_THING = ThingsMessagingConstants.SHARD_REGION;
     private static final String SR_POLICY = PoliciesMessagingConstants.SHARD_REGION;
-    private static final String SR_CONCIERGE = ConciergeMessagingConstants.SHARD_REGION;
     private static final String SR_SEARCH_UPDATER = ThingsSearchConstants.SHARD_REGION;
 
     private static final String THINGS_ROOT = ThingsMessagingConstants.ROOT_ACTOR_PATH;
     private static final String POLICIES_ROOT = PoliciesMessagingConstants.ROOT_ACTOR_PATH;
-    private static final String CONCIERGE_ROOT = ConciergeMessagingConstants.ROOT_ACTOR_PATH;
     private static final String SEARCH_UPDATER_ROOT = ThingsSearchConstants.UPDATER_ROOT_ACTOR_PATH;
 
     private static final String EMPTY_STRING_TAG = "<empty>";
@@ -94,7 +91,6 @@ public final class StatisticsActor extends AbstractActor {
     private final ClusterSharding clusterSharding;
     private Gauge hotThings;
     private Gauge hotPolicies;
-    private Gauge hotConciergeEnforcers;
     private Gauge hotSearchUpdaters;
     private Statistics currentStatistics;
     private StatisticsDetails currentStatisticsDetails;
@@ -103,7 +99,6 @@ public final class StatisticsActor extends AbstractActor {
         this.pubSubMediator = pubSubMediator;
         hotThings = DittoMetrics.gauge(Statistics.HOT_THINGS);
         hotPolicies = DittoMetrics.gauge(Statistics.HOT_POLICIES);
-        hotConciergeEnforcers = DittoMetrics.gauge(Statistics.HOT_CONCIERGE_ENFORCERS);
         hotSearchUpdaters = DittoMetrics.gauge(Statistics.HOT_SEARCH_UPDATERS);
 
         clusterSharding = ClusterSharding.get(getContext().getSystem());
@@ -141,7 +136,6 @@ public final class StatisticsActor extends AbstractActor {
         final Map<String, ShardStatisticsWrapper> shardStatisticsMap = new HashMap<>();
         shardStatisticsMap.put(SR_THING, new ShardStatisticsWrapper());
         shardStatisticsMap.put(SR_POLICY, new ShardStatisticsWrapper());
-        shardStatisticsMap.put(SR_CONCIERGE, new ShardStatisticsWrapper());
         shardStatisticsMap.put(SR_SEARCH_UPDATER, new ShardStatisticsWrapper());
         return shardStatisticsMap;
     }
@@ -156,7 +150,6 @@ public final class StatisticsActor extends AbstractActor {
                     becomeStatisticsAwaiting(statistics -> {
                         hotThings.set(statistics.hotThingsCount);
                         hotPolicies.set(statistics.hotPoliciesCount);
-                        hotConciergeEnforcers.set(statistics.hotConciergeEnforcersCount);
                         hotSearchUpdaters.set(statistics.hotSearchUpdatersCount);
                     });
                 })
@@ -174,7 +167,6 @@ public final class StatisticsActor extends AbstractActor {
 
                     tellRootActorToRetrieveStatistics(THINGS_ROOT, retrieveStatistics);
                     tellRootActorToRetrieveStatistics(POLICIES_ROOT, retrieveStatistics);
-                    tellRootActorToRetrieveStatistics(CONCIERGE_ROOT, retrieveStatistics);
                     tellRootActorToRetrieveStatistics(SEARCH_UPDATER_ROOT, retrieveStatistics);
 
                     final ActorRef self = getSelf();
@@ -193,7 +185,6 @@ public final class StatisticsActor extends AbstractActor {
     private void tellShardRegionToSendClusterShardingStats() {
         tellShardRegionToSendClusterShardingStats(SR_THING);
         tellShardRegionToSendClusterShardingStats(SR_POLICY);
-        tellShardRegionToSendClusterShardingStats(SR_CONCIERGE);
         tellShardRegionToSendClusterShardingStats(SR_SEARCH_UPDATER);
     }
 
@@ -212,7 +203,6 @@ public final class StatisticsActor extends AbstractActor {
     private void initHotMetrics() {
         hotThings.set(0L);
         hotPolicies.set(0L);
-        hotConciergeEnforcers.set(0L);
         hotSearchUpdaters.set(0L);
     }
 
@@ -245,7 +235,6 @@ public final class StatisticsActor extends AbstractActor {
                     currentStatistics = new Statistics(
                             shardStatisticsMap.get(SR_THING).count,
                             shardStatisticsMap.get(SR_POLICY).count,
-                            shardStatisticsMap.get(SR_CONCIERGE).count,
                             shardStatisticsMap.get(SR_SEARCH_UPDATER).count
                     );
                     statisticsConsumer.accept(currentStatistics);
@@ -294,7 +283,6 @@ public final class StatisticsActor extends AbstractActor {
                     currentStatisticsDetails = new StatisticsDetails(
                             shardStatisticsMap.get(SR_THING).hotnessMap,
                             shardStatisticsMap.get(SR_POLICY).hotnessMap,
-                            shardStatisticsMap.get(SR_CONCIERGE).hotnessMap,
                             shardStatisticsMap.get(SR_SEARCH_UPDATER).hotnessMap
                     );
                     statisticsDetailsConsumer.accept(currentStatisticsDetails);
@@ -312,8 +300,6 @@ public final class StatisticsActor extends AbstractActor {
         if (shardStatistics == null) {
             if (getSender().path().toStringWithoutAddress().contains(SR_SEARCH_UPDATER)) {
                 shardStatistics = shardStatisticsMap.get(SR_SEARCH_UPDATER);
-            } else if (getSender().path().toStringWithoutAddress().contains(SR_CONCIERGE)) {
-                shardStatistics = shardStatisticsMap.get(SR_CONCIERGE);
             } else if (getSender().path().toStringWithoutAddress().contains(SR_POLICY)) {
                 shardStatistics = shardStatisticsMap.get(SR_POLICY);
             } else if (getSender().path().toStringWithoutAddress().contains(SR_THING)) {
@@ -337,7 +323,6 @@ public final class StatisticsActor extends AbstractActor {
 
         private static final String HOT_THINGS = "hotThingsCount";
         private static final String HOT_POLICIES = "hotPoliciesCount";
-        private static final String HOT_CONCIERGE_ENFORCERS = "hotConciergeEnforcersCount";
         private static final String HOT_SEARCH_UPDATERS = "hotSearchUpdatersCount";
 
         private static final JsonFieldDefinition<Long> HOT_THINGS_COUNT =
@@ -346,25 +331,19 @@ public final class StatisticsActor extends AbstractActor {
         private static final JsonFieldDefinition<Long> HOT_POLICIES_COUNT =
                 JsonFactory.newLongFieldDefinition(HOT_POLICIES, FieldType.REGULAR);
 
-        private static final JsonFieldDefinition<Long> HOT_CONCIERGE_ENFORCERS_COUNT =
-                JsonFactory.newLongFieldDefinition(HOT_CONCIERGE_ENFORCERS, FieldType.REGULAR);
-
         private static final JsonFieldDefinition<Long> HOT_SEARCH_UPDATERS_COUNT =
                 JsonFactory.newLongFieldDefinition(HOT_SEARCH_UPDATERS, FieldType.REGULAR);
 
         private final long hotThingsCount;
         private final long hotPoliciesCount;
-        private final long hotConciergeEnforcersCount;
         private final long hotSearchUpdatersCount;
 
         private Statistics(final long hotThingsCount,
                 final long hotPoliciesCount,
-                final long hotConciergeEnforcersCount,
                 final long hotSearchUpdatersCount) {
 
             this.hotThingsCount = hotThingsCount;
             this.hotPoliciesCount = hotPoliciesCount;
-            this.hotConciergeEnforcersCount = hotConciergeEnforcersCount;
             this.hotSearchUpdatersCount = hotSearchUpdatersCount;
         }
 
@@ -384,7 +363,6 @@ public final class StatisticsActor extends AbstractActor {
             return JsonFactory.newObjectBuilder()
                     .set(HOT_THINGS_COUNT, hotThingsCount, predicate)
                     .set(HOT_POLICIES_COUNT, hotPoliciesCount, predicate)
-                    .set(HOT_CONCIERGE_ENFORCERS_COUNT, hotConciergeEnforcersCount, predicate)
                     .set(HOT_SEARCH_UPDATERS_COUNT, hotSearchUpdatersCount, predicate)
                     .build();
         }
@@ -399,14 +377,12 @@ public final class StatisticsActor extends AbstractActor {
             final Statistics that = (Statistics) o;
             return hotThingsCount == that.hotThingsCount &&
                     hotPoliciesCount == that.hotPoliciesCount &&
-                    hotConciergeEnforcersCount == that.hotConciergeEnforcersCount &&
                     hotSearchUpdatersCount == that.hotSearchUpdatersCount;
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(hotThingsCount, hotPoliciesCount,
-                    hotConciergeEnforcersCount, hotSearchUpdatersCount);
+            return Objects.hash(hotThingsCount, hotPoliciesCount, hotSearchUpdatersCount);
         }
 
         @Override
@@ -414,7 +390,6 @@ public final class StatisticsActor extends AbstractActor {
             return getClass().getSimpleName() + " [" +
                     "hotThingsCount=" + hotThingsCount +
                     ", hotPoliciesCount=" + hotPoliciesCount +
-                    ", hotConciergeEnforcersCount=" + hotConciergeEnforcersCount +
                     ", hotSearchUpdatersCount=" + hotSearchUpdatersCount +
                     "]";
         }
@@ -433,25 +408,19 @@ public final class StatisticsActor extends AbstractActor {
         private static final JsonFieldDefinition<JsonObject> POLICIES_NAMESPACE_HOTNESS =
                 JsonFactory.newJsonObjectFieldDefinition("policiesNamespacesHotness", FieldType.REGULAR);
 
-        private static final JsonFieldDefinition<JsonObject> CONCIERGE_ENFORCERS_HOTNESS =
-                JsonFactory.newJsonObjectFieldDefinition("conciergeEnforcersHotness", FieldType.REGULAR);
-
         private static final JsonFieldDefinition<JsonObject> SEARCH_UPDATERS_NAMESPACE_HOTNESS =
                 JsonFactory.newJsonObjectFieldDefinition("searchUpdatersNamespacesHotness", FieldType.REGULAR);
 
         private final Map<String, Long> thingsNamespacesHotness;
         private final Map<String, Long> policiesNamespacesHotness;
-        private final Map<String, Long> conciergeEnforcersHotness;
         private final Map<String, Long> searchUpdatersNamespacesHotness;
 
         private StatisticsDetails(final Map<String, Long> thingsNamespacesHotness,
                 final Map<String, Long> policiesNamespacesHotness,
-                final Map<String, Long> conciergeEnforcersHotness,
                 final Map<String, Long> searchUpdatersNamespacesHotness) {
 
             this.thingsNamespacesHotness = thingsNamespacesHotness;
             this.policiesNamespacesHotness = policiesNamespacesHotness;
-            this.conciergeEnforcersHotness = conciergeEnforcersHotness;
             this.searchUpdatersNamespacesHotness = searchUpdatersNamespacesHotness;
         }
 
@@ -497,7 +466,6 @@ public final class StatisticsActor extends AbstractActor {
             return JsonFactory.newObjectBuilder()
                     .set(THINGS_NAMESPACE_HOTNESS, buildHotnessMapJson(thingsNamespacesHotness), predicate)
                     .set(POLICIES_NAMESPACE_HOTNESS, buildHotnessMapJson(policiesNamespacesHotness), predicate)
-                    .set(CONCIERGE_ENFORCERS_HOTNESS, buildHotnessMapJson(conciergeEnforcersHotness), predicate)
                     .set(SEARCH_UPDATERS_NAMESPACE_HOTNESS, buildHotnessMapJson(searchUpdatersNamespacesHotness),
                             predicate)
                     .build();
@@ -513,14 +481,12 @@ public final class StatisticsActor extends AbstractActor {
             final StatisticsDetails that = (StatisticsDetails) o;
             return Objects.equals(thingsNamespacesHotness, that.thingsNamespacesHotness) &&
                     Objects.equals(policiesNamespacesHotness, that.policiesNamespacesHotness) &&
-                    Objects.equals(conciergeEnforcersHotness, that.conciergeEnforcersHotness) &&
                     Objects.equals(searchUpdatersNamespacesHotness, that.searchUpdatersNamespacesHotness);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(thingsNamespacesHotness, policiesNamespacesHotness,
-                    conciergeEnforcersHotness, searchUpdatersNamespacesHotness);
+            return Objects.hash(thingsNamespacesHotness, policiesNamespacesHotness, searchUpdatersNamespacesHotness);
         }
 
         @Override
@@ -528,7 +494,6 @@ public final class StatisticsActor extends AbstractActor {
             return getClass().getSimpleName() + " [" +
                     "thingsNamespacesHotness=" + thingsNamespacesHotness +
                     ", policiesNamespacesHotness=" + policiesNamespacesHotness +
-                    ", conciergeEnforcersHotness=" + conciergeEnforcersHotness +
                     ", searchUpdatersNamespacesHotness=" + searchUpdatersNamespacesHotness +
                     "]";
         }

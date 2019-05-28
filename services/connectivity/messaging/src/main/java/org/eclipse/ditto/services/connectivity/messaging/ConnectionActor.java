@@ -467,18 +467,24 @@ public final class ConnectionActor extends AbstractPersistentActor {
         final ActorRef self = getSelf();
         restoreConnection(command.getConnection());
 
-        final PerformTask stopSelfTask = new PerformTask("stop self after test", ConnectionActor::stopSelf);
-
-        askClientActor(command, response -> {
-            origin.tell(TestConnectionResponse.success(command.getConnectionId(), response.toString(),
-                    command.getDittoHeaders()), self);
-            // terminate this actor's supervisor after a connection test again:
-            self.tell(stopSelfTask, ActorRef.noSender());
-        }, error -> {
-            handleException("test", origin, error);
-            // terminate this actor's supervisor after a connection test again:
-            self.tell(stopSelfTask, ActorRef.noSender());
-        });
+        if (clientActorRouter != null) {
+            // client actor is already running, so either another TestConnection command is currently executed or the
+            // connection has been created in the meantime. In either case reject the new TestConnection command to
+            // prevent strange behavior.
+            origin.tell(TestConnectionResponse.alreadyCreated(connectionId, command.getDittoHeaders()), self);
+        } else {
+            final PerformTask stopSelfTask = new PerformTask("stop self after test", ConnectionActor::stopSelf);
+            askClientActor(command, response -> {
+                origin.tell(TestConnectionResponse.success(command.getConnectionId(), response.toString(),
+                        command.getDittoHeaders()), self);
+                // terminate this actor's supervisor after a connection test again:
+                self.tell(stopSelfTask, ActorRef.noSender());
+            }, error -> {
+                handleException("test", origin, error);
+                // terminate this actor's supervisor after a connection test again:
+                self.tell(stopSelfTask, ActorRef.noSender());
+            });
+        }
     }
 
     private <T extends ConnectivityCommand> void validateAndForward(final T command, final Consumer<T> target) {

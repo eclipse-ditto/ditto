@@ -50,7 +50,6 @@
                 <configuration>
                     <parameter>
                         <excludes>
-                            <exclude>org.eclipse.ditto.services.models.streaming.StreamingRegistry</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

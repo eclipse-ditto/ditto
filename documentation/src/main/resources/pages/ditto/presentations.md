@@ -9,7 +9,7 @@ This page contains a collection of presentation about Eclipse Ditto.
 
 ## 07.02.2018 Virtual IoT Meetup
 
-Topic: "Digital Twins go open source: Eclipse Ditto introduction"
+Topic: "Digital twins go open source: Eclipse Ditto introduction"
 
 On 07.02.2018 we gave an introduction into Eclipse Ditto via [Meetup](https://www.meetup.com/Virtual-IoT/events/247048104/).
 
@@ -19,7 +19,7 @@ The video was streamed to [YouTube](https://youtu.be/NpC4ROGqwKc) and the record
 
 ## 23.05.2018 IoT Hessen Meetup during webweek rhein-main /18
 
-Topic: "Digital Twins with Eclipse Ditto"
+Topic: "Digital twins with Eclipse Ditto"
 
 Organized via [Meetup](https://www.meetup.com/IoT-Hessen/events/248886802/) by Diana Kupfer from codecentric.
 

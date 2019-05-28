@@ -18,6 +18,7 @@
             <outputDirectory>/opt/ditto</outputDirectory>
             <includes>
                 <include>*allinone.jar</include>
+                <include>*.conf</include>
             </includes>
             <fileMode>0644</fileMode>
             <directoryMode>0755</directoryMode>

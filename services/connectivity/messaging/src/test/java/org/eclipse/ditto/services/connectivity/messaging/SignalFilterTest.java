@@ -192,7 +192,7 @@ public class SignalFilterTest {
 
     private static Signal<?> signal(final Topic topic, final Set<String> readSubjects) {
 
-        final Thing thing = ThingsModelFactory.newThingBuilder().setGeneratedId().build();
+        final Thing thing = ThingsModelFactory.newThingBuilder().setId("org.eclipse.ditto:myThing").build();
         final ThingModified thingModified =
                 ThingModified.of(thing, 1L, DittoHeaders.newBuilder().readSubjects(readSubjects).build());
 

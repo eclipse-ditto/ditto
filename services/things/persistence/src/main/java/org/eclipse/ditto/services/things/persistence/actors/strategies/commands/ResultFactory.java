@@ -25,7 +25,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
@@ -65,10 +64,6 @@ final class ResultFactory {
             @Nullable final ETagEntityProvider<C, E> eTagEntityProvider) {
 
         return new InfoResult<>(command, completeThing, response, eTagEntityProvider);
-    }
-
-    static CommandStrategy.Result newSudoRetrieveThingResult(final WithDittoHeaders response) {
-        return new SudoRetrieveThingResult(response);
     }
 
     static CommandStrategy.Result emptyResult() {
@@ -206,36 +201,6 @@ final class ResultFactory {
                     ", response=" + response +
                     ", completeThing=" + completeThing +
                     ", eTagEntityProvider=" + eTagEntityProvider +
-                    ']';
-        }
-    }
-
-    private static final class SudoRetrieveThingResult implements CommandStrategy.Result {
-
-        private final WithDittoHeaders response;
-
-        private SudoRetrieveThingResult(final WithDittoHeaders response) {
-            this.response = response;
-        }
-
-        @Override
-        public void apply(final CommandStrategy.Context context,
-                final BiConsumer<ThingModifiedEvent, BiConsumer<ThingModifiedEvent, Thing>> persistConsumer,
-                final Consumer<WithDittoHeaders> notifyConsumer) {
-
-            notifyConsumer.accept(response);
-
-            // actor woke up due to SudoRetrieveThing; stop it
-            final boolean requestedToGoBackToSleep = SudoRetrieveThing.shouldGoBackToSleep(response.getDittoHeaders());
-            if (requestedToGoBackToSleep && context.isFirstMessage()) {
-                context.getStopThisActorRunnable().run();
-            }
-        }
-
-        @Override
-        public String toString() {
-            return this.getClass().getSimpleName() + " [" +
-                    "response=" + response +
                     ']';
         }
     }

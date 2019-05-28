@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.model.query.expression;
 
-
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.expression.visitors.FieldExpressionVisitor;
 

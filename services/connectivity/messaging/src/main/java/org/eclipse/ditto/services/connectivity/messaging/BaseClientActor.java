@@ -65,6 +65,8 @@ import org.eclipse.ditto.services.connectivity.util.MonitoringConfigReader;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
@@ -115,10 +117,13 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
 
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-    private final ActorRef conciergeForwarder;
     protected final ConnectionLogger connectionLogger;
+
+    private final ActorRef conciergeForwarder;
+    private final Gauge clientGauge;
     private final ConnectionLoggerRegistry connectionLoggerRegistry;
     private final ConnectivityCounterRegistry connectionCounterRegistry;
+
 
     @Nullable private ActorRef messageMappingProcessorActor;
 
@@ -140,6 +145,10 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         final Duration initTimeout = config.getDuration(ConfigKeys.Client.INIT_TIMEOUT);
         final Duration connectingTimeout = Duration.ofSeconds(CONNECTING_TIMEOUT);
+
+        clientGauge = DittoMetrics.gauge("connection_client")
+                .tag("id", connection.getId())
+                .tag("type", connection.getConnectionType().getName());
 
         startWith(UNKNOWN, startingData, initTimeout);
 
@@ -388,6 +397,12 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private void onTransition(final BaseClientState from, final BaseClientState to) {
         ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
         log.debug("Transition: {} -> {}", from, to);
+        if (to == CONNECTED) {
+            clientGauge.increment();
+        }
+        if (to == DISCONNECTED) {
+            clientGauge.decrement();
+        }
     }
 
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inUnknownState() {
@@ -741,7 +756,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         log.debug("Received checkLoggingActive message, check if Logging for connection <{}> is expired.",
                 connectionId);
 
-        if (this.connectionLoggerRegistry.isLoggingExpired(connectionId, timestamp)){
+        if (this.connectionLoggerRegistry.isLoggingExpired(connectionId, timestamp)) {
             this.connectionLoggerRegistry.muteForConnection(connectionId);
             getSender().tell(LoggingExpired.of(connectionId), ActorRef.noSender());
         }

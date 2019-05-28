@@ -33,7 +33,7 @@ public interface EventSniffer<T> {
      * @param request the HTTP request that started the event stream.
      * @return sink to send events into.
      */
-    Sink<T, ?> createSink(final HttpRequest request);
+    Sink<T, ?> createSink(HttpRequest request);
 
     /**
      * Create an async flow for event sniffing.
@@ -45,7 +45,8 @@ public interface EventSniffer<T> {
         return Flow.<T>create().wireTap(
                 Flow.<T>create()
                         .async()
-                        .to(Sink.lazyInitAsync(() -> CompletableFuture.completedFuture(createSink(request)))));
+                        .to(Sink.lazyInitAsync(() -> CompletableFuture.completedFuture(
+                                createSink(request)))));
     }
 
     /**

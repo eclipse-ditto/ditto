@@ -45,6 +45,7 @@ public final class MongoClientWrapperTest {
     private static final String KNOWN_SERVER_ADDRESS = KNOWN_HOST + ":" + KNOWN_PORT;
     private static final Config CONFIG = ConfigFactory.load("test");
     private static final String MONGO_URI_CONFIG_KEY = "ditto.services-utils-config.mongodb.uri";
+    private static final String MONGO_SSL_CONFIG_KEY = "ditto.services-utils-config.mongodb.options.ssl";
 
     private static String createUri(final boolean sslEnabled) {
         final ConnectionString connectionString = new ConnectionString(
@@ -83,6 +84,21 @@ public final class MongoClientWrapperTest {
     }
 
     @Test
+    public void createWithSslEnabled() {
+        // prepare
+        final String uriWithSslEnabled = createUri(true);
+
+        final Config config = CONFIG.withValue(MONGO_URI_CONFIG_KEY, ConfigValueFactory.fromAnyRef(uriWithSslEnabled))
+                                 .withValue(MONGO_SSL_CONFIG_KEY, ConfigValueFactory.fromAnyRef("true"));
+
+        // test
+        final MongoClientWrapper underTest = MongoClientWrapper.newInstance(config);
+
+        // verify
+        assertWithExpected(underTest, true, true);
+    }
+
+    @Test
     public void createByHostAndPort() {
         // test
         final DittoMongoClient underTest = MongoClientWrapper.getBuilder()
@@ -95,6 +111,22 @@ public final class MongoClientWrapperTest {
 
         // verify
         assertWithExpected(underTest, false, false);
+    }
+
+    @Test
+    public void createByHostAndPortWithSslEnabled() {
+        // test
+        final DittoMongoClient underTest = MongoClientWrapper.getBuilder()
+                .hostnameAndPort(KNOWN_HOST, KNOWN_PORT)
+                .defaultDatabaseName(KNOWN_DB_NAME)
+                .connectionPoolMaxSize(KNOWN_MAX_POOL_SIZE)
+                .connectionPoolMaxWaitQueueSize(KNOWN_MAX_POOL_WAIT_QUEUE_SIZE)
+                .connectionPoolMaxWaitTime(Duration.ofSeconds(KNOWN_MAX_POOL_WAIT_SECS))
+                .enableSsl(true)
+                .build();
+
+        // verify
+        assertWithExpected(underTest, true, false);
     }
 
     private static void assertWithExpected(final DittoMongoClient mongoClient, final boolean sslEnabled,

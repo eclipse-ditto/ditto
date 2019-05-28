@@ -87,6 +87,10 @@
             <groupId>com.lightbend.akka.management</groupId>
             <artifactId>akka-management-cluster-bootstrap_${scala.version}</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.lightbend.akka.management</groupId>
+            <artifactId>akka-management-cluster-http_${scala.version}</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>com.ajjpj.simple-akka-downing</groupId>

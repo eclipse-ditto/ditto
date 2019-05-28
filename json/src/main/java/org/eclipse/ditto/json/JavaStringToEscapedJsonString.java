@@ -33,9 +33,9 @@ final class JavaStringToEscapedJsonString implements UnaryOperator<String> {
 
     private static final char QUOTE = '\"';
 
-    private final Function<Character, String> jsonCharEscaper;
+    private final Function<Integer, String> jsonCharEscaper;
 
-    private JavaStringToEscapedJsonString(final Function<Character, String> theJsonCharEscaper) {
+    private JavaStringToEscapedJsonString(final Function<Integer, String> theJsonCharEscaper) {
         jsonCharEscaper = theJsonCharEscaper;
     }
 
@@ -56,7 +56,7 @@ final class JavaStringToEscapedJsonString implements UnaryOperator<String> {
         stringBuilder.append(javaString);
         int i = 1; // offset of starting " char
         for (final char c : javaString.toCharArray()) {
-            @Nullable final String replacement = jsonCharEscaper.apply(c);
+            @Nullable final String replacement = jsonCharEscaper.apply((int) c);
             if (null != replacement) {
                 stringBuilder.replace(i, i + 1, replacement);
                 i += replacement.length();

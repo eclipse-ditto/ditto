@@ -34,11 +34,6 @@ public final class FieldExpressionUtil {
     public static final String FIELD_NAME_THING_ID = "thingId";
 
     /**
-     * Owner field name.
-     */
-    public static final String FIELD_NAME_OWNER = "owner";
-
-    /**
      * namespace field to be saved in field expressions.
      */
     public static final String FIELD_NAMESPACE = "_namespace";
@@ -112,14 +107,11 @@ public final class FieldExpressionUtil {
      */
     public static final class FeatureField {
 
-        private static final Pattern FIELD_NAME_FEATURE_PATTERN1 = Pattern.compile("^features/" +
-                "(?<featureId>[^\\*][^/]*)/properties/(?<property>.+)");
+        private static final Pattern FIELD_NAME_FEATURE_PATTERN1 =
+                Pattern.compile("^features/(?<featureId>[^/]++)/properties/(?<property>.+)");
 
         private static final Pattern FIELD_NAME_FEATURE_PATTERN2 =
-                Pattern.compile("^features/(?<featureId>[^\\*][^/]*)");
-
-        private static final Pattern FIELD_NAME_FEATURE_PATTERN3 =
-                Pattern.compile("^features/\\*/properties/(?<property>.+)");
+                Pattern.compile("^features/(?<featureId>[^/]++)");
 
         private final boolean matches;
         private final String featureId;
@@ -140,17 +132,9 @@ public final class FieldExpressionUtil {
                     this.featureId = matcher.group("featureId");
                     this.property = null;
                 } else {
-                    matcher = FIELD_NAME_FEATURE_PATTERN3.matcher(fieldName);
-
-                    if (matcher.matches()) {
-                        this.matches = true;
-                        this.featureId = null;
-                        this.property = matcher.group("property");
-                    } else {
-                        this.matches = false;
-                        this.featureId = null;
-                        this.property = null;
-                    }
+                    this.matches = false;
+                    this.featureId = null;
+                    this.property = null;
                 }
             }
         }

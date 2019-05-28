@@ -13,8 +13,6 @@
 package org.eclipse.ditto.services.thingsearch.persistence.read;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.services.thingsearch.persistence.TestConstants.Thing.NAMESPACE;
-import static org.eclipse.ditto.services.thingsearch.persistence.TestConstants.thingId;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -22,13 +20,16 @@ import java.util.Collection;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.things.Attributes;
+import org.junit.Before;
 import org.junit.Test;
+
+import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
+import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
 
 /**
  * Tests for complex search criteria on the persistence.
  */
-public final class ComplexCriteriaIT extends
-        AbstractVersionedThingSearchPersistenceITBase {
+public final class ComplexCriteriaIT extends AbstractReadPersistenceITBase {
 
     private static final String KNOWN_ATTRIBUTE_KEY_1 = "attributeKey1";
     private static final String KNOWN_ATTRIBUTE_KEY_2 = "attributeKey2";
@@ -36,34 +37,33 @@ public final class ComplexCriteriaIT extends
     private static final String KNOWN_STRING_VALUE = "value";
     private static final String OTHER_STRING_VALUE = "otherValue";
 
-    private static final String THING_ID_WITH_KEY_1_AND_2 = thingId(NAMESPACE, "with1and2");
-    private static final String THING_ID_WITH_KEY_1_ONLY = thingId(NAMESPACE, "with1Only");
-    private static final String THING_ID_WITH_KEY_2_ONLY = thingId(NAMESPACE,"with2Only");
-    private static final String THING_ID_WITH_OTHER_VALUE_1 = thingId(NAMESPACE,"withOtherValue1");
-    private static final String THING_ID_WITH_OTHER_VALUE_2 = thingId(NAMESPACE,"withOtherValue2");
-    private static final String THING_ID_WITH_NO_KEY = thingId(NAMESPACE, "withNoKey");
+    private static final String THING_ID_WITH_KEY_1_AND_2 =
+            TestConstants.thingId(TestConstants.Thing.NAMESPACE, "with1and2");
+    private static final String THING_ID_WITH_KEY_1_ONLY =
+            TestConstants.thingId(TestConstants.Thing.NAMESPACE, "with1Only");
+    private static final String THING_ID_WITH_KEY_2_ONLY =
+            TestConstants.thingId(TestConstants.Thing.NAMESPACE, "with2Only");
+    private static final String THING_ID_WITH_OTHER_VALUE_1 =
+            TestConstants.thingId(TestConstants.Thing.NAMESPACE, "withOtherValue1");
+    private static final String THING_ID_WITH_OTHER_VALUE_2 =
+            TestConstants.thingId(TestConstants.Thing.NAMESPACE, "withOtherValue2");
+    private static final String THING_ID_WITH_NO_KEY =
+            TestConstants.thingId(TestConstants.Thing.NAMESPACE, "withNoKey");
 
-    @Override
-    void createTestDataV1() {
+    @Before
+    public void createTestData() {
         insertThings();
     }
 
-    @Override
-    void createTestDataV2() {
-        insertThings();
-    }
-
-    /** */
     @Test
     public void findAllWithAndCriteria() {
         final Criteria crit = cf.and(Arrays.asList(
                 searchForValue(KNOWN_ATTRIBUTE_KEY_1),
                 searchForValue(KNOWN_ATTRIBUTE_KEY_2)));
-        final Collection<String> result = executeVersionedQuery(crit);
+        final Collection<String> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING_ID_WITH_KEY_1_AND_2);
     }
 
-    /** */
     @Test
     public void findAllWithNoredAndCriteria() {
         final Criteria crit = cf.nor(cf.and(
@@ -71,54 +71,50 @@ public final class ComplexCriteriaIT extends
                         searchForKnownKey(KNOWN_STRING_VALUE),
                         searchForKnownKey(OTHER_STRING_VALUE))));
 
-        final Collection<String> result = executeVersionedQuery(crit);
+        final Collection<String> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING_ID_WITH_KEY_1_AND_2, THING_ID_WITH_KEY_1_ONLY,
                 THING_ID_WITH_OTHER_VALUE_1, THING_ID_WITH_NO_KEY, THING_ID_WITH_KEY_2_ONLY,
                 THING_ID_WITH_OTHER_VALUE_2);
     }
 
-    /** */
     @Test
     public void findAllWithOrCriteria() {
         final Criteria crit = cf.or(Arrays.asList(
                 searchForValue(KNOWN_ATTRIBUTE_KEY_1),
                 searchForValue(KNOWN_ATTRIBUTE_KEY_2)));
 
-        final Collection<String> result = executeVersionedQuery(crit);
+        final Collection<String> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING_ID_WITH_KEY_1_AND_2, THING_ID_WITH_KEY_1_ONLY, THING_ID_WITH_KEY_2_ONLY);
     }
 
-    /** */
     @Test
     public void findAllWithNoredOrCriteria() {
         final Criteria crit = cf.nor(cf.or(Arrays.asList(
                 searchForValue(KNOWN_ATTRIBUTE_KEY_1),
                 searchForValue(KNOWN_ATTRIBUTE_KEY_2))));
 
-        final Collection<String> result = executeVersionedQuery(crit);
+        final Collection<String> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING_ID_WITH_NO_KEY, THING_ID_WITH_OTHER_VALUE_1, THING_ID_WITH_OTHER_VALUE_2);
     }
 
-    /** */
     @Test
     public void findAllWithNorCriteria() {
         final Criteria crit = cf.nor(Arrays.asList(
                 searchForValue(KNOWN_ATTRIBUTE_KEY_1),
                 searchForValue(KNOWN_ATTRIBUTE_KEY_2)));
 
-        final Collection<String> result = executeVersionedQuery(crit);
+        final Collection<String> result = findForCriteria(crit);
 
         assertThat(result).containsOnly(THING_ID_WITH_NO_KEY, THING_ID_WITH_OTHER_VALUE_1, THING_ID_WITH_OTHER_VALUE_2);
     }
 
-    /** */
     @Test
-    public void findAllWithNoredNorCriteria() {
+    public void findAllWithNorNorCriteria() {
         final Criteria crit = cf.nor(cf.nor(Arrays.asList(
                 searchForValue(KNOWN_ATTRIBUTE_KEY_1),
                 searchForValue(KNOWN_ATTRIBUTE_KEY_2))));
 
-        final Collection<String> result = executeVersionedQuery(crit);
+        final Collection<String> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING_ID_WITH_KEY_1_AND_2, THING_ID_WITH_KEY_1_ONLY, THING_ID_WITH_KEY_2_ONLY);
     }
 
