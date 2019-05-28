@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.model.thingsearch;
 
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
@@ -67,11 +68,18 @@ public interface SearchResult extends Iterable<JsonValue>, Jsonifiable.WithField
 
     /**
      * Get the offset of the next page if there are more matching results available or {@link #NO_NEXT_PAGE}, if there
-     * is no next page.
+     * is no next page. Superseded by {@code getCursor()}.
      *
      * @return the offset of the next page or {@link #NO_NEXT_PAGE}, if there is no next page.
      */
-    long getNextPageOffset();
+    Optional<Long> getNextPageOffset();
+
+    /**
+     * Get the cursor to the next page.
+     *
+     * @return the cursor to the next page.
+     */
+    Optional<String> getCursor();
 
     /**
      * Returns {@code true} if there is a next page and thus {@link #getNextPageOffset()} does not equal
@@ -142,6 +150,13 @@ public interface SearchResult extends Iterable<JsonValue>, Jsonifiable.WithField
          */
         public static final JsonFieldDefinition<Long> NEXT_PAGE_OFFSET =
                 JsonFactory.newLongFieldDefinition("nextPageOffset", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the cursor.
+         */
+        public static final JsonFieldDefinition<String> CURSOR =
+                JsonFactory.newStringFieldDefinition("cursor", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

@@ -1,7 +1,7 @@
    com.github.dnvriend:akka-persistence-inmemory_2.12:jar:2.5.1.1:test
    com.typesafe.akka:akka-http-testkit_2.12:jar:10.1.7:test
-   com.typesafe.akka:akka-stream-testkit_2.12:jar:2.5.21:test
-   com.typesafe.akka:akka-testkit_2.12:jar:2.5.21:test
+   com.typesafe.akka:akka-stream-testkit_2.12:jar:2.5.22:test
+   com.typesafe.akka:akka-testkit_2.12:jar:2.5.22:test
    de.flapdoodle.embed:de.flapdoodle.embed.mongo:jar:2.2.0:test
    de.flapdoodle.embed:de.flapdoodle.embed.process:jar:2.1.2:test
    junit:junit:jar:4.12:test

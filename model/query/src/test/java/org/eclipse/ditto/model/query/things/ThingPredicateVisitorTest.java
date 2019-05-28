@@ -34,10 +34,8 @@ import org.junit.Test;
 public final class ThingPredicateVisitorTest {
 
     private static final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
-    private static final ThingsFieldExpressionFactory fieldExpressionFactory =
-            new ModelBasedThingsFieldExpressionFactory();
     private static final QueryFilterCriteriaFactory queryFilterCriteriaFactory =
-            new QueryFilterCriteriaFactory(criteriaFactory, fieldExpressionFactory);
+            new QueryFilterCriteriaFactory(criteriaFactory, new ModelBasedThingsFieldExpressionFactory());
 
     private static final String MATCHING_THING_ID = "org.eclipse.ditto:foo-matching";
     private static final int MATCHING_THING_INTEGER = 42;

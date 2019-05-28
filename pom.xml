@@ -193,16 +193,12 @@
         <release.scm.developerConnection>scm:git:https://github.com/eclipse/ditto.git</release.scm.developerConnection>
         <release.scm.url>https://github.com/eclipse/ditto.git</release.scm.url>
 
-        <ditto.it.report.path>${user.dir}/target/jacoco-it.exec</ditto.it.report.path>
-        <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
-        <sonar.jacoco.reportPaths>target/jacoco.exec, ${ditto.it.report.path}</sonar.jacoco.reportPaths>
-
         <argLine>-Dfile.encoding=${project.build.sourceEncoding}</argLine>
 
         <!-- globally set version for checking binary compatibility against -->
         <!-- whoever changes this to ${revision} or ${project.version} is responsible for API breakage caused by this! -->
         <!-- in other words: never do that here! exclude the 'breakages' locally in the japicmp maven plugin if you intentionally break something -->
-        <binary-compatibility-check.version>0.8.0</binary-compatibility-check.version>
+        <binary-compatibility-check.version>0.9.0-M2</binary-compatibility-check.version>
 
         <maven.skins.fluido.version>1.7</maven.skins.fluido.version>
         <doxia.markdown.version>1.8</doxia.markdown.version>
@@ -364,7 +360,7 @@
                 <plugin>
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
-                    <version>0.8.0</version>
+                    <version>0.8.3</version>
                 </plugin>
                 <plugin>
                     <groupId>io.fabric8</groupId>
@@ -400,66 +396,9 @@
                             <skipPomModules>true</skipPomModules>
                             <htmlTitle>${project.name} :: Binary Compatibility Report</htmlTitle>
                             <excludes>
-                                <exclude>org.eclipse.ditto.signals.events.base.AbstractEventRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.events.policies.PolicyEventRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.events.things.ThingEventRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.events.batch.BatchEventRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.events.batch.BatchCommandExecuted#fromJson(java.lang.String,org.eclipse.ditto.model.base.headers.DittoHeaders,org.eclipse.ditto.signals.commands.base.CommandResponseRegistry)</exclude>
-                                <exclude>org.eclipse.ditto.signals.events.batch.BatchCommandExecuted#fromJson(org.eclipse.ditto.json.JsonObject,org.eclipse.ditto.model.base.headers.DittoHeaders,org.eclipse.ditto.signals.commands.base.CommandResponseRegistry)</exclude>
-                                <exclude>org.eclipse.ditto.signals.events.batch.BatchExecutionFinished#fromJson(java.lang.String,org.eclipse.ditto.model.base.headers.DittoHeaders,org.eclipse.ditto.signals.commands.base.CommandResponseRegistry)</exclude>
-                                <exclude>org.eclipse.ditto.signals.events.batch.BatchExecutionFinished#fromJson(org.eclipse.ditto.json.JsonObject,org.eclipse.ditto.model.base.headers.DittoHeaders,org.eclipse.ditto.signals.commands.base.CommandResponseRegistry)</exclude>
-                                <exclude>org.eclipse.ditto.signals.events.batch.BatchExecutionStarted#fromJson(java.lang.String,org.eclipse.ditto.model.base.headers.DittoHeaders,org.eclipse.ditto.signals.commands.base.CommandRegistry)</exclude>
-                                <exclude>org.eclipse.ditto.signals.events.batch.BatchExecutionStarted#fromJson(org.eclipse.ditto.json.JsonObject,org.eclipse.ditto.model.base.headers.DittoHeaders,org.eclipse.ditto.signals.commands.base.CommandRegistry)</exclude>
-                                <exclude>org.eclipse.ditto.signals.events.connectivity.ConnectivityEventRegistry</exclude>
-
-                                <exclude>org.eclipse.ditto.signals.commands.base.AbstractCommandResponseRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.policies.PolicyCommandResponseRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.things.ThingCommandResponseRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.thingsearch.SearchCommandResponseRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommandResponseRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.messages.MessageCommandResponseRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.batch.BatchCommandResponseRegistry</exclude>
-                                <exclude>org.eclipse.ditto.services.models.things.commands.sudo.SudoCommandResponseRegistry</exclude>
-                                <exclude>org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommandResponseRegistry</exclude>
-                                <exclude>org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommandResponseRegistry</exclude>
-
-                                <exclude>org.eclipse.ditto.signals.commands.base.AbstractCommandRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.things.ThingCommandRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.batch.BatchCommandRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.batch.ExecuteBatch#fromJson(java.lang.String,org.eclipse.ditto.model.base.headers.DittoHeaders,org.eclipse.ditto.signals.commands.base.CommandRegistry)</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.batch.ExecuteBatch#fromJson(org.eclipse.ditto.json.JsonObject,org.eclipse.ditto.model.base.headers.DittoHeaders,org.eclipse.ditto.signals.commands.base.CommandRegistry)</exclude>
-                                <exclude>org.eclipse.ditto.services.models.concierge.batch.BatchStepCommandRegistry</exclude>
-                                <exclude>org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommandRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.messages.MessageCommandRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommandRegistry</exclude>
-                                <exclude>org.eclipse.ditto.services.models.things.commands.sudo.SudoCommandRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.policies.PolicyCommandRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommandRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommandRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.thingsearch.SearchCommandRegistry</exclude>
-                                <exclude>org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommandRegistry</exclude>
-
-                                <exclude>org.eclipse.ditto.signals.commands.base.CommonErrorRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.policies.exceptions.PolicyErrorRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.things.exceptions.ThingErrorRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.things.ThingErrorResponse#fromJson(org.eclipse.ditto.signals.commands.things.exceptions.ThingErrorRegistry,org.eclipse.ditto.json.JsonObject,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.things.ThingErrorResponse#fromJson(org.eclipse.ditto.signals.commands.things.exceptions.ThingErrorRegistry,java.lang.String,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.batch.exceptions.BatchErrorRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorResponse#fromJson(org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorRegistry,org.eclipse.ditto.json.JsonObject,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorResponse#fromJson(org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorRegistry,java.lang.String,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.messages.MessageErrorRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.namespaces.NamespaceErrorRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.thingsearch.exceptions.ThingSearchErrorRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse#fromJson(org.eclipse.ditto.signals.commands.thingsearch.exceptions.ThingSearchErrorRegistry,org.eclipse.ditto.json.JsonObject,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse#fromJson(org.eclipse.ditto.signals.commands.thingsearch.exceptions.ThingSearchErrorRegistry,java.lang.String,org.eclipse.ditto.model.base.headers.DittoHeaders)</exclude>
-                                <exclude>org.eclipse.ditto.protocoladapter.DittoProtocolAdapter$ProtocolAdapterErrorRegistry</exclude>
-                                <exclude>org.eclipse.ditto.services.models.policies.PoliciesMappingStrategy</exclude>
-                                <exclude>org.eclipse.ditto.services.models.things.ThingsMappingStrategy</exclude>
-                                <exclude>org.eclipse.ditto.services.models.thingsearch.ThingSearchMappingStrategy</exclude>
+                                <exclude>org.eclipse.ditto.signals.base.DittoJsonRegistry</exclude>
+                                <exclude>org.eclipse.ditto.signals.base.GlobalErrorRegistry</exclude>
+                                <exclude>org.eclipse.ditto.signals.base.AbstractErrorRegistry</exclude>
                             </excludes>
                         </parameter>
                     </configuration>
@@ -632,34 +571,19 @@
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <executions>
-                    <execution>
-                        <id>prepare-agent-test</id>
-                        <goals>
-                            <goal>prepare-agent</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>prepare-agent-it</id>
-                        <goals>
-                            <goal>prepare-agent-integration</goal>
-                        </goals>
-                        <configuration>
-                            <destFile>${ditto.it.report.path}</destFile>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>report-test</id>
-                        <goals>
-                            <goal>report</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>report-it</id>
-                        <goals>
-                            <goal>report-integration</goal>
-                        </goals>
-                    </execution>
-                </executions>
+                      <execution>
+                            <id>prepare</id>
+                            <goals>
+                                <goal>prepare-agent</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>report</id>
+                            <goals>
+                                <goal>report-aggregate</goal>
+                            </goals>
+                        </execution>
+                    </executions>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>

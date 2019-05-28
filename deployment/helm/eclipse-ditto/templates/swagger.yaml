@@ -16,7 +16,7 @@ spec:
   selector:
     app: swagger-ui
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: swagger-ui
@@ -29,6 +29,9 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
+  selector:
+    matchLabels:
+      app: swagger-ui
   replicas: {{ .Values.swagger.replicaCount }}
   template:
     metadata:

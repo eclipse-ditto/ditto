@@ -12,9 +12,9 @@
  */
 package org.eclipse.ditto.services.thingsearch.starter.actors.health;
 
+import static org.eclipse.ditto.services.thingsearch.starter.actors.health.LastSuccessfulStreamCheckingActor.SYNC_DISABLED_MESSAGE;
 import static java.time.Instant.now;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.services.thingsearch.starter.actors.health.LastSuccessfulStreamCheckingActor.SYNC_DISABLED_MESSAGE;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -36,7 +36,6 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
@@ -81,7 +80,7 @@ public class LastSuccessfulStreamCheckingActorTest {
                 buildConfigProperties(true, searchSyncPersistence, syncWarningOffset, syncErrorOffset);
         underTest =
                 actorSystem.actorOf(LastSuccessfulStreamCheckingActor.props(streamHealthCheckConfigurationProperties));
-        when(searchSyncPersistence.getTimestampAsync()).thenReturn(optionalEmpty());
+        when(searchSyncPersistence.getTimestampAsync()).thenReturn(Source.single(Optional.empty()));
 
         sendRetrieveHealth();
 
@@ -105,7 +104,8 @@ public class LastSuccessfulStreamCheckingActorTest {
 
         // WHEN: last successful sync is over syncErrorOffset
         Instant lastSuccessfulStream = now().minusSeconds(syncErrorOffset.getSeconds() + 60);
-        when(searchSyncPersistence.getTimestampAsync()).thenReturn(optionalOf(lastSuccessfulStream));
+        when(searchSyncPersistence.getTimestampAsync())
+                .thenReturn(Source.single(Optional.of(lastSuccessfulStream)));
 
         // THEN: status is ERROR
         sendRetrieveHealth();
@@ -124,7 +124,8 @@ public class LastSuccessfulStreamCheckingActorTest {
         underTest =
                 actorSystem.actorOf(LastSuccessfulStreamCheckingActor.props(streamHealthCheckConfigurationProperties));
         Instant lastSuccessfulStream = now().minusSeconds(syncWarningOffset.getSeconds() + 60);
-        when(searchSyncPersistence.getTimestampAsync()).thenReturn(optionalOf(lastSuccessfulStream));
+        when(searchSyncPersistence.getTimestampAsync())
+                .thenReturn(Source.single(Optional.of(lastSuccessfulStream)));
 
         sendRetrieveHealth();
 
@@ -162,7 +163,8 @@ public class LastSuccessfulStreamCheckingActorTest {
         underTest =
                 actorSystem.actorOf(LastSuccessfulStreamCheckingActor.props(streamHealthCheckConfigurationProperties));
         Instant lastSuccessfulStream = now().minusSeconds(syncWarningOffset.getSeconds() - 10);
-        when(searchSyncPersistence.getTimestampAsync()).thenReturn(optionalOf(lastSuccessfulStream));
+        when(searchSyncPersistence.getTimestampAsync())
+                .thenReturn(Source.single(Optional.of(lastSuccessfulStream)));
 
         sendRetrieveHealth();
 
@@ -211,13 +213,5 @@ public class LastSuccessfulStreamCheckingActorTest {
     private void expectStatusInfo(final StatusInfo expectedStatusInfo) {
         final StatusInfo statusInfo = testKit.expectMsgClass(StatusInfo.class);
         assertThat(statusInfo).isEqualTo(expectedStatusInfo);
-    }
-
-    private static Source<Optional<Instant>, NotUsed> optionalEmpty() {
-        return Source.single(Optional.empty());
-    }
-
-    private static Source<Optional<Instant>, NotUsed> optionalOf(final Instant instant) {
-        return Source.single(Optional.of(instant));
     }
 }

@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.read.query;
 
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ID;
 import static org.eclipse.ditto.services.utils.persistence.mongo.assertions.BsonAssertions.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -22,34 +23,33 @@ import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.query.SortDirection;
 import org.eclipse.ditto.model.query.SortOption;
 import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.model.query.expression.SortFieldExpression;
+import org.eclipse.ditto.model.query.expression.SimpleFieldExpressionImpl;
 import org.junit.Before;
 import org.junit.Test;
+
 /**
  * Tests unlimited instances of {@link MongoQueryBuilder}.
  */
 public final class MongoQueryBuilderUnlimitedTest {
 
     private static final SortOption KNOWN_SORT_OPTION =
-            new SortOption(mock(SortFieldExpression.class), SortDirection.ASC);
+            new SortOption(new SimpleFieldExpressionImpl(FIELD_ID), SortDirection.DESC);
 
     private Criteria criteria;
     private MongoQueryBuilder underTest;
 
-    /** */
+
     @Before
     public void setUp() {
         criteria = mock(Criteria.class);
         underTest = MongoQueryBuilder.unlimited(criteria);
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void createWithNullCriteria() {
         MongoQueryBuilder.unlimited(null);
     }
 
-    /** */
     @Test
     public void buildWithCriteriaOnly() {
         final Query query = underTest.build();
@@ -57,7 +57,6 @@ public final class MongoQueryBuilderUnlimitedTest {
         assertThat(query.getCriteria()).isEqualTo(criteria);
     }
 
-    /** */
     @Test
     public void buildWithSort() {
         final List<SortOption> sortOptions = Collections.singletonList(KNOWN_SORT_OPTION);
@@ -67,7 +66,6 @@ public final class MongoQueryBuilderUnlimitedTest {
         assertThat(query.getSortOptions()).isEqualTo(sortOptions);
     }
 
-    /** */
     @Test
     public void buildWithLimit() {
         final int limit = 4;
@@ -77,7 +75,6 @@ public final class MongoQueryBuilderUnlimitedTest {
         assertThat(query.getLimit()).isEqualTo(limit);
     }
 
-    /** */
     @Test
     public void buildWithSkip() {
         final int skip = 4;
@@ -87,7 +84,6 @@ public final class MongoQueryBuilderUnlimitedTest {
         assertThat(query.getSkip()).isEqualTo(skip);
     }
 
-    /** */
     @Test
     public void buildWithVeryHighLimit() {
         final int veryHighLimit = Integer.MAX_VALUE;
@@ -97,14 +93,11 @@ public final class MongoQueryBuilderUnlimitedTest {
         assertThat(query.getLimit()).isEqualTo(veryHighLimit);
     }
 
-
-    /** */
     @Test(expected = IllegalArgumentException.class)
     public void buildWithLimitLessThanZero() {
         underTest.limit(-1);
     }
 
-    /** */
     @Test(expected = IllegalArgumentException.class)
     public void buildWithSkipLessThanZero() {
         underTest.skip(-1);

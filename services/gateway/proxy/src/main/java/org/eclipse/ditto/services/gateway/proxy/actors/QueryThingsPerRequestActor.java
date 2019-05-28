@@ -17,6 +17,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.thingsearch.SearchModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchResult;
 import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -119,13 +120,13 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                     log.debug("Received RetrieveThingsResponse: {}", rtr);
 
                     if (queryThingsResponse != null) {
+                        final SearchResult resultWithRetrievedItems = SearchModelFactory.newSearchResultBuilder()
+                                .addAll(rtr.getEntity(rtr.getImplementedSchemaVersion()).asArray())
+                                .nextPageOffset(queryThingsResponse.getSearchResult().getNextPageOffset().orElse(null))
+                                .cursor(queryThingsResponse.getSearchResult().getCursor().orElse(null))
+                                .build();
                         final QueryThingsResponse theQueryThingsResponse =
-                                QueryThingsResponse.of(SearchResult.newBuilder()
-                                                .addAll(rtr.getEntity(rtr.getImplementedSchemaVersion()).asArray())
-                                                .nextPageOffset(queryThingsResponse.getSearchResult().getNextPageOffset())
-                                                .build(),
-                                        rtr.getDittoHeaders()
-                                );
+                                QueryThingsResponse.of(resultWithRetrievedItems, rtr.getDittoHeaders());
                         originatingSender.tell(theQueryThingsResponse, getSelf());
                     } else {
                         log.warning("Did not receive a QueryThingsResponse when a RetrieveThingsResponse occurred: {}",

@@ -42,9 +42,10 @@ import org.eclipse.ditto.model.messages.MessagesModelFactory;
 import org.eclipse.ditto.model.messages.SubjectInvalidException;
 import org.eclipse.ditto.model.messages.TimeoutInvalidException;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.services.gateway.endpoints.HttpRequestActor;
+import org.eclipse.ditto.services.gateway.endpoints.actors.HttpRequestActor;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.messages.MessageCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessage;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
@@ -359,6 +360,9 @@ final class MessagesRoute extends AbstractRoute {
 
         // reset bytebuffer offset, otherwise payload will not be appended
         final ByteBuffer payloadWithoutOffset = ByteBuffer.wrap(payload.array());
+
+        MessageCommandSizeValidator.getInstance().ensureValidSize(() ->
+                payloadWithoutOffset.array().length, () -> headers);
 
         final MessageBuilder<Object> messageBuilder = MessagesModelFactory.newMessageBuilder(headers)
                 .rawPayload(payloadWithoutOffset);

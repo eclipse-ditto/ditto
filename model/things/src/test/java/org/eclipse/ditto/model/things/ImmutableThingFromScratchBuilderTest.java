@@ -615,57 +615,6 @@ public final class ImmutableThingFromScratchBuilderTest {
         assertThat(thing).hasNoAcl();
     }
 
-    @Test(expected = ThingIdInvalidException.class)
-    public void tryToSetEmptyThingId() {
-        underTest.setId("");
-    }
-
-    @Test(expected = ThingIdInvalidException.class)
-    public void tryToSetIdWithMissingNamespace() {
-        underTest.setId("foobar2000");
-    }
-
-    @Test(expected = ThingIdInvalidException.class)
-    public void tryToSetIdWithInvalidCharactersInNamespace() {
-        underTest.setId("foo-bar:foobar2000");
-    }
-
-    @Test(expected = ThingIdInvalidException.class)
-    public void tryToSetIdWithInvalidCharactersInNamespace2() {
-        underTest.setId("foo.bar%bum:foobar2000");
-    }
-
-    @Test(expected = ThingIdInvalidException.class)
-    public void tryToSetIdWithNamespaceStartingWithPeriod() {
-        underTest.setId(".namespace:foobar2000");
-    }
-
-    @Test(expected = ThingIdInvalidException.class)
-    public void tryToSetIdWithNamespaceEndingWithPeriod() {
-        underTest.setId("namespace.:foobar2000");
-    }
-
-    @Test(expected = ThingIdInvalidException.class)
-    public void tryToSetIdWithTwoSubsequentPeriodsInNamespace() {
-        underTest.setId("namespace..invalid:foobar2000");
-    }
-
-    @Test(expected = ThingIdInvalidException.class)
-    public void tryToSetIdWithNamespaceWithNumberAfterPeriod() {
-        underTest.setId("namespace.42:foobar2000");
-    }
-
-    @Test
-    public void setIdWithEmptyNamespace() {
-        final String thingId = ":foobar2000";
-        underTest.setId(thingId);
-        final Thing thing = underTest.build();
-
-        assertThat(thing)
-                .hasId(thingId)
-                .hasNamespace("");
-    }
-
     @Test
     public void setIdWithNamespace() {
         final String thingId = "foo.a42:foobar2000";

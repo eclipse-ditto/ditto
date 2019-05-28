@@ -13,7 +13,10 @@
 package org.eclipse.ditto.services.gateway.security;
 
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * An enumeration of HTTP headers.
@@ -23,33 +26,7 @@ public enum HttpHeader {
     /**
      * Authorization HTTP header.
      */
-    AUTHORIZATION("Authorization"),
-
-    /**
-     * WWW-Authenticate HTTP header.
-     */
-    WWW_AUTHENTICATE("WWW-Authenticate"),
-
-    /**
-     * Date HTTP header.
-     */
-    DATE("Date"),
-
-    /**
-     * Host HTTP header.
-     */
-    HOST("Host"),
-
-    /**
-     * Location HTTP header.
-     */
-    LOCATION("Location"),
-
-    /**
-     * Origin HTTP header.
-     */
-    ORIGIN("Origin"),
-
+    AUTHORIZATION("authorization"),
 
     /**
      * x-correlation-id HTTP header.
@@ -60,6 +37,9 @@ public enum HttpHeader {
      * HTTP header for dummy authentication (for dev purposes).
      */
     X_DITTO_DUMMY_AUTH("x-ditto-dummy-auth");
+
+    private static final Map<String, HttpHeader> BY_NAME =
+            Arrays.stream(values()).collect(Collectors.toMap(HttpHeader::getName, Function.identity()));
 
     private final String name;
 
@@ -74,7 +54,7 @@ public enum HttpHeader {
      * @return the HttpHeader.
      */
     public static Optional<HttpHeader> fromName(final String name) {
-        return Arrays.stream(values()).filter(header -> name.equals(header.toString())).findFirst();
+        return Optional.ofNullable(BY_NAME.get(name));
     }
 
     /**

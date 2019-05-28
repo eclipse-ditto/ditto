@@ -21,29 +21,30 @@ import javax.annotation.concurrent.Immutable;
  * This class implements the RFC for escaping single characters of JSON strings.
  * Additional to the RFC the unicode character for line break (U+2028) and paragraph break (U+2029) are treated as
  * control characters.
+ * <p><i>
+ * All Unicode characters may be placed within the
+ * quotation marks, except for the characters that MUST be escaped:
+ * quotation mark, reverse solidus, and the control characters (U+0000
+ * through U+001F). ---RFC-8257 section 7 "strings"
+ * </i></p>
  *
  * @see "https://tools.ietf.org/html/rfc8259#section-7"
  */
 @Immutable
-final class JsonCharEscaper implements Function<Character, String> {
+final class JsonCharEscaper implements Function<Integer, String> {
 
     private static final JsonCharEscaper INSTANCE = new JsonCharEscaper();
 
-    // All chars up to this char (inclusive) are control characters.
-    private static final int LAST_CONTROL_CHARACTER = 0x001F;
+    /**
+     * All chars up to this char (inclusive) are JSON control characters and MUST be escaped.
+     */
+    private static final char LAST_CONTROL_CHARACTER = 0x001F;
 
-    private static final String QUOT_CHARS = new String(new char[]{'\\', '"'});
-    private static final String BACKSLASH_CHARS = new String(new char[]{'\\', '\\'});
-    private static final String LF_CHARS = new String(new char[]{'\\', 'n'});
-    private static final String CR_CHARS = new String(new char[]{'\\', 'r'});
-    private static final String BACKSPACE_CHARS = new String(new char[]{'\\', 'b'});
-    private static final String TAB_CHARS = new String(new char[]{'\\', 't'});
-    private static final String UNICODE_2028_CHARS = new String(new char[]{'\\', 'u', '2', '0', '2', '8'});
-    private static final String UNICODE_2029_CHARS = new String(new char[]{'\\', 'u', '2', '0', '2', '9'});
+    private static final char LAST_ASCII = 0x7F;
 
-    private JsonCharEscaper() {
-        super();
-    }
+    private static final String[] ESCAPE_TABLE = createEscapeTable();
+
+    private JsonCharEscaper() {}
 
     /**
      * Returns an instance of {@code JsonCharEscaper}.
@@ -57,44 +58,44 @@ final class JsonCharEscaper implements Function<Character, String> {
     /**
      * Escapes the given char if necessary.
      *
-     * @param c the character to be escaped.
+     * @param i the character to be escaped.
      * @return the replacement for {@code c} or {@code null} if {@code c} does not have to be escaped.
      */
-    @SuppressWarnings("OverlyComplexMethod")
     @Nullable
     @Override
-    public String apply(final Character c) {
-        @Nullable final String result;
-
-        if ('"' == c) {
-            result = QUOT_CHARS;
-        } else if ('\n' == c) {
-            result = LF_CHARS;
-        } else if ('\r' == c) {
-            result = CR_CHARS;
-        } else if ('\\' == c) {
-            result = BACKSLASH_CHARS;
-        } else if ('\b' == c) {
-            result = BACKSPACE_CHARS;
-        } else if ('\t' == c) {
-            result = TAB_CHARS;
-        } else if ('\f' == c) {
-            result = "\\f";
-        } else if ('\u2028' == c) {
-            result = UNICODE_2028_CHARS;
-        } else if ('\u2029' == c) {
-            result = UNICODE_2029_CHARS;
-        } else if (isControlCharacter(c)) {
-            result = new String(new char[]{'\\', c});
+    public String apply(final Integer i) {
+        if (0 <= i && i < ESCAPE_TABLE.length) {
+            return ESCAPE_TABLE[i];
         } else {
-            result = null;
+            // return null for higher characters which are valid unescaped.
+            return null;
         }
-
-        return result;
     }
 
-    private static boolean isControlCharacter(final char c) {
-        return c <= LAST_CONTROL_CHARACTER;
+    private static String[] createEscapeTable() {
+        final String[] table = new String[LAST_ASCII + 1];
+        // control characters must be escaped as unicode except the shorthands handled later
+        for (int i = 0; i <= LAST_CONTROL_CHARACTER; ++i) {
+            table[i] = escapeAsUnicode(i);
+        }
+        // non-control characters may be retained except the 2 must-escape characters handled later
+        for (char c = LAST_CONTROL_CHARACTER + 1; c < table.length; ++c) {
+            table[c] = null;
+        }
+        // control characters with shorthand
+        table['\b'] = "\\b";
+        table['\f'] = "\\f";
+        table['\n'] = "\\n";
+        table['\r'] = "\\r";
+        table['\t'] = "\\t";
+        // must-escape non-control characters
+        table['"'] = "\\\"";
+        table['\\'] = "\\\\";
+        return table;
+    }
+
+    private static String escapeAsUnicode(final int i) {
+        return String.format("\\u%04X", i);
     }
 
 }

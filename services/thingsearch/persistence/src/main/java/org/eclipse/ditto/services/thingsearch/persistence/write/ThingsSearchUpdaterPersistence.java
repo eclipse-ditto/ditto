@@ -12,15 +12,11 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.write;
 
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CompletionStage;
+import java.util.Map;
 
-import org.eclipse.ditto.model.enforcers.Enforcer;
-import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.utils.persistence.mongo.namespace.NamespaceOps;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.NotUsed;
 import akka.stream.javadsl.Source;
@@ -31,63 +27,12 @@ import akka.stream.javadsl.Source;
 public interface ThingsSearchUpdaterPersistence extends NamespaceOps<String> {
 
     /**
-     * Inserts or updates a passed in {@link Thing}, enforcing restrictions on its properties.
+     * Retrieves modifiable unsorted list of policy reference tags that match the given policy IDs.
      *
-     * @param thing the thing to insert or update.
-     * @param revision the revision to perform the upsert operation with.
-     * @param policyRevision the revision of the policy to also persist.
+     * @param policyRevisions map from relevant policy IDs to their revisions.
      * @return a {@link Source} holding the publisher to execute the operation.
      */
-    Source<Boolean, NotUsed> insertOrUpdate(Thing thing, long revision, long policyRevision);
-
-    /**
-     * Marks the thing with the passed in thingId as deleted.
-     *
-     * @param thingId the thingId of the thing to delete.
-     * @param revision the revision to check.
-     * @return a {@link Source} holding the publisher to execute the operation.
-     */
-    Source<Boolean, NotUsed> delete(String thingId, long revision);
-
-    /**
-     * Marks the thing with the passed in thingId as deleted.
-     *
-     * @param thingId the thingId of the thing to delete.
-     * @return a {@link Source} holding the publisher to execute the operation.
-     */
-    Source<Boolean, NotUsed> delete(String thingId);
-
-    /**
-     * Perform all updates represented by {@code gatheredEvents} in an ordered manner. If any ot the updates fails,
-     * no update will be executed.
-     *
-     * @param thingId the id of the thing to update.
-     * @param gatheredEvents the combined thing writes to execute in this update.
-     * @param policyEnforcer The policy enforcer to enforce a policy.
-     * @param targetRevision The target revision number after the writes have been executed. Should be equal to the
-     * revision of the last element in {@code gatheredEvents}.
-     * @return a {@link Source} holding the publisher to execute the operation.
-     */
-    Source<Boolean, NotUsed> executeCombinedWrites(String thingId, List<ThingEvent> gatheredEvents,
-            Enforcer policyEnforcer, long targetRevision);
-
-    /**
-     * Updates the thing representation as well as the policy index due to the passed in thing; must be called after the
-     * parameter {@code thing} was written into the index via {@link #insertOrUpdate(Thing, long, long)}.
-     *
-     * @param thing the thing for which there is updated the policy.
-     * @param policyEnforcer the enforcer holding the current policy.
-     * @return a {@link Source} holding the publisher to execute the operation.
-     */
-    Source<Boolean, NotUsed> updatePolicy(Thing thing, Enforcer policyEnforcer);
-
-    /**
-     * Retrieves a modifiable unsorted list of thing ids which all share the same policy.
-     *
-     * @param policyId the id of the policy for which the thing ids should be loaded.
-     * @return a {@link Source} holding the publisher to execute the operation.
-     */
-    Source<Set<String>, NotUsed> getThingIdsForPolicy(String policyId);
+    Source<PolicyReferenceTag, NotUsed> getPolicyReferenceTags(Map<String, Long> policyRevisions);
 
     /**
      * Retrieves a source of Thing IDs with the given policy ID and out-dated revision.
@@ -96,21 +41,4 @@ public interface ThingsSearchUpdaterPersistence extends NamespaceOps<String> {
      * @return a Source holding the publisher to execute the operation.
      */
     Source<String, NotUsed> getOutdatedThingIds(PolicyTag policyTag);
-
-    /**
-     * Retrieves the metadata (revision, policyId and policyRevision) how it is persisted in the search index of the
-     * passed {@code thingId}.
-     *
-     * @param thingId the id of the Thing for which to retrieve the metadata for.
-     * @return a {@link Source} holding the publisher to execute the operation.
-     */
-    Source<ThingMetadata, NotUsed> getThingMetadata(String thingId);
-
-    /**
-     * Initializes the search updater index if necessary.
-     *
-     * @return a {@link java.util.concurrent.CompletionStage} which can be either used for blocking or non-blocking initialization.
-     */
-    CompletionStage<Void> initializeIndices();
-
 }

@@ -247,12 +247,9 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     }
 
     private void handleDittoRuntimeException(final DittoRuntimeException exception,
-            final Map<String, String> dittoHeaders) {
+            final Map<String, String> externalHeaders) {
 
-        final ThingErrorResponse errorResponse =
-                ThingErrorResponse.of(exception, DittoHeaders.newBuilder(exception.getDittoHeaders())
-                        .putHeaders(dittoHeaders)
-                        .build());
+        final ThingErrorResponse errorResponse = convertExceptionToErrorResponse(exception, externalHeaders);
 
         enhanceLogUtil(exception);
 
@@ -266,6 +263,16 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         final StringWriter stringWriter = new StringWriter();
         exception.printStackTrace(new PrintWriter(stringWriter));
         return stringWriter.toString();
+    }
+
+    private ThingErrorResponse convertExceptionToErrorResponse(
+            final DittoRuntimeException exception,
+            final Map<String, String> externalHeaders) {
+
+        final DittoHeaders mergedDittoHeaders =
+                DittoHeaders.newBuilder(exception.getDittoHeaders()).putHeaders(externalHeaders).build();
+
+        return ThingErrorResponse.of(exception, processor.truncateHeadersForErrorResponse(mergedDittoHeaders));
     }
 
     private void handleCommandResponse(final CommandResponse<?> response) {

@@ -16,14 +16,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Entry point of the Search service.
- * <ul>
- * <li>Reads configuration, enhances it with cloud environment settings.</li>
- * <li>Sets up Akka actor system.</li>
- * <li>Wires up Akka HTTP Routes.</li>
- * </ul>
+ * Entry point for the Things Search service.
  */
-public final class SearchService extends AbstractSearchService {
+public class SearchService extends AbstractSearchService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SearchService.class);
 
@@ -32,13 +27,12 @@ public final class SearchService extends AbstractSearchService {
     }
 
     /**
-     * Starts the Search service.
+     * Starts the Things service.
      *
      * @param args command line arguments.
      */
     public static void main(final String[] args) {
         final SearchService searchService = new SearchService();
-        searchService.start().getWhenTerminated().toCompletableFuture().join();
+        searchService.start();
     }
-
 }

@@ -121,9 +121,7 @@ public final class ConnectionBasedRabbitConnectionFactoryFactory implements Rabb
                 .ifPresent(connectionFactory::setShutdownTimeout);
     }
 
-    /**
-     *
-     */
+
     private static class CustomConnectionFactory extends ConnectionFactory {
 
         @Override

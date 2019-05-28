@@ -13,7 +13,7 @@
 package org.eclipse.ditto.services.thingsearch.persistence.read.query;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ID;
 
 import java.util.Collections;
 import java.util.List;
@@ -22,7 +22,7 @@ import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.query.SortDirection;
 import org.eclipse.ditto.model.query.SortOption;
 import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.model.query.expression.SortFieldExpression;
+import org.eclipse.ditto.model.query.expression.SimpleFieldExpressionImpl;
 import org.eclipse.ditto.services.base.config.DittoLimitsConfigReader;
 import org.eclipse.ditto.services.base.config.LimitsConfigReader;
 import org.junit.Before;
@@ -37,14 +37,13 @@ import com.typesafe.config.ConfigFactory;
 public final class MongoQueryBuilderLimitedTest {
 
     private static final SortOption KNOWN_SORT_OPTION =
-            new SortOption(mock(SortFieldExpression.class), SortDirection.ASC);
+            new SortOption(new SimpleFieldExpressionImpl(FIELD_ID), SortDirection.DESC);
 
     private Criteria criteria = Mockito.mock(Criteria.class);
     private MongoQueryBuilder underTest;
     private int maxPageSizeFromConfig;
     private int defaultPageSizeFromConfig;
 
-    /** */
     @Before
     public void setUp() {
         final LimitsConfigReader limitsConfigReader = DittoLimitsConfigReader.fromRawConfig(ConfigFactory.load("test"));
@@ -53,13 +52,11 @@ public final class MongoQueryBuilderLimitedTest {
         underTest = MongoQueryBuilder.limited(criteria, maxPageSizeFromConfig, defaultPageSizeFromConfig);
     }
 
-    /** */
     @Test(expected = NullPointerException.class)
     public void createWithNullCriteria() {
         MongoQueryBuilder.limited(null, maxPageSizeFromConfig, defaultPageSizeFromConfig);
     }
 
-    /** */
     @Test
     public void buildWithCriteriaOnly() {
         final Query query = underTest.build();
@@ -67,7 +64,6 @@ public final class MongoQueryBuilderLimitedTest {
         assertThat(query.getCriteria()).isEqualTo(criteria);
     }
 
-    /** */
     @Test
     public void buildWithSort() {
         final List<SortOption> sortOptions = Collections.singletonList(KNOWN_SORT_OPTION);
@@ -76,7 +72,16 @@ public final class MongoQueryBuilderLimitedTest {
         assertThat(query.getSortOptions()).isEqualTo(sortOptions);
     }
 
-    /** */
+    @Test
+    public void appendDefaultSortOption() {
+        final SortOption defaultSortOption =
+                new SortOption(new SimpleFieldExpressionImpl(FIELD_ID), SortDirection.ASC);
+        final List<SortOption> sortOptions = Collections.singletonList(Mockito.mock(SortOption.class));
+        final Query query = underTest.sort(sortOptions).build();
+
+        assertThat(query.getSortOptions()).contains(defaultSortOption);
+    }
+
     @Test
     public void buildWithLimit() {
         final int limit = maxPageSizeFromConfig - 1;
@@ -85,7 +90,6 @@ public final class MongoQueryBuilderLimitedTest {
         assertThat(query.getLimit()).isEqualTo(limit);
     }
 
-    /** */
     @Test
     public void buildWithSkip() {
         final int skip = 4;
@@ -94,20 +98,17 @@ public final class MongoQueryBuilderLimitedTest {
         assertThat(query.getSkip()).isEqualTo(skip);
     }
 
-    /** */
     @Test(expected = IllegalArgumentException.class)
     public void buildWithLimitGreaterThanMaxValue() {
         final long limitTooHigh = (long) maxPageSizeFromConfig + 1;
         underTest.limit(limitTooHigh);
     }
 
-    /** */
     @Test(expected = IllegalArgumentException.class)
     public void buildWithLimitLessThanZero() {
         underTest.limit(-1);
     }
 
-    /** */
     @Test(expected = IllegalArgumentException.class)
     public void buildWithSkipLessThanZero() {
         underTest.skip(-1);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -12,14 +12,21 @@
  */
 package org.eclipse.ditto.services.utils.akka.controlflow;
 
+import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
-import akka.stream.Attributes;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+
+import akka.NotUsed;
+import akka.japi.Pair;
 import akka.stream.FanOutShape2;
-import akka.stream.Inlet;
-import akka.stream.Outlet;
-import akka.stream.stage.GraphStage;
-import akka.stream.stage.GraphStageLogic;
+import akka.stream.FlowShape;
+import akka.stream.Graph;
+import akka.stream.UniformFanOutShape;
+import akka.stream.javadsl.Broadcast;
+import akka.stream.javadsl.Flow;
+import akka.stream.javadsl.GraphDSL;
 
 /**
  * A stream processor filtering messages by type and by a predicate.
@@ -40,20 +47,11 @@ import akka.stream.stage.GraphStageLogic;
  *                              unhandled
  * }
  * </pre>
- *
- * @param <T> type of messages to filter for.
  */
-public final class Filter<T> extends GraphStage<FanOutShape2<WithSender, WithSender<T>, WithSender>> {
+public final class Filter {
 
-    private final FanOutShape2<WithSender, WithSender<T>, WithSender> shape =
-            new FanOutShape2<>(Inlet.create("input"), Outlet.create("output"), Outlet.create("unhandled"));
-
-    private final Class<T> clazz;
-    private final Predicate<T> predicate;
-
-    private Filter(final Class<T> clazz, final Predicate<T> predicate) {
-        this.clazz = clazz;
-        this.predicate = predicate;
+    private Filter() {
+        throw new AssertionError();
     }
 
     /**
@@ -64,10 +62,22 @@ public final class Filter<T> extends GraphStage<FanOutShape2<WithSender, WithSen
      * @param predicate predicate to test instances of {@code T} with.
      * @return {@code GraphStage} that performs the filtering.
      */
-    public static <T> Filter<T> of(final Class<T> clazz, final Predicate<T> predicate) {
-        return new Filter<>(clazz, predicate);
-    }
+    public static <T extends WithDittoHeaders> Graph<FanOutShape2<WithSender, WithSender<T>, WithSender>, NotUsed> of(
+            final Class<T> clazz,
+            final Predicate<T> predicate) {
 
+        return Filter.multiplexBy(withSender -> {
+            // introduce wildcard type parameter to un-confuse type-checker
+            final WithSender<?> input = (WithSender<?>) withSender;
+            if (clazz.isInstance(input.getMessage())) {
+                final T message = clazz.cast(input.getMessage());
+                if (predicate.test(message)) {
+                    return Optional.of(input.withMessage(message));
+                }
+            }
+            return Optional.empty();
+        });
+    }
 
     /**
      * Create a filter stage from a class.
@@ -76,35 +86,43 @@ public final class Filter<T> extends GraphStage<FanOutShape2<WithSender, WithSen
      * @param clazz class of {@code T}.
      * @return {@code GraphStage} that performs the filtering.
      */
-    public static <T> Filter<T> of(final Class<T> clazz) {
+    public static <T extends WithDittoHeaders> Graph<FanOutShape2<WithSender, WithSender<T>, WithSender>, NotUsed> of(
+            final Class<T> clazz) {
         return of(clazz, x -> true);
     }
 
-    @Override
-    public FanOutShape2<WithSender, WithSender<T>, WithSender> shape() {
-        return shape;
+    /**
+     * Multiplex messages by an optional mapper.
+     *
+     * @param mapper partial mapper of messages.
+     * @param <A> type of messages.
+     * @return graph with 1 inlet for messages and 2 outlets, the first outlet for messages mapped successfully
+     * and the second outlet for other messages.
+     */
+    public static <A, B> Graph<FanOutShape2<A, B, A>, NotUsed> multiplexBy(final Function<A, Optional<B>> mapper) {
+
+        return GraphDSL.create(builder -> {
+            final FlowShape<A, Pair<A, Optional<B>>> testPredicate =
+                    builder.add(Flow.fromFunction(x -> Pair.create(x, mapper.apply(x))));
+
+            final UniformFanOutShape<Pair<A, Optional<B>>, Pair<A, Optional<B>>> broadcast =
+                    builder.add(Broadcast.create(2));
+
+            final FlowShape<Pair<A, Optional<B>>, B> filterTrue =
+                    builder.add(Flow.<Pair<A, Optional<B>>, Optional<B>>fromFunction(Pair::second)
+                            .filter(Optional::isPresent)
+                            .map(Optional::get));
+
+            final FlowShape<Pair<A, Optional<B>>, A> filterFalse =
+                    builder.add(Flow.<Pair<A, Optional<B>>>create()
+                            .filter(pair -> !pair.second().isPresent())
+                            .map(Pair::first));
+
+            builder.from(testPredicate.out()).toInlet(broadcast.in());
+            builder.from(broadcast.out(0)).toInlet(filterTrue.in());
+            builder.from(broadcast.out(1)).toInlet(filterFalse.in());
+            return new FanOutShape2<>(testPredicate.in(), filterTrue.out(), filterFalse.out());
+        });
     }
 
-    @Override
-    @SuppressWarnings({"squid:S3599","squid:S1171"})
-    public GraphStageLogic createLogic(final Attributes inheritedAttributes) {
-        return new AbstractControlFlowLogic(shape) {
-            {
-                initOutlets(shape);
-
-                when(shape.in(), wrapped -> {
-                    if (clazz.isInstance(wrapped.getMessage())) {
-                        final T message = clazz.cast(wrapped.getMessage());
-                        if (predicate.test(message)) {
-                            emit(shape.out0(), WithSender.of(message, wrapped.getSender()));
-                        } else {
-                            emit(shape.out1(), wrapped);
-                        }
-                    } else {
-                        emit(shape.out1(), wrapped);
-                    }
-                });
-            }
-        };
-    }
 }

@@ -114,7 +114,7 @@ public final class ReferencePlaceholder {
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                ", referencedEntityType=" + referencedEntityType +
+                "referencedEntityType=" + referencedEntityType +
                 ", referencedEntityId=" + referencedEntityId +
                 ", referencedField=" + referencedField +
                 "]";

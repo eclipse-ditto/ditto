@@ -77,9 +77,12 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
                         .toMat(factory.newSink(), Keep.both())
                         .run(ActorMaterializer.create(getContext()));
 
-        materializedValues.second().handle(this::reportReadiness);
+        materializedValues.second().handle(this::handleDone);
 
         sourceActor = materializedValues.first();
+
+        log.info("Publisher ready");
+        mqttClientActor.tell(new Status.Success(Done.done()), getSelf());
     }
 
     /**
@@ -172,7 +175,7 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
         } else {
             payload = ByteString.empty();
         }
-        return MqttMessage.create(mqttTarget.getTopic(), payload, qos);
+        return MqttMessage.create(mqttTarget.getTopic(), payload).withQos(qos);
     }
 
     private static Charset determineCharset(final CharSequence contentType) {
@@ -183,13 +186,12 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
      * Called inside future - must be thread-safe.
      */
     @Nullable
-    private Done reportReadiness(@Nullable final Done done, @Nullable final Throwable exception) {
-        if (exception == null) {
-            log.info("Publisher ready");
-            mqttClientActor.tell(new Status.Success(done), getSelf());
-        } else {
-            log.info("Publisher failed");
+    private Done handleDone(@Nullable final Done done, @Nullable final Throwable exception) {
+        if (exception != null) {
+            log.info("Publisher failed with {}: {}", exception.getClass().getSimpleName(), exception.getMessage());
             mqttClientActor.tell(new Status.Failure(exception), getSelf());
+        } else {
+            log.info("Got <{}>, stream finished!", done);
         }
         return done;
     }

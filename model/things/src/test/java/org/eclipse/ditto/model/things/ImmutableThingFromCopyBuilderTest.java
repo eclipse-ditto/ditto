@@ -754,51 +754,6 @@ public final class ImmutableThingFromCopyBuilderTest {
         assertThat(thing.getPolicyId()).isEmpty();
     }
 
-    @Test(expected = ThingIdInvalidException.class)
-    public void tryToSetEmptyThingId() {
-        underTestV1.setId("");
-    }
-
-    @Test(expected = ThingIdInvalidException.class)
-    public void tryToSetIdWithMissingNamespace() {
-        underTestV1.setId("foobar2000");
-    }
-
-    @Test(expected = ThingIdInvalidException.class)
-    public void tryToSetIdWithInvalidCharactersInNamespace() {
-        underTestV1.setId("foo-bar:foobar2000");
-    }
-
-    @Test(expected = ThingIdInvalidException.class)
-    public void tryToSetIdWithInvalidCharactersInNamespace2() {
-        underTestV1.setId("foo.bar%bum:foobar2000");
-    }
-
-    @Test(expected = ThingIdInvalidException.class)
-    public void tryToSetIdWithNamespaceStartingWithPeriod() {
-        underTestV1.setId(".namespace:foobar2000");
-    }
-
-    @Test(expected = ThingIdInvalidException.class)
-    public void tryToSetIdWithNamespaceEndingWithPeriod() {
-        underTestV1.setId("namespace.:foobar2000");
-    }
-
-    @Test(expected = ThingIdInvalidException.class)
-    public void tryToSetIdWithTwoSubsequentPeriodsInNamespace() {
-        underTestV1.setId("namespace..invalid:foobar2000");
-    }
-
-    @Test(expected = ThingIdInvalidException.class)
-    public void tryToSetIdWithNamespaceWithNumberAfterPeriod() {
-        underTestV1.setId("namespace.42:foobar2000");
-    }
-
-    @Test
-    public void setIdWithEmptyNamespace() {
-        assertSetIdWithValidNamespace("");
-    }
-
     @Test
     public void setIdWithTopLevelNamespace() {
         assertSetIdWithValidNamespace("ad");

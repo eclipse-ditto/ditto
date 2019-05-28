@@ -68,6 +68,15 @@
             <plugin>
                 <groupId>com.github.siom79.japicmp</groupId>
                 <artifactId>japicmp-maven-plugin</artifactId>
+                <configuration>
+                    <parameter>
+                        <excludes>
+                            <exclude>org.eclipse.ditto.model.thingsearch.OptionVisitor</exclude>
+                            <exclude>org.eclipse.ditto.model.thingsearch.SearchResult</exclude>
+                            <exclude>org.eclipse.ditto.model.thingsearch.SearchResultBuilder</exclude>
+                        </excludes>
+                    </parameter>
+                </configuration>
             </plugin>
 
             <plugin>

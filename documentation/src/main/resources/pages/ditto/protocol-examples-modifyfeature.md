@@ -1,6 +1,6 @@
 ---
-title: Create a single feature
-keywords: examples, create feature
+title: Modify a single feature
+keywords: examples, modify feature
 search: exclude
 permalink: protocol-examples-modifyfeature.html
 ---

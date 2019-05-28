@@ -125,9 +125,7 @@ public final class MappingStrategiesBuilderTest {
                 StreamAck.class.getSimpleName());
     }
 
-    /**
-     *
-     */
+
     private static final class MyJsonifiable implements Jsonifiable {
 
         private static final MyJsonifiable INSTANCE = new MyJsonifiable();

@@ -18,6 +18,7 @@ import java.util.Optional;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.placeholders.EnforcementFilter;
 import org.eclipse.ditto.protocoladapter.TopicPath;
@@ -141,6 +142,12 @@ public interface ExternalMessage {
      * @return optional source address, where this message was received
      */
     Optional<String> getSourceAddress();
+
+    /**
+     * @return Ditto headers of the signal that created this external message if any.
+     * Use those headers when sending error back into the Ditto cluster.
+     */
+    DittoHeaders getInternalHeaders();
 
     /**
      * The known payload types of ExternalMessages.

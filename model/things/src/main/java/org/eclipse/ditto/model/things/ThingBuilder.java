@@ -31,14 +31,12 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 public interface ThingBuilder {
 
     /**
-     * Generates a random Thing ID with an empty namespace.
+     * Generates a random Thing ID without namespace.
      *
      * @return the ID
      */
     static String generateRandomThingId() {
-        // for now: use "empty" namespace for generated IDs:
         return ":" + UUID.randomUUID();
-        // this will change into using the "default" namespace of a solution instead later on
     }
 
     /**

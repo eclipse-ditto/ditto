@@ -73,7 +73,7 @@ public final class ExecutePiggybackCommand extends AbstractDevOpsCommand<Execute
     private final String targetActorSelection;
     private final JsonObject piggybackCommand;
 
-    private ExecutePiggybackCommand(@Nullable final String serviceName, @Nullable final Integer instance,
+    private ExecutePiggybackCommand(@Nullable final String serviceName, @Nullable final String instance,
             final String targetActorSelection, final JsonObject piggybackCommand, final DittoHeaders dittoHeaders) {
         super(TYPE, serviceName, instance, dittoHeaders);
         this.targetActorSelection = requireNonNull(targetActorSelection, "The targetActorSelection must not be null!");
@@ -91,7 +91,7 @@ public final class ExecutePiggybackCommand extends AbstractDevOpsCommand<Execute
      * @return a new ChangeLogLevel command.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ExecutePiggybackCommand of(@Nullable final String serviceName, @Nullable final Integer instance,
+    public static ExecutePiggybackCommand of(@Nullable final String serviceName, @Nullable final String instance,
             final String targetActorSelection, final JsonObject piggybackCommand, final DittoHeaders dittoHeaders) {
         return new ExecutePiggybackCommand(serviceName, instance, targetActorSelection, piggybackCommand, dittoHeaders);
     }
@@ -152,7 +152,7 @@ public final class ExecutePiggybackCommand extends AbstractDevOpsCommand<Execute
     public static ExecutePiggybackCommand fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ExecutePiggybackCommand>(TYPE, jsonObject).deserialize(() -> {
             final String serviceName = jsonObject.getValue(DevOpsCommand.JsonFields.JSON_SERVICE_NAME).orElse(null);
-            final Integer instance = jsonObject.getValue(DevOpsCommand.JsonFields.JSON_INSTANCE).orElse(null);
+            final String instance = jsonObject.getValue(DevOpsCommand.JsonFields.JSON_INSTANCE).orElse(null);
             final String targetActorSelection = jsonObject.getValueOrThrow(JSON_TARGET_ACTORSELECTION);
             final JsonObject piggybackCommand = jsonObject.getValueOrThrow(JSON_PIGGYBACK_COMMAND);
 

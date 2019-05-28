@@ -23,9 +23,11 @@ import org.eclipse.ditto.model.query.SortDirection;
 import org.eclipse.ditto.model.query.SortOption;
 import org.eclipse.ditto.model.query.expression.FieldExpressionFactory;
 import org.eclipse.ditto.model.query.expression.SortFieldExpression;
+import org.eclipse.ditto.model.thingsearch.CursorOption;
 import org.eclipse.ditto.model.thingsearch.LimitOption;
 import org.eclipse.ditto.model.thingsearch.Option;
 import org.eclipse.ditto.model.thingsearch.OptionVisitor;
+import org.eclipse.ditto.model.thingsearch.SizeOption;
 import org.eclipse.ditto.model.thingsearch.SortOptionEntry;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
@@ -46,7 +48,8 @@ public final class ParameterOptionVisitor implements OptionVisitor {
      * @param queryBuilder the query builder to be used.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public ParameterOptionVisitor(final FieldExpressionFactory fieldExpressionFactory, final QueryBuilder queryBuilder) {
+    public ParameterOptionVisitor(final FieldExpressionFactory fieldExpressionFactory,
+            final QueryBuilder queryBuilder) {
         this.fieldExpressionFactory = checkNotNull(fieldExpressionFactory, "field expression factory");
         this.queryBuilder = checkNotNull(queryBuilder, "query builder");
     }
@@ -81,8 +84,13 @@ public final class ParameterOptionVisitor implements OptionVisitor {
     }
 
     @Override
-    public void visit(final Option option) {
-        // not required yet
+    public void visit(final CursorOption cursorOption) {
+        // do nothing; cursor is processed elsewhere
+    }
+
+    @Override
+    public void visit(final SizeOption sizeOption) {
+        queryBuilder.skip(0L).size(sizeOption.getSize());
     }
 
     private SortOption mapSort(final SortOptionEntry entry) {

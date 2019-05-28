@@ -20,6 +20,7 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 public final class ConciergeMessagingConstants {
 
+    @SuppressWarnings("squid:S1075")
     private static final String USER_PATH = "/user";
 
     /**
@@ -34,6 +35,11 @@ public final class ConciergeMessagingConstants {
     public static final String DISPATCHER_ACTOR_PATH = ROOT_ACTOR_PATH + "/dispatcherActor";
 
     /**
+     * Path of the concierge enforcer actor.
+     */
+    public static final String ENFORCER_ACTOR_PATH = ROOT_ACTOR_PATH + "/enforcer";
+
+    /**
      * Path of the concierge forwarder actor.
      */
     public static final String FORWARDER_ACTOR_PATH = ROOT_ACTOR_PATH + "/conciergeForwarder";
@@ -42,11 +48,6 @@ public final class ConciergeMessagingConstants {
      * Name of the blocked-namespace-updater singleton.
      */
     public static final String BLOCKED_NAMESPACES_UPDATER_NAME = "blockedNamespacesUpdater";
-
-    /**
-     * Name of the shard region for authorization entities.
-     */
-    public static final String SHARD_REGION = "concierge";
 
     /**
      * Name of the akka cluster role.
