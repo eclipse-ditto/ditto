@@ -26,7 +26,7 @@ public enum LogLevel {
      */
     SUCCESS("success"),
     /**
-     * Category for logs related to a target.
+     * Failure logs.
      */
     FAILURE("failure");
 
