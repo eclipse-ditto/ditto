@@ -230,12 +230,12 @@ necessary for retrieving the connection metrics is the `connectionId`:
 
 ### Enable connection logs
 
-Enables the connection logging feature for a connection for 24 hours.
+Enables the connection logging feature of a connection for 24 hours.
 As soon as connection logging is enabled, you will be able to [retrieve connection logs](#retrieve-connection-logs). The
 logs will contain a fixed amount of success and failure logs for each source and target of your connection and correlate
-with the metrics of the connection. This will allow you more insight in what goes and and more importantly what goes wrong.
+with the metrics of the connection. This will allow you more insight in what goes well, and more importantly, what goes wrong.
 
-The default duration and the maximum amount of logs stored for one connection can be configured in Dittos connectivity service
+The default duration and the maximum amount of logs stored for one connection can be configured in Ditto's connectivity service
 configuration.
 
 ```json
@@ -261,7 +261,7 @@ the older entries will be dropped. So keep in mind that you might miss some of t
 The response will also provide information on how long the logging feature will still be enabled. Since the timer will
 always be reset when retrieving the logs, the timestamp will always be 24 hours from now.
 
-The default duration and the maximum amount of logs stored for one connection can be configured in Dittos connectivity service
+The default duration and the maximum amount of logs stored for one connection can be configured in Ditto's connectivity service
 configuration.
 
 ```json
