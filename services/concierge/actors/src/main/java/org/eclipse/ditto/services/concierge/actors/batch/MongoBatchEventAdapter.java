@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.concierge.batch;
+package org.eclipse.ditto.services.concierge.actors.batch;
 
 import org.eclipse.ditto.services.utils.persistence.mongo.AbstractMongoEventAdapter;
 import org.eclipse.ditto.signals.events.base.Event;

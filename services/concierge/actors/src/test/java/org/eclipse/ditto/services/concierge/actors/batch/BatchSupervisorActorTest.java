@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.concierge.batch.actors;
+package org.eclipse.ditto.services.concierge.actors.batch;
 
 import static akka.testkit.JavaTestKit.shutdownActorSystem;
 import static org.eclipse.ditto.signals.commands.base.assertions.CommandAssertions.assertThat;

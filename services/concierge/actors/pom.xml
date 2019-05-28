@@ -21,8 +21,8 @@
         <version>${revision}</version>
     </parent>
 
-    <artifactId>ditto-services-concierge-batch</artifactId>
-    <name>Eclipse Ditto :: Services :: Concierge :: Batch</name>
+    <artifactId>ditto-services-concierge-actors</artifactId>
+    <name>Eclipse Ditto :: Services :: Concierge :: Actors</name>
 
     <dependencies>
         <dependency>

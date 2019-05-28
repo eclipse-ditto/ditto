@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.concierge.batch.actors;
+package org.eclipse.ditto.services.concierge.actors.batch;
 
 import java.time.Instant;
 import java.util.ArrayList;
