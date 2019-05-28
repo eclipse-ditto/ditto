@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
 import java.nio.charset.StandardCharsets;
+import java.text.MessageFormat;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
@@ -207,18 +208,26 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
                     throwable.getMessage());
 
         } else if (throwable instanceof AuthorizationException || throwable instanceof AuthenticationException) {
-            logWithConnectionId().info("Ran into authentication or authorization problems against Kafka broker: {}",
-                    throwable.getMessage());
+            final String message =
+                    MessageFormat.format("Ran into authentication or authorization problems against Kafka broker: {0}",
+                            throwable.getMessage());
+
+            connectionLogger.exception(message);
+            logWithConnectionId().info(message);
             restartInternalKafkaProducer();
 
         } else if (throwable instanceof TimeoutException) {
-            logWithConnectionId().info(
-                    "Ran into a timeout when accessing Kafka with message: <{}>. This might have several reasons, " +
-                            "e.g. the Kafka broker not being accessible, the topic or the partition not being existing, a wrong port etc. ",
+            final String message = MessageFormat.format("Ran into a timeout when accessing Kafka with message: <{0}>. "
+                            + "This might have several reasons, e.g. the Kafka broker not being accessible, the topic or the "
+                            + "partition not being existing, a wrong port etc. ",
                     throwable.getMessage());
+
+            connectionLogger.exception(message);
+            logWithConnectionId().info(message);
             restartInternalKafkaProducer();
 
         } else {
+            connectionLogger.exception("An unexpected error happened: {0}", throwable.getMessage());
             logWithConnectionId().error(throwable,
                     "An unexpected error happened in the internal Kafka publisher and we can't recover from it.");
             restartInternalKafkaProducer();
@@ -297,6 +306,7 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
      */
     @Immutable
     private static class PassThrough {
+
         private final ConnectionMonitor connectionMonitor;
         private final ExternalMessage externalMessage;
 
@@ -304,6 +314,7 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
             this.connectionMonitor = connectionMonitor;
             this.externalMessage = message;
         }
+
     }
 
 }

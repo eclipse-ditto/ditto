@@ -43,6 +43,8 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddres
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLoggerRegistry;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.connectivity.util.MonitoringConfigReader;
@@ -73,6 +75,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     protected final List<Target> targets;
     protected final Map<Target, ResourceStatus> resourceStatusMap;
 
+    protected final ConnectionLogger connectionLogger;
     private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
     private final ConnectionMonitor responseDroppedMonitor;
     private final ConnectionMonitor responsePublishedMonitor;
@@ -89,9 +92,10 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
         final MonitoringConfigReader
                 monitoringConfig = ConfigKeys.Monitoring.fromRawConfig(getContext().system().settings().config());
-        this.connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
+        connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
         responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(this.connectionId);
         responsePublishedMonitor = connectionMonitorRegistry.forResponsePublished(this.connectionId);
+        connectionLogger = ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger()).forConnection(this.connectionId);
     }
 
     @Override
