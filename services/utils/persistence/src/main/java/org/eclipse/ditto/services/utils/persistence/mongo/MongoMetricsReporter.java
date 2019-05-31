@@ -20,6 +20,7 @@ import java.util.Deque;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.services.utils.health.AbstractHealthCheckingActor;
 import org.eclipse.ditto.services.utils.health.StatusDetailMessage;
@@ -36,7 +37,28 @@ import akka.japi.pf.ReceiveBuilder;
  */
 public final class MongoMetricsReporter extends AbstractHealthCheckingActor {
 
-    private static final String ACTOR_NAME = MongoMetricsReporter.class.getSimpleName();
+    /**
+     * The pub-sub topic it subscribes to.
+     */
+    public static final String PUBSUB_TOPIC = MongoMetricsReporter.class.getSimpleName();
+
+    /**
+     * JSON field of the reporter value.
+     */
+    public static final JsonFieldDefinition<String> REPORTER =
+            JsonFactory.newStringFieldDefinition("reporter");
+
+    /**
+     * JSON field of the resolution value.
+     */
+    public static final JsonFieldDefinition<String> RESOLUTION =
+            JsonFactory.newStringFieldDefinition("resolution");
+
+    /**
+     * JSON field of the max-timer-nanos array.
+     */
+    public static final JsonFieldDefinition<JsonArray> MAX_TIMER_NANOS =
+            JsonFactory.newJsonArrayFieldDefinition("maxTimerNanos");
 
     private static final Tick TICK = new Tick();
 
@@ -91,8 +113,9 @@ public final class MongoMetricsReporter extends AbstractHealthCheckingActor {
         final JsonArray maxTimeNanosJsonArray =
                 maxTimerNanos.stream().map(JsonFactory::newValue).collect(JsonCollectors.valuesToArray());
         return JsonFactory.newObjectBuilder()
-                .set("resolution", resolution.toString())
-                .set("maxTimerNanos", maxTimeNanosJsonArray)
+                .set(REPORTER, getSelf().path().toStringWithoutAddress())
+                .set(RESOLUTION, resolution.toString())
+                .set(MAX_TIMER_NANOS, maxTimeNanosJsonArray)
                 .build();
     }
 
@@ -105,7 +128,7 @@ public final class MongoMetricsReporter extends AbstractHealthCheckingActor {
     }
 
     private void subscribeForTopicWithoutGroup(final ActorRef pubSubMediator) {
-        final Object subscribe = new DistributedPubSubMediator.Subscribe(ACTOR_NAME, getSelf());
+        final Object subscribe = new DistributedPubSubMediator.Subscribe(PUBSUB_TOPIC, getSelf());
         pubSubMediator.tell(subscribe, getSelf());
     }
 

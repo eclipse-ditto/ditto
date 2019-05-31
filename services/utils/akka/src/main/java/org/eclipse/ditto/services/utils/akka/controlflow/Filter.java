@@ -19,7 +19,6 @@ import java.util.function.Predicate;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 
 import akka.NotUsed;
-import akka.japi.Pair;
 import akka.stream.FanOutShape2;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
@@ -27,6 +26,9 @@ import akka.stream.UniformFanOutShape;
 import akka.stream.javadsl.Broadcast;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.GraphDSL;
+import scala.util.Either;
+import scala.util.Left;
+import scala.util.Right;
 
 /**
  * A stream processor filtering messages by type and by a predicate.
@@ -100,23 +102,36 @@ public final class Filter {
      * and the second outlet for other messages.
      */
     public static <A, B> Graph<FanOutShape2<A, B, A>, NotUsed> multiplexBy(final Function<A, Optional<B>> mapper) {
+        return multiplexByEither(a -> mapper.apply(a).<Either<A, B>>map(Right::new).orElseGet(() -> new Left<>(a)));
+    }
+
+    /**
+     * Multiplex messages by an Either mapper.
+     *
+     * @param mapper mapper of messages.
+     * @param <A> type of messages.
+     * @return graph with 1 inlet for messages and 2 outlets, the first outlet for messages mapped to the right
+     * and the second outlet for messages mapped to the left.
+     */
+    public static <A, B, C> Graph<FanOutShape2<A, B, C>, NotUsed> multiplexByEither(
+            final Function<A, Either<C, B>> mapper) {
 
         return GraphDSL.create(builder -> {
-            final FlowShape<A, Pair<A, Optional<B>>> testPredicate =
-                    builder.add(Flow.fromFunction(x -> Pair.create(x, mapper.apply(x))));
+            final FlowShape<A, Either<C, B>> testPredicate =
+                    builder.add(Flow.fromFunction(mapper::apply));
 
-            final UniformFanOutShape<Pair<A, Optional<B>>, Pair<A, Optional<B>>> broadcast =
+            final UniformFanOutShape<Either<C, B>, Either<C, B>> broadcast =
                     builder.add(Broadcast.create(2));
 
-            final FlowShape<Pair<A, Optional<B>>, B> filterTrue =
-                    builder.add(Flow.<Pair<A, Optional<B>>, Optional<B>>fromFunction(Pair::second)
-                            .filter(Optional::isPresent)
-                            .map(Optional::get));
+            final FlowShape<Either<C, B>, B> filterTrue =
+                    builder.add(Flow.<Either<C, B>>create()
+                            .filter(Either::isRight)
+                            .map(either -> either.right().get()));
 
-            final FlowShape<Pair<A, Optional<B>>, A> filterFalse =
-                    builder.add(Flow.<Pair<A, Optional<B>>>create()
-                            .filter(pair -> !pair.second().isPresent())
-                            .map(Pair::first));
+            final FlowShape<Either<C, B>, C> filterFalse =
+                    builder.add(Flow.<Either<C, B>>create()
+                            .filter(Either::isLeft)
+                            .map(either -> either.left().get()));
 
             builder.from(testPredicate.out()).toInlet(broadcast.in());
             builder.from(broadcast.out(0)).toInlet(filterTrue.in());

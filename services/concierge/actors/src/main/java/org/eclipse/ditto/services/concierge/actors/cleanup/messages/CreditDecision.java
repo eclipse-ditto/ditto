@@ -34,7 +34,7 @@ public final class CreditDecision {
      * @param explanation why no credit is given.
      * @return the decision.
      */
-    public CreditDecision no(final String explanation) {
+    public static CreditDecision no(final String explanation) {
         return new CreditDecision(0, explanation);
     }
 
@@ -45,7 +45,7 @@ public final class CreditDecision {
      * @param explanation why the credit is given out.
      * @return the decision.
      */
-    public CreditDecision yes(final int credit, final String explanation) {
+    public static CreditDecision yes(final int credit, final String explanation) {
         return new CreditDecision(credit, explanation);
     }
 

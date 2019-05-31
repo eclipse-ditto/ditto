@@ -22,15 +22,28 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
+import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
+import akka.pattern.AskTimeoutException;
 
 /**
- * Aggregates a certain number of messages of a certain type for a duration before stopping itself.
+ * Actor that
+ * <ol>
+ * <li>forwards its first message to a given recipient,</li>
+ * <li>waits for a fixed number of messages of a certain type for a duration,</li>
+ * <li>sends the list of received messages to the initial sender, and then</li>
+ * <li>stops itself.</li>
+ * <p>
+ * This actor will never survive beyond the given timeout duration.
+ * </ol>
  */
-public final class MessageAggregator<T> extends AbstractActorWithTimers {
+final class MessageAggregator<T> extends AbstractActorWithTimers {
 
-    private static final Object TIMEOUT = "timeout";
+    /**
+     * Message to signal timeout.
+     */
+    static final Object TIMEOUT = new AskTimeoutException("MessageAggregator.TIMEOUT");
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -54,6 +67,18 @@ public final class MessageAggregator<T> extends AbstractActorWithTimers {
         getTimers().startSingleTimer(TIMEOUT, TIMEOUT, timeout);
     }
 
+    /**
+     * Create Props of a message aggregator.
+     *
+     * @param initialReceiver destination of the first message to forward.
+     */
+    public static <T> Props props(final ActorRef initialReceiver, final Class<T> messageClass,
+            final int expectedMessages, final Duration timeout) {
+
+        return Props.create(MessageAggregator.class, () -> new MessageAggregator<>(initialReceiver, messageClass,
+                expectedMessages, timeout));
+    }
+
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
@@ -63,7 +88,11 @@ public final class MessageAggregator<T> extends AbstractActorWithTimers {
                     log.debug("MessageAggregator: Forwarding <{}> to <{}> on behalf of <{}>",
                             firstMessage, initialReceiver, sender);
                     initialReceiver.tell(firstMessage, getSelf());
-                    getContext().become(listeningBehavior());
+                    if (expectedMessages > 0) {
+                        getContext().become(listeningBehavior());
+                    } else {
+                        reportAndStop();
+                    }
                 })
                 .build();
     }
