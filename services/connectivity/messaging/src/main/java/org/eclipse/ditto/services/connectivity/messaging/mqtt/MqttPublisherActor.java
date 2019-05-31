@@ -147,6 +147,10 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
             final ConnectionMetricsCollector publishedCounter) {
 
         final MqttMessage mqttMessage = mapExternalMessageToMqttMessage(publishTarget, qos, message);
+        if (log.isDebugEnabled()) {
+            log.debug("Publishing MQTT message to topic <{}>: {}", mqttMessage.topic(),
+                    mqttMessage.payload().utf8String());
+        }
         sourceActor.tell(mqttMessage, getSelf());
         publishedCounter.recordSuccess();
     }

@@ -68,6 +68,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.typesafe.config.ConfigFactory;
+
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.cluster.pubsub.DistributedPubSubMediator;
@@ -84,7 +86,7 @@ public final class LiveSignalEnforcementTest {
 
     @Before
     public void init() {
-        system = ActorSystem.create();
+        system = ActorSystem.create("test", ConfigFactory.load("test"));
         final TestActorRef<MockEntitiesActor> testActorRef =
                 new TestActorRef<>(system, MockEntitiesActor.props(), system.guardian(), UUID.randomUUID().toString());
         mockEntitiesActorInstance = testActorRef.underlyingActor();
@@ -343,9 +345,11 @@ public final class LiveSignalEnforcementTest {
             final DistributedPubSubMediator.Publish publish = fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.MESSAGES.getDistributedPubSubTopic());
 
-            underTest.tell(thingMessageCommandResponse((MessageCommand) publish.msg()), getRef());
-            responseProbe.expectMsg(thingMessageCommandResponse((MessageCommand) publish.msg()));
-            assertThat(responseProbe.lastSender()).isEqualTo(getRef());
+            final MessageCommandResponse messageCommandResponse = thingMessageCommandResponse((MessageCommand) publish.msg());
+
+            underTest.tell(messageCommandResponse, responseProbe.ref());
+            responseProbe.expectMsg(messageCommandResponse);
+            assertThat(responseProbe.lastSender()).isEqualTo(responseProbe.ref());
         }};
     }
 

@@ -13,28 +13,32 @@
 package org.eclipse.ditto.services.concierge.enforcement;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.Executor;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
-import org.eclipse.ditto.services.utils.akka.controlflow.Pipe;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.EntityId;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 
+import akka.Done;
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
+import akka.stream.javadsl.Broadcast;
 import akka.stream.javadsl.Flow;
+import akka.stream.javadsl.GraphDSL;
+import akka.stream.javadsl.Merge;
+import akka.stream.javadsl.Sink;
 
 /**
  * Actor to authorize signals by enforcing policies or ACLs on signals.
@@ -47,19 +51,24 @@ public final class EnforcerActor extends AbstractEnforcerActor {
     public static final String ACTOR_NAME = "enforcer";
 
     private final Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> handler;
+    private final Sink<Contextual<WithDittoHeaders>, CompletionStage<Done>> sink;
 
-    private EnforcerActor(final ActorRef pubSubMediator, final ActorRef conciergeForwarder,
-            final Executor enforcerExecutor,
+    private EnforcerActor(final ActorRef pubSubMediator,
+            final Set<EnforcementProvider<?>> enforcementProviders,
+            final ActorRef conciergeForwarder,
             final Duration askTimeout,
-            final Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> handler,
             final int bufferSize,
             final int parallelism,
+            @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
             @Nullable final Cache<EntityId, Entry<EntityId>> thingIdCache,
             @Nullable final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache,
             @Nullable final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache) {
-        super(pubSubMediator, conciergeForwarder, enforcerExecutor, askTimeout, bufferSize, parallelism,
+
+        super(pubSubMediator, conciergeForwarder, askTimeout, bufferSize, parallelism,
                 thingIdCache, aclEnforcerCache, policyEnforcerCache);
-        this.handler = handler;
+
+        handler = assembleHandler(enforcementProviders, preEnforcer);
+        sink = assembleSink();
     }
 
     /**
@@ -69,7 +78,6 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
      * @param askTimeout the ask timeout duration: the duration to wait for entity shard regions.
      * @param conciergeForwarder an actorRef to concierge forwarder.
-     * @param enforcerExecutor the Executor to run async tasks on during enforcement.
      * @param preEnforcer a function executed before actual enforcement, may be {@code null}.
      * @param bufferSize the buffer size used for the Source queue.
      * @param parallelism parallelism to use for processing messages in parallel.
@@ -82,7 +90,6 @@ public final class EnforcerActor extends AbstractEnforcerActor {
             final Set<EnforcementProvider<?>> enforcementProviders,
             final Duration askTimeout,
             final ActorRef conciergeForwarder,
-            final Executor enforcerExecutor,
             final int bufferSize,
             final int parallelism,
             @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
@@ -90,13 +97,9 @@ public final class EnforcerActor extends AbstractEnforcerActor {
             @Nullable final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache,
             @Nullable final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache) {
 
-        // create the sink exactly once per props and share it across all actors to not waste memory
-        final Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> messageHandler =
-                assembleHandler(enforcementProviders, preEnforcer);
-
         return Props.create(EnforcerActor.class, () ->
-                new EnforcerActor(pubSubMediator, conciergeForwarder, enforcerExecutor, askTimeout, messageHandler,
-                        bufferSize, parallelism, thingIdCache, aclEnforcerCache, policyEnforcerCache));
+                new EnforcerActor(pubSubMediator, enforcementProviders, conciergeForwarder, askTimeout,
+                        bufferSize, parallelism, preEnforcer, thingIdCache, aclEnforcerCache, policyEnforcerCache));
     }
 
     /**
@@ -107,7 +110,6 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
      * @param askTimeout the ask timeout duration: the duration to wait for entity shard regions.
      * @param conciergeForwarder an actorRef to concierge forwarder.
-     * @param enforcerExecutor the Executor to run async tasks on during enforcement.
      * @param bufferSize the buffer size used for the Source queue.
      * @param parallelism parallelism to use for processing messages in parallel.
      * @param thingIdCache the cache for Thing IDs to either ACL or Policy ID.
@@ -119,44 +121,82 @@ public final class EnforcerActor extends AbstractEnforcerActor {
             final Set<EnforcementProvider<?>> enforcementProviders,
             final Duration askTimeout,
             final ActorRef conciergeForwarder,
-            final Executor enforcerExecutor,
             final int bufferSize,
             final int parallelism,
             @Nullable final Cache<EntityId, Entry<EntityId>> thingIdCache,
             @Nullable final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache,
             @Nullable final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache) {
 
-        return props(pubSubMediator, enforcementProviders, askTimeout, conciergeForwarder, enforcerExecutor,
+        return props(pubSubMediator, enforcementProviders, askTimeout, conciergeForwarder,
                 bufferSize, parallelism, null, thingIdCache, aclEnforcerCache, policyEnforcerCache);
     }
 
     @Override
-    protected Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> getHandler() {
+    protected Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> processMessageFlow() {
         return handler;
     }
 
+    @Override
+    protected Sink<Contextual<WithDittoHeaders>, ?> processedMessageSink() {
+        return sink;
+    }
+
     /**
-     * Create the sink that defines the behavior of this enforcer actor. Do NOT call this or similar methods inside an
-     * actor instance; otherwise the stream components will waste huge amounts of heap space.
+     * Create the flow that defines the behavior of this enforcer actor by enhancing the passed in {@link Contextual}
+     * e.g. with a message and receiver which in the end (in the {@link #assembleSink()}) are processed.
      *
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
      * @param preEnforcer a function executed before actual enforcement, may be {@code null}.
      * @return a handler as {@link Flow} of {@link Contextual} messages.
      */
-    private static Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> assembleHandler(
+    private Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> assembleHandler(
             final Set<EnforcementProvider<?>> enforcementProviders,
             @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer) {
 
         final Graph<FlowShape<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>>, NotUsed> preEnforcerFlow =
-                Optional.ofNullable(preEnforcer).map(PreEnforcer::fromFunctionWithContext).orElseGet(Flow::create);
+                Optional.ofNullable(preEnforcer)
+                        .map(PreEnforcer::fromFunctionWithContext)
+                        .orElseGet(Flow::create);
 
-        final Graph<FlowShape<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>>, NotUsed> enforcerFlow =
-                Pipe.joinFlows(enforcementProviders.stream()
-                        .map(EnforcementProvider::toContextualFlow)
-                        .collect(Collectors.toList()));
+
+        final Graph<FlowShape<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>>, NotUsed> enforcerFlow = GraphDSL.create(
+                Broadcast.<Contextual<WithDittoHeaders>>create(enforcementProviders.size()),
+                Merge.<Contextual<WithDittoHeaders>>create(enforcementProviders.size(), true),
+                (notUsed1, notUsed2) -> notUsed1,
+                (builder, bcast, merge) -> {
+
+                    final ArrayList<EnforcementProvider<?>> providers = new ArrayList<>(enforcementProviders);
+                    for (int i=0; i<providers.size(); i++) {
+                        builder.from(bcast.out(i))
+                                .via(builder.add(providers.get(i).toContextualFlow()))
+                                .toInlet(merge.in(i));
+                    }
+
+                    return FlowShape.of(bcast.in(), merge.out());
+                });
 
         return Flow.<Contextual<WithDittoHeaders>>create()
                 .via(preEnforcerFlow)
                 .via(enforcerFlow);
+    }
+
+    /**
+     * Create the sink that defines the outcome of this enforcer actor's stream.
+     *
+     * @return the Sink receiving the enriched {@link Contextual} to finally process.
+     */
+    private Sink<Contextual<WithDittoHeaders>, CompletionStage<Done>> assembleSink() {
+        return Sink.foreach(theContextual -> {
+            LogUtil.enhanceLogWithCorrelationId(log, theContextual.getMessage());
+            final Optional<ActorRef> receiverOpt = theContextual.getReceiver();
+            if (receiverOpt.isPresent()) {
+                final ActorRef receiver = receiverOpt.get();
+                final Object wrappedMsg = theContextual.getReceiverWrapperFunction().apply(theContextual.getMessage());
+                log.debug("About to send contextual message <{}> to receiver: <{}>", wrappedMsg, receiver);
+                receiver.tell(wrappedMsg, theContextual.getSender());
+            } else {
+                log.debug("No receiver found in Contextual - as a result just ignoring it: <{}>", theContextual);
+            }
+        });
     }
 }

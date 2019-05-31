@@ -51,6 +51,7 @@ import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
+import akka.routing.ConsistentHashingRouter;
 
 
 /**
@@ -117,6 +118,7 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
         final BasicProperties properties = delivery.getProperties();
         final Envelope envelope = delivery.getEnvelope();
         final byte[] body = delivery.getBody();
+        final String hashKey = envelope.getExchange() + ":" + envelope.getRoutingKey();
 
         Map<String, String> headers = null;
         try {
@@ -142,13 +144,16 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
             externalMessageBuilder.withSourceAddress(sourceAddress);
             final ExternalMessage externalMessage = externalMessageBuilder.build();
             inboundCounter.recordSuccess();
-            messageMappingProcessor.forward(externalMessage, getContext());
+            final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(externalMessage, hashKey);
+            messageMappingProcessor.forward(msg, getContext());
         } catch (final DittoRuntimeException e) {
             log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage(), e);
             inboundCounter.recordFailure();
             if (headers != null) {
                 // send response if headers were extracted successfully
-                messageMappingProcessor.forward(e.setDittoHeaders(DittoHeaders.of(headers)), getContext());
+                final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(
+                        e.setDittoHeaders(DittoHeaders.of(headers)), hashKey);
+                messageMappingProcessor.forward(msg, getContext());
             }
         } catch (final Exception e) {
             log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage(), e);

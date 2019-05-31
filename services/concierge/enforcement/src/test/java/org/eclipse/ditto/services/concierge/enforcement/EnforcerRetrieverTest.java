@@ -25,6 +25,7 @@ import java.util.concurrent.ExecutionException;
 
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.EntityId;
@@ -59,7 +60,7 @@ public class EnforcerRetrieverTest {
         when(idCache.get(any(EntityId.class))).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(Entry.nonexistent())));
 
-        final CompletionStage<Void> result = retriever.retrieve(entityId, (entityIdEntry, enforcerEntry) -> {
+        final CompletionStage<Contextual<WithDittoHeaders>> result = retriever.retrieve(entityId, (entityIdEntry, enforcerEntry) -> {
             throw expectedException;
         });
 
@@ -79,7 +80,7 @@ public class EnforcerRetrieverTest {
                 CompletableFuture.completedFuture(Optional.of(Entry.permanent(innerEntityId))));
         when(enforcerCache.get(any(EntityId.class))).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(Entry.nonexistent())));
-        final CompletionStage<Void> result = retriever.retrieve(entityId, (entityIdEntry, enforcerEntry) -> {
+        final CompletionStage<Contextual<WithDittoHeaders>> result = retriever.retrieve(entityId, (entityIdEntry, enforcerEntry) -> {
             throw expectedException;
         });
 
@@ -97,7 +98,7 @@ public class EnforcerRetrieverTest {
         when(enforcerCache.get(any(EntityId.class))).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(Entry.nonexistent())));
 
-        final CompletionStage<Void> result = retriever.retrieveByEnforcerKey(entityId, enforcerEntry -> {
+        final CompletionStage<Contextual<WithDittoHeaders>> result = retriever.retrieveByEnforcerKey(entityId, enforcerEntry -> {
             throw expectedException;
         });
 
@@ -105,7 +106,8 @@ public class EnforcerRetrieverTest {
         verifyException(result, expectedException);
     }
 
-    private void verifyException(final CompletionStage<Void> completionStage, final Throwable expectedException)
+    private void verifyException(final CompletionStage<Contextual<WithDittoHeaders>> completionStage,
+            final Throwable expectedException)
             throws ExecutionException, InterruptedException {
         assertThat(completionStage.thenApply(_void -> new RuntimeException("this should not be happening"))
                 .exceptionally(executionException -> (RuntimeException) executionException.getCause())

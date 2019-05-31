@@ -56,6 +56,7 @@ import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
+import akka.routing.ConsistentHashingRouter;
 
 /**
  * Actor which receives message from an AMQP source and forwards them to a {@code MessageMappingProcessorActor}.
@@ -147,7 +148,9 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
 
     private void handleJmsMessage(final JmsMessage message) {
         Map<String, String> headers = null;
+        String hashKey = "";
         try {
+            hashKey = message.getJMSDestination() != null ? message.getJMSDestination().toString() : sourceAddress;
             headers = extractHeadersMapFromJmsMessage(message);
             final ExternalMessageBuilder builder = ExternalMessageFactory.newExternalMessageBuilder(headers);
             final ExternalMessage externalMessage = extractPayloadFromMessage(message, builder)
@@ -162,14 +165,17 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                 log.debug("Received message from AMQP 1.0 ({}): {}", externalMessage.getHeaders(),
                         externalMessage.getTextPayload().orElse("binary"));
             }
-            messageMappingProcessor.forward(externalMessage, getContext());
+            final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(externalMessage, hashKey);
+            messageMappingProcessor.forward(msg, getContext());
         } catch (final DittoRuntimeException e) {
             inboundCounter.recordFailure();
             log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());
             if (headers != null) {
                 // forwarding to messageMappingProcessor only make sense if we were able to extract the headers,
                 // because we need a reply-to address to send the error response
-                messageMappingProcessor.forward(e.setDittoHeaders(DittoHeaders.of(headers)), getContext());
+                final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(
+                        e.setDittoHeaders(DittoHeaders.of(headers)), hashKey);
+                messageMappingProcessor.forward(msg, getContext());
             }
         } catch (final Exception e) {
             inboundCounter.recordFailure();
