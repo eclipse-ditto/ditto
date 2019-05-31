@@ -23,8 +23,10 @@ import akka.stream.FanOutShape2;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
 import akka.stream.SinkShape;
+import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.GraphDSL;
 import akka.stream.javadsl.Sink;
+import akka.stream.javadsl.Source;
 
 /**
  * Provider interface for {@link AbstractEnforcement}.
@@ -65,21 +67,34 @@ public interface EnforcementProvider<T extends Signal> {
      */
     default Graph<FlowShape<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>>, NotUsed> toContextualFlow() {
 
-        final Sink<Contextual<T>, ?> sink = Sink.foreach(contextual -> createEnforcement(contextual).enforceSafely());
-
-        final Graph<FanOutShape2<Contextual<WithDittoHeaders>, Contextual<T>, Contextual<WithDittoHeaders>>, NotUsed> multiplexer =
+        final Graph<FanOutShape2<Contextual<WithDittoHeaders>, Contextual<T>, Contextual<WithDittoHeaders>>, NotUsed>
+                multiplexer =
                 Filter.multiplexBy(contextual ->
                         contextual.tryToMapMessage(message -> getCommandClass().isInstance(message)
                                 ? Optional.of(getCommandClass().cast(message)).filter(this::isApplicable)
                                 : Optional.empty()));
 
         return GraphDSL.create(builder -> {
-            final FanOutShape2<Contextual<WithDittoHeaders>, Contextual<T>, Contextual<WithDittoHeaders>> fanout = builder.add(multiplexer);
-            final SinkShape<Contextual<T>> handler = builder.add(sink);
+            final FanOutShape2<Contextual<WithDittoHeaders>, Contextual<T>, Contextual<WithDittoHeaders>> fanout =
+                    builder.add(multiplexer);
 
-            builder.from(fanout.out0()).to(handler);
+            final Flow<Contextual<T>, Contextual<WithDittoHeaders>, NotUsed> enforcementFlow =
+                    Flow.<Contextual<T>>create()
+                            .flatMapConcat(contextual ->
+                                    Source.fromCompletionStage(createEnforcement(contextual).enforceSafely())
+                            );
 
-            return FlowShape.of(fanout.in(), fanout.out1());
+            // by default, ignore unhandled messages:
+            final SinkShape<Contextual<WithDittoHeaders>> unhandledSink = builder.add(Sink.ignore());
+
+            final FlowShape<Contextual<T>, Contextual<WithDittoHeaders>> enforcementShape =
+                    builder.add(enforcementFlow);
+
+            builder.from(fanout.out0()).toInlet(enforcementShape.in());
+            builder.from(fanout.out1()).to(unhandledSink);
+
+            return FlowShape.of(fanout.in(), enforcementShape.out());
         });
     }
+
 }

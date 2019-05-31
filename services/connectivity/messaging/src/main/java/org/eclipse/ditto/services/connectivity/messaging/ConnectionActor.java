@@ -104,7 +104,7 @@ import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.PatternsCS;
+import akka.pattern.Patterns;
 import akka.persistence.AbstractPersistentActor;
 import akka.persistence.RecoveryCompleted;
 import akka.persistence.SaveSnapshotSuccess;
@@ -669,7 +669,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
         if (clientActorRouter != null && connection != null) {
             final ActorRef aggregationActor = getContext().actorOf(
                     AggregateActor.props(clientActorRouter, connection.getClientCount(), responseTimeout));
-            PatternsCS.ask(aggregationActor, cmd, clientActorAskTimeout.toMillis())
+            Patterns.ask(aggregationActor, cmd, clientActorAskTimeout)
                     .whenComplete((response, exception) -> {
                         log.debug("Got response to {}: {}", cmd.getType(),
                                 exception == null ? response : exception);
