@@ -212,7 +212,9 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
                     MessageFormat.format("Ran into authentication or authorization problems against Kafka broker: {0}",
                             throwable.getMessage());
 
-            connectionLogger.exception(message);
+            // use response published monitor since we don't know if this comes from publishing to a target or from a response.
+            // we should fix this with #418
+            responsePublishedMonitor.exception(message);
             logWithConnectionId().info(message);
             restartInternalKafkaProducer();
 
@@ -222,7 +224,9 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
                             + "partition not being existing, a wrong port etc. ",
                     throwable.getMessage());
 
-            connectionLogger.exception(message);
+            // use response published monitor since we don't know if this comes from publishing to a target or from a response.
+            // we should fix this with #418
+            responsePublishedMonitor.exception(message);
             logWithConnectionId().info(message);
             restartInternalKafkaProducer();
 

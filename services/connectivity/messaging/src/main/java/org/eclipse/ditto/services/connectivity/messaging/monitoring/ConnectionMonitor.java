@@ -198,6 +198,16 @@ public interface ConnectionMonitor {
 
     /**
      * Record an exception event.
+     * @param message a custom message that is used for logging the event.
+     * @param messageArguments additional message arguments that are part of {@code message}.
+     */
+    default void exception(final String message, final Object... messageArguments) {
+        getLogger().exception(message, messageArguments);
+        getCounter().recordFailure();
+    }
+
+    /**
+     * Record an exception event.
      * @param infoProvider that provides useful information for the success event.
      * @param exception the exception that caused the failure.
      */
