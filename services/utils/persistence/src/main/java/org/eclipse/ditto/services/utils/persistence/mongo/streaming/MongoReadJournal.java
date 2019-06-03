@@ -19,17 +19,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
+import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import com.mongodb.QueryOperators;
 import com.mongodb.client.model.Filters;
 import com.mongodb.reactivestreams.client.ListCollectionsPublisher;
+import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.typesafe.config.Config;
+
 import akka.NotUsed;
 import akka.contrib.persistence.mongodb.JournallingFieldNames$;
 import akka.stream.javadsl.Source;
@@ -55,21 +60,27 @@ public class MongoReadJournal {
     private static final String AKKA_PERSISTENCE_JOURNAL_AUTO_START_JOURNALS =
             "akka.persistence.journal.auto-start-journals";
 
-    private static final String JOURNAL_COLLECTION_NAME_SUFFIX = ".overrides.journal-collection";
+    private static final String JOURNAL_COLLECTION_NAME_KEY = "overrides.journal-collection";
+
+    private static final String METADATA_COLLECTION_NAME_KEY = "overrides.metadata-collection";
 
     private static final String ID = JournallingFieldNames$.MODULE$.ID();
     private static final String PROCESSOR_ID = JournallingFieldNames$.MODULE$.PROCESSOR_ID();
+    private static final String MAX_SN = JournallingFieldNames$.MODULE$.MAX_SN();
     private static final String TO = JournallingFieldNames$.MODULE$.TO();
     private static final String GTE = QueryOperators.GTE;
     private static final String LT = QueryOperators.LT;
 
     private static final Integer PROJECT_INCLUDE = 1;
     private static final Integer SORT_DESCENDING = -1;
+    private static final Integer SORT_ASCENDING = 1;
 
-    private static final Document PROJECT_DOCUMENT =
+    private static final Document JOURNAL_PROJECT_DOCUMENT =
             toDocument(new Object[][]{{PROCESSOR_ID, PROJECT_INCLUDE}, {TO, PROJECT_INCLUDE}});
 
-    private static final Document SORT_DOCUMENT = toDocument(new Object[][]{{ID, SORT_DESCENDING}});
+    private static final Document JOURNAL_SORT_DOCUMENT = toDocument(new Object[][]{{ID, SORT_DESCENDING}});
+
+    private static final Document METADATA_SORT_DOCUMENT = toDocument(new Object[][]{{PROCESSOR_ID, SORT_ASCENDING}});
 
     private static final String COLLECTION_NAME_FIELD = "name";
 
@@ -80,11 +91,14 @@ public class MongoReadJournal {
     private static final int CONCURRENT_JOURNAL_READS = 5;
 
     private final Pattern journalCollectionPrefix;
+    private final MongoCollection<Document> metadataCollection;
     private final DittoMongoClient mongoClient;
     private final Logger log;
 
-    private MongoReadJournal(final Pattern journalCollectionPrefix, final DittoMongoClient mongoClient) {
+    private MongoReadJournal(final Pattern journalCollectionPrefix, final String metadataCollectionName,
+            final DittoMongoClient mongoClient) {
         this.journalCollectionPrefix = journalCollectionPrefix;
+        this.metadataCollection = mongoClient.getCollection(metadataCollectionName);
         this.mongoClient = mongoClient;
         log = LoggerFactory.getLogger(MongoTimestampPersistence.class);
     }
@@ -97,7 +111,20 @@ public class MongoReadJournal {
      * @return A {@code MongoReadJournal} object.
      */
     public static MongoReadJournal newInstance(final Config config, final DittoMongoClient mongoClient) {
-        return new MongoReadJournal(resolveJournalCollectionPrefix(config), mongoClient);
+        final Config journalConfig = extractAutoStartJournalConfig(config);
+        final Pattern journalCollectionPrefix = resolveJournalCollectionPrefix(journalConfig);
+        final String metadataCollectionName = journalConfig.getString(METADATA_COLLECTION_NAME_KEY);
+        return new MongoReadJournal(journalCollectionPrefix, metadataCollectionName, mongoClient);
+    }
+
+    /**
+     * Read all content of the metadata collection.
+     *
+     * @return source of the content of the entire metadata collection.
+     */
+    public Source<PidWithSeqNr, NotUsed> readMetadata() {
+        return Source.fromPublisher(metadataCollection.find().sort(METADATA_SORT_DOCUMENT))
+                .map(doc -> new PidWithSeqNr(doc.getString(PROCESSOR_ID), doc.getLong(MAX_SN)));
     }
 
     /**
@@ -117,8 +144,8 @@ public class MongoReadJournal {
         return resolveJournalCollectionNames(journalCollectionPrefix, database, log)
                 .map(database::getCollection)
                 .map(journal -> journal.find(filterDocument, Document.class)
-                        .projection(PROJECT_DOCUMENT)
-                        .sort(SORT_DOCUMENT)
+                        .projection(JOURNAL_PROJECT_DOCUMENT)
+                        .sort(JOURNAL_SORT_DOCUMENT)
                 )
                 .map(Source::fromPublisher)
                 .flatMapMerge(CONCURRENT_JOURNAL_READS, source -> source
@@ -163,28 +190,15 @@ public class MongoReadJournal {
     }
 
     /**
-     * Resolve event journal collection prefix (e.g. "things_journal") from an Akka configuration object.
+     * Extract the auto-start journal config from the configuration of the actor system.
      * <p>
      * It assumes that in the Akka system configuration,
-     * <ul>
-     * <li>
      * {@code akka.persistence.journal.auto-start-journals} contains exactly 1 configuration key {@code
-     * <JOURNAL_KEY>},
-     * </li>
-     * <li>
-     * {@code <JOURNAL_KEY>.overrides.journal-collection} is defined and equal to the name of the event journal
-     * collection.
-     * </li>
-     * </ul>
-     * </p>
+     * <JOURNAL_KEY>}, which points to the configuration of the auto-start journal.
      *
-     * @param config The configuration.
-     * @return The name of the event journal collection.
-     * @throws IllegalArgumentException if {@code akka.persistence.journal.auto-start-journal} is not a singleton list.
-     * @throws com.typesafe.config.ConfigException.Missing if a relevant config value is missing.
-     * @throws com.typesafe.config.ConfigException.WrongType if a relevant config value has not the expected type.
+     * @param config The actor system's configuration.
      */
-    private static Pattern resolveJournalCollectionPrefix(final Config config) {
+    private static Config extractAutoStartJournalConfig(final Config config) {
         final List<String> autoStartJournals = config.getStringList(AKKA_PERSISTENCE_JOURNAL_AUTO_START_JOURNALS);
         if (autoStartJournals.size() != 1) {
             final String message = String.format("Expect %s to be a singleton list, but it is List(%s)",
@@ -193,9 +207,26 @@ public class MongoReadJournal {
             throw new IllegalArgumentException(message);
         } else {
             final String journalKey = autoStartJournals.get(0);
-            final String journalCollectionPrefix = config.getString(journalKey + JOURNAL_COLLECTION_NAME_SUFFIX);
-            return Pattern.compile("^" + journalCollectionPrefix + ".*");
+            return config.getConfig(journalKey);
         }
+    }
+
+    /**
+     * Resolve event journal collection prefix (e.g. "things_journal") from the auto-start journal configuration.
+     * <p>
+     * It assumes that in the auto-start journal configuration,
+     * {@code overrides.journal-collection} is defined and equal to the name of the event journal
+     * collection.
+     *
+     * @param journalConfig The journal configuration.
+     * @return The name of the event journal collection.
+     * @throws IllegalArgumentException if {@code akka.persistence.journal.auto-start-journal} is not a singleton list.
+     * @throws com.typesafe.config.ConfigException.Missing if a relevant config value is missing.
+     * @throws com.typesafe.config.ConfigException.WrongType if a relevant config value has not the expected type.
+     */
+    private static Pattern resolveJournalCollectionPrefix(final Config journalConfig) {
+        final String journalCollectionPrefix = journalConfig.getString(JOURNAL_COLLECTION_NAME_KEY);
+        return Pattern.compile("^" + journalCollectionPrefix + ".*");
     }
 
     /**
@@ -210,15 +241,17 @@ public class MongoReadJournal {
 
         // starts with "journalCollectionPrefix":
         final ListCollectionsPublisher<Document> documentListCollectionsPublisher = database.listCollections();
-        return Source.fromPublisher(
-                documentListCollectionsPublisher.filter(Filters.regex(COLLECTION_NAME_FIELD, journalCollectionPrefix))
-        ).map(document -> document.getString(COLLECTION_NAME_FIELD))
-        // Double check in case the Mongo API persistence layer in use does not support listCollections with filtering
-        .filter(collectionName -> journalCollectionPrefix.matcher(collectionName).matches())
-        .map(collectionName -> {
-            log.debug("Journal collection <{}> with pattern <{}> found.", collectionName, journalCollectionPrefix);
-            return collectionName;
-        });
+        final Publisher<Document> publisher =
+                documentListCollectionsPublisher.filter(Filters.regex(COLLECTION_NAME_FIELD, journalCollectionPrefix));
+        return Source.fromPublisher(publisher)
+                .map(document -> document.getString(COLLECTION_NAME_FIELD))
+                // Double check in case the Mongo API persistence layer in use does not support listCollections with filtering
+                .filter(collectionName -> journalCollectionPrefix.matcher(collectionName).matches())
+                .map(collectionName -> {
+                    log.debug("Journal collection <{}> with pattern <{}> found.", collectionName,
+                            journalCollectionPrefix);
+                    return collectionName;
+                });
     }
 
 }
