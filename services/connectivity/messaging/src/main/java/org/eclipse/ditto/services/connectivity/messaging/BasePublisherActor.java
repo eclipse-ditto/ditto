@@ -76,9 +76,9 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     protected final Map<Target, ResourceStatus> resourceStatusMap;
 
     protected final ConnectionLogger connectionLogger;
+    protected final ConnectionMonitor responsePublishedMonitor;
     private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
     private final ConnectionMonitor responseDroppedMonitor;
-    private final ConnectionMonitor responsePublishedMonitor;
 
 
     protected BasePublisherActor(final String connectionId, final List<Target> targets) {
