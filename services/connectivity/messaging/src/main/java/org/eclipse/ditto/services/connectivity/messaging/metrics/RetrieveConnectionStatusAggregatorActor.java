@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -45,18 +46,22 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
     private final Map<ResourceStatus.ResourceType, Integer> expectedResponses;
     private final ActorRef sender;
 
-    private RetrieveConnectionStatusResponse theResponse;
+    private RetrieveConnectionStatusResponse.Builder theResponse;
 
     @SuppressWarnings("unused")
     private RetrieveConnectionStatusAggregatorActor(final Connection connection,
             final ActorRef sender, final DittoHeaders originalHeaders, final Duration timeout) {
         this.timeout = timeout;
         this.sender = sender;
-        theResponse = RetrieveConnectionStatusResponse.of(connection.getId(), connection.getConnectionStatus(),
-                        ConnectivityStatus.UNKNOWN, Instant.EPOCH,
-                        Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), originalHeaders);
+        theResponse = RetrieveConnectionStatusResponse.getBuilder(connection.getId(), originalHeaders)
+                .connectionStatus(connection.getConnectionStatus())
+                .liveStatus(ConnectivityStatus.UNKNOWN)
+                .connectedSince(Instant.EPOCH)
+                .clientStatus(Collections.emptyList())
+                .sourceStatus(Collections.emptyList())
+                .targetStatus(Collections.emptyList());
 
-        this.expectedResponses = new EnumMap<>(ResourceStatus.ResourceType.class);
+        expectedResponses = new EnumMap<>(ResourceStatus.ResourceType.class);
         // one response per client actor
         expectedResponses.put(ResourceStatus.ResourceType.CLIENT, connection.getClientCount());
         if (ConnectivityStatus.OPEN.equals(connection.getConnectionStatus())) {
@@ -115,7 +120,7 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
         expectedResponses.compute(resourceStatus.getResourceType(), (type, count)-> count == null ? 0 : count-1);
         log.debug("Received resource status from {}: {}", getSender(), resourceStatus);
         // aggregate status...
-        theResponse = theResponse.withAddressStatus(resourceStatus);
+        theResponse.withAddressStatus(resourceStatus);
 
         // if response is complete, send back to caller
         if (getRemainingResponses() == 0) {
@@ -130,13 +135,14 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
     }
 
     private void sendResponse() {
-        final boolean anyClientOpen = theResponse.getClientStatus().stream()
+        final List<ResourceStatus> clientStatus = theResponse.build().getClientStatus();
+        final boolean anyClientOpen = clientStatus.stream()
                 .map(ResourceStatus::getStatus)
                 .anyMatch(ConnectivityStatus.OPEN::equals);
-        final boolean anyClientFailed = theResponse.getClientStatus().stream()
+        final boolean anyClientFailed = clientStatus.stream()
                 .map(ResourceStatus::getStatus)
                 .anyMatch(ConnectivityStatus.FAILED::equals);
-        final boolean allClientsClosed = theResponse.getClientStatus().stream()
+        final boolean allClientsClosed = clientStatus.stream()
                 .map(ResourceStatus::getStatus)
                 .allMatch(ConnectivityStatus.CLOSED::equals);
 
@@ -153,17 +159,17 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
             }
         }
 
-        final Optional<Instant> earliestConnectedSince = theResponse.getClientStatus().stream()
+        final Optional<Instant> earliestConnectedSince = clientStatus.stream()
                 .filter(rs -> ConnectivityStatus.OPEN.equals(rs.getStatus()))
                 .map(ResourceStatus::getInStateSince)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .min(Instant::compareTo);
 
-        theResponse = theResponse
-                .withConnectedSince(earliestConnectedSince.orElse(null))
-                .withLiveStatus(liveStatus);
-        sender.tell(theResponse, getSelf());
+        theResponse
+                .connectedSince(earliestConnectedSince.orElse(null))
+                .liveStatus(liveStatus);
+        sender.tell(theResponse.build(), getSelf());
         stopSelf();
     }
 

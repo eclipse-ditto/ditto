@@ -364,11 +364,11 @@ public final class ConnectivityCounterRegistry {
         final ConnectionMetrics mergedConnectionMetrics =
                 ConnectivityModelFactory.newConnectionMetrics(inboundMetrics, outboundMetrics);
 
-        return RetrieveConnectionMetricsResponse.of(first.getConnectionId(),
-                mergedConnectionMetrics,
-                mergedSourceMetrics,
-                mergedTargetMetrics,
-                first.getDittoHeaders());
+        return RetrieveConnectionMetricsResponse.getBuilder(first.getConnectionId(), first.getDittoHeaders())
+                .connectionMetrics(mergedConnectionMetrics)
+                .sourceMetrics(mergedSourceMetrics)
+                .targetMetrics(mergedTargetMetrics)
+                .build();
     }
 
     /**

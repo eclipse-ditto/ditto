@@ -17,7 +17,6 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newClientStatus;
 import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newSourceStatus;
 import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTargetStatus;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -157,23 +156,21 @@ public final class RetrieveConnectionStatusResponseTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(RetrieveConnectionStatusResponse.class, areImmutable(),
-                provided(ConnectivityStatus.class).isAlsoImmutable(),
-                assumingFields("sourceStatus", "targetStatus", "clientStatus"
-                ).areSafelyCopiedUnmodifiableCollectionsWithImmutableElements()
-        );
+                provided(JsonObject.class).isAlsoImmutable());
     }
 
     @Test
     public void retrieveInstanceWithNullConnectionId() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> RetrieveConnectionStatusResponse.of(null,
-                        ConnectivityStatus.OPEN,
-                        ConnectivityStatus.CLOSED,
-                        IN_CONNECTION_STATUS_SINCE,
-                        Collections.emptyList(),
-                        Collections.emptyList(),
-                        Collections.emptyList(),
-                        DittoHeaders.empty()))
+                .isThrownBy(() ->
+                        RetrieveConnectionStatusResponse.getBuilder(null, DittoHeaders.empty())
+                                .connectionStatus(ConnectivityStatus.OPEN)
+                                .liveStatus(ConnectivityStatus.CLOSED)
+                                .connectedSince(IN_CONNECTION_STATUS_SINCE)
+                                .clientStatus(Collections.emptyList())
+                                .sourceStatus(Collections.emptyList())
+                                .targetStatus(Collections.emptyList())
+                                .build())
                 .withMessage("The %s must not be null!", "Connection ID")
                 .withNoCause();
     }
@@ -181,12 +178,14 @@ public final class RetrieveConnectionStatusResponseTest {
     @Test
     public void retrieveInstanceWithNullConnectionStatus() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> RetrieveConnectionStatusResponse.of(TestConstants.ID, null, ConnectivityStatus.CLOSED,
-                        IN_CONNECTION_STATUS_SINCE,
-                        Collections.emptyList(),
-                        Collections.emptyList(),
-                        Collections.emptyList(),
-                        DittoHeaders.empty()))
+                .isThrownBy(() -> RetrieveConnectionStatusResponse.getBuilder(TestConstants.ID, DittoHeaders.empty())
+                        .connectionStatus(null)
+                        .liveStatus(ConnectivityStatus.CLOSED)
+                        .connectedSince(IN_CONNECTION_STATUS_SINCE)
+                        .clientStatus(Collections.emptyList())
+                        .sourceStatus(Collections.emptyList())
+                        .targetStatus(Collections.emptyList())
+                        .build())
                 .withMessage("The %s must not be null!", "Connection Status")
                 .withNoCause();
     }
@@ -194,12 +193,14 @@ public final class RetrieveConnectionStatusResponseTest {
     @Test
     public void retrieveInstanceWithNullLiveStatus() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectivityStatus.OPEN, null,
-                        IN_CONNECTION_STATUS_SINCE,
-                        Collections.emptyList(),
-                        Collections.emptyList(),
-                        Collections.emptyList(),
-                        DittoHeaders.empty()))
+                .isThrownBy(() -> RetrieveConnectionStatusResponse.getBuilder(TestConstants.ID, DittoHeaders.empty())
+                        .connectionStatus(ConnectivityStatus.OPEN)
+                        .liveStatus(null)
+                        .connectedSince(IN_CONNECTION_STATUS_SINCE)
+                        .clientStatus(Collections.emptyList())
+                        .sourceStatus(Collections.emptyList())
+                        .targetStatus(Collections.emptyList())
+                        .build())
                 .withMessage("The %s must not be null!", "Live Connection Status")
                 .withNoCause();
     }
@@ -207,12 +208,14 @@ public final class RetrieveConnectionStatusResponseTest {
     @Test
     public void fromJsonReturnsExpected() {
         final RetrieveConnectionStatusResponse expected =
-                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectivityStatus.OPEN, ConnectivityStatus.CLOSED,
-                        IN_CONNECTION_STATUS_SINCE,
-                        clientStatus,
-                        sourceStatus,
-                        targetStatus,
-                        DittoHeaders.empty());
+                RetrieveConnectionStatusResponse.getBuilder(TestConstants.ID, DittoHeaders.empty())
+                        .connectionStatus(ConnectivityStatus.OPEN)
+                        .liveStatus(ConnectivityStatus.CLOSED)
+                        .connectedSince(IN_CONNECTION_STATUS_SINCE)
+                        .clientStatus(clientStatus)
+                        .sourceStatus(sourceStatus)
+                        .targetStatus(targetStatus)
+                        .build();
 
         final RetrieveConnectionStatusResponse actual =
                 RetrieveConnectionStatusResponse.fromJson(KNOWN_JSON, DittoHeaders.empty());
@@ -223,12 +226,14 @@ public final class RetrieveConnectionStatusResponseTest {
     @Test
     public void toJsonReturnsExpected() {
         final JsonObject actual =
-                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectivityStatus.OPEN, ConnectivityStatus.CLOSED,
-                        IN_CONNECTION_STATUS_SINCE,
-                        clientStatus,
-                        sourceStatus,
-                        targetStatus,
-                        DittoHeaders.empty())
+                RetrieveConnectionStatusResponse.getBuilder(TestConstants.ID, DittoHeaders.empty())
+                        .connectionStatus(ConnectivityStatus.OPEN)
+                        .liveStatus(ConnectivityStatus.CLOSED)
+                        .connectedSince(IN_CONNECTION_STATUS_SINCE)
+                        .clientStatus(clientStatus)
+                        .sourceStatus(sourceStatus)
+                        .targetStatus(targetStatus)
+                        .build()
                         .toJson();
 
         assertThat(actual).isEqualTo(KNOWN_JSON);
@@ -237,21 +242,14 @@ public final class RetrieveConnectionStatusResponseTest {
     @Test
     public void mergeMultipleStatuses() {
         final RetrieveConnectionStatusResponse expected =
-                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectivityStatus.OPEN, ConnectivityStatus.CLOSED,
-                        IN_CONNECTION_STATUS_SINCE,
-                        clientStatus,
-                        sourceStatus,
-                        targetStatus,
-                        DittoHeaders.empty());
-
-
-        final RetrieveConnectionStatusResponse empty =
-                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectivityStatus.OPEN, ConnectivityStatus.CLOSED,
-                        IN_CONNECTION_STATUS_SINCE,
-                        Collections.emptyList(),
-                        Collections.emptyList(),
-                        Collections.emptyList(),
-                        DittoHeaders.empty());
+                RetrieveConnectionStatusResponse.getBuilder(TestConstants.ID, DittoHeaders.empty())
+                        .connectionStatus(ConnectivityStatus.OPEN)
+                        .liveStatus(ConnectivityStatus.CLOSED)
+                        .connectedSince(IN_CONNECTION_STATUS_SINCE)
+                        .clientStatus(clientStatus)
+                        .sourceStatus(sourceStatus)
+                        .targetStatus(targetStatus)
+                        .build();
 
         final List<ResourceStatus> statuses = Stream.of(clientStatus, sourceStatus, targetStatus)
                 .flatMap(Collection::stream)
@@ -259,16 +257,19 @@ public final class RetrieveConnectionStatusResponseTest {
         // merge in random order
         Collections.shuffle(statuses);
 
-        RetrieveConnectionStatusResponse actual =
-                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectivityStatus.OPEN, ConnectivityStatus.CLOSED,
-                        IN_CONNECTION_STATUS_SINCE,
-                        Collections.emptyList(),
-                        Collections.emptyList(),
-                        Collections.emptyList(),
-                        DittoHeaders.empty());
+        RetrieveConnectionStatusResponse.Builder builder =
+                RetrieveConnectionStatusResponse.getBuilder(TestConstants.ID, DittoHeaders.empty())
+                        .connectionStatus(ConnectivityStatus.OPEN)
+                        .liveStatus(ConnectivityStatus.CLOSED)
+                        .connectedSince(IN_CONNECTION_STATUS_SINCE)
+                        .clientStatus(Collections.emptyList())
+                        .sourceStatus(Collections.emptyList())
+                        .targetStatus(Collections.emptyList());
         for (final ResourceStatus resourceStatus : statuses) {
-            actual = actual.withAddressStatus(resourceStatus);
+            builder = builder.withAddressStatus(resourceStatus);
         }
+
+        final RetrieveConnectionStatusResponse actual = builder.build();
 
         assertThat((Object) actual.getConnectionStatus()).isEqualTo(expected.getConnectionStatus());
         assertThat(actual.getClientStatus()).containsAll(expected.getClientStatus());
@@ -282,12 +283,14 @@ public final class RetrieveConnectionStatusResponseTest {
                 JsonFactory.newPointer("/status");
 
         final RetrieveConnectionStatusResponse underTest =
-                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectivityStatus.OPEN, ConnectivityStatus.CLOSED,
-                        IN_CONNECTION_STATUS_SINCE,
-                        Collections.emptyList(),
-                        Collections.emptyList(),
-                        Collections.emptyList(),
-                        DittoHeaders.empty());
+                RetrieveConnectionStatusResponse.getBuilder(TestConstants.ID, DittoHeaders.empty())
+                        .connectionStatus(ConnectivityStatus.OPEN)
+                        .liveStatus(ConnectivityStatus.CLOSED)
+                        .connectedSince(IN_CONNECTION_STATUS_SINCE)
+                        .clientStatus(Collections.emptyList())
+                        .sourceStatus(Collections.emptyList())
+                        .targetStatus(Collections.emptyList())
+                        .build();
 
         DittoJsonAssertions.assertThat(underTest.getResourcePath()).isEqualTo(expectedResourcePath);
     }

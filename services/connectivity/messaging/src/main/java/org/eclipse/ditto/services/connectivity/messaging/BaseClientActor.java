@@ -706,10 +706,14 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         final ConnectionMetrics connectionMetrics =
                 ConnectivityCounterRegistry.aggregateConnectionMetrics(sourceMetrics, targetMetrics);
 
-        this.getSender().tell(
-                RetrieveConnectionMetricsResponse.of(connectionId(), connectionMetrics, sourceMetrics, targetMetrics,
-                        dittoHeaders),
-                this.getSelf());
+        final RetrieveConnectionMetricsResponse retrieveConnectionMetricsResponse =
+                RetrieveConnectionMetricsResponse.getBuilder(connectionId(), dittoHeaders)
+                .connectionMetrics(connectionMetrics)
+                .sourceMetrics(sourceMetrics)
+                .targetMetrics(targetMetrics)
+                .build();
+
+        this.getSender().tell(retrieveConnectionMetricsResponse, this.getSelf());
         return stay();
     }
 

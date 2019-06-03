@@ -24,7 +24,6 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
@@ -53,7 +52,7 @@ public final class RetrieveConnectionResponseTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(RetrieveConnectionResponse.class, areImmutable(),
-                provided(Connection.class, MappingContext.class).isAlsoImmutable());
+                provided(JsonObject.class, MappingContext.class).isAlsoImmutable());
     }
 
     @Test
@@ -67,7 +66,7 @@ public final class RetrieveConnectionResponseTest {
     @Test
     public void fromJsonReturnsExpected() {
         final RetrieveConnectionResponse expected =
-                RetrieveConnectionResponse.of(TestConstants.CONNECTION, DittoHeaders.empty());
+                RetrieveConnectionResponse.of(TestConstants.CONNECTION.toJson(), DittoHeaders.empty());
 
         final RetrieveConnectionResponse actual =
                 RetrieveConnectionResponse.fromJson(KNOWN_JSON, DittoHeaders.empty());
@@ -78,7 +77,7 @@ public final class RetrieveConnectionResponseTest {
     @Test
     public void toJsonReturnsExpected() {
         final JsonObject actual =
-                RetrieveConnectionResponse.of(TestConstants.CONNECTION, DittoHeaders.empty()).toJson();
+                RetrieveConnectionResponse.of(TestConstants.CONNECTION.toJson(), DittoHeaders.empty()).toJson();
 
         assertThat(actual).isEqualTo(KNOWN_JSON);
     }
@@ -88,7 +87,7 @@ public final class RetrieveConnectionResponseTest {
         final JsonPointer expectedResourcePath = JsonFactory.emptyPointer();
 
         final RetrieveConnectionResponse underTest =
-                RetrieveConnectionResponse.of(TestConstants.CONNECTION, DittoHeaders.empty());
+                RetrieveConnectionResponse.of(TestConstants.CONNECTION.toJson(), DittoHeaders.empty());
 
         DittoJsonAssertions.assertThat(underTest.getResourcePath()).isEqualTo(expectedResourcePath);
     }
