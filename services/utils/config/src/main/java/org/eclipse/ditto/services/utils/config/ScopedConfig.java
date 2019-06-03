@@ -69,4 +69,9 @@ import com.typesafe.config.Config;
  */
 @Immutable
 public interface ScopedConfig extends Config, WithConfigPath {
+
+    /**
+     * The {@code ditto} "root" scope used in most of the configurations in Eclipse Ditto.
+     */
+    String DITTO_SCOPE = "ditto";
 }

@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.config;
 
-import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -27,11 +26,9 @@ import com.typesafe.config.Config;
  * This class is the default implementation of the config for for throttling the recovery of connections.
  */
 @Immutable
-public final class DefaultRateConfig implements ReconnectConfig.RateConfig, Serializable {
+public final class DefaultRateConfig implements ReconnectConfig.RateConfig {
 
     private static final String CONFIG_PATH = "rate";
-
-    private static final long serialVersionUID = 3239063756878906335L;
 
     private final Duration frequency;
     private final int entityAmount;

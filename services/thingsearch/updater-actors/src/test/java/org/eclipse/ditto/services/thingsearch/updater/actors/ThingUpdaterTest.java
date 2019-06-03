@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.things.ThingTag;
+import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
 import org.eclipse.ditto.signals.commands.common.ShutdownReasonFactory;
@@ -41,8 +42,6 @@ import akka.actor.ActorSystem;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
-
-import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
 
 /**
  * Unit test for {@link ThingUpdater}.
@@ -273,7 +272,7 @@ public final class ThingUpdaterTest {
 
     private ActorRef createThingUpdaterActor() {
         return actorSystem.actorOf(
-                ThingUpdater.props(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), java.time.Duration.ofDays(1L)),
+                ThingUpdater.props(pubSubTestProbe.ref(), changeQueueTestProbe.ref()),
                 THING_ID);
     }
 }

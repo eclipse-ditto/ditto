@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.config;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
@@ -26,11 +25,9 @@ import com.typesafe.config.Config;
  * This class is the default implementation of the DevOps config.
  */
 @Immutable
-public final class DefaultDevOpsConfig implements DevOpsConfig, Serializable {
+public final class DefaultDevOpsConfig implements DevOpsConfig {
 
     private static final String CONFIG_PATH = "devops";
-
-    private static final long serialVersionUID = 2795685309875009036L;
 
     private final boolean secureStatus;
     private final String password;

@@ -54,7 +54,6 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -71,6 +70,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     private final MessageConsumer messageConsumer;
     private final EnforcementFilterFactory<Map<String, String>, String> headerEnforcementFilterFactory;
 
+    @SuppressWarnings("unused")
     private AmqpConsumerActor(final String connectionId, final String sourceAddress,
             final MessageConsumer messageConsumer,
             final ActorRef messageMappingProcessor, final Source source) {
@@ -100,15 +100,9 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     static Props props(final String connectionId, final String sourceAddress,
             final MessageConsumer messageConsumer,
             final ActorRef messageMappingProcessor, final Source source) {
-        return Props.create(AmqpConsumerActor.class, new Creator<AmqpConsumerActor>() {
-            private static final long serialVersionUID = 1L;
 
-            @Override
-            public AmqpConsumerActor create() {
-                return new AmqpConsumerActor(connectionId, sourceAddress, messageConsumer, messageMappingProcessor,
-                        source);
-            }
-        });
+        return Props.create(AmqpConsumerActor.class, connectionId, sourceAddress, messageConsumer,
+                messageMappingProcessor, source);
     }
 
     @Override

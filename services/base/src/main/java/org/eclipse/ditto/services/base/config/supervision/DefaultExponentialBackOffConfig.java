@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.base.config.supervision;
 
-import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -27,9 +26,7 @@ import com.typesafe.config.Config;
  * This class is the default implementation of the exponential back-off config.
  */
 @Immutable
-public final class DefaultExponentialBackOffConfig implements ExponentialBackOffConfig, Serializable {
-
-    private static final long serialVersionUID = -8907054359348063020L;
+public final class DefaultExponentialBackOffConfig implements ExponentialBackOffConfig {
 
     private static final String CONFIG_PATH = "exponential-backoff";
 

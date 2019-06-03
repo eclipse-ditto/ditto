@@ -43,7 +43,6 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
-import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.AbstractWithOrigin;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
@@ -90,11 +89,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     @SuppressWarnings("unused")
     private AmqpClientActor(final Connection connection,
             final ConnectivityStatus connectionStatus,
-            final ConnectivityConfig connectivityConfig,
             final JmsConnectionFactory jmsConnectionFactory,
             final ActorRef conciergeForwarder) {
 
-        super(connection, connectionStatus, connectivityConfig, conciergeForwarder);
+        super(connection, connectionStatus, conciergeForwarder);
         this.jmsConnectionFactory = jmsConnectionFactory;
         connectionListener = new StatusReportingListener(getSelf(), connection.getId(), log);
         consumers = new LinkedList<>();
@@ -107,10 +105,9 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     @SuppressWarnings("unused")
     private AmqpClientActor(final Connection connection,
             final ConnectivityStatus connectionStatus,
-            final ConnectivityConfig connectivityConfig,
             final ActorRef conciergeForwarder) {
 
-        this(connection, connectionStatus, connectivityConfig, ConnectionBasedJmsConnectionFactory.getInstance(),
+        this(connection, connectionStatus, ConnectionBasedJmsConnectionFactory.getInstance(),
                 conciergeForwarder);
     }
 
@@ -118,15 +115,13 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      * Creates Akka configuration object for this actor.
      *
      * @param connection the connection.
-     * @param connectivityConfig the configuration settings of the Connectivity service.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, final ConnectivityConfig connectivityConfig,
-            final ActorRef conciergeForwarder) {
+    public static Props props(final Connection connection, final ActorRef conciergeForwarder) {
 
         return Props.create(AmqpClientActor.class, validateConnection(connection), connection.getConnectionStatus(),
-                connectivityConfig, conciergeForwarder);
+                conciergeForwarder);
     }
 
     /**
@@ -134,18 +129,16 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      *
      * @param connection connection parameters.
      * @param connectionStatus the desired status of the connection.
-     * @param connectivityConfig the configuration settings of the Connectivity service.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
      * @param jmsConnectionFactory the JMS connection factory.
      * @return the Akka configuration Props object.
      */
     static Props propsForTests(final Connection connection,
             final ConnectivityStatus connectionStatus,
-            final ConnectivityConfig connectivityConfig,
             final ActorRef conciergeForwarder,
             final JmsConnectionFactory jmsConnectionFactory) {
 
-        return Props.create(AmqpClientActor.class, validateConnection(connection), connectionStatus, connectivityConfig,
+        return Props.create(AmqpClientActor.class, validateConnection(connection), connectionStatus,
                 jmsConnectionFactory, conciergeForwarder);
     }
 

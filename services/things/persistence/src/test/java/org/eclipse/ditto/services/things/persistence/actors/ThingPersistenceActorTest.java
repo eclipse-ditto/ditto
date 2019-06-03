@@ -259,7 +259,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         final Thing thing = createThingV2WithRandomId();
         final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
 
-        final Props props = ThingPersistenceActor.props(thingIdOfActor, pubSubMediator, thingConfig, true);
+        final Props props = ThingPersistenceActor.props(thingIdOfActor, pubSubMediator);
         final TestActorRef<ThingPersistenceActor> underTest = TestActorRef.create(actorSystem, props);
         final ThingPersistenceActor thingPersistenceActor = underTest.underlyingActor();
         final PartialFunction<Object, BoxedUnit> receiveCommand = thingPersistenceActor.receiveCommand();

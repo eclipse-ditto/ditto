@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.utils.config;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.io.Serializable;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Period;
@@ -43,9 +42,7 @@ import com.typesafe.config.ConfigValueType;
  * This class is the default implementation of {@link org.eclipse.ditto.services.utils.config.ScopedConfig}.
  */
 @Immutable
-public final class DefaultScopedConfig implements ScopedConfig, Serializable {
-
-    private static final long serialVersionUID = -4648396088899418257L;
+public final class DefaultScopedConfig implements ScopedConfig {
 
     private final Config config;
     private final String configPath;
@@ -53,6 +50,18 @@ public final class DefaultScopedConfig implements ScopedConfig, Serializable {
     private DefaultScopedConfig(final Config theConfig, final String theConfigPath) {
         config = theConfig;
         configPath = theConfigPath;
+    }
+
+    /**
+     * Returns a new instance of {@code DefaultScopedConfig} based on the given config in scoped {@code "ditto"}.
+     *
+     * @param originalConfig the original Config which is supposed to provide a nested Config at {@code "ditto"}.
+     * @return the instance.
+     * @throws DittoConfigError if any argument is {@code null} or if the value of {@code originalConfig} at
+     * {@code "ditto"} is either missing or not of type {@link com.typesafe.config.ConfigValueType#OBJECT}.
+     */
+    public static DefaultScopedConfig dittoScoped(final Config originalConfig) {
+        return newInstance(originalConfig, ScopedConfig.DITTO_SCOPE);
     }
 
     /**

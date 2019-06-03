@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.io.Serializable;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,7 +33,7 @@ import com.typesafe.config.Config;
  * Holds the configuration for namespace appending to mongodb collection names.
  */
 @Immutable
-public final class DefaultSuffixBuilderConfig implements SuffixBuilderConfig, Serializable {
+public final class DefaultSuffixBuilderConfig implements SuffixBuilderConfig {
 
     /**
      * The supposed path of the MongoDB suffix-builder configuration object.
@@ -42,8 +41,6 @@ public final class DefaultSuffixBuilderConfig implements SuffixBuilderConfig, Se
     static final String CONFIG_PATH = "akka.contrib.persistence.mongodb.mongo.suffix-builder";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultSuffixBuilderConfig.class);
-
-    private static final long serialVersionUID = -5477538102846606867L;
 
     private final List<String> supportedPrefixes;
 

@@ -226,8 +226,7 @@ public final class KafkaClientActorTest {
     }
 
     private Props getKafkaClientActorProps(final ActorRef conciergeForwarder) {
-        return KafkaClientActor.props(connection, TestConstants.CONNECTIVITY_CONFIG, conciergeForwarder,
-                publisherActorFactory);
+        return KafkaClientActor.props(connection, conciergeForwarder, publisherActorFactory);
     }
 
     private static Map<String, String> specificConfigWithBootstrapServers(final String... hostAndPort) {
@@ -253,7 +252,7 @@ public final class KafkaClientActorTest {
         }
 
         Props publisherActorProps() {
-            return Props.create(MockKafkaPublisherActor.class, () -> new MockKafkaPublisherActor(testProbe.ref()));
+            return Props.create(MockKafkaPublisherActor.class, testProbe.ref());
         }
 
         void expectPublisherStarted(final ActorRef kafkaClientActor) {
@@ -300,7 +299,7 @@ public final class KafkaClientActorTest {
             }
 
             public static Props props(final ActorRef testProbe) {
-                return Props.create(MockKafkaPublisherActor.class, () -> new MockKafkaPublisherActor(testProbe));
+                return Props.create(MockKafkaPublisherActor.class, testProbe);
             }
 
             @Override

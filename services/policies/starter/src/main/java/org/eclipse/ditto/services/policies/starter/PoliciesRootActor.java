@@ -26,11 +26,10 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
+import org.eclipse.ditto.services.policies.common.config.PoliciesConfig;
 import org.eclipse.ditto.services.policies.persistence.actors.policies.PoliciesPersistenceStreamingActorCreator;
 import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicyNamespaceOpsActor;
 import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicySupervisorActor;
-import org.eclipse.ditto.services.policies.persistence.config.PolicyConfig;
-import org.eclipse.ditto.services.policies.starter.config.PoliciesConfig;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
@@ -67,7 +66,6 @@ import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.server.Route;
-import akka.japi.Creator;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
@@ -134,6 +132,7 @@ public final class PoliciesRootActor extends AbstractActor {
 
     private final RetrieveStatisticsDetailsResponseSupplier retrieveStatisticsDetailsResponseSupplier;
 
+    @SuppressWarnings("unused")
     private PoliciesRootActor(final PoliciesConfig policiesConfig,
             final SnapshotAdapter<Policy> snapshotAdapter,
             final ActorRef pubSubMediator,
@@ -143,13 +142,11 @@ public final class PoliciesRootActor extends AbstractActor {
         final ClusterShardingSettings shardingSettings =
                 ClusterShardingSettings.create(actorSystem).withRole(CLUSTER_ROLE);
 
-        final PolicyConfig policyConfig = policiesConfig.getPolicyConfig();
-        final Props policySupervisorProps = PolicySupervisorActor.props(pubSubMediator, policyConfig, snapshotAdapter);
+        final Props policySupervisorProps = PolicySupervisorActor.props(pubSubMediator, snapshotAdapter);
 
         final TagsConfig tagsConfig = policiesConfig.getTagsConfig();
         final ActorRef persistenceStreamingActor = startChildActor(PoliciesPersistenceStreamingActorCreator.ACTOR_NAME,
-                PoliciesPersistenceStreamingActorCreator.props(actorSystem.settings().config(),
-                        policiesConfig.getMongoDbConfig(), tagsConfig.getStreamingCacheSize()));
+                PoliciesPersistenceStreamingActorCreator.props(tagsConfig.getStreamingCacheSize()));
 
         pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
         pubSubMediator.tell(new DistributedPubSubMediator.Put(persistenceStreamingActor), getSelf());
@@ -161,8 +158,7 @@ public final class PoliciesRootActor extends AbstractActor {
 
         // start cluster singleton for namespace ops
         ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, PolicyNamespaceOpsActor.ACTOR_NAME,
-                PolicyNamespaceOpsActor.props(pubSubMediator, actorSystem.settings().config(),
-                        policiesConfig.getMongoDbConfig()));
+                PolicyNamespaceOpsActor.props(pubSubMediator));
 
         retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(policiesShardRegion,
                 PoliciesMessagingConstants.SHARD_REGION, log);
@@ -176,7 +172,7 @@ public final class PoliciesRootActor extends AbstractActor {
 
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
         final Props healthCheckingActorProps = DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions,
-                MongoHealthChecker.props(policiesConfig.getMongoDbConfig()));
+                MongoHealthChecker.props());
         final ActorRef healthCheckingActor =
                 startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME, healthCheckingActorProps);
 
@@ -220,14 +216,7 @@ public final class PoliciesRootActor extends AbstractActor {
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
-        return Props.create(PoliciesRootActor.class, new Creator<PoliciesRootActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public PoliciesRootActor create() {
-                return new PoliciesRootActor(policiesConfig, snapshotAdapter, pubSubMediator, materializer);
-            }
-        });
+        return Props.create(PoliciesRootActor.class, policiesConfig, snapshotAdapter, pubSubMediator, materializer);
     }
 
     @Override

@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
-import java.io.Serializable;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.Objects;
@@ -29,11 +28,9 @@ import com.typesafe.config.Config;
  * This class implements the config for the handling of snapshots of policy entities.
  */
 @Immutable
-public final class DefaultSnapshotConfig implements SnapshotConfig, Serializable {
+public final class DefaultSnapshotConfig implements SnapshotConfig {
 
     private static final String CONFIG_PATH = "snapshot";
-
-    private static final long serialVersionUID = -8982980480384377972L;
 
     private final Duration interval;
     private final long threshold;

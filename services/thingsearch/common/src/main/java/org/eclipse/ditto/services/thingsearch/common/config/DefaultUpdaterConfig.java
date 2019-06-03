@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.thingsearch.common.config;
 
-import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -28,7 +27,7 @@ import com.typesafe.config.Config;
  * This class is the default implementation for {@link UpdaterConfig}.
  */
 @Immutable
-public final class DefaultUpdaterConfig implements UpdaterConfig, Serializable {
+public final class DefaultUpdaterConfig implements UpdaterConfig {
 
     /**
      * Path where the updater config values are expected.
@@ -36,8 +35,6 @@ public final class DefaultUpdaterConfig implements UpdaterConfig, Serializable {
     static final String CONFIG_PATH = "updater";
     static final String THINGS_SYNC_CONFIG_PATH = "sync.things";
     static final String POLICIES_SYNC_CONFIG_PATH = "sync.policies";
-
-    private static final long serialVersionUID = 4454646582191046605L;
 
     private final Duration maxIdleTime;
     private final int maxBulkSize;

@@ -25,12 +25,13 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.concierge.starter.config.ConciergeConfig;
+import org.eclipse.ditto.services.concierge.starter.config.DittoConciergeConfig;
 import org.eclipse.ditto.services.concierge.starter.config.ThingsAggregatorConfig;
 import org.eclipse.ditto.services.models.concierge.ConciergeWrapper;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
@@ -39,7 +40,6 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
 import akka.stream.ActorMaterializer;
@@ -69,9 +69,13 @@ public final class ThingsAggregatorActor extends AbstractActor {
     private final int maxParallelism;
     private final ActorMaterializer actorMaterializer;
 
-    private ThingsAggregatorActor(final ThingsAggregatorConfig aggregatorConfig, final ActorRef targetActor) {
+    @SuppressWarnings("unused")
+    private ThingsAggregatorActor(final ActorRef targetActor) {
         this.targetActor = targetActor;
         aggregatorDispatcher = getContext().system().dispatchers().lookup(AGGREGATOR_INTERNAL_DISPATCHER);
+        final ThingsAggregatorConfig aggregatorConfig = DittoConciergeConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        ).getThingsAggregatorConfig();
         retrieveSingleThingTimeout = aggregatorConfig.getSingleRetrieveThingTimeout();
         maxParallelism = aggregatorConfig.getMaxParallelism();
         actorMaterializer = ActorMaterializer.create(getContext());
@@ -80,19 +84,12 @@ public final class ThingsAggregatorActor extends AbstractActor {
     /**
      * Creates Akka configuration object Props for this ThingsAggregatorActor.
      *
-     * @param conciergeConfig the config of Concierge.
      * @param targetActor the Actor selection to delegate "asks" for the aggregation to.
      * @return the Akka configuration Props object
      */
-    public static Props props(final ConciergeConfig conciergeConfig, final ActorRef targetActor) {
-        return Props.create(ThingsAggregatorActor.class, new Creator<ThingsAggregatorActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public ThingsAggregatorActor create() {
-                return new ThingsAggregatorActor(conciergeConfig.getThingsAggregatorConfig(), targetActor);
-            }
-        }).withDispatcher(AGGREGATOR_INTERNAL_DISPATCHER);
+    public static Props props(final ActorRef targetActor) {
+        return Props.create(ThingsAggregatorActor.class, targetActor)
+                .withDispatcher(AGGREGATOR_INTERNAL_DISPATCHER);
     }
 
     @Override

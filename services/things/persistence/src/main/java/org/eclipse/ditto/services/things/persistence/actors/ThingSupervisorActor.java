@@ -28,10 +28,11 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.base.actors.ShutdownNamespaceBehavior;
 import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConfig;
-import org.eclipse.ditto.services.things.persistence.config.ThingConfig;
+import org.eclipse.ditto.services.things.common.config.DittoThingsConfig;
 import org.eclipse.ditto.services.things.persistence.strategies.AbstractReceiveStrategy;
 import org.eclipse.ditto.services.things.persistence.strategies.ReceiveStrategy;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingUnavailableException;
 
 import akka.actor.AbstractActor;
@@ -44,7 +45,6 @@ import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
 import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.DeciderBuilder;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -81,16 +81,19 @@ public final class ThingSupervisorActor extends AbstractActor {
             .build());
 
 
-    private ThingSupervisorActor(final ActorRef pubSubMediator, final ThingConfig thingConfig,
+    private ThingSupervisorActor(final ActorRef pubSubMediator,
             final Function<String, Props> thingPersistenceActorPropsFactory) {
 
+        final DittoThingsConfig thingsConfig = DittoThingsConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        );
         try {
             thingId = URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name());
         } catch (final UnsupportedEncodingException e) {
             throw new IllegalStateException("Unsupported encoding!", e);
         }
         persistenceActorProps = thingPersistenceActorPropsFactory.apply(thingId);
-        exponentialBackOffConfig = thingConfig.getSupervisorConfig().getExponentialBackOffConfig();
+        exponentialBackOffConfig = thingsConfig.getThingConfig().getSupervisorConfig().getExponentialBackOffConfig();
         shutdownNamespaceBehavior = ShutdownNamespaceBehavior.fromId(thingId, pubSubMediator, getSelf());
 
         child = null;
@@ -105,23 +108,14 @@ public final class ThingSupervisorActor extends AbstractActor {
      * </p>
      *
      * @param pubSubMediator Akka pub-sub mediator.
-     * @param thingConfig the configuration settings for thing entities.
      * @param thingPersistenceActorPropsFactory factory for creating Props to be used for creating
      * {@link ThingPersistenceActor}s.
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final ActorRef pubSubMediator,
-            final ThingConfig thingConfig,
             final Function<String, Props> thingPersistenceActorPropsFactory) {
 
-        return Props.create(ThingSupervisorActor.class, new Creator<ThingSupervisorActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public ThingSupervisorActor create() {
-                return new ThingSupervisorActor(pubSubMediator, thingConfig, thingPersistenceActorPropsFactory);
-            }
-        });
+        return Props.create(ThingSupervisorActor.class, pubSubMediator, thingPersistenceActorPropsFactory);
     }
 
     private Collection<ReceiveStrategy<?>> initReceiveStrategies() {

@@ -56,6 +56,7 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
 import org.eclipse.ditto.services.connectivity.messaging.config.ClientConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
@@ -63,6 +64,7 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddres
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
@@ -113,7 +115,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final ConnectivityConfig connectivityConfig;
+    protected final ConnectivityConfig connectivityConfig;
     private final ProtocolAdapterProvider protocolAdapterProvider;
     private final ActorRef conciergeForwarder;
     private final Gauge clientGauge;
@@ -125,14 +127,15 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     protected BaseClientActor(final Connection connection,
             final ConnectivityStatus desiredConnectionStatus,
-            final ConnectivityConfig connectivityConfig,
             final ActorRef conciergeForwarder) {
 
         checkNotNull(connection, "connection");
 
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connection.getId());
 
-        this.connectivityConfig = connectivityConfig;
+        this.connectivityConfig = DittoConnectivityConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        );
         this.conciergeForwarder = conciergeForwarder;
         protocolAdapterProvider =
                 ProtocolAdapterProvider.load(connectivityConfig.getProtocolConfig(), getContext().getSystem());
@@ -871,7 +874,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                     connection.getProcessorPoolSize());
             final Props props =
                     MessageMappingProcessorActor.props(getPublisherActor(), conciergeForwarder, processor,
-                            connectionId(), connectivityConfig.getLimitsConfig());
+                            connectionId());
 
             final Resizer resizer = new DefaultResizer(1, connection.getProcessorPoolSize());
             messageMappingProcessorActor = getContext().actorOf(new RoundRobinPool(1)

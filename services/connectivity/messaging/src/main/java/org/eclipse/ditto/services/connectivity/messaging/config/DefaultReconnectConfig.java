@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.config;
 
-import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -27,11 +26,9 @@ import com.typesafe.config.Config;
  * This class is the default implementation of the config for the reconnect behaviour.
  */
 @Immutable
-public final class DefaultReconnectConfig implements ReconnectConfig, Serializable {
+public final class DefaultReconnectConfig implements ReconnectConfig {
 
     private static final String CONFIG_PATH = "reconnect";
-
-    private static final long serialVersionUID = -3953028710017813761L;
 
     private final Duration initialDelay;
     private final Duration interval;

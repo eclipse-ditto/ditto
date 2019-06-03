@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.thingsearch.common.config;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -25,11 +24,9 @@ import com.typesafe.config.Config;
  * This class is the default implementation of {@link DeleteConfig}.
  */
 @Immutable
-public final class DefaultDeleteConfig implements DeleteConfig, Serializable {
+public final class DefaultDeleteConfig implements DeleteConfig {
 
     private static final String CONFIG_PATH = "delete";
-
-    private static final long serialVersionUID = -4078280758858400852L;
 
     private final boolean deleteEvent;
     private final boolean deleteNamespace;

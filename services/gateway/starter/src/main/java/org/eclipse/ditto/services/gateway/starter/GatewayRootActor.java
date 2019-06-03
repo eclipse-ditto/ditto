@@ -42,9 +42,9 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSear
 import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebsocketRoute;
 import org.eclipse.ditto.services.gateway.endpoints.utils.DefaultHttpClientFacade;
 import org.eclipse.ditto.services.gateway.health.DittoStatusAndHealthProviderFactory;
+import org.eclipse.ditto.services.gateway.health.GatewayHttpReadinessCheck;
 import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
 import org.eclipse.ditto.services.gateway.health.config.HealthCheckConfig;
-import org.eclipse.ditto.services.gateway.health.GatewayHttpReadinessCheck;
 import org.eclipse.ditto.services.gateway.proxy.actors.ProxyActor;
 import org.eclipse.ditto.services.gateway.starter.config.GatewayConfig;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
@@ -87,7 +87,6 @@ import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.server.Route;
-import akka.japi.Creator;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
@@ -155,6 +154,7 @@ final class GatewayRootActor extends AbstractActor {
 
     private final CompletionStage<ServerBinding> httpBinding;
 
+    @SuppressWarnings("unused")
     private GatewayRootActor(final GatewayConfig gatewayConfig, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
@@ -187,8 +187,7 @@ final class GatewayRootActor extends AbstractActor {
                 ConciergeForwarderActor.props(pubSubMediator, conciergeEnforcerRouter));
 
         final ActorRef proxyActor = startChildActor(ProxyActor.ACTOR_NAME,
-                ProxyActor.props(pubSubMediator, devOpsCommandsActor, conciergeForwarder,
-                        gatewayConfig.getHttpConfig()));
+                ProxyActor.props(pubSubMediator, devOpsCommandsActor, conciergeForwarder));
 
         pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
 
@@ -237,14 +236,7 @@ final class GatewayRootActor extends AbstractActor {
     static Props props(final GatewayConfig gatewayConfig, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
-        return Props.create(GatewayRootActor.class, new Creator<GatewayRootActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public GatewayRootActor create() {
-                return new GatewayRootActor(gatewayConfig, pubSubMediator, materializer);
-            }
-        });
+        return Props.create(GatewayRootActor.class, gatewayConfig, pubSubMediator, materializer);
     }
 
     @Override

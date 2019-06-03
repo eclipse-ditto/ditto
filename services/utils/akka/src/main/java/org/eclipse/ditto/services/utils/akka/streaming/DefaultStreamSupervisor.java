@@ -39,7 +39,6 @@ import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.PatternsCS;
@@ -162,6 +161,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
     /*
      * package-private for unit tests
      */
+    @SuppressWarnings("unused")
     DefaultStreamSupervisor(final ActorRef forwardTo,
             final ActorRef provider,
             final Class<E> elementClass,
@@ -212,15 +212,8 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
             final Materializer materializer,
             final SyncConfig syncConfig) {
 
-        return Props.create(DefaultStreamSupervisor.class, new Creator<DefaultStreamSupervisor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public DefaultStreamSupervisor create() {
-                return new DefaultStreamSupervisor<>(forwardTo, provider, elementClass, mapEntityFunction,
+        return Props.create(DefaultStreamSupervisor.class, forwardTo, provider, elementClass, mapEntityFunction,
                         streamTriggerMessageMapper, streamMetadataPersistence, materializer, syncConfig);
-            }
-        });
     }
 
     private Props getStreamForwarderProps() {

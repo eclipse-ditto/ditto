@@ -124,6 +124,7 @@ public final class ConciergeRootActor extends AbstractActor {
                 return SupervisorStrategy.escalate();
             }).build());
 
+    @SuppressWarnings("unused")
     private <C extends ConciergeConfig> ConciergeRootActor(final C conciergeConfig,
             final ActorRef pubSubMediator,
             final AbstractEnforcerActorFactory<C> enforcerActorFactory,
@@ -165,8 +166,8 @@ public final class ConciergeRootActor extends AbstractActor {
         checkNotNull(enforcerActorFactory, "EnforcerActor factory");
         checkNotNull(materializer, "ActorMaterializer");
 
-        return Props.create(ConciergeRootActor.class,
-                () -> new ConciergeRootActor(conciergeConfig, pubSubMediator, enforcerActorFactory, materializer));
+        return Props.create(ConciergeRootActor.class, conciergeConfig, pubSubMediator, enforcerActorFactory,
+                materializer);
     }
 
 
@@ -190,8 +191,7 @@ public final class ConciergeRootActor extends AbstractActor {
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
 
         return startChildActor(context, DefaultHealthCheckingActorFactory.ACTOR_NAME,
-                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions,
-                        MongoHealthChecker.props(conciergeConfig.getMongoDbConfig())));
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, MongoHealthChecker.props()));
     }
 
     private static ActorRef startChildActor(final ActorRefFactory context, final String actorName,

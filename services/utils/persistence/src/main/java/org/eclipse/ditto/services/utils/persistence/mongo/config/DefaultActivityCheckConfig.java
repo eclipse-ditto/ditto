@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
-import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -27,11 +26,9 @@ import com.typesafe.config.Config;
  * Provides the configuration settings of a policy entity's activity check.
  */
 @Immutable
-public final class DefaultActivityCheckConfig implements ActivityCheckConfig, Serializable {
+public final class DefaultActivityCheckConfig implements ActivityCheckConfig {
 
     private static final String CONFIG_PATH = "activity-check";
-
-    private static final long serialVersionUID = 1939220217385377454L;
 
     private final Duration inactiveInterval;
     private final Duration deletedInterval;

@@ -177,7 +177,7 @@ public abstract class AbstractConsumerActorTest<M> {
                 connectivityConfig, protocolAdapterProvider, Mockito.mock(DiagnosticLoggingAdapter.class));
         final Props messageMappingProcessorProps =
                 MessageMappingProcessorActor.props(publisherActor, conciergeForwarderActor, mappingProcessor,
-                        CONNECTION_ID, connectivityConfig.getLimitsConfig());
+                        CONNECTION_ID);
 
         return actorSystem.actorOf(messageMappingProcessorProps,
                 MessageMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());

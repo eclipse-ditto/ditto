@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.config;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -26,11 +25,9 @@ import com.typesafe.config.Config;
  * This class is the default implementation of {@link KafkaConfig}.
  */
 @Immutable
-public final class DefaultKafkaConfig implements KafkaConfig, Serializable {
+public final class DefaultKafkaConfig implements KafkaConfig {
 
     private static final String CONFIG_PATH = "kafka";
-
-    private static final long serialVersionUID = 728630119797660446L;
 
     private final Config internalProducerConfig;
 

@@ -222,7 +222,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
 
                 // use a supervisor actor, otherwise we could reuse the actorSystem in this test because the
                 // thingsPersistenceActor will stop its parent, leading to the actorSystem being terminated
-                final ActorRef underTest = createSupervisorActorFor(thingId, getThingConfig(customConfig));
+                final ActorRef underTest = createSupervisorActorFor(thingId);
                 watch(underTest);
 
                 final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);

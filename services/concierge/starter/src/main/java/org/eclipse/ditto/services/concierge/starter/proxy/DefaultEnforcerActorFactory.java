@@ -136,7 +136,7 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
 
         final EnforcementConfig enforcementConfig = conciergeConfig.getEnforcementConfig();
 
-        context.actorOf(DispatcherActor.props(conciergeConfig, pubSubMediator, conciergeEnforcerRouter,
+        context.actorOf(DispatcherActor.props(pubSubMediator, conciergeEnforcerRouter,
                 enforcementConfig.getBufferSize(), enforcementConfig.getParallelism()), DispatcherActor.ACTOR_NAME);
 
         final ActorRef conciergeForwarder =

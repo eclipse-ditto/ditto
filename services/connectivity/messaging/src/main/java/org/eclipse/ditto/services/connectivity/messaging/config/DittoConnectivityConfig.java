@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.config;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
@@ -37,11 +36,9 @@ import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
  * This class is the implementation of {@link ConnectivityConfig} for Ditto's Connectivity service.
  */
 @Immutable
-public final class DittoConnectivityConfig implements ConnectivityConfig, Serializable {
+public final class DittoConnectivityConfig implements ConnectivityConfig {
 
     private static final String CONFIG_PATH = "connectivity";
-
-    private static final long serialVersionUID = 1833682803547451513L;
 
     private final DittoServiceConfig serviceSpecificConfig;
     private final DefaultMongoDbConfig mongoDbConfig;
@@ -52,30 +49,29 @@ public final class DittoConnectivityConfig implements ConnectivityConfig, Serial
     private final DefaultClientConfig clientConfig;
     private final DefaultProtocolConfig protocolConfig;
 
-    private DittoConnectivityConfig(final DittoServiceConfig connectivityScopedConfig,
-            final DefaultProtocolConfig protocolConfig) {
+    private DittoConnectivityConfig(final ScopedConfig dittoScopedConfig) {
 
-        serviceSpecificConfig = connectivityScopedConfig;
-        mongoDbConfig = DefaultMongoDbConfig.of(connectivityScopedConfig);
-        healthCheckConfig = DefaultHealthCheckConfig.of(connectivityScopedConfig);
-        connectionConfig = DefaultConnectionConfig.of(connectivityScopedConfig);
-        mappingConfig = DefaultMappingConfig.of(connectivityScopedConfig);
-        reconnectConfig = DefaultReconnectConfig.of(connectivityScopedConfig);
-        clientConfig = DefaultClientConfig.of(connectivityScopedConfig);
-        this.protocolConfig = protocolConfig;
+        serviceSpecificConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
+        mongoDbConfig = DefaultMongoDbConfig.of(dittoScopedConfig);
+        healthCheckConfig = DefaultHealthCheckConfig.of(dittoScopedConfig);
+        protocolConfig = DefaultProtocolConfig.of(dittoScopedConfig);
+
+        connectionConfig = DefaultConnectionConfig.of(serviceSpecificConfig);
+        mappingConfig = DefaultMappingConfig.of(serviceSpecificConfig);
+        reconnectConfig = DefaultReconnectConfig.of(serviceSpecificConfig);
+        clientConfig = DefaultClientConfig.of(serviceSpecificConfig);
     }
 
     /**
      * Returns an instance of DittoConnectivityConfig based on the settings of the specified Config.
      *
-     * @param dittoScopedConfig is supposed to provide the settings of the Connectivity service config at
-     * {@value #CONFIG_PATH}.
+     * @param dittoScopedConfig is supposed to provide the settings of the service config at the {@code "ditto"} config
+     * path.
      * @return the instance.
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DittoConnectivityConfig of(final ScopedConfig dittoScopedConfig) {
-        return new DittoConnectivityConfig(DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH),
-                DefaultProtocolConfig.of(dittoScopedConfig));
+        return new DittoConnectivityConfig(dittoScopedConfig);
     }
 
     @Override

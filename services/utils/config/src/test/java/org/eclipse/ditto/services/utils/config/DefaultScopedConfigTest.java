@@ -97,14 +97,14 @@ public final class DefaultScopedConfigTest {
 
     @Test
     public void getConfigPathReturnsRelativePathIfDefaultScopedConfigIsBuiltFromPlainConfig() {
-        final DefaultScopedConfig underTest = DefaultScopedConfig.newInstance(testConfig, "ditto");
+        final DefaultScopedConfig underTest = DefaultScopedConfig.dittoScoped(testConfig);
 
         softly.assertThat(underTest.getConfigPath()).isEqualTo("ditto");
     }
 
     @Test
     public void getConfigPathReturnsAbsolutePathIfDefaultScopedConfigIsBuiltFromScopedConfig() {
-        final Config dittoScopedConfig = DefaultScopedConfig.newInstance(testConfig, "ditto");
+        final Config dittoScopedConfig = DefaultScopedConfig.dittoScoped(testConfig);
         final DefaultScopedConfig underTest = DefaultScopedConfig.newInstance(dittoScopedConfig, "concierge");
 
         softly.assertThat(underTest.getConfigPath()).isEqualTo("ditto.concierge");

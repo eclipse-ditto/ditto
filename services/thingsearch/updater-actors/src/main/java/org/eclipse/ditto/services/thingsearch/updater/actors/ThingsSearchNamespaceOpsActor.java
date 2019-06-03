@@ -33,8 +33,9 @@ final class ThingsSearchNamespaceOpsActor extends AbstractNamespaceOpsActor<Stri
      */
     public static final String ACTOR_NAME = "thingsSearchNamespaceOpsActor";
 
+    @SuppressWarnings("unused")
     private ThingsSearchNamespaceOpsActor(final ActorRef pubSubMediator, final NamespaceOps<String> namespaceOps) {
-        super(pubSubMediator, namespaceOps);
+        super(pubSubMediator, mongoDbConfig -> namespaceOps);
     }
 
     /**
@@ -45,8 +46,8 @@ final class ThingsSearchNamespaceOpsActor extends AbstractNamespaceOpsActor<Stri
      * @return Props of this actor.
      */
     public static Props props(final ActorRef pubSubMediator, final ThingsSearchUpdaterPersistence persistence) {
-        return Props.create(ThingsSearchNamespaceOpsActor.class,
-                () -> new ThingsSearchNamespaceOpsActor(pubSubMediator, persistence));
+
+        return Props.create(ThingsSearchNamespaceOpsActor.class, pubSubMediator, persistence);
     }
 
     @Override

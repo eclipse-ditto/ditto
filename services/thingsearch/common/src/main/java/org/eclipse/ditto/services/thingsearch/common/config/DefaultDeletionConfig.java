@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.thingsearch.common.config;
 
-import java.io.Serializable;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.Objects;
@@ -28,14 +27,12 @@ import com.typesafe.config.Config;
  * This class is the default implementation of {@link DeletionConfig}.
  */
 @Immutable
-public final class DefaultDeletionConfig implements DeletionConfig, Serializable {
+public final class DefaultDeletionConfig implements DeletionConfig {
 
     /**
      * Path where the deletion config values are expected.
      */
     static final String CONFIG_PATH = "deletion";
-
-    private static final long serialVersionUID = -3713651539614852547L;
 
     private final boolean enabled;
     private final Duration deletionAge;

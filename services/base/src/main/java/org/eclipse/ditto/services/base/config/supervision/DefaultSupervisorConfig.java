@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.base.config.supervision;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -26,9 +25,7 @@ import com.typesafe.config.Config;
  * This class is the default implementation of the config for connection supervision.
  */
 @Immutable
-public final class DefaultSupervisorConfig implements SupervisorConfig, Serializable {
-
-    private static final long serialVersionUID = -9207034637228951218L;
+public final class DefaultSupervisorConfig implements SupervisorConfig {
 
     private static final String CONFIG_PATH = "supervisor";
 

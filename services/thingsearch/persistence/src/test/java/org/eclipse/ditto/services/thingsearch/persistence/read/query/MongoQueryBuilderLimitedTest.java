@@ -23,8 +23,8 @@ import org.eclipse.ditto.model.query.SortDirection;
 import org.eclipse.ditto.model.query.SortOption;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.expression.SimpleFieldExpressionImpl;
-import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
+import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -52,7 +52,7 @@ public final class MongoQueryBuilderLimitedTest {
     @BeforeClass
     public static void initTestFixture() {
         final Config testConfig = ConfigFactory.load("test");
-        limitsConfig = DefaultLimitsConfig.of(testConfig.getConfig(DittoService.DITTO_CONFIG_PATH));
+        limitsConfig = DefaultLimitsConfig.of(testConfig.getConfig(ScopedConfig.DITTO_SCOPE));
     }
 
     @Before

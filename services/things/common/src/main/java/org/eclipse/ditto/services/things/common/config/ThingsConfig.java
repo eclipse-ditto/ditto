@@ -10,12 +10,11 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.things.starter.config;
+package org.eclipse.ditto.services.things.common.config;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.base.config.ServiceSpecificConfig;
-import org.eclipse.ditto.services.things.persistence.config.ThingConfig;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 import org.eclipse.ditto.services.utils.health.config.WithHealthCheckConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.WithMongoDbConfig;

@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.concierge.enforcement.config;
 
-import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -26,11 +25,9 @@ import com.typesafe.config.Config;
  * This class implements {@link EnforcementConfig} for Ditto's Concierge service.
  */
 @Immutable
-public final class DefaultEnforcementConfig implements EnforcementConfig, Serializable {
+public final class DefaultEnforcementConfig implements EnforcementConfig {
 
     private static final String CONFIG_PATH = "enforcement";
-
-    private static final long serialVersionUID = -3457993946046397252L;
 
     private final Duration askTimeout;
     private final int bufferSize;

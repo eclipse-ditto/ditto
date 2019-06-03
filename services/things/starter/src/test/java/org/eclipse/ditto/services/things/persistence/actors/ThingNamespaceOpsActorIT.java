@@ -17,8 +17,6 @@ import java.util.List;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.things.persistence.config.DefaultThingConfig;
-import org.eclipse.ditto.services.things.persistence.config.ThingConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.namespace.EventSourceNamespaceOpsActorTestCases;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
@@ -27,7 +25,6 @@ import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
-import org.junit.BeforeClass;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -42,16 +39,14 @@ import akka.actor.Props;
 @AllValuesAreNonnullByDefault
 public final class ThingNamespaceOpsActorIT extends EventSourceNamespaceOpsActorTestCases {
 
-    private static ThingConfig thingConfig;
-
-    @BeforeClass
-    public static void initTestFixture() {
-        thingConfig = DefaultThingConfig.of(ConfigFactory.load("thing-test"));
-    }
-
     @Override
     protected String getServiceName() {
         return "things";
+    }
+
+    @Override
+    protected Config getExtraConfig() {
+        return ConfigFactory.load("thing-test");
     }
 
     @Override
@@ -93,14 +88,14 @@ public final class ThingNamespaceOpsActorIT extends EventSourceNamespaceOpsActor
     protected ActorRef startActorUnderTest(final ActorSystem actorSystem, final ActorRef pubSubMediator,
             final Config config) {
 
-        final Props namespaceOpsActorProps = ThingNamespaceOpsActor.props(pubSubMediator, config, mongoDbConfig);
+        final Props namespaceOpsActorProps = ThingNamespaceOpsActor.props(pubSubMediator);
         return actorSystem.actorOf(namespaceOpsActorProps, ThingNamespaceOpsActor.ACTOR_NAME);
     }
 
     @Override
     protected ActorRef startEntityActor(final ActorSystem system, final ActorRef pubSubMediator, final String id) {
-        final Props props = ThingSupervisorActor.props(pubSubMediator, thingConfig,
-                theId -> ThingPersistenceActor.props(theId, pubSubMediator, thingConfig, true));
+        final Props props = ThingSupervisorActor.props(pubSubMediator,
+                theId -> ThingPersistenceActor.props(theId, pubSubMediator));
 
         return system.actorOf(props, id);
     }

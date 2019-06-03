@@ -72,9 +72,13 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
 
         mongoDbUri = String.format("mongodb://%s:%s/test", mongoDbResource.getBindIp(), mongoDbResource.getPort());
 
+        mongoDbConfig = DefaultMongoDbConfig.of(getConfig());
+    }
+
+    private static Config getConfig() {
         Config mongoDbTestConfig = ConfigFactory.parseMap(Collections.singletonMap("mongodb.uri", mongoDbUri));
-        mongoDbTestConfig = mongoDbTestConfig.withFallback(ConfigFactory.load("mongodb_test"));
-        mongoDbConfig = DefaultMongoDbConfig.of(mongoDbTestConfig);
+        mongoDbTestConfig = mongoDbTestConfig.withFallback(ConfigFactory.parseResources("mongodb_test"));
+        return mongoDbTestConfig;
     }
 
     @AfterClass
@@ -94,7 +98,8 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
     public void purgeNamespaceWithSuffixBuilder() {
         // cannot start actor system in @Before because config is specific to the test executed
         final Config eventSourcingConfiguration = getEventSourcingConfiguration(ConfigFactory.empty());
-        final ActorSystem actorSystem = startActorSystem(eventSourcingConfiguration);
+        final Config ditto = ConfigFactory.empty().withValue("ditto", getConfig().root());
+        actorSystem = startActorSystem(ditto.withFallback(eventSourcingConfiguration));
         // suffix builder is active by default
         purgeNamespace(actorSystem, eventSourcingConfiguration);
     }
@@ -104,7 +109,8 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
         final Config configOverride =
                 ConfigFactory.parseString("akka.contrib.persistence.mongodb.mongo.suffix-builder.class=\"\"");
         final Config eventSourcingConfiguration = getEventSourcingConfiguration(configOverride);
-        actorSystem = startActorSystem(eventSourcingConfiguration);
+        final Config ditto = ConfigFactory.empty().withValue("ditto", getConfig().root());
+        actorSystem = startActorSystem(ditto.withFallback(eventSourcingConfiguration));
         // suffix builder is active by default
         purgeNamespace(actorSystem, eventSourcingConfiguration);
     }
@@ -140,7 +146,7 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
         // set namespace suffix config before persisting any event - NullPointerException otherwise
         NamespaceSuffixCollectionNames.setSupportedPrefixes(getSupportedPrefixes());
 
-        return configOverride.withFallback(configWithSuffixBuilder);
+        return configOverride.withFallback(configWithSuffixBuilder).withFallback(getExtraConfig());
     }
 
     private ActorSystem startActorSystem(final Config config) {
@@ -157,6 +163,11 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
      * @return name of the configured service.
      */
     protected abstract String getServiceName();
+
+    /**
+     * @return the extra Config to use in this test.
+     */
+    protected abstract Config getExtraConfig();
 
     /**
      * @return list of supported persistence ID prefixes - usually a singleton of the actor's resource type.

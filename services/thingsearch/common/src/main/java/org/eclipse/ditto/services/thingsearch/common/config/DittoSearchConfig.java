@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.thingsearch.common.config;
 
-import java.io.Serializable;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -37,11 +36,9 @@ import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
  * This class is the default implementation of {@link SearchConfig}.
  */
 @Immutable
-public final class DittoSearchConfig implements SearchConfig, Serializable {
+public final class DittoSearchConfig implements SearchConfig {
 
     private static final String CONFIG_PATH = "things-search";
-
-    private static final long serialVersionUID = -2047392690545433509L;
 
     @Nullable private final String mongoHintsByNamespace;
     private final DefaultDeleteConfig deleteConfig;
@@ -53,29 +50,33 @@ public final class DittoSearchConfig implements SearchConfig, Serializable {
     private final DefaultMongoDbConfig mongoDbConfig;
     private final DefaultStreamConfig streamConfig;
 
-    private DittoSearchConfig(final ConfigWithFallback configWithFallback) {
+    private DittoSearchConfig(final ScopedConfig dittoScopedConfig) {
+
+        dittoServiceConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
+        mongoDbConfig = DefaultMongoDbConfig.of(dittoScopedConfig);
+        healthCheckConfig = DefaultHealthCheckConfig.of(dittoScopedConfig);
+
+        final ConfigWithFallback configWithFallback =
+                ConfigWithFallback.newInstance(dittoScopedConfig, CONFIG_PATH, SearchConfigValue.values());
         mongoHintsByNamespace = configWithFallback.getStringOrNull(SearchConfigValue.MONGO_HINTS_BY_NAMESPACE);
         deleteConfig = DefaultDeleteConfig.of(configWithFallback);
         deletionConfig = DefaultDeletionConfig.of(configWithFallback);
         updaterConfig = DefaultUpdaterConfig.of(configWithFallback);
-        dittoServiceConfig = DittoServiceConfig.of(configWithFallback);
-        healthCheckConfig = DefaultHealthCheckConfig.of(configWithFallback);
+
         indexInitializationConfig = DefaultIndexInitializationConfig.of(configWithFallback);
-        mongoDbConfig = DefaultMongoDbConfig.of(configWithFallback);
         streamConfig = DefaultStreamConfig.of(configWithFallback);
     }
 
     /**
      * Returns an instance of DittoSearchConfig based on the settings of the specified Config.
      *
-     * @param dittoScopedConfig is supposed to provide the settings of the Search service config at
-     * {@value #CONFIG_PATH}.
+     * @param dittoScopedConfig is supposed to provide the settings of the service config at the {@code "ditto"} config
+     * path.
      * @return the instance.
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DittoSearchConfig of(final ScopedConfig dittoScopedConfig) {
-        return new DittoSearchConfig(
-                ConfigWithFallback.newInstance(dittoScopedConfig, CONFIG_PATH, SearchConfigValue.values()));
+        return new DittoSearchConfig(dittoScopedConfig);
     }
 
     @Override

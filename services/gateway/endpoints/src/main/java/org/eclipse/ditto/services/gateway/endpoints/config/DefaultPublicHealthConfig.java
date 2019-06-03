@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.config;
 
-import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -27,11 +26,9 @@ import com.typesafe.config.Config;
  * This class is the default implementation of the public health endpoint config.
  */
 @Immutable
-public final class DefaultPublicHealthConfig implements PublicHealthConfig, Serializable {
+public final class DefaultPublicHealthConfig implements PublicHealthConfig {
 
     private static final String CONFIG_PATH = "public-health";
-
-    private static final long serialVersionUID = 3843294309781510818L;
 
     private final Duration cacheTimeout;
 

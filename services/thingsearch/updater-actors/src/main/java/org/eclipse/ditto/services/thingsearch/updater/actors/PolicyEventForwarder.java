@@ -65,6 +65,7 @@ final class PolicyEventForwarder extends AbstractActor {
     private Map<String, Long> policyRevisions = new HashMap<>();
     private KillSwitch killSwitch;
 
+    @SuppressWarnings("unused")
     private PolicyEventForwarder(final ActorRef pubSubMediator,
             final ActorRef thingsUpdater,
             final BlockedNamespaces blockedNamespaces,
@@ -97,9 +98,8 @@ final class PolicyEventForwarder extends AbstractActor {
             final ThingsSearchUpdaterPersistence persistence,
             final Duration writeInterval) {
 
-        return Props.create(PolicyEventForwarder.class,
-                () -> new PolicyEventForwarder(pubSubMediator, thingsUpdater, blockedNamespaces, persistence,
-                        writeInterval));
+        return Props.create(PolicyEventForwarder.class, pubSubMediator, thingsUpdater, blockedNamespaces, persistence,
+                        writeInterval);
     }
 
     @Override

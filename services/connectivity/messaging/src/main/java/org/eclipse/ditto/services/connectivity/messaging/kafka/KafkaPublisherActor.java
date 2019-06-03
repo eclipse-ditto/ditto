@@ -39,7 +39,6 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
 import akka.kafka.ProducerMessage;
@@ -67,6 +66,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     private boolean shuttingDown = false;
     private ActorRef sourceActor;
 
+    @SuppressWarnings("unused")
     private KafkaPublisherActor(final String connectionId,
             final List<Target> targets,
             final KafkaConnectionFactory factory,
@@ -98,14 +98,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             final ActorRef kafkaClientActor,
             final boolean dryRun) {
 
-        return Props.create(KafkaPublisherActor.class, new Creator<KafkaPublisherActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public KafkaPublisherActor create() {
-                return new KafkaPublisherActor(connectionId, targets, factory, kafkaClientActor, dryRun);
-            }
-        });
+        return Props.create(KafkaPublisherActor.class, connectionId, targets, factory, kafkaClientActor, dryRun);
     }
 
     private static Sink<ProducerMessage.Results<String, String, ConnectionMetricsCollector>, CompletionStage<Done>> publishSuccessSink() {

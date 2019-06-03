@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.health.config;
 
-import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -29,11 +28,9 @@ import com.typesafe.config.Config;
  * This class is the default implementation of the Gateway health check config.
  */
 @Immutable
-public final class DefaultHealthCheckConfig implements HealthCheckConfig, Serializable {
+public final class DefaultHealthCheckConfig implements HealthCheckConfig {
 
     private static final String CONFIG_PATH = "health-check";
-
-    private static final long serialVersionUID = -9109337596684407089L;
 
     private final Duration serviceTimeout;
     private final BasicHealthCheckConfig basicHealthCheckConfig;

@@ -28,17 +28,19 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.services.things.common.config.DittoThingsConfig;
+import org.eclipse.ditto.services.things.common.config.ThingConfig;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CommandReceiveStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CommandStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CreateThingStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.DefaultContext;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.events.EventHandleStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.events.EventStrategy;
-import org.eclipse.ditto.services.things.persistence.config.ThingConfig;
 import org.eclipse.ditto.services.things.persistence.snapshotting.DittoThingSnapshotter;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
 import org.eclipse.ditto.services.things.persistence.strategies.AbstractReceiveStrategy;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.signals.base.WithThingId;
@@ -54,7 +56,6 @@ import akka.actor.Cancellable;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.FI;
 import akka.japi.pf.ReceiveBuilder;
 import akka.persistence.AbstractPersistentActor;
@@ -107,14 +108,15 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     ThingPersistenceActor(final String thingId,
             final ActorRef pubSubMediator,
-            final ThingSnapshotter.Create thingSnapshotterCreate,
-            final ThingConfig thingConfig,
-            final boolean logIncomingMessages) {
+            final ThingSnapshotter.Create thingSnapshotterCreate) {
 
         this.thingId = thingId;
         this.pubSubMediator = pubSubMediator;
-        this.thingConfig = thingConfig;
-        this.logIncomingMessages = logIncomingMessages;
+        final DittoThingsConfig thingsConfig = DittoThingsConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        );
+        this.thingConfig = thingsConfig.getThingConfig();
+        this.logIncomingMessages = thingsConfig.isLogIncomingMessages();
 
         log = LogUtil.obtain(this);
 
@@ -150,25 +152,13 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
      * @param thingId the Thing ID this Actor manages.
      * @param pubSubMediator the PubSub mediator actor.
      * @param thingSnapshotterCreate creator of {@code ThingSnapshotter} objects.
-     * @param thingConfig the configuration settings for Thing entities.
-     * @param logIncomingMessages determines whether minimal information for all incoming messages should be logged.
      * @return the Akka configuration Props object.
      */
     public static Props props(final String thingId,
             final ActorRef pubSubMediator,
-            final ThingSnapshotter.Create thingSnapshotterCreate,
-            final ThingConfig thingConfig,
-            final boolean logIncomingMessages) {
+            final ThingSnapshotter.Create thingSnapshotterCreate) {
 
-        return Props.create(ThingPersistenceActor.class, new Creator<ThingPersistenceActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public ThingPersistenceActor create() {
-                return new ThingPersistenceActor(thingId, pubSubMediator, thingSnapshotterCreate, thingConfig,
-                        logIncomingMessages);
-            }
-        });
+        return Props.create(ThingPersistenceActor.class, thingId, pubSubMediator, thingSnapshotterCreate);
     }
 
     /**
@@ -177,24 +167,12 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
      *
      * @param thingId the Thing ID this Actor manages.
      * @param pubSubMediator the PubSub mediator actor.
-     * @param thingConfig the configuration settings for Thing entities.
-     * @param logIncomingMessages determines whether minimal information for all incoming messages should be logged.
      * @return the Akka configuration Props object.
      */
-    static Props props(final String thingId,
-            final ActorRef pubSubMediator,
-            final ThingConfig thingConfig,
-            final boolean logIncomingMessages) {
+    static Props props(final String thingId, final ActorRef pubSubMediator) {
 
-        return Props.create(ThingPersistenceActor.class, new Creator<ThingPersistenceActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public ThingPersistenceActor create() {
-                return new ThingPersistenceActor(thingId, pubSubMediator, DittoThingSnapshotter::getInstance,
-                        thingConfig, logIncomingMessages);
-            }
-        });
+        return Props.create(ThingPersistenceActor.class, thingId, pubSubMediator,
+                (ThingSnapshotter.Create) DittoThingSnapshotter::getInstance);
     }
 
     private static Thing enhanceThingWithLifecycle(final Thing thing) {

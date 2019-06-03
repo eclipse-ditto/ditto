@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -25,11 +24,9 @@ import com.typesafe.config.Config;
  * This class implements the policies tags config.
  */
 @Immutable
-public final class DefaultTagsConfig implements TagsConfig, Serializable {
+public final class DefaultTagsConfig implements TagsConfig {
 
     private static final String CONFIG_PATH = "tags";
-
-    private static final long serialVersionUID = 8714699527356269281L;
 
     private final int streamingCacheSize;
 

@@ -439,7 +439,7 @@ public final class ConnectionActorTest extends WithMockServers {
                             (connection, conciergeForwarder) -> {
                                 throw ConnectionConfigurationInvalidException.newBuilder("validation failed...")
                                         .build();
-                            }, null, TestConstants.CONNECTION_CONFIG);
+                            }, null);
             // create another actor because this it is stopped and we want to test if the child is terminated
             final TestKit parent = new TestKit(actorSystem);
             final ActorRef connectionActorRef = watch(parent.childActorOf(connectionActorProps));
@@ -471,7 +471,7 @@ public final class ConnectionActorTest extends WithMockServers {
                                         .dittoHeaders(command.getDittoHeaders())
                                         .message("not valid")
                                         .build();
-                            }, TestConstants.CONNECTION_CONFIG);
+                            });
 
             // create another actor because we want to test if the child is terminated
             final TestKit parent = new TestKit(actorSystem);

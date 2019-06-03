@@ -38,7 +38,6 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
-import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
@@ -92,11 +91,10 @@ public final class RabbitMQClientActor extends BaseClientActor {
     @SuppressWarnings("unused")
     private RabbitMQClientActor(final Connection connection,
             final ConnectivityStatus connectionStatus,
-            final ConnectivityConfig connectivityConfig,
             final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory,
             final ActorRef conciergeForwarder) {
 
-        super(connection, connectionStatus, connectivityConfig, conciergeForwarder);
+        super(connection, connectionStatus, conciergeForwarder);
 
         this.rabbitConnectionFactoryFactory = rabbitConnectionFactoryFactory;
         consumedTagsToAddresses = new HashMap<>();
@@ -112,10 +110,9 @@ public final class RabbitMQClientActor extends BaseClientActor {
     @SuppressWarnings("unused")
     private RabbitMQClientActor(final Connection connection,
             final ConnectivityStatus connectionStatus,
-            final ConnectivityConfig connectivityConfig,
             final ActorRef conciergeForwarder) {
 
-        this(connection, connectionStatus, connectivityConfig,
+        this(connection, connectionStatus,
                 ConnectionBasedRabbitConnectionFactoryFactory.getInstance(), conciergeForwarder);
     }
 
@@ -123,15 +120,13 @@ public final class RabbitMQClientActor extends BaseClientActor {
      * Creates Akka configuration object for this actor.
      *
      * @param connection the connection.
-     * @param connectivityConfig the configuration settings of the Connectivity service.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, final ConnectivityConfig connectivityConfig,
-            final ActorRef conciergeForwarder) {
+    public static Props props(final Connection connection, final ActorRef conciergeForwarder) {
 
         return Props.create(RabbitMQClientActor.class, validateConnection(connection), connection.getConnectionStatus(),
-                connectivityConfig, conciergeForwarder);
+                conciergeForwarder);
     }
 
     /**
@@ -139,19 +134,17 @@ public final class RabbitMQClientActor extends BaseClientActor {
      *
      * @param connection the connection.
      * @param connectionStatus the desired status of the.
-     * @param connectivityConfig the configuration settings of the Connectivity service.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
      * @param rabbitConnectionFactoryFactory the ConnectionFactory Factory to use.
      * @return the Akka configuration Props object.
      */
     static Props propsForTests(final Connection connection,
             final ConnectivityStatus connectionStatus,
-            final ConnectivityConfig connectivityConfig,
             final ActorRef conciergeForwarder,
             final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
 
         return Props.create(RabbitMQClientActor.class, validateConnection(connection), connectionStatus,
-                connectivityConfig, rabbitConnectionFactoryFactory, conciergeForwarder);
+                rabbitConnectionFactoryFactory, conciergeForwarder);
     }
 
     private static Connection validateConnection(final Connection connection) {

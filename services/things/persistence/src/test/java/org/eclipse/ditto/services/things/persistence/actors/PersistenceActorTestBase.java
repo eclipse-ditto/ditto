@@ -37,8 +37,8 @@ import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.services.things.persistence.config.DefaultThingConfig;
-import org.eclipse.ditto.services.things.persistence.config.ThingConfig;
+import org.eclipse.ditto.services.things.common.config.DefaultThingConfig;
+import org.eclipse.ditto.services.things.common.config.ThingConfig;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.rules.TestWatcher;
@@ -187,28 +187,23 @@ public abstract class PersistenceActorTestBase {
     protected ActorRef createPersistenceActorWithPubSubFor(final String thingId, final ActorRef pubSubMediator,
             final ThingConfig thingConfig) {
 
-        return actorSystem.actorOf(getPropsOfThingPersistenceActor(thingId, pubSubMediator, thingConfig));
+        return actorSystem.actorOf(getPropsOfThingPersistenceActor(thingId, pubSubMediator));
     }
 
-    private static Props getPropsOfThingPersistenceActor(final String thingId, final ActorRef pubSubMediator,
-            final ThingConfig thingConfig) {
+    private static Props getPropsOfThingPersistenceActor(final String thingId, final ActorRef pubSubMediator) {
 
-        return ThingPersistenceActor.props(thingId, pubSubMediator, thingConfig, true);
+        return ThingPersistenceActor.props(thingId, pubSubMediator);
     }
 
     protected ActorRef createSupervisorActorFor(final String thingId) {
-        return createSupervisorActorFor(thingId, thingConfig);
-    }
-
-    protected ActorRef createSupervisorActorFor(final String thingId, final ThingConfig thingConfig) {
         final Props props =
-                ThingSupervisorActor.props(pubSubMediator, thingConfig, this::getPropsOfThingPersistenceActor);
+                ThingSupervisorActor.props(pubSubMediator, this::getPropsOfThingPersistenceActor);
 
         return actorSystem.actorOf(props, thingId);
     }
 
     private Props getPropsOfThingPersistenceActor(final String thingId) {
-        return getPropsOfThingPersistenceActor(thingId, pubSubMediator, thingConfig);
+        return getPropsOfThingPersistenceActor(thingId, pubSubMediator);
     }
 
     /**

@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.utils.protocol.config;
 
-import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
@@ -29,11 +28,9 @@ import com.typesafe.config.Config;
  * This class is the default implementation of the Ditto protocol adaption config.
  */
 @Immutable
-public final class DefaultProtocolConfig implements ProtocolConfig, Serializable {
+public final class DefaultProtocolConfig implements ProtocolConfig {
 
     private static final String CONFIG_PATH = "protocol";
-
-    private static final long serialVersionUID = -1125901683870852181L;
 
     private final String provider;
     private final Set<String> blacklist;

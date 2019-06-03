@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.base.config;
 
-import java.io.Serializable;
 import java.time.Duration;
 import java.time.Period;
 import java.time.temporal.TemporalAmount;
@@ -53,46 +52,28 @@ import com.typesafe.config.ConfigValue;
  * config settings.
  */
 @Immutable
-public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificConfig, Serializable {
+public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificConfig {
 
-    private static final long serialVersionUID = -3055318635902386342L;
+    private final DefaultScopedConfig serviceScopedConfig;
 
-    private final ScopedConfig config;
     private final DefaultLimitsConfig limitsConfig;
     private final DefaultClusterConfig clusterConfig;
     private final DefaultHttpConfig httpConfig;
     private final DefaultMetricsConfig metricsConfig;
 
-    private DittoServiceConfig(final ScopedConfig theConfig, final DefaultLimitsConfig theLimitsConfig) {
-        config = theConfig;
-        limitsConfig = theLimitsConfig;
-        clusterConfig = DefaultClusterConfig.of(config);
-        httpConfig = DefaultHttpConfig.of(config);
-        metricsConfig = DefaultMetricsConfig.of(config);
+    private DittoServiceConfig(final ScopedConfig dittoScopedConfig, final String configPath) {
+        serviceScopedConfig = DefaultScopedConfig.newInstance(dittoScopedConfig, configPath);
+        limitsConfig = DefaultLimitsConfig.of(dittoScopedConfig);
+        clusterConfig = DefaultClusterConfig.of(dittoScopedConfig);
+        httpConfig = DefaultHttpConfig.of(dittoScopedConfig);
+        metricsConfig = DefaultMetricsConfig.of(dittoScopedConfig);
     }
 
     /**
      * Returns an instance of {@code DittoServiceConfig} based on the settings of the specified Config.
      *
-     * @param scopedConfig is supposed to provide the settings of the service at the appropriate config path.
-     * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config}
-     * <ul>
-     * <li>is {@code null} or</li>
-     * <li>did not contain a nested Config at path {@code configPath}.</li>
-     * </ul>
-     */
-    public static DittoServiceConfig of(final ScopedConfig scopedConfig) {
-        if (null == scopedConfig) {
-            throw new DittoConfigError("The argument 'scopedConfig' must not be null!");
-        }
-        return new DittoServiceConfig(scopedConfig, DefaultLimitsConfig.of(scopedConfig));
-    }
-
-    /**
-     * Returns an instance of {@code DittoServiceConfig} based on the settings of the specified Config.
-     *
-     * @param config is supposed to provide the settings of the service config at the specified config path.
+     * @param dittoScopedConfig is supposed to provide the settings of the service config at the {@code "ditto"} config
+     * path.
      * @param configPath the path of the nested Config within {@code config} that provides the service specific config
      * settings.
      * Mostly this value is the service name.
@@ -104,8 +85,11 @@ public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificCo
      * <li>{@code config} did not contain a nested Config at path {@code configPath}.</li>
      * </ul>
      */
-    public static DittoServiceConfig of(final Config config, final String configPath) {
-        return of(DefaultScopedConfig.newInstance(config, configPath));
+    public static DittoServiceConfig of(final ScopedConfig dittoScopedConfig, final String configPath) {
+        if (null == dittoScopedConfig) {
+            throw new DittoConfigError("The argument 'scopedConfig' must not be null!");
+        }
+        return new DittoServiceConfig(dittoScopedConfig, configPath);
     }
 
     @Override
@@ -130,282 +114,282 @@ public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificCo
 
     @Override
     public ConfigObject root() {
-        return config.root();
+        return serviceScopedConfig.root();
     }
 
     @Override
     public ConfigOrigin origin() {
-        return config.origin();
+        return serviceScopedConfig.origin();
     }
 
     @Override
     public Config withFallback(final ConfigMergeable other) {
-        return config.withFallback(other);
+        return serviceScopedConfig.withFallback(other);
     }
 
     @Override
     public Config resolve() {
-        return config.resolve();
+        return serviceScopedConfig.resolve();
     }
 
     @Override
     public Config resolve(final ConfigResolveOptions options) {
-        return config.resolve(options);
+        return serviceScopedConfig.resolve(options);
     }
 
     @Override
     public boolean isResolved() {
-        return config.isResolved();
+        return serviceScopedConfig.isResolved();
     }
 
     @Override
     public Config resolveWith(final Config source) {
-        return config.resolveWith(source);
+        return serviceScopedConfig.resolveWith(source);
     }
 
     @Override
     public Config resolveWith(final Config source, final ConfigResolveOptions options) {
-        return config.resolveWith(source, options);
+        return serviceScopedConfig.resolveWith(source, options);
     }
 
     @Override
     public void checkValid(final Config reference, final String... restrictToPaths) {
-        config.checkValid(reference, restrictToPaths);
+        serviceScopedConfig.checkValid(reference, restrictToPaths);
     }
 
     @Override
     public boolean hasPath(final String path) {
-        return config.hasPath(path);
+        return serviceScopedConfig.hasPath(path);
     }
 
     @Override
     public boolean hasPathOrNull(final String path) {
-        return config.hasPathOrNull(path);
+        return serviceScopedConfig.hasPathOrNull(path);
     }
 
     @Override
     public boolean isEmpty() {
-        return config.isEmpty();
+        return serviceScopedConfig.isEmpty();
     }
 
     @Override
     public Set<Map.Entry<String, ConfigValue>> entrySet() {
-        return config.entrySet();
+        return serviceScopedConfig.entrySet();
     }
 
     @Override
     public boolean getIsNull(final String path) {
-        return config.getIsNull(path);
+        return serviceScopedConfig.getIsNull(path);
     }
 
     @Override
     public boolean getBoolean(final String path) {
-        return config.getBoolean(path);
+        return serviceScopedConfig.getBoolean(path);
     }
 
     @Override
     public Number getNumber(final String path) {
-        return config.getNumber(path);
+        return serviceScopedConfig.getNumber(path);
     }
 
     @Override
     public int getInt(final String path) {
-        return config.getInt(path);
+        return serviceScopedConfig.getInt(path);
     }
 
     @Override
     public long getLong(final String path) {
-        return config.getLong(path);
+        return serviceScopedConfig.getLong(path);
     }
 
     @Override
     public double getDouble(final String path) {
-        return config.getDouble(path);
+        return serviceScopedConfig.getDouble(path);
     }
 
     @Override
     public String getString(final String path) {
-        return config.getString(path);
+        return serviceScopedConfig.getString(path);
     }
 
     @Override
     public <T extends Enum<T>> T getEnum(final Class<T> enumClass, final String path) {
-        return config.getEnum(enumClass, path);
+        return serviceScopedConfig.getEnum(enumClass, path);
     }
 
     @Override
     public ConfigObject getObject(final String path) {
-        return config.getObject(path);
+        return serviceScopedConfig.getObject(path);
     }
 
     @Override
     public Config getConfig(final String path) {
-        return config.getConfig(path);
+        return serviceScopedConfig.getConfig(path);
     }
 
     @Override
     public Object getAnyRef(final String path) {
-        return config.getAnyRef(path);
+        return serviceScopedConfig.getAnyRef(path);
     }
 
     @Override
     public ConfigValue getValue(final String path) {
-        return config.getValue(path);
+        return serviceScopedConfig.getValue(path);
     }
 
     @Override
     public Long getBytes(final String path) {
-        return config.getBytes(path);
+        return serviceScopedConfig.getBytes(path);
     }
 
     @Override
     public ConfigMemorySize getMemorySize(final String path) {
-        return config.getMemorySize(path);
+        return serviceScopedConfig.getMemorySize(path);
     }
 
     @Override
     public Long getMilliseconds(final String path) {
-        return config.getMilliseconds(path);
+        return serviceScopedConfig.getMilliseconds(path);
     }
 
     @Override
     public Long getNanoseconds(final String path) {
-        return config.getNanoseconds(path);
+        return serviceScopedConfig.getNanoseconds(path);
     }
 
     @Override
     public long getDuration(final String path, final TimeUnit unit) {
-        return config.getDuration(path, unit);
+        return serviceScopedConfig.getDuration(path, unit);
     }
 
     @Override
     public Duration getDuration(final String path) {
-        return config.getDuration(path);
+        return serviceScopedConfig.getDuration(path);
     }
 
     @Override
     public Period getPeriod(final String path) {
-        return config.getPeriod(path);
+        return serviceScopedConfig.getPeriod(path);
     }
 
     @Override
     public TemporalAmount getTemporal(final String path) {
-        return config.getTemporal(path);
+        return serviceScopedConfig.getTemporal(path);
     }
 
     @Override
     public ConfigList getList(final String path) {
-        return config.getList(path);
+        return serviceScopedConfig.getList(path);
     }
 
     @Override
     public List<Boolean> getBooleanList(final String path) {
-        return config.getBooleanList(path);
+        return serviceScopedConfig.getBooleanList(path);
     }
 
     @Override
     public List<Number> getNumberList(final String path) {
-        return config.getNumberList(path);
+        return serviceScopedConfig.getNumberList(path);
     }
 
     @Override
     public List<Integer> getIntList(final String path) {
-        return config.getIntList(path);
+        return serviceScopedConfig.getIntList(path);
     }
 
     @Override
     public List<Long> getLongList(final String path) {
-        return config.getLongList(path);
+        return serviceScopedConfig.getLongList(path);
     }
 
     @Override
     public List<Double> getDoubleList(final String path) {
-        return config.getDoubleList(path);
+        return serviceScopedConfig.getDoubleList(path);
     }
 
     @Override
     public List<String> getStringList(final String path) {
-        return config.getStringList(path);
+        return serviceScopedConfig.getStringList(path);
     }
 
     @Override
     public <T extends Enum<T>> List<T> getEnumList(final Class<T> enumClass, final String path) {
-        return config.getEnumList(enumClass, path);
+        return serviceScopedConfig.getEnumList(enumClass, path);
     }
 
     @Override
     public List<? extends ConfigObject> getObjectList(final String path) {
-        return config.getObjectList(path);
+        return serviceScopedConfig.getObjectList(path);
     }
 
     @Override
     public List<? extends Config> getConfigList(final String path) {
-        return config.getConfigList(path);
+        return serviceScopedConfig.getConfigList(path);
     }
 
     @Override
     public List<? extends Object> getAnyRefList(final String path) {
-        return config.getAnyRefList(path);
+        return serviceScopedConfig.getAnyRefList(path);
     }
 
     @Override
     public List<Long> getBytesList(final String path) {
-        return config.getBytesList(path);
+        return serviceScopedConfig.getBytesList(path);
     }
 
     @Override
     public List<ConfigMemorySize> getMemorySizeList(final String path) {
-        return config.getMemorySizeList(path);
+        return serviceScopedConfig.getMemorySizeList(path);
     }
 
     @Override
     public List<Long> getMillisecondsList(final String path) {
-        return config.getMillisecondsList(path);
+        return serviceScopedConfig.getMillisecondsList(path);
     }
 
     @Override
     public List<Long> getNanosecondsList(final String path) {
-        return config.getNanosecondsList(path);
+        return serviceScopedConfig.getNanosecondsList(path);
     }
 
     @Override
     public List<Long> getDurationList(final String path, final TimeUnit unit) {
-        return config.getDurationList(path, unit);
+        return serviceScopedConfig.getDurationList(path, unit);
     }
 
     @Override
     public List<Duration> getDurationList(final String path) {
-        return config.getDurationList(path);
+        return serviceScopedConfig.getDurationList(path);
     }
 
     @Override
     public Config withOnlyPath(final String path) {
-        return config.withOnlyPath(path);
+        return serviceScopedConfig.withOnlyPath(path);
     }
 
     @Override
     public Config withoutPath(final String path) {
-        return config.withoutPath(path);
+        return serviceScopedConfig.withoutPath(path);
     }
 
     @Override
     public Config atPath(final String path) {
-        return config.atPath(path);
+        return serviceScopedConfig.atPath(path);
     }
 
     @Override
     public Config atKey(final String key) {
-        return config.atKey(key);
+        return serviceScopedConfig.atKey(key);
     }
 
     @Override
     public Config withValue(final String path, final ConfigValue value) {
-        return config.withValue(path, value);
+        return serviceScopedConfig.withValue(path, value);
     }
 
     @Override
     public String getConfigPath() {
-        return config.getConfigPath();
+        return serviceScopedConfig.getConfigPath();
     }
 
     @Override
@@ -421,12 +405,12 @@ public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificCo
                 clusterConfig.equals(that.clusterConfig) &&
                 httpConfig.equals(that.httpConfig) &&
                 metricsConfig.equals(that.metricsConfig) &&
-                config.equals(that.config);
+                serviceScopedConfig.equals(that.serviceScopedConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(limitsConfig, clusterConfig, httpConfig, metricsConfig, config);
+        return Objects.hash(limitsConfig, clusterConfig, httpConfig, metricsConfig, serviceScopedConfig);
     }
 
     @Override
@@ -436,7 +420,7 @@ public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificCo
                 ", clusterConfig=" + clusterConfig +
                 ", httpConfig=" + httpConfig +
                 ", metricsConfig=" + metricsConfig +
-                ", config=" + config +
+                ", config=" + serviceScopedConfig +
                 "]";
     }
 

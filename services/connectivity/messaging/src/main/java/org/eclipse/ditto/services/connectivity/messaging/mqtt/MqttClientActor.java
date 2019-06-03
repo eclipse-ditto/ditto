@@ -33,7 +33,6 @@ import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.MqttConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
@@ -76,13 +75,13 @@ public final class MqttClientActor extends BaseClientActor {
 
     private CompletableFuture<Status.Status> testConnectionFuture = null;
 
+    @SuppressWarnings("unused")
     MqttClientActor(final Connection connection,
             final ConnectivityStatus desiredConnectionStatus,
-            final ConnectivityConfig connectivityConfig,
             final ActorRef conciergeForwarder,
             final BiFunction<Connection, DittoHeaders, MqttConnectionFactory> connectionFactoryCreator) {
 
-        super(connection, desiredConnectionStatus, connectivityConfig, conciergeForwarder);
+        super(connection, desiredConnectionStatus, conciergeForwarder);
         this.connectionFactoryCreator = connectionFactoryCreator;
         consumerByActorNameWithIndex = new HashMap<>();
         pendingStatusReportsFromStreams = new HashSet<>();
@@ -95,25 +94,22 @@ public final class MqttClientActor extends BaseClientActor {
     @SuppressWarnings("unused") // used by `props` via reflection
     private MqttClientActor(final Connection connection,
             final ConnectivityStatus desiredConnectionStatus,
-            final ConnectivityConfig connectivityConfig,
             final ActorRef conciergeForwarder) {
 
-        this(connection, desiredConnectionStatus, connectivityConfig, conciergeForwarder, MqttConnectionFactory::of);
+        this(connection, desiredConnectionStatus, conciergeForwarder, MqttConnectionFactory::of);
     }
 
     /**
      * Creates Akka configuration object for this actor.
      *
      * @param connection the connection.
-     * @param connectivityConfig the configuration settings of the Connectivity service.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, final ConnectivityConfig connectivityConfig,
-            final ActorRef conciergeForwarder) {
+    public static Props props(final Connection connection, final ActorRef conciergeForwarder) {
 
         return Props.create(MqttClientActor.class, validateConnection(connection), connection.getConnectionStatus(),
-                connectivityConfig, conciergeForwarder);
+                conciergeForwarder);
     }
 
     private static Connection validateConnection(final Connection connection) {

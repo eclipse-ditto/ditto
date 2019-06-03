@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.config;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -27,11 +26,9 @@ import com.typesafe.config.Config;
  * This interface is the default implementation of the Gateway authentication config.
  */
 @Immutable
-public final class DefaultAuthenticationConfig implements AuthenticationConfig, Serializable, WithConfigPath {
+public final class DefaultAuthenticationConfig implements AuthenticationConfig, WithConfigPath {
 
     private static final String CONFIG_PATH = "authentication";
-
-    private static final long serialVersionUID = -3286469359754235360L;
 
     private final boolean dummyAuthEnabled;
     private final HttpProxyConfig httpProxyConfig;

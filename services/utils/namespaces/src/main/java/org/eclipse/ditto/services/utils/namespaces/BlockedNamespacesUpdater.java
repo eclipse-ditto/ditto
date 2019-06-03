@@ -37,6 +37,7 @@ public final class BlockedNamespacesUpdater extends AbstractActor {
 
     private final BlockedNamespaces blockedNamespaces;
 
+    @SuppressWarnings("unused")
     private BlockedNamespacesUpdater(final BlockedNamespaces blockedNamespaces, final ActorRef pubSubMediator) {
         this.blockedNamespaces = blockedNamespaces;
 
@@ -52,8 +53,8 @@ public final class BlockedNamespacesUpdater extends AbstractActor {
      * @return the Props.
      */
     public static Props props(final BlockedNamespaces blockedNamespaces, final ActorRef pubSubMediator) {
-        return Props.create(BlockedNamespacesUpdater.class,
-                () -> new BlockedNamespacesUpdater(blockedNamespaces, pubSubMediator));
+
+        return Props.create(BlockedNamespacesUpdater.class, blockedNamespaces, pubSubMediator);
     }
 
     @Override

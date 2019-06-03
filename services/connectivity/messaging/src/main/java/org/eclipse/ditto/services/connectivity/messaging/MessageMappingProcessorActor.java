@@ -59,6 +59,7 @@ import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.model.placeholders.ThingPlaceholder;
 import org.eclipse.ditto.model.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectionMetricsCollector;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry;
@@ -67,6 +68,7 @@ import org.eclipse.ditto.services.models.connectivity.InboundExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
@@ -80,7 +82,6 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -114,17 +115,20 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private final ConnectionMetricsCollector responseDroppedCounter;
     private final ConnectionMetricsCollector responseMappedCounter;
 
+    @SuppressWarnings("unused")
     private MessageMappingProcessorActor(final ActorRef publisherActor,
             final ActorRef conciergeForwarder,
             final MessageMappingProcessor messageMappingProcessor,
-            final String connectionId,
-            final LimitsConfig limitsConfig) {
+            final String connectionId) {
 
         this.publisherActor = publisherActor;
         this.conciergeForwarder = conciergeForwarder;
         this.messageMappingProcessor = messageMappingProcessor;
         this.connectionId = connectionId;
-        this.limitsConfig = limitsConfig;
+
+        this.limitsConfig = DefaultLimitsConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        );
 
         timers = new ConcurrentHashMap<>();
         placeholderSubstitution = new PlaceholderSubstitution();
@@ -144,24 +148,15 @@ public final class MessageMappingProcessorActor extends AbstractActor {
      * @param conciergeForwarder the actor used to send signals to the concierge service.
      * @param processor the MessageMappingProcessor to use.
      * @param connectionId the connection ID.
-     * @param limitsConfig
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef publisherActor,
             final ActorRef conciergeForwarder,
             final MessageMappingProcessor processor,
-            final String connectionId,
-            final LimitsConfig limitsConfig) {
+            final String connectionId) {
 
-        return Props.create(MessageMappingProcessorActor.class, new Creator<MessageMappingProcessorActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public MessageMappingProcessorActor create() {
-                return new MessageMappingProcessorActor(publisherActor, conciergeForwarder, processor, connectionId,
-                        limitsConfig);
-            }
-        });
+        return Props.create(MessageMappingProcessorActor.class, publisherActor, conciergeForwarder, processor,
+                connectionId);
     }
 
     @Override

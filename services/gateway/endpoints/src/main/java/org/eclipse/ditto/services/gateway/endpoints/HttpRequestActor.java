@@ -63,7 +63,6 @@ import akka.http.javadsl.model.headers.Location;
 import akka.http.javadsl.model.headers.RawHeader;
 import akka.http.scaladsl.model.ContentType$;
 import akka.http.scaladsl.model.EntityStreamSizeException;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
 import akka.util.ByteString;
@@ -95,6 +94,7 @@ public final class HttpRequestActor extends AbstractActor {
     private java.time.Duration messageTimeout;
     private boolean isFireAndForgetMessage = false;
 
+    @SuppressWarnings("unused")
     private HttpRequestActor(final ActorRef proxyActor,
             final HeaderTranslator headerTranslator,
             final HttpRequest request,
@@ -293,14 +293,8 @@ public final class HttpRequestActor extends AbstractActor {
             final CompletableFuture<HttpResponse> httpResponseFuture,
             final HttpConfig httpConfig) {
 
-        return Props.create(HttpRequestActor.class, new Creator<HttpRequestActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public HttpRequestActor create() {
-                return new HttpRequestActor(proxyActor, headerTranslator, request, httpResponseFuture, httpConfig);
-            }
-        });
+        return Props.create(HttpRequestActor.class, proxyActor, headerTranslator, request, httpResponseFuture,
+                httpConfig);
     }
 
     @Override

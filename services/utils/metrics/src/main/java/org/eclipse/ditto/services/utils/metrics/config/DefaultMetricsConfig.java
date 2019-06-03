@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.utils.metrics.config;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
@@ -26,11 +25,9 @@ import com.typesafe.config.Config;
  * This class is the default implementation of {@link MetricsConfig}.
  */
 @Immutable
-public final class DefaultMetricsConfig implements MetricsConfig, Serializable {
+public final class DefaultMetricsConfig implements MetricsConfig {
 
     private static final String CONFIG_PATH = "metrics";
-
-    private static final long serialVersionUID = -7705553939958298105L;
 
     private final boolean systemMetricEnabled;
     private final boolean prometheusEnabled;

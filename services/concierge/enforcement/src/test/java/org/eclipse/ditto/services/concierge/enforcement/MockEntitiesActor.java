@@ -33,7 +33,7 @@ public final class MockEntitiesActor extends AbstractActor {
     private final Map<String, Function<Signal, Object>> handlers = new ConcurrentHashMap<>();
 
     public static Props props() {
-        return Props.create(MockEntitiesActor.class, MockEntitiesActor::new);
+        return Props.create(MockEntitiesActor.class);
     }
 
     @Override

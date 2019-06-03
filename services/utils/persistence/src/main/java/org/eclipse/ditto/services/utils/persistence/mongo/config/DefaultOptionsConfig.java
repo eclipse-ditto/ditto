@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -26,14 +25,12 @@ import com.typesafe.config.Config;
  * This class is the default implementation of {@link MongoDbConfig.OptionsConfig}.
  */
 @Immutable
-public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig, Serializable {
+public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig{
 
     /**
      * The supposed path of the OptionsConfig within the MongoDB config object.
      */
     static final String CONFIG_PATH = "options";
-
-    private static final long serialVersionUID = -4182418001331538993L;
 
     private final boolean sslEnabled;
 

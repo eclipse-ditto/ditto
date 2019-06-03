@@ -128,8 +128,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
 
         final SnapshotAdapter<Policy> snapshotAdapter = new PolicyMongoSnapshotAdapter();
-        final Props props =
-                PolicyPersistenceActor.props(policyIdOfActor, snapshotAdapter, pubSubMediator, policyConfig);
+        final Props props = PolicyPersistenceActor.props(policyIdOfActor, snapshotAdapter, pubSubMediator);
         final TestActorRef<PolicyPersistenceActor> underTest = TestActorRef.create(actorSystem, props);
         final PolicyPersistenceActor policyPersistenceActor = underTest.underlyingActor();
         final PartialFunction<Object, BoxedUnit> receiveCommand = policyPersistenceActor.receiveCommand();
@@ -916,8 +915,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final String policyId = "test.ns:nonexistent.policy";
                 final Props props = Props.create(PolicyPersistenceActor.class, () -> {
                     restartCounter.incrementAndGet();
-                    return new PolicyPersistenceActor(policyId, new PolicyMongoSnapshotAdapter(), pubSubMediator,
-                            policyConfig);
+                    return new PolicyPersistenceActor(policyId, new PolicyMongoSnapshotAdapter(), pubSubMediator);
                 });
 
                 // WHEN: CheckForActivity is sent to a persistence actor of nonexistent policy after startup
@@ -944,7 +942,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
     private ActorRef createPersistenceActorFor(final String policyId) {
         final SnapshotAdapter<Policy> snapshotAdapter = new PolicyMongoSnapshotAdapter();
-        final Props props = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator, policyConfig);
+        final Props props = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator);
         return actorSystem.actorOf(props);
     }
 

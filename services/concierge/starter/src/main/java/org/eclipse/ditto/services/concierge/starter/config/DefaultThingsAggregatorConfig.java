@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.concierge.starter.config;
 
-import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -27,11 +26,9 @@ import com.typesafe.config.Config;
  * This class implements {@link ThingsAggregatorConfig} for Ditto's Concierge service.
  */
 @Immutable
-public final class DefaultThingsAggregatorConfig implements ThingsAggregatorConfig, Serializable {
+public final class DefaultThingsAggregatorConfig implements ThingsAggregatorConfig {
 
     private static final String CONFIG_PATH = "things-aggregator";
-
-    private static final long serialVersionUID = 3409907395010277780L;
 
     private final Duration singleRetrieveThingTimeout;
     private final int maxParallelism;

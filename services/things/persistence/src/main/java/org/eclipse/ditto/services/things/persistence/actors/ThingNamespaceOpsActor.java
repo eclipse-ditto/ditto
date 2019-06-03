@@ -12,12 +12,9 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors;
 
-import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.namespace.AbstractEventSourceNamespaceOpsActor;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
-
-import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -30,23 +27,20 @@ public final class ThingNamespaceOpsActor extends AbstractEventSourceNamespaceOp
 
     public static final String ACTOR_NAME = "thingNamespaceOps";
 
-    private ThingNamespaceOpsActor(final ActorRef pubSubMediator, final Config config,
-            final MongoDbConfig mongoDbConfig) {
+    @SuppressWarnings("unused")
+    private ThingNamespaceOpsActor(final ActorRef pubSubMediator) {
 
-        super(pubSubMediator, config, mongoDbConfig);
+        super(pubSubMediator);
     }
 
     /**
      * Create Props of this actor.
      *
      * @param pubSubMediator Akka pub-sub mediator.
-     * @param config Configuration with info about event journal, snapshot store, suffix-builder and database.
-     * @param mongoDbConfig the configuration settings for MongoDB.
      * @return a Props object.
      */
-    public static Props props(final ActorRef pubSubMediator, final Config config, final MongoDbConfig mongoDbConfig) {
-        return Props.create(ThingNamespaceOpsActor.class,
-                () -> new ThingNamespaceOpsActor(pubSubMediator, config, mongoDbConfig));
+    public static Props props(final ActorRef pubSubMediator) {
+        return Props.create(ThingNamespaceOpsActor.class, pubSubMediator);
     }
 
     @Override

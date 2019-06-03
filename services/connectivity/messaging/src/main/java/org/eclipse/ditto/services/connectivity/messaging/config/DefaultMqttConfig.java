@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.config;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -26,11 +25,9 @@ import com.typesafe.config.Config;
  * This class is the default implementation of the MQTT protocol.
  */
 @Immutable
-public final class DefaultMqttConfig implements MqttConfig, Serializable {
+public final class DefaultMqttConfig implements MqttConfig {
 
     private static final String CONFIG_PATH = "mqtt";
-
-    private static final long serialVersionUID = 4895715266164857570L;
 
     private final int sourceBufferSize;
 

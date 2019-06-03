@@ -15,13 +15,6 @@ package org.eclipse.ditto.services.utils.persistence.mongo.config;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutput;
-import java.io.ObjectOutputStream;
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -60,23 +53,6 @@ public final class DefaultSnapshotConfigTest {
         EqualsVerifier.forClass(DefaultSnapshotConfig.class)
                 .usingGetClass()
                 .verify();
-    }
-
-    @Test
-    public void testSerializationAndDeserialization() throws IOException, ClassNotFoundException {
-        final DefaultSnapshotConfig underTest = DefaultSnapshotConfig.of(snapshotTestConf);
-        final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        final ObjectOutput objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
-        objectOutputStream.writeObject(underTest);
-        objectOutputStream.close();
-
-        final byte[] underTestSerialized = byteArrayOutputStream.toByteArray();
-
-        final ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(underTestSerialized);
-        final ObjectInput objectInputStream = new ObjectInputStream(byteArrayInputStream);
-        final Object underTestDeserialized = objectInputStream.readObject();
-
-        softly.assertThat(underTestDeserialized).isEqualTo(underTest);
     }
 
     @Test

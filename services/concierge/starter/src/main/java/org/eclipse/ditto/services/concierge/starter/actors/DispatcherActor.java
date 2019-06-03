@@ -22,7 +22,6 @@ import java.util.Optional;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.services.concierge.starter.config.ConciergeConfig;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommand;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
@@ -58,8 +57,8 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
     private final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> handler;
     private final ActorRef thingsAggregatorActor;
 
-    private DispatcherActor(final ConciergeConfig conciergeConfig,
-            final ActorRef enforcerActor,
+    @SuppressWarnings("unused")
+    private DispatcherActor(final ActorRef enforcerActor,
             final ActorRef pubSubMediator,
             final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> handler,
             final int bufferSize,
@@ -68,7 +67,7 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
         super(bufferSize, parallelism);
 
         this.handler = handler;
-        final Props props = ThingsAggregatorActor.props(conciergeConfig, enforcerActor);
+        final Props props = ThingsAggregatorActor.props(enforcerActor);
         thingsAggregatorActor = getContext().actorOf(props, ThingsAggregatorActor.ACTOR_NAME);
 
         initActor(getSelf(), pubSubMediator);
@@ -92,26 +91,23 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
     /**
      * Create Akka actor configuration Props object without pre-enforcer.
      *
-     * @param conciergeConfig the configuration settings for the Concierge service.
      * @param pubSubMediator Akka pub-sub mediator.
      * @param enforcerActor address of the enforcer actor.
      * @param bufferSize the buffer size used for the Source queue.
      * @param parallelism parallelism to use for processing messages in parallel.
      * @return the Props object.
      */
-    public static Props props(final ConciergeConfig conciergeConfig,
-            final ActorRef pubSubMediator,
+    public static Props props(final ActorRef pubSubMediator,
             final ActorRef enforcerActor,
             final int bufferSize,
             final int parallelism) {
 
-        return props(conciergeConfig, pubSubMediator, enforcerActor, Flow.create(), bufferSize, parallelism);
+        return props(pubSubMediator, enforcerActor, Flow.create(), bufferSize, parallelism);
     }
 
     /**
      * Create Akka actor configuration Props object with pre-enforcer.
      *
-     * @param conciergeConfig the configuration settings for the Concierge service.
      * @param pubSubMediator Akka pub-sub mediator.
      * @param enforcerActor the address of the enforcer actor.
      * @param preEnforcer the pre-enforcer as graph.
@@ -119,8 +115,7 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
      * @param parallelism parallelism to use for processing messages in parallel.
      * @return the Props object.
      */
-    public static Props props(final ConciergeConfig conciergeConfig,
-            final ActorRef pubSubMediator,
+    public static Props props(final ActorRef pubSubMediator,
             final ActorRef enforcerActor,
             final Graph<FlowShape<WithSender, WithSender>, ?> preEnforcer,
             final int bufferSize,
@@ -132,9 +127,7 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
         final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> handler = asContextualFlow(preEnforcer)
                 .via(dispatchFlow);
 
-        return Props.create(DispatcherActor.class,
-                () -> new DispatcherActor(conciergeConfig, enforcerActor, pubSubMediator, handler, bufferSize,
-                        parallelism));
+        return Props.create(DispatcherActor.class, enforcerActor, pubSubMediator, handler, bufferSize, parallelism);
     }
 
     /**

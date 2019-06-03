@@ -42,6 +42,7 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.SnapshotConfig;
 import org.eclipse.ditto.services.connectivity.messaging.kafka.KafkaValidator;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.RetrieveConnectionMetricsAggregatorActor;
@@ -55,6 +56,7 @@ import org.eclipse.ditto.services.connectivity.messaging.validation.DittoConnect
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.signals.base.Signal;
@@ -103,7 +105,6 @@ import akka.cluster.routing.ClusterRouterPool;
 import akka.cluster.routing.ClusterRouterPoolSettings;
 import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.PatternsCS;
 import akka.persistence.AbstractPersistentActor;
@@ -170,12 +171,12 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private final java.time.Duration clientActorAskTimeout;
     @Nullable private Cancellable stopSelfIfDeletedTrigger;
 
+    @SuppressWarnings("unused")
     private ConnectionActor(final String connectionId,
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory propsFactory,
-            @Nullable final Consumer<ConnectivityCommand<?>> customCommandValidator,
-            final ConnectionConfig connectionConfig) {
+            @Nullable final Consumer<ConnectivityCommand<?>> customCommandValidator) {
 
         this.connectionId = connectionId;
         this.pubSubMediator = pubSubMediator;
@@ -191,6 +192,9 @@ public final class ConnectionActor extends AbstractPersistentActor {
             commandValidator = dittoCommandValidator;
         }
 
+        final ConnectionConfig connectionConfig = DittoConnectivityConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        ).getConnectionConfig();
         final SnapshotConfig snapshotConfig = connectionConfig.getSnapshotConfig();
         snapshotThreshold = snapshotConfig.getThreshold();
         snapshotAdapter = new ConnectionMongoSnapshotAdapter();
@@ -210,25 +214,16 @@ public final class ConnectionActor extends AbstractPersistentActor {
      * @param pubSubMediator Akka pub-sub mediator.
      * @param conciergeForwarder proxy of concierge service.
      * @param propsFactory factory of props of client actors for various protocols.
-     * @param connectionConfig the connection config.
      * @return the Akka configuration Props object
      */
     public static Props props(final String connectionId,
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory propsFactory,
-            @Nullable final Consumer<ConnectivityCommand<?>> commandValidator,
-            final ConnectionConfig connectionConfig) {
+            @Nullable final Consumer<ConnectivityCommand<?>> commandValidator) {
 
-        return Props.create(ConnectionActor.class, new Creator<ConnectionActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public ConnectionActor create() {
-                return new ConnectionActor(connectionId, pubSubMediator, conciergeForwarder, propsFactory,
-                        commandValidator, connectionConfig);
-            }
-        });
+        return Props.create(ConnectionActor.class, connectionId, pubSubMediator, conciergeForwarder, propsFactory,
+                        commandValidator);
     }
 
     @Override

@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.thingsearch.common.config;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
@@ -28,9 +27,7 @@ import com.typesafe.config.Config;
  * This class is the default implementation of {@link StreamStageConfig}.
  */
 @Immutable
-public final class DefaultStreamStageConfig implements StreamStageConfig, Serializable {
-
-    private static final long serialVersionUID = 5024710229819803751L;
+public final class DefaultStreamStageConfig implements StreamStageConfig {
 
     private final int parallelism;
     private final DefaultExponentialBackOffConfig exponentialBackOffConfig;

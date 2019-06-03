@@ -94,7 +94,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
 
     @BeforeClass
     public static void initTestFixture() {
-        final DefaultScopedConfig dittoScopedConfig = DefaultScopedConfig.newInstance(createTestConfig(), "ditto");
+        final DefaultScopedConfig dittoScopedConfig = DefaultScopedConfig.dittoScoped(createTestConfig());
         final DefaultScopedConfig gatewayScopedConfig = DefaultScopedConfig.newInstance(dittoScopedConfig, "gateway");
         httpConfig = GatewayHttpConfig.of(gatewayScopedConfig);
         healthCheckConfig = DefaultHealthCheckConfig.of(gatewayScopedConfig);

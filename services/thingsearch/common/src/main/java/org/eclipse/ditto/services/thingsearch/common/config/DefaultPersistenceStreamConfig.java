@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.thingsearch.common.config;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
@@ -27,11 +26,9 @@ import com.typesafe.config.Config;
  * This class is the default implementation of {@link PersistenceStreamConfig}.
  */
 @Immutable
-public final class DefaultPersistenceStreamConfig implements PersistenceStreamConfig, Serializable {
+public final class DefaultPersistenceStreamConfig implements PersistenceStreamConfig {
 
     private static final String CONFIG_PATH = "persistence";
-
-    private static final long serialVersionUID = 49154106468833606L;
 
     private final int maxBulkSize;
     private final DefaultStreamStageConfig defaultStreamStageConfig;

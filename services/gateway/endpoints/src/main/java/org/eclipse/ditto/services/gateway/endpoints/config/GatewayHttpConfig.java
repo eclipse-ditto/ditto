@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.config;
 
-import java.io.Serializable;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.Collections;
@@ -35,9 +34,7 @@ import com.typesafe.config.Config;
  * This class implements the HTTP config that is specific for the Ditto Gateway service.
  */
 @Immutable
-public final class GatewayHttpConfig implements HttpConfig, Serializable {
-
-    private static final long serialVersionUID = 2115204753471363660L;
+public final class GatewayHttpConfig implements HttpConfig {
 
     private final String hostname;
     private final int port;

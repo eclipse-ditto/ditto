@@ -59,7 +59,7 @@ final class SearchHealthCheckingActorFactory {
         final HealthCheckConfig healthCheckConfig = searchConfig.getHealthCheckConfig();
         final boolean healthCheckEnabled = healthCheckConfig.isEnabled();
         if (healthCheckEnabled) {
-            childActorProps.put(PERSISTENCE_LABEL, MongoHealthChecker.props(searchConfig.getMongoDbConfig()));
+            childActorProps.put(PERSISTENCE_LABEL, MongoHealthChecker.props());
         }
 
         final UpdaterConfig updaterConfig = searchConfig.getUpdaterConfig();

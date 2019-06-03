@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.config;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -27,11 +26,9 @@ import com.typesafe.config.Config;
  * This class is the default implementation of the Gateway's caches config.
  */
 @Immutable
-public final class DefaultCachesConfig implements CachesConfig, Serializable {
+public final class DefaultCachesConfig implements CachesConfig {
 
     private static final String CONFIG_PATH = "cache";
-
-    private static final long serialVersionUID = -4371780699062739928L;
 
     private final CacheConfig publicKeysConfig;
 

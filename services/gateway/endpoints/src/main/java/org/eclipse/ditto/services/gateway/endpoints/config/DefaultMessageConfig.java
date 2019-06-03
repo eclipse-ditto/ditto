@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.config;
 
-import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -27,11 +26,9 @@ import com.typesafe.config.Config;
  * This class is the default implementation for the config of the {@code messages} resource of the Things service.
  */
 @Immutable
-public final class DefaultMessageConfig implements MessageConfig, Serializable  {
+public final class DefaultMessageConfig implements MessageConfig {
 
     private static final String CONFIG_PATH = "message";
-
-    private static final long serialVersionUID = -4789137489104250201L;
 
     private final Duration defaultTimeout;
     private final Duration maxTimeout;

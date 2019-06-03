@@ -74,10 +74,12 @@ final class ManualUpdater extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
+    @SuppressWarnings("unused")
     private ManualUpdater(final MongoDatabase database, final ActorRef thingsUpdater) {
         this(database, thingsUpdater, DELAY_PER_ELEMENT, DELAY_PER_CURSOR, MIN_BACK_OFF, MAX_BACK_OFF);
     }
 
+    @SuppressWarnings("unused")
     ManualUpdater(final MongoDatabase database,
             final ActorRef thingsUpdater,
             final Duration delayPerElement,
@@ -105,7 +107,7 @@ final class ManualUpdater extends AbstractActor {
      */
     public static Props props(final MongoDatabase db, final ActorRef thingsUpdater) {
 
-        return Props.create(ManualUpdater.class, () -> new ManualUpdater(db, thingsUpdater));
+        return Props.create(ManualUpdater.class, db, thingsUpdater);
     }
 
     @Override

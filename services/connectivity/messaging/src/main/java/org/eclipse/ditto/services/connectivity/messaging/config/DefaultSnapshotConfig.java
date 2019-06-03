@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.config;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -26,11 +25,9 @@ import com.typesafe.config.Config;
  * This class is the default implementation of the snapshotting behaviour config.
  */
 @Immutable
-public final class DefaultSnapshotConfig implements SnapshotConfig, Serializable {
+public final class DefaultSnapshotConfig implements SnapshotConfig {
 
     private static final String CONFIG_PATH = "snapshot";
-
-    private static final long serialVersionUID = 3678342704983434382L;
 
     private final int threshold;
 

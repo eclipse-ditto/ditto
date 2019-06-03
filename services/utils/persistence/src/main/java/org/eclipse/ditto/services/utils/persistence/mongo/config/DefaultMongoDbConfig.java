@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
-import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -29,14 +28,12 @@ import com.typesafe.config.Config;
  * </p>
  */
 @Immutable
-public final class DefaultMongoDbConfig implements MongoDbConfig, Serializable {
+public final class DefaultMongoDbConfig implements MongoDbConfig {
 
     /**
      * The supposed path of the MongoDB config within the service Config object.
      */
     static final String CONFIG_PATH = "mongodb";
-
-    private static final long serialVersionUID = 4473386736928414347L;
 
     private final Duration maxQueryTime;
     private final String mongoDbUri;

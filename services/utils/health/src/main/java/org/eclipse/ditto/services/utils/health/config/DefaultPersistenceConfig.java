@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.utils.health.config;
 
-import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -27,11 +26,9 @@ import com.typesafe.config.Config;
  * This class is the default implementation of the health check persistence config.
  */
 @Immutable
-public final class DefaultPersistenceConfig implements PersistenceConfig, Serializable {
+public final class DefaultPersistenceConfig implements PersistenceConfig {
 
     private static final String CONFIG_PATH = "persistence";
-
-    private static final long serialVersionUID = -2709507433137475329L;
 
     private final boolean enabled;
     private final Duration timeout;

@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.thingsearch.common.config;
 
-import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -27,12 +26,9 @@ import com.typesafe.config.Config;
  * This class is the default implementation of {@link StreamConfig}.
  */
 @Immutable
-public final class DefaultStreamConfig implements StreamConfig, Serializable {
-
+public final class DefaultStreamConfig implements StreamConfig {
     private static final String CONFIG_PATH = "stream";
     private static final String RETRIEVAL_CONFIG_PATH = "retrieval";
-
-    private static final long serialVersionUID = -7983066949793894157L;
 
     private final int maxArraySize;
     private final Duration writeInterval;

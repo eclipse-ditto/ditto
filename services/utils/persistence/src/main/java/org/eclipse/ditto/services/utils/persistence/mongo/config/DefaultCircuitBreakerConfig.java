@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -26,11 +25,9 @@ import com.typesafe.config.Config;
  * This class is the default implementation of {@link MongoDbConfig.CircuitBreakerConfig}.
  */
 @Immutable
-public final class DefaultCircuitBreakerConfig implements MongoDbConfig.CircuitBreakerConfig, Serializable {
+public final class DefaultCircuitBreakerConfig implements MongoDbConfig.CircuitBreakerConfig {
 
     private static final String CONFIG_PATH = "breaker";
-
-    private static final long serialVersionUID = 3134626495417410671L;
 
     private final int maxFailures;
     private final TimeoutConfig timeoutConfig;

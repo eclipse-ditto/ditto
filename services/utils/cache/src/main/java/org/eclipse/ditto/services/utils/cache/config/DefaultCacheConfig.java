@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.utils.cache.config;
 
-import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -26,9 +25,7 @@ import com.typesafe.config.Config;
  * Default implementation of {@link CacheConfig}.
  */
 @Immutable
-public final class DefaultCacheConfig implements CacheConfig, Serializable {
-
-    private static final long serialVersionUID = -5185056342757809881L;
+public final class DefaultCacheConfig implements CacheConfig {
 
     private final long maximumSize;
     private final Duration expireAfterWrite;

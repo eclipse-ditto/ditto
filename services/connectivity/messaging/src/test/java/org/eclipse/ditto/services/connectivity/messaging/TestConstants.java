@@ -68,7 +68,6 @@ import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ClientConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
@@ -100,7 +99,6 @@ import akka.actor.Props;
 import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.event.Logging;
-import akka.japi.Creator;
 
 public final class TestConstants {
 
@@ -117,8 +115,7 @@ public final class TestConstants {
     public static final ProtocolConfig PROTOCOL_CONFIG;
 
     static {
-        final DefaultScopedConfig dittoScopedConfig =
-                DefaultScopedConfig.newInstance(CONFIG, DittoService.DITTO_CONFIG_PATH);
+        final DefaultScopedConfig dittoScopedConfig = DefaultScopedConfig.dittoScoped(CONFIG);
 
         CONNECTIVITY_CONFIG = DittoConnectivityConfig.of(dittoScopedConfig);
         MAPPING_CONFIG = CONNECTIVITY_CONFIG.getMappingConfig();
@@ -462,7 +459,7 @@ public final class TestConstants {
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory clientActorPropsFactory) {
 
-        final Props props = ConnectionSupervisorActor.props(CONNECTION_CONFIG, pubSubMediator, conciergeForwarder,
+        final Props props = ConnectionSupervisorActor.props(pubSubMediator, conciergeForwarder,
                 clientActorPropsFactory, null);
 
         final Props shardRegionMockProps = Props.create(ShardRegionMockActor.class, props, connectionId);
@@ -554,8 +551,7 @@ public final class TestConstants {
         }
 
         public static Props props() {
-            return Props.create(ConciergeForwarderActorMock.class,
-                    (Creator<ConciergeForwarderActorMock>) ConciergeForwarderActorMock::new);
+            return Props.create(ConciergeForwarderActorMock.class);
         }
 
         @Override

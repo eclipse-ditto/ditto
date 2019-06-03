@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.config;
 
-import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -28,11 +27,9 @@ import com.typesafe.config.Config;
  * This class implements {@link ConnectionConfig} for Ditto's Connectivity service.
  */
 @Immutable
-public final class DefaultConnectionConfig implements ConnectionConfig, Serializable {
+public final class DefaultConnectionConfig implements ConnectionConfig {
 
     private static final String CONFIG_PATH = "connection";
-
-    private static final long serialVersionUID = -8262639769154675241L;
 
     private final Duration flushPendingResponsesTimeout;
     private final Duration clientActorAskTimeout;

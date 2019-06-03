@@ -48,11 +48,13 @@ import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
+import org.eclipse.ditto.services.policies.common.config.DittoPoliciesConfig;
+import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.policies.persistence.actors.AbstractReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.ReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.StrategyAwareReceiveBuilder;
-import org.eclipse.ditto.services.policies.persistence.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.headers.conditional.ConditionalHeadersValidator;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
@@ -130,7 +132,6 @@ import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ClusterSharding;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.function.Procedure;
 import akka.japi.pf.FI;
 import akka.japi.pf.ReceiveBuilder;
@@ -183,13 +184,15 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     PolicyPersistenceActor(final String policyId,
             final SnapshotAdapter<Policy> snapshotAdapter,
-            final ActorRef pubSubMediator,
-            final PolicyConfig policyConfig) {
+            final ActorRef pubSubMediator) {
 
         this.policyId = policyId;
         this.snapshotAdapter = snapshotAdapter;
         this.pubSubMediator = pubSubMediator;
-        this.policyConfig = policyConfig;
+        final DittoPoliciesConfig policiesConfig = DittoPoliciesConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        );
+        this.policyConfig = policiesConfig.getPolicyConfig();
 
         handlePolicyEvents = ReceiveBuilder.create()
 
@@ -343,22 +346,13 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
      * @param policyId the ID of the Policy this Actor manages.
      * @param snapshotAdapter the adapter to serialize Policy snapshots.
      * @param pubSubMediator the PubSub mediator actor.
-     * @param policyConfig the configuration settings for Policy entities.
      * @return the Akka configuration Props object
      */
     public static Props props(final String policyId,
             final SnapshotAdapter<Policy> snapshotAdapter,
-            final ActorRef pubSubMediator,
-            final PolicyConfig policyConfig) {
+            final ActorRef pubSubMediator) {
 
-        return Props.create(PolicyPersistenceActor.class, new Creator<PolicyPersistenceActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public PolicyPersistenceActor create() {
-                return new PolicyPersistenceActor(policyId, snapshotAdapter, pubSubMediator, policyConfig);
-            }
-        });
+        return Props.create(PolicyPersistenceActor.class, policyId, snapshotAdapter, pubSubMediator);
     }
 
     /**

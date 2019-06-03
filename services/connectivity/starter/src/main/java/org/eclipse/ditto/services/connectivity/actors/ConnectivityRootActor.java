@@ -29,11 +29,11 @@ import javax.naming.NamingException;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.base.config.http.HttpConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ConnectionSupervisorActor;
 import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ReconnectActor;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
@@ -72,7 +72,6 @@ import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.server.Route;
-import akka.japi.Creator;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
@@ -148,6 +147,7 @@ public final class ConnectivityRootActor extends AbstractActor {
                 return SupervisorStrategy.escalate();
             }).build());
 
+    @SuppressWarnings("unused")
     private ConnectivityRootActor(final ConnectivityConfig connectivityConfig,
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer,
@@ -164,11 +164,11 @@ public final class ConnectivityRootActor extends AbstractActor {
         final ActorRef conciergeForwarder =
                 getConciergeForwarder(clusterConfig, pubSubMediator, conciergeForwarderSignalTransformer);
         final Props connectionSupervisorProps =
-                getConnectionSupervisorProps(connectivityConfig, pubSubMediator, conciergeForwarder, commandValidator);
+                getConnectionSupervisorProps(pubSubMediator, conciergeForwarder, commandValidator);
 
         startClusterSingletonActor(
                 ReconnectActor.props(getConnectionShardRegion(actorSystem, connectionSupervisorProps, clusterConfig),
-                        mongoReadJournal::currentPersistenceIds, connectivityConfig.getReconnectConfig()));
+                        mongoReadJournal::currentPersistenceIds));
 
         final CompletionStage<ServerBinding> binding =
                 getHttpBinding(connectivityConfig.getHttpConfig(), actorSystem, materializer,
@@ -203,15 +203,8 @@ public final class ConnectivityRootActor extends AbstractActor {
             final UnaryOperator<Signal<?>> conciergeForwarderSignalTransformer,
             final ConnectivityCommandInterceptor commandValidator) {
 
-        return Props.create(ConnectivityRootActor.class, new Creator<ConnectivityRootActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public ConnectivityRootActor create() {
-                return new ConnectivityRootActor(connectivityConfig, pubSubMediator, materializer,
+        return Props.create(ConnectivityRootActor.class, connectivityConfig, pubSubMediator, materializer,
                         conciergeForwarderSignalTransformer, commandValidator);
-            }
-        });
     }
 
     /**
@@ -229,15 +222,8 @@ public final class ConnectivityRootActor extends AbstractActor {
             final ActorMaterializer materializer,
             final UnaryOperator<Signal<?>> conciergeForwarderSignalTransformer) {
 
-        return Props.create(ConnectivityRootActor.class, new Creator<ConnectivityRootActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public ConnectivityRootActor create() {
-                return new ConnectivityRootActor(connectivityConfig, pubSubMediator, materializer,
+        return Props.create(ConnectivityRootActor.class, connectivityConfig, pubSubMediator, materializer,
                         conciergeForwarderSignalTransformer, null);
-            }
-        });
     }
 
     @Override
@@ -287,8 +273,7 @@ public final class ConnectivityRootActor extends AbstractActor {
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
 
         return startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
-                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions,
-                        MongoHealthChecker.props(connectivityConfig.getMongoDbConfig())));
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, MongoHealthChecker.props()));
     }
 
     private ActorRef getConciergeForwarder(final ClusterConfig clusterConfig, final ActorRef pubSubMediator,
@@ -303,16 +288,15 @@ public final class ConnectivityRootActor extends AbstractActor {
                         conciergeForwarderSignalTransformer));
     }
 
-    private static Props getConnectionSupervisorProps(final ConnectivityConfig connectivityConfig,
-            final ActorRef pubSubMediator,
+    private static Props getConnectionSupervisorProps(final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
             @Nullable final ConnectivityCommandInterceptor commandValidator) {
 
         final ClientActorPropsFactory clientActorPropsFactory =
-                DefaultClientActorPropsFactory.getInstance(connectivityConfig);
+                DefaultClientActorPropsFactory.getInstance();
 
-        return ConnectionSupervisorActor.props(connectivityConfig.getConnectionConfig(), pubSubMediator,
-                conciergeForwarder, clientActorPropsFactory, commandValidator);
+        return ConnectionSupervisorActor.props(pubSubMediator, conciergeForwarder, clientActorPropsFactory,
+                commandValidator);
     }
 
     private static ActorRef getConnectionShardRegion(final ActorSystem actorSystem,

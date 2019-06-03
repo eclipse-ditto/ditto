@@ -97,6 +97,7 @@ public final class SearchActor extends AbstractActor {
     private final ActorMaterializer materializer;
     private final ExecutionContextExecutor dispatcher;
 
+    @SuppressWarnings("unused")
     private SearchActor(
             final QueryParser queryParser,
             final ThingsSearchPersistence searchPersistence) {
@@ -119,7 +120,7 @@ public final class SearchActor extends AbstractActor {
             final QueryParser queryFactory,
             final ThingsSearchPersistence searchPersistence) {
 
-        return Props.create(SearchActor.class, () -> new SearchActor(queryFactory, searchPersistence));
+        return Props.create(SearchActor.class, queryFactory, searchPersistence);
     }
 
     @Override

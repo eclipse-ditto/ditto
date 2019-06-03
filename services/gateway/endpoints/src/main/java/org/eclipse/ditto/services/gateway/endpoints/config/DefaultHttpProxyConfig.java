@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.config;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
@@ -26,11 +25,9 @@ import com.typesafe.config.Config;
  * This class is the default implementation of the HTTP proxy config.
  */
 @Immutable
-public final class DefaultHttpProxyConfig implements HttpProxyConfig, Serializable {
+public final class DefaultHttpProxyConfig implements HttpProxyConfig {
 
     private static final String CONFIG_PATH = "http.proxy";
-
-    private static final long serialVersionUID = 772633239915104623L;
 
     private final boolean enabled;
     private final String hostName;

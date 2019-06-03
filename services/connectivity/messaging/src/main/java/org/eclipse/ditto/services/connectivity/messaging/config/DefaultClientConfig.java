@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.config;
 
-import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -27,9 +26,7 @@ import com.typesafe.config.Config;
  * This class is the default implementation of the client config.
  */
 @Immutable
-public final class DefaultClientConfig implements ClientConfig, Serializable {
-
-    private static final long serialVersionUID = 8858787893591786018L;
+public final class DefaultClientConfig implements ClientConfig {
 
     private static final String CONFIG_PATH = "client";
 

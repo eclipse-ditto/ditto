@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping.javascript;
 
-import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -27,11 +26,9 @@ import com.typesafe.config.Config;
  * This class is the default implementation of the JavaScript mapping config.
  */
 @Immutable
-public final class DefaultJavaScriptConfig implements JavaScriptConfig, Serializable {
+public final class DefaultJavaScriptConfig implements JavaScriptConfig {
 
     private static final String CONFIG_PATH = "javascript";
-
-    private static final long serialVersionUID = 8391268506225245206L;
 
     private final int maxScriptSizeBytes;
     private final Duration maxScriptExecutionTime;

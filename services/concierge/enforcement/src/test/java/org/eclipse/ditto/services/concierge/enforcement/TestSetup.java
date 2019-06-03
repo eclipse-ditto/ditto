@@ -33,7 +33,6 @@ import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.concierge.cache.config.CachesConfig;
 import org.eclipse.ditto.services.concierge.cache.config.DefaultCachesConfig;
 import org.eclipse.ditto.services.utils.cache.Cache;
@@ -71,8 +70,7 @@ public final class TestSetup {
     public static final CachesConfig CACHES_CONFIG;
 
     static {
-        final DefaultScopedConfig dittoScopedConfig =
-                DefaultScopedConfig.newInstance(RAW_CONFIG, DittoService.DITTO_CONFIG_PATH);
+        final DefaultScopedConfig dittoScopedConfig = DefaultScopedConfig.dittoScoped(RAW_CONFIG);
         final DefaultScopedConfig conciergeScopedConfig =
                 DefaultScopedConfig.newInstance(dittoScopedConfig, "concierge");
 

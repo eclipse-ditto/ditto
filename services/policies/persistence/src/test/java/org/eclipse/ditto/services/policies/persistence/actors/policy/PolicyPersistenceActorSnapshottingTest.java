@@ -33,8 +33,6 @@ import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyLifecycle;
 import org.eclipse.ditto.model.policies.PolicyRevision;
-import org.eclipse.ditto.services.policies.persistence.config.DefaultPolicyConfig;
-import org.eclipse.ditto.services.policies.persistence.config.PolicyConfig;
 import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoEventAdapter;
 import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSnapshotAdapter;
 import org.eclipse.ditto.services.policies.persistence.testhelper.Assertions;
@@ -285,8 +283,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 final Policy policy = createPolicyWithRandomId();
                 final String policyId = policy.getId().orElseThrow(IllegalStateException::new);
 
-                final PolicyConfig policyConfig = DefaultPolicyConfig.of(customConfig.getConfig("ditto.policies"));
-                final ActorRef underTest = createPersistenceActorFor(policyId, policyConfig);
+                final ActorRef underTest = createPersistenceActorFor(policyId);
 
                 final CreatePolicy createPolicy = CreatePolicy.of(policy, dittoHeadersV2);
                 underTest.tell(createPolicy, getRef());
@@ -341,8 +338,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 final Policy policy = createPolicyWithRandomId();
                 final String policyId = policy.getId().orElseThrow(IllegalStateException::new);
 
-                final PolicyConfig policyConfig = DefaultPolicyConfig.of(customConfig.getConfig("ditto.policies"));
-                final ActorRef underTest = createPersistenceActorFor(policyId, policyConfig);
+                final ActorRef underTest = createPersistenceActorFor(policyId);
 
                 final CreatePolicy createPolicy = CreatePolicy.of(policy, dittoHeadersV2);
                 underTest.tell(createPolicy, getRef());
@@ -431,12 +427,8 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
     }
 
     private ActorRef createPersistenceActorFor(final String policyId) {
-        return createPersistenceActorFor(policyId, policyConfig);
-    }
-
-    private ActorRef createPersistenceActorFor(final String policyId, final PolicyConfig policyConfig) {
         final SnapshotAdapter<Policy> snapshotAdapter = new PolicyMongoSnapshotAdapter();
-        final Props props = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator, policyConfig);
+        final Props props = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator);
         return actorSystem.actorOf(props);
     }
 

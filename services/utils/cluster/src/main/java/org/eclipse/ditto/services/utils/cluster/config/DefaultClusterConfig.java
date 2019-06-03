@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.utils.cluster.config;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
@@ -24,11 +23,9 @@ import com.typesafe.config.Config;
 /**
  * This class is the default implementation of {@link ClusterConfig}.
  */
-public final class DefaultClusterConfig implements ClusterConfig, Serializable {
+public final class DefaultClusterConfig implements ClusterConfig {
 
     private static final String CONFIG_PATH = "cluster";
-
-    private static final long serialVersionUID = 5940121378914735219L;
 
     private final int numberOfShards;
 

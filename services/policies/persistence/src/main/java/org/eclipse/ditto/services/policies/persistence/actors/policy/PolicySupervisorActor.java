@@ -28,11 +28,12 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.services.base.actors.ShutdownNamespaceBehavior;
 import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConfig;
+import org.eclipse.ditto.services.policies.common.config.DittoPoliciesConfig;
 import org.eclipse.ditto.services.policies.persistence.actors.AbstractReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.ReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.StrategyAwareReceiveBuilder;
-import org.eclipse.ditto.services.policies.persistence.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyUnavailableException;
 
@@ -44,7 +45,6 @@ import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.DeciderBuilder;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -63,25 +63,30 @@ public final class PolicySupervisorActor extends AbstractActor {
     private final Props persistenceActorProps;
     private final String policyId;
     private final ExponentialBackOffConfig exponentialBackOffConfig;
-    private final SupervisorStrategy supervisorStrategy;
     private final ShutdownNamespaceBehavior shutdownNamespaceBehavior;
 
     @Nullable private ActorRef child;
     private long restartCount;
 
+    private final SupervisorStrategy supervisorStrategy =  new OneForOneStrategy(true, DeciderBuilder
+            .match(NullPointerException.class, e -> SupervisorStrategy.restart())
+            .match(ActorKilledException.class, e -> SupervisorStrategy.stop())
+            .matchAny(e -> SupervisorStrategy.escalate())
+            .build());
+
     private PolicySupervisorActor(final ActorRef pubSubMediator,
-            final PolicyConfig policyConfig,
-            final SupervisorStrategy supervisorStrategy,
             final SnapshotAdapter<Policy> snapshotAdapter) {
 
+        final DittoPoliciesConfig policiesConfig = DittoPoliciesConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        );
         try {
             policyId = URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name());
         } catch (final UnsupportedEncodingException e) {
             throw new IllegalStateException("Unsupported encoding!", e);
         }
-        persistenceActorProps = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator, policyConfig);
-        exponentialBackOffConfig = policyConfig.getSupervisorConfig().getExponentialBackOffConfig();
-        this.supervisorStrategy = supervisorStrategy;
+        persistenceActorProps = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator);
+        exponentialBackOffConfig = policiesConfig.getPolicyConfig().getSupervisorConfig().getExponentialBackOffConfig();
         shutdownNamespaceBehavior = ShutdownNamespaceBehavior.fromId(policyId, pubSubMediator, getSelf());
 
         child = null;
@@ -96,27 +101,12 @@ public final class PolicySupervisorActor extends AbstractActor {
      * </p>
      *
      * @param pubSubMediator the PubSub mediator actor.
-     * @param policyConfig the configuration settings for policy entities.
      * @param snapshotAdapter the adapter to serialize snapshots.
      * @return the {@link Props} to create this actor.
      */
-    public static Props props(final ActorRef pubSubMediator, final PolicyConfig policyConfig,
-            final SnapshotAdapter<Policy> snapshotAdapter) {
+    public static Props props(final ActorRef pubSubMediator, final SnapshotAdapter<Policy> snapshotAdapter) {
 
-        return Props.create(PolicySupervisorActor.class, new Creator<PolicySupervisorActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public PolicySupervisorActor create() {
-                return new PolicySupervisorActor(pubSubMediator, policyConfig,
-                        new OneForOneStrategy(true, DeciderBuilder
-                                .match(NullPointerException.class, e -> SupervisorStrategy.restart())
-                                .match(ActorKilledException.class, e -> SupervisorStrategy.stop())
-                                .matchAny(e -> SupervisorStrategy.escalate())
-                                .build()),
-                        snapshotAdapter);
-            }
-        });
+        return Props.create(PolicySupervisorActor.class, pubSubMediator, snapshotAdapter);
     }
 
     private Collection<ReceiveStrategy<?>> initReceiveStrategies() {

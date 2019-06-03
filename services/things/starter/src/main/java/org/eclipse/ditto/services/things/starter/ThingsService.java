@@ -13,9 +13,9 @@
 package org.eclipse.ditto.services.things.starter;
 
 import org.eclipse.ditto.services.base.DittoService;
+import org.eclipse.ditto.services.things.common.config.DittoThingsConfig;
+import org.eclipse.ditto.services.things.common.config.ThingsConfig;
 import org.eclipse.ditto.services.things.persistence.snapshotting.DittoThingSnapshotter;
-import org.eclipse.ditto.services.things.starter.config.DittoThingsConfig;
-import org.eclipse.ditto.services.things.starter.config.ThingsConfig;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

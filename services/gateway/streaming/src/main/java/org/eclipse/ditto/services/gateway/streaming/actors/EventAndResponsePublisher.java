@@ -29,7 +29,6 @@ import org.eclipse.ditto.signals.events.base.Event;
 
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.actor.AbstractActorPublisherWithStash;
 import akka.stream.actor.ActorPublisherMessage;
@@ -49,6 +48,7 @@ public final class EventAndResponsePublisher
     private final AtomicBoolean currentlyInMessageConsumedCheck = new AtomicBoolean(false);
     private String connectionCorrelationId;
 
+    @SuppressWarnings("unused")
     private EventAndResponsePublisher(final int backpressureBufferSize) {
         this.backpressureBufferSize = backpressureBufferSize;
     }
@@ -61,14 +61,8 @@ public final class EventAndResponsePublisher
      * @return the Akka configuration Props object.
      */
     public static Props props(final int backpressureBufferSize) {
-        return Props.create(EventAndResponsePublisher.class, new Creator<EventAndResponsePublisher>() {
-            private static final long serialVersionUID = 1L;
 
-            @Override
-            public EventAndResponsePublisher create() {
-                return new EventAndResponsePublisher(backpressureBufferSize);
-            }
-        });
+        return Props.create(EventAndResponsePublisher.class, backpressureBufferSize);
     }
 
     @Override

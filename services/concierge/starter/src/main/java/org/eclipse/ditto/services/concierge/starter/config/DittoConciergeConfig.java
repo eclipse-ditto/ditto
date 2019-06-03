@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.concierge.starter.config;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
@@ -38,9 +37,7 @@ import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
  * This class is the implementation of {@link ConciergeConfig} for Ditto's Concierge service.
  */
 @Immutable
-public final class DittoConciergeConfig implements ConciergeConfig, Serializable, WithConfigPath {
-
-    private static final long serialVersionUID = -2837337263022150664L;
+public final class DittoConciergeConfig implements ConciergeConfig, WithConfigPath {
 
     private static final String CONFIG_PATH = "concierge";
 
@@ -51,24 +48,26 @@ public final class DittoConciergeConfig implements ConciergeConfig, Serializable
     private final DefaultCachesConfig cachesConfig;
     private final DefaultThingsAggregatorConfig thingsAggregatorConfig;
 
-    private DittoConciergeConfig(final DittoServiceConfig conciergeScopedConfig) {
-        serviceSpecificConfig = conciergeScopedConfig;
-        mongoDbConfig = DefaultMongoDbConfig.of(conciergeScopedConfig);
-        healthCheckConfig = DefaultHealthCheckConfig.of(conciergeScopedConfig);
-        enforcementConfig = DefaultEnforcementConfig.of(conciergeScopedConfig);
-        cachesConfig = DefaultCachesConfig.of(conciergeScopedConfig);
-        thingsAggregatorConfig = DefaultThingsAggregatorConfig.of(conciergeScopedConfig);
+    private DittoConciergeConfig(final ScopedConfig dittoScopedConfig) {
+        serviceSpecificConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
+        mongoDbConfig = DefaultMongoDbConfig.of(dittoScopedConfig);
+        healthCheckConfig = DefaultHealthCheckConfig.of(dittoScopedConfig);
+
+        enforcementConfig = DefaultEnforcementConfig.of(serviceSpecificConfig);
+        cachesConfig = DefaultCachesConfig.of(serviceSpecificConfig);
+        thingsAggregatorConfig = DefaultThingsAggregatorConfig.of(serviceSpecificConfig);
     }
 
     /**
      * Returns an instance of DittoConciergeConfig based on the settings of the specified Config.
      *
-     * @param config is supposed to provide the settings of the Concierge service config at {@value #CONFIG_PATH}.
+     * @param dittoScopedConfig is supposed to provide the settings of the service config at the {@code "ditto"} config
+     * path.
      * @return the instance.
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
-    public static DittoConciergeConfig of(final ScopedConfig config) {
-        return new DittoConciergeConfig(DittoServiceConfig.of(config, CONFIG_PATH));
+    public static DittoConciergeConfig of(final ScopedConfig dittoScopedConfig) {
+        return new DittoConciergeConfig(dittoScopedConfig);
     }
 
     @Override

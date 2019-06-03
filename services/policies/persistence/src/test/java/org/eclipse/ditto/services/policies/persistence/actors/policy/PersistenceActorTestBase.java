@@ -40,9 +40,9 @@ import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.services.models.policies.Permission;
+import org.eclipse.ditto.services.policies.common.config.DefaultPolicyConfig;
+import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.policies.persistence.TestConstants;
-import org.eclipse.ditto.services.policies.persistence.config.DefaultPolicyConfig;
-import org.eclipse.ditto.services.policies.persistence.config.PolicyConfig;
 import org.junit.After;
 import org.junit.BeforeClass;
 

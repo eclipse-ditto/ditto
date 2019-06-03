@@ -27,7 +27,9 @@ import javax.naming.NamingException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnavailableException;
 
@@ -40,7 +42,6 @@ import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
 import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import scala.concurrent.duration.FiniteDuration;
@@ -48,10 +49,9 @@ import scala.concurrent.duration.FiniteDuration;
 /**
  * Supervisor for {@link ConnectionActor} which means it will create, start and watch it as child actor.
  * <p>
- * If the child terminates, it will wait for the calculated exponential back-off time and restart it afterwards.
- * The child has to send {@link ManualReset} after it started successfully.
- * Between the termination of the child and the restart, this actor answers to all requests with a
- * {@link ConnectionUnavailableException} as fail fast strategy.
+ * If the child terminates, it will wait for the calculated exponential back-off time and restart it afterwards. The
+ * child has to send {@link ManualReset} after it started successfully. Between the termination of the child and the
+ * restart, this actor answers to all requests with a {@link ConnectionUnavailableException} as fail fast strategy.
  * </p>
  */
 public final class ConnectionSupervisorActor extends AbstractActor {
@@ -60,15 +60,22 @@ public final class ConnectionSupervisorActor extends AbstractActor {
 
     private final String connectionId;
     private final ExponentialBackOffConfig exponentialBackOffConfig;
-    private final SupervisorStrategy supervisorStrategy;
     private final Props persistenceActorProps;
 
     @Nullable private ActorRef child;
     private long restartCount;
 
-    private ConnectionSupervisorActor(final SupervisorStrategy supervisorStrategy,
-            final ConnectionConfig connectionConfig,
-            final ActorRef pubSubMediator,
+    private final SupervisorStrategy supervisorStrategy = new OneForOneStrategy(true, DeciderBuilder
+            .match(JMSRuntimeException.class, e -> SupervisorStrategy.resume())
+            .match(NullPointerException.class, e -> SupervisorStrategy.restart())
+            .match(JMSException.class, e -> SupervisorStrategy.stop())
+            .match(NamingException.class, e -> SupervisorStrategy.stop())
+            .match(ActorKilledException.class, e -> SupervisorStrategy.stop())
+            .matchAny(e -> SupervisorStrategy.escalate())
+            .build());
+
+    @SuppressWarnings("unused")
+    private ConnectionSupervisorActor(final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory propsFactory,
             @Nullable final ConnectivityCommandInterceptor commandValidator) {
@@ -78,13 +85,14 @@ public final class ConnectionSupervisorActor extends AbstractActor {
         } catch (final UnsupportedEncodingException e) {
             throw new IllegalStateException("Unsupported encoding", e);
         }
-        this.supervisorStrategy = supervisorStrategy;
 
+        final ConnectionConfig connectionConfig = DittoConnectivityConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        ).getConnectionConfig();
         exponentialBackOffConfig = connectionConfig.getSupervisorConfig().getExponentialBackOffConfig();
 
         persistenceActorProps =
-                ConnectionActor.props(connectionId, pubSubMediator, conciergeForwarder, propsFactory, commandValidator,
-                        connectionConfig);
+                ConnectionActor.props(connectionId, pubSubMediator, conciergeForwarder, propsFactory, commandValidator);
     }
 
     /**
@@ -94,35 +102,19 @@ public final class ConnectionSupervisorActor extends AbstractActor {
      * stops it for {@link ActorKilledException}'s and escalates all others.
      * </p>
      *
-     * @param connectionConfig the connection config.
      * @param pubSubMediator the PubSub mediator actor.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
      * @param propsFactory the {@link ClientActorPropsFactory}
      * @param commandValidator a custom command validator for connectivity commands
      * @return the {@link Props} to create this actor.
      */
-    public static Props props(final ConnectionConfig connectionConfig,
-            final ActorRef pubSubMediator,
+    public static Props props(final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory propsFactory,
             @Nullable final ConnectivityCommandInterceptor commandValidator) {
 
-        return Props.create(ConnectionSupervisorActor.class, new Creator<ConnectionSupervisorActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public ConnectionSupervisorActor create() {
-                return new ConnectionSupervisorActor(new OneForOneStrategy(true, DeciderBuilder
-                        .match(JMSRuntimeException.class, e -> SupervisorStrategy.resume())
-                        .match(NullPointerException.class, e -> SupervisorStrategy.restart())
-                        .match(JMSException.class, e -> SupervisorStrategy.stop())
-                        .match(NamingException.class, e -> SupervisorStrategy.stop())
-                        .match(ActorKilledException.class, e -> SupervisorStrategy.stop())
-                        .matchAny(e -> SupervisorStrategy.escalate())
-                        .build()),
-                        connectionConfig, pubSubMediator, conciergeForwarder, propsFactory, commandValidator);
-            }
-        });
+        return Props.create(ConnectionSupervisorActor.class, pubSubMediator, conciergeForwarder, propsFactory,
+                commandValidator);
     }
 
     @Override

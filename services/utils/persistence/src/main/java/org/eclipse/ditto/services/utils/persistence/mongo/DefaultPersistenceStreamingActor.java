@@ -15,12 +15,9 @@ package org.eclipse.ditto.services.utils.persistence.mongo;
 import java.util.function.Function;
 
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
-import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
-
-import com.typesafe.config.Config;
 
 import akka.actor.Props;
 
@@ -32,17 +29,22 @@ public final class DefaultPersistenceStreamingActor<T extends EntityIdWithRevisi
         extends AbstractPersistenceStreamingActor<T> {
 
     private final Class<T> elementClass;
-    private final DittoMongoClient mongoClient;
+
+    DefaultPersistenceStreamingActor(final Class<T> elementClass,
+            final int streamingCacheSize,
+            final Function<PidWithSeqNr, T> entityMapper) {
+
+        super(streamingCacheSize, entityMapper);
+        this.elementClass = elementClass;
+    }
 
     DefaultPersistenceStreamingActor(final Class<T> elementClass,
             final int streamingCacheSize,
             final Function<PidWithSeqNr, T> entityMapper,
-            final MongoReadJournal readJournal,
-            final DittoMongoClient mongoClient) {
+            final MongoReadJournal readJournal) {
 
         super(streamingCacheSize, entityMapper, readJournal);
         this.elementClass = elementClass;
-        this.mongoClient = mongoClient;
     }
 
     /**
@@ -50,8 +52,6 @@ public final class DefaultPersistenceStreamingActor<T extends EntityIdWithRevisi
      *
      * @param <T> type of messages to stream.
      * @param elementClass class of the elements.
-     * @param config the configuration of the akka system.
-     * @param mongoDbConfig the configuration settings for MongoDB.
      * @param streamingCacheSize the size of the streaming cache.
      * @param entityMapper the mapper used to map
      * {@link org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr} to {@code T}.
@@ -59,23 +59,19 @@ public final class DefaultPersistenceStreamingActor<T extends EntityIdWithRevisi
      * @return the Akka configuration Props object.
      */
     public static <T extends EntityIdWithRevision> Props props(final Class<T> elementClass,
-            final Config config,
-            final MongoDbConfig mongoDbConfig,
             final int streamingCacheSize,
             final Function<PidWithSeqNr, T> entityMapper) {
 
-        return Props.create(DefaultPersistenceStreamingActor.class, () -> {
-            final DittoMongoClient mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
-            final MongoReadJournal readJournal = MongoReadJournal.newInstance(config, mongoClient);
-            return new DefaultPersistenceStreamingActor<>(elementClass, streamingCacheSize, entityMapper, readJournal,
-                    mongoClient);
-        });
+        return Props.create(DefaultPersistenceStreamingActor.class, elementClass, streamingCacheSize, entityMapper);
     }
 
-    @Override
-    public void postStop() throws Exception {
-        mongoClient.close();
-        super.postStop();
+    static <T extends EntityIdWithRevision> Props propsForTests(final Class<T> elementClass,
+            final int streamingCacheSize,
+            final Function<PidWithSeqNr, T> entityMapper,
+            final MongoReadJournal readJournal) {
+
+        return Props.create(DefaultPersistenceStreamingActor.class, elementClass, streamingCacheSize, entityMapper,
+                readJournal);
     }
 
     @Override

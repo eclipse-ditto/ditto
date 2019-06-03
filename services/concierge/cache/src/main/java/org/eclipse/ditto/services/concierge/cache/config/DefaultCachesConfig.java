@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.concierge.cache.config;
 
-import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -29,9 +28,7 @@ import com.typesafe.config.Config;
  * This class implements {@link CachesConfig} for Ditto's Concierge service.
  */
 @Immutable
-public final class DefaultCachesConfig implements CachesConfig, Serializable {
-
-    private static final long serialVersionUID = -3628650470707259581L;
+public final class DefaultCachesConfig implements CachesConfig {
 
     private static final String CONFIG_PATH = "caches";
 

@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.base.config.limits;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
@@ -27,14 +26,12 @@ import com.typesafe.config.Config;
  * This class is the default implementation of {@link LimitsConfig}.
  */
 @Immutable
-public final class DefaultLimitsConfig implements LimitsConfig, Serializable, WithConfigPath {
+public final class DefaultLimitsConfig implements LimitsConfig, WithConfigPath {
 
     /**
      * Path of the limits configuration settings.
      */
     public static final String CONFIG_PATH = "limits";
-
-    private static final long serialVersionUID = -2234806942804455395L;
 
     private final long headersMaxSize;
     private final int authSubjectsMaxSize;

@@ -18,8 +18,10 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.thingsearch.SearchModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchResult;
+import org.eclipse.ditto.services.gateway.endpoints.config.GatewayHttpConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
@@ -30,7 +32,6 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 
 /**
  * Actor which is started for each {@link QueryThings} command in the gateway handling the response from
@@ -51,15 +52,19 @@ final class QueryThingsPerRequestActor extends AbstractActor {
 
     private QueryThingsResponse queryThingsResponse;
 
+    @SuppressWarnings("unused")
     private QueryThingsPerRequestActor(final QueryThings queryThings,
             final ActorRef aggregatorProxyActor,
-            final ActorRef originatingSender,
-            final HttpConfig httpConfig) {
+            final ActorRef originatingSender) {
 
         this.queryThings = queryThings;
         this.aggregatorProxyActor = aggregatorProxyActor;
         this.originatingSender = originatingSender;
         queryThingsResponse = null;
+
+        final HttpConfig httpConfig = GatewayHttpConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        );
 
         getContext().setReceiveTimeout(httpConfig.getRequestTimeout());
     }
@@ -71,17 +76,9 @@ final class QueryThingsPerRequestActor extends AbstractActor {
      */
     static Props props(final QueryThings queryThings,
             final ActorRef aggregatorProxyActor,
-            final ActorRef originatingSender,
-            final HttpConfig httpConfig) {
+            final ActorRef originatingSender) {
 
-        return Props.create(QueryThingsPerRequestActor.class, new Creator<QueryThingsPerRequestActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public QueryThingsPerRequestActor create() {
-                return new QueryThingsPerRequestActor(queryThings, aggregatorProxyActor, originatingSender, httpConfig);
-            }
-        });
+        return Props.create(QueryThingsPerRequestActor.class, queryThings, aggregatorProxyActor, originatingSender);
     }
 
     @Override

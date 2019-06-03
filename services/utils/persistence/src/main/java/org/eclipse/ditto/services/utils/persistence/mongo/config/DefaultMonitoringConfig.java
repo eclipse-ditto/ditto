@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -26,11 +25,9 @@ import com.typesafe.config.Config;
  * This class is the default implementation of {@link MongoDbConfig.MonitoringConfig}.
  */
 @Immutable
-public final class DefaultMonitoringConfig implements MongoDbConfig.MonitoringConfig, Serializable {
+public final class DefaultMonitoringConfig implements MongoDbConfig.MonitoringConfig {
 
     private static final String CONFIG_PATH = "monitoring";
-
-    private static final long serialVersionUID = 2502526825604564334L;
 
     private final boolean commandsEnabled;
     private final boolean connectionPoolEnabled;

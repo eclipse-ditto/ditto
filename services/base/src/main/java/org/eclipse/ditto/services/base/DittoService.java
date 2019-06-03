@@ -108,7 +108,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
     /**
      * The config path expression which points to the supposed nested config with the Ditto settings.
      */
-    public static final String DITTO_CONFIG_PATH = "ditto";
+    public static final String DITTO_CONFIG_PATH = ScopedConfig.DITTO_SCOPE;
 
     private final Logger logger;
     private final String serviceName;
@@ -163,7 +163,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
 
     private static ScopedConfig getDittoConfigOrEmpty(final Config rawConfig) {
         if (rawConfig.hasPath(DITTO_CONFIG_PATH)) {
-            return DefaultScopedConfig.newInstance(rawConfig, DITTO_CONFIG_PATH);
+            return DefaultScopedConfig.dittoScoped(rawConfig);
         }
         return DefaultScopedConfig.empty(DITTO_CONFIG_PATH);
     }

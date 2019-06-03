@@ -28,18 +28,16 @@ import org.eclipse.ditto.model.query.SortOption;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
+import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
+import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-
-import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
-import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
 
 /**
  * Tests for the paging functionality of search persistence.
@@ -66,7 +64,7 @@ public final class PagingIT extends AbstractReadPersistenceITBase {
     @BeforeClass
     public static void initTestFixture() {
         final Config testConfig = ConfigFactory.load("test");
-        limitsConfig = DefaultLimitsConfig.of(testConfig.getConfig(DittoService.DITTO_CONFIG_PATH));
+        limitsConfig = DefaultLimitsConfig.of(testConfig.getConfig(ScopedConfig.DITTO_SCOPE));
     }
 
     @Before

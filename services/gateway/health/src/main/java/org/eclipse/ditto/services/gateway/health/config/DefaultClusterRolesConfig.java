@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.health.config;
 
-import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
@@ -29,11 +28,9 @@ import com.typesafe.config.Config;
  * This class is the default implementation of the cluster roles config of the Gateway health check.
  */
 @Immutable
-public final class DefaultClusterRolesConfig implements HealthCheckConfig.ClusterRolesConfig, Serializable {
+public final class DefaultClusterRolesConfig implements HealthCheckConfig.ClusterRolesConfig {
 
     private static final String CONFIG_PATH = "cluster-roles";
-
-    private static final long serialVersionUID = -1344997349260463086L;
 
     private final boolean enabled;
     private final Set<String> expectedClusterRoles;

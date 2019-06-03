@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -28,11 +27,9 @@ import com.typesafe.config.Config;
  * This class is the default implementation of the mapping config.
  */
 @Immutable
-public final class DefaultMappingConfig implements MappingConfig, Serializable {
+public final class DefaultMappingConfig implements MappingConfig {
 
     private static final String CONFIG_PATH = "mapping";
-
-    private static final long serialVersionUID = -5423473340640380359L;
 
     private final String factoryName;
     private final JavaScriptConfig javaScriptConfig;

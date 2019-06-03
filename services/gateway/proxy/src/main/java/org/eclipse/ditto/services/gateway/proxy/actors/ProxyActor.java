@@ -12,24 +12,22 @@
  */
 package org.eclipse.ditto.services.gateway.proxy.actors;
 
-import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.japi.Creator;
 
 /**
  * Actor which delegates {@link Command}s to the appropriate receivers in the cluster.
  */
 public final class ProxyActor extends AbstractThingProxyActor {
 
+    @SuppressWarnings("unused")
     private ProxyActor(final ActorRef pubSubMediator,
             final ActorRef devOpsCommandsActor,
-            final ActorRef conciergeForwarder,
-            final HttpConfig httpConfig) {
+            final ActorRef conciergeForwarder) {
 
-        super(pubSubMediator, devOpsCommandsActor, conciergeForwarder, httpConfig);
+        super(pubSubMediator, devOpsCommandsActor, conciergeForwarder);
     }
 
     /**
@@ -37,22 +35,13 @@ public final class ProxyActor extends AbstractThingProxyActor {
      *
      * @param pubSubMediator the Pub/Sub mediator to use for subscribing for events.
      * @param devOpsCommandsActor the Actor ref to the local DevOpsCommandsActor.
-     * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
             final ActorRef devOpsCommandsActor,
-            final ActorRef conciergeForwarder,
-            final HttpConfig httpConfig) {
+            final ActorRef conciergeForwarder) {
 
-        return Props.create(ProxyActor.class, new Creator<ProxyActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public ProxyActor create() {
-                return new ProxyActor(pubSubMediator, devOpsCommandsActor, conciergeForwarder, httpConfig);
-            }
-        });
+        return Props.create(ProxyActor.class, pubSubMediator, devOpsCommandsActor, conciergeForwarder);
     }
 
 }

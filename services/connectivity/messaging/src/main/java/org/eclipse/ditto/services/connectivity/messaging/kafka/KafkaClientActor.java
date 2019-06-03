@@ -26,7 +26,6 @@ import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.KafkaConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
@@ -54,11 +53,10 @@ public final class KafkaClientActor extends BaseClientActor {
     @SuppressWarnings("unused") // used by `props` via reflection
     private KafkaClientActor(final Connection connection,
             final ConnectivityStatus desiredConnectionStatus,
-            final ConnectivityConfig connectivityConfig,
             final ActorRef conciergeForwarder,
             final KafkaPublisherActorFactory factory) {
 
-        super(connection, desiredConnectionStatus, connectivityConfig, conciergeForwarder);
+        super(connection, desiredConnectionStatus, conciergeForwarder);
         final ConnectionConfig connectionConfig = connectivityConfig.getConnectionConfig();
         final KafkaConfig kafkaConfig = connectionConfig.getKafkaConfig();
         connectionFactory = DefaultKafkaConnectionFactory.getInstance(connection, kafkaConfig);
@@ -70,17 +68,15 @@ public final class KafkaClientActor extends BaseClientActor {
      * Creates Akka configuration object for this actor.
      *
      * @param connection the connection.
-     * @param connectivityConfig the configuration settings of the Connectivity service.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
      * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection,
-            final ConnectivityConfig connectivityConfig,
             final ActorRef conciergeForwarder,
             final KafkaPublisherActorFactory factory) {
 
         return Props.create(KafkaClientActor.class, validateConnection(connection), connection.getConnectionStatus(),
-                connectivityConfig, conciergeForwarder, factory);
+                conciergeForwarder, factory);
     }
 
     private static Connection validateConnection(final Connection connection) {

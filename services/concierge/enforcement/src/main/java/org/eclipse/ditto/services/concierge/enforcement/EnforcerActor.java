@@ -48,6 +48,7 @@ public final class EnforcerActor extends AbstractEnforcerActor {
 
     private final Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> handler;
 
+    @SuppressWarnings("unused")
     private EnforcerActor(final ActorRef pubSubMediator, final ActorRef conciergeForwarder,
             final Executor enforcerExecutor,
             final Duration askTimeout,
@@ -94,9 +95,8 @@ public final class EnforcerActor extends AbstractEnforcerActor {
         final Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> messageHandler =
                 assembleHandler(enforcementProviders, preEnforcer);
 
-        return Props.create(EnforcerActor.class, () ->
-                new EnforcerActor(pubSubMediator, conciergeForwarder, enforcerExecutor, askTimeout, messageHandler,
-                        bufferSize, parallelism, thingIdCache, aclEnforcerCache, policyEnforcerCache));
+        return Props.create(EnforcerActor.class, pubSubMediator, conciergeForwarder, enforcerExecutor, askTimeout,
+                messageHandler, bufferSize, parallelism, thingIdCache, aclEnforcerCache, policyEnforcerCache);
     }
 
     /**

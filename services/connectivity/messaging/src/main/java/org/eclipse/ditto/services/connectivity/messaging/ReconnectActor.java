@@ -19,8 +19,10 @@ import java.util.function.Supplier;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ReconnectConfig;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
@@ -59,13 +61,16 @@ public final class ReconnectActor extends AbstractActor {
     private Cancellable reconnectCheck;
     private boolean reconnectInProgress = false;
 
+    @SuppressWarnings("unused")
     private ReconnectActor(final ActorRef connectionShardRegion,
-            final Supplier<Source<String, NotUsed>> currentPersistenceIdsSourceSupplier,
-            final ReconnectConfig theReconnectConfig) {
+            final Supplier<Source<String, NotUsed>> currentPersistenceIdsSourceSupplier) {
 
         this.connectionShardRegion = connectionShardRegion;
         this.currentPersistenceIdsSourceSupplier = currentPersistenceIdsSourceSupplier;
-        reconnectConfig = theReconnectConfig;
+
+        reconnectConfig = DittoConnectivityConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        ).getReconnectConfig();
 
         materializer = ActorMaterializer.create(getContext().getSystem());
     }
@@ -75,15 +80,12 @@ public final class ReconnectActor extends AbstractActor {
      *
      * @param connectionShardRegion the shard region of connections.
      * @param currentPersistenceIdsSourceSupplier supplier of persistence id sources
-     * @param reconnectConfig the config for the reconnect behaviour.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef connectionShardRegion,
-            final Supplier<Source<String, NotUsed>> currentPersistenceIdsSourceSupplier,
-            final ReconnectConfig reconnectConfig) {
+            final Supplier<Source<String, NotUsed>> currentPersistenceIdsSourceSupplier) {
 
-        return Props.create(ReconnectActor.class, connectionShardRegion, currentPersistenceIdsSourceSupplier,
-                reconnectConfig);
+        return Props.create(ReconnectActor.class, connectionShardRegion, currentPersistenceIdsSourceSupplier);
     }
 
     private Cancellable scheduleReconnect() {

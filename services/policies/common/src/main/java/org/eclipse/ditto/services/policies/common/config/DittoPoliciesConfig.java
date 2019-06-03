@@ -10,9 +10,8 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.things.starter.config;
+package org.eclipse.ditto.services.policies.common.config;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
@@ -21,8 +20,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.services.base.config.DittoServiceConfig;
 import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
-import org.eclipse.ditto.services.things.persistence.config.DefaultThingConfig;
-import org.eclipse.ditto.services.things.persistence.config.ThingConfig;
 import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.services.utils.health.config.DefaultHealthCheckConfig;
@@ -34,41 +31,38 @@ import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.TagsConfig;
 
 /**
- * This class implements the config of the Ditto Things service.
+ * This class implements the config of the Ditto Policies service.
  */
 @Immutable
-public final class DittoThingsConfig implements ThingsConfig, Serializable {
+public final class DittoPoliciesConfig implements PoliciesConfig {
 
-    private static final String CONFIG_PATH = "things";
-
-    private static final long serialVersionUID = -7526956068560224469L;
+    private static final String CONFIG_PATH = "policies";
 
     private final DittoServiceConfig serviceSpecificConfig;
-    private final boolean logIncomingMessages;
     private final DefaultMongoDbConfig mongoDbConfig;
     private final DefaultHealthCheckConfig healthCheckConfig;
+    private final DefaultPolicyConfig policyConfig;
     private final DefaultTagsConfig tagsConfig;
-    private final DefaultThingConfig thingConfig;
 
-    private DittoThingsConfig(final DittoServiceConfig thingsScopedConfig) {
-        serviceSpecificConfig = thingsScopedConfig;
-        logIncomingMessages = thingsScopedConfig.getBoolean(ThingsConfigValue.LOG_INCOMING_MESSAGES.getConfigPath());
-        mongoDbConfig = DefaultMongoDbConfig.of(thingsScopedConfig);
-        healthCheckConfig = DefaultHealthCheckConfig.of(thingsScopedConfig);
-        tagsConfig = DefaultTagsConfig.of(thingsScopedConfig);
-        thingConfig = DefaultThingConfig.of(thingsScopedConfig);
+    private DittoPoliciesConfig(final ScopedConfig dittoScopedConfig) {
+        serviceSpecificConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
+        mongoDbConfig = DefaultMongoDbConfig.of(dittoScopedConfig);
+        healthCheckConfig = DefaultHealthCheckConfig.of(dittoScopedConfig);
+
+        policyConfig = DefaultPolicyConfig.of(serviceSpecificConfig);
+        tagsConfig = DefaultTagsConfig.of(serviceSpecificConfig);
     }
 
     /**
-     * Returns an instance of the things config based on the settings of the specified Config.
+     * Returns an instance of the policies config based on the settings of the specified Config.
      *
-     * @param dittoScopedConfig is supposed to provide the settings of the Things service config at
-     * {@value #CONFIG_PATH}.
+     * @param dittoScopedConfig is supposed to provide the settings of the service config at the {@code "ditto"} config
+     * path.
      * @return the instance.
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
-    public static DittoThingsConfig of(final ScopedConfig dittoScopedConfig) {
-        return new DittoThingsConfig(DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH));
+    public static DittoPoliciesConfig of(final ScopedConfig dittoScopedConfig) {
+        return new DittoPoliciesConfig(dittoScopedConfig);
     }
 
     @Override
@@ -102,18 +96,13 @@ public final class DittoThingsConfig implements ThingsConfig, Serializable {
     }
 
     @Override
+    public PolicyConfig getPolicyConfig() {
+        return policyConfig;
+    }
+
+    @Override
     public TagsConfig getTagsConfig() {
         return tagsConfig;
-    }
-
-    @Override
-    public boolean isLogIncomingMessages() {
-        return logIncomingMessages;
-    }
-
-    @Override
-    public ThingConfig getThingConfig() {
-        return thingConfig;
     }
 
     @Override
@@ -124,30 +113,27 @@ public final class DittoThingsConfig implements ThingsConfig, Serializable {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final DittoThingsConfig that = (DittoThingsConfig) o;
-        return logIncomingMessages == that.logIncomingMessages &&
-                Objects.equals(serviceSpecificConfig, that.serviceSpecificConfig) &&
+        final DittoPoliciesConfig that = (DittoPoliciesConfig) o;
+        return Objects.equals(serviceSpecificConfig, that.serviceSpecificConfig) &&
                 Objects.equals(mongoDbConfig, that.mongoDbConfig) &&
                 Objects.equals(healthCheckConfig, that.healthCheckConfig) &&
-                Objects.equals(tagsConfig, that.tagsConfig) &&
-                Objects.equals(thingConfig, that.thingConfig);
+                Objects.equals(policyConfig, that.policyConfig) &&
+                Objects.equals(tagsConfig, that.tagsConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(serviceSpecificConfig, logIncomingMessages, mongoDbConfig, healthCheckConfig, tagsConfig,
-                thingConfig);
+        return Objects.hash(serviceSpecificConfig, mongoDbConfig, healthCheckConfig, policyConfig, tagsConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "serviceSpecificConfig=" + serviceSpecificConfig +
-                ", logIncomingMessages=" + logIncomingMessages +
                 ", mongoDbConfig=" + mongoDbConfig +
                 ", healthCheckConfig=" + healthCheckConfig +
+                ", policyConfig=" + policyConfig +
                 ", tagsConfig=" + tagsConfig +
-                ", thingConfig=" + thingConfig +
                 "]";
     }
 

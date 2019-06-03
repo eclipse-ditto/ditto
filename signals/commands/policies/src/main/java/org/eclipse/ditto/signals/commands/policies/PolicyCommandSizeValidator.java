@@ -26,7 +26,7 @@ public final class PolicyCommandSizeValidator extends AbstractCommandSizeValidat
     /**
      * System property name of the property defining the max Topology size in bytes.
      */
-    public static final String DITTO_LIMITS_POLICIES_MAX_SIZE_BYTES = "ditto.limits.policies.max-size.bytes";
+    public static final String DITTO_LIMITS_POLICIES_MAX_SIZE_BYTES = "ditto.limits.policies.max-size";
 
     @Nullable private static PolicyCommandSizeValidator instance;
 

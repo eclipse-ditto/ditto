@@ -136,7 +136,7 @@ public final class RootRouteTest extends EndpointTestBase {
                                 headerTranslator))
                 .thingSearchRoute(new ThingSearchRoute(proxyActor, actorSystem, httpConfig, headerTranslator))
                 .websocketRoute(new WebsocketRoute(proxyActor, webSocketConfig, actorSystem.eventStream()))
-                .supportedSchemaVersions(config.getIntList("http.schema-versions"))
+                .supportedSchemaVersions(config.getIntList("ditto.gateway.http.schema-versions"))
                 .protocolAdapterProvider(protocolAdapterProvider)
                 .headerTranslator(headerTranslator)
                 .httpAuthenticationDirective(authenticationDirectiveFactory.buildHttpAuthentication())

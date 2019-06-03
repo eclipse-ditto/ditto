@@ -149,7 +149,7 @@ public final class ConfigWithFallbackTest {
 
     @Test
     public void getConfigPathReturnsAbsolutePathIfDefaultScopedConfigIsBuiltFromScopedConfig() {
-        final Config dittoScopedConfig = DefaultScopedConfig.newInstance(testConfig, "ditto");
+        final Config dittoScopedConfig = DefaultScopedConfig.dittoScoped(testConfig);
         final ConfigWithFallback underTest =
                 ConfigWithFallback.newInstance(dittoScopedConfig, "concierge", new KnownConfigValue[0]);
 

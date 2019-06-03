@@ -28,7 +28,6 @@ import org.eclipse.ditto.services.utils.health.StatusDetailMessage;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
 
 import akka.actor.Props;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.PatternsCS;
 import akka.stream.ActorMaterializer;
@@ -80,6 +79,7 @@ final class LastSuccessfulStreamCheckingActor extends AbstractHealthCheckingActo
      * @param syncConfig the synchronization configuration settings.
      * @param streamMetadataPersistence used to determine the time stamp of the last successful stream.
      */
+    @SuppressWarnings("unused")
     LastSuccessfulStreamCheckingActor(final SyncConfig syncConfig,
             final TimestampPersistence streamMetadataPersistence, final Instant startUpInstant) {
 
@@ -102,14 +102,8 @@ final class LastSuccessfulStreamCheckingActor extends AbstractHealthCheckingActo
         checkNotNull(syncConfig, "synchronization config");
         checkNotNull(streamMetadataPersistence, "stream metadata persistence");
 
-        return Props.create(LastSuccessfulStreamCheckingActor.class, new Creator<LastSuccessfulStreamCheckingActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public LastSuccessfulStreamCheckingActor create() {
-                return new LastSuccessfulStreamCheckingActor(syncConfig, streamMetadataPersistence, Instant.now());
-            }
-        });
+        return Props.create(LastSuccessfulStreamCheckingActor.class, syncConfig, streamMetadataPersistence,
+                Instant.now());
     }
 
     @Override

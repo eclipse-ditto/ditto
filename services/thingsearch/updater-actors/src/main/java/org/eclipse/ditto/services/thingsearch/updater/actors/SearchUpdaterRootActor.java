@@ -48,7 +48,6 @@ import akka.actor.SupervisorStrategy;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.ActorMaterializer;
 import akka.stream.KillSwitch;
@@ -78,6 +77,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     private final ActorRef thingsUpdaterActor;
     private final DittoMongoClient dittoMongoClient;
 
+    @SuppressWarnings("unused")
     private SearchUpdaterRootActor(final SearchConfig searchConfig,
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer,
@@ -113,8 +113,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
             log.warning("Event processing is disabled!");
         }
 
-        final Props thingUpdaterProps =
-                ThingUpdater.props(pubSubMediator, changeQueueActor, updaterConfig.getMaxIdleTime());
+        final Props thingUpdaterProps = ThingUpdater.props(pubSubMediator, changeQueueActor);
 
         final ActorRef updaterShardRegion =
                 shardRegionFactory.getSearchUpdaterShardRegion(numberOfShards, thingUpdaterProps, CLUSTER_ROLE);
@@ -208,15 +207,8 @@ public final class SearchUpdaterRootActor extends AbstractActor {
             final TimestampPersistence thingsSyncPersistence,
             final TimestampPersistence policiesSyncPersistence) {
 
-        return Props.create(SearchUpdaterRootActor.class, new Creator<SearchUpdaterRootActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public SearchUpdaterRootActor create() {
-                return new SearchUpdaterRootActor(searchConfig, pubSubMediator, materializer, thingsSyncPersistence,
-                        policiesSyncPersistence);
-            }
-        });
+        return Props.create(SearchUpdaterRootActor.class, searchConfig, pubSubMediator, materializer,
+                thingsSyncPersistence, policiesSyncPersistence);
     }
 
     @Override

@@ -32,11 +32,6 @@
     <dependencies>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-concierge-util</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-concierge-cache</artifactId>
             <version>${project.version}</version>
         </dependency>

@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.thingsearch.common.config;
 
-import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -27,11 +26,9 @@ import com.typesafe.config.Config;
  * This class is the default implementation of {@link StreamCacheConfig}.
  */
 @Immutable
-public final class DefaultStreamCacheConfig implements StreamCacheConfig, Serializable {
+public final class DefaultStreamCacheConfig implements StreamCacheConfig {
 
     private static final String CONFIG_PATH = "cache";
-
-    private static final long serialVersionUID = -4331586939252742694L;
 
     private final String dispatcherName;
     private final Duration retryDelay;

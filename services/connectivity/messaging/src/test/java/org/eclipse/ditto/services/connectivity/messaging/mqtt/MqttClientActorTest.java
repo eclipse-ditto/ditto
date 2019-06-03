@@ -59,7 +59,7 @@ import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Rule;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.ExternalResource;
 import org.junit.runner.RunWith;
@@ -96,10 +96,10 @@ public final class MqttClientActorTest {
             .build();
 
     @SuppressWarnings("NullableProblems") private static ActorSystem actorSystem;
-    private static FreePort freePort;
+    private static final FreePort freePort = new FreePort();
 
-    @Rule
-    public final MqttServerRule mqttServer = new MqttServerRule(freePort.getPort());
+    @ClassRule
+    public static final MqttServerRule mqttServer = new MqttServerRule(freePort.getPort());
 
     private String connectionId;
     private String serverHost;
@@ -108,7 +108,6 @@ public final class MqttClientActorTest {
     @BeforeClass
     public static void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
-        freePort = new FreePort();
     }
 
     @AfterClass
@@ -387,9 +386,8 @@ public final class MqttClientActorTest {
     private static Props mqttClientActor(final Connection connection, final ActorRef testProbe,
             final BiFunction<Connection, DittoHeaders, MqttConnectionFactory> factoryCreator) {
 
-        return Props.create(MqttClientActor.class,
-                () -> new MqttClientActor(connection, connection.getConnectionStatus(),
-                        TestConstants.CONNECTIVITY_CONFIG, testProbe, factoryCreator));
+        return Props.create(MqttClientActor.class, connection, connection.getConnectionStatus(), testProbe,
+                factoryCreator);
     }
 
     private static MqttMessage mqttMessage(final String topic, final String payload) {

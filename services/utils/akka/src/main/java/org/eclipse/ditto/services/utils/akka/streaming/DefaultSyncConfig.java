@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.utils.akka.streaming;
 
-import java.io.Serializable;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.Objects;
@@ -28,9 +27,7 @@ import com.typesafe.config.Config;
  * This class is the default implementation of {@link SyncConfig}.
  */
 @Immutable
-public final class DefaultSyncConfig implements SyncConfig, Serializable {
-
-    private static final long serialVersionUID = -8870442904067798455L;
+public final class DefaultSyncConfig implements SyncConfig {
 
     private final boolean active;
     private final Duration startOffset;

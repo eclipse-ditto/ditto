@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
@@ -23,11 +22,9 @@ import com.typesafe.config.Config;
 /**
  * This class is the default implementation of {@link IndexInitializationConfig}.
  */
-public final class DefaultIndexInitializationConfig implements IndexInitializationConfig, Serializable {
+public final class DefaultIndexInitializationConfig implements IndexInitializationConfig {
 
     private static final String CONFIG_PATH = "index-initialization";
-
-    private static final long serialVersionUID = 8748011719306228350L;
 
     private final boolean indexInitializationEnabled;
 

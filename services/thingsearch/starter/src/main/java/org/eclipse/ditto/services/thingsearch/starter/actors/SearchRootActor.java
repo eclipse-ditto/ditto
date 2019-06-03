@@ -74,7 +74,6 @@ import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.server.Route;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.ActorMaterializer;
 
@@ -93,6 +92,7 @@ public final class SearchRootActor extends AbstractActor {
     private final LoggingAdapter log;
     private final SupervisorStrategy supervisorStrategy;
 
+    @SuppressWarnings("unused")
     private SearchRootActor(final SearchConfig searchConfig, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
@@ -227,14 +227,7 @@ public final class SearchRootActor extends AbstractActor {
     public static Props props(final SearchConfig searchConfig, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
-        return Props.create(SearchRootActor.class, new Creator<SearchRootActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public SearchRootActor create() {
-                return new SearchRootActor(searchConfig, pubSubMediator, materializer);
-            }
-        });
+        return Props.create(SearchRootActor.class, searchConfig, pubSubMediator, materializer);
     }
 
     @Override

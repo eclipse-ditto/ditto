@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.CONNECTIVITY_CONFIG;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -106,10 +105,10 @@ public final class RabbitMQClientActorTest {
                 .build();
 
         final ThrowableAssert.ThrowingCallable props1 =
-                () -> RabbitMQClientActor.propsForTests(connection, CONNECTION_STATUS, CONNECTIVITY_CONFIG,
+                () -> RabbitMQClientActor.propsForTests(connection, CONNECTION_STATUS,
                         null, null);
         final ThrowableAssert.ThrowingCallable props2 =
-                () -> RabbitMQClientActor.propsForTests(connection, CONNECTION_STATUS, CONNECTIVITY_CONFIG,
+                () -> RabbitMQClientActor.propsForTests(connection, CONNECTION_STATUS,
                         null, rabbitConnectionFactoryFactory);
         Stream.of(props1, props2)
                 .forEach(throwingCallable ->
@@ -124,7 +123,7 @@ public final class RabbitMQClientActorTest {
     public void testExceptionDuringConnectionFactoryCreation() {
         new TestKit(actorSystem) {{
             final Props props =
-                    RabbitMQClientActor.propsForTests(connection, CONNECTION_STATUS, CONNECTIVITY_CONFIG,
+                    RabbitMQClientActor.propsForTests(connection, CONNECTION_STATUS,
                             getRef(), (con, exHandler) -> { throw CUSTOM_EXCEPTION; })
                             .withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef connectionActor = actorSystem.actorOf(props);
@@ -139,7 +138,7 @@ public final class RabbitMQClientActorTest {
     public void testConnectionHandling() {
         new TestKit(actorSystem) {{
             final Props props =
-                    RabbitMQClientActor.propsForTests(connection, CONNECTION_STATUS, CONNECTIVITY_CONFIG, getRef(),
+                    RabbitMQClientActor.propsForTests(connection, CONNECTION_STATUS, getRef(),
                             (con, exHandler) -> mockConnectionFactory)
                             .withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
@@ -160,7 +159,7 @@ public final class RabbitMQClientActorTest {
             final Connection connectionWithoutTargets =
                     TestConstants.createConnection(randomConnectionId, actorSystem, new Target[0]);
             final Props props =
-                    RabbitMQClientActor.propsForTests(connectionWithoutTargets, CONNECTION_STATUS, CONNECTIVITY_CONFIG,
+                    RabbitMQClientActor.propsForTests(connectionWithoutTargets, CONNECTION_STATUS,
                             getRef(),
                             (con, exHandler) -> mockConnectionFactory).withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
@@ -178,7 +177,7 @@ public final class RabbitMQClientActorTest {
     public void testReconnection() {
         new TestKit(actorSystem) {{
             final Props props =
-                    RabbitMQClientActor.propsForTests(connection, CONNECTION_STATUS, CONNECTIVITY_CONFIG, getRef(),
+                    RabbitMQClientActor.propsForTests(connection, CONNECTION_STATUS, getRef(),
                             (con, exHandler) -> mockConnectionFactory).withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
 
@@ -203,7 +202,7 @@ public final class RabbitMQClientActorTest {
     public void sendCommandDuringInit() {
         new TestKit(actorSystem) {{
             final Props props =
-                    RabbitMQClientActor.propsForTests(connection, CONNECTION_STATUS, CONNECTIVITY_CONFIG,
+                    RabbitMQClientActor.propsForTests(connection, CONNECTION_STATUS,
                             getRef(), (con, exHandler) -> mockConnectionFactory)
                             .withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
@@ -219,7 +218,7 @@ public final class RabbitMQClientActorTest {
     public void sendConnectCommandWhenAlreadyConnected() throws IOException {
         new TestKit(actorSystem) {{
             final Props props =
-                    RabbitMQClientActor.propsForTests(connection, CONNECTION_STATUS, CONNECTIVITY_CONFIG,
+                    RabbitMQClientActor.propsForTests(connection, CONNECTION_STATUS,
                             getRef(), (con, exHandler) -> mockConnectionFactory)
                             .withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
@@ -239,7 +238,7 @@ public final class RabbitMQClientActorTest {
     public void sendDisconnectWhenAlreadyDisconnected() {
         new TestKit(actorSystem) {{
             final Props props =
-                    RabbitMQClientActor.propsForTests(connection, CONNECTION_STATUS, CONNECTIVITY_CONFIG,
+                    RabbitMQClientActor.propsForTests(connection, CONNECTION_STATUS,
                             getRef(), (con, exHandler) -> mockConnectionFactory)
                             .withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
@@ -254,7 +253,7 @@ public final class RabbitMQClientActorTest {
     public void testCloseConnectionFails() {
         new TestKit(actorSystem) {{
             final Props props =
-                    RabbitMQClientActor.propsForTests(connection, CONNECTION_STATUS, CONNECTIVITY_CONFIG,
+                    RabbitMQClientActor.propsForTests(connection, CONNECTION_STATUS,
                             getRef(), (con, exHandler) -> mockConnectionFactory)
                             .withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);

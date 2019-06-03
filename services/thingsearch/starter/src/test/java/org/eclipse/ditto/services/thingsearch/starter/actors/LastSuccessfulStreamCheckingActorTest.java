@@ -96,8 +96,8 @@ public final class LastSuccessfulStreamCheckingActorTest {
         // GIVEN: actor startup was more than syncWarningOffset in the past
         final Instant startUpInstant = Instant.now().minus(syncErrorOffset.multipliedBy(2L));
 
-        final Props props = Props.create(LastSuccessfulStreamCheckingActor.class, () ->
-                new LastSuccessfulStreamCheckingActor(syncConfig, searchSyncPersistence, startUpInstant));
+        final Props props = Props.create(LastSuccessfulStreamCheckingActor.class, syncConfig, searchSyncPersistence,
+                startUpInstant);
 
         underTest = actorSystem.actorOf(props);
 

@@ -11,4 +11,4 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 @org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault
-package org.eclipse.ditto.services.things.starter.config;
+package org.eclipse.ditto.services.things.common.config;

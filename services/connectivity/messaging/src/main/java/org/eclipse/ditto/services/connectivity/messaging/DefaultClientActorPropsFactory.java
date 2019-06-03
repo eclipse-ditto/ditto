@@ -12,14 +12,11 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpClientActor;
-import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.kafka.DefaultKafkaPublisherActorFactory;
 import org.eclipse.ditto.services.connectivity.messaging.kafka.KafkaClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttClientActor;
@@ -34,21 +31,18 @@ import akka.actor.Props;
 @Immutable
 public final class DefaultClientActorPropsFactory implements ClientActorPropsFactory {
 
-    private final ConnectivityConfig connectivityConfig;
 
-    private DefaultClientActorPropsFactory(final ConnectivityConfig connectivityConfig) {
-        this.connectivityConfig = checkNotNull(connectivityConfig, "ConnectivityConfig");
+    private DefaultClientActorPropsFactory() {
     }
 
     /**
      * Returns an instance of {@code DefaultClientActorPropsFactory}.
      *
-     * @param connectivityConfig the configuration settings of the Connectivity service.
      * @return the factory instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static DefaultClientActorPropsFactory getInstance(final ConnectivityConfig connectivityConfig) {
-        return new DefaultClientActorPropsFactory(connectivityConfig);
+    public static DefaultClientActorPropsFactory getInstance() {
+        return new DefaultClientActorPropsFactory();
     }
 
     @Override
@@ -56,13 +50,13 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
         final ConnectionType connectionType = connection.getConnectionType();
         switch (connectionType) {
             case AMQP_091:
-                return RabbitMQClientActor.props(connection, connectivityConfig, conciergeForwarder);
+                return RabbitMQClientActor.props(connection, conciergeForwarder);
             case AMQP_10:
-                return AmqpClientActor.props(connection, connectivityConfig, conciergeForwarder);
+                return AmqpClientActor.props(connection, conciergeForwarder);
             case MQTT:
-                return MqttClientActor.props(connection, connectivityConfig, conciergeForwarder);
+                return MqttClientActor.props(connection, conciergeForwarder);
             case KAFKA:
-                return KafkaClientActor.props(connection, connectivityConfig, conciergeForwarder,
+                return KafkaClientActor.props(connection, conciergeForwarder,
                         DefaultKafkaPublisherActorFactory.getInstance());
             default:
                 throw new IllegalArgumentException("ConnectionType <" + connectionType + "> is not supported.");

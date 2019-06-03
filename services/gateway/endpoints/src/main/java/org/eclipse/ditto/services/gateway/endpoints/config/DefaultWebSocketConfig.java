@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.config;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -26,11 +25,9 @@ import com.typesafe.config.Config;
  * This class is the default implementation of the web socket config.
  */
 @Immutable
-public final class DefaultWebSocketConfig implements WebSocketConfig, Serializable {
+public final class DefaultWebSocketConfig implements WebSocketConfig {
 
     private static final String CONFIG_PATH = "websocket";
-
-    private static final long serialVersionUID = 6921292482431969300L;
 
     private final int subscriberBackpressureQueueSize;
     private final int publisherBackpressureBufferSize;

@@ -24,11 +24,11 @@ import java.util.concurrent.CompletionStage;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
+import org.eclipse.ditto.services.things.common.config.ThingsConfig;
 import org.eclipse.ditto.services.things.persistence.actors.ThingNamespaceOpsActor;
 import org.eclipse.ditto.services.things.persistence.actors.ThingSupervisorActor;
 import org.eclipse.ditto.services.things.persistence.actors.ThingsPersistenceStreamingActorCreator;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
-import org.eclipse.ditto.services.things.starter.config.ThingsConfig;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
@@ -64,11 +64,10 @@ import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.server.Route;
-import akka.japi.Creator;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
-import akka.pattern.PatternsCS;
+import akka.pattern.Patterns;
 import akka.stream.ActorMaterializer;
 
 /**
@@ -142,6 +141,7 @@ public final class ThingsRootActor extends AbstractActor {
 
     private final RetrieveStatisticsDetailsResponseSupplier retrieveStatisticsDetailsResponseSupplier;
 
+    @SuppressWarnings("unused")
     private ThingsRootActor(final ThingsConfig thingsConfig,
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer,
@@ -152,14 +152,13 @@ public final class ThingsRootActor extends AbstractActor {
         final ClusterConfig clusterConfig = thingsConfig.getClusterConfig();
         final ActorRef thingsShardRegion = ClusterSharding.get(actorSystem)
                 .start(ThingsMessagingConstants.SHARD_REGION,
-                        getThingSupervisorActorProps(thingsConfig, pubSubMediator, thingSnapshotterCreate),
+                        getThingSupervisorActorProps(pubSubMediator, thingSnapshotterCreate),
                         ClusterShardingSettings.create(actorSystem).withRole(CLUSTER_ROLE),
                         ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem));
 
         // start cluster singleton for namespace ops
         ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, ThingNamespaceOpsActor.ACTOR_NAME,
-                ThingNamespaceOpsActor.props(pubSubMediator, actorSystem.settings().config(),
-                        thingsConfig.getMongoDbConfig()));
+                ThingNamespaceOpsActor.props(pubSubMediator));
 
         retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(thingsShardRegion,
                 ThingsMessagingConstants.SHARD_REGION, log);
@@ -173,13 +172,11 @@ public final class ThingsRootActor extends AbstractActor {
 
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
         final ActorRef healthCheckingActor = startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
-                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions,
-                        MongoHealthChecker.props(thingsConfig.getMongoDbConfig())));
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, MongoHealthChecker.props()));
 
         final TagsConfig tagsConfig = thingsConfig.getTagsConfig();
         final ActorRef persistenceStreamingActor = startChildActor(ThingsPersistenceStreamingActorCreator.ACTOR_NAME,
-                ThingsPersistenceStreamingActorCreator.props(actorSystem.settings().config(),
-                        thingsConfig.getMongoDbConfig(), tagsConfig.getStreamingCacheSize()));
+                ThingsPersistenceStreamingActorCreator.props(tagsConfig.getStreamingCacheSize()));
 
         pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
         pubSubMediator.tell(new DistributedPubSubMediator.Put(persistenceStreamingActor), getSelf());
@@ -224,14 +221,7 @@ public final class ThingsRootActor extends AbstractActor {
             final ActorMaterializer materializer,
             final ThingSnapshotter.Create thingSnapshotterCreate) {
 
-        return Props.create(ThingsRootActor.class, new Creator<ThingsRootActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public ThingsRootActor create() {
-                return new ThingsRootActor(thingsConfig, pubSubMediator, materializer, thingSnapshotterCreate);
-            }
-        });
+        return Props.create(ThingsRootActor.class, thingsConfig, pubSubMediator, materializer, thingSnapshotterCreate);
     }
 
     private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {
@@ -259,7 +249,7 @@ public final class ThingsRootActor extends AbstractActor {
 
     private void handleRetrieveStatisticsDetails(final RetrieveStatisticsDetails command) {
         log.info("Sending the namespace stats of the things shard as requested ...");
-        PatternsCS.pipe(retrieveStatisticsDetailsResponseSupplier
+        Patterns.pipe(retrieveStatisticsDetailsResponseSupplier
                 .apply(command.getDittoHeaders()), getContext().dispatcher()).to(getSender());
     }
 
@@ -273,11 +263,11 @@ public final class ThingsRootActor extends AbstractActor {
                 serverBinding.localAddress().getPort());
     }
 
-    private static Props getThingSupervisorActorProps(final ThingsConfig thingsConfig, final ActorRef pubSubMediator,
+    private static Props getThingSupervisorActorProps(final ActorRef pubSubMediator,
             final ThingSnapshotter.Create thingSnapshotterCreate) {
 
-        return ThingSupervisorActor.props(pubSubMediator, thingsConfig.getThingConfig(),
-                ThingPersistenceActorPropsFactory.getInstance(pubSubMediator, thingSnapshotterCreate, thingsConfig));
+        return ThingSupervisorActor.props(pubSubMediator,
+                ThingPersistenceActorPropsFactory.getInstance(pubSubMediator, thingSnapshotterCreate));
     }
 
 }

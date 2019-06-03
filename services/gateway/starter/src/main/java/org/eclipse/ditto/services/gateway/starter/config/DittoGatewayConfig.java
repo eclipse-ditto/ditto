@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.starter.config;
 
-import java.io.Serializable;
-
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.base.config.DittoServiceConfig;
@@ -34,7 +32,6 @@ import org.eclipse.ditto.services.gateway.endpoints.config.WebSocketConfig;
 import org.eclipse.ditto.services.gateway.health.config.DefaultHealthCheckConfig;
 import org.eclipse.ditto.services.gateway.health.config.HealthCheckConfig;
 import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.services.utils.config.WithConfigPath;
 import org.eclipse.ditto.services.utils.metrics.config.MetricsConfig;
@@ -45,11 +42,9 @@ import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
  * This class is the default implementation of the Gateway config.
  */
 @Immutable
-public final class DittoGatewayConfig implements GatewayConfig, Serializable, WithConfigPath {
+public final class DittoGatewayConfig implements GatewayConfig, WithConfigPath {
 
     private static final String CONFIG_PATH = "gateway";
-
-    private static final long serialVersionUID = -3502379617636376609L;
 
     private final DittoServiceConfig dittoServiceConfig;
     private final ProtocolConfig protocolConfig;
@@ -62,34 +57,30 @@ public final class DittoGatewayConfig implements GatewayConfig, Serializable, Wi
     private final WebSocketConfig webSocketConfig;
     private final PublicHealthConfig publicHealthConfig;
 
-    private DittoGatewayConfig(final DittoServiceConfig dittoServiceConfig, final ProtocolConfig protocolConfig,
-            final ScopedConfig scopedConfig) {
+    private DittoGatewayConfig(final ScopedConfig dittoScopedConfig) {
 
-        this.dittoServiceConfig = dittoServiceConfig;
-        this.protocolConfig = protocolConfig;
-        httpConfig = GatewayHttpConfig.of(scopedConfig);
-        cachesConfig = DefaultCachesConfig.of(scopedConfig);
-        healthCheckConfig = DefaultHealthCheckConfig.of(scopedConfig);
-        messageConfig = DefaultMessageConfig.of(scopedConfig);
-        claimMessageConfig = DefaultClaimMessageConfig.of(scopedConfig);
-        authenticationConfig = DefaultAuthenticationConfig.of(scopedConfig);
-        webSocketConfig = DefaultWebSocketConfig.of(scopedConfig);
-        publicHealthConfig = DefaultPublicHealthConfig.of(scopedConfig);
+        this.dittoServiceConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
+        protocolConfig = DefaultProtocolConfig.of(dittoScopedConfig);
+        httpConfig = GatewayHttpConfig.of(dittoServiceConfig);
+        cachesConfig = DefaultCachesConfig.of(dittoServiceConfig);
+        healthCheckConfig = DefaultHealthCheckConfig.of(dittoServiceConfig);
+        messageConfig = DefaultMessageConfig.of(dittoServiceConfig);
+        claimMessageConfig = DefaultClaimMessageConfig.of(dittoServiceConfig);
+        authenticationConfig = DefaultAuthenticationConfig.of(dittoServiceConfig);
+        webSocketConfig = DefaultWebSocketConfig.of(dittoServiceConfig);
+        publicHealthConfig = DefaultPublicHealthConfig.of(dittoServiceConfig);
     }
 
     /**
      * Returns an instance of {@code DittoGatewayConfig} based on the settings of the specified Config.
      *
-     * @param dittoScopedConfig is supposed to provide the settings of the Gateway service config at
-     * {@value #CONFIG_PATH}.
+     * @param dittoScopedConfig is supposed to provide the settings of the service config at the {@code "ditto"} config
+     * path.
      * @return the instance.
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DittoGatewayConfig of(final ScopedConfig dittoScopedConfig) {
-        return new DittoGatewayConfig(DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH),
-                DefaultProtocolConfig.of(dittoScopedConfig),
-                DefaultScopedConfig.newInstance(dittoScopedConfig, CONFIG_PATH)
-        );
+        return new DittoGatewayConfig(dittoScopedConfig);
     }
 
     @Override
