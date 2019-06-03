@@ -182,7 +182,6 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
     private void handleSendException(final ExternalMessage message, final Exception e, final ActorRef sender,
             final ConnectionMonitor publishedMonitor) {
-        monitorSendFailure(message, e, publishedMonitor);
 
         log.info("Failed to send JMS message: [{}] {}", e.getClass().getSimpleName(), e.getMessage());
         final MessageSendingFailedException sendFailedException = MessageSendingFailedException.newBuilder()
@@ -190,6 +189,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                 .dittoHeaders(DittoHeaders.of(message.getInternalHeaders()))
                 .build();
         sender.tell(sendFailedException, getSelf());
+
+        monitorSendFailure(message, sendFailedException, publishedMonitor);
     }
 
     private void monitorSendFailure(final ExternalMessage message, final Exception exception,
