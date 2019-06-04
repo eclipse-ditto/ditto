@@ -118,8 +118,7 @@ public final class TestSetup {
         enforcementProviders.add(
                 new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache, aclEnforcerCache));
 
-        final Props props = EnforcerActor.props(testActorRef, enforcementProviders, Duration.ofSeconds(10),
-                conciergeForwarder, 1, 2,
+        final Props props = EnforcerActor.props(testActorRef, enforcementProviders, conciergeForwarder,
                 preEnforcer, null, null, null);
         return system.actorOf(props, THING + ":" + THING_ID);
     }

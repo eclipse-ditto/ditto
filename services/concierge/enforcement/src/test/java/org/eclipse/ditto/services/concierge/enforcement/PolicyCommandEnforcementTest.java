@@ -502,8 +502,8 @@ public class PolicyCommandEnforcementTest {
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
         enforcementProviders.add(enforcementProvider);
 
-        return system.actorOf(EnforcerActor.props(pubSubMediator, enforcementProviders, Duration.ofSeconds(10),
-                conciergeForwarder, 1, 2, null, null, null),
+        return system.actorOf(EnforcerActor.props(pubSubMediator, enforcementProviders, conciergeForwarder,
+                null, null, null),
                 ENTITY_ID.toString());
     }
 
