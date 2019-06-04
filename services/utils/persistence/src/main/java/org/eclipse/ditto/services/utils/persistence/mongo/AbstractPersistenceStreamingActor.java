@@ -14,8 +14,8 @@ package org.eclipse.ditto.services.utils.persistence.mongo;
 
 import static java.util.Objects.requireNonNull;
 
+import java.time.Duration;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Function;
 
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
@@ -73,13 +73,18 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
     }
 
     @Override
-    protected Optional<Integer> getBurst(final SudoStreamModifiedEntities command) {
+    protected int getBurst(final SudoStreamModifiedEntities command) {
         return command.getBurst();
     }
 
     @Override
-    protected Optional<Long> getTimeoutMillis(final SudoStreamModifiedEntities command) {
-        return command.getTimeoutMillis();
+    protected Duration getInitialTimeout(final SudoStreamModifiedEntities command) {
+        return Duration.ofMillis(command.getTimeoutMillis());
+    }
+
+    @Override
+    protected Duration getIdleTimeout(final SudoStreamModifiedEntities command) {
+        return Duration.ofMillis(command.getTimeoutMillis());
     }
 
     @Override

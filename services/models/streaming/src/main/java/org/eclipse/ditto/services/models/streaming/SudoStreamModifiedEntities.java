@@ -51,6 +51,10 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStreamModifiedEntities>
         implements StreamingMessage {
 
+    private static final Integer DEFAULT_BURST = 1;
+
+    private static final Long DEFAULT_TIMIEOUT_MILLIS = 60_000L;
+
     static final String NAME = "org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities";
 
     /**
@@ -75,20 +79,21 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
 
     private final Instant end;
 
-    @Nullable
-    private final Integer burst;
+    private final int burst;
 
-    @Nullable
-    private final Long timeoutMillis;
+    private final long timeoutMillis;
 
-    private SudoStreamModifiedEntities(final Instant start, final Instant end, final Integer burst,
-            final Long timeoutMillis, final DittoHeaders dittoHeaders) {
+    private SudoStreamModifiedEntities(final Instant start,
+            final Instant end,
+            @Nullable final Integer burst,
+            @Nullable final Long timeoutMillis,
+            final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
 
         this.start = checkNotNull(start, "start");
         this.end = checkNotNull(end, "end");
-        this.burst = burst;
-        this.timeoutMillis = timeoutMillis;
+        this.burst = Optional.ofNullable(burst).orElse(DEFAULT_BURST);
+        this.timeoutMillis = Optional.ofNullable(timeoutMillis).orElse(DEFAULT_TIMIEOUT_MILLIS);
     }
 
     /**
@@ -102,8 +107,8 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
      * @return a command for retrieving modified Things without authorization.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static SudoStreamModifiedEntities of(final Instant start, final Instant end, final Integer burst,
-            final Long timeoutMillis, final DittoHeaders dittoHeaders) {
+    public static SudoStreamModifiedEntities of(final Instant start, final Instant end,
+            @Nullable final Integer burst, @Nullable final Long timeoutMillis, final DittoHeaders dittoHeaders) {
         return new SudoStreamModifiedEntities(start, end, burst, timeoutMillis, dittoHeaders);
     }
 
@@ -157,8 +162,8 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
      *
      * @return number of elements to send per message.
      */
-    public Optional<Integer> getBurst() {
-        return Optional.ofNullable(burst);
+    public int getBurst() {
+        return burst;
     }
 
     /**
@@ -166,10 +171,9 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
      *
      * @return the timeout.
      */
-    public Optional<Long> getTimeoutMillis() {
-        return Optional.ofNullable(timeoutMillis);
+    public long getTimeoutMillis() {
+        return timeoutMillis;
     }
-
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
