@@ -30,6 +30,7 @@ public final class DefaultPersistenceStreamingActor<T extends EntityIdWithRevisi
 
     private final Class<T> elementClass;
 
+    @SuppressWarnings("unused")
     DefaultPersistenceStreamingActor(final Class<T> elementClass,
             final int streamingCacheSize,
             final Function<PidWithSeqNr, T> entityMapper) {
@@ -38,6 +39,7 @@ public final class DefaultPersistenceStreamingActor<T extends EntityIdWithRevisi
         this.elementClass = elementClass;
     }
 
+    @SuppressWarnings("unused")
     DefaultPersistenceStreamingActor(final Class<T> elementClass,
             final int streamingCacheSize,
             final Function<PidWithSeqNr, T> entityMapper,

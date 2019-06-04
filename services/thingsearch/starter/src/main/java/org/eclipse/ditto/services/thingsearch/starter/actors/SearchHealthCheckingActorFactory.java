@@ -40,7 +40,7 @@ final class SearchHealthCheckingActorFactory {
     private static final String POLICIES_SYNC_LABEL = "policiesSync";
 
     private SearchHealthCheckingActorFactory() {
-        super();
+        throw new AssertionError();
     }
 
     /**

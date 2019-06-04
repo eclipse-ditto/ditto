@@ -16,7 +16,6 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.thingsearch.common.config.DeleteConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.SearchConfig;
-import org.eclipse.ditto.services.thingsearch.common.config.StreamConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.UpdaterConfig;
 import org.eclipse.ditto.services.thingsearch.common.util.RootSupervisorStrategyFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
@@ -124,10 +123,9 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         thingsUpdaterActor = getContext().actorOf(thingsUpdaterProps, ThingsUpdater.ACTOR_NAME);
 
         // start policy event forwarder as cluster singleton
-        final StreamConfig streamConfig = searchConfig.getStreamConfig();
         final Props policyEventForwarderProps =
                 PolicyEventForwarder.props(pubSubMediator, thingsUpdaterActor, blockedNamespaces,
-                        searchUpdaterPersistence, streamConfig.getWriteInterval());
+                        searchUpdaterPersistence);
         startClusterSingletonActor(PolicyEventForwarder.ACTOR_NAME, policyEventForwarderProps);
 
         // start manual updater as cluster singleton

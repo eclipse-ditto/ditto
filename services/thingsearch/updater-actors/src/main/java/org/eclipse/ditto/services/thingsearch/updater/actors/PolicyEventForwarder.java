@@ -22,8 +22,10 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
+import org.eclipse.ditto.services.thingsearch.common.config.DittoSearchConfig;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
@@ -69,13 +71,13 @@ final class PolicyEventForwarder extends AbstractActor {
     private PolicyEventForwarder(final ActorRef pubSubMediator,
             final ActorRef thingsUpdater,
             final BlockedNamespaces blockedNamespaces,
-            final ThingsSearchUpdaterPersistence persistence,
-            final Duration writeInterval) {
+            final ThingsSearchUpdaterPersistence persistence) {
 
         this.thingsUpdater = thingsUpdater;
         this.persistence = persistence;
         blockNamespaceBehavior = BlockNamespaceBehavior.of(blockedNamespaces);
-        interval = writeInterval;
+        interval = DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
+                .getStreamConfig().getWriteInterval();
 
         final Subscribe subscribe = new Subscribe(PolicyEvent.TYPE_PREFIX, ACTOR_NAME, getSelf());
         pubSubMediator.tell(subscribe, getSelf());
@@ -89,17 +91,14 @@ final class PolicyEventForwarder extends AbstractActor {
      * @param pubSubMediator Akka pub-sub-mediator
      * @param thingsUpdater thingsUpdater
      * @param blockedNamespaces blocked namespaces.
-     * @param writeInterval the minimal delay between event dumps.
      * @return the Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
             final ActorRef thingsUpdater,
             final BlockedNamespaces blockedNamespaces,
-            final ThingsSearchUpdaterPersistence persistence,
-            final Duration writeInterval) {
+            final ThingsSearchUpdaterPersistence persistence) {
 
-        return Props.create(PolicyEventForwarder.class, pubSubMediator, thingsUpdater, blockedNamespaces, persistence,
-                        writeInterval);
+        return Props.create(PolicyEventForwarder.class, pubSubMediator, thingsUpdater, blockedNamespaces, persistence);
     }
 
     @Override
