@@ -19,7 +19,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -162,13 +161,11 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
                 blockedNamespacesUpdaterProps);
 
         final Duration enforcementAskTimeout = enforcementConfig.getAskTimeout();
-        final Executor enforcerExecutor = actorSystem.dispatchers().lookup(ENFORCER_DISPATCHER);
-        final Props enforcerProps =
-                EnforcerActor.props(pubSubMediator, enforcementProviders, enforcementAskTimeout, conciergeForwarder,
-                        enforcerExecutor, enforcementConfig.getBufferSize(), enforcementConfig.getParallelism(),
+        final Props enforcerProps = // TODO TJ check props
+                EnforcerActor.props(pubSubMediator, enforcementProviders, enforcementAskTimeout,
+                        conciergeForwarder, enforcement.bufferSize(), enforcement.parallelism(),
                         preEnforcer, thingIdCache, aclEnforcerCache,
-                        policyEnforcerCache) // passes in the caches to be able to invalidate cache entries
-                        .withDispatcher(ENFORCER_DISPATCHER);
+                        policyEnforcerCache); // passes in the caches to be able to invalidate cache entries
 
         return context.actorOf(enforcerProps, EnforcerActor.ACTOR_NAME);
     }

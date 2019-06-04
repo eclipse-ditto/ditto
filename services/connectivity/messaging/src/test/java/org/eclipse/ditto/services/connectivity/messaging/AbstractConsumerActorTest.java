@@ -43,6 +43,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
+import akka.routing.ConsistentHashingPool;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
@@ -179,7 +180,9 @@ public abstract class AbstractConsumerActorTest<M> {
                 MessageMappingProcessorActor.props(publisherActor, conciergeForwarderActor, mappingProcessor,
                         CONNECTION_ID);
 
-        return actorSystem.actorOf(messageMappingProcessorProps,
+        return actorSystem.actorOf(new ConsistentHashingPool(2)
+                        .withDispatcher("message-mapping-processor-dispatcher")
+                        .props(messageMappingProcessorProps),
                 MessageMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
     }
 

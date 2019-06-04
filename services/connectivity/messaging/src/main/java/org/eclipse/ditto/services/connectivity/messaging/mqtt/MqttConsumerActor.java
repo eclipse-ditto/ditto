@@ -34,6 +34,8 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
+import akka.japi.Creator;
+import akka.routing.ConsistentHashingRouter;
 import akka.stream.alpakka.mqtt.MqttMessage;
 
 /**
@@ -102,7 +104,10 @@ public final class MqttConsumerActor extends BaseConsumerActor {
 
     private void handleMqttMessage(final MqttMessage message) {
         try {
-            log.debug("Received MQTT message on topic {}: {}", message.topic(), message.payload().utf8String());
+            if (log.isDebugEnabled()) {
+                log.debug("Received MQTT message on topic <{}>: {}", message.topic(),
+                        message.payload().utf8String());
+            }
             final HashMap<String, String> headers = new HashMap<>();
             headers.put(MQTT_TOPIC_HEADER, message.topic());
             final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers)
@@ -112,7 +117,9 @@ public final class MqttConsumerActor extends BaseConsumerActor {
                     .withSourceAddress(sourceAddress)
                     .build();
             inboundCounter.recordSuccess();
-            messageMappingProcessor.tell(externalMessage, getSelf());
+
+            final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(externalMessage, message.topic());
+            messageMappingProcessor.tell(msg, getSelf());
             replyStreamAck();
         } catch (final Exception e) {
             inboundCounter.recordFailure();

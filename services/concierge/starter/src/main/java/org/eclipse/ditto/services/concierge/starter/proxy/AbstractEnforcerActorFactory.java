@@ -28,11 +28,6 @@ import akka.cluster.sharding.ClusterSharding;
 public abstract class AbstractEnforcerActorFactory<C extends ConciergeConfig> {
 
     /**
-     * The dispatcher name of the Executor to use in order to perform asynchronous operations in enforcement.
-     */
-    protected static final String ENFORCER_DISPATCHER = "enforcer-dispatcher";
-
-    /**
      * Start a proxy to a shard region.
      *
      * @param actorSystem actor system to start the proxy in.

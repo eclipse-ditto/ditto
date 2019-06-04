@@ -83,9 +83,11 @@ import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ClusterSharding;
 import akka.dispatch.MessageDispatcher;
 import akka.event.DiagnosticLoggingAdapter;
+import akka.event.Logging;
 import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
+import akka.http.javadsl.server.Directives;
 import akka.http.javadsl.server.Route;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
@@ -204,9 +206,12 @@ final class GatewayRootActor extends AbstractActor {
             log.info("No explicit hostname configured, using HTTP hostname <{}>.", hostname);
         }
 
+        // TODO TJ check
+        final Route rootRoute = createRoute(actorSystem, configReader, proxyActor, streamingActor, healthCheckActor, healthCheckConfig);
+        final Route routeWithLogging = Directives.logRequest("http", Logging.DebugLevel(), (() -> rootRoute));
+
         httpBinding = Http.get(actorSystem)
-                .bindAndHandle(createRoute(actorSystem, gatewayConfig, proxyActor, streamingActor, healthCheckActor,
-                        healthCheckConfig).flow(actorSystem, materializer),
+                .bindAndHandle(routeWithLogging.flow(actorSystem, materializer),
                         ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
 
         httpBinding.thenAccept(theBinding -> {

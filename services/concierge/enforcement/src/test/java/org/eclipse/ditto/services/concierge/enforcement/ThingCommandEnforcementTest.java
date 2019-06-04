@@ -488,7 +488,7 @@ public final class ThingCommandEnforcementTest {
             fishForMsgClass(this, SudoRetrieveThing.class);
             reply(ThingNotAccessibleException.newBuilder(THING_ID).build());
 
-            expectMsgClass(CreateThing.class);
+            fishForMsgClass(this, CreateThing.class);
         }};
     }
 

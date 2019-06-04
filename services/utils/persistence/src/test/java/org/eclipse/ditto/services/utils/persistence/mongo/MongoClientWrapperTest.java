@@ -13,14 +13,13 @@
 package org.eclipse.ditto.services.utils.persistence.mongo;
 
 import static org.assertj.core.api.Assertions.assertThat;
-
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 
 import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
+import java.util.concurrent.TimeUnit;
 import org.junit.Test;
-
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
@@ -47,6 +46,27 @@ public final class MongoClientWrapperTest {
     private static final Config CONFIG = ConfigFactory.load("test");
     private static final String MONGO_URI_CONFIG_KEY = "mongodb.uri";
     private static final String MONGO_SSL_CONFIG_KEY = "mongodb.options.ssl";
+
+    @Test
+    public void createByUriWithExtraSettings() {
+        // prepare
+        final boolean sslEnabled = false;
+        final Duration maxIdleTime = Duration.ofMinutes(10);
+        final Duration maxLifeTime = Duration.ofMinutes(25);
+        final String uri = createUri(sslEnabled) + "&maxIdleTimeMS=" + maxIdleTime.toMillis()
+                + "&maxLifeTimeMS=" + maxLifeTime.toMillis();
+
+        final Config config = CONFIG.withValue(MONGO_URI_CONFIG_KEY, ConfigValueFactory.fromAnyRef(uri));
+
+        // test
+        final MongoClientWrapper underTest = MongoClientWrapper.newInstance(config);
+
+        // verify
+        assertThat(underTest.getSettings().getConnectionPoolSettings().
+                 getMaxConnectionIdleTime(TimeUnit.MILLISECONDS)).isEqualTo(maxIdleTime.toMillis());
+        assertThat(underTest.getSettings().getConnectionPoolSettings().
+                getMaxConnectionLifeTime(TimeUnit.MILLISECONDS)).isEqualTo(maxLifeTime.toMillis());
+    }
 
     @Test
     public void createByUriWithSslDisabled() {

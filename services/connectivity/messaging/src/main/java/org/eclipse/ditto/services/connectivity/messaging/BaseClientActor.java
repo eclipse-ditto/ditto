@@ -89,9 +89,8 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.FSMStateFunctionBuilder;
-import akka.routing.DefaultResizer;
-import akka.routing.Resizer;
-import akka.routing.RoundRobinPool;
+import akka.routing.ConsistentHashingPool;
+import akka.routing.ConsistentHashingRouter;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 import scala.util.Either;
@@ -796,7 +795,9 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private void handleOutboundSignal(final OutboundSignal signal) {
         enhanceLogUtil(signal.getSource());
         if (messageMappingProcessorActor != null) {
-            messageMappingProcessorActor.tell(signal, getSender());
+            final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(signal,
+                    signal.getSource().getId());
+            messageMappingProcessorActor.tell(msg, getSender());
         } else {
             log.info("Cannot handle <{}> signal as there is no MessageMappingProcessor available.",
                     signal.getSource().getType());
@@ -876,10 +877,21 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                     MessageMappingProcessorActor.props(getPublisherActor(), conciergeForwarder, processor,
                             connectionId());
 
-            final Resizer resizer = new DefaultResizer(1, connection.getProcessorPoolSize());
-            messageMappingProcessorActor = getContext().actorOf(new RoundRobinPool(1)
+            /*
+             * By using a ConsistentHashingPool, messages sent to this actor which are wrapped into
+             * akka.routing.ConsistentHashingRouter.ConsistentHashableEnvelope may define which consistent hashing
+             * key to use.
+             * That way the message with the same hash are always sent to the same pooled instance of the
+             * MessageMappingProcessorActor.
+             *
+             * That is needed in order to guarantee message processing order. Otherwise two messages received for the
+             * same Thing may be processed out-of-order if the mapping of the first message takes longer than the
+             * mapping of the second message.
+             * This however will also limit throughput as the used hashing key is often connection source address based
+             * and does not yet "know" of the Thing ID.
+             */
+            messageMappingProcessorActor = getContext().actorOf(new ConsistentHashingPool(connection.getProcessorPoolSize())
                     .withDispatcher("message-mapping-processor-dispatcher")
-                    .withResizer(resizer)
                     .props(props), nextChildActorName(MessageMappingProcessorActor.ACTOR_NAME));
         } else {
             log.info("MessageMappingProcessor already instantiated: not initializing again.");

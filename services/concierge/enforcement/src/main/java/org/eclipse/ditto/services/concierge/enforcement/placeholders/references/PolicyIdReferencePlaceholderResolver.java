@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.concierge.enforcement.placeholders.references
 
 import java.time.Duration;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
@@ -26,6 +27,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayPlaceholderReferenceNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayPlaceholderReferenceUnknownFieldException;
@@ -97,8 +99,12 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
     private CompletionStage<String> handleThingPolicyIdReference(final ReferencePlaceholder referencePlaceholder,
             final DittoHeaders dittoHeaders) {
 
+        final HashMap<String, String> enhancedMap = new HashMap<>(dittoHeaders);
+        enhancedMap.put(AbstractGraphActor.DITTO_INTERNAL_SPECIAL_ENFORCEMENT_LANE, "true");
+        final DittoHeaders adjustedHeaders = DittoHeaders.of(enhancedMap);
+
         final RetrieveThing retrieveThingCommand =
-                RetrieveThing.getBuilder(referencePlaceholder.getReferencedEntityId(), dittoHeaders)
+                RetrieveThing.getBuilder(referencePlaceholder.getReferencedEntityId(), adjustedHeaders)
                         .withSelectedFields(referencePlaceholder.getReferencedField().toFieldSelector())
                         .build();
 

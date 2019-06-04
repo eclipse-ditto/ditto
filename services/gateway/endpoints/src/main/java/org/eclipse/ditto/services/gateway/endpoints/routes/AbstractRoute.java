@@ -32,6 +32,9 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.HttpRequestActor;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
+import org.eclipse.ditto.services.gateway.endpoints.actors.HttpRequestActor;
+import org.eclipse.ditto.services.gateway.endpoints.actors.HttpRequestActorPropsFactory;
+import org.eclipse.ditto.services.utils.akka.AkkaClassLoader;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
@@ -40,6 +43,7 @@ import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.Props;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.server.RequestContext;
@@ -58,6 +62,9 @@ import akka.util.ByteString;
  */
 public abstract class AbstractRoute {
 
+    // TODO YC: refactor config key.
+    private static final String HTTP_REQUEST_ACTOR_PROPS_FACTORY_CONFIG_KEY = "ditto.gateway.http.actor-props-factory";
+
     /**
      * Don't configure URL decoding as JsonParseOptions because Akka-Http already decodes the fields-param and we would
      * decode twice.
@@ -74,6 +81,7 @@ public abstract class AbstractRoute {
 
     private final HttpConfig httpConfig;
     private final HeaderTranslator headerTranslator;
+    private final HttpRequestActorPropsFactory httpRequestActorPropsFactory;
 
     /**
      * Constructs the abstract route builder.
@@ -108,6 +116,10 @@ public abstract class AbstractRoute {
                             return Supervision.stop(); // in any case, stop!
                         }
                 ), actorSystem);
+
+        final String propsFactoryClass = config.getString(HTTP_REQUEST_ACTOR_PROPS_FACTORY_CONFIG_KEY);
+        httpRequestActorPropsFactory =
+                AkkaClassLoader.instantiate(actorSystem, HttpRequestActorPropsFactory.class, propsFactoryClass);
     }
 
     /**
@@ -204,11 +216,20 @@ public abstract class AbstractRoute {
         return responseStage; // default: do nothing
     }
 
+    /**
+     * Create HTTP request actor by the dynamically loaded props factory.
+     *
+     * @param ctx the request context.
+     * @param httpResponseFuture the promise of a response to be fulfilled by the HTTP request actor.
+     * @return reference of the created actor.
+     */
     protected ActorRef createHttpPerRequestActor(final RequestContext ctx,
             final CompletableFuture<HttpResponse> httpResponseFuture) {
 
-        return actorSystem.actorOf(HttpRequestActor.props(proxyActor, headerTranslator, ctx.getRequest(),
-                httpResponseFuture, httpConfig));
+        final Props props =
+                httpRequestActorPropsFactory.props(proxyActor, headerTranslator, ctx.getRequest(), httpResponseFuture);
+
+        return actorSystem.actorOf(props);
     }
 
 }

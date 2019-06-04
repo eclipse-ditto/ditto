@@ -119,7 +119,7 @@ public final class TestSetup {
                 new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache, aclEnforcerCache));
 
         final Props props = EnforcerActor.props(testActorRef, enforcementProviders, Duration.ofSeconds(10),
-                conciergeForwarder, system.dispatcher(), 1, 2,
+                conciergeForwarder, 1, 2,
                 preEnforcer, null, null, null);
         return system.actorOf(props, THING + ":" + THING_ID);
     }
@@ -159,7 +159,7 @@ public final class TestSetup {
      * @return the message
      */
     public static <T> T fishForMsgClass(final TestKit testKit, final Class<T> clazz) {
-        return (T) testKit.fishForMessage(scala.concurrent.duration.Duration.create(1, TimeUnit.SECONDS),
+        return (T) testKit.fishForMessage(scala.concurrent.duration.Duration.create(3, TimeUnit.SECONDS),
                 clazz.getName(), clazz::isInstance);
     }
 

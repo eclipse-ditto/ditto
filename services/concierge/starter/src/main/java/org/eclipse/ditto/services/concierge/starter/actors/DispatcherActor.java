@@ -24,6 +24,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommand;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
@@ -79,8 +80,16 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
     }
 
     @Override
-    protected Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> getHandler() {
+    protected Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> processMessageFlow() {
         return handler;
+    }
+
+    @Override
+    protected Sink<ImmutableDispatch, ?> processedMessageSink() {
+        return Sink.foreach(dispatch -> {
+            LogUtil.enhanceLogWithCorrelationId(log, dispatch.getMessage());
+            log.warning("Unhandled Message in DispatcherActor: <{}>", dispatch);
+        });
     }
 
     @Override

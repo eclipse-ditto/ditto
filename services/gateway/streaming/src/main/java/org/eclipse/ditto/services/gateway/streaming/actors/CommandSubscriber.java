@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
@@ -24,6 +25,7 @@ import org.eclipse.ditto.services.gateway.streaming.ResponsePublished;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -114,8 +116,14 @@ public final class CommandSubscriber extends AbstractActorSubscriber {
                     final Throwable cause = onError.cause();
                     if (cause instanceof DittoRuntimeException) {
                         handleDittoRuntimeException(delegateActor, (DittoRuntimeException) cause);
-                    } else if (cause instanceof RuntimeException) {
+                    } else if (cause instanceof JsonRuntimeException) {
                         handleDittoRuntimeException(delegateActor, new DittoJsonException((RuntimeException) cause));
+                    } else if (cause instanceof RuntimeException) {
+                        logger.error(cause, "Unexpected RuntimeException <{}>: ",
+                                cause.getClass().getSimpleName(), cause.getMessage());
+                        handleDittoRuntimeException(delegateActor, GatewayInternalErrorException.newBuilder()
+                                .cause(cause)
+                                .build());
                     } else {
                         logger.warning("Got 'OnError': {} {}", cause.getClass().getName(), cause.getMessage());
                     }

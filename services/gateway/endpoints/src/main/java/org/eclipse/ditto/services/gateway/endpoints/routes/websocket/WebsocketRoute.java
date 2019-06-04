@@ -108,15 +108,15 @@ public final class WebsocketRoute {
     private final ActorRef streamingActor;
     private final WebSocketConfig webSocketConfig;
     private final EventStream eventStream;
-    private final EventSniffer<Message> incomingMessageSniffer;
-    private final EventSniffer<Message> outgoingMessageSniffer;
+
+    private final EventSniffer<String> incomingMessageSniffer;
+    private final EventSniffer<String> outgoingMessageSniffer;
 
     private WebsocketRoute(final ActorRef streamingActor,
             final WebSocketConfig webSocketConfig,
             final EventStream eventStream,
-            final EventSniffer<Message> incomingMessageSniffer,
-            final EventSniffer<Message> outgoingMessageSniffer) {
-
+            final EventSniffer<String> incomingMessageSniffer,
+            final EventSniffer<String> outgoingMessageSniffer) {
         this.streamingActor = streamingActor;
         this.webSocketConfig = webSocketConfig;
         this.eventStream = eventStream;
@@ -144,8 +144,8 @@ public final class WebsocketRoute {
      * @param outgoingMessageSniffer sniffer of outgoing messages.
      * @return a copy of this object with the message sniffers.
      */
-    public WebsocketRoute withMessageSniffers(final EventSniffer<Message> incomingMessageSniffer,
-            final EventSniffer<Message> outgoingMessageSniffer) {
+    public WebsocketRoute withMessageSniffers(final EventSniffer<String> incomingMessageSniffer,
+            final EventSniffer<String> outgoingMessageSniffer) {
 
         return new WebsocketRoute(streamingActor, webSocketConfig, eventStream, incomingMessageSniffer,
                 outgoingMessageSniffer);
@@ -209,7 +209,6 @@ public final class WebsocketRoute {
                     inCounter.increment();
                     return msg;
                 }))
-                .via(incomingMessageSniffer.toAsyncFlow(request))
                 .filter(Message::isText)
                 .map(Message::asTextMessage)
                 .map(textMsg -> {
@@ -220,6 +219,7 @@ public final class WebsocketRoute {
                     }
                 })
                 .flatMapConcat(textMsg -> textMsg.<String>fold("", (str1, str2) -> str1 + str2))
+                .via(incomingMessageSniffer.toAsyncFlow(request))
                 .via(Flow.fromFunction(result -> {
                     LogUtil.logWithCorrelationId(LOGGER, connectionCorrelationId, logger ->
                             logger.debug("Received incoming WebSocket message: {}", result));
@@ -281,12 +281,12 @@ public final class WebsocketRoute {
                                     logger.debug("Sending outgoing WebSocket message: {}", result));
                             return result;
                         }))
+                        .via(outgoingMessageSniffer.toAsyncFlow(request))
                         .<Message>map(TextMessage::create)
                         .via(Flow.fromFunction(msg -> {
                             outCounter.increment();
                             return msg;
-                        }))
-                        .via(outgoingMessageSniffer.toAsyncFlow(request));
+                        }));
 
         return joinOutgoingFlows(eventAndResponseSource, errorFlow, messageFlow);
     }
