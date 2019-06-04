@@ -17,20 +17,23 @@
 
     <parent>
         <groupId>org.eclipse.ditto</groupId>
-        <artifactId>ditto-services</artifactId>
+        <artifactId>ditto-services-concierge</artifactId>
         <version>${revision}</version>
     </parent>
 
-    <artifactId>ditto-services-concierge</artifactId>
-    <packaging>pom</packaging>
-    <name>Eclipse Ditto :: Services :: Concierge</name>
+    <artifactId>ditto-services-concierge-common</artifactId>
+    <name>Eclipse Ditto :: Services :: Concierge :: Common</name>
 
-    <modules>
-		<module>batch</module>
-        <module>cache</module>
-        <module>common</module>
-        <module>enforcement</module>
-        <module>starter</module>
-    </modules>
+    <dependencies>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-base</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-utils-persistence</artifactId>
+        </dependency>
+    </dependencies>
 
 </project>

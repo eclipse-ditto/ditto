@@ -56,19 +56,8 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
 
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final int bufferSize;
-    private final int parallelism;
-
-    /**
-     * @param bufferSize the buffer size used for the Source queue. After this limit is reached, the mailbox of this
-     * actor will rise and buffer messages as part of the backpressure strategy.
-     * @param parallelism parallelism to use for processing messages in parallel. When configured too low, throughput of
-     * messages which perform blocking operations will be bad.
-     */
-    protected AbstractGraphActor(final int bufferSize, final int parallelism) {
-
-        this.bufferSize = bufferSize;
-        this.parallelism = parallelism;
+    protected AbstractGraphActor() {
+        // no-op
     }
 
     /**
@@ -100,6 +89,25 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
      */
     protected abstract Sink<T, ?> processedMessageSink();
 
+    /**
+     * @return the buffer size used for the Source queue. After this limit is reached, the mailbox of this
+     * actor will rise and buffer messages as part of the backpressure strategy.
+     */
+    protected abstract int getBufferSize();
+
+    /**
+     * @return parallelism to use for processing messages in parallel. When configured too low, throughput of
+     * messages which perform blocking operations will be bad.
+     */
+    protected abstract int getParallelism();
+
+    /**
+     * @return the maximum of supported namespaces to start substreams for. Choose a high value as if the actual amount
+     * of substreams gets bigger than this maximum value, the whole enforcement stream will fail. But don't set too high
+     * as substreams require memory!
+     */
+    protected abstract int getMaxNamespacesSubstreams();
+
     @Override
     public Receive createReceive() {
 
@@ -120,9 +128,9 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
         final ActorMaterializer materializer = ActorMaterializer.create(materializerSettings, getContext());
 
         final SourceQueueWithComplete<T> sourceQueue =
-                Source.<T>queue(bufferSize, OverflowStrategy.backpressure())
+                Source.<T>queue(getBufferSize(), OverflowStrategy.backpressure())
                         // first: create substreams by namespace of the messages
-                        .groupBy(100_000, msg -> { // TODO TJ configure max. amount of concurrent namespaces
+                        .groupBy(getMaxNamespacesSubstreams(), msg -> {
                             if (msg instanceof WithId) {
                                 final String id = ((WithId) msg).getId();
                                 final int firstColon = id.indexOf(':');
@@ -134,7 +142,7 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
                         })
                         .via(Flow.fromFunction(this::beforeProcessMessage))
                         // second: partition by the message's ID in order to maintain order per ID
-                        .via(partitionById(processMessageFlow(), parallelism))
+                        .via(partitionById(processMessageFlow(), getParallelism()))
                         .to(processedMessageSink())
                         .run(materializer);
 

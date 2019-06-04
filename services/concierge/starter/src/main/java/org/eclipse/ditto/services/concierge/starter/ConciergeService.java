@@ -13,9 +13,9 @@
 package org.eclipse.ditto.services.concierge.starter;
 
 import org.eclipse.ditto.services.base.DittoService;
+import org.eclipse.ditto.services.concierge.common.ConciergeConfig;
+import org.eclipse.ditto.services.concierge.common.DittoConciergeConfig;
 import org.eclipse.ditto.services.concierge.starter.actors.ConciergeRootActor;
-import org.eclipse.ditto.services.concierge.starter.config.ConciergeConfig;
-import org.eclipse.ditto.services.concierge.starter.config.DittoConciergeConfig;
 import org.eclipse.ditto.services.concierge.starter.proxy.DefaultEnforcerActorFactory;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.slf4j.Logger;

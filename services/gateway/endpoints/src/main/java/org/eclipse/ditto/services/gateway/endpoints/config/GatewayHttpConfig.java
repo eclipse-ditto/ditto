@@ -44,6 +44,7 @@ public final class GatewayHttpConfig implements HttpConfig {
     private final Pattern redirectToHttpsBlacklistPattern;
     private final boolean enableCors;
     private final Duration requestTimeout;
+    private final String actorPropsFactoryFullQualifiedClassname;
 
     private GatewayHttpConfig(final DefaultHttpConfig basicHttpConfig, final ScopedConfig scopedConfig,
             final Pattern redirectToHttpsBlacklistPattern) {
@@ -57,6 +58,8 @@ public final class GatewayHttpConfig implements HttpConfig {
         this.redirectToHttpsBlacklistPattern = redirectToHttpsBlacklistPattern;
         enableCors = scopedConfig.getBoolean(GatewayHttpConfigValue.ENABLE_CORS.getConfigPath());
         requestTimeout = scopedConfig.getDuration(GatewayHttpConfigValue.REQUEST_TIMEOUT.getConfigPath());
+        actorPropsFactoryFullQualifiedClassname = scopedConfig.getString(
+                GatewayHttpConfigValue.ACTOR_PROPS_FACTORY.getConfigPath());
     }
 
     /**
@@ -129,6 +132,11 @@ public final class GatewayHttpConfig implements HttpConfig {
         return requestTimeout;
     }
 
+    @Override
+    public String getActorPropsFactoryFullQualifiedClassname() {
+        return actorPropsFactoryFullQualifiedClassname;
+    }
+
     @SuppressWarnings("OverlyComplexMethod")
     @Override
     public boolean equals(final Object o) {
@@ -146,14 +154,14 @@ public final class GatewayHttpConfig implements HttpConfig {
                 hostname.equals(that.hostname) &&
                 schemaVersions.equals(that.schemaVersions) &&
                 redirectToHttpsBlacklistPattern.equals(that.redirectToHttpsBlacklistPattern) &&
-                requestTimeout.equals(that.requestTimeout);
+                requestTimeout.equals(that.requestTimeout) &&
+                actorPropsFactoryFullQualifiedClassname.equals(that.actorPropsFactoryFullQualifiedClassname);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(hostname, port, schemaVersions, forceHttps, redirectToHttps,
-                redirectToHttpsBlacklistPattern,
-                enableCors, requestTimeout);
+                redirectToHttpsBlacklistPattern, enableCors, requestTimeout, actorPropsFactoryFullQualifiedClassname);
     }
 
     @Override
@@ -167,6 +175,7 @@ public final class GatewayHttpConfig implements HttpConfig {
                 ", redirectToHttpsBlacklistPattern=" + redirectToHttpsBlacklistPattern +
                 ", enableCors=" + enableCors +
                 ", requestTimeout=" + requestTimeout +
+                ", actorPropsFactoryFullQualifiedClassname=" + actorPropsFactoryFullQualifiedClassname +
                 "]";
     }
 

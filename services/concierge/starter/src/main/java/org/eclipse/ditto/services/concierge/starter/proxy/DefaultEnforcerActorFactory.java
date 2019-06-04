@@ -25,19 +25,19 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.concierge.cache.config.CachesConfig;
 import org.eclipse.ditto.services.concierge.cache.update.PolicyCacheUpdateActor;
+import org.eclipse.ditto.services.concierge.common.CachesConfig;
+import org.eclipse.ditto.services.concierge.common.ConciergeConfig;
+import org.eclipse.ditto.services.concierge.common.EnforcementConfig;
 import org.eclipse.ditto.services.concierge.enforcement.EnforcementProvider;
 import org.eclipse.ditto.services.concierge.enforcement.EnforcerActor;
 import org.eclipse.ditto.services.concierge.enforcement.LiveSignalEnforcement;
 import org.eclipse.ditto.services.concierge.enforcement.PolicyCommandEnforcement;
 import org.eclipse.ditto.services.concierge.enforcement.ThingCommandEnforcement;
-import org.eclipse.ditto.services.concierge.enforcement.config.EnforcementConfig;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.PlaceholderSubstitution;
 import org.eclipse.ditto.services.concierge.enforcement.validators.CommandWithOptionalEntityValidator;
 import org.eclipse.ditto.services.concierge.starter.actors.CachedNamespaceInvalidator;
 import org.eclipse.ditto.services.concierge.starter.actors.DispatcherActor;
-import org.eclipse.ditto.services.concierge.starter.config.ConciergeConfig;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
@@ -135,8 +135,7 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
 
         final EnforcementConfig enforcementConfig = conciergeConfig.getEnforcementConfig();
 
-        context.actorOf(DispatcherActor.props(pubSubMediator, conciergeEnforcerRouter,
-                enforcementConfig.getBufferSize(), enforcementConfig.getParallelism()), DispatcherActor.ACTOR_NAME);
+        context.actorOf(DispatcherActor.props(pubSubMediator, conciergeEnforcerRouter), DispatcherActor.ACTOR_NAME);
 
         final ActorRef conciergeForwarder =
                 context.actorOf(ConciergeForwarderActor.props(pubSubMediator, conciergeEnforcerRouter),
@@ -160,10 +159,8 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
                 ConciergeMessagingConstants.BLOCKED_NAMESPACES_UPDATER_NAME,
                 blockedNamespacesUpdaterProps);
 
-        final Duration enforcementAskTimeout = enforcementConfig.getAskTimeout();
-        final Props enforcerProps = // TODO TJ check props
-                EnforcerActor.props(pubSubMediator, enforcementProviders, enforcementAskTimeout,
-                        conciergeForwarder, enforcement.bufferSize(), enforcement.parallelism(),
+        final Props enforcerProps =
+                EnforcerActor.props(pubSubMediator, enforcementProviders, conciergeForwarder,
                         preEnforcer, thingIdCache, aclEnforcerCache,
                         policyEnforcerCache); // passes in the caches to be able to invalidate cache entries
 

@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.concierge.starter.proxy;
 
 import java.util.Optional;
 
-import org.eclipse.ditto.services.concierge.starter.config.ConciergeConfig;
+import org.eclipse.ditto.services.concierge.common.ConciergeConfig;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 
 import akka.actor.ActorContext;

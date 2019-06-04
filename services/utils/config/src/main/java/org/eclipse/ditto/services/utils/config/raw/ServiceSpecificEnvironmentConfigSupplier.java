@@ -26,7 +26,15 @@ import com.typesafe.config.ConfigValue;
 import com.typesafe.config.ConfigValueFactory;
 
 /**
- * TODO Javadoc
+ * Supplier for Typesafe {@link Config} based on the environment the service runs in.
+ * Distinguishes between:
+ * <ul>
+ * <li>{@link HostingEnvironment#CLOUD_NATIVE}</li>
+ * <li>{@link HostingEnvironment#DOCKER}</li>
+ * <li>{@link HostingEnvironment#FILE_BASED_CONFIGURED}</li>
+ * <li>{@link HostingEnvironment#FILE_BASED_SERVICE_NAME}</li>
+ * <li>{@link HostingEnvironment#DEVELOPMENT}</li>
+ * </ul>
  */
 @Immutable
 final class ServiceSpecificEnvironmentConfigSupplier implements Supplier<Config> {

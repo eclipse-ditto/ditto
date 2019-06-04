@@ -206,8 +206,8 @@ final class GatewayRootActor extends AbstractActor {
             log.info("No explicit hostname configured, using HTTP hostname <{}>.", hostname);
         }
 
-        // TODO TJ check
-        final Route rootRoute = createRoute(actorSystem, configReader, proxyActor, streamingActor, healthCheckActor, healthCheckConfig);
+        final Route rootRoute = createRoute(actorSystem, gatewayConfig, proxyActor, streamingActor, healthCheckActor,
+                healthCheckConfig);
         final Route routeWithLogging = Directives.logRequest("http", Logging.DebugLevel(), (() -> rootRoute));
 
         httpBinding = Http.get(actorSystem)

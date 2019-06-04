@@ -30,10 +30,9 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
-import org.eclipse.ditto.services.gateway.endpoints.HttpRequestActor;
-import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.gateway.endpoints.actors.HttpRequestActor;
 import org.eclipse.ditto.services.gateway.endpoints.actors.HttpRequestActorPropsFactory;
+import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.utils.akka.AkkaClassLoader;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -61,9 +60,6 @@ import akka.util.ByteString;
  * Base class for Akka HTTP routes.
  */
 public abstract class AbstractRoute {
-
-    // TODO YC: refactor config key.
-    private static final String HTTP_REQUEST_ACTOR_PROPS_FACTORY_CONFIG_KEY = "ditto.gateway.http.actor-props-factory";
 
     /**
      * Don't configure URL decoding as JsonParseOptions because Akka-Http already decodes the fields-param and we would
@@ -117,9 +113,9 @@ public abstract class AbstractRoute {
                         }
                 ), actorSystem);
 
-        final String propsFactoryClass = config.getString(HTTP_REQUEST_ACTOR_PROPS_FACTORY_CONFIG_KEY);
         httpRequestActorPropsFactory =
-                AkkaClassLoader.instantiate(actorSystem, HttpRequestActorPropsFactory.class, propsFactoryClass);
+                AkkaClassLoader.instantiate(actorSystem, HttpRequestActorPropsFactory.class,
+                        httpConfig.getActorPropsFactoryFullQualifiedClassname());
     }
 
     /**
@@ -226,8 +222,8 @@ public abstract class AbstractRoute {
     protected ActorRef createHttpPerRequestActor(final RequestContext ctx,
             final CompletableFuture<HttpResponse> httpResponseFuture) {
 
-        final Props props =
-                httpRequestActorPropsFactory.props(proxyActor, headerTranslator, ctx.getRequest(), httpResponseFuture);
+        final Props props = httpRequestActorPropsFactory.props(
+                proxyActor, headerTranslator, ctx.getRequest(), httpResponseFuture, httpConfig);
 
         return actorSystem.actorOf(props);
     }

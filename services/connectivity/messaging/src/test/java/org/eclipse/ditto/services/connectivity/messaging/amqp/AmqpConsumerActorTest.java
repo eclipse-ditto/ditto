@@ -47,9 +47,9 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.routing.ConsistentHashingPool;
+import akka.routing.ConsistentHashingRouter;
 import akka.routing.DefaultResizer;
 import akka.routing.Resizer;
-import akka.routing.RoundRobinPool;
 import akka.testkit.javadsl.TestKit;
 
 /**
@@ -186,21 +186,24 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
     @Test
     public void createWithDefaultMapperOnly() {
         new TestKit(actorSystem) {{
-            final ActorRef underTest = setupActor(getTestActor(), getTestActor());
+            final ActorRef underTest = setupActor(getTestActor(), getTestActor(), null);
             final ExternalMessage in =
                     ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap()).withText("").build();
-            underTest.tell(in, null);
+            final ConsistentHashingRouter.ConsistentHashableEnvelope msg =
+                    new ConsistentHashingRouter.ConsistentHashableEnvelope(in, "foo");
+            underTest.tell(msg, null);
         }};
     }
 
-    private ActorRef setupActor(final ActorRef publisherActor, final ActorRef conciergeForwarderActor) {
-        final MessageMappingProcessor mappingProcessor = getMessageMappingProcessor(null);
+    private ActorRef setupActor(final ActorRef publisherActor, final ActorRef conciergeForwarderActor,
+            final MappingContext mappingContext) {
+        final MessageMappingProcessor mappingProcessor = getMessageMappingProcessor(mappingContext);
 
         final Props messageMappingProcessorProps =
                 MessageMappingProcessorActor.props(publisherActor, conciergeForwarderActor, mappingProcessor,
                         CONNECTION_ID);
 
-        final Resizer resizer = new DefaultResizer(1, 5);
+        final Resizer resizer = new DefaultResizer(2, 2);
 
         return actorSystem.actorOf(new ConsistentHashingPool(2)
                         .withDispatcher("message-mapping-processor-dispatcher")

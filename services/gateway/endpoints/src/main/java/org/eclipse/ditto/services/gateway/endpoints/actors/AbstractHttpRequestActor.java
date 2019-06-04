@@ -287,29 +287,6 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         return addBody.apply(addHeaders.apply(response));
     }
 
-    /**
-     * Creates the Akka configuration object for this {@code HttpRequestActor} for the given {@code proxyActor},
-     * {@code request}, and {@code httpResponseFuture} which will be completed with a {@link HttpResponse}.
-     *
-     * @param proxyActor the proxy actor which delegates commands.
-     * @param headerTranslator the {@link org.eclipse.ditto.protocoladapter.HeaderTranslator} used to map ditto headers
-     * to (external) Http headers.
-     * @param request the HTTP request.
-     * @param httpResponseFuture the completable future which is completed with a HTTP response.
-     * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
-     * @return the configuration object.
-     */
-    public static Props props(final ActorRef proxyActor,
-            final HeaderTranslator headerTranslator,
-            final HttpRequest request,
-            final CompletableFuture<HttpResponse> httpResponseFuture,
-            final HttpConfig httpConfig) {
-
-        // TODO TJ move to subclasses instead - this is abstract actor!
-        return Props.create(HttpRequestActor.class, proxyActor, headerTranslator, request, httpResponseFuture,
-                httpConfig);
-    }
-
     @Override
     public AbstractActor.Receive createReceive() {
         return ReceiveBuilder.create()

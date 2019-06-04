@@ -24,7 +24,7 @@ import java.util.concurrent.CompletionStage;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.concierge.batch.actors.BatchSupervisorActor;
-import org.eclipse.ditto.services.concierge.starter.config.ConciergeConfig;
+import org.eclipse.ditto.services.concierge.common.ConciergeConfig;
 import org.eclipse.ditto.services.concierge.starter.proxy.AbstractEnforcerActorFactory;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;

@@ -13,13 +13,15 @@
 package org.eclipse.ditto.services.utils.persistence.mongo;
 
 import static org.assertj.core.api.Assertions.assertThat;
+
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
-import java.util.concurrent.TimeUnit;
 import org.junit.Test;
+
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
@@ -57,9 +59,10 @@ public final class MongoClientWrapperTest {
                 + "&maxLifeTimeMS=" + maxLifeTime.toMillis();
 
         final Config config = CONFIG.withValue(MONGO_URI_CONFIG_KEY, ConfigValueFactory.fromAnyRef(uri));
+        final DefaultMongoDbConfig mongoDbConfig = DefaultMongoDbConfig.of(config);
 
         // test
-        final MongoClientWrapper underTest = MongoClientWrapper.newInstance(config);
+        final MongoClientWrapper underTest = MongoClientWrapper.newInstance(mongoDbConfig);
 
         // verify
         assertThat(underTest.getSettings().getConnectionPoolSettings().

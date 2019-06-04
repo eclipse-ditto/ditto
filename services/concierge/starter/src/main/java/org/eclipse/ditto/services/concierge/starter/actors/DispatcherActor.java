@@ -22,12 +22,15 @@ import java.util.Optional;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.services.concierge.common.DittoConciergeConfig;
+import org.eclipse.ditto.services.concierge.common.EnforcementConfig;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommand;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
@@ -57,15 +60,18 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
 
     private final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> handler;
     private final ActorRef thingsAggregatorActor;
+    private final EnforcementConfig enforcementConfig;
 
     @SuppressWarnings("unused")
     private DispatcherActor(final ActorRef enforcerActor,
             final ActorRef pubSubMediator,
-            final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> handler,
-            final int bufferSize,
-            final int parallelism) {
+            final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> handler) {
 
-        super(bufferSize, parallelism);
+        super();
+
+        enforcementConfig = DittoConciergeConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        ).getEnforcementConfig();
 
         this.handler = handler;
         final Props props = ThingsAggregatorActor.props(enforcerActor);
@@ -93,6 +99,16 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
     }
 
     @Override
+    protected int getBufferSize() {
+        return enforcementConfig.getBufferSize();
+    }
+
+    @Override
+    protected int getParallelism() {
+        return enforcementConfig.getParallelism();
+    }
+
+    @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
         // no-op
     }
@@ -102,16 +118,12 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
      *
      * @param pubSubMediator Akka pub-sub mediator.
      * @param enforcerActor address of the enforcer actor.
-     * @param bufferSize the buffer size used for the Source queue.
-     * @param parallelism parallelism to use for processing messages in parallel.
      * @return the Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
-            final ActorRef enforcerActor,
-            final int bufferSize,
-            final int parallelism) {
+            final ActorRef enforcerActor) {
 
-        return props(pubSubMediator, enforcerActor, Flow.create(), bufferSize, parallelism);
+        return props(pubSubMediator, enforcerActor, Flow.create());
     }
 
     /**
@@ -120,15 +132,11 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
      * @param pubSubMediator Akka pub-sub mediator.
      * @param enforcerActor the address of the enforcer actor.
      * @param preEnforcer the pre-enforcer as graph.
-     * @param bufferSize the buffer size used for the Source queue.
-     * @param parallelism parallelism to use for processing messages in parallel.
      * @return the Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
             final ActorRef enforcerActor,
-            final Graph<FlowShape<WithSender, WithSender>, ?> preEnforcer,
-            final int bufferSize,
-            final int parallelism) {
+            final Graph<FlowShape<WithSender, WithSender>, ?> preEnforcer) {
 
         final Graph<FlowShape<ImmutableDispatch, ImmutableDispatch>, NotUsed> dispatchFlow =
                 createDispatchFlow(pubSubMediator);
@@ -136,7 +144,7 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
         final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> handler = asContextualFlow(preEnforcer)
                 .via(dispatchFlow);
 
-        return Props.create(DispatcherActor.class, enforcerActor, pubSubMediator, handler, bufferSize, parallelism);
+        return Props.create(DispatcherActor.class, enforcerActor, pubSubMediator, handler);
     }
 
     /**

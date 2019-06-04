@@ -19,6 +19,7 @@ import java.util.regex.Pattern;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.gateway.endpoints.actors.DefaultHttpRequestActorPropsFactory;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
@@ -75,6 +76,14 @@ public interface HttpConfig extends org.eclipse.ditto.services.base.config.http.
     Duration getRequestTimeout();
 
     /**
+     * Returns the full qualified classname of the {@link org.eclipse.ditto.services.gateway.endpoints.actors.HttpRequestActorPropsFactory}
+     * implementation to use for instantiating the Gateway {@link org.eclipse.ditto.services.gateway.endpoints.actors.AbstractHttpRequestActor}.
+     *
+     * @return the full qualified classname of the HttpRequestActorPropsFactory implementation to use.
+     */
+    String getActorPropsFactoryFullQualifiedClassname();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code HttpConfig}.
      */
@@ -111,7 +120,13 @@ public interface HttpConfig extends org.eclipse.ditto.services.base.config.http.
         /**
          * The timeout for HTTP requests.
          */
-        REQUEST_TIMEOUT("request_timeout", Duration.ofMinutes(1L));
+        REQUEST_TIMEOUT("request_timeout", Duration.ofMinutes(1L)),
+
+        /**
+         * The full qualified classname of the HttpRequestActorPropsFactory to instantiate.
+         */
+        ACTOR_PROPS_FACTORY("actor-props-factory", DefaultHttpRequestActorPropsFactory.class.getName())
+        ;
 
         private final String path;
         private final Object defaultValue;
