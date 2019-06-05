@@ -49,7 +49,7 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 @AllValuesAreNonnullByDefault
 @JsonParsableCommand(typePrefix = SudoStreamModifiedEntities.TYPE_PREFIX, name = SudoStreamModifiedEntities.NAME)
 public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStreamModifiedEntities>
-        implements StreamingMessage {
+        implements StartStreamRequest {
 
     private static final Integer DEFAULT_BURST = 1;
 
@@ -104,8 +104,8 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
      * @param burst the amount of elements to be collected per message
      * @param timeoutMillis maximum time to wait for acknowledgement of each stream element.
      * @param dittoHeaders the command headers of the request.
-     * @return a command for retrieving modified Things without authorization.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @return the command.
+     * @throws NullPointerException if any non-nullable argument is {@code null}.
      */
     public static SudoStreamModifiedEntities of(final Instant start, final Instant end,
             @Nullable final Integer burst, @Nullable final Long timeoutMillis, final DittoHeaders dittoHeaders) {
@@ -113,11 +113,11 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
     }
 
     /**
-     * Creates a new {@code SudoRetrieveModifiedThingTags} from a JSON object.
+     * Creates a new {@code SudoStreamModifiedEntities} from a JSON object.
      *
-     * @param jsonObject the JSON object of which a new SudoRetrieveModifiedThingTags is to be created.
+     * @param jsonObject the JSON representation of the command.
      * @param dittoHeaders the optional command headers of the request.
-     * @return the SudoRetrieveModifiedThingTags which was created from the given JSON object.
+     * @return the command.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws JsonMissingFieldException if the passed in {@code jsonObject} was not in the expected format.
      */
@@ -157,22 +157,19 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
         return end;
     }
 
-    /**
-     * Returns the streaming burst.
-     *
-     * @return number of elements to send per message.
-     */
+    @Override
     public int getBurst() {
         return burst;
     }
 
-    /**
-     * Returns the timeout in milliseconds.
-     *
-     * @return the timeout.
-     */
+    @Override
     public long getTimeoutMillis() {
         return timeoutMillis;
+    }
+
+    @Override
+    public <T> T accept(final StartStreamRequestVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 
     @Override
