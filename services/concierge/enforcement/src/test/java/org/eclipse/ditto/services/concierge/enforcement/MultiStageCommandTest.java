@@ -58,6 +58,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.typesafe.config.ConfigFactory;
+
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.pattern.AskTimeoutException;
@@ -93,7 +95,7 @@ public final class MultiStageCommandTest {
 
     @Before
     public void init() {
-        system = ActorSystem.create();
+        system = ActorSystem.create("test", ConfigFactory.load("test"));
         mockThingsActor = newMockEntitiesActor(system);
         mockPoliciesActor = newMockEntitiesActor(system);
     }

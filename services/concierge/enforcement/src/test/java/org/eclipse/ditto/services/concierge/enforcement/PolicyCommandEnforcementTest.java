@@ -64,6 +64,7 @@ import org.junit.Test;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -127,7 +128,7 @@ public class PolicyCommandEnforcementTest {
 
     @Before
     public void init() {
-        system = ActorSystem.create();
+        system = ActorSystem.create("test", ConfigFactory.load("test"));
 
         policiesShardRegionProbe = createPoliciesShardRegionProbe();
 
