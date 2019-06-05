@@ -28,7 +28,6 @@ import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
-import akka.Done;
 import akka.NotUsed;
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
@@ -37,16 +36,12 @@ import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
-import akka.japi.Pair;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
 import akka.pattern.Patterns;
-import akka.stream.KillSwitch;
-import akka.stream.KillSwitches;
 import akka.stream.Materializer;
 import akka.stream.SourceRef;
-import akka.stream.UniqueKillSwitch;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -145,7 +140,6 @@ public final class DefaultStreamSupervisor<E> extends AbstractActorWithTimers {
     private final TimestampPersistence streamMetadataPersistence;
     private final Materializer materializer;
     private final StreamConsumerSettings streamConsumerSettings;
-    private @Nullable KillSwitch killSwitch;
     private @Nullable StreamTrigger activeStream;
     private @Nullable Boolean activeStreamSuccess;
 
@@ -258,8 +252,8 @@ public final class DefaultStreamSupervisor<E> extends AbstractActorWithTimers {
             }
             doScheduleNextStream();
         } else {
-            log.warning("Got ScheduleNextStream for <{}> which is not the active stream trigger <{}>",
-                    message.activeStreamTrigger, activeStream);
+            log.warning("Got ScheduleNextStream <{}> which does not match the active stream trigger <{}>",
+                    message, activeStream);
         }
     }
 
@@ -380,7 +374,9 @@ public final class DefaultStreamSupervisor<E> extends AbstractActorWithTimers {
                                 } else {
                                     final Throwable e = result instanceof AskTimeoutException
                                             ? (AskTimeoutException) result
-                                            : error;
+                                            : error != null
+                                            ? error
+                                            : new IllegalStateException("Unexpected message from provider: " + result);
                                     return new ScheduleNextStream(activeStream, e, false);
                                 }
                             });
@@ -418,16 +414,12 @@ public final class DefaultStreamSupervisor<E> extends AbstractActorWithTimers {
 
     private void startStreamForwarding(final SourceRef<?> sourceRef) {
         streamForwardingStartedOrStopped();
-        final Pair<UniqueKillSwitch, CompletionStage<Done>> pair = sourceRef.getSource()
+        final StreamTrigger currentStreamTrigger = activeStream;
+        final CompletionStage<ScheduleNextStream> termination = sourceRef.getSource()
                 .flatMapConcat(this::forwardStreamElement)
                 .log("forwardStreamElement", log)
-                .viaMat(KillSwitches.single(), Keep.right())
-                .toMat(Sink.ignore(), Keep.both())
-                .run(materializer);
-        killSwitch = pair.first();
-
-        final StreamTrigger currentStreamTrigger = activeStream;
-        final CompletionStage<ScheduleNextStream> termination = pair.second()
+                .toMat(Sink.ignore(), Keep.right())
+                .run(materializer)
                 .handle((result, error) -> new ScheduleNextStream(currentStreamTrigger, error, true));
         Patterns.pipe(termination, getContext().dispatcher()).to(getSelf());
     }
@@ -462,7 +454,6 @@ public final class DefaultStreamSupervisor<E> extends AbstractActorWithTimers {
     private void streamTerminated() {
         streamForwardingStartedOrStopped();
         log.debug("Current stream terminated: <{}>", activeStream);
-        killSwitch = null;
     }
 
     private void checkForActivity(final CheckForActivity instance) {
@@ -503,6 +494,15 @@ public final class DefaultStreamSupervisor<E> extends AbstractActorWithTimers {
             this.activeStreamTrigger = activeStreamTrigger;
             this.error = error;
             this.terminated = terminated;
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() +
+                    "[activeStreamTrigger=" + activeStreamTrigger +
+                    ",error=" + error +
+                    ",terminated=" + terminated +
+                    "]";
         }
     }
 }
