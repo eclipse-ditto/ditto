@@ -28,12 +28,13 @@ import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCou
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 
 import akka.actor.AbstractActor;
+import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
 
 /**
  * Base class for consumer actors that holds common fields and handles the address status.
  */
-public abstract class BaseConsumerActor extends AbstractActor {
+public abstract class BaseConsumerActor extends AbstractActorWithTimers {
 
     protected final String sourceAddress;
     protected final ActorRef messageMappingProcessor;

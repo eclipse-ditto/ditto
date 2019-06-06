@@ -51,6 +51,7 @@ import javax.jms.TextMessage;
 
 import org.apache.qpid.jms.JmsConnection;
 import org.apache.qpid.jms.JmsConnectionListener;
+import org.apache.qpid.jms.JmsMessageConsumer;
 import org.apache.qpid.jms.JmsQueue;
 import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.message.JmsTextMessage;
@@ -129,7 +130,7 @@ public final class AmqpClientActorTest extends WithMockServers {
     @Mock
     private final Session mockSession = Mockito.mock(Session.class);
     @Mock
-    private final MessageConsumer mockConsumer = Mockito.mock(MessageConsumer.class);
+    private final JmsMessageConsumer mockConsumer = Mockito.mock(JmsMessageConsumer.class);
     @Mock
     private final MessageProducer mockProducer = Mockito.mock(MessageProducer.class);
 
