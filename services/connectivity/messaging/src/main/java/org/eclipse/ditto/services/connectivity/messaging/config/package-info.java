@@ -10,13 +10,5 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.health.config;
-
-import javax.annotation.concurrent.Immutable;
-
-/**
- * Provides configuration settings regarded to Ditto's runtime health.
- */
-@Immutable
-public interface HealthCheckConfig extends BasicHealthCheckConfig, WithPersistenceConfig {
-}
+@org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault
+package org.eclipse.ditto.services.connectivity.messaging.config;

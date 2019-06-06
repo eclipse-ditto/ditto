@@ -20,9 +20,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings for Connectivity service's client.
- * <p>
- * Java serialization is supported for {@code ClientConfig}.
- * </p>
  */
 @Immutable
 public interface ClientConfig {

@@ -18,9 +18,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides the configuration settings of metrics.
- * <p>
- * Java serialization is supported for {@code MetricsConfig}.
- * </p>
  */
 @Immutable
 public interface MetricsConfig {

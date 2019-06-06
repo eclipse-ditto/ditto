@@ -19,9 +19,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings for Connectivity service's message mapping behaviour.
- * <p>
- * Java serialization is supported for {@code MappingConfig}.
- * </p>
  */
 @Immutable
 public interface MappingConfig {

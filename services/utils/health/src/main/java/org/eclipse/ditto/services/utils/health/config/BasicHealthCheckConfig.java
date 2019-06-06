@@ -20,9 +20,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings for Ditto's runtime health checking behaviour.
- * <p>
- * Java serialization is supported for {@code BaseHealthCheckConfig}.
- * </p>
  */
 @Immutable
 public interface BasicHealthCheckConfig {

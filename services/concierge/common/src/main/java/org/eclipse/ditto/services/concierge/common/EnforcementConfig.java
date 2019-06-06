@@ -20,9 +20,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings for Concierge enforcement behaviour.
- * <p>
- * Java serialization is supported for {@code EnforcementConfig}.
- * </p>
  */
 @Immutable
 public interface EnforcementConfig {

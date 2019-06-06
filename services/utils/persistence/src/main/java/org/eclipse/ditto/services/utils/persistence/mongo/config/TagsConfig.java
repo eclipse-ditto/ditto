@@ -18,9 +18,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides the configuration settings of entity tags.
- * <p>
- * Java serialization is supported for {@code TagsConfig}.
- * </p>
  */
 @Immutable
 public interface TagsConfig {

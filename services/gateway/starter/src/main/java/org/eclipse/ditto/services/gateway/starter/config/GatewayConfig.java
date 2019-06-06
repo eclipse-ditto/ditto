@@ -24,9 +24,6 @@ import org.eclipse.ditto.services.utils.protocol.config.WithProtocolConfig;
 
 /**
  * Provides configuration settings for the Gateway service.
- * <p>
- * Java serialization is supported for {@code GatewayConfig}.
- * </p>
  */
 public interface GatewayConfig extends ServiceSpecificConfig, WithProtocolConfig {
 

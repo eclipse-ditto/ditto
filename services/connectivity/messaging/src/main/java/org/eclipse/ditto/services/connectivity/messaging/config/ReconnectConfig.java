@@ -20,9 +20,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings for Connectivity service's reconnect behaviour.
- * <p>
- * Java serialization is supported for {@code ReconnectConfig}.
- * </p>
  */
 @Immutable
 public interface ReconnectConfig {
@@ -87,9 +84,6 @@ public interface ReconnectConfig {
     /**
      * Provides configuration settings for throttling the recovery of connections.
      * The goal of this throttling is to achieve that not all connections are recovered at the same time.
-     * <p>
-     * Java serialization is supported for {@code RateConfig}.
-     * </p>
      */
     @Immutable
     interface RateConfig {

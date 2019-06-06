@@ -23,7 +23,7 @@ import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import com.typesafe.config.Config;
 
 /**
- * This class is the default implementation of the client config.
+ * This class is the default implementation of the {@link ClientConfig}.
  */
 @Immutable
 public final class DefaultClientConfig implements ClientConfig {

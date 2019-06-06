@@ -24,9 +24,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings of the Gateway service's HTTP behaviour.
- * <p>
- * Java serialization is supported for {@code HttpConfig}.
- * </p>
  */
 @Immutable
 public interface HttpConfig extends org.eclipse.ditto.services.base.config.http.HttpConfig {

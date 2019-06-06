@@ -20,9 +20,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings for the handling entity snapshots.
- * <p>
- * Java serialization is supported for {@code SnapshotConfig}.
- * </p>
  */
 @Immutable
 public interface SnapshotConfig {

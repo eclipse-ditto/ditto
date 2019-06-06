@@ -20,9 +20,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings for the public health endpoint of the Ditto Gateway service.
- * <p>
- * Java serialization is supported for {@code CachesConfig}.
- * </p>
  */
 @Immutable
 public interface PublicHealthConfig {

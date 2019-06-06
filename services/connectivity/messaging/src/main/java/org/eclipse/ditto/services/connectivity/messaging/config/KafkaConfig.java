@@ -18,9 +18,6 @@ import com.typesafe.config.Config;
 
 /**
  * Provides configuration settings of the Kafka protocol.
- * <p>
- * Java serialization is supported for {@code KafkaConfig}.
- * </p>
  */
 @Immutable
 public interface KafkaConfig {

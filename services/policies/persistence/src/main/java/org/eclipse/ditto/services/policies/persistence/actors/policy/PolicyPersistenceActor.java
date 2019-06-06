@@ -204,7 +204,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                         .build())
 
                 // # Policy Modification Recovery
-                .match(PolicyModified.class, pm -> {
+                .match(PolicyModified.class, pm -> null != policy, pm -> {
                     // we need to use the current policy as base otherwise we would loose its state
                     final PolicyBuilder copyBuilder = policy.toBuilder();
                     copyBuilder.removeAll(policy); // remove all old policyEntries!
@@ -215,20 +215,14 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                 })
 
                 // # Policy Deletion Recovery
-                .match(PolicyDeleted.class, pd -> {
-                    if (null != policy) {
-                        policy = policy.toBuilder()
-                                .setLifecycle(PolicyLifecycle.DELETED)
-                                .setRevision(lastSequenceNr())
-                                .setModified(pd.getTimestamp().orElse(null))
-                                .build();
-                    } else {
-                        log.warning("Policy was null when 'PolicyDeleted' event should have been applied on recovery.");
-                    }
-                })
+                .match(PolicyDeleted.class, pd -> null != policy, pd -> policy = policy.toBuilder()
+                        .setLifecycle(PolicyLifecycle.DELETED)
+                        .setRevision(lastSequenceNr())
+                        .setModified(pd.getTimestamp().orElse(null))
+                        .build())
 
                 // # Policy Entries Modification Recovery
-                .match(PolicyEntriesModified.class, pem -> policy = policy.toBuilder()
+                .match(PolicyEntriesModified.class, pem -> null != policy, pem -> policy = policy.toBuilder()
                         .removeAll(policy.getEntriesSet())
                         .setAll(pem.getPolicyEntries())
                         .setRevision(lastSequenceNr())
@@ -237,28 +231,28 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
 
                 // # Policy Entry Creation Recovery
-                .match(PolicyEntryCreated.class, pec -> policy = policy.toBuilder()
+                .match(PolicyEntryCreated.class, pec -> null != policy, pec -> policy = policy.toBuilder()
                         .set(pec.getPolicyEntry())
                         .setRevision(lastSequenceNr())
                         .setModified(pec.getTimestamp().orElse(null))
                         .build())
 
                 // # Policy Entry Modification Recovery
-                .match(PolicyEntryModified.class, pem -> policy = policy.toBuilder()
+                .match(PolicyEntryModified.class, pem -> null != policy, pem -> policy = policy.toBuilder()
                         .set(pem.getPolicyEntry())
                         .setRevision(lastSequenceNr())
                         .setModified(pem.getTimestamp().orElse(null))
                         .build())
 
                 // # Policy Entry Deletion Recovery
-                .match(PolicyEntryDeleted.class, ped -> policy = policy.toBuilder()
-                        .remove(ped.getLabel())
-                        .setRevision(lastSequenceNr())
-                        .setModified(ped.getTimestamp().orElse(null))
-                        .build())
+                .match(PolicyEntryDeleted.class, ped -> null != policy, ped -> policy = policy.toBuilder()
+                            .remove(ped.getLabel())
+                            .setRevision(lastSequenceNr())
+                            .setModified(ped.getTimestamp().orElse(null))
+                            .build())
 
                 // # Subjects Modification Recovery
-                .match(SubjectsModified.class, sm -> policy.getEntryFor(sm.getLabel())
+                .match(SubjectsModified.class, sm -> null != policy, sm -> policy.getEntryFor(sm.getLabel())
                         .map(policyEntry -> PoliciesModelFactory
                                 .newPolicyEntry(sm.getLabel(), sm.getSubjects(), policyEntry.getResources()))
                         .ifPresent(modifiedPolicyEntry -> policy = policy.toBuilder()
@@ -268,7 +262,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                                 .build()))
 
                 // # Subject Creation Recovery
-                .match(SubjectCreated.class, sc -> policy.getEntryFor(sc.getLabel())
+                .match(SubjectCreated.class, sc -> null != policy, sc -> policy.getEntryFor(sc.getLabel())
                         .map(policyEntry -> PoliciesModelFactory
                                 .newPolicyEntry(sc.getLabel(), policyEntry.getSubjects().setSubject(sc.getSubject()),
                                         policyEntry.getResources()))
@@ -279,7 +273,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                                 .build()))
 
                 // # Subject Modification Recovery
-                .match(SubjectModified.class, sm -> policy.getEntryFor(sm.getLabel())
+                .match(SubjectModified.class, sm -> null != policy, sm -> policy.getEntryFor(sm.getLabel())
                         .map(policyEntry -> PoliciesModelFactory
                                 .newPolicyEntry(sm.getLabel(), policyEntry.getSubjects().setSubject(sm.getSubject()),
                                         policyEntry.getResources()))
@@ -290,7 +284,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                                 .build()))
 
                 // # Subject Deletion Recovery
-                .match(SubjectDeleted.class, sd -> policy = policy.toBuilder()
+                .match(SubjectDeleted.class, sd -> null != policy, sd -> policy = policy.toBuilder()
                         .forLabel(sd.getLabel())
                         .removeSubject(sd.getSubjectId())
                         .setRevision(lastSequenceNr())
@@ -298,7 +292,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                         .build())
 
                 // # Resources Modification Recovery
-                .match(ResourcesModified.class, rm -> policy.getEntryFor(rm.getLabel())
+                .match(ResourcesModified.class, rm -> null != policy, rm -> policy.getEntryFor(rm.getLabel())
                         .map(policyEntry -> PoliciesModelFactory
                                 .newPolicyEntry(rm.getLabel(), policyEntry.getSubjects(), rm.getResources()))
                         .ifPresent(modifiedPolicyEntry -> policy = policy.toBuilder()
@@ -308,7 +302,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                                 .build()))
 
                 // # Resource Creation Recovery
-                .match(ResourceCreated.class, rc -> policy.getEntryFor(rc.getLabel())
+                .match(ResourceCreated.class, rc -> null != policy, rc -> policy.getEntryFor(rc.getLabel())
                         .map(policyEntry -> PoliciesModelFactory.newPolicyEntry(rc.getLabel(),
                                 policyEntry.getSubjects(),
                                 policyEntry.getResources().setResource(rc.getResource())))
@@ -319,7 +313,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                                 .build()))
 
                 // # Resource Modification Recovery
-                .match(ResourceModified.class, rm -> policy.getEntryFor(rm.getLabel())
+                .match(ResourceModified.class, rm -> null != policy, rm -> policy.getEntryFor(rm.getLabel())
                         .map(policyEntry -> PoliciesModelFactory.newPolicyEntry(rm.getLabel(),
                                 policyEntry.getSubjects(),
                                 policyEntry.getResources().setResource(rm.getResource())))
@@ -330,7 +324,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                                 .build()))
 
                 // # Resource Deletion Recovery
-                .match(ResourceDeleted.class, rd -> policy = policy.toBuilder()
+                .match(ResourceDeleted.class, rd -> null != policy, rd -> policy = policy.toBuilder()
                         .forLabel(rd.getLabel())
                         .removeResource(rd.getResourceKey())
                         .setRevision(lastSequenceNr())

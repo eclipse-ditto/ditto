@@ -98,9 +98,6 @@ public interface MongoDbConfig {
 
     /**
      * Provides configuration settings of the MongoDB options.
-     * <p>
-     * Java serialization is supported for {@code OptionsConfig}.
-     * </p>
      */
     @Immutable
     interface OptionsConfig {
@@ -146,9 +143,6 @@ public interface MongoDbConfig {
 
     /**
      * Provides configuration settings of the MongoDB connection pool.
-     * <p>
-     * Java serialization is supported for {@code ConnectionPoolConfig}.
-     * </p>
      */
     @Immutable
     interface ConnectionPoolConfig {
@@ -231,9 +225,6 @@ public interface MongoDbConfig {
 
     /**
      * Provides configuration settings of the MongoDB circuit breaker.
-     * <p>
-     * Java serialization is supported for {@code CircuitBreakerConfig}.
-     * </p>
      */
     @Immutable
     interface CircuitBreakerConfig {
@@ -285,9 +276,6 @@ public interface MongoDbConfig {
 
         /**
          * Provides configuration settings of the circuit breaker timeout.
-         * <p>
-         * Java serialization is supported for {@code TimeoutConfig}.
-         * </p>
          */
         @Immutable
         interface TimeoutConfig {
@@ -350,9 +338,6 @@ public interface MongoDbConfig {
 
     /**
      * Provides the configuration settings for the MongoDB monitoring.
-     * <p>
-     * Java serialization is supported for {@code MonitoringConfig}.
-     * </p>
      */
     @Immutable
     interface MonitoringConfig {

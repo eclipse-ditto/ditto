@@ -20,9 +20,6 @@ import org.eclipse.ditto.services.utils.persistence.mongo.config.WithMongoDbConf
 
 /**
  * Provides the configuration settings of the Concierge service.
- * <p>
- * Java serialization is supported for {@code ConciergeConfig}.
- * </p>
  */
 @Immutable
 public interface ConciergeConfig extends ServiceSpecificConfig, WithHealthCheckConfig, WithMongoDbConfig {

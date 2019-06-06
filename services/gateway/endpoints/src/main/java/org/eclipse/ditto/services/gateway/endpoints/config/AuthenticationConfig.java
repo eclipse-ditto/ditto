@@ -18,9 +18,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings for the Gateway authentication.
- * <p>
- * Java serialization is supported for {@code AuthenticationConfig}.
- * </p>
  */
 @Immutable
 public interface AuthenticationConfig {

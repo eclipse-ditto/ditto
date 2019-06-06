@@ -21,9 +21,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings of the Ditto protocol adaption.
- * <p>
- * Java serialization is supported for {@code ProtocolConfig}.
- * </p>
  */
 @Immutable
 public interface ProtocolConfig {

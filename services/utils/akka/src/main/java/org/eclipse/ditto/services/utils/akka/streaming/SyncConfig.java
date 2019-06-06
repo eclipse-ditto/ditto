@@ -20,9 +20,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings for the synchronization of service properties towards Search service.
- * <p>
- * Java serialization is supported for SyncConfig.
- * </p>
  */
 @Immutable
 public interface SyncConfig {

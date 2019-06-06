@@ -20,9 +20,6 @@ import org.eclipse.ditto.services.utils.persistence.mongo.config.WithSnapshotCon
 
 /**
  * Provides configuration settings for thing entities.
- * <p>
- * Java serialization is supported for {@code ThingConfig}.
- * </p>
  */
 @Immutable
 public interface ThingConfig extends WithSupervisorConfig, WithActivityCheckConfig, WithSnapshotConfig {

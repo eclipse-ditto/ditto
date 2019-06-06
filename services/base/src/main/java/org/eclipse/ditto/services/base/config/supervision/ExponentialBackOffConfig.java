@@ -20,9 +20,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings for the exponential back-off strategy.
- * <p>
- * Java serialization is supported for {@code ExponentialBackOffConfig}.
- * </p>
  */
 @Immutable
 public interface ExponentialBackOffConfig {

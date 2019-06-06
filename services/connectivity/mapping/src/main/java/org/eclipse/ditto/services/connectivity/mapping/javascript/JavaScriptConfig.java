@@ -20,9 +20,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings for Connectivity service's JavaScript message mapping behaviour.
- * <p>
- * Java serialization is supported for {@code JavaScriptConfig}.
- * </p>
  */
 @Immutable
 public interface JavaScriptConfig {

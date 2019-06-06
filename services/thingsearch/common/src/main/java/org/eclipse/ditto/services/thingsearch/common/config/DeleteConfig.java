@@ -16,9 +16,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides the configuration settings of the "delete" section.
- * <p>
- * Java serialization is supported for {@code DeleteConfig}.
- * </p>
  */
 public interface DeleteConfig {
 

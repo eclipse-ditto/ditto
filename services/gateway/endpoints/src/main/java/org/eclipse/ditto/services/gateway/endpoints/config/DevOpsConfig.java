@@ -18,9 +18,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings of the DevOps endpoint.
- * <p>
- * Java serialization is supported for {@code DevOpsConfig}.
- * </p>
  */
 @Immutable
 public interface DevOpsConfig {

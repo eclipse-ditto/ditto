@@ -23,9 +23,6 @@ import com.typesafe.config.Config;
 
 /**
  * This class is the default implementation of {@link MongoDbConfig}.
- * <p>
- * Java serialization is supported for {@code DefaultMongoDbConfig}.
- * </p>
  */
 @Immutable
 public final class DefaultMongoDbConfig implements MongoDbConfig {

@@ -18,9 +18,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides the configuration settings of health check persistence.
- * <p>
- * Java serialization is supported for {@code PersistenceConfig}.
- * </p>
  */
 public interface PersistenceConfig {
 

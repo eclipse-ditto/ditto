@@ -20,9 +20,6 @@ import org.eclipse.ditto.services.utils.persistence.mongo.config.WithSnapshotCon
 
 /**
  * Provides configuration settings for policy entities.
- * <p>
- * Java serialization is supported for {@code PolicyConfig}.
- * </p>
  */
 @Immutable
 public interface PolicyConfig extends WithSupervisorConfig, WithActivityCheckConfig, WithSnapshotConfig {

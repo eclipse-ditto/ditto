@@ -22,7 +22,7 @@ import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import com.typesafe.config.Config;
 
 /**
- * This class is the default implementation of the MQTT protocol.
+ * This class is the default implementation of {@link MqttConfig}.
  */
 @Immutable
 public final class DefaultMqttConfig implements MqttConfig {

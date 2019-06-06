@@ -35,6 +35,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     private final Duration clientActorAskTimeout;
     private final DefaultSupervisorConfig supervisorConfig;
     private final DefaultSnapshotConfig snapshotConfig;
+    private final DefaultAmqp10Config amqp10Config;
     private final DefaultMqttConfig mqttConfig;
     private final DefaultKafkaConfig kafkaConfig;
 
@@ -44,6 +45,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
         clientActorAskTimeout = config.getDuration(ConnectionConfigValue.CLIENT_ACTOR_ASK_TIMEOUT.getConfigPath());
         supervisorConfig = DefaultSupervisorConfig.of(config);
         snapshotConfig = DefaultSnapshotConfig.of(config);
+        amqp10Config = DefaultAmqp10Config.of(config);
         mqttConfig = DefaultMqttConfig.of(config);
         kafkaConfig = DefaultKafkaConfig.of(config);
     }
@@ -81,6 +83,11 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     }
 
     @Override
+    public DefaultAmqp10Config getAmqp10Config() {
+        return amqp10Config;
+    }
+
+    @Override
     public MqttConfig getMqttConfig() {
         return mqttConfig;
     }
@@ -103,6 +110,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 Objects.equals(clientActorAskTimeout, that.clientActorAskTimeout) &&
                 Objects.equals(supervisorConfig, that.supervisorConfig) &&
                 Objects.equals(snapshotConfig, that.snapshotConfig) &&
+                Objects.equals(amqp10Config, that.amqp10Config) &&
                 Objects.equals(mqttConfig, that.mqttConfig) &&
                 Objects.equals(kafkaConfig, that.kafkaConfig);
     }
@@ -110,7 +118,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     @Override
     public int hashCode() {
         return Objects.hash(flushPendingResponsesTimeout, clientActorAskTimeout, supervisorConfig, snapshotConfig,
-                mqttConfig, kafkaConfig);
+                amqp10Config, mqttConfig, kafkaConfig);
     }
 
     @Override
@@ -120,6 +128,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 ", clientActorAskTimeout=" + clientActorAskTimeout +
                 ", supervisorConfig=" + supervisorConfig +
                 ", snapshotConfig=" + snapshotConfig +
+                ", amqp10Config=" + amqp10Config +
                 ", mqttConfig=" + mqttConfig +
                 ", kafkaConfig=" + kafkaConfig +
                 "]";

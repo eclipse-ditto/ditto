@@ -18,9 +18,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings for checking the index initialization.
- * <p>
- * Java serialization is supported for {@code IndexInitializationConfig}.
- * </p>
  */
 @Immutable
 public interface IndexInitializationConfig {

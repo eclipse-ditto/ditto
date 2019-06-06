@@ -21,9 +21,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings for Connectivity service's connection behaviour.
- * <p>
- * Java serialization is supported for {@code ConnectionConfig}.
- * </p>
  */
 @Immutable
 public interface ConnectionConfig extends WithSupervisorConfig {
@@ -54,6 +51,13 @@ public interface ConnectionConfig extends WithSupervisorConfig {
      * @return the config.
      */
     SnapshotConfig getSnapshotConfig();
+
+    /**
+     * Returns the config specific to the AMQP 1.0 protocol.
+     *
+     * @return the config.
+     */
+    Amqp10Config getAmqp10Config();
 
     /**
      * Returns the config specific to the MQTT protocol.

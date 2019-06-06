@@ -21,9 +21,6 @@ import org.eclipse.ditto.services.utils.persistence.mongo.config.WithTagsConfig;
 
 /**
  * Provides the configuration settings of the Policies service.
- * <p>
- * Java serialization is supported for {@code PoliciesConfig}.
- * </p>
  */
 @Immutable
 public interface PoliciesConfig

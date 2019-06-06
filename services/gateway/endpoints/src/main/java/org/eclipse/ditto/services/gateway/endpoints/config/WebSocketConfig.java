@@ -18,9 +18,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings of the web socket endpoint.
- * <p>
- * Java serialization is supported for {@code WebSocketConfig}.
- * </p>
  */
 @Immutable
 public interface WebSocketConfig {

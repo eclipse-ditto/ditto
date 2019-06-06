@@ -21,9 +21,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings of the caches of Concierge.
- * <p>
- * Java serialization is supported for {@code CachesConfig}.
- * </p>
  */
 @Immutable
 public interface CachesConfig {

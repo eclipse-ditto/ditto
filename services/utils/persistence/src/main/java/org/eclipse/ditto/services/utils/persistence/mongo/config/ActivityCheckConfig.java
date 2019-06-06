@@ -20,9 +20,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings for checking the activity of entities.
- * <p>
- * Java serialization is supported for {@code ActivityCheckConfig}.
- * </p>
  */
 @Immutable
 public interface ActivityCheckConfig {

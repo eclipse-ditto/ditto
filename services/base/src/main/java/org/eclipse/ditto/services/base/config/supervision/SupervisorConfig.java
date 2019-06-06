@@ -16,9 +16,6 @@ import javax.annotation.concurrent.Immutable;
 
 /**
  * Provides configuration settings for the Actor supervision.
- * <p>
- * Java serialization is supported for {@code SupervisorConfig}.
- * </p>
  */
 @Immutable
 public interface SupervisorConfig {

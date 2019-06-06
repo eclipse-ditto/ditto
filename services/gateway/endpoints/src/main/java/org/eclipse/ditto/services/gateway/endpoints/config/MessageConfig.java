@@ -20,9 +20,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings for the {@code messages} resources of the Things service.
- * <p>
- * Java serialization is supported for {@code MessageConfig}.
- * </p>
  */
 @Immutable
 public interface MessageConfig {

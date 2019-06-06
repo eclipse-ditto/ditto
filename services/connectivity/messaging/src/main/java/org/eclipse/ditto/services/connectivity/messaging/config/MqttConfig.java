@@ -18,9 +18,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings of the MQTT protocol.
- * <p>
- * Java serialization is supported for {@code MqttConfig}.
- * </p>
  */
 @Immutable
 public interface MqttConfig {

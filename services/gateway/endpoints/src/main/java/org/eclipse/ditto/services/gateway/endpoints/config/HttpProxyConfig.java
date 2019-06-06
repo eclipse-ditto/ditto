@@ -18,9 +18,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings for the HTTP proxy.
- * <p>
- * Java serialization is supported for {@code HttpProxyConfig}.
- * </p>
  */
 @Immutable
 public interface HttpProxyConfig {

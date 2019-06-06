@@ -21,9 +21,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides the configuration settings of the MongoDB suffix builder for the Akka persistence plugin.
- * <p>
- * Java serialization is supported for {@code SuffixBuilderConfig}.
- * </p>
  */
 @Immutable
 public interface SuffixBuilderConfig {

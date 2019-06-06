@@ -23,9 +23,6 @@ import org.eclipse.ditto.services.utils.health.config.BasicHealthCheckConfig;
 
 /**
  * Provides configuration settings of the health checking of Gateway service.
- * <p>
- * Java serialization is supported for {@code HealthCheckConfig}.
- * </p>
  */
 @Immutable
 public interface HealthCheckConfig extends BasicHealthCheckConfig {
@@ -77,9 +74,6 @@ public interface HealthCheckConfig extends BasicHealthCheckConfig {
 
     /**
      * Provides configuration settings of the health checking regarding cluster roles.
-     * <p>
-     * Java serialization is supported for {@code ClusterRolesConfig}.
-     * </p>
      */
     @Immutable
     interface ClusterRolesConfig {

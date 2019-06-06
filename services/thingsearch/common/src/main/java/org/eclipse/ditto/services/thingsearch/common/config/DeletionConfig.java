@@ -21,9 +21,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 /**
  * Provides the configuration settings for the physical deletion of thing entities that are marked as
  * {@code "__deleted"}.
- * <p>
- * Java serialization is supported for DeletionConfig.
- * </p>
  */
 @Immutable
 public interface DeletionConfig {

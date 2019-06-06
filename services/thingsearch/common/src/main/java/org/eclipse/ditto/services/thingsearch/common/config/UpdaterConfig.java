@@ -21,9 +21,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides the configuration settings for the search updating functionality.
- * <p>
- * Java serialization is supported for UpdaterConfig.
- * </p>
  */
 @Immutable
 public interface UpdaterConfig {

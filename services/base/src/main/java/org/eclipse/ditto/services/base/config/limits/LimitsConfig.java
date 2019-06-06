@@ -18,9 +18,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings for the limits of Ditto services.
- * <p>
- * Java serialization is supported for {@code LimitsConfig}.
- * </p>
  */
 @Immutable
 public interface LimitsConfig {

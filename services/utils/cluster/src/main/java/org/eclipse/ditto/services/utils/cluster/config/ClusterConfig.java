@@ -18,9 +18,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings for the Ditto cluster.
- * <p>
- * Java serialization is supported for {@code ClusterConfig}.
- * </p>
  */
 @Immutable
 public interface ClusterConfig {

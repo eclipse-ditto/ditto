@@ -20,9 +20,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides the configuration settings of Concierge's things aggregation.
- * <p>
- * Java serialization is supported for {@code ThingsAggregatorConfig}.
- * </p>
  */
 @Immutable
 public interface ThingsAggregatorConfig {

@@ -18,9 +18,6 @@ import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
 
 /**
  * Provides configuration settings for the caches of the Gateway service.
- * <p>
- * Java serialization is supported for {@code CachesConfig}.
- * </p>
  */
 @Immutable
 public interface CachesConfig {

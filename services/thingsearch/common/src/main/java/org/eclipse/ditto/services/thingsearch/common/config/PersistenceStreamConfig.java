@@ -18,9 +18,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings of the persistence stream.
- * <p>
- * Java serialization is supported for {@code PersistenceStreamConfig}.
- * </p>
  */
 @Immutable
 public interface PersistenceStreamConfig extends StreamStageConfig {

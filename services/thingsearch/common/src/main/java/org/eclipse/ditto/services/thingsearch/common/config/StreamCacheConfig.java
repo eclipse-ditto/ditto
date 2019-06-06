@@ -21,9 +21,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings of the streaming cache of the Search service.
- * <p>
- * Java serialization is supported for {@code StreamCacheConfig}.
- * </p>
  */
 @Immutable
 public interface StreamCacheConfig extends CacheConfig {

@@ -19,9 +19,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings of stream stages.
- * <p>
- * Java serialization is supported for {@code StreamStageConfig}.
- * </p>
  */
 @Immutable
 public interface StreamStageConfig {

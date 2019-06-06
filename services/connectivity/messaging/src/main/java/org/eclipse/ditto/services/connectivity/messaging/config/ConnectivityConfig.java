@@ -22,9 +22,6 @@ import org.eclipse.ditto.services.utils.protocol.config.WithProtocolConfig;
 
 /**
  * Provides the configuration settings of the Connectivity service.
- * <p>
- * Java serialization is supported for {@code ConnectivityConfig}.
- * </p>
  */
 @Immutable
 public interface ConnectivityConfig

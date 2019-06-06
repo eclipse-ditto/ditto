@@ -24,9 +24,6 @@ import org.eclipse.ditto.services.utils.persistence.mongo.config.WithMongoDbConf
 
 /**
  * Provides the configuration settings of the Search service.
- * <p>
- * Java serialization is supported for SearchConfig.
- * </p>
  */
 @Immutable
 public interface SearchConfig

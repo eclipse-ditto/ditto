@@ -22,9 +22,6 @@ import org.eclipse.ditto.services.utils.persistence.mongo.config.WithTagsConfig;
 
 /**
  * Provides the configuration settings of the Things service.
- * <p>
- * Java serialization is supported for {@code ThingsConfig}.
- * </p>
  */
 @Immutable
 public interface ThingsConfig extends ServiceSpecificConfig, WithHealthCheckConfig, WithMongoDbConfig, WithTagsConfig {

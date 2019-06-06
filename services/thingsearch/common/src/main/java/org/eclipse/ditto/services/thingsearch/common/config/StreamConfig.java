@@ -20,9 +20,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides streaming configuration settings of the Search service.
- * <p>
- * Java serialization is supported for {@code StreamConfig}.
- * </p>
  */
 @Immutable
 public interface StreamConfig {

@@ -18,9 +18,6 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides the configuration settings of the Ditto HTTP endpoint.
- * <p>
- * Java serialization is supported for {@code HttpConfig}.
- * </p>
  */
 @Immutable
 public interface HttpConfig {
