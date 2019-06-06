@@ -68,10 +68,6 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
         this.mqttClientActor = mqttClientActor;
         this.dryRun = dryRun;
 
-        // TODO: as stated in the documentation of Source#actorRef, the ActorRef coming out of this call should be stopped
-        //  by sending a akka.actor.Status.Success or akka.actor.Status.Failure to the actor. Just killing the actor won't
-        //  stop the internal stream. KafkaPublisherActor has the same issue but already uses a special message
-        //  that allows stopping the internal stream before the Actor gets stopped.
         final Pair<ActorRef, CompletionStage<Done>> materializedValues =
                 Source.<MqttMessage>actorRef(100, OverflowStrategy.dropHead())
                         .toMat(factory.newSink(), Keep.both())
