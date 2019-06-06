@@ -194,6 +194,31 @@ public final class ConfigKeys {
 
     }
 
+    /**
+     * Configuration keys for Client.
+     */
+    @Immutable
+    public static final class AmqpConsumer {
+
+        private static final String PREFIX = CONNECTIVITY_PREFIX + "amqp-consumer.";
+
+        /**
+         * Interval at which the consumer is throttled. Disable throttling with a value of zero.
+         */
+        public static final String THROTTLING_INTERVAL = PREFIX + "throttling.interval";
+
+        /**
+         * The maximum number of messages the consumer is allowed to receive within the configured
+         * throttling interval e.g. 100msgs/s. Disable throttling with a value of zero.
+         */
+        public static final String THROTTLING_LIMIT = PREFIX + "throttling.limit";
+
+        private AmqpConsumer() {
+            throw new AssertionError();
+        }
+
+    }
+
     /*
      * This class is not designed for instantiation.
      */
