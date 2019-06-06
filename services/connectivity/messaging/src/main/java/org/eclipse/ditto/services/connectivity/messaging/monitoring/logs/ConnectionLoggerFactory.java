@@ -170,8 +170,12 @@ final class ConnectionLoggerFactory {
         switch (type) {
             case DISPATCHED:
                 builder.withDefaultSuccessMessage("Received response.")
-                        .withDefaultFailureMessage("Received error response.")
-                        .withDefaultExceptionMessage("Received error response.")
+                        .withDefaultFailureMessage("Response was not successful. This may be the case for when a thing " +
+                                "could not be found or the 'authorization subject' of the consuming source was not allowed " +
+                                "to write a thing.")
+                        .withDefaultExceptionMessage("Response was not successful. This may be the case for when a thing " +
+                                "could not be found or the 'authorization subject' of the consuming source was not allowed " +
+                                "to write a thing.")
                         .logHeadersAndPayload();
                 break;
             case FILTERED:

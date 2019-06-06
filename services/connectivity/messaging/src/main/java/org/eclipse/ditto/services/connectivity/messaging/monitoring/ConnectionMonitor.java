@@ -97,7 +97,7 @@ public interface ConnectionMonitor {
      * @param signal that was processed during the failure.
      * @param dittoRuntimeException the exception that caused the failure. Its message will be used in the log message.
      */
-    default void failure(final Signal<?> signal, final DittoRuntimeException dittoRuntimeException) {
+    default void failure(final Signal<?> signal, @Nullable final DittoRuntimeException dittoRuntimeException) {
         failure(InfoProviderFactory.forSignal(signal), dittoRuntimeException);
     }
 
@@ -106,7 +106,7 @@ public interface ConnectionMonitor {
      * @param infoProvider that provides useful information for the failure.
      * @param dittoRuntimeException the exception that caused the failure. Its message will be used in the log message.
      */
-    default void failure(final InfoProvider infoProvider, final DittoRuntimeException dittoRuntimeException) {
+    default void failure(final InfoProvider infoProvider, @Nullable final DittoRuntimeException dittoRuntimeException) {
         getLogger().failure(infoProvider, dittoRuntimeException);
         getCounter().recordFailure();
     }

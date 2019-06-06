@@ -178,15 +178,15 @@ final class EvictingConnectionLogger implements ConnectionLogger {
     private static String getDebugHeaderMessage(final ConnectionMonitor.InfoProvider infoProvider) {
 
         if (ConnectivityHeaders.isHeadersDebugLogEnabled(infoProvider.getHeaders())) {
-            return MessageFormat.format(" Message headers: {0}", infoProvider.getHeaders().entrySet());
+            return MessageFormat.format(" - Message headers: {0}", infoProvider.getHeaders().entrySet());
         }
-        return MessageFormat.format(" Message header keys: {0}", infoProvider.getHeaders().keySet());
+        return MessageFormat.format(" - Message header keys: {0}", infoProvider.getHeaders().keySet());
     }
 
     private static String getDebugPayloadMessage(final ConnectionMonitor.InfoProvider infoProvider) {
 
         if (ConnectivityHeaders.isPayloadDebugLogEnabled(infoProvider.getHeaders())) {
-            return MessageFormat.format(" Message payload: {0}", infoProvider.getPayload());
+            return MessageFormat.format(" - Message payload: {0}", infoProvider.getPayload());
         }
         return "";
     }
