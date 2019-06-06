@@ -256,7 +256,8 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         final String stackTrace = stackTraceAsString(exception);
         log.info("Got DittoRuntimeException '{}' when ExternalMessage was processed: {} - {}. StackTrace: {}",
                 exception.getErrorCode(), exception.getMessage(), exception.getDescription().orElse(""), stackTrace);
-        handleCommandResponse(errorResponse);
+
+        handleCommandResponse(errorResponse, exception);
     }
 
     private static String stackTraceAsString(final DittoRuntimeException exception) {
@@ -276,9 +277,13 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     }
 
     private void handleCommandResponse(final CommandResponse<?> response) {
+        this.handleCommandResponse(response, null);
+    }
+
+    private void handleCommandResponse(final CommandResponse<?> response, @Nullable final DittoRuntimeException exception) {
         enhanceLogUtil(response);
         finishTrace(response);
-        recordResponse(response);
+        recordResponse(response, exception);
 
         if (response.getDittoHeaders().isResponseRequired()) {
 
@@ -298,11 +303,11 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         }
     }
 
-    private void recordResponse(final CommandResponse<?> response) {
+    private void recordResponse(final CommandResponse<?> response, @Nullable final DittoRuntimeException exception) {
         if (isSuccessResponse(response)) {
             responseDispatchedMonitor.success(response);
         } else {
-            responseDispatchedMonitor.failure(response);
+            responseDispatchedMonitor.failure(response, exception);
         }
     }
 
