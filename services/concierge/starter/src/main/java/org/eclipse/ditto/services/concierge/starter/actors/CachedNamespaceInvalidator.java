@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.concierge.starter.actors;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.stream.Collectors;
 
@@ -21,7 +22,7 @@ import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.EntityId;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 
-import akka.actor.AbstractActor;
+import akka.actor.AbstractActorWithTimers;
 import akka.actor.Props;
 import akka.cluster.ddata.ORSet;
 import akka.cluster.ddata.Replicator;
@@ -31,7 +32,7 @@ import akka.japi.pf.ReceiveBuilder;
 /**
  * Actor that invalidates all entries of all caches belonging to blocked namespaces.
  */
-public final class CachedNamespaceInvalidator extends AbstractActor {
+public final class CachedNamespaceInvalidator extends AbstractActorWithTimers {
 
     /**
      * Name of this actor.
@@ -43,6 +44,11 @@ public final class CachedNamespaceInvalidator extends AbstractActor {
      * so that this actor may safely block.
      */
     private static final String DISPATCHER_NAME = "cached-namespace-invalidator-dispatcher";
+
+    /**
+     * Delay to not race with messages in-flight.
+     */
+    private static final Duration INVALIDATION_DELAY = Duration.ofSeconds(5L);
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -72,6 +78,7 @@ public final class CachedNamespaceInvalidator extends AbstractActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(Replicator.Changed.class, this::handleChanged)
+                .match(InvalidateCachedNamespaces.class, this::invalidateCachedNamespaces)
                 .matchAny(this::logUnhandled)
                 .build();
     }
@@ -84,15 +91,27 @@ public final class CachedNamespaceInvalidator extends AbstractActor {
     private void handleChanged(final Replicator.Changed<?> changed) {
         if (changed.dataValue() instanceof ORSet) {
             final ORSet<String> namespaces = (ORSet<String>) changed.dataValue();
-            log.info("Invalidating <{}> namespaces", namespaces.size());
-            invalidateCachedNamespaces(namespaces);
+            logNamespaces("Received", namespaces);
+            invalidateNamespacesAfterDelay(namespaces);
         } else {
             logUnhandled(changed);
         }
     }
 
-    private void invalidateCachedNamespaces(final ORSet<String> namespaces) {
-        cachesToMaintain.forEach(cache -> invalidateNamespaces(cache, namespaces));
+    private void logNamespaces(final String verb, final ORSet<String> namespaces) {
+        if (namespaces.size() > 10) {
+            log.info("{} <{}> namespaces", verb, namespaces.size());
+        } else {
+            log.info("{} namespaces: <{}>", verb, namespaces);
+        }
+    }
+
+    private void invalidateNamespacesAfterDelay(final ORSet<String> namespaces) {
+        getTimers().startSingleTimer(namespaces, new InvalidateCachedNamespaces(namespaces), INVALIDATION_DELAY);
+    }
+
+    private void invalidateCachedNamespaces(final InvalidateCachedNamespaces invalidate) {
+        cachesToMaintain.forEach(cache -> invalidateNamespaces(cache, invalidate.namespaces));
     }
 
     private void invalidateNamespaces(final Cache<EntityId, ?> cache, final ORSet<String> namespaces) {
@@ -111,5 +130,14 @@ public final class CachedNamespaceInvalidator extends AbstractActor {
         return NamespaceReader.fromEntityId(entityId.getId())
                 .map(namespaces::contains)
                 .orElse(false);
+    }
+
+    private static final class InvalidateCachedNamespaces {
+
+        final ORSet<String> namespaces;
+
+        private InvalidateCachedNamespaces(final ORSet<String> namespaces) {
+            this.namespaces = namespaces;
+        }
     }
 }
