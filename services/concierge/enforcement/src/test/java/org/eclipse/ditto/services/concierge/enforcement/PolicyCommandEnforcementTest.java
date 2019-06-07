@@ -132,7 +132,7 @@ public class PolicyCommandEnforcementTest {
 
         policiesShardRegionProbe = createPoliciesShardRegionProbe();
 
-        enforcerCache = createCache(new PolicyEnforcerCacheLoader(ASK_TIMEOUT, policiesShardRegionProbe.ref()));
+        enforcerCache = createCache(new PolicyEnforcerCacheLoader(ASK_TIMEOUT, policiesShardRegionProbe.ref(), null));
 
         enforcer = createEnforcer();
 

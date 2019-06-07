@@ -15,10 +15,12 @@ package org.eclipse.ditto.services.utils.cacheloaders;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.things.AccessControlList;
@@ -49,15 +51,19 @@ public final class ThingEnforcementIdCacheLoader implements AsyncCacheLoader<Ent
      *
      * @param askTimeout the ask-timeout for communicating with the shard-region-proxy.
      * @param shardRegionProxy the shard-region-proxy.
+     * @param predicate an asynchronous predicate capable of preventing cache loading.
      */
-    public ThingEnforcementIdCacheLoader(final Duration askTimeout, final ActorRef shardRegionProxy) {
+    public ThingEnforcementIdCacheLoader(final Duration askTimeout, final ActorRef shardRegionProxy,
+            @Nullable final Function<EntityId, CompletionStage<Boolean>> predicate) {
         final Function<String, Command> commandCreator = ThingCommandFactory::sudoRetrieveThing;
         final Function<Object, Entry<EntityId>> responseTransformer =
                 ThingEnforcementIdCacheLoader::handleSudoRetrieveThingResponse;
 
-        delegate =
+        final ActorAskCacheLoader<EntityId, Command> actorAskCacheLoader =
                 ActorAskCacheLoader.forShard(askTimeout, ThingCommand.RESOURCE_TYPE, shardRegionProxy, commandCreator,
                         responseTransformer);
+
+        delegate = actorAskCacheLoader.withPredicate(predicate);
     }
 
     @Override

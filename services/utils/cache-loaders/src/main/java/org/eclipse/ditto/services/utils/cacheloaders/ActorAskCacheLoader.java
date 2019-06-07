@@ -20,9 +20,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -48,18 +50,24 @@ import akka.pattern.Patterns;
 @Immutable
 public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<EntityId, Entry<V>> {
 
+    private static final Function<EntityId, CompletionStage<Boolean>> ALLOW_ALL =
+            entityId -> CompletableFuture.completedFuture(true);
+
     private static final Logger LOGGER = LoggerFactory.getLogger(ActorAskCacheLoader.class);
 
     private final Duration askTimeout;
+    private final Function<EntityId, CompletionStage<Boolean>> predicate;
     private final Function<String, ActorRef> entityRegionProvider;
     private final Map<String, Function<String, T>> commandCreatorMap;
     private final Map<String, Function<Object, Entry<V>>> responseTransformerMap;
 
     private ActorAskCacheLoader(final Duration askTimeout,
+            final Function<EntityId, CompletionStage<Boolean>> predicate,
             final Function<String, ActorRef> entityRegionProvider,
             final Map<String, Function<String, T>> commandCreatorMap,
             final Map<String, Function<Object, Entry<V>>> responseTransformerMap) {
         this.askTimeout = requireNonNull(askTimeout);
+        this.predicate = predicate;
         this.entityRegionProvider = requireNonNull(entityRegionProvider);
         this.commandCreatorMap = Collections.unmodifiableMap(new HashMap<>(requireNonNull(commandCreatorMap)));
         this.responseTransformerMap =
@@ -79,7 +87,8 @@ public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<EntityI
             final Function<String, ActorRef> entityRegionProvider,
             final Map<String, Function<String, Command>> commandCreatorMap,
             final Map<String, Function<Object, Entry<V>>> responseTransformerMap) {
-        return new ActorAskCacheLoader<>(askTimeout, entityRegionProvider, commandCreatorMap, responseTransformerMap);
+        return new ActorAskCacheLoader<>(askTimeout, ALLOW_ALL, entityRegionProvider, commandCreatorMap,
+                responseTransformerMap);
     }
 
     /**
@@ -120,7 +129,7 @@ public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<EntityI
             final ActorRef pubSubMediator,
             final Map<String, Function<String, DistributedPubSubMediator.Send>> commandCreatorMap,
             final Map<String, Function<Object, Entry<V>>> responseTransformerMap) {
-        return new ActorAskCacheLoader<>(askTimeout, (unused) -> pubSubMediator, commandCreatorMap,
+        return new ActorAskCacheLoader<>(askTimeout, ALLOW_ALL, (unused) -> pubSubMediator, commandCreatorMap,
                 responseTransformerMap);
     }
 
@@ -149,8 +158,38 @@ public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<EntityI
                 Collections.singletonMap(resourceType, responseTransformer));
     }
 
+    /**
+     * Create a copy of this cache loader with an asynchronous predicate capable of preventing cache loading,
+     * or return the same cache loader if predicate is null.
+     *
+     * @param predicate the test to execute before loading a cache entry, or null.
+     * @return a cache loader with the given predicate.
+     */
+    public ActorAskCacheLoader<V, T> withPredicate(
+            @Nullable final Function<EntityId, CompletionStage<Boolean>> predicate) {
+
+        if (predicate != null) {
+            return new ActorAskCacheLoader<>(askTimeout, predicate, entityRegionProvider, commandCreatorMap,
+                    responseTransformerMap);
+        } else {
+            return this;
+        }
+    }
+
     @Override
     public final CompletableFuture<Entry<V>> asyncLoad(final EntityId key, final Executor executor) {
+        return predicate.apply(key)
+                .thenCompose(shouldAsk -> {
+                    if (shouldAsk != null && shouldAsk) {
+                        return askForCacheEntry(key, executor);
+                    } else {
+                        return CompletableFuture.completedFuture(null);
+                    }
+                }).toCompletableFuture();
+    }
+
+    private CompletableFuture<Entry<V>> askForCacheEntry(final EntityId key, final Executor executor) {
+
         final String resourceType = key.getResourceType();
         // provide correlation id to inner thread
         final String correlationId = MDC.get(LogUtil.X_CORRELATION_ID);

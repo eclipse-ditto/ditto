@@ -40,6 +40,7 @@ import org.eclipse.ditto.services.utils.cache.CacheFactory;
 import org.eclipse.ditto.services.utils.cache.EntityId;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcerCacheLoader;
+import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.slf4j.Logger;
@@ -90,19 +91,21 @@ final class EnforcementFlow {
      * @param thingsShardRegion the shard region to retrieve things from.
      * @param policiesShardRegion the shard region to retrieve policies from.
      * @param cacheDispatcher dispatcher for the enforcer cache.
+     * @param blockedNamespaces distributed data of blocked namespaces
      * @return an EnforcementFlow object.
      */
     public static EnforcementFlow of(final StreamConfig updaterStreamConfig,
             final ActorRef thingsShardRegion,
             final ActorRef policiesShardRegion,
             final MessageDispatcher cacheDispatcher,
-            final boolean deleteEvent) {
+            final boolean deleteEvent,
+            final BlockedNamespaces blockedNamespaces) {
 
         final Duration askTimeout = updaterStreamConfig.getAskTimeout();
         final StreamCacheConfig streamCacheConfig = updaterStreamConfig.getCacheConfig();
 
         final AsyncCacheLoader<EntityId, Entry<Enforcer>> policyEnforcerCacheLoader =
-                new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegion);
+                new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegion, blockedNamespaces::testEntity);
         final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache =
                 CacheFactory.createCache(policyEnforcerCacheLoader, streamCacheConfig,
                         EnforcementFlow.class.getCanonicalName() + ".cache", cacheDispatcher);

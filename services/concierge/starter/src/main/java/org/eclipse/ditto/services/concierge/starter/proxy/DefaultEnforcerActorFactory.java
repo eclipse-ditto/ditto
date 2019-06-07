@@ -88,6 +88,8 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
         final Duration askTimeout = cachesConfig.getAskTimeout();
         final ActorSystem actorSystem = context.system();
 
+        final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
+
         final ClusterConfig clusterConfig = conciergeConfig.getClusterConfig();
         final int numberOfShards = clusterConfig.getNumberOfShards();
 
@@ -98,28 +100,27 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
                 ThingsMessagingConstants.SHARD_REGION, ThingsMessagingConstants.CLUSTER_ROLE);
 
         final AsyncCacheLoader<EntityId, Entry<EntityId>> thingEnforcerIdCacheLoader =
-                new ThingEnforcementIdCacheLoader(askTimeout, thingsShardRegionProxy);
+                new ThingEnforcementIdCacheLoader(askTimeout, thingsShardRegionProxy, blockedNamespaces::testEntity);
         final Cache<EntityId, Entry<EntityId>> thingIdCache =
                 CacheFactory.createCache(thingEnforcerIdCacheLoader, cachesConfig.getIdCacheConfig(),
                         ID_CACHE_METRIC_NAME_PREFIX + ThingCommand.RESOURCE_TYPE,
                         actorSystem.dispatchers().lookup("thing-id-cache-dispatcher"));
 
         final AsyncCacheLoader<EntityId, Entry<Enforcer>> policyEnforcerCacheLoader =
-                new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegionProxy);
+                new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegionProxy, blockedNamespaces::testEntity);
         final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache =
                 CacheFactory.createCache(policyEnforcerCacheLoader, cachesConfig.getEnforcerCacheConfig(),
                         ENFORCER_CACHE_METRIC_NAME_PREFIX + "policy",
                         actorSystem.dispatchers().lookup("policy-enforcer-cache-dispatcher"));
 
         final AsyncCacheLoader<EntityId, Entry<Enforcer>> aclEnforcerCacheLoader =
-                new AclEnforcerCacheLoader(askTimeout, thingsShardRegionProxy);
+                new AclEnforcerCacheLoader(askTimeout, thingsShardRegionProxy, blockedNamespaces::testEntity);
         final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache =
                 CacheFactory.createCache(aclEnforcerCacheLoader, cachesConfig.getEnforcerCacheConfig(),
                         ENFORCER_CACHE_METRIC_NAME_PREFIX + "acl",
                         actorSystem.dispatchers().lookup("acl-enforcer-cache-dispatcher"));
 
         // pre-enforcer
-        final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
         final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer =
                 newPreEnforcer(blockedNamespaces, PlaceholderSubstitution.newInstance());
 

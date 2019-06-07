@@ -12,9 +12,12 @@
  */
 package org.eclipse.ditto.services.utils.namespaces;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
+import org.eclipse.ditto.model.namespaces.NamespaceReader;
+import org.eclipse.ditto.services.utils.cache.EntityId;
 import org.eclipse.ditto.services.utils.ddata.DistributedData;
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfigReader;
 
@@ -108,6 +111,18 @@ public final class BlockedNamespaces extends DistributedData<ORSet<String>> {
      */
     public CompletionStage<Void> remove(final String namespace) {
         return update(writeAll(), orSet -> orSet.remove(node, namespace));
+    }
+
+    /**
+     * Create an asynchronous predicate from this distributed data that tests to {@code true} for entities whose
+     * namespaces are NOT blocked.
+     *
+     * @return this object as an asynchronous predicate.
+     */
+    public CompletionStage<Boolean> testEntity(final EntityId entityId) {
+        return NamespaceReader.fromEntityId(entityId.getId())
+                .map(namespace -> contains(namespace).thenApply(blocked -> blocked == null || !blocked))
+                .orElseGet(() -> CompletableFuture.completedFuture(true));
     }
 
     @Override
