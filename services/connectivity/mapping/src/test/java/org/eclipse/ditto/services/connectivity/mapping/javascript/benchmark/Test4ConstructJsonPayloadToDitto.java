@@ -107,5 +107,6 @@ public class Test4ConstructJsonPayloadToDitto implements MapToDittoProtocolScena
     public ExternalMessage getExternalMessage() {
         return externalMessage;
     }
+
 }
 

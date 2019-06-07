@@ -146,8 +146,7 @@ public final class ManualUpdaterIT {
     }
 
     private static Props manualUpdaterProps(final DittoMongoClient mongoClient, final ActorRef actorRef) {
-        return Props.create(ManualUpdater.class, () ->
-                new ManualUpdater(mongoClient.getDefaultDatabase(), actorRef, Duration.ZERO, Duration.ZERO,
-                        Duration.ofMillis(50L), Duration.ofSeconds(1L)));
+        return Props.create(ManualUpdater.class, mongoClient.getDefaultDatabase(), actorRef, Duration.ZERO, Duration.ZERO,
+                        Duration.ofMillis(50L), Duration.ofSeconds(1L));
     }
 }

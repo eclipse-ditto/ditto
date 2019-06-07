@@ -51,7 +51,6 @@ import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
 import scala.concurrent.duration.FiniteDuration;
@@ -95,6 +94,7 @@ public final class StatisticsActor extends AbstractActor {
     private Statistics currentStatistics;
     private StatisticsDetails currentStatisticsDetails;
 
+    @SuppressWarnings("unused")
     private StatisticsActor(final ActorRef pubSubMediator) {
         this.pubSubMediator = pubSubMediator;
         hotThings = DittoMetrics.gauge(Statistics.HOT_THINGS);
@@ -112,14 +112,8 @@ public final class StatisticsActor extends AbstractActor {
      * @return the Akka configuration Props object.
      */
     static Props props(final ActorRef pubSubMediator) {
-        return Props.create(StatisticsActor.class, new Creator<StatisticsActor>() {
-            private static final long serialVersionUID = 1L;
 
-            @Override
-            public StatisticsActor create() {
-                return new StatisticsActor(pubSubMediator);
-            }
-        });
+        return Props.create(StatisticsActor.class, pubSubMediator);
     }
 
     private void scheduleInternalRetrieveHotEntities() {

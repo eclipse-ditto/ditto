@@ -16,16 +16,17 @@ import org.eclipse.ditto.signals.commands.base.Command;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.japi.Creator;
 
 /**
  * Actor which delegates {@link Command}s to the appropriate receivers in the cluster.
  */
 public final class ProxyActor extends AbstractThingProxyActor {
 
+    @SuppressWarnings("unused")
     private ProxyActor(final ActorRef pubSubMediator,
             final ActorRef devOpsCommandsActor,
             final ActorRef conciergeForwarder) {
+
         super(pubSubMediator, devOpsCommandsActor, conciergeForwarder);
     }
 
@@ -39,14 +40,8 @@ public final class ProxyActor extends AbstractThingProxyActor {
     public static Props props(final ActorRef pubSubMediator,
             final ActorRef devOpsCommandsActor,
             final ActorRef conciergeForwarder) {
-        return Props.create(ProxyActor.class, new Creator<ProxyActor>() {
-            private static final long serialVersionUID = 1L;
 
-            @Override
-            public ProxyActor create() {
-                return new ProxyActor(pubSubMediator, devOpsCommandsActor, conciergeForwarder);
-            }
-        });
+        return Props.create(ProxyActor.class, pubSubMediator, devOpsCommandsActor, conciergeForwarder);
     }
 
 }

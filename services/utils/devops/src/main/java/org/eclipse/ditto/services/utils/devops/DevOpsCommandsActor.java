@@ -58,7 +58,6 @@ import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.cluster.pubsub.DistributedPubSub;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -83,6 +82,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
     private final ActorRef pubSubMediator;
     private final MappingStrategies serviceMappingStrategy;
 
+    @SuppressWarnings("unused")
     private DevOpsCommandsActor(final LoggingFacade loggingFacade, final String serviceName, final String instance) {
         this.loggingFacade = loggingFacade;
         this.serviceName = serviceName;
@@ -108,8 +108,8 @@ public final class DevOpsCommandsActor extends AbstractActor {
      * @return the Akka configuration Props object.
      */
     public static Props props(final LoggingFacade loggingFacade, final String serviceName, final String instance) {
-        return Props.create(DevOpsCommandsActor.class,
-                () -> new DevOpsCommandsActor(loggingFacade, serviceName, instance));
+
+        return Props.create(DevOpsCommandsActor.class, loggingFacade, serviceName, instance);
     }
 
     @Override
@@ -322,6 +322,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
 
         private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
+        @SuppressWarnings("unused")
         private PubSubSubscriberActor(final ActorRef pubSubMediator, final String serviceName, final String instance,
                 final String... pubSubTopicsToSubscribeTo) {
 
@@ -337,9 +338,8 @@ public final class DevOpsCommandsActor extends AbstractActor {
                 final String instance,
                 final String... pubSubTopicsToSubscribeTo) {
 
-            return Props.create(PubSubSubscriberActor.class,
-                    (Creator<PubSubSubscriberActor>) () -> new PubSubSubscriberActor(pubSubMediator, serviceName,
-                            instance, pubSubTopicsToSubscribeTo));
+            return Props.create(PubSubSubscriberActor.class, pubSubMediator, serviceName, instance,
+                    pubSubTopicsToSubscribeTo);
         }
 
         private void subscribeToDevOpsTopic(final ActorRef pubSubMediator,
@@ -398,9 +398,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
          * @return the Akka configuration Props object.
          */
         static Props props(final ActorRef devOpsCommandSender, final DevOpsCommand<?> devOpsCommand) {
-            return Props.create(DevOpsCommandResponseCorrelationActor.class,
-                    (Creator<DevOpsCommandResponseCorrelationActor>) () ->
-                            new DevOpsCommandResponseCorrelationActor(devOpsCommandSender, devOpsCommand));
+            return Props.create(DevOpsCommandResponseCorrelationActor.class, devOpsCommandSender, devOpsCommand);
         }
 
         private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
@@ -410,6 +408,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
         private final List<CommandResponse<?>> commandResponses = new ArrayList<>();
         private final boolean aggregateResults;
 
+        @SuppressWarnings("unused")
         private DevOpsCommandResponseCorrelationActor(final ActorRef devOpsCommandSender,
                 final DevOpsCommand<?> devOpsCommand) {
 

@@ -29,7 +29,7 @@ import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
-import org.eclipse.ditto.services.base.config.DittoLimitsConfigReader;
+import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 import org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQueryBuilderFactory;
@@ -65,8 +65,9 @@ public abstract class AbstractThingSearchPersistenceITBase {
 
     protected static final CriteriaFactory cf = new CriteriaFactoryImpl();
     protected static final ThingsFieldExpressionFactory fef = new ThingsFieldExpressionFactoryImpl();
-    protected static final QueryBuilderFactory qbf = new MongoQueryBuilderFactory
-            (DittoLimitsConfigReader.fromRawConfig(ConfigFactory.load("test")));
+
+    protected static QueryBuilderFactory qbf;
+
     private static MongoDbResource mongoResource;
     private static DittoMongoClient mongoClient;
 
@@ -81,6 +82,10 @@ public abstract class AbstractThingSearchPersistenceITBase {
 
     @BeforeClass
     public static void startMongoResource() {
+        final Config rawTestConfig = ConfigFactory.load("test");
+        final DefaultLimitsConfig limitsConfig = DefaultLimitsConfig.of(rawTestConfig.getConfig("ditto"));
+        qbf = new MongoQueryBuilderFactory(limitsConfig);
+
         mongoResource = new MongoDbResource("localhost");
         mongoResource.start();
         mongoClient = provideClientWrapper();
@@ -100,8 +105,7 @@ public abstract class AbstractThingSearchPersistenceITBase {
     }
 
     private MongoThingsSearchPersistence provideReadPersistence() {
-        final MongoThingsSearchPersistence result =
-                new MongoThingsSearchPersistence(mongoClient.getDefaultDatabase(), actorSystem);
+        final MongoThingsSearchPersistence result = new MongoThingsSearchPersistence(mongoClient, actorSystem);
         // explicitly trigger CompletableFuture to make sure that indices are created before test runs
         result.initializeIndices().toCompletableFuture().join();
         return result;

@@ -42,10 +42,11 @@ public abstract class AbstractEventSourceNamespaceOpsActor extends AbstractNames
      * Creates a new instance of this actor.
      *
      * @param pubSubMediator Akka pub-sub mediator.
-     * @param config configuration with info about the event journal, snapshot store, metadata and suffix builder.
      */
-    protected AbstractEventSourceNamespaceOpsActor(final ActorRef pubSubMediator, final Config config) {
-        super(pubSubMediator, MongoNamespaceOps.of(MongoClientWrapper.newInstance(config)));
+    protected AbstractEventSourceNamespaceOpsActor(final ActorRef pubSubMediator) {
+
+        super(pubSubMediator, mongoDbConfig -> MongoNamespaceOps.of(MongoClientWrapper.newInstance(mongoDbConfig)));
+        final Config config = getContext().getSystem().settings().config();
         metadata = getCollectionName(config, getJournalPluginId(), "metadata");
         journal = getCollectionName(config, getJournalPluginId(), "journal");
         snapshot = getCollectionName(config, getSnapshotPluginId(), "snaps");

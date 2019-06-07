@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.concurrent.Executor;
 
 import org.eclipse.ditto.model.policies.SubjectIssuer;
+import org.eclipse.ditto.services.gateway.endpoints.config.AuthenticationConfig;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationChain;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationFailureAggregator;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationFailureAggregators;
@@ -33,12 +34,10 @@ import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthent
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtSubjectIssuerConfig;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtSubjectIssuersConfig;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.PublicKeyProvider;
-import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
-import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
+import org.eclipse.ditto.services.gateway.util.HttpClientFacade;
+import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.typesafe.config.Config;
 
 /**
  * Ditto's default factory for building authentication directives.
@@ -53,15 +52,18 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
 
     private final GatewayAuthenticationDirective gatewayAuthenticationDirective;
 
-    public DittoGatewayAuthenticationDirectiveFactory(final Config config, final HttpClientFacade httpClient,
+    public DittoGatewayAuthenticationDirectiveFactory(final AuthenticationConfig authConfig,
+            final CacheConfig publicKeysCacheConfig,
+            final HttpClientFacade httpClient,
             final Executor authenticationDispatcher) {
 
-        checkNotNull(config, "Config");
-        checkNotNull(httpClient, "HTTP client");
+        checkNotNull(authConfig, "AuthenticationConfig");
+        checkNotNull(publicKeysCacheConfig, "public keys CacheConfig");
         checkNotNull(authenticationDispatcher, "authentication dispatcher");
 
         gatewayAuthenticationDirective =
-                generateGatewayAuthenticationDirective(config, httpClient, authenticationDispatcher);
+                generateGatewayAuthenticationDirective(authConfig, publicKeysCacheConfig, httpClient,
+                        authenticationDispatcher);
     }
 
     @Override
@@ -74,13 +76,14 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
         return gatewayAuthenticationDirective;
     }
 
-    private static GatewayAuthenticationDirective generateGatewayAuthenticationDirective(final Config config,
-            final HttpClientFacade httpClient, final Executor authenticationDispatcher) {
-
-        final boolean dummyAuthEnabled = config.getBoolean(ConfigKeys.AUTHENTICATION_DUMMY_ENABLED);
+    private static GatewayAuthenticationDirective generateGatewayAuthenticationDirective(
+            final AuthenticationConfig authConfig,
+            final CacheConfig publicKeysCacheConfig,
+            final HttpClientFacade httpClient,
+            final Executor authenticationDispatcher) {
 
         final Collection<AuthenticationProvider> authenticationProviders = new ArrayList<>();
-        if (dummyAuthEnabled) {
+        if (authConfig.isDummyAuthenticationEnabled()) {
             LOGGER.warn("Dummy authentication is enabled - Do not use this feature in production.");
             authenticationProviders.add(DummyAuthenticationProvider.getInstance());
         }
@@ -88,8 +91,7 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
         final JwtSubjectIssuersConfig jwtSubjectIssuersConfig = buildJwtSubjectIssuersConfig();
 
         final PublicKeyProvider publicKeyProvider = DittoPublicKeyProvider.of(jwtSubjectIssuersConfig, httpClient,
-                config.getInt(ConfigKeys.CACHE_PUBLIC_KEYS_MAX),
-                config.getDuration(ConfigKeys.CACHE_PUBLIC_KEYS_EXPIRY), "ditto_authorization_jwt_publicKeys_cache");
+                publicKeysCacheConfig, "ditto_authorization_jwt_publicKeys_cache");
         final DittoJwtAuthorizationSubjectsProvider authorizationSubjectsProvider =
                 DittoJwtAuthorizationSubjectsProvider.of(jwtSubjectIssuersConfig);
         final DefaultJwtAuthorizationContextProvider authorizationContextProvider =
@@ -110,7 +112,7 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
     }
 
     private static JwtSubjectIssuersConfig buildJwtSubjectIssuersConfig() {
-        final Set<JwtSubjectIssuerConfig> configItems = new HashSet<>();
+        final Set<JwtSubjectIssuerConfig> configItems = new HashSet<>(2);
 
         configItems.add(new JwtSubjectIssuerConfig(SubjectIssuer.GOOGLE, JWT_ISSUER_GOOGLE_DOMAIN,
                 JWK_RESOURCE_GOOGLE));

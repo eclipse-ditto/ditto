@@ -15,8 +15,8 @@ package org.eclipse.ditto.services.thingsearch.updater.actors;
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
+import org.eclipse.ditto.services.utils.akka.streaming.SyncConfig;
 import org.eclipse.ditto.services.utils.akka.streaming.DefaultStreamSupervisor;
-import org.eclipse.ditto.services.utils.akka.streaming.StreamConsumerSettings;
 import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
 
 import akka.actor.ActorRef;
@@ -29,7 +29,7 @@ import akka.stream.javadsl.Source;
  * Creates an actor which is responsible for triggering a cyclic synchronization of all things which changed within a
  * specified time period.
  */
-public final class ThingsStreamSupervisorCreator {
+final class ThingsStreamSupervisorCreator {
 
     /**
      * The name of this Actor in the ActorSystem.
@@ -41,25 +41,29 @@ public final class ThingsStreamSupervisorCreator {
     }
 
     /**
-     * Creates the props for {@link ThingsStreamSupervisorCreator}.
+     * Creates the props for ThingsStreamSupervisorCreator.
      *
      * @param thingsUpdater the things updater actor
      * @param pubSubMediator the PubSub mediator Actor.
      * @param streamMetadataPersistence the {@link TimestampPersistence} used to read and write stream metadata (is
      * used to remember the end time of the last stream after a re-start).
-     * @param materializer the materializer for the akka actor system.
-     * @param streamConsumerSettings The settings for stream consumption.
+     * @param materializer the materializer for the Akka actor system.
+     * @param syncConfig The settings for stream consumption.
      * @return the props
      */
-    public static Props props(final ActorRef thingsUpdater, final ActorRef pubSubMediator,
-            final TimestampPersistence streamMetadataPersistence, final Materializer materializer,
-            final StreamConsumerSettings streamConsumerSettings) {
+    public static Props props(final ActorRef thingsUpdater,
+            final ActorRef pubSubMediator,
+            final TimestampPersistence streamMetadataPersistence,
+            final Materializer materializer,
+            final SyncConfig syncConfig) {
 
-        return DefaultStreamSupervisor.props(thingsUpdater, pubSubMediator,
+        return DefaultStreamSupervisor.props(thingsUpdater,
+                pubSubMediator,
                 ThingTag.class,
                 Source::single,
                 ThingsStreamSupervisorCreator::mapStreamTriggerCommand,
-                streamMetadataPersistence, materializer, streamConsumerSettings);
+                streamMetadataPersistence, materializer,
+                syncConfig);
     }
 
     private static DistributedPubSubMediator.Send mapStreamTriggerCommand(
@@ -68,4 +72,5 @@ public final class ThingsStreamSupervisorCreator {
         return new DistributedPubSubMediator.Send(ThingsMessagingConstants.THINGS_STREAM_PROVIDER_ACTOR_PATH,
                 sudoStreamModifiedEntities, true);
     }
+
 }

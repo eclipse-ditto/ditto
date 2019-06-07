@@ -53,7 +53,6 @@ import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -81,6 +80,7 @@ final class StreamingSessionActor extends AbstractActor {
     private Map<StreamingType, List<String>> namespacesForStreamingTypes;
     private Map<StreamingType, Criteria> eventFilterCriteriaForStreamingTypes;
 
+    @SuppressWarnings("unused")
     private StreamingSessionActor(final String connectionCorrelationId, final String type,
             final ActorRef pubSubMediator, final ActorRef eventAndResponsePublisher) {
         this.connectionCorrelationId = connectionCorrelationId;
@@ -103,15 +103,9 @@ final class StreamingSessionActor extends AbstractActor {
      */
     static Props props(final String connectionCorrelationId, final String type,
             final ActorRef pubSubMediator, final ActorRef eventAndResponsePublisher) {
-        return Props.create(StreamingSessionActor.class, new Creator<StreamingSessionActor>() {
-            private static final long serialVersionUID = 1L;
 
-            @Override
-            public StreamingSessionActor create() throws Exception {
-                return new StreamingSessionActor(connectionCorrelationId, type, pubSubMediator,
+        return Props.create(StreamingSessionActor.class, connectionCorrelationId, type, pubSubMediator,
                         eventAndResponsePublisher);
-            }
-        });
     }
 
     @Override

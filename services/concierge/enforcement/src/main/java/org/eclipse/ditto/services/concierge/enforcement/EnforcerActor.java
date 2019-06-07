@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.concierge.enforcement;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Optional;
 import java.util.Set;
@@ -53,19 +52,16 @@ public final class EnforcerActor extends AbstractEnforcerActor {
     private final Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> handler;
     private final Sink<Contextual<WithDittoHeaders>, CompletionStage<Done>> sink;
 
+    @SuppressWarnings("unused")
     private EnforcerActor(final ActorRef pubSubMediator,
             final Set<EnforcementProvider<?>> enforcementProviders,
             final ActorRef conciergeForwarder,
-            final Duration askTimeout,
-            final int bufferSize,
-            final int parallelism,
             @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
             @Nullable final Cache<EntityId, Entry<EntityId>> thingIdCache,
             @Nullable final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache,
             @Nullable final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache) {
 
-        super(pubSubMediator, conciergeForwarder, askTimeout, bufferSize, parallelism,
-                thingIdCache, aclEnforcerCache, policyEnforcerCache);
+        super(pubSubMediator, conciergeForwarder, thingIdCache, aclEnforcerCache, policyEnforcerCache);
 
         handler = assembleHandler(enforcementProviders, preEnforcer);
         sink = assembleSink();
@@ -76,11 +72,8 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      *
      * @param pubSubMediator Akka pub sub mediator.
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
-     * @param askTimeout the ask timeout duration: the duration to wait for entity shard regions.
      * @param conciergeForwarder an actorRef to concierge forwarder.
      * @param preEnforcer a function executed before actual enforcement, may be {@code null}.
-     * @param bufferSize the buffer size used for the Source queue.
-     * @param parallelism parallelism to use for processing messages in parallel.
      * @param thingIdCache the cache for Thing IDs to either ACL or Policy ID.
      * @param aclEnforcerCache the ACL cache.
      * @param policyEnforcerCache the Policy cache.
@@ -88,18 +81,14 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      */
     public static Props props(final ActorRef pubSubMediator,
             final Set<EnforcementProvider<?>> enforcementProviders,
-            final Duration askTimeout,
             final ActorRef conciergeForwarder,
-            final int bufferSize,
-            final int parallelism,
             @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
             @Nullable final Cache<EntityId, Entry<EntityId>> thingIdCache,
             @Nullable final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache,
             @Nullable final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache) {
 
-        return Props.create(EnforcerActor.class, () ->
-                new EnforcerActor(pubSubMediator, enforcementProviders, conciergeForwarder, askTimeout,
-                        bufferSize, parallelism, preEnforcer, thingIdCache, aclEnforcerCache, policyEnforcerCache));
+        return Props.create(EnforcerActor.class, pubSubMediator, enforcementProviders, conciergeForwarder,
+                 preEnforcer, thingIdCache, aclEnforcerCache, policyEnforcerCache);
     }
 
     /**
@@ -108,10 +97,7 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      *
      * @param pubSubMediator Akka pub sub mediator.
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
-     * @param askTimeout the ask timeout duration: the duration to wait for entity shard regions.
      * @param conciergeForwarder an actorRef to concierge forwarder.
-     * @param bufferSize the buffer size used for the Source queue.
-     * @param parallelism parallelism to use for processing messages in parallel.
      * @param thingIdCache the cache for Thing IDs to either ACL or Policy ID.
      * @param aclEnforcerCache the ACL cache.
      * @param policyEnforcerCache the Policy cache.
@@ -119,16 +105,13 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      */
     public static Props props(final ActorRef pubSubMediator,
             final Set<EnforcementProvider<?>> enforcementProviders,
-            final Duration askTimeout,
             final ActorRef conciergeForwarder,
-            final int bufferSize,
-            final int parallelism,
             @Nullable final Cache<EntityId, Entry<EntityId>> thingIdCache,
             @Nullable final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache,
             @Nullable final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache) {
 
-        return props(pubSubMediator, enforcementProviders, askTimeout, conciergeForwarder,
-                bufferSize, parallelism, null, thingIdCache, aclEnforcerCache, policyEnforcerCache);
+        return props(pubSubMediator, enforcementProviders, conciergeForwarder,
+                null, thingIdCache, aclEnforcerCache, policyEnforcerCache);
     }
 
     @Override

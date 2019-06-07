@@ -12,9 +12,9 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.read.query;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.DOT;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_SORTING;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -33,12 +33,14 @@ import org.eclipse.ditto.model.query.expression.SimpleFieldExpressionImpl;
 import org.eclipse.ditto.model.query.expression.SortFieldExpression;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
-import org.eclipse.ditto.services.base.config.DittoLimitsConfigReader;
-import org.eclipse.ditto.services.base.config.LimitsConfigReader;
+import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
+import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.mongodb.client.model.Sorts;
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -50,16 +52,22 @@ public final class MongoQueryTest {
 
     private static final Criteria KNOWN_CRIT = mock(Criteria.class);
     private static final ThingsFieldExpressionFactory EFT = new ThingsFieldExpressionFactoryImpl();
+
+    private static int defaultPageSizeFromConfig;
+
     private List<SortOption> knownSortOptions;
     private Bson knownSortOptionsExpectedBson;
-    private int defaultPageSizeFromConfig;
+
+    @BeforeClass
+    public static void initTestFixture() {
+        final Config testConfig = ConfigFactory.load("test");
+        final DefaultLimitsConfig limitsConfig =
+                DefaultLimitsConfig.of(testConfig.getConfig(ScopedConfig.DITTO_SCOPE));
+        defaultPageSizeFromConfig = limitsConfig.getThingsSearchDefaultPageSize();
+    }
 
     @Before
     public void before() {
-        final LimitsConfigReader limitsConfigReader = DittoLimitsConfigReader.fromRawConfig(ConfigFactory.load("test"));
-
-        defaultPageSizeFromConfig = limitsConfigReader.thingsSearchDefaultPageSize();
-
         final SortFieldExpression sortExp1 = EFT.sortByThingId();
         final SortFieldExpression sortExp2 = EFT.sortByAttribute("test");
         knownSortOptions =
@@ -116,6 +124,8 @@ public final class MongoQueryTest {
                 org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil.toBsonDocument(expected);
         final BsonDocument actualDoc =
                 org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil.toBsonDocument(actual);
+
         assertThat(actualDoc).isEqualTo(expectedDoc);
     }
+
 }

@@ -48,6 +48,7 @@ public final class CachedNamespaceInvalidator extends AbstractActor {
 
     private final Collection<Cache<EntityId, ?>> cachesToMaintain;
 
+    @SuppressWarnings("unused")
     private CachedNamespaceInvalidator(final BlockedNamespaces blockedNamespaces,
             final Collection<Cache<EntityId, ?>> cachesToMaintain) {
 
@@ -63,7 +64,7 @@ public final class CachedNamespaceInvalidator extends AbstractActor {
      * @return the Props object.
      */
     public static Props props(final BlockedNamespaces blocked, final Collection<Cache<EntityId, ?>> caches) {
-        return Props.create(CachedNamespaceInvalidator.class, () -> new CachedNamespaceInvalidator(blocked, caches))
+        return Props.create(CachedNamespaceInvalidator.class, blocked, caches)
                 .withDispatcher(DISPATCHER_NAME);
     }
 

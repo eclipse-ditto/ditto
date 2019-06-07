@@ -23,13 +23,12 @@ import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedExce
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperConfiguration;
+import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextFactory;
 import org.mozilla.javascript.RhinoException;
 import org.mozilla.javascript.Scriptable;
-
-import com.typesafe.config.Config;
 
 /**
  * This mapper executes its mapping methods on the <b>current thread</b>. The caller should be aware of that.
@@ -45,25 +44,26 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
     private static final String INCOMING_SCRIPT = "/javascript/incoming-mapping.js";
     private static final String OUTGOING_SCRIPT = "/javascript/outgoing-mapping.js";
 
-    private static final String CONFIG_JAVASCRIPT_MAX_SCRIPT_SIZE_BYTES = "javascript.maxScriptSizeBytes";
-    private static final String CONFIG_JAVASCRIPT_MAX_SCRIPT_EXECUTION_TIME = "javascript.maxScriptExecutionTime";
-    private static final String CONFIG_JAVASCRIPT_MAX_SCRIPT_STACK_DEPTH = "javascript.maxScriptStackDepth";
-
     @Nullable private ContextFactory contextFactory;
     @Nullable private JavaScriptMessageMapperConfiguration configuration;
 
     private MappingFunction<ExternalMessage, Optional<Adaptable>> incomingMapping = DefaultIncomingMapping.get();
     private MappingFunction<Adaptable, Optional<ExternalMessage>> outgoingMapping = DefaultOutgoingMapping.get();
 
+    /**
+     * Constructs a new {@code JavaScriptMessageMapper} object.
+     * This constructor is required as the the instance is created via reflection.
+     */
     JavaScriptMessageMapperRhino() {
-        // no-op
+        super();
     }
 
     @Override
-    public void configure(final Config mappingConfig, final MessageMapperConfiguration options) {
-        this.configuration = new ImmutableJavaScriptMessageMapperConfiguration.Builder(options.getProperties()).build();
+    public void configure(final MappingConfig mappingConfig, final MessageMapperConfiguration options) {
+        configuration = new ImmutableJavaScriptMessageMapperConfiguration.Builder(options.getProperties()).build();
 
-        final int maxScriptSizeBytes = mappingConfig.getInt(CONFIG_JAVASCRIPT_MAX_SCRIPT_SIZE_BYTES);
+        final JavaScriptConfig javaScriptConfig = mappingConfig.getJavaScriptConfig();
+        final int maxScriptSizeBytes = javaScriptConfig.getMaxScriptSizeBytes();
         final Integer incomingScriptSize = configuration.getIncomingScript().map(String::length).orElse(0);
         final Integer outgoingScriptSize = configuration.getOutgoingScript().map(String::length).orElse(0);
 
@@ -75,9 +75,8 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
                     .build();
         }
 
-        contextFactory = new SandboxingContextFactory(
-                mappingConfig.getDuration(CONFIG_JAVASCRIPT_MAX_SCRIPT_EXECUTION_TIME),
-                mappingConfig.getInt(CONFIG_JAVASCRIPT_MAX_SCRIPT_STACK_DEPTH));
+        contextFactory = new SandboxingContextFactory(javaScriptConfig.getMaxScriptExecutionTime(),
+                javaScriptConfig.getMaxScriptStackDepth());
 
         try {
             // create scope once and load the required libraries in order to get best performance:
@@ -154,7 +153,9 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
         return Optional.ofNullable(configuration);
     }
 
-    private void loadJavascriptLibrary(final Context cx, final Scriptable scope, final Reader reader,
+    private static void loadJavascriptLibrary(final Context cx,
+            final Scriptable scope,
+            final Reader reader,
             final String libraryName) {
 
         try {
@@ -163,4 +164,5 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
             throw new IllegalStateException("Could not load script <" + libraryName + ">", e);
         }
     }
+
 }

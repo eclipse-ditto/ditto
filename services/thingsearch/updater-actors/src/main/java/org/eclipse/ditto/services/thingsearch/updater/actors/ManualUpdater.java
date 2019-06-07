@@ -36,7 +36,7 @@ import akka.stream.javadsl.Source;
 /**
  * Cluster singleton to trigger index updates from a collection.
  */
-public final class ManualUpdater extends AbstractActor {
+final class ManualUpdater extends AbstractActor {
 
     /**
      * Name of this actor.
@@ -68,21 +68,27 @@ public final class ManualUpdater extends AbstractActor {
      */
     private static final Duration DELAY_PER_CURSOR = Duration.ofMinutes(1L);
 
-    private static final Duration MIN_BACKOFF = Duration.ofSeconds(1L);
+    private static final Duration MIN_BACK_OFF = Duration.ofSeconds(1L);
 
-    private static final Duration MAX_BACKOFF = Duration.ofSeconds(1L);
+    private static final Duration MAX_BACK_OFF = Duration.ofSeconds(1L);
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
+    @SuppressWarnings("unused")
     private ManualUpdater(final MongoDatabase database, final ActorRef thingsUpdater) {
-        this(database, thingsUpdater, DELAY_PER_ELEMENT, DELAY_PER_CURSOR, MIN_BACKOFF, MAX_BACKOFF);
+        this(database, thingsUpdater, DELAY_PER_ELEMENT, DELAY_PER_CURSOR, MIN_BACK_OFF, MAX_BACK_OFF);
     }
 
-    ManualUpdater(final MongoDatabase database, final ActorRef thingsUpdater, final Duration delayPerElement,
-            final Duration delayPerCursor, final Duration minBackoff, final Duration maxBackoff) {
+    @SuppressWarnings("unused")
+    ManualUpdater(final MongoDatabase database,
+            final ActorRef thingsUpdater,
+            final Duration delayPerElement,
+            final Duration delayPerCursor,
+            final Duration minBackOff,
+            final Duration maxBackOff) {
 
         final Source<ThingTag, NotUsed> restartSource =
-                RestartSource.onFailuresWithBackoff(minBackoff, maxBackoff, 1.0,
+                RestartSource.onFailuresWithBackoff(minBackOff, maxBackOff, 1.0,
                         () -> retrieveAllThingTagsInCollection(database, delayPerElement, delayPerCursor));
 
         final Sink<ThingTag, ?> sink =
@@ -101,7 +107,7 @@ public final class ManualUpdater extends AbstractActor {
      */
     public static Props props(final MongoDatabase db, final ActorRef thingsUpdater) {
 
-        return Props.create(ManualUpdater.class, () -> new ManualUpdater(db, thingsUpdater));
+        return Props.create(ManualUpdater.class, db, thingsUpdater);
     }
 
     @Override
@@ -142,4 +148,5 @@ public final class ManualUpdater extends AbstractActor {
             return Optional.empty();
         }
     }
+
 }

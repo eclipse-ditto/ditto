@@ -41,8 +41,11 @@ import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.messages.MessagesModelFactory;
 import org.eclipse.ditto.model.messages.SubjectInvalidException;
 import org.eclipse.ditto.model.messages.TimeoutInvalidException;
+import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.endpoints.actors.HttpRequestActor;
+import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.MessageConfig;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandSizeValidator;
@@ -92,25 +95,25 @@ final class MessagesRoute extends AbstractRoute {
      *
      * @param proxyActor an actor selection of the command delegating actor.
      * @param actorSystem the ActorSystem.
-     * @param defaultMessageTimeout the duration of the default message timeout.
-     * @param maxMessageTimeout the max duration of the message timeout.
-     * @param defaultClaimTimeout the duration of the default claim timeout.
-     * @param maxClaimTimeout the max duration of the claim timeout.
+     * @param messageConfig
+     * @param claimMessageConfig
+     * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
+     * @param headerTranslator translates headers from external sources or to external sources.
      * @throws NullPointerException if any argument is {@code null}.
      */
     MessagesRoute(final ActorRef proxyActor,
             final ActorSystem actorSystem,
-            final Duration defaultMessageTimeout,
-            final Duration maxMessageTimeout,
-            final Duration defaultClaimTimeout,
-            final Duration maxClaimTimeout) {
+            final MessageConfig messageConfig,
+            final MessageConfig claimMessageConfig,
+            final HttpConfig httpConfig,
+            final HeaderTranslator headerTranslator) {
 
-        super(proxyActor, actorSystem);
+        super(proxyActor, actorSystem, httpConfig, headerTranslator);
 
-        this.defaultMessageTimeout = defaultMessageTimeout;
-        this.maxMessageTimeout = maxMessageTimeout;
-        this.defaultClaimTimeout = defaultClaimTimeout;
-        this.maxClaimTimeout = maxClaimTimeout;
+        defaultMessageTimeout = messageConfig.getDefaultTimeout();
+        maxMessageTimeout = messageConfig.getMaxTimeout();
+        defaultClaimTimeout = claimMessageConfig.getDefaultTimeout();
+        maxClaimTimeout = claimMessageConfig.getMaxTimeout();
     }
 
     /**
@@ -120,6 +123,7 @@ final class MessagesRoute extends AbstractRoute {
      */
     public Route buildThingsInboxOutboxRoute(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final String thingId) {
+
         return route(
                 claimMessages(ctx, dittoHeaders, thingId), // /inbox/claim
                 rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment(INBOX_OUTBOX_PATTERN)),
@@ -134,8 +138,11 @@ final class MessagesRoute extends AbstractRoute {
      *
      * @return the {@code /{inbox|outbox}} route.
      */
-    public Route buildFeaturesInboxOutboxRoute(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final String thingId, final String featureId) {
+    public Route buildFeaturesInboxOutboxRoute(final RequestContext ctx,
+            final DittoHeaders dittoHeaders,
+            final String thingId,
+            final String featureId) {
+
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment(INBOX_OUTBOX_PATTERN)),
                 inboxOutbox -> // /<inbox|outbox>
                         post(() -> featureMessages(ctx, dittoHeaders, thingId, featureId, inboxOutbox))
@@ -182,10 +189,11 @@ final class MessagesRoute extends AbstractRoute {
      *
      * @return the sub route for things messages resource.
      */
-    private Route thingMessages(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final String thingId, final String inboxOutbox) {
-        final MessageDirection direction = PATH_INBOX.equalsIgnoreCase(inboxOutbox) ? MessageDirection.TO :
-                MessageDirection.FROM;
+    private Route thingMessages(final RequestContext ctx,
+            final DittoHeaders dittoHeaders,
+            final String thingId,
+            final String inboxOutbox) {
+
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment(PATH_MESSAGES).slash()),
                 () -> // /messages
                         extractUnmatchedPath(msgSubject -> // <msgSubject/with/slashes>
@@ -198,7 +206,7 @@ final class MessagesRoute extends AbstractRoute {
                                                                 extractDataBytes(payloadSource ->
                                                                         handleMessage(ctx, payloadSource,
                                                                                 buildSendThingMessage(
-                                                                                        direction,
+                                                                                        getMessageDirection(inboxOutbox),
                                                                                         ctx,
                                                                                         dittoHeaders,
                                                                                         thingId,
@@ -214,16 +222,22 @@ final class MessagesRoute extends AbstractRoute {
         );
     }
 
+    private static MessageDirection getMessageDirection(final String inboxOutbox) {
+        return PATH_INBOX.equalsIgnoreCase(inboxOutbox) ? MessageDirection.TO : MessageDirection.FROM;
+    }
+
     /*
      * Describes {@code /messages/<messageSubject>} sub route of the features route: {@code
      * ../features/<featureId>/{inbox|outbox}}.
      *
      * @return the sub route for feature messages resource.
      */
-    private Route featureMessages(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final String thingId, final String featureId, final String inboxOutbox) {
-        final MessageDirection direction = PATH_INBOX.equalsIgnoreCase(inboxOutbox) ? MessageDirection.TO :
-                MessageDirection.FROM;
+    private Route featureMessages(final RequestContext ctx,
+            final DittoHeaders dittoHeaders,
+            final String thingId,
+            final String featureId,
+            final String inboxOutbox) {
+
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment(PATH_MESSAGES).slash()),
                 () -> // /messages
                         extractUnmatchedPath(msgSubject -> // /messages/<msgSubject/with/slashes>
@@ -236,7 +250,7 @@ final class MessagesRoute extends AbstractRoute {
                                                                 extractDataBytes(payloadSource ->
                                                                         handleMessage(ctx, payloadSource,
                                                                                 buildSendFeatureMessage(
-                                                                                        direction,
+                                                                                        getMessageDirection(inboxOutbox),
                                                                                         ctx,
                                                                                         dittoHeaders,
                                                                                         thingId,
@@ -253,8 +267,10 @@ final class MessagesRoute extends AbstractRoute {
     }
 
     private Route withCustomRequestTimeout(final Optional<Long> optionalTimeout,
-            final java.util.function.Function<Long, Duration> checkTimeoutFunction, final Duration defaultTimeout,
+            final java.util.function.Function<Long, Duration> checkTimeoutFunction,
+            final Duration defaultTimeout,
             final java.util.function.Function<Duration, Route> inner) {
+
         final Duration customRequestTimeout = optionalTimeout.map(checkTimeoutFunction).orElse(defaultTimeout);
 
         // adds 1 second in order to avoid race conditions with internal receiveTimeouts which shall return "408"
@@ -265,7 +281,7 @@ final class MessagesRoute extends AbstractRoute {
         return withRequestTimeout(duration, () -> inner.apply(customRequestTimeout));
     }
 
-    private Function<ByteBuffer, MessageCommand<?, ?>> buildSendThingMessage(final MessageDirection direction,
+    private static Function<ByteBuffer, MessageCommand<?, ?>> buildSendThingMessage(final MessageDirection direction,
             final RequestContext ctx,
             final DittoHeaders dittoHeaders,
             final String thingId,
@@ -289,7 +305,7 @@ final class MessagesRoute extends AbstractRoute {
         };
     }
 
-    private Function<ByteBuffer, MessageCommand<?, ?>> buildSendFeatureMessage(final MessageDirection direction,
+    private static Function<ByteBuffer, MessageCommand<?, ?>> buildSendFeatureMessage(final MessageDirection direction,
             final RequestContext ctx,
             final DittoHeaders dittoHeaders,
             final String thingId,
@@ -328,7 +344,7 @@ final class MessagesRoute extends AbstractRoute {
         return msgSubject.charAt(0) == '/' ? msgSubject.substring(1) : msgSubject;
     }
 
-    private Function<ByteBuffer, MessageCommand<?, ?>> buildSendClaimMessage(final RequestContext ctx,
+    private static Function<ByteBuffer, MessageCommand<?, ?>> buildSendClaimMessage(final RequestContext ctx,
             final DittoHeaders dittoHeaders,
             final String thingId,
             final Duration timeout) {
@@ -351,7 +367,7 @@ final class MessagesRoute extends AbstractRoute {
         };
     }
 
-    private DittoHeaders enhanceHeaders(final DittoHeaders dittoHeaders) {
+    private static DittoHeaders enhanceHeaders(final DittoHeaders dittoHeaders) {
         return dittoHeaders.toBuilder().channel(TopicPath.Channel.LIVE.getName()).build();
     }
 
@@ -397,20 +413,18 @@ final class MessagesRoute extends AbstractRoute {
 
     private Duration checkMessageTimeout(final long timeoutInSeconds) {
         // check if the timeout is smaller than the maximum possible message-timeout and > 0:
-        if ((timeoutInSeconds < 0) || (timeoutInSeconds > maxMessageTimeout.getSeconds())) {
+        if (timeoutInSeconds < 0 || timeoutInSeconds > maxMessageTimeout.getSeconds()) {
             throw new TimeoutInvalidException(timeoutInSeconds, maxMessageTimeout.getSeconds());
-        } else {
-            return Duration.ofSeconds(timeoutInSeconds);
         }
+        return Duration.ofSeconds(timeoutInSeconds);
     }
 
     private Duration checkClaimTimeout(final long timeoutInSeconds) {
         // check if the timeout is smaller than the maximum possible claim-timeout and > 0:
-        if ((timeoutInSeconds < 0) || (timeoutInSeconds > maxClaimTimeout.getSeconds())) {
+        if (timeoutInSeconds < 0 || timeoutInSeconds > maxClaimTimeout.getSeconds()) {
             throw new TimeoutInvalidException(timeoutInSeconds, maxClaimTimeout.getSeconds());
-        } else {
-            return Duration.ofSeconds(timeoutInSeconds);
         }
+        return Duration.ofSeconds(timeoutInSeconds);
     }
 
 }

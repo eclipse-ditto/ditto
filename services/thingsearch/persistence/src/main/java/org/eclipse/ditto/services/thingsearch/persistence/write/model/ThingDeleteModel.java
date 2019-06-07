@@ -14,6 +14,8 @@ package org.eclipse.ditto.services.thingsearch.persistence.write.model;
 
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETE_AT;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.bson.BsonDateTime;
 import org.bson.BsonDocument;
 import org.bson.Document;
@@ -26,7 +28,8 @@ import com.mongodb.client.model.WriteModel;
 /**
  * Write model for deletion of a Thing.
  */
-public class ThingDeleteModel extends AbstractWriteModel {
+@Immutable
+public final class ThingDeleteModel extends AbstractWriteModel {
 
     private ThingDeleteModel(final Metadata metadata) {
         super(metadata);

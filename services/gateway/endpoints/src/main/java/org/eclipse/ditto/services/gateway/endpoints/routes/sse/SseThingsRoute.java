@@ -42,6 +42,8 @@ import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsParameter;
 import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
@@ -83,34 +85,46 @@ public class SseThingsRoute extends AbstractRoute {
     private static final String PARAM_FILTER = "filter";
     private static final String PARAM_NAMESPACES = "namespaces";
 
-    private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
-
+    private final HttpConfig httpConfig;
     private final ActorRef streamingActor;
     private final EventSniffer<ServerSentEvent> eventSniffer;
+    private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
+    private final HeaderTranslator headerTranslator;
+
+    private SseThingsRoute(final ActorRef proxyActor,
+            final ActorSystem actorSystem,
+            final HttpConfig httpConfig,
+            final ActorRef streamingActor,
+            final EventSniffer<ServerSentEvent> eventSniffer,
+            final QueryFilterCriteriaFactory queryFilterCriteriaFactory,
+            final HeaderTranslator headerTranslator) {
+
+        super(proxyActor, actorSystem, httpConfig, headerTranslator);
+        this.httpConfig = httpConfig;
+        this.streamingActor = streamingActor;
+        this.eventSniffer = eventSniffer;
+        this.queryFilterCriteriaFactory = queryFilterCriteriaFactory;
+        this.headerTranslator = headerTranslator;
+    }
 
     /**
      * Constructs the SSE - ServerSentEvents supporting {@code /things} route builder.
      *
      * @param proxyActor an actor selection of the command delegating actor.
      * @param actorSystem the ActorSystem to use.
+     * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
+     * @param headerTranslator translates headers from external sources or to external sources.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public SseThingsRoute(final ActorRef proxyActor, final ActorSystem actorSystem, final ActorRef streamingActor) {
-        this(proxyActor, actorSystem, streamingActor, EventSniffer.noOp(),
-                new QueryFilterCriteriaFactory(new CriteriaFactoryImpl(),
-                        new ModelBasedThingsFieldExpressionFactory()));
-    }
-
-    private SseThingsRoute(final ActorRef proxyActor,
+    public SseThingsRoute(final ActorRef proxyActor,
             final ActorSystem actorSystem,
+            final HttpConfig httpConfig,
             final ActorRef streamingActor,
-            final EventSniffer<ServerSentEvent> eventSniffer,
-            final QueryFilterCriteriaFactory queryFilterCriteriaFactory) {
+            final HeaderTranslator headerTranslator) {
 
-        super(proxyActor, actorSystem);
-        this.streamingActor = streamingActor;
-        this.eventSniffer = eventSniffer;
-        this.queryFilterCriteriaFactory = queryFilterCriteriaFactory;
+        this(proxyActor, actorSystem, httpConfig, streamingActor, EventSniffer.noOp(),
+                new QueryFilterCriteriaFactory(new CriteriaFactoryImpl(), new ModelBasedThingsFieldExpressionFactory()),
+                headerTranslator);
     }
 
     /**
@@ -120,7 +134,8 @@ public class SseThingsRoute extends AbstractRoute {
      * @return a copy of this object with a new event sniffer.
      */
     public SseThingsRoute withEventSniffer(final EventSniffer<ServerSentEvent> eventSniffer) {
-        return new SseThingsRoute(proxyActor, actorSystem, streamingActor, eventSniffer, queryFilterCriteriaFactory);
+        return new SseThingsRoute(proxyActor, actorSystem, httpConfig, streamingActor, eventSniffer,
+                queryFilterCriteriaFactory, headerTranslator);
     }
 
     /**

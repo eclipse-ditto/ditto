@@ -118,8 +118,7 @@ public final class MongoDbResource extends ExternalResource {
         final Optional<String> httpProxy = proxyUppercase.isPresent() ? proxyUppercase : proxyLowercase;
         final IProxyFactory proxyFactory = httpProxy
                 .map(URI::create)
-                .map(proxyURI -> ((IProxyFactory) new HttpProxyFactory(
-                        proxyURI.getHost(), proxyURI.getPort())))
+                .map(proxyURI -> (IProxyFactory) new HttpProxyFactory(proxyURI.getHost(), proxyURI.getPort()))
                 .orElse(new NoProxyFactory());
 
         final int mongoDbPort = defaultPort != null
@@ -130,7 +129,7 @@ public final class MongoDbResource extends ExternalResource {
 
         mongodExecutable = tryToConfigureMongoDb(bindIp, mongoDbPort, proxyFactory, logger);
         mongodProcess = tryToStartMongoDb(mongodExecutable);
-        Assume.assumeTrue("MongoDBResource failed to start.", isHealthy());
+        Assume.assumeTrue("MongoDB resource failed to start.", isHealthy());
     }
 
     @Override
@@ -175,8 +174,11 @@ public final class MongoDbResource extends ExternalResource {
         return freePortFinder.get();
     }
 
-    private MongodExecutable tryToConfigureMongoDb(final String bindIp, final int mongoDbPort,
-            final IProxyFactory proxyFactory, final Logger logger) {
+    private static MongodExecutable tryToConfigureMongoDb(final String bindIp,
+            final int mongoDbPort,
+            final IProxyFactory proxyFactory,
+            final Logger logger) {
+
         try {
             return configureMongoDb(bindIp, mongoDbPort, proxyFactory, logger);
         } catch (final Throwable e) {
@@ -184,8 +186,11 @@ public final class MongoDbResource extends ExternalResource {
         }
     }
 
-    private static MongodExecutable configureMongoDb(final String bindIp, final int mongoDbPort,
-            final IProxyFactory proxyFactory, final Logger logger) throws IOException {
+    private static MongodExecutable configureMongoDb(final String bindIp,
+            final int mongoDbPort,
+            final IProxyFactory proxyFactory,
+            final Logger logger) throws IOException {
+
         final Command command = Command.MongoD;
 
         final ProcessOutput processOutput;
@@ -204,10 +209,8 @@ public final class MongoDbResource extends ExternalResource {
                                         .defaultsForCommand(command)
                                         .proxyFactory(proxyFactory)
                                         .progressListener(new StandardConsoleProgressListener())
-                                        .build()
-                                )
-                        ).build()
-                );
+                                        .build()))
+                        .build());
 
         return mongodStarter.prepare(new MongodConfigBuilder()
                 .net(new Net(bindIp, mongoDbPort, false))
@@ -219,15 +222,11 @@ public final class MongoDbResource extends ExternalResource {
                 .build());
     }
 
-    public static MongodProcess tryToStartMongoDb(final MongodExecutable mongodExecutable) {
-        if (mongodExecutable == null) {
-            return null;
-        } else {
-            try {
-                return mongodExecutable.start();
-            } catch (final IOException e) {
-                throw new IllegalStateException("Failed to start MongoDB!", e);
-            }
+    private static MongodProcess tryToStartMongoDb(final MongodExecutable mongodExecutable) {
+        try {
+            return mongodExecutable.start();
+        } catch (final IOException e) {
+            throw new IllegalStateException("Failed to start MongoDB!", e);
         }
     }
 
@@ -235,7 +234,7 @@ public final class MongoDbResource extends ExternalResource {
 
         @Override
         public Integer get() {
-            try (ServerSocket socket = tryToCreateServerSocket()) {
+            try (final ServerSocket socket = tryToCreateServerSocket()) {
                 tryToSetReuseAddress(socket);
                 return socket.getLocalPort();
             } catch (final IOException e) {

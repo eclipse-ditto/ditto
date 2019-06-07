@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.akka.streaming;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.FORWARDER_EXCEEDED_MAX_IDLE_TIME_MSG;
 import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_COMPLETED;
 import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_FAILED;
@@ -39,7 +39,6 @@ import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.PatternsCS;
@@ -143,7 +142,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
     private final Function<SudoStreamModifiedEntities, ?> streamTriggerMessageMapper;
     private final TimestampPersistence streamMetadataPersistence;
     private final Materializer materializer;
-    private final StreamConsumerSettings streamConsumerSettings;
+    private final SyncConfig syncConfig;
     private @Nullable ActorRef forwarder;
     private @Nullable StreamTrigger nextStream;
     private @Nullable StreamTrigger activeStream;
@@ -152,7 +151,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
     /*
      * Regular check that this actor is not stuck.
      */
-    private Cancellable activityCheck;
+    private final Cancellable activityCheck;
 
     /*
      * Timestamp of the last instant when a forwarder is started or stopped.
@@ -162,23 +161,26 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
     /*
      * package-private for unit tests
      */
-    DefaultStreamSupervisor(final ActorRef forwardTo, final ActorRef provider,
+    @SuppressWarnings("unused")
+    DefaultStreamSupervisor(final ActorRef forwardTo,
+            final ActorRef provider,
             final Class<E> elementClass,
             final Function<E, Source<Object, NotUsed>> mapEntityFunction,
             final Function<SudoStreamModifiedEntities, ?> streamTriggerMessageMapper,
             final TimestampPersistence streamMetadataPersistence,
             final Materializer materializer,
-            final StreamConsumerSettings streamConsumerSettings) {
-        this.forwardTo = requireNonNull(forwardTo);
-        this.provider = requireNonNull(provider);
-        this.elementClass = requireNonNull(elementClass);
-        this.mapEntityFunction = requireNonNull(mapEntityFunction);
-        this.streamTriggerMessageMapper = requireNonNull(streamTriggerMessageMapper);
-        this.streamMetadataPersistence = requireNonNull(streamMetadataPersistence);
-        this.materializer = requireNonNull(materializer);
-        this.streamConsumerSettings = requireNonNull(streamConsumerSettings);
+            final SyncConfig syncConfig) {
 
-        activityCheck = scheduleActivityCheck(streamConsumerSettings);
+        this.forwardTo = checkNotNull(forwardTo, "forward-to actor reference");
+        this.provider = checkNotNull(provider, "provider actor reference");
+        this.elementClass = checkNotNull(elementClass, "element class");
+        this.mapEntityFunction = checkNotNull(mapEntityFunction, "map entity function");
+        this.streamTriggerMessageMapper = checkNotNull(streamTriggerMessageMapper, "stream trigger message mapper");
+        this.streamMetadataPersistence = checkNotNull(streamMetadataPersistence, "stream metadata persistence");
+        this.materializer = checkNotNull(materializer, "Materializer");
+        this.syncConfig = checkNotNull(syncConfig, "SyncConfig");
+
+        activityCheck = scheduleActivityCheck();
         lastStreamStartOrStop = Instant.now();
 
         // schedule first stream after delay
@@ -186,7 +188,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
     }
 
     /**
-     * Creates the props for {@link DefaultStreamSupervisor}.
+     * Creates the props for {@code DefaultStreamSupervisor}.
      *
      * @param <E> the type of elements.
      * @param forwardTo the {@link ActorRef} to which the stream will be forwarded.
@@ -198,30 +200,24 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
      * @param streamMetadataPersistence the {@link TimestampPersistence} used to read and write stream metadata (is
      * used to remember the end time of the last stream after a re-start).
      * @param materializer the materializer to run Akka streams with.
-     * @param streamConsumerSettings The settings for stream consumption.
+     * @param syncConfig the configuration settings for stream consumption.
      * @return the props
      */
-    public static <E> Props props(final ActorRef forwardTo, final ActorRef provider,
+    public static <E> Props props(final ActorRef forwardTo,
+            final ActorRef provider,
             final Class<E> elementClass,
             final Function<E, Source<Object, NotUsed>> mapEntityFunction,
             final Function<SudoStreamModifiedEntities, ?> streamTriggerMessageMapper,
             final TimestampPersistence streamMetadataPersistence,
             final Materializer materializer,
-            final StreamConsumerSettings streamConsumerSettings) {
+            final SyncConfig syncConfig) {
 
-        return Props.create(DefaultStreamSupervisor.class, new Creator<DefaultStreamSupervisor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public DefaultStreamSupervisor create() {
-                return new DefaultStreamSupervisor<>(forwardTo, provider, elementClass, mapEntityFunction,
-                        streamTriggerMessageMapper, streamMetadataPersistence, materializer, streamConsumerSettings);
-            }
-        });
+        return Props.create(DefaultStreamSupervisor.class, forwardTo, provider, elementClass, mapEntityFunction,
+                        streamTriggerMessageMapper, streamMetadataPersistence, materializer, syncConfig);
     }
 
     private Props getStreamForwarderProps() {
-        return DefaultStreamForwarder.props(forwardTo, getSelf(), streamConsumerSettings.getMaxIdleTime(),
+        return DefaultStreamForwarder.props(forwardTo, getSelf(), syncConfig.getMaxIdleTime(),
                 elementClass, mapEntityFunction);
     }
 
@@ -229,8 +225,8 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
         final SudoStreamModifiedEntities retrieveModifiedEntityIdWithRevisions =
                 SudoStreamModifiedEntities.of(streamRestrictions.getQueryStart(),
                         streamRestrictions.getQueryEnd(),
-                        streamConsumerSettings.getElementsStreamedPerBatch(),
-                        streamConsumerSettings.getStreamingActorTimeout().toMillis(),
+                        syncConfig.getElementsStreamedPerBatch(),
+                        syncConfig.getStreamingActorTimeout().toMillis(),
                         DittoHeaders.empty());
 
         return streamTriggerMessageMapper.apply(retrieveModifiedEntityIdWithRevisions);
@@ -268,7 +264,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
     }
 
     private void becomeSupervising() {
-        log.debug("becoming supervising...");
+        log.debug("Become supervising ...");
         getContext().become(createSupervisingBehavior());
     }
 
@@ -339,13 +335,13 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
         final Instant now = Instant.now();
 
         final Source<Instant, NotUsed> queryStartSource;
-        // short-cut: we do not need to access the database if last synch has been completed
+        // short-cut: we do not need to access the database if last sync has been completed
         if (lastSuccessfulQueryEnd != null) {
             queryStartSource = Source.single(lastSuccessfulQueryEnd);
         } else {
             // the initial start ts is only used when no sync has been run yet (i.e. no timestamp has been persisted)
             final Instant initialStartTsWithoutStandardOffset =
-                    now.minus(streamConsumerSettings.getInitialStartOffset());
+                    now.minus(syncConfig.getInitialStartOffset());
             queryStartSource = streamMetadataPersistence.getTimestampAsync()
                     .map(instant -> instant.orElse(initialStartTsWithoutStandardOffset));
         }
@@ -353,7 +349,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
         return queryStartSource.map(queryStart -> {
             final Duration offsetFromNow = Duration.between(queryStart, now);
             // check if the queryStart is very long in the past to be able to log a warning
-            final Duration warnOffset = streamConsumerSettings.getOutdatedWarningOffset();
+            final Duration warnOffset = syncConfig.getOutdatedWarningOffset();
             if (!offsetFromNow.isNegative() && offsetFromNow.compareTo(warnOffset) > 0) {
                 log.debug("The next Query-Start <{}> is older than the configured warn-offset <{}>. " +
                                 "Please verify that this does not happen frequently, " +
@@ -361,16 +357,16 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
                         queryStart, warnOffset);
             }
 
-            final Duration startOffset = streamConsumerSettings.getStartOffset();
-            final Duration streamInterval = streamConsumerSettings.getStreamInterval();
-            final Duration minimalDelayBetweenStreams = streamConsumerSettings.getMinimalDelayBetweenStreams();
+            final Duration startOffset = syncConfig.getStartOffset();
+            final Duration streamInterval = syncConfig.getStreamInterval();
+            final Duration minimalDelayBetweenStreams = syncConfig.getMinimalDelayBetweenStreams();
             return StreamTrigger.calculateStreamTrigger(now, queryStart, startOffset, streamInterval,
                     minimalDelayBetweenStreams, lastSuccessfulQueryEnd == null);
         });
     }
 
     private void scheduleStream(final StreamTrigger streamTrigger) {
-        this.nextStream = streamTrigger;
+        nextStream = streamTrigger;
 
         scheduleStream(streamTrigger.getPlannedStreamStart());
     }
@@ -385,8 +381,8 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
             duration = Duration.between(now, when);
         }
         final Duration nextStreamDelay =
-                duration.minus(streamConsumerSettings.getMinimalDelayBetweenStreams()).isNegative()
-                        ? streamConsumerSettings.getMinimalDelayBetweenStreams()
+                duration.minus(syncConfig.getMinimalDelayBetweenStreams()).isNegative()
+                        ? syncConfig.getMinimalDelayBetweenStreams()
                         : duration;
 
         scheduleStream(nextStreamDelay);
@@ -404,12 +400,13 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
                         getContext().dispatcher(), ActorRef.noSender());
     }
 
-    private Cancellable scheduleActivityCheck(final StreamConsumerSettings streamConsumerSettings) {
-        final FiniteDuration interval = fromDuration(streamConsumerSettings.getStreamInterval());
+    private Cancellable scheduleActivityCheck() {
+        final FiniteDuration interval = fromDuration(syncConfig.getStreamInterval());
         final CheckForActivity message = CheckForActivity.INSTANCE;
-        return getContext().getSystem()
+        final ActorContext actorContext = getContext();
+        return actorContext.getSystem()
                 .scheduler()
-                .schedule(interval, interval, getSelf(), message, getContext().dispatcher(), ActorRef.noSender());
+                .schedule(interval, interval, getSelf(), message, actorContext.dispatcher(), ActorRef.noSender());
     }
 
     private void tryToStartStream() {
@@ -430,7 +427,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
     }
 
     private void rescheduleActiveStream() {
-        final Instant rescheduledPlannedStreamStart = Instant.now().plus(streamConsumerSettings.getStreamInterval());
+        final Instant rescheduledPlannedStreamStart = Instant.now().plus(syncConfig.getStreamInterval());
         log.warning("Re-scheduling at {}", rescheduledPlannedStreamStart);
 
         if (activeStream == null) {
@@ -480,15 +477,15 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
     }
 
     private void checkForActivity(final CheckForActivity instance) {
-        final Duration outdatedWarningOfset = streamConsumerSettings.getOutdatedWarningOffset();
+        final Duration outdatedWarningOffset = syncConfig.getOutdatedWarningOffset();
         final Instant now = Instant.now();
         if (lastStreamStartOrStop != null &&
-                lastStreamStartOrStop.plus(outdatedWarningOfset).isBefore(now)) {
+                lastStreamStartOrStop.plus(outdatedWarningOffset).isBefore(now)) {
             // Did not start or stop stream for a long time. Something is wrong.
             // Throw IllegalStateException to trigger restart.
             final String message =
                     String.format("Started or stopped last time at <%s>, which is older than <%s> from now <%s>",
-                            lastStreamStartOrStop.toString(), outdatedWarningOfset.toString(), now.toString());
+                            lastStreamStartOrStop.toString(), outdatedWarningOffset.toString(), now.toString());
             log.error(message);
             throw new IllegalStateException(message);
         }
@@ -513,4 +510,5 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
     private enum CheckForActivity {
         INSTANCE
     }
+
 }

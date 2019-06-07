@@ -12,11 +12,11 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors;
 
+import java.util.regex.Pattern;
+
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.utils.persistence.mongo.DefaultPersistenceStreamingActor;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr;
-
-import com.typesafe.config.Config;
 
 import akka.actor.Props;
 
@@ -31,6 +31,8 @@ public final class ThingsPersistenceStreamingActorCreator {
      */
     public static final String ACTOR_NAME = "persistenceStreamingActor";
 
+    private static final Pattern PERSISTENCE_ID_PATTERN = Pattern.compile(ThingPersistenceActor.PERSISTENCE_ID_PREFIX);
+
     private ThingsPersistenceStreamingActorCreator() {
         throw new AssertionError();
     }
@@ -38,18 +40,17 @@ public final class ThingsPersistenceStreamingActorCreator {
     /**
      * Creates Akka configuration object Props for this PersistenceQueriesActor.
      *
-     * @param config the actor system configuration.
      * @param streamingCacheSize the size of the streaming cache.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Config config, final int streamingCacheSize) {
-        return DefaultPersistenceStreamingActor.props(ThingTag.class, config, streamingCacheSize,
-                ThingsPersistenceStreamingActorCreator::createElement);
+    public static Props props(final int streamingCacheSize) {
+        return DefaultPersistenceStreamingActor.props(ThingTag.class,
+                streamingCacheSize, ThingsPersistenceStreamingActorCreator::createElement);
     }
 
     private static ThingTag createElement(final PidWithSeqNr pidWithSeqNr) {
-        final String id = pidWithSeqNr.getPersistenceId()
-                .replaceFirst(ThingPersistenceActor.PERSISTENCE_ID_PREFIX, "");
+        final String id = PERSISTENCE_ID_PATTERN.matcher(pidWithSeqNr.getPersistenceId()).replaceFirst("");
         return ThingTag.of(id, pidWithSeqNr.getSequenceNr());
     }
+
 }

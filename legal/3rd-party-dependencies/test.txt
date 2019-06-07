@@ -1,4 +1,5 @@
    com.github.dnvriend:akka-persistence-inmemory_2.12:jar:2.5.1.1:test
+   com.github.stefanbirkner:system-rules:jar:1.19.0:test
    com.typesafe.akka:akka-http-testkit_2.12:jar:10.1.7:test
    com.typesafe.akka:akka-stream-testkit_2.12:jar:2.5.22:test
    com.typesafe.akka:akka-testkit_2.12:jar:2.5.22:test

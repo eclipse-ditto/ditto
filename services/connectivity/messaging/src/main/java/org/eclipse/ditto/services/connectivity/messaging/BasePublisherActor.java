@@ -47,7 +47,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.signals.base.Signal;
 
 import akka.actor.AbstractActor;
@@ -72,17 +72,21 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     private final ConnectionMetricsCollector responseDroppedCounter;
     private final ConnectionMetricsCollector responsePublishedCounter;
 
-
     protected BasePublisherActor(final String connectionId, final List<Target> targets) {
         this.connectionId = checkNotNull(connectionId, "connectionId");
         this.targets = checkNotNull(targets, "targets");
         resourceStatusMap = new HashMap<>();
         final Instant now = Instant.now();
         targets.forEach(target ->
-                resourceStatusMap.put(target, ConnectivityModelFactory.newTargetStatus(ConfigUtil.instanceIdentifier(),
-                        ConnectivityStatus.OPEN, target.getAddress(), "Started at " + now)));
+                resourceStatusMap.put(target,
+                        ConnectivityModelFactory.newTargetStatus(getInstanceIdentifier(), ConnectivityStatus.OPEN,
+                                target.getAddress(), "Started at " + now)));
         responseDroppedCounter = ConnectivityCounterRegistry.getResponseDroppedCounter(this.connectionId);
         responsePublishedCounter = ConnectivityCounterRegistry.getResponsePublishedCounter(connectionId);
+    }
+
+    private static String getInstanceIdentifier() {
+        return InstanceIdentifierSupplier.getInstance().get();
     }
 
     @Override
@@ -91,7 +95,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         preEnhancement(receiveBuilder);
 
         receiveBuilder
-                .match(OutboundSignal.WithExternalMessage.class, this::isResponseOrError, outbound -> {
+                .match(OutboundSignal.WithExternalMessage.class, BasePublisherActor::isResponseOrError, outbound -> {
                     final ExternalMessage response = outbound.getExternalMessage();
                     final String correlationId = response.getHeaders().get(CORRELATION_ID.getKey());
                     LogUtil.enhanceLogWithCorrelationId(log(), correlationId);
@@ -152,11 +156,10 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     private Collection<ResourceStatus> getCurrentTargetStatus() {
         if (resourceStatusMap.isEmpty()) {
             return Collections.singletonList(
-                    ConnectivityModelFactory.newTargetStatus(ConfigUtil.instanceIdentifier(), ConnectivityStatus.UNKNOWN,
-                            null, null));
-        } else {
-            return resourceStatusMap.values();
+                    ConnectivityModelFactory.newTargetStatus(getInstanceIdentifier(), ConnectivityStatus.UNKNOWN, null,
+                            null));
         }
+        return resourceStatusMap.values();
     }
 
     /**
@@ -210,8 +213,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * @param outboundSignal the OutboundSignal to check.
      * @return {@code true} if the OutboundSignal is a response or an error, {@code false} otherwise
      */
-    private boolean isResponseOrError(final OutboundSignal.WithExternalMessage outboundSignal) {
-        return (outboundSignal.getExternalMessage().isResponse() || outboundSignal.getExternalMessage().isError());
+    private static boolean isResponseOrError(final OutboundSignal.WithExternalMessage outboundSignal) {
+        return outboundSignal.getExternalMessage().isResponse() || outboundSignal.getExternalMessage().isError();
     }
 
     /**

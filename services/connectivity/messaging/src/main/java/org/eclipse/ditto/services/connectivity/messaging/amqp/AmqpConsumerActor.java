@@ -48,19 +48,18 @@ import org.eclipse.ditto.model.placeholders.EnforcementFactoryFactory;
 import org.eclipse.ditto.model.placeholders.EnforcementFilterFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.BaseConsumerActor;
+import org.eclipse.ditto.services.connectivity.messaging.config.Amqp10Config;
+import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
-import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-
-import com.typesafe.config.Config;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.routing.ConsistentHashingRouter;
 
@@ -86,6 +85,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     // the state for message throttling
     private final AtomicReference<ThrottleState> throttleState;
 
+    @SuppressWarnings("unused")
     private AmqpConsumerActor(final String connectionId, final String sourceAddress,
             final MessageConsumer messageConsumer,
             final ActorRef messageMappingProcessor, final Source source) {
@@ -94,9 +94,11 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
         this.messageConsumer = checkNotNull(messageConsumer);
         checkNotNull(source, "source");
 
-        final Config config = getContext().getSystem().settings().config();
-        throttlingInterval = config.getDuration(ConfigKeys.AmqpConsumer.THROTTLING_INTERVAL);
-        throttlingLimit = config.getInt(ConfigKeys.AmqpConsumer.THROTTLING_LIMIT);
+        final Amqp10Config amqp10Config = DittoConnectivityConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        ).getConnectionConfig().getAmqp10Config();
+        throttlingInterval = amqp10Config.getConsumerThrottlingInterval();
+        throttlingLimit = amqp10Config.getConsumerThrottlingLimit();
         throttleState = new AtomicReference<>(new ThrottleState(0L, 0));
 
         final Enforcement enforcement = source.getEnforcement().orElse(null);
@@ -119,15 +121,9 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     static Props props(final String connectionId, final String sourceAddress,
             final MessageConsumer messageConsumer,
             final ActorRef messageMappingProcessor, final Source source) {
-        return Props.create(AmqpConsumerActor.class, new Creator<AmqpConsumerActor>() {
-            private static final long serialVersionUID = 1L;
 
-            @Override
-            public AmqpConsumerActor create() {
-                return new AmqpConsumerActor(connectionId, sourceAddress, messageConsumer, messageMappingProcessor,
-                        source);
-            }
-        });
+        return Props.create(AmqpConsumerActor.class, connectionId, sourceAddress, messageConsumer,
+                messageMappingProcessor, source);
     }
 
     @Override

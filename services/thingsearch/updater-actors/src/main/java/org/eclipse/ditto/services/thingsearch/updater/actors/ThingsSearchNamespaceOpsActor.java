@@ -26,15 +26,16 @@ import akka.actor.Props;
 /**
  * Cluster singleton to perform namespace operations on the search index.
  */
-public final class ThingsSearchNamespaceOpsActor extends AbstractNamespaceOpsActor<String> {
+final class ThingsSearchNamespaceOpsActor extends AbstractNamespaceOpsActor<String> {
 
     /**
      * Name of this actor.
      */
     public static final String ACTOR_NAME = "thingsSearchNamespaceOpsActor";
 
+    @SuppressWarnings("unused")
     private ThingsSearchNamespaceOpsActor(final ActorRef pubSubMediator, final NamespaceOps<String> namespaceOps) {
-        super(pubSubMediator, namespaceOps);
+        super(pubSubMediator, mongoDbConfig -> namespaceOps);
     }
 
     /**
@@ -45,8 +46,8 @@ public final class ThingsSearchNamespaceOpsActor extends AbstractNamespaceOpsAct
      * @return Props of this actor.
      */
     public static Props props(final ActorRef pubSubMediator, final ThingsSearchUpdaterPersistence persistence) {
-        return Props.create(ThingsSearchNamespaceOpsActor.class,
-                () -> new ThingsSearchNamespaceOpsActor(pubSubMediator, persistence));
+
+        return Props.create(ThingsSearchNamespaceOpsActor.class, pubSubMediator, persistence);
     }
 
     @Override
@@ -58,4 +59,5 @@ public final class ThingsSearchNamespaceOpsActor extends AbstractNamespaceOpsAct
     protected Collection<String> selectNamespace(final String namespace) {
         return Collections.singletonList(namespace);
     }
+
 }
