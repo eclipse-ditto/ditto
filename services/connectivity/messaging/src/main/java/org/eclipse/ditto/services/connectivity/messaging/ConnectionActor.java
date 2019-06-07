@@ -122,9 +122,13 @@ import scala.concurrent.duration.FiniteDuration;
  */
 public final class ConnectionActor extends AbstractPersistentActorWithTimersAndCleanup {
 
+    /**
+     * Prefix to prepend to the connection ID to construct the persistence ID.
+     */
+    public static final String PERSISTENCE_ID_PREFIX = "connection:";
+
     private static final FiniteDuration DELETED_ACTOR_LIFETIME = Duration.create(10L, TimeUnit.SECONDS);
     private static final long DEFAULT_RETRIEVE_STATUS_TIMEOUT = 500L;
-    static final String PERSISTENCE_ID_PREFIX = "connection:";
 
     private static final String JOURNAL_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-journal";
     private static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-snapshots";
@@ -412,7 +416,8 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
             return;
         }
 
-        log.debug("Forwarding signal <{}> to client actor with targets: {}.", signal.getType(), subscribedAndAuthorizedTargets);
+        log.debug("Forwarding signal <{}> to client actor with targets: {}.", signal.getType(),
+                subscribedAndAuthorizedTargets);
 
         final OutboundSignal outbound = OutboundSignalFactory.newOutboundSignal(signal, subscribedAndAuthorizedTargets);
         clientActorRouter.tell(outbound, getSender());
@@ -810,6 +815,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                         command.getDittoHeaders());
         origin.tell(metricsResponse, getSelf());
     }
+
     private void respondWithEmptyStatus(final RetrieveConnectionStatus command, final ActorRef origin) {
         log.debug("ClientActor not started, responding with empty connection status with status closed.");
         final RetrieveConnectionStatusResponse statusResponse =

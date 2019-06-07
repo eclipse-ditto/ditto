@@ -33,6 +33,7 @@ import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory
 import org.eclipse.ditto.services.connectivity.messaging.ConnectionSupervisorActor;
 import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ReconnectActor;
+import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceStreamingActorCreator;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
@@ -64,6 +65,7 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.cluster.Cluster;
+import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ClusterShardingSettings;
 import akka.contrib.persistence.mongodb.JavaDslMongoReadJournal;
@@ -207,6 +209,12 @@ public final class ConnectivityRootActor extends AbstractActor {
 
         startClusterSingletonActor(ReconnectActor.ACTOR_NAME, ReconnectActor.props(connectionShardRegion,
                 mongoReadJournal::currentPersistenceIds));
+
+        // Create persistence streaming actor (with no cache) and make it known to pubSubMediator.
+        final ActorRef persistenceStreamingActor =
+                startChildActor(ConnectionPersistenceStreamingActorCreator.ACTOR_NAME,
+                        ConnectionPersistenceStreamingActorCreator.props(config, 0));
+        pubSubMediator.tell(new DistributedPubSubMediator.Put(persistenceStreamingActor), getSelf());
 
         String hostname = config.getString(ConfigKeys.Http.HOSTNAME);
         if (hostname.isEmpty()) {
