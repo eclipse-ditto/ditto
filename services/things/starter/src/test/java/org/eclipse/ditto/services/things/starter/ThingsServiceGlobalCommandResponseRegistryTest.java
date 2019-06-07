@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.things.starter;
 
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.utils.test.GlobalCommandResponseRegistryTestCases;
+import org.eclipse.ditto.signals.commands.common.CleanupResponse;
 import org.eclipse.ditto.signals.commands.devops.RetrieveLoggerConfigResponse;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessageResponse;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespaceResponse;
@@ -36,7 +37,8 @@ public final class ThingsServiceGlobalCommandResponseRegistryTest extends Global
                 DeleteSubjectResponse.class,
                 ThingErrorResponse.class,
                 PolicyErrorResponse.class,
-                RetrieveLoggerConfigResponse.class);
+                RetrieveLoggerConfigResponse.class,
+                CleanupResponse.class);
     }
 
 }

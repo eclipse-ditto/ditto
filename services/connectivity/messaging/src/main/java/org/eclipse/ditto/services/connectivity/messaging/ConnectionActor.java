@@ -40,6 +40,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.FilteredTopic;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.services.base.actors.AbstractPersistentActorWithTimersAndCleanup;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
 import org.eclipse.ditto.services.connectivity.messaging.kafka.KafkaValidator;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.RetrieveConnectionMetricsAggregatorActor;
@@ -119,7 +120,7 @@ import scala.concurrent.duration.FiniteDuration;
  * Handles {@code *Connection} commands and manages the persistence of connection. The actual connection handling to the
  * remote server is delegated to a child actor that uses a specific client (AMQP 1.0 or 0.9.1).
  */
-public final class ConnectionActor extends AbstractPersistentActor {
+public final class ConnectionActor extends AbstractPersistentActorWithTimersAndCleanup {
 
     private static final FiniteDuration DELETED_ACTOR_LIFETIME = Duration.create(10L, TimeUnit.SECONDS);
     private static final long DEFAULT_RETRIEVE_STATUS_TIMEOUT = 500L;
@@ -161,6 +162,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
     @Nullable private SignalFilter signalFilter = null;
 
     private long lastSnapshotSequenceNr = -1L;
+    private long confirmedSnapshotSequenceNr = -1L;
     private boolean snapshotInProgress = false;
 
     private Set<Topic> uniqueTopics = Collections.emptySet();
@@ -259,7 +261,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
                     if (fromSnapshotStore != null) {
                         restoreConnection(fromSnapshotStore);
                     }
-                    lastSnapshotSequenceNr = ss.metadata().sequenceNr();
+                    lastSnapshotSequenceNr = confirmedSnapshotSequenceNr = ss.metadata().sequenceNr();
                 })
                 .match(ConnectionCreated.class, event -> restoreConnection(event.getConnection()))
                 .match(ConnectionModified.class, event -> restoreConnection(event.getConnection()))
@@ -328,8 +330,13 @@ public final class ConnectionActor extends AbstractPersistentActor {
                 }).build();
     }
 
+    @Override
+    protected long getLatestSnapshotSequenceNumber() {
+        return confirmedSnapshotSequenceNr;
+    }
+
     private Receive createConnectionCreatedBehaviour() {
-        return ReceiveBuilder.create()
+        return super.createReceive().orElse(ReceiveBuilder.create()
                 .match(TestConnection.class, testConnection ->
                         getSender().tell(TestConnectionResponse.alreadyCreated(testConnection.getConnectionId(),
                                 testConnection.getDittoHeaders()), getSelf()))
@@ -365,7 +372,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
-                }).build();
+                }).build());
     }
 
     private void enhanceLogUtil(final WithDittoHeaders<?> createConnection) {
@@ -881,6 +888,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
             // save a snapshot
             final Object snapshotToStore = snapshotAdapter.toSnapshotStore(connection);
             saveSnapshot(snapshotToStore);
+            lastSnapshotSequenceNr = lastSequenceNr();
         } else {
             log.warning("Connection and MappingContext must not be null when taking snapshot.");
         }
@@ -954,6 +962,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
     private void handleSnapshotSuccess(final SaveSnapshotSuccess sss) {
         log.debug("Snapshot was saved successfully: {}", sss);
+        confirmedSnapshotSequenceNr = sss.metadata().sequenceNr();
     }
 
     private void schedulePendingResponse(final ConnectivityCommandResponse response, final ActorRef sender) {

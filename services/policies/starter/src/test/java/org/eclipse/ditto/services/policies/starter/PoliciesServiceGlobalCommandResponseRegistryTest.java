@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.policies.starter;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.utils.test.GlobalCommandResponseRegistryTestCases;
+import org.eclipse.ditto.signals.commands.common.CleanupResponse;
 import org.eclipse.ditto.signals.commands.devops.RetrieveLoggerConfigResponse;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessageResponse;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespaceResponse;
@@ -38,7 +39,8 @@ public final class PoliciesServiceGlobalCommandResponseRegistryTest extends Glob
                 DeleteSubjectResponse.class,
                 ThingErrorResponse.class,
                 PolicyErrorResponse.class,
-                RetrieveLoggerConfigResponse.class);
+                RetrieveLoggerConfigResponse.class,
+                CleanupResponse.class);
     }
 
 }

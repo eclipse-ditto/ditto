@@ -18,6 +18,7 @@ import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePoli
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.utils.test.GlobalCommandRegistryTestCases;
+import org.eclipse.ditto.signals.commands.common.Cleanup;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
 import org.eclipse.ditto.signals.commands.devops.ExecutePiggybackCommand;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
@@ -40,7 +41,7 @@ public class PoliciesServiceGlobalCommandRegistryTest extends GlobalCommandRegis
                 Shutdown.class,
                 PurgeNamespace.class,
                 RetrieveResource.class,
-                DeleteSubject.class
-        ));
+                DeleteSubject.class,
+                Cleanup.class));
     }
 }

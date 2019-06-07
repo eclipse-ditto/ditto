@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.services.base.actors.AbstractPersistentActorWithTimersAndCleanup;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CommandReceiveStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CommandStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CreateThingStrategy;
@@ -60,7 +61,6 @@ import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.FI;
 import akka.japi.pf.ReceiveBuilder;
-import akka.persistence.AbstractPersistentActorWithTimers;
 import akka.persistence.RecoveryCompleted;
 import akka.persistence.RecoveryTimedOut;
 import akka.persistence.SaveSnapshotFailure;
@@ -71,7 +71,7 @@ import scala.Option;
 /**
  * PersistentActor which "knows" the state of a single {@link Thing}.
  */
-public final class ThingPersistenceActor extends AbstractPersistentActorWithTimers {
+public final class ThingPersistenceActor extends AbstractPersistentActorWithTimersAndCleanup {
 
     /**
      * The prefix of the persistenceId for Things.
@@ -94,12 +94,12 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
     private final String thingId;
     private final ActorRef pubSubMediator;
     private final SnapshotAdapter<ThingWithSnapshotTag> snapshotAdapter;
-    private final DiagnosticLoggingAdapter log;
     private final Duration activityCheckInterval;
     private final Duration activityCheckDeletedInterval;
     private final Receive handleThingEvents;
     private final long snapshotThreshold;
     private long lastSnapshotRevision;
+    private long confirmedSnapshotRevision;
 
     /**
      * Context for all {@link CommandReceiveStrategy} strategies - contains references to fields of {@code this}
@@ -116,7 +116,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
         this.thingId = thingId;
         this.pubSubMediator = pubSubMediator;
         this.snapshotAdapter = snapshotAdapter;
-        log = LogUtil.obtain(this);
         thing = null;
 
         final Config config = getContext().system().settings().config();
@@ -293,11 +292,14 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
         final ReceiveBuilder receiveBuilder = ReceiveBuilder.create()
                 .match(Command.class, COMMAND_RECEIVE_STRATEGY::isDefined, commandHandler);
 
-        final Receive receive = new StrategyAwareReceiveBuilder(receiveBuilder, log)
-                .matchEach(getTakeSnapshotStrategies())
-                .match(new CheckForActivityStrategy())
-                .matchAny(new MatchAnyAfterInitializeStrategy())
-                .build();
+        final Receive receive =
+                super.createReceive().orElse(
+                    new StrategyAwareReceiveBuilder(receiveBuilder, log)
+                    .matchEach(getTakeSnapshotStrategies())
+                    .match(new CheckForActivityStrategy())
+                    .matchAny(new MatchAnyAfterInitializeStrategy())
+                    .build()
+                );
 
         getContext().become(receive, true);
         getContext().getParent().tell(ThingSupervisorActor.ManualReset.INSTANCE, getSelf());
@@ -483,14 +485,22 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
     private Iterable<ReceiveStrategy<?>> getTakeSnapshotStrategies() {
         return Arrays.asList(
                 ReceiveStrategy.simple(TakeSnapshot.class, t -> takeSnapshot("snapshot interval has passed")),
-                ReceiveStrategy.simple(SaveSnapshotSuccess.class, s -> log.info("Got {}", s)),
+                ReceiveStrategy.simple(SaveSnapshotSuccess.class, s -> {
+                    log.info("Got {}", s);
+                    confirmedSnapshotRevision = s.metadata().sequenceNr();
+                }),
                 ReceiveStrategy.simple(SaveSnapshotFailure.class, s -> log.error("Got {}", s, s.cause()))
         );
     }
 
     private void recoverFromSnapshotOffer(final SnapshotOffer snapshotOffer) {
         thing = snapshotAdapter.fromSnapshotStore(snapshotOffer);
-        lastSnapshotRevision = snapshotOffer.metadata().sequenceNr();
+        lastSnapshotRevision = confirmedSnapshotRevision = snapshotOffer.metadata().sequenceNr();
+    }
+
+    @Override
+    protected long getLatestSnapshotSequenceNumber() {
+        return confirmedSnapshotRevision;
     }
 
     /**

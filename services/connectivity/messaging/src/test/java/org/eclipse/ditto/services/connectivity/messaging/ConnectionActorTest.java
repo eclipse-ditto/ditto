@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import static akka.actor.Actor.noSender;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.connectivity.messaging.MockClientActor.mockClientActorPropsFactory;
@@ -32,6 +33,8 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.common.Cleanup;
+import org.eclipse.ditto.signals.commands.common.CleanupResponse;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnavailableException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
@@ -546,6 +549,26 @@ public final class ConnectionActorTest extends WithMockServers {
 
             final ResetConnectionMetricsResponse resetResponse = ResetConnectionMetricsResponse.of(connectionId, DittoHeaders.empty());
             expectMsg(resetResponse);
+        }};
+    }
+
+    @Test
+    public void testConnectionActorRespondsToCleanupCommand() {
+        new TestKit(actorSystem) {{
+            final TestProbe probe = TestProbe.apply(actorSystem);
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+            watch(underTest);
+
+            // create connection
+            underTest.tell(createConnection, getRef());
+            probe.expectMsg(openConnection);
+            expectMsg(createConnectionResponse);
+
+            underTest.tell(Cleanup.of(ConnectionActor.PERSISTENCE_ID_PREFIX + connectionId, DittoHeaders.empty()),
+                    getRef());
+            expectMsg(CleanupResponse.success(ConnectionActor.PERSISTENCE_ID_PREFIX + connectionId));
         }};
     }
 

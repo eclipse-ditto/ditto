@@ -46,6 +46,7 @@ import org.eclipse.ditto.model.policies.Resources;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.Subjects;
+import org.eclipse.ditto.services.base.actors.AbstractPersistentActorWithTimersAndCleanup;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
@@ -145,7 +146,7 @@ import akka.persistence.SnapshotOffer;
 /**
  * PersistentActor which "knows" the state of a single {@link Policy}.
  */
-public final class PolicyPersistenceActor extends AbstractPersistentActorWithTimers {
+public final class PolicyPersistenceActor extends AbstractPersistentActorWithTimersAndCleanup {
 
     /**
      * The prefix of the persistenceId for Policies.
@@ -173,6 +174,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
     private Policy policy;
     private long accessCounter;
     private long lastSnapshotSequenceNr = 0L;
+    private long confirmedSnapshotSequenceNr = 0L;
 
     PolicyPersistenceActor(final String policyId,
             final SnapshotAdapter<Policy> snapshotAdapter,
@@ -415,6 +417,11 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
     }
 
     @Override
+    protected long getLatestSnapshotSequenceNumber() {
+        return confirmedSnapshotSequenceNr;
+    }
+
+    @Override
     public Receive createReceiveRecover() {
         // defines how state is updated during recovery
         return handlePolicyEvents.orElse(ReceiveBuilder.create()
@@ -422,7 +429,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
                 // # Snapshot handling
                 .match(SnapshotOffer.class, ss -> {
                     policy = snapshotAdapter.fromSnapshotStore(ss);
-                    lastSnapshotSequenceNr = ss.metadata().sequenceNr();
+                    lastSnapshotSequenceNr = confirmedSnapshotSequenceNr = ss.metadata().sequenceNr();
                 })
 
                 // # Recovery handling
@@ -456,7 +463,8 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
         policyCreatedStrategies.forEach(strategyAwareReceiveBuilder::match);
         strategyAwareReceiveBuilder.matchAny(new MatchAnyAfterInitializeStrategy());
 
-        getContext().become(strategyAwareReceiveBuilder.build(), true);
+        final Receive superReceive = super.createReceive();
+        getContext().become(superReceive.orElse(strategyAwareReceiveBuilder.build()), true);
         getContext().getParent().tell(new PolicySupervisorActor.ManualReset(), getSelf());
     }
 
@@ -577,7 +585,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
     private Collection<ReceiveStrategy<?>> getTakeSnapshotStrategies() {
         return Arrays.asList(
                 SimpleStrategy.of(TakeSnapshot.class, t -> takeSnapshot("snapshot interval has passed")),
-                SimpleStrategy.of(SaveSnapshotSuccess.class, s -> log.info("Got {}", s)),
+                SimpleStrategy.of(SaveSnapshotSuccess.class, s -> {
+                    log.info("Got {}", s);
+                    confirmedSnapshotSequenceNr = s.metadata().sequenceNr();
+                }),
                 SimpleStrategy.of(SaveSnapshotFailure.class, s -> log.error("Got {}", s, s.cause()))
         );
     }

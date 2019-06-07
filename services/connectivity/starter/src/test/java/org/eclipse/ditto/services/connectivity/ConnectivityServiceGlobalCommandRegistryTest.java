@@ -19,6 +19,7 @@ import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.services.utils.test.GlobalCommandRegistryTestCases;
 import org.eclipse.ditto.signals.commands.batch.ExecuteBatch;
+import org.eclipse.ditto.signals.commands.common.Cleanup;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnection;
@@ -49,7 +50,7 @@ public class ConnectivityServiceGlobalCommandRegistryTest extends GlobalCommandR
                 Shutdown.class,
                 PurgeNamespace.class,
                 RetrieveResource.class,
-                DeleteSubject.class
-        ));
+                DeleteSubject.class,
+                Cleanup.class));
     }
 }

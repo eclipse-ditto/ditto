@@ -24,9 +24,6 @@ import static org.eclipse.ditto.services.policies.persistence.testhelper.ETagTes
 import static org.eclipse.ditto.services.policies.persistence.testhelper.ETagTestUtils.retrieveResourceResponse;
 import static org.eclipse.ditto.services.policies.persistence.testhelper.ETagTestUtils.retrieveSubjectResponse;
 
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
@@ -49,6 +46,8 @@ import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePoli
 import org.eclipse.ditto.services.policies.persistence.TestConstants;
 import org.eclipse.ditto.services.policies.persistence.actors.PersistenceActorTestBase;
 import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSnapshotAdapter;
+import org.eclipse.ditto.signals.commands.common.Cleanup;
+import org.eclipse.ditto.signals.commands.common.CleanupResponse;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyEntryModificationInvalidException;
@@ -77,7 +76,6 @@ import org.eclipse.ditto.signals.commands.policies.query.RetrieveResource;
 import org.eclipse.ditto.signals.commands.policies.query.RetrieveSubject;
 import org.eclipse.ditto.signals.commands.policies.query.RetrieveSubjectResponse;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
@@ -85,7 +83,6 @@ import akka.actor.Props;
 import akka.testkit.TestActorRef;
 import akka.testkit.javadsl.TestKit;
 import scala.PartialFunction;
-import scala.concurrent.duration.Duration;
 import scala.runtime.BoxedUnit;
 
 /**
@@ -101,7 +98,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         setUpBase();
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void tryToRetrievePolicyWhichWasNotYetCreated() {
         final String policyId = "test.ns:23420815";
@@ -140,7 +139,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         }
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void createPolicy() {
         new TestKit(actorSystem) {
@@ -157,7 +158,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void modifyPolicy() {
         final Policy policy = createPolicyWithRandomId();
@@ -183,7 +186,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void retrievePolicy() {
         final Policy policy = createPolicyWithRandomId();
@@ -207,7 +212,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void sudoRetrievePolicy() {
         final Policy policy = createPolicyWithRandomId();
@@ -230,7 +237,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void deletePolicy() {
         new TestKit(actorSystem) {
@@ -251,7 +260,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void createPolicyEntry() {
         new TestKit(actorSystem) {
@@ -286,7 +297,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void modifyPolicyEntry() {
         new TestKit(actorSystem) {
@@ -323,7 +336,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void tryToModifyPolicyEntryWithInvalidPermissions() {
         new TestKit(actorSystem) {
@@ -400,7 +415,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void removePolicyEntry() {
         new TestKit(actorSystem) {
@@ -436,7 +453,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void tryToRemoveLastPolicyEntry() {
         new TestKit(actorSystem) {
@@ -463,7 +482,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void createResource() {
         new TestKit(actorSystem) {
@@ -501,7 +522,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void modifyResource() {
         new TestKit(actorSystem) {
@@ -538,7 +561,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void tryToModifyResource() {
         new TestKit(actorSystem) {
@@ -569,7 +594,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void removeResource() {
         new TestKit(actorSystem) {
@@ -609,7 +636,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void createSubject() {
         new TestKit(actorSystem) {
@@ -646,7 +675,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void modifySubject() {
         new TestKit(actorSystem) {
@@ -682,7 +713,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void removeSubject() {
         new TestKit(actorSystem) {
@@ -719,7 +752,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void recoverPolicyCreated() {
         new TestKit(actorSystem) {
@@ -746,7 +781,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void recoverPolicyDeleted() {
         new TestKit(actorSystem) {
@@ -778,7 +815,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void recoverPolicyEntryModified() {
         new TestKit(actorSystem) {
@@ -822,7 +861,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void recoverPolicyEntryDeleted() {
         new TestKit(actorSystem) {
@@ -856,7 +897,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void ensureSequenceNumberCorrectness() {
         new TestKit(actorSystem) {
@@ -892,7 +935,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void ensureSequenceNumberCorrectnessAfterRecovery() {
         new TestKit(actorSystem) {
@@ -930,6 +975,25 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 assertThat(getLastSender()).isEqualTo(policyPersistenceActorRecovered);
             }
         };
+    }
+
+    @Test
+    public void testPolicyPersistenceActorRespondsToCleanupCommand() {
+        new TestKit(actorSystem) {{
+            final Policy policy = createPolicyWithRandomId();
+            final ActorRef policyPersistenceActor = createPersistenceActorFor(policy);
+
+            final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
+            policyPersistenceActor.tell(createPolicyCommand, getRef());
+            final CreatePolicyResponse createPolicy1Response = expectMsgClass(CreatePolicyResponse.class);
+            DittoPolicyAssertions.assertThat(createPolicy1Response.getPolicyCreated().get())
+                    .isEqualEqualToButModified(policy);
+
+            final String entityId = PolicyPersistenceActor.PERSISTENCE_ID_PREFIX +
+                            policy.getId().orElseThrow(IllegalStateException::new);
+            policyPersistenceActor.tell(Cleanup.of(entityId, DittoHeaders.empty()), getRef());
+            expectMsg(CleanupResponse.success(entityId));
+        }};
     }
 
     private ActorRef createPersistenceActorFor(final Policy policy) {

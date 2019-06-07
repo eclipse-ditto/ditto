@@ -76,70 +76,12 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Unit test for the snapshotting functionality of {@link ThingPersistenceActor}.
  */
-public final class ThingPersistenceActorSnapshottingTest extends PersistenceActorTestBase {
-
-    private static final int DEFAULT_TEST_SNAPSHOT_THRESHOLD = 2;
-    private static final int NEVER_TAKE_SNAPSHOT_THRESHOLD = Integer.MAX_VALUE;
-    private static final boolean DEFAULT_TEST_SNAPSHOT_DELETE_OLD = true;
-    private static final boolean DEFAULT_TEST_EVENTS_DELETE_OLD = true;
-    private static final Duration VERY_LONG_DURATION = Duration.ofDays(100);
-    private static final int PERSISTENCE_ASSERT_WAIT_AT_MOST_MS = 5000;
-    private static final long PERSISTENCE_ASSERT_RETRY_DELAY_MS = 500;
-
-    private static final JsonFieldSelector FIELD_SELECTOR = JsonFactory.newFieldSelector(Thing.JsonFields.ATTRIBUTES,
-            Thing.JsonFields.FEATURES, Thing.JsonFields.ID, Thing.JsonFields.MODIFIED, Thing.JsonFields.REVISION,
-            Thing.JsonFields.POLICY_ID, Thing.JsonFields.LIFECYCLE);
+public final class ThingPersistenceActorSnapshottingTest extends PersistenceActorTestBaseWithSnapshotting {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ThingPersistenceActorSnapshottingTest.class);
 
-    private static Config createNewDefaultTestConfig() {
-        return ConfigFactory.empty()
-                .withValue(ConfigKeys.Thing.SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(
-                        DEFAULT_TEST_SNAPSHOT_THRESHOLD))
-                .withValue(ConfigKeys.Thing.ACTIVITY_CHECK_INTERVAL, ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION))
-                .withValue(ConfigKeys.Thing.ACTIVITY_CHECK_DELETED_INTERVAL,
-                        ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION))
-                .withValue(ConfigKeys.Thing.SNAPSHOT_DELETE_OLD, ConfigValueFactory.fromAnyRef(
-                        DEFAULT_TEST_SNAPSHOT_DELETE_OLD))
-                .withValue(ConfigKeys.Thing.EVENTS_DELETE_OLD,
-                        ConfigValueFactory.fromAnyRef(DEFAULT_TEST_EVENTS_DELETE_OLD))
-                .withValue(ConfigKeys.Thing.SNAPSHOT_INTERVAL, ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION));
-    }
-
-    private ThingMongoEventAdapter eventAdapter;
-    private ThingsJournalTestHelper<ThingEvent> journalTestHelper;
-    private ThingsSnapshotTestHelper<Thing> snapshotTestHelper;
-    private Map<Class<? extends Command>, BiFunction<Command, Long, ThingEvent>> commandToEventMapperRegistry;
-
     @Rule
     public final TestWatcher watchman = new TestedMethodLoggingWatcher(LOGGER);
-
-    @Override
-    protected void setup(final Config customConfig) {
-        super.setup(customConfig);
-        eventAdapter = new ThingMongoEventAdapter((ExtendedActorSystem) actorSystem);
-
-        journalTestHelper = new ThingsJournalTestHelper<>(actorSystem, this::convertJournalEntryToEvent,
-                ThingPersistenceActorSnapshottingTest::convertDomainIdToPersistenceId);
-        snapshotTestHelper = new ThingsSnapshotTestHelper<>(actorSystem,
-                ThingPersistenceActorSnapshottingTest::convertSnapshotDataToThing,
-                ThingPersistenceActorSnapshottingTest::convertDomainIdToPersistenceId);
-
-
-        commandToEventMapperRegistry = new HashMap<>();
-        commandToEventMapperRegistry.put(CreateThing.class, (command, revision) -> {
-            final CreateThing createCommand = (CreateThing) command;
-            return ThingCreated.of(createCommand.getThing(), revision, DittoHeaders.empty());
-        });
-        commandToEventMapperRegistry.put(ModifyThing.class, (command, revision) -> {
-            final ModifyThing modifyCommand = (ModifyThing) command;
-            return ThingModified.of(modifyCommand.getThing(), revision, DittoHeaders.empty());
-        });
-        commandToEventMapperRegistry.put(DeleteThing.class, (command, revision) -> {
-            final DeleteThing deleteCommand = (DeleteThing) command;
-            return ThingDeleted.of(deleteCommand.getThingId(), revision, DittoHeaders.empty());
-        });
-    }
 
     /**
      * Check that a deleted thing is snapshot correctly and can be recreated. Before the bugfix, the
@@ -313,103 +255,4 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
             }
         };
     }
-
-    private static void assertThingInSnapshot(final Thing actualThing, final Thing expectedThing) {
-        assertThingInResponse(actualThing, expectedThing, expectedThing.getRevision().map(ThingRevision::toLong)
-                .orElseThrow(IllegalArgumentException::new));
-    }
-
-    private static void assertThingInJournal(final Thing actualThing, final Thing expectedThing) {
-        final Thing expectedComparisonThing = ThingsModelFactory.newThingBuilder(expectedThing)
-                .build();
-
-        DittoThingsAssertions.assertThat(actualThing)
-                .hasEqualJson(expectedComparisonThing, FIELD_SELECTOR, IS_MODIFIED.negate())
-                .hasNoModified();
-    }
-
-    private static void assertThingInResponse(final Thing actualThing, final Thing expectedThing,
-            final long expectedRevision) {
-        final Thing expectedComparisonThing = ThingsModelFactory.newThingBuilder(expectedThing)
-                .setRevision(expectedRevision)
-                .build();
-
-        DittoThingsAssertions.assertThat(actualThing)
-                .hasEqualJson(expectedComparisonThing, FIELD_SELECTOR, IS_MODIFIED.negate())
-                .isModified(); // we cannot check exact timestamp
-    }
-
-    private void assertSnapshotsEmpty(final String thingId) {
-        assertSnapshots(thingId, Collections.emptyList());
-    }
-
-    private void assertJournal(final String thingId, final List<Event> expectedEvents) {
-        retryOnAssertionError(() -> {
-            final List<ThingEvent> actualEvents = journalTestHelper.getAllEvents(thingId);
-
-            Assertions.assertListWithIndexInfo(actualEvents, (actual, expected) -> {
-                assertThat(actual)
-                        .hasType(expected.getType())
-                        .hasRevision(expected.getRevision());
-
-                if (actual instanceof ThingModified) {
-                    assertThingInJournal(((ThingModified) actual).getThing(), ((ThingModified) expected).getThing());
-                } else if (actual instanceof ThingCreated) {
-                    assertThingInJournal(((ThingCreated) actual).getThing(), ((ThingCreated) expected).getThing());
-                } else if (actual instanceof ThingDeleted) {
-                    // no special check
-                    assertTrue(true);
-                } else {
-                    throw new UnsupportedOperationException("No check for: " + actual.getClass());
-                }
-            }).isEqualTo(expectedEvents);
-        });
-    }
-
-    private static Thing toDeletedThing(final Thing thing, final int newRevision) {
-        return thing.toBuilder().setRevision(newRevision).setLifecycle(ThingLifecycle.DELETED).build();
-    }
-
-    private Event toEvent(final Command command, final long revision) {
-        final Class<? extends Command> clazz = command.getClass();
-        final BiFunction<Command, Long, ThingEvent> commandToEventFunction = commandToEventMapperRegistry.get(clazz);
-        if (commandToEventFunction == null) {
-            throw new UnsupportedOperationException("Mapping not yet implemented for type: " + clazz);
-        }
-
-        return commandToEventFunction.apply(command, revision);
-    }
-
-    private void assertSnapshots(final String thingId, final List<Thing> expectedSnapshots) {
-        retryOnAssertionError(() -> {
-            final List<Thing> snapshots = snapshotTestHelper.getAllSnapshotsAscending(thingId);
-            Assertions.assertListWithIndexInfo(snapshots, ThingPersistenceActorSnapshottingTest::assertThingInSnapshot)
-                    .isEqualTo(expectedSnapshots);
-        });
-    }
-
-    private static void retryOnAssertionError(final Runnable r) {
-        Assertions.retryOnAssertionError(r, PERSISTENCE_ASSERT_WAIT_AT_MOST_MS, PERSISTENCE_ASSERT_RETRY_DELAY_MS);
-    }
-
-    private ThingEvent convertJournalEntryToEvent(final BsonDocument dbObject, final long sequenceNumber) {
-        final ThingEvent<?> head = (ThingEvent) eventAdapter.fromJournal(dbObject, null).events().head();
-        return head.setRevision(sequenceNumber);
-    }
-
-    private static Thing convertSnapshotDataToThing(final BsonDocument dbObject, final long sequenceNumber) {
-        final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();
-        final JsonObject json = dittoBsonJson.serialize(dbObject).asObject();
-
-        final Thing thing = ThingsModelFactory.newThing(json);
-
-        DittoThingsAssertions.assertThat(thing).hasRevision(ThingRevision.newInstance(sequenceNumber));
-
-        return thing;
-    }
-
-    private static String convertDomainIdToPersistenceId(final String domainId) {
-        return ThingPersistenceActor.PERSISTENCE_ID_PREFIX + domainId;
-    }
-
 }
