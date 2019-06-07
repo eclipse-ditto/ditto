@@ -30,6 +30,7 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionS
 import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Cancellable;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
@@ -68,11 +69,12 @@ public final class ReconnectActor extends AbstractActor {
         this.connectionShardRegion = connectionShardRegion;
         this.currentPersistenceIdsSourceSupplier = currentPersistenceIdsSourceSupplier;
 
+        final ActorSystem system = getContext().getSystem();
+        
         reconnectConfig = DittoConnectivityConfig.of(
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+                DefaultScopedConfig.dittoScoped(system.settings().config())
         ).getReconnectConfig();
-
-        materializer = ActorMaterializer.create(getContext().getSystem());
+        materializer = ActorMaterializer.create(system);
     }
 
     /**
