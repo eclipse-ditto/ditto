@@ -94,6 +94,7 @@ public abstract class PersistenceActorTestBase {
 
     protected ActorSystem actorSystem = null;
     protected ActorRef pubSubMediator = null;
+    protected TestProbe pubSubMediatorTestProbe = null;
     protected DittoHeaders dittoHeadersV2;
 
     @BeforeClass
@@ -148,7 +149,8 @@ public abstract class PersistenceActorTestBase {
 
     private void init(final Config config) {
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
-        pubSubMediator = new TestProbe(actorSystem, "mock-pubSub-mediator").ref();
+        pubSubMediatorTestProbe = new TestProbe(actorSystem, "mock-pubSub-mediator");
+        pubSubMediator = pubSubMediatorTestProbe.ref();
         dittoHeadersV2 = createDittoHeaders(JsonSchemaVersion.V_2, AUTH_SUBJECT);
     }
 

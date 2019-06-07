@@ -78,12 +78,15 @@ import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyEntry;
 import org.eclipse.ditto.signals.commands.policies.query.RetrieveResource;
 import org.eclipse.ditto.signals.commands.policies.query.RetrieveSubject;
 import org.eclipse.ditto.signals.commands.policies.query.RetrieveSubjectResponse;
+import org.eclipse.ditto.signals.events.policies.PolicyCreated;
+import org.eclipse.ditto.signals.events.policies.PolicyEntryCreated;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.testkit.TestActorRef;
 import akka.testkit.javadsl.TestKit;
 import scala.PartialFunction;
@@ -767,6 +770,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final CreatePolicyResponse createPolicy1Response = expectMsgClass(CreatePolicyResponse.class);
                 DittoPolicyAssertions.assertThat(createPolicy1Response.getPolicyCreated().get())
                         .isEqualEqualToButModified(policy);
+                final DistributedPubSubMediator.Publish policyCreatedPublish =
+                        pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
+                assertThat(policyCreatedPublish.msg()).isInstanceOf(PolicyCreated.class);
 
                 final Subject newSubject =
                         Subject.newInstance(SubjectIssuer.GOOGLE, "anotherOne");
@@ -782,6 +788,10 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 policyPersistenceActor.tell(modifyPolicyEntry, getRef());
                 expectMsgEquals(modifyPolicyEntryResponse(policy.getId().get(), policyEntry,
                         dittoHeadersV2, true));
+
+                final DistributedPubSubMediator.Publish policyEntryModifiedPublish =
+                        pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
+                assertThat(policyEntryModifiedPublish.msg()).isInstanceOf(PolicyEntryCreated.class);
 
                 // restart
                 final ActorRef policyPersistenceActorRecovered = createPersistenceActorFor(policy);

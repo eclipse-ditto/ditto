@@ -27,6 +27,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.services.base.actors.ShutdownNamespaceBehavior;
+import org.eclipse.ditto.services.base.config.DittoServiceConfig;
 import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.services.policies.common.config.DittoPoliciesConfig;
 import org.eclipse.ditto.services.policies.persistence.actors.AbstractReceiveStrategy;
