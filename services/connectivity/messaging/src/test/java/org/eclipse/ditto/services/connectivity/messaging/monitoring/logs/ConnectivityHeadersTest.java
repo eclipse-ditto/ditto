@@ -26,11 +26,6 @@ import org.junit.Test;
 public final class ConnectivityHeadersTest {
 
     @Test
-    public void headersLogNotAllowedImplicitly() {
-        assertThat(ConnectivityHeaders.isHeadersDebugLogEnabled(DittoHeaders.empty())).isFalse();
-    }
-
-    @Test
     public void headersLogNotAllowedExplicitly() {
         assertThat(ConnectivityHeaders.isHeadersDebugLogEnabled(headers("OFF"))).isFalse();
     }
@@ -42,12 +37,8 @@ public final class ConnectivityHeadersTest {
 
     @Test
     public void headersLogAllowedImplicitly() {
+        assertThat(ConnectivityHeaders.isHeadersDebugLogEnabled(DittoHeaders.empty())).isTrue();
         assertThat(ConnectivityHeaders.isHeadersDebugLogEnabled(headers("ALL"))).isTrue();
-    }
-
-    @Test
-    public void payloadLogNotAllowedImplicitly() {
-        assertThat(ConnectivityHeaders.isPayloadDebugLogEnabled(DittoHeaders.empty())).isFalse();
     }
 
     @Test
@@ -62,6 +53,7 @@ public final class ConnectivityHeadersTest {
 
     @Test
     public void payloadLogAllowedImplicitly() {
+        assertThat(ConnectivityHeaders.isPayloadDebugLogEnabled(DittoHeaders.empty())).isTrue();
         assertThat(ConnectivityHeaders.isPayloadDebugLogEnabled(headers("ALL"))).isTrue();
     }
 
