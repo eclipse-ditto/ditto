@@ -294,6 +294,21 @@ public final class EvictingConnectionLoggerTest {
     }
 
     @Test
+    public void ignoresForbiddenMessageFormatCharacters() {
+
+        final EvictingConnectionLogger logger = builder().logHeadersAndPayload().build();
+
+        final String payloadWithBadCharacters = "{curly brackets and single quotes aren't allowed in MsgFmt}";
+        final ConnectionMonitor.InfoProvider info = infoProviderWithPayloadDebugLogging(payloadWithBadCharacters);
+
+        logger.success(info, "any message {0}", "that has at least one argument");
+        final LogEntry entry = getFirstAndOnlyEntry(logger);
+
+        LogEntryAssertions.assertThat(entry)
+                .hasMessageContainingPayload(payloadWithBadCharacters);
+    }
+
+    @Test
     public void testEqualsAndHashcode() {
         EqualsVerifier.forClass(EvictingConnectionLogger.class)
                 .verify();

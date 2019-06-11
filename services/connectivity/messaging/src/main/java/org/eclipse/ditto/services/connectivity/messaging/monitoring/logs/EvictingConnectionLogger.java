@@ -160,9 +160,8 @@ final class EvictingConnectionLogger implements ConnectionLogger {
     }
 
     private String formatMessage(final ConnectionMonitor.InfoProvider infoProvider, final String message, final Object... messageArguments) {
-
-        final String messageWithHeadersAndPayload = addHeadersAndPayloadToMessage(infoProvider, message);
-        return formatMessage(messageWithHeadersAndPayload, messageArguments);
+        final String formattedMessage = formatMessage(message, messageArguments);
+        return addHeadersAndPayloadToMessage(infoProvider, formattedMessage);
     }
 
     private String addHeadersAndPayloadToMessage(final ConnectionMonitor.InfoProvider infoProvider, final String initialMessage) {
