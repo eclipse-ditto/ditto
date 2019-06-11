@@ -110,12 +110,12 @@ public final class DefaultPersistenceStreamingActorTest {
     }
 
     private static ActorRef createPersistenceQueriesActor(final Source<PidWithSeqNr, NotUsed> mockedSource) {
-        final DittoMongoClient mockClient = mock(DittoMongoClient.class);
         final MongoReadJournal mockJournal = mock(MongoReadJournal.class);
         when(mockJournal.getPidWithSeqNrsByInterval(any(), any())).thenReturn(mockedSource);
-        final Props props = Props.create(DefaultPersistenceStreamingActor.class, () ->
-                new DefaultPersistenceStreamingActor<>(SimpleEntityIdWithRevision.class,
-                        100, DefaultPersistenceStreamingActorTest::mapEntity, mockJournal, mockClient));
+        final Props props = DefaultPersistenceStreamingActor.propsForTests(SimpleEntityIdWithRevision.class,
+                100,
+                DefaultPersistenceStreamingActorTest::mapEntity,
+                mockJournal);
         return actorSystem.actorOf(props, "persistenceQueriesActor-" + UUID.randomUUID());
     }
 

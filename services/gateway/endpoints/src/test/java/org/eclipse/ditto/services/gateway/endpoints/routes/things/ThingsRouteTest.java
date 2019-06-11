@@ -12,17 +12,18 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.things;
 
-import java.time.Duration;
 import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
+import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException;
 import org.eclipse.ditto.signals.commands.things.exceptions.MissingThingIdsException;
 import org.junit.Before;
 import org.junit.Test;
 
+import akka.actor.ActorSystem;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpEntities;
 import akka.http.javadsl.model.HttpRequest;
@@ -35,7 +36,7 @@ import akka.http.javadsl.testkit.TestRouteResult;
 /**
  * Tests {@link ThingsRoute}.
  */
-public class ThingsRouteTest extends EndpointTestBase {
+public final class ThingsRouteTest extends EndpointTestBase {
 
     private ThingsRoute thingsRoute;
 
@@ -43,11 +44,13 @@ public class ThingsRouteTest extends EndpointTestBase {
 
     @Before
     public void setUp() {
-        thingsRoute = new ThingsRoute(createDummyResponseActor(), system(), Duration.ZERO, Duration.ZERO,
-                Duration.ZERO, Duration.ZERO);
+        final ActorSystem actorSystem = system();
+        final ProtocolAdapterProvider adapterProvider = ProtocolAdapterProvider.load(protocolConfig, actorSystem);
 
-        final Route route =
-                extractRequestContext(ctx -> thingsRoute.buildThingsRoute(ctx, DittoHeaders.empty()));
+        thingsRoute = new ThingsRoute(createDummyResponseActor(), actorSystem, messageConfig, claimMessageConfig,
+                httpConfig, adapterProvider.getHttpHeaderTranslator());
+
+        final Route route = extractRequestContext(ctx -> thingsRoute.buildThingsRoute(ctx, DittoHeaders.empty()));
         underTest = testRoute(route);
     }
 

@@ -62,6 +62,7 @@ final class ThingsUpdater extends AbstractActor {
     private final BlockNamespaceBehavior namespaceBlockingBehavior;
     private final RetrieveStatisticsDetailsResponseSupplier retrieveStatisticsDetailsResponseSupplier;
 
+    @SuppressWarnings("unused")
     private ThingsUpdater(final ActorRef pubSubMediator,
             final ActorRef thingUpdaterShardRegion,
             final boolean eventProcessingActive,
@@ -93,8 +94,8 @@ final class ThingsUpdater extends AbstractActor {
             final boolean eventProcessingActive,
             final BlockedNamespaces blockedNamespaces) {
 
-        return Props.create(ThingsUpdater.class, () ->
-                new ThingsUpdater(pubSubMediator, thingUpdaterShardRegion, eventProcessingActive, blockedNamespaces));
+        return Props.create(ThingsUpdater.class, pubSubMediator, thingUpdaterShardRegion, eventProcessingActive,
+                blockedNamespaces);
     }
 
     @Override

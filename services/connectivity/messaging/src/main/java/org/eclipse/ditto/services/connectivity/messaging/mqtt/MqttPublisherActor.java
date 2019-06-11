@@ -32,7 +32,6 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.ActorMaterializer;
@@ -60,6 +59,7 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
 
     private final boolean dryRun;
 
+    @SuppressWarnings("unused")
     private MqttPublisherActor(final String connectionId, final List<Target> targets,
             final MqttConnectionFactory factory,
             final ActorRef mqttClientActor,
@@ -98,14 +98,8 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
     static Props props(final String connectionId, final List<Target> targets,
             final MqttConnectionFactory factory, final ActorRef mqttClientActor,
             final boolean dryRun) {
-        return Props.create(MqttPublisherActor.class, new Creator<MqttPublisherActor>() {
-            private static final long serialVersionUID = 1L;
 
-            @Override
-            public MqttPublisherActor create() {
-                return new MqttPublisherActor(connectionId, targets, factory, mqttClientActor, dryRun);
-            }
-        });
+        return Props.create(MqttPublisherActor.class, connectionId, targets, factory, mqttClientActor, dryRun);
     }
 
     @Override
@@ -147,6 +141,10 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
             final ConnectionMetricsCollector publishedCounter) {
 
         final MqttMessage mqttMessage = mapExternalMessageToMqttMessage(publishTarget, qos, message);
+        if (log.isDebugEnabled()) {
+            log.debug("Publishing MQTT message to topic <{}>: {}", mqttMessage.topic(),
+                    mqttMessage.payload().utf8String());
+        }
         sourceActor.tell(mqttMessage, getSelf());
         publishedCounter.recordSuccess();
     }

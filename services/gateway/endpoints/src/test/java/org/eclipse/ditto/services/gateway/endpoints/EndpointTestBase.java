@@ -27,10 +27,29 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.services.gateway.endpoints.config.AuthenticationConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.DefaultAuthenticationConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.DefaultClaimMessageConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.DefaultMessageConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.DefaultPublicHealthConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.DefaultWebSocketConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.GatewayHttpConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.MessageConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.PublicHealthConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.WebSocketConfig;
+import org.eclipse.ditto.services.gateway.health.config.DefaultHealthCheckConfig;
+import org.eclipse.ditto.services.gateway.health.config.HealthCheckConfig;
+import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
+import org.eclipse.ditto.services.utils.cache.config.DefaultCacheConfig;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
+import org.eclipse.ditto.services.utils.protocol.config.DefaultProtocolConfig;
+import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.WithEntity;
+import org.junit.BeforeClass;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -38,6 +57,7 @@ import com.typesafe.config.ConfigFactory;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.http.javadsl.model.HttpEntity;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.testkit.JUnitRouteTest;
@@ -59,6 +79,31 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
                     .orElse(HttpStatusCode.INTERNAL_SERVER_ERROR),
             DittoHeaders.empty()));
 
+    protected static HttpConfig httpConfig;
+    protected static HealthCheckConfig healthCheckConfig;
+    protected static MessageConfig messageConfig;
+    protected static MessageConfig claimMessageConfig;
+    protected static AuthenticationConfig authConfig;
+    protected static CacheConfig cacheConfig;
+    protected static WebSocketConfig webSocketConfig;
+    protected static PublicHealthConfig publicHealthConfig;
+    protected static ProtocolConfig protocolConfig;
+
+    @BeforeClass
+    public static void initTestFixture() {
+        final DefaultScopedConfig dittoScopedConfig = DefaultScopedConfig.dittoScoped(createTestConfig());
+        final DefaultScopedConfig gatewayScopedConfig = DefaultScopedConfig.newInstance(dittoScopedConfig, "gateway");
+        httpConfig = GatewayHttpConfig.of(gatewayScopedConfig);
+        healthCheckConfig = DefaultHealthCheckConfig.of(gatewayScopedConfig);
+        messageConfig = DefaultMessageConfig.of(gatewayScopedConfig);
+        claimMessageConfig = DefaultClaimMessageConfig.of(gatewayScopedConfig);
+        authConfig = DefaultAuthenticationConfig.of(gatewayScopedConfig);
+        cacheConfig = DefaultCacheConfig.of(gatewayScopedConfig, "cache.publickeys");
+        webSocketConfig = DefaultWebSocketConfig.of(gatewayScopedConfig);
+        publicHealthConfig = DefaultPublicHealthConfig.of(gatewayScopedConfig);
+        protocolConfig = DefaultProtocolConfig.of(dittoScopedConfig);
+    }
+
     @Override
     public Config additionalConfig() {
         return createTestConfig();
@@ -69,7 +114,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
      *
      * @return a Config object
      */
-    private static Config createTestConfig() {
+    protected static Config createTestConfig() {
         return ConfigFactory.load("test.conf");
     }
 
@@ -119,12 +164,21 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         return httpRequest.addCredentials(EndpointTestConstants.DEVOPS_CREDENTIALS);
     }
 
-    protected void assertWebsocketUpgradeExpectedResult(final TestRouteResult result) {
+    protected String entityToString(final HttpEntity entity) {
+        final int timeoutMillis = 10_000;
+        return entity.toStrict(timeoutMillis, materializer())
+                .toCompletableFuture()
+                .join()
+                .getData()
+                .utf8String();
+    }
+
+    protected static void assertWebsocketUpgradeExpectedResult(final TestRouteResult result) {
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
         result.assertEntity("Expected WebSocket Upgrade request");
     }
 
-    private static class DummyResponseAnswer extends AbstractActor {
+    private static final class DummyResponseAnswer extends AbstractActor {
 
         private final Function<Object, Optional<Object>> responseProvider;
 
@@ -145,13 +199,14 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         }
     }
 
-    private static class DummyCommandResponse extends AbstractCommandResponse<DummyCommandResponse> implements
-            WithEntity<DummyCommandResponse> {
+    private static final class DummyCommandResponse extends AbstractCommandResponse<DummyCommandResponse>
+            implements WithEntity<DummyCommandResponse> {
 
         private JsonValue dummyEntity = DEFAULT_DUMMY_ENTITY_JSON;
 
         private DummyCommandResponse(final String responseType, final HttpStatusCode statusCode,
                 final DittoHeaders dittoHeaders) {
+
             super(responseType, statusCode, dittoHeaders);
         }
 
@@ -191,6 +246,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         public String getId() {
             return null;
         }
+
     }
 
 }

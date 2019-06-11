@@ -21,15 +21,15 @@ import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 
 import org.bson.Document;
-import org.eclipse.ditto.services.utils.config.MongoConfig;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.health.AbstractHealthCheckingActor;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
 import org.eclipse.ditto.services.utils.health.mongo.RetrieveMongoStatusResponse;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
 
 import com.mongodb.ReadPreference;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.reactivestreams.client.MongoCollection;
-import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -51,12 +51,11 @@ public final class MongoHealthChecker extends AbstractHealthCheckingActor {
     private final MongoCollection<Document> collection;
     private final ActorMaterializer materializer;
 
-    /**
-     * Constructs a {@code MongoClientActor}.
-     */
     private MongoHealthChecker() {
-        final Config config = getContext().system().settings().config();
-        mongoClient = MongoClientWrapper.getBuilder(MongoConfig.of(config))
+
+        final DefaultMongoDbConfig mongoDbConfig = DefaultMongoDbConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()));
+        mongoClient = MongoClientWrapper.getBuilder(mongoDbConfig)
                 .connectionPoolMaxSize(HEALTH_CHECK_MAX_POOL_SIZE)
                 .build();
 
@@ -84,9 +83,10 @@ public final class MongoHealthChecker extends AbstractHealthCheckingActor {
      * Creates Akka configuration object Props for this MongoClientActor.
      *
      * @return the Akka configuration Props object
+     * @throws NullPointerException if {@code mongoDbConfig} is {@code null}.
      */
     public static Props props() {
-        return Props.create(MongoHealthChecker.class, MongoHealthChecker::new);
+        return Props.create(MongoHealthChecker.class);
     }
 
     @Override

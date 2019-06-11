@@ -12,10 +12,13 @@
  */
 package org.eclipse.ditto.services.utils.ddata;
 
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Test;
+
+import com.typesafe.config.Config;
 
 /**
  * Unit test for {@link org.eclipse.ditto.services.utils.ddata.DistributedDataConfigReader}.
@@ -24,7 +27,7 @@ public final class DistributedDataConfigReaderTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DistributedDataConfigReader.class, areImmutable());
+        assertInstancesOf(DistributedDataConfigReader.class, areImmutable(), provided(Config.class).isAlsoImmutable());
     }
 
 }

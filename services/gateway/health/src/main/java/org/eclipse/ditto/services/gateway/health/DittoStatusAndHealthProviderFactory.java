@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.gateway.health;
 
 import java.util.function.Supplier;
 
+import org.eclipse.ditto.services.gateway.health.config.HealthCheckConfig;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.services.utils.health.status.StatusHealthSupplier;
 import org.eclipse.ditto.services.utils.health.status.StatusSupplier;
@@ -33,16 +34,20 @@ public final class DittoStatusAndHealthProviderFactory {
      * Returns a new {@link StatusAndHealthProvider} for the ditto-cluster.
      *
      * @param actorSystem the ActorSystem to use.
-     * @param clusterStateSupplier the {@link ClusterStatus} supplier to use in order to find out the reachable cluster
-     * nodes.
+     * @param clusterStateSupplier the {@link org.eclipse.ditto.services.utils.health.cluster.ClusterStatus} supplier
+     * to use in order to find out the reachable cluster nodes.
+     * @param healthCheckConfig the configuration settings for health checking.
      * @return the {@link StatusAndHealthProvider}.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static StatusAndHealthProvider of(final ActorSystem actorSystem,
-            final Supplier<ClusterStatus> clusterStateSupplier) {
-        final StatusSupplier statusSupplier =
-                ClusterStatusSupplier.of(actorSystem, clusterStateSupplier);
-        final StatusHealthSupplier healthSupplier =
-                ClusterStatusHealthSupplier.of(actorSystem, clusterStateSupplier);
+            final Supplier<ClusterStatus> clusterStateSupplier, final HealthCheckConfig healthCheckConfig) {
+
+        final ClusterStatusAndHealthHelper clusterStatusAndHealthHelper =
+                ClusterStatusAndHealthHelper.of(actorSystem, clusterStateSupplier, healthCheckConfig);
+
+        final StatusSupplier statusSupplier = ClusterStatusSupplier.of(clusterStatusAndHealthHelper);
+        final StatusHealthSupplier healthSupplier = ClusterStatusHealthSupplier.of(clusterStatusAndHealthHelper);
 
         return ConfigurableStatusAndHealthProvider.of(statusSupplier, healthSupplier);
     }

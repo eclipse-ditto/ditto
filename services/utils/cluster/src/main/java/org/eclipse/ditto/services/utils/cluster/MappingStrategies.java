@@ -12,19 +12,13 @@
  */
 package org.eclipse.ditto.services.utils.cluster;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.services.utils.akka.AkkaClassLoader;
 
 import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
-import scala.Tuple2;
-import scala.collection.JavaConversions;
-import scala.reflect.ClassTag;
-import scala.util.Try;
 
 /**
  * Implementations define the mapping strategies for both persistence (JsonifiableSerializer) as well as Cluster
@@ -54,12 +48,7 @@ public interface MappingStrategies {
         // load via config the class implementing MappingStrategies:
         final String mappingStrategyClass =
                 actorSystem.settings().config().getString(CONFIGKEY_DITTO_MAPPING_STRATEGY_IMPLEMENTATION);
-        final ClassTag<MappingStrategies> tag = scala.reflect.ClassTag$.MODULE$.apply(MappingStrategies.class);
-        final List<Tuple2<Class<?>, Object>> constructorArgs = new ArrayList<>();
-        final Try<MappingStrategies> mappingStrategy =
-                ((ExtendedActorSystem) actorSystem).dynamicAccess().createInstanceFor(mappingStrategyClass,
-                        JavaConversions.asScalaBuffer(constructorArgs).toList(), tag);
-        return mappingStrategy.get();
+        return AkkaClassLoader.instantiate(actorSystem, MappingStrategies.class, mappingStrategyClass);
     }
 
 }

@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors;
 
-import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 
@@ -28,6 +27,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -45,6 +45,11 @@ public final class ThingNamespaceOpsActorIT extends EventSourceNamespaceOpsActor
     }
 
     @Override
+    protected Config getExtraConfig() {
+        return ConfigFactory.load("thing-test");
+    }
+
+    @Override
     protected String getResourceType() {
         return ThingCommand.RESOURCE_TYPE;
     }
@@ -56,8 +61,7 @@ public final class ThingNamespaceOpsActorIT extends EventSourceNamespaceOpsActor
 
     @Override
     protected Object getCreateEntityCommand(final String id) {
-        final DittoHeaders headers = DittoHeaders.empty();
-        return CreateThing.of(Thing.newBuilder().setId(id).setPolicyId(id).build(), null, headers);
+        return CreateThing.of(Thing.newBuilder().setId(id).setPolicyId(id).build(), null, DittoHeaders.empty());
     }
 
     @Override
@@ -84,20 +88,16 @@ public final class ThingNamespaceOpsActorIT extends EventSourceNamespaceOpsActor
     protected ActorRef startActorUnderTest(final ActorSystem actorSystem, final ActorRef pubSubMediator,
             final Config config) {
 
-        final Props namespaceOpsActorProps = ThingNamespaceOpsActor.props(pubSubMediator, config);
+        final Props namespaceOpsActorProps = ThingNamespaceOpsActor.props(pubSubMediator);
         return actorSystem.actorOf(namespaceOpsActorProps, ThingNamespaceOpsActor.ACTOR_NAME);
     }
 
     @Override
     protected ActorRef startEntityActor(final ActorSystem system, final ActorRef pubSubMediator, final String id) {
-        // essentially never restart
-        final Duration minBackOff = Duration.ofSeconds(36000);
-        final Duration maxBackOff = Duration.ofSeconds(36000);
-        final double randomFactor = 0.2;
-
-        final Props props = ThingSupervisorActor.props(pubSubMediator, minBackOff, maxBackOff, randomFactor,
+        final Props props = ThingSupervisorActor.props(pubSubMediator,
                 theId -> ThingPersistenceActor.props(theId, pubSubMediator));
 
         return system.actorOf(props, id);
     }
+
 }

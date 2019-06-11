@@ -13,6 +13,7 @@
 package org.eclipse.ditto.model.base.headers;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,6 +26,8 @@ import org.eclipse.ditto.json.JsonObject;
  */
 @NotThreadSafe
 final class DefaultDittoHeadersBuilder extends AbstractDittoHeadersBuilder<DefaultDittoHeadersBuilder, DittoHeaders> {
+
+    private static final DittoHeaders EMPTY_DITTO_HEADERS = ImmutableDittoHeaders.of(Collections.emptyMap());
 
     private DefaultDittoHeadersBuilder(final Map<String, String> headers) {
         super(headers, Arrays.asList(DittoHeaderDefinition.values()), DefaultDittoHeadersBuilder.class);
@@ -62,6 +65,15 @@ final class DefaultDittoHeadersBuilder extends AbstractDittoHeadersBuilder<Defau
      */
     static DefaultDittoHeadersBuilder of(final JsonObject jsonObject) {
         return of(toMap(jsonObject));
+    }
+
+    /**
+     * Returns an empty {@code DittoHeaders} object.
+     *
+     * @return empty DittoHeaders.
+     */
+    static DittoHeaders getEmptyHeaders() {
+        return EMPTY_DITTO_HEADERS;
     }
 
     @Override

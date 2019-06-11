@@ -13,7 +13,7 @@
 package org.eclipse.ditto.services.gateway.endpoints.directives;
 
 import static akka.http.javadsl.server.Directives.extractRequestContext;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.SecurityResponseHeadersDirective.createSecurityResponseHeaders;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils.enhanceLogWithCorrelationId;
 import static org.eclipse.ditto.services.gateway.endpoints.utils.HttpUtils.getRawRequestUri;
 
@@ -22,7 +22,7 @@ import java.util.function.Supplier;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
+import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StoppedTimer;
@@ -32,10 +32,7 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceUnavaila
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.typesafe.config.Config;
-
 import akka.http.javadsl.model.ContentTypes;
-import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.server.Directives;
@@ -53,8 +50,21 @@ public final class RequestTimeoutHandlingDirective {
     private static final Duration SEARCH_WARN_TIMEOUT_MS = Duration.ofMillis(5_000);
     private static final Duration HTTP_WARN_TIMEOUT_MS = Duration.ofMillis(1_000);
 
-    private RequestTimeoutHandlingDirective() {
-        throw new AssertionError();
+    private final HttpConfig httpConfig;
+
+    private RequestTimeoutHandlingDirective(final HttpConfig httpConfig) {
+        this.httpConfig = checkNotNull(httpConfig, "HTTP config");
+    }
+
+    /**
+     * Returns an instance of {@code RequestTimeoutHandlingDirective}.
+     *
+     * @param httpConfig the configuration settings of the Gateway service's HTTP behaviour.
+     * @return the instance.
+     * @throws NullPointerException if {@code httpConfig} is {@code null}.
+     */
+    public static RequestTimeoutHandlingDirective getInstance(final HttpConfig httpConfig) {
+        return new RequestTimeoutHandlingDirective(httpConfig);
     }
 
     /**
@@ -64,35 +74,29 @@ public final class RequestTimeoutHandlingDirective {
      * @param inner the inner Route to wrap with the response headers.
      * @return the new Route wrapping {@code inner} with the response headers.
      */
-    public static Route handleRequestTimeout(final CharSequence correlationId, final Supplier<Route> inner) {
-        return Directives.extractActorSystem(actorSystem -> {
-            final Config config = actorSystem.settings().config();
+    public Route handleRequestTimeout(final CharSequence correlationId, final Supplier<Route> inner) {
+        return Directives.extractActorSystem(actorSystem -> extractRequestContext(requestContext ->
+                enhanceLogWithCorrelationId(correlationId, () -> {
+                    final StartedTimer timer = TraceUtils.newHttpRoundTripTimer(requestContext.getRequest()).build();
+                    LOGGER.debug("Started mutable timer <{}>.", timer);
 
-            return extractRequestContext(requestContext ->
-                    enhanceLogWithCorrelationId(correlationId, () -> {
-                        final StartedTimer timer =
-                                TraceUtils.newHttpRoundTripTimer(requestContext.getRequest()).build();
-                        LOGGER.debug("Started mutable timer <{}>.", timer);
+                    final Supplier<Route> innerWithTimer = () -> Directives.mapResponse(response -> {
+                        final int statusCode = response.status().intValue();
+                        if (timer.isRunning()) {
+                            final StoppedTimer stoppedTimer = enhanceLogWithCorrelationId(correlationId, () -> {
+                                final StoppedTimer result = timer.tag(TracingTags.STATUS_CODE, statusCode).stop();
+                                LOGGER.debug("Finished timer <{}> with status <{}>.", timer, statusCode);
+                                return result;
+                            });
+                            checkDurationWarning(stoppedTimer, correlationId);
+                        }
+                        return response;
+                    }, inner);
 
-                        final Supplier<Route> innerWithTimer = () -> Directives.mapResponse(response -> {
-                            final int statusCode = response.status().intValue();
-                            if (timer.isRunning()) {
-                                final StoppedTimer stoppedTimer = enhanceLogWithCorrelationId(correlationId, () -> {
-                                    final StoppedTimer result = timer.tag(TracingTags.STATUS_CODE, statusCode).stop();
-                                    LOGGER.debug("Finished timer <{}> with status <{}>.", timer, statusCode);
-                                    return result;
-                                });
-                                checkDurationWarning(stoppedTimer, correlationId);
-                            }
-                            return response;
-                        }, inner);
-
-                        return Directives.withRequestTimeoutResponse(request ->
-                                        doHandleRequestTimeout(correlationId, config, requestContext, timer),
-                                innerWithTimer);
-                    })
-            );
-        });
+                    return Directives.withRequestTimeoutResponse(request ->
+                            doHandleRequestTimeout(correlationId, requestContext, timer), innerWithTimer);
+                })
+        ));
     }
 
     private static void checkDurationWarning(final StoppedTimer mutableTimer, final CharSequence correlationId) {
@@ -102,26 +106,20 @@ public final class RequestTimeoutHandlingDirective {
         LogUtil.logWithCorrelationId(LOGGER, correlationId, logger -> {
             if (requestPath != null && requestPath.contains("/search/things") &&
                     SEARCH_WARN_TIMEOUT_MS.minus(duration).isNegative()) {
-                logger.warn("Encountered slow search which took over {} ms: <{}> ms!",
+                logger.warn("Encountered slow search which took over <{}> ms: <{}> ms!",
                         SEARCH_WARN_TIMEOUT_MS.toMillis(), duration.toMillis());
             } else if (HTTP_WARN_TIMEOUT_MS.minus(duration).isNegative()) {
-                logger.warn("Encountered slow HTTP request which took over {} ms: {} ms!",
+                logger.warn("Encountered slow HTTP request which took over <{}> ms: <{}> ms!",
                         HTTP_WARN_TIMEOUT_MS.toMillis(), duration.toMillis());
             }
         });
     }
 
-    private static HttpResponse doHandleRequestTimeout(final CharSequence correlationId,
-            final Config config,
-            final RequestContext requestContext,
+    private HttpResponse doHandleRequestTimeout(final CharSequence correlationId, final RequestContext requestContext,
             final StartedTimer timer) {
 
-        final Duration duration = config.getDuration(ConfigKeys.AKKA_HTTP_SERVER_REQUEST_TIMEOUT);
-
         final DittoRuntimeException cre = GatewayServiceUnavailableException.newBuilder()
-                .dittoHeaders(DittoHeaders.newBuilder()
-                        .correlationId(correlationId)
-                        .build())
+                .dittoHeaders(DittoHeaders.newBuilder().correlationId(correlationId).build())
                 .build();
 
         final HttpRequest request = requestContext.getRequest();
@@ -133,7 +131,8 @@ public final class RequestTimeoutHandlingDirective {
         LogUtil.logWithCorrelationId(LOGGER, correlationId, logger -> {
             final String requestMethod = request.method().name();
             final String requestUri = request.getUri().toRelative().toString();
-            logger.warn("Request <{} {}> timed out after <{}>!", requestMethod, requestUri, duration);
+            logger.warn("Request <{} {}> timed out after <{}>!", requestMethod, requestUri,
+                    httpConfig.getRequestTimeout());
             logger.info("StatusCode of request <{} {}> was <{}>.", requestMethod, requestUri, statusCode);
             final String rawRequestUri = getRawRequestUri(request);
             logger.debug("Raw request URI was <{}>.", rawRequestUri);
@@ -148,13 +147,14 @@ public final class RequestTimeoutHandlingDirective {
             }
         });
 
-        /* We have to add security response headers explicitly here because SecurityResponseHeadersDirective won't be
-           called by akka in case of a timeout */
-        final Iterable<HttpHeader> securityResponseHeaders = createSecurityResponseHeaders(config);
+        /*
+         * We have to add security response headers explicitly here because SecurityResponseHeadersDirective won't be
+         * called by akka in case of a timeout.
+         */
         return HttpResponse.create()
                 .withStatus(statusCode)
                 .withEntity(ContentTypes.APPLICATION_JSON, ByteString.fromString(cre.toJsonString()))
-                .addHeaders(securityResponseHeaders);
+                .addHeaders(SecurityResponseHeadersDirective.createSecurityResponseHeaders());
     }
 
 }

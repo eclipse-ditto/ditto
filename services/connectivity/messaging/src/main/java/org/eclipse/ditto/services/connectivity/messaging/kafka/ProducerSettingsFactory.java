@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -20,8 +22,8 @@ import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.services.connectivity.util.KafkaConfigReader;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.connectivity.messaging.config.KafkaConfig;
+import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 
 import akka.kafka.ProducerSettings;
 
@@ -35,36 +37,50 @@ final class ProducerSettingsFactory {
             Collections.unmodifiableList(Arrays.asList(KafkaAuthenticationSpecificConfig.getInstance(),
                     KafkaBootstrapServerSpecificConfig.getInstance()));
 
-    private static final ProducerSettingsFactory INSTANCE = new ProducerSettingsFactory();
     private static final Serializer<String> KEY_SERIALIZER = new StringSerializer();
     private static final Serializer<String> VALUE_SERIALIZER = KEY_SERIALIZER;
 
-    static ProducerSettingsFactory getInstance() {
-        return INSTANCE;
+    private final Connection connection;
+    private final KafkaConfig kafkaConfig;
+
+    private ProducerSettingsFactory(final Connection connection, final KafkaConfig kafkaConfig) {
+        this.connection = checkNotNull(connection, "connection");
+        this.kafkaConfig = checkNotNull(kafkaConfig, "Kafka config");
     }
 
-    ProducerSettings<String, String> createProducerSettings(final Connection connection,
-            final KafkaConfigReader config) {
-        ProducerSettings<String, String> settings =
-                ProducerSettings.create(config.internalProducerSettings(), KEY_SERIALIZER, VALUE_SERIALIZER);
+    /**
+     * Returns an instance of the ProducerSettings factory.
+     *
+     * @param connection the Kafka connection.
+     * @param kafkaConfig the Kafka configuration settings.
+     * @return the instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    static ProducerSettingsFactory getInstance(final Connection connection, final KafkaConfig kafkaConfig) {
+        return new ProducerSettingsFactory(connection, kafkaConfig);
+    }
 
-        settings = addMetadata(connection, settings);
-        settings = addSecurityProtocol(connection, settings);
-        settings = addSpecificConfigs(settings, connection);
+    ProducerSettings<String, String> getProducerSettings() {
+        ProducerSettings<String, String> settings =
+                ProducerSettings.create(kafkaConfig.getInternalProducerConfig(), KEY_SERIALIZER, VALUE_SERIALIZER);
+
+        settings = addMetadata(settings);
+        settings = addSecurityProtocol(settings);
+        settings = addSpecificConfigs(settings);
 
         return settings;
     }
 
-    private ProducerSettings<String, String> addMetadata(final Connection connection,
-            final ProducerSettings<String, String> settings) {
+    private ProducerSettings<String, String> addMetadata(final ProducerSettings<String, String> settings) {
         // identify the connected Kafka client by the connectionId followed by the instance index
         // (in order to be able to differentiate if a clientCount >1 was configured):
-        return settings.withProperty(CommonClientConfigs.CLIENT_ID_CONFIG, connection.getId() + "-" +
-                ConfigUtil.instanceIdentifier());
+        final InstanceIdentifierSupplier instanceIdentifierSupplier = InstanceIdentifierSupplier.getInstance();
+
+        return settings.withProperty(CommonClientConfigs.CLIENT_ID_CONFIG,
+                connection.getId() + "-" + instanceIdentifierSupplier.get());
     }
 
-    private ProducerSettings<String, String> addSpecificConfigs(final ProducerSettings<String, String> settings,
-            final Connection connection) {
+    private ProducerSettings<String, String> addSpecificConfigs(final ProducerSettings<String, String> settings) {
         ProducerSettings<String, String> currentSettings = settings;
         for (final KafkaSpecificConfig specificConfig : SPECIFIC_CONFIGS) {
             currentSettings = specificConfig.apply(currentSettings, connection);
@@ -72,35 +88,37 @@ final class ProducerSettingsFactory {
         return currentSettings;
     }
 
-    private ProducerSettings<String, String> addSecurityProtocol(final Connection connection,
-            final ProducerSettings<String, String> settings) {
-        if (isAuthenticatedConnection(connection)) {
-            return addAuthenticatedSecurityProtocol(connection, settings);
+    private ProducerSettings<String, String> addSecurityProtocol(final ProducerSettings<String, String> settings) {
+        if (isConnectionAuthenticated()) {
+            return addAuthenticatedSecurityProtocol(settings);
         }
-        return addUnauthenticatedSecurityProtocol(connection, settings);
+        return addUnauthenticatedSecurityProtocol(settings);
     }
 
-    private static boolean isAuthenticatedConnection(final Connection connection) {
-        return KafkaAuthenticationSpecificConfig.getInstance().isApplicable(connection);
+    private boolean isConnectionAuthenticated() {
+        final KafkaSpecificConfig authenticationSpecificConfig = KafkaAuthenticationSpecificConfig.getInstance();
+        return authenticationSpecificConfig.isApplicable(connection);
     }
 
-    private static ProducerSettings<String, String> addAuthenticatedSecurityProtocol(final Connection connection,
+    private ProducerSettings<String, String> addAuthenticatedSecurityProtocol(
             final ProducerSettings<String, String> settings) {
-        if (isSecureConnection(connection)) {
+
+        if (isConnectionSecure()) {
             return settings.withProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_SSL");
         }
         return settings.withProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT");
     }
 
-    private static ProducerSettings<String, String> addUnauthenticatedSecurityProtocol(final Connection connection,
+    private ProducerSettings<String, String> addUnauthenticatedSecurityProtocol(
             final ProducerSettings<String, String> settings) {
-        if (isSecureConnection(connection)) {
+
+        if (isConnectionSecure()) {
             return settings.withProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
         }
         return settings.withProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "PLAINTEXT");
     }
 
-    private static boolean isSecureConnection(final Connection connection) {
+    private boolean isConnectionSecure() {
         return "ssl".equals(connection.getProtocol());
     }
 

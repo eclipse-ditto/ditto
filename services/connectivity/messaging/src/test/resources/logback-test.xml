@@ -13,7 +13,7 @@
     </appender>
 
 
-    <logger name="org.eclipse.ditto" level="DEBUG"/>
+    <logger name="org.eclipse.ditto" level="INFO"/>
     <logger name="org.apache.qpid.jms.provider.ProviderFactory" level="OFF"/>
     <logger name="org.apache.kafka" level="WARN"/>
 

@@ -36,6 +36,8 @@ import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.model.policies.Subjects;
+import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.signals.commands.policies.modify.DeletePolicyEntry;
 import org.eclipse.ditto.signals.commands.policies.modify.DeleteResource;
@@ -73,10 +75,16 @@ final class PolicyEntriesRoute extends AbstractRoute {
      *
      * @param proxyActor an actor selection of the command delegating actor.
      * @param actorSystem the ActorSystem to use.
+     * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
+     * @param headerTranslator translates headers from external sources or to external sources.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    PolicyEntriesRoute(final ActorRef proxyActor, final ActorSystem actorSystem) {
-        super(proxyActor, actorSystem);
+    PolicyEntriesRoute(final ActorRef proxyActor,
+            final ActorSystem actorSystem,
+            final HttpConfig httpConfig,
+            final HeaderTranslator headerTranslator) {
+
+        super(proxyActor, actorSystem, httpConfig, headerTranslator);
     }
 
     /**

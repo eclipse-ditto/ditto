@@ -19,7 +19,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -27,6 +26,9 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.concierge.cache.update.PolicyCacheUpdateActor;
+import org.eclipse.ditto.services.concierge.common.CachesConfig;
+import org.eclipse.ditto.services.concierge.common.ConciergeConfig;
+import org.eclipse.ditto.services.concierge.common.EnforcementConfig;
 import org.eclipse.ditto.services.concierge.enforcement.EnforcementProvider;
 import org.eclipse.ditto.services.concierge.enforcement.EnforcerActor;
 import org.eclipse.ditto.services.concierge.enforcement.LiveSignalEnforcement;
@@ -36,8 +38,6 @@ import org.eclipse.ditto.services.concierge.enforcement.placeholders.Placeholder
 import org.eclipse.ditto.services.concierge.enforcement.validators.CommandWithOptionalEntityValidator;
 import org.eclipse.ditto.services.concierge.starter.actors.CachedNamespaceInvalidator;
 import org.eclipse.ditto.services.concierge.starter.actors.DispatcherActor;
-import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
-import org.eclipse.ditto.services.concierge.util.config.EnforcementConfigReader;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
@@ -51,7 +51,8 @@ import org.eclipse.ditto.services.utils.cacheloaders.AclEnforcerCacheLoader;
 import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.services.utils.cacheloaders.ThingEnforcementIdCacheLoader;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
+import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespacesUpdater;
@@ -67,9 +68,9 @@ import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 
 /**
- * Ditto default implementation of {@link AbstractEnforcerActorFactory}.
+ * Ditto default implementation of{@link AbstractEnforcerActorFactory}.
  */
-public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFactory<ConciergeConfigReader> {
+public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFactory<ConciergeConfig> {
 
     /**
      * Default namespace for {@code CreateThing} commands without any namespace.
@@ -80,36 +81,40 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
     private static final String ID_CACHE_METRIC_NAME_PREFIX = "ditto_authorization_id_cache_";
 
     @Override
-    public ActorRef startEnforcerActor(final ActorContext context, final ConciergeConfigReader configReader,
+    public ActorRef startEnforcerActor(final ActorContext context, final ConciergeConfig conciergeConfig,
             final ActorRef pubSubMediator) {
-        final Duration askTimeout = configReader.caches().askTimeout();
+
+        final CachesConfig cachesConfig = conciergeConfig.getCachesConfig();
+        final Duration askTimeout = cachesConfig.getAskTimeout();
         final ActorSystem actorSystem = context.system();
 
+        final ClusterConfig clusterConfig = conciergeConfig.getClusterConfig();
+        final int numberOfShards = clusterConfig.getNumberOfShards();
 
-        final ActorRef policiesShardRegionProxy = startProxy(actorSystem, configReader.cluster().numberOfShards(),
+        final ActorRef policiesShardRegionProxy = startProxy(actorSystem, numberOfShards,
                 PoliciesMessagingConstants.SHARD_REGION, PoliciesMessagingConstants.CLUSTER_ROLE);
 
-        final ActorRef thingsShardRegionProxy = startProxy(actorSystem, configReader.cluster().numberOfShards(),
+        final ActorRef thingsShardRegionProxy = startProxy(actorSystem, numberOfShards,
                 ThingsMessagingConstants.SHARD_REGION, ThingsMessagingConstants.CLUSTER_ROLE);
 
         final AsyncCacheLoader<EntityId, Entry<EntityId>> thingEnforcerIdCacheLoader =
                 new ThingEnforcementIdCacheLoader(askTimeout, thingsShardRegionProxy);
         final Cache<EntityId, Entry<EntityId>> thingIdCache =
-                CacheFactory.createCache(thingEnforcerIdCacheLoader, configReader.caches().id(),
+                CacheFactory.createCache(thingEnforcerIdCacheLoader, cachesConfig.getIdCacheConfig(),
                         ID_CACHE_METRIC_NAME_PREFIX + ThingCommand.RESOURCE_TYPE,
                         actorSystem.dispatchers().lookup("thing-id-cache-dispatcher"));
 
         final AsyncCacheLoader<EntityId, Entry<Enforcer>> policyEnforcerCacheLoader =
                 new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegionProxy);
         final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache =
-                CacheFactory.createCache(policyEnforcerCacheLoader, configReader.caches().enforcer(),
+                CacheFactory.createCache(policyEnforcerCacheLoader, cachesConfig.getEnforcerCacheConfig(),
                         ENFORCER_CACHE_METRIC_NAME_PREFIX + "policy",
                         actorSystem.dispatchers().lookup("policy-enforcer-cache-dispatcher"));
 
         final AsyncCacheLoader<EntityId, Entry<Enforcer>> aclEnforcerCacheLoader =
                 new AclEnforcerCacheLoader(askTimeout, thingsShardRegionProxy);
         final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache =
-                CacheFactory.createCache(aclEnforcerCacheLoader, configReader.caches().enforcer(),
+                CacheFactory.createCache(aclEnforcerCacheLoader, cachesConfig.getEnforcerCacheConfig(),
                         ENFORCER_CACHE_METRIC_NAME_PREFIX + "acl",
                         actorSystem.dispatchers().lookup("acl-enforcer-cache-dispatcher"));
 
@@ -126,13 +131,11 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
                 aclEnforcerCache));
 
         final ActorRef conciergeEnforcerRouter =
-                ConciergeEnforcerClusterRouterFactory.createConciergeEnforcerClusterRouter(context,
-                        configReader.cluster().numberOfShards());
+                ConciergeEnforcerClusterRouterFactory.createConciergeEnforcerClusterRouter(context, numberOfShards);
 
-        final EnforcementConfigReader enforcement = configReader.enforcement();
+        final EnforcementConfig enforcementConfig = conciergeConfig.getEnforcementConfig();
 
-        context.actorOf(DispatcherActor.props(configReader, pubSubMediator, conciergeEnforcerRouter,
-                enforcement.bufferSize(), enforcement.parallelism()), DispatcherActor.ACTOR_NAME);
+        context.actorOf(DispatcherActor.props(pubSubMediator, conciergeEnforcerRouter), DispatcherActor.ACTOR_NAME);
 
         final ActorRef conciergeForwarder =
                 context.actorOf(ConciergeForwarderActor.props(pubSubMediator, conciergeEnforcerRouter),
@@ -140,7 +143,7 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
         pubSubMediator.tell(new DistributedPubSubMediator.Put(conciergeForwarder), ActorRef.noSender());
 
         // start cache updaters
-        final String instanceIndex = ConfigUtil.instanceIdentifier();
+        final String instanceIndex = InstanceIdentifierSupplier.getInstance().get();
         final Props policyCacheUpdateActorProps =
                 PolicyCacheUpdateActor.props(policyEnforcerCache, pubSubMediator, instanceIndex);
         context.actorOf(policyCacheUpdateActorProps, PolicyCacheUpdateActor.ACTOR_NAME);
@@ -156,21 +159,16 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
                 ConciergeMessagingConstants.BLOCKED_NAMESPACES_UPDATER_NAME,
                 blockedNamespacesUpdaterProps);
 
-        final Duration enforcementAskTimeout = enforcement.askTimeout();
-        final Executor enforcerExecutor = actorSystem.dispatchers().lookup(ENFORCER_DISPATCHER);
         final Props enforcerProps =
-                EnforcerActor.props(pubSubMediator, enforcementProviders, enforcementAskTimeout,
-                        conciergeForwarder, enforcerExecutor, enforcement.bufferSize(), enforcement.parallelism(),
+                EnforcerActor.props(pubSubMediator, enforcementProviders, conciergeForwarder,
                         preEnforcer, thingIdCache, aclEnforcerCache,
-                        policyEnforcerCache) // passes in the caches to be able to invalidate cache entries
-                        .withDispatcher(ENFORCER_DISPATCHER);
+                        policyEnforcerCache); // passes in the caches to be able to invalidate cache entries
 
         return context.actorOf(enforcerProps, EnforcerActor.ACTOR_NAME);
     }
 
     private static Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> newPreEnforcer(
-            final BlockedNamespaces blockedNamespaces,
-            final PlaceholderSubstitution placeholderSubstitution) {
+            final BlockedNamespaces blockedNamespaces, final PlaceholderSubstitution placeholderSubstitution) {
 
         return withDittoHeaders ->
                 BlockNamespaceBehavior.of(blockedNamespaces)

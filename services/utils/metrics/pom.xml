@@ -30,6 +30,10 @@
             <artifactId>ditto-model-base</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-utils-config</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.kamon</groupId>
             <artifactId>kamon-core_${scala.version}</artifactId>
         </dependency>

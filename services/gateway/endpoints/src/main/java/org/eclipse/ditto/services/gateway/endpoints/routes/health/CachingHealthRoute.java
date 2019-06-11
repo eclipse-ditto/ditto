@@ -22,6 +22,7 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.services.gateway.endpoints.config.PublicHealthConfig;
 import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
 import org.eclipse.ditto.services.utils.health.StatusDetailMessage;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
@@ -56,6 +57,19 @@ public final class CachingHealthRoute {
     public CachingHealthRoute(final StatusAndHealthProvider statusHealthHelper, final Duration refreshInterval) {
         this.statusHealthHelper = statusHealthHelper;
         this.refreshInterval = refreshInterval;
+    }
+
+    /**
+     * Constructs a new {@code CachingHealthRoute} object.
+     *
+     * @param statusAndHealthProvider is used to retrieve the health status of the cluster.
+     * @param publicHealthConfig the configuration settings of the public health endpoint.
+     */
+    public CachingHealthRoute(final StatusAndHealthProvider statusAndHealthProvider,
+            final PublicHealthConfig publicHealthConfig) {
+
+        statusHealthHelper = statusAndHealthProvider;
+        refreshInterval = publicHealthConfig.getCacheTimeout();
     }
 
     /**

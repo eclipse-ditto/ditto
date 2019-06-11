@@ -59,7 +59,7 @@ public final class ThingModifyCommandResponseAdapterTest {
 
     @Before
     public void setUp() {
-        underTest = ThingModifyCommandResponseAdapter.of(DittoProtocolAdapter.headerTranslator());
+        underTest = ThingModifyCommandResponseAdapter.of(DittoProtocolAdapter.getHeaderTranslator());
     }
 
     @Test(expected = UnknownCommandResponseException.class)

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.concierge.starter.actors;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
@@ -25,11 +25,13 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.concierge.util.config.AbstractConciergeConfigReader;
+import org.eclipse.ditto.services.concierge.common.DittoConciergeConfig;
+import org.eclipse.ditto.services.concierge.common.ThingsAggregatorConfig;
 import org.eclipse.ditto.services.models.concierge.ConciergeWrapper;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
@@ -38,7 +40,6 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
 import akka.stream.ActorMaterializer;
@@ -68,30 +69,27 @@ public final class ThingsAggregatorActor extends AbstractActor {
     private final int maxParallelism;
     private final ActorMaterializer actorMaterializer;
 
-    private ThingsAggregatorActor(final AbstractConciergeConfigReader configReader, final ActorRef targetActor) {
+    @SuppressWarnings("unused")
+    private ThingsAggregatorActor(final ActorRef targetActor) {
         this.targetActor = targetActor;
         aggregatorDispatcher = getContext().system().dispatchers().lookup(AGGREGATOR_INTERNAL_DISPATCHER);
-        retrieveSingleThingTimeout = configReader.thingsAggregatorSingleRetrieveThingTimeout();
-        maxParallelism = configReader.thingsAggregatorMaxParallelism();
+        final ThingsAggregatorConfig aggregatorConfig = DittoConciergeConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        ).getThingsAggregatorConfig();
+        retrieveSingleThingTimeout = aggregatorConfig.getSingleRetrieveThingTimeout();
+        maxParallelism = aggregatorConfig.getMaxParallelism();
         actorMaterializer = ActorMaterializer.create(getContext());
     }
 
     /**
      * Creates Akka configuration object Props for this ThingsAggregatorActor.
      *
-     * @param configReader the configReader for the concierge service.
      * @param targetActor the Actor selection to delegate "asks" for the aggregation to.
      * @return the Akka configuration Props object
      */
-    public static Props props(final AbstractConciergeConfigReader configReader, final ActorRef targetActor) {
-        return Props.create(ThingsAggregatorActor.class, new Creator<ThingsAggregatorActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public ThingsAggregatorActor create() {
-                return new ThingsAggregatorActor(configReader, targetActor);
-            }
-        }).withDispatcher(AGGREGATOR_INTERNAL_DISPATCHER);
+    public static Props props(final ActorRef targetActor) {
+        return Props.create(ThingsAggregatorActor.class, targetActor)
+                .withDispatcher(AGGREGATOR_INTERNAL_DISPATCHER);
     }
 
     @Override
@@ -136,9 +134,10 @@ public final class ThingsAggregatorActor extends AbstractActor {
                 resultReceiver);
     }
 
-    private void retrieveThingsAndSendResult(final List<String> thingIds,
+    private void retrieveThingsAndSendResult(final Collection<String> thingIds,
             @Nullable final JsonFieldSelector selectedFields,
             final Command<?> command, final ActorRef resultReceiver) {
+
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final CompletionStage<?> commandResponseSource = Source.from(thingIds)
@@ -169,9 +168,9 @@ public final class ThingsAggregatorActor extends AbstractActor {
                 .to(resultReceiver);
     }
 
-    private int calculateParallelism(final List<String> thingIds) {
+    private int calculateParallelism(final Collection<String> thingIds) {
         final int size = thingIds.size();
-        if (size < (maxParallelism / 2)) {
+        if (size < maxParallelism / 2) {
             return size;
         } else if (size < maxParallelism) {
             return size / 2;

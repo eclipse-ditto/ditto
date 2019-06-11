@@ -557,6 +557,9 @@
                     </excludes>
                     <useDefaultExcludes>true</useDefaultExcludes>
                     <encoding>UTF-8</encoding>
+                    <mapping>
+                        <java>SLASHSTAR_STYLE</java>
+                    </mapping>
                 </configuration>
                 <executions>
                     <execution>
