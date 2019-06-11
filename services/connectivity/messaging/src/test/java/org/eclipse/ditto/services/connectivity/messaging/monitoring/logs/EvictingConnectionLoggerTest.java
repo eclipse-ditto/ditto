@@ -85,16 +85,34 @@ public final class EvictingConnectionLoggerTest {
     }
 
     @Test
-    public void withDebugLogEnabled() {
+    public void withDebugLogDisabled() {
         final EvictingConnectionLogger logger = builder().logHeadersAndPayload().build();
 
-        final ConnectionMonitor.InfoProvider info = randomInfoProvider();
+        final String textPayload = "{\"foo\":\"bar\"}";
+        final ConnectionMonitor.InfoProvider info = infoProviderWithDebugLoggingDisabled(textPayload);
 
         logger.success(info);
         final LogEntry entry = getFirstAndOnlyEntry(logger);
 
         LogEntryAssertions.assertThat(entry)
+                .hasMessageNotContainingPayload(textPayload)
                 .hasMessageContainingHeaderKeys(info.getHeaders());
+
+    }
+
+    @Test
+    public void withDebugLogEnabled() {
+        final EvictingConnectionLogger logger = builder().logHeadersAndPayload().build();
+
+        final String textPayload = "{\"foo\":\"bar\"}";
+        final ConnectionMonitor.InfoProvider info = randomInfoProviderWithPayload(textPayload);
+
+        logger.success(info);
+        final LogEntry entry = getFirstAndOnlyEntry(logger);
+
+        LogEntryAssertions.assertThat(entry)
+                .hasMessageContainingPayload(textPayload)
+                .hasMessageContainingHeaderValues(info.getHeaders());
     }
 
     @Test
@@ -301,6 +319,11 @@ public final class EvictingConnectionLoggerTest {
     private ConnectionMonitor.InfoProvider randomInfoProvider() {
         return InfoProviderFactory.forHeaders(DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build());
     }
+    private ConnectionMonitor.InfoProvider randomInfoProviderWithPayload(final String payload) {
+        final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
+        final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).withText(payload).build();
+        return InfoProviderFactory.forExternalMessage(externalMessage);
+    }
 
     private static ConnectionMonitor.InfoProvider infoProviderWithThingId(final String thingId) {
         return InfoProviderFactory.forSignal(RetrieveThing.of(thingId, DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build()));
@@ -308,6 +331,12 @@ public final class EvictingConnectionLoggerTest {
 
     private static ConnectionMonitor.InfoProvider infoProviderWithHeadersDebugLogging() {
         return InfoProviderFactory.forHeaders(DittoHeaders.newBuilder().putHeader("foo", "bar").putHeader("connectivity-debug-log", "HEADER").build());
+    }
+
+    private static ConnectionMonitor.InfoProvider infoProviderWithDebugLoggingDisabled(final String payload) {
+        final DittoHeaders headers = DittoHeaders.newBuilder().putHeader("foo", "bar").putHeader("connectivity-debug-log", "OFF").build();
+        final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).withText(payload).build();
+        return InfoProviderFactory.forExternalMessage(externalMessage);
     }
 
     private static ConnectionMonitor.InfoProvider infoProviderWithPayloadDebugLogging(final String textPayload) {
