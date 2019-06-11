@@ -49,7 +49,7 @@ final class ConnectivityHeaders {
 
     @Nullable
     private static String getDebugLogValue(final Map<String, String> headers) {
-        return headers.get(CONNECTIVITY_DEBUG_LOG_HEADER);
+        return headers.getOrDefault(CONNECTIVITY_DEBUG_LOG_HEADER, "ALL");
     }
 
     private enum ConnectivityDebugLogValues {

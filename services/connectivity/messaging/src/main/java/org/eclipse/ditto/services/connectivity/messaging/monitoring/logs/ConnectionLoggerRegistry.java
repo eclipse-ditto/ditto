@@ -154,6 +154,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         streamLoggers(connectionId)
                 .forEach(MuteableConnectionLogger::mute);
         stopMetadata(connectionId);
+        resetForConnectionId(connectionId);
     }
 
     /**
@@ -221,10 +222,11 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         ConnectionLogUtil.enhanceLogWithConnectionId(connectionId);
         LOGGER.info("Resetting loggers for connection <{}>.", connectionId);
 
-        loggers.keySet().stream()
-                .filter(key -> key.connectionId.equals(connectionId))
-                .map(loggers::get)
-                .filter(Objects::nonNull)
+        resetForConnectionId(connectionId);
+    }
+
+    private void resetForConnectionId(final String connectionId) {
+        streamLoggers(connectionId)
                 .forEach(MuteableConnectionLogger::clear);
     }
 

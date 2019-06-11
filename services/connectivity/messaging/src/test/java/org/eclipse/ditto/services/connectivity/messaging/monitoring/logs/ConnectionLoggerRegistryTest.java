@@ -116,6 +116,22 @@ public final class ConnectionLoggerRegistryTest {
     }
 
     @Test
+    public void clearsLoggersOnMute() {
+        final String connectionId = connectionId();
+        final ConnectionLogger before = underTest.forConnection(connectionId);
+        underTest.unmuteForConnection(connectionId);
+
+        before.success(randomInfoProvider());
+
+        assertThat(before.getLogs()).isNotEmpty();
+
+        underTest.muteForConnection(connectionId);
+        underTest.unmuteForConnection(connectionId);
+
+        assertThat(before.getLogs()).isEmpty();
+    }
+
+    @Test
     public void isActiveForConnection() {
         final String connectionId = connectionId();
         underTest.initForConnection(connection(connectionId));

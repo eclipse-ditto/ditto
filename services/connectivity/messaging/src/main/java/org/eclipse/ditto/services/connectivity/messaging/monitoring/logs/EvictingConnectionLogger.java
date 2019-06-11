@@ -113,7 +113,8 @@ final class EvictingConnectionLogger implements ConnectionLogger {
     @Override
     public void failure(final ConnectionMonitor.InfoProvider infoProvider, @Nullable final DittoRuntimeException dittoRuntimeException) {
         if (null != dittoRuntimeException) {
-            failure(infoProvider, defaultFailureMessage, dittoRuntimeException.getMessage() + dittoRuntimeException.getDescription().orElse(""));
+            failure(infoProvider, defaultFailureMessage, dittoRuntimeException.getMessage() +
+                    dittoRuntimeException.getDescription().map(" "::concat).orElse(""));
         } else {
             failure(infoProvider, defaultFailureMessage, FALLBACK_EXCEPTION_TEXT);
         }
