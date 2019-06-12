@@ -17,7 +17,6 @@ import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.services.utils.test.GlobalCommandRegistryTestCases;
-import org.eclipse.ditto.signals.commands.common.Cleanup;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
 import org.eclipse.ditto.signals.commands.devops.ExecutePiggybackCommand;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
@@ -43,8 +42,7 @@ public final class ThingsSearchServiceGlobalCommandRegistryTest extends GlobalCo
                 Shutdown.class,
                 PurgeNamespace.class,
                 RetrieveResource.class,
-                DeleteSubject.class,
-                Cleanup.class);
+                DeleteSubject.class);
     }
 
 }
