@@ -17,7 +17,6 @@ import java.util.Set;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
-import akka.actor.AbstractActor;
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
 import akka.event.DiagnosticLoggingAdapter;

@@ -118,7 +118,7 @@ public final class TestUtils {
      * @param actorSystem the actor system.
      */
     static void disableLogging(final ActorSystem actorSystem) {
-        actorSystem.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
+        actorSystem.eventStream().setLogLevel(akka.stream.Attributes.logLevelOff());
     }
 
     /**

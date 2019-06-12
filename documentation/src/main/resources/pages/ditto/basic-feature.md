@@ -96,7 +96,7 @@ Thus, it is a consistent, self-contained set of (potentially re-usable) properti
 ### Mapping Vorto function block elements
 
 A Vorto function block consists of 
-[different sections defining state and capabilities](https://www.eclipse.org/vorto/documentation/appendix/functionblock-dsl-reference.html#function-block-dsl-semantics) 
+[different sections defining state and capabilities](https://github.com/eclipse/vorto/blob/master/core-bundles/docs/quickhelp_dsl.md#2-function-blocks) 
 of a device (in our case of a feature):
 * `configuration`: Contains one or many configuration properties for the function block. 
 * `status`: Contains one or many status properties for the function block. 

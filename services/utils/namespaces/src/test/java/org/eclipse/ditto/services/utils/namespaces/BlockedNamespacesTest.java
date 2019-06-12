@@ -68,7 +68,7 @@ public final class BlockedNamespacesTest {
     @Test
     public void startWithWrongRole() {
         // logging disabled to not print expected stacktrace; re-enable logging to debug.
-        actorSystem.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
+        actorSystem.eventStream().setLogLevel(akka.stream.Attributes.logLevelOff());
         new TestKit(actorSystem) {{
             final BlockedNamespaces underTest = BlockedNamespaces.of(DistributedDataConfigReader.of(actorSystem,
                     "replicator", "wrong-role"), actorSystem);

@@ -10,15 +10,16 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.base.actors;
+package org.eclipse.ditto.services.utils.cleanup;
 
 import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.signals.commands.common.Cleanup;
-import org.eclipse.ditto.signals.commands.common.CleanupResponse;
+import org.eclipse.ditto.signals.commands.cleanup.Cleanup;
+import org.eclipse.ditto.signals.commands.cleanup.CleanupResponse;
 
 import akka.actor.ActorRef;
 import akka.event.DiagnosticLoggingAdapter;
@@ -69,11 +70,11 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
                 startCleanup(latestSnapshotSequenceNumber);
             } else {
                 log.debug("Snapshot revision did not change since last cleanup, hence there is nothing to delete.");
-                getSender().tell(CleanupResponse.success(persistenceId()), getSelf());
+                getSender().tell(CleanupResponse.success(persistenceId(), DittoHeaders.empty()), getSelf());
             }
         } else {
             log.info("Another cleanup is already running, rejecting the new cleanup request.");
-            origin.tell(CleanupResponse.failure(persistenceId()), getSelf());
+            origin.tell(CleanupResponse.failure(persistenceId(), DittoHeaders.empty()), getSelf());
         }
     }
 
@@ -95,12 +96,14 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
         if (deleteSnapshotsResponse != null && deleteMessagesResponse != null) {
             if (isCleanupCompletedSuccessfully()) {
                 log.debug("Cleanup for '{}' completed.", persistenceId());
-                Optional.ofNullable(origin).ifPresent(o -> o.tell(CleanupResponse.success(persistenceId()), getSelf()));
+                Optional.ofNullable(origin).ifPresent(o -> o.tell(CleanupResponse.success(persistenceId(),
+                        DittoHeaders.empty()), getSelf()));
                 finishCleanup();
             } else {
                 log.info("Cleanup for '{}' failed. Snapshots: {}. Messages: {}.", persistenceId(),
                         getResponseStatus(deleteSnapshotsResponse), getResponseStatus(deleteMessagesResponse));
-                Optional.ofNullable(origin).ifPresent(o -> o.tell(CleanupResponse.failure(persistenceId()), getSelf()));
+                Optional.ofNullable(origin).ifPresent(o -> o.tell(CleanupResponse.failure(persistenceId(),
+                        DittoHeaders.empty()), getSelf()));
                 finishCleanup();
             }
         }

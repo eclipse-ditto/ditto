@@ -197,6 +197,6 @@ public abstract class PersistenceActorTestBase {
      * Disable logging for 1 test to hide stacktrace or other logs on level ERROR. Comment out to debug the test.
      */
     protected void disableLogging() {
-        actorSystem.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
+        actorSystem.eventStream().setLogLevel(akka.stream.Attributes.logLevelOff());
     }
 }

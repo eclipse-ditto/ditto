@@ -24,8 +24,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.signals.commands.common.Cleanup;
-import org.eclipse.ditto.signals.commands.common.CleanupResponse;
+import org.eclipse.ditto.signals.commands.cleanup.Cleanup;
+import org.eclipse.ditto.signals.commands.cleanup.CleanupResponse;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
@@ -100,7 +100,8 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
 
                 // tell the persistence actor to clean up
                 persistenceActorUnderTest.tell(Cleanup.of(thingId, DittoHeaders.empty()), getRef());
-                expectMsg(CleanupResponse.success(ThingPersistenceActor.PERSISTENCE_ID_PREFIX + thingId));
+                expectMsg(CleanupResponse.success(ThingPersistenceActor.PERSISTENCE_ID_PREFIX + thingId,
+                        DittoHeaders.empty()));
 
                 // we expect only the latest snapshot to exist after cleanup
                 final List<Thing> expectedSnapshotsAfterCleanup =

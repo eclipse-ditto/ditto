@@ -10,9 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
-/* Copyright (c) 2011-2018 Bosch Software Innovations GmbH, Germany. All rights reserved. */
-package org.eclipse.ditto.signals.commands.common;
+package org.eclipse.ditto.signals.commands.cleanup;
 
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -20,17 +18,14 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
 /**
@@ -38,7 +33,7 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  */
 @Immutable
 @JsonParsableCommand(typePrefix = Cleanup.TYPE_PREFIX, name = Cleanup.NAME)
-public class Cleanup extends CommonCommand<Cleanup> {
+public class Cleanup extends AbstractCommand<Cleanup> implements CleanupCommand<Cleanup> {
 
     /**
      * The name of the {@code Cleanup} command.
@@ -53,12 +48,17 @@ public class Cleanup extends CommonCommand<Cleanup> {
     private final String entityId;
 
     private Cleanup(final String entityId, final DittoHeaders dittoHeaders) {
-        super(TYPE, Category.MODIFY, dittoHeaders);
+        super(TYPE, dittoHeaders);
         this.entityId = ConditionChecker.checkNotNull(entityId, "entityId");
     }
 
     public static Cleanup of(final String entityId, final DittoHeaders dittoHeaders) {
         return new Cleanup(entityId, dittoHeaders);
+    }
+
+    @Override
+    public String getEntityId() {
+        return entityId;
     }
 
     @Override
@@ -69,7 +69,7 @@ public class Cleanup extends CommonCommand<Cleanup> {
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicate) {
-        jsonObjectBuilder.set(JsonFields.ID, entityId, predicate);
+        jsonObjectBuilder.set(CleanupCommand.JsonFields.ENTITY_ID, entityId, predicate);
     }
 
     /**
@@ -80,13 +80,13 @@ public class Cleanup extends CommonCommand<Cleanup> {
      * @return the command.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain
-     * {@link org.eclipse.ditto.signals.commands.common.Cleanup.JsonFields#ID}.
+     * {@link CleanupCommand.JsonFields#ENTITY_ID}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
     public static Cleanup fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<Cleanup>(TYPE, jsonObject).deserialize(
-                () -> of(jsonObject.getValueOrThrow(JsonFields.ID), dittoHeaders));
+                () -> of(jsonObject.getValueOrThrow(CleanupCommand.JsonFields.ENTITY_ID), dittoHeaders));
     }
 
     @Override
@@ -108,7 +108,6 @@ public class Cleanup extends CommonCommand<Cleanup> {
         return Objects.hash(super.hashCode(), entityId);
     }
 
-
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
@@ -116,4 +115,5 @@ public class Cleanup extends CommonCommand<Cleanup> {
                 ", entityId=" + entityId +
                 "]";
     }
+
 }
