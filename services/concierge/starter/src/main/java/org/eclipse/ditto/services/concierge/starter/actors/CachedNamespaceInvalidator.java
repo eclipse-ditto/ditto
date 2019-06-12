@@ -99,7 +99,8 @@ public final class CachedNamespaceInvalidator extends AbstractActorWithTimers {
     }
 
     private void logNamespaces(final String verb, final ORSet<String> namespaces) {
-        if (namespaces.size() > 10) {
+        // TODO: configure
+        if (namespaces.size() > 25) {
             log.info("{} <{}> namespaces", verb, namespaces.size());
         } else {
             log.info("{} namespaces: <{}>", verb, namespaces);
@@ -111,6 +112,7 @@ public final class CachedNamespaceInvalidator extends AbstractActorWithTimers {
     }
 
     private void invalidateCachedNamespaces(final InvalidateCachedNamespaces invalidate) {
+        logNamespaces("Invalidating", invalidate.namespaces);
         cachesToMaintain.forEach(cache -> invalidateNamespaces(cache, invalidate.namespaces));
     }
 
