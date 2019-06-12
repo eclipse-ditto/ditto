@@ -21,16 +21,18 @@ import java.util.Random;
 import java.util.UUID;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.config.raw.RawConfigSupplier;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.NamespaceSuffixCollectionNames;
-import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.SuffixBuilderConfig;
 import org.eclipse.ditto.services.utils.test.mongo.MongoDbResource;
 import org.eclipse.ditto.signals.commands.common.purge.PurgeEntities;
 import org.eclipse.ditto.signals.commands.common.purge.PurgeEntitiesResponse;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespace;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespaceResponse;
 import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.rules.TestName;
 
@@ -51,28 +53,46 @@ public abstract class MongoEventSourceITAssertions {
     private static final Duration EXPECT_MESSAGE_TIMEOUT = Duration.ofSeconds(10);
     private static final Random RANDOM = new Random();
 
+    protected static MongoDbConfig mongoDbConfig;
+
     /**
      * Embedded MongoDB resource.
      */
-    private MongoDbResource mongoDbResource;
+    private static MongoDbResource mongoDbResource;
+    protected static String mongoDbUri;
+
     private ActorSystem actorSystem;
 
     @Rule public TestName name = new TestName();
 
-    @Before
-    public void startMongoDb() {
+    @BeforeClass
+    public static void startMongoDb() {
         mongoDbResource = new MongoDbResource("localhost");
         mongoDbResource.start();
+
+        mongoDbUri = String.format("mongodb://%s:%s/test", mongoDbResource.getBindIp(), mongoDbResource.getPort());
+
+        mongoDbConfig = DefaultMongoDbConfig.of(getConfig());
+    }
+
+    private static Config getConfig() {
+        Config mongoDbTestConfig = ConfigFactory.parseMap(Collections.singletonMap("mongodb.uri", mongoDbUri));
+        mongoDbTestConfig = mongoDbTestConfig.withFallback(ConfigFactory.parseResources("mongodb_test"));
+        return mongoDbTestConfig;
+    }
+
+    @AfterClass
+    public static void tearDown() {
+        if (null != mongoDbResource) {
+            mongoDbResource.stop();
+            mongoDbResource = null;
+        }
     }
 
     @After
-    public void tearDown() {
+    public void shutDownActorSystem() {
         if (actorSystem != null) {
             TestKit.shutdownActorSystem(actorSystem);
-        }
-        if (mongoDbResource != null) {
-            mongoDbResource.stop();
-            mongoDbResource = null;
         }
     }
 
@@ -199,15 +219,14 @@ public abstract class MongoEventSourceITAssertions {
                 "akka.cluster.seed-nodes=[]\n" +
                 "akka.coordinated-shutdown.exit-jvm=off\n" +
                 "ditto.things.log-incoming-messages=true\n" +
-                "akka.contrib.persistence.mongodb.mongo.mongouri=" + mongoUriValue +
-                "ditto.services-utils-config.mongodb.uri=" + mongoUriValue;
+                "akka.contrib.persistence.mongodb.mongo.mongouri=\"" + mongoDbUri + "\"\n";
 
         // load the service config for info about event journal, snapshot store and metadata
         final Config configWithSuffixBuilder = ConfigFactory.parseString(testConfig)
-                .withFallback(ConfigUtil.determineConfig(getServiceName()));
+                .withFallback(RawConfigSupplier.of(getServiceName()).get());
 
         // set namespace suffix config before persisting any event - NullPointerException otherwise
-        NamespaceSuffixCollectionNames.setConfig(new SuffixBuilderConfig(getSupportedPrefixes()));
+        NamespaceSuffixCollectionNames.setSupportedPrefixes(getSupportedPrefixes());
 
         return configOverride.withFallback(configWithSuffixBuilder);
     }

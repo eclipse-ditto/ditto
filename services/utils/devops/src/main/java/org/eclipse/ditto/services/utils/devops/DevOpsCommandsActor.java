@@ -58,7 +58,6 @@ import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.cluster.pubsub.DistributedPubSub;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -83,6 +82,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
     private final ActorRef pubSubMediator;
     private final MappingStrategies serviceMappingStrategy;
 
+    @SuppressWarnings("unused")
     private DevOpsCommandsActor(final LoggingFacade loggingFacade, final String serviceName, final String instance) {
         this.loggingFacade = loggingFacade;
         this.serviceName = serviceName;
@@ -108,8 +108,8 @@ public final class DevOpsCommandsActor extends AbstractActor {
      * @return the Akka configuration Props object.
      */
     public static Props props(final LoggingFacade loggingFacade, final String serviceName, final String instance) {
-        return Props.create(DevOpsCommandsActor.class,
-                () -> new DevOpsCommandsActor(loggingFacade, serviceName, instance));
+
+        return Props.create(DevOpsCommandsActor.class, loggingFacade, serviceName, instance);
     }
 
     @Override
@@ -167,8 +167,15 @@ public final class DevOpsCommandsActor extends AbstractActor {
             } else {
                 topic = command.getType();
             }
-            log.info("Publishing DevOpsCommand <{}> into cluster on topic <{}>", command.getType(), topic);
-            pubSubMediator.tell(new Publish(topic, command), responseCorrelationActor.get());
+            final Publish msg;
+            if (isGroupTopic(command.getDittoHeaders())) {
+                msg = new Publish(topic, command, true);
+            } else {
+                msg = new Publish(topic, command);
+            }
+            log.info("Publishing DevOpsCommand <{}> into cluster on topic <{}> with " +
+                    "sendOneMessageToEachGroup=<{}>", command.getType(), msg.topic(), msg.sendOneMessageToEachGroup());
+            pubSubMediator.tell(msg, responseCorrelationActor.get());
         }
     }
 
@@ -195,9 +202,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
                                         .orElseGet(() -> executePiggyback.getPiggybackCommand()
                                                 .getValue(Command.JsonFields.TYPE));
                         if (topic.isPresent()) {
-                            final String isGroupTopicValue = dittoHeaders.get(IS_GROUP_TOPIC_HEADER);
-                            final boolean isGroupTopic =
-                                    isGroupTopicValue != null && !"false".equalsIgnoreCase(isGroupTopicValue);
+                            final boolean isGroupTopic = isGroupTopic(dittoHeaders);
                             onSuccess.accept(new Publish(topic.get(), jsonifiable, isGroupTopic));
                         } else {
                             onError.accept(getErrorResponse(command));
@@ -211,6 +216,11 @@ public final class DevOpsCommandsActor extends AbstractActor {
                     GatewayInternalErrorException.newBuilder().dittoHeaders(command.getDittoHeaders()).build().toJson();
             onError.accept(getErrorResponse(command, error));
         }
+    }
+
+    private static boolean isGroupTopic(final DittoHeaders dittoHeaders) {
+        final String isGroupTopicValue = dittoHeaders.get(IS_GROUP_TOPIC_HEADER);
+        return isGroupTopicValue != null && !"false".equalsIgnoreCase(isGroupTopicValue);
     }
 
     private void handleDevOpsCommandViaPubSub(final DevOpsCommandViaPubSub devOpsCommandViaPubSub) {
@@ -312,6 +322,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
 
         private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
+        @SuppressWarnings("unused")
         private PubSubSubscriberActor(final ActorRef pubSubMediator, final String serviceName, final String instance,
                 final String... pubSubTopicsToSubscribeTo) {
 
@@ -327,9 +338,8 @@ public final class DevOpsCommandsActor extends AbstractActor {
                 final String instance,
                 final String... pubSubTopicsToSubscribeTo) {
 
-            return Props.create(PubSubSubscriberActor.class,
-                    (Creator<PubSubSubscriberActor>) () -> new PubSubSubscriberActor(pubSubMediator, serviceName,
-                            instance, pubSubTopicsToSubscribeTo));
+            return Props.create(PubSubSubscriberActor.class, pubSubMediator, serviceName, instance,
+                    pubSubTopicsToSubscribeTo);
         }
 
         private void subscribeToDevOpsTopic(final ActorRef pubSubMediator,
@@ -339,6 +349,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
 
             pubSubMediator.tell(new Subscribe(topic, getSelf()), getSelf());
             pubSubMediator.tell(new Subscribe(String.join(":", topic, serviceName), getSelf()), getSelf());
+            pubSubMediator.tell(new Subscribe(String.join(":", topic, serviceName), serviceName, getSelf()), getSelf());
             pubSubMediator.tell(new Subscribe(String.join(":", topic, serviceName, instance), getSelf()), getSelf());
         }
 
@@ -387,9 +398,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
          * @return the Akka configuration Props object.
          */
         static Props props(final ActorRef devOpsCommandSender, final DevOpsCommand<?> devOpsCommand) {
-            return Props.create(DevOpsCommandResponseCorrelationActor.class,
-                    (Creator<DevOpsCommandResponseCorrelationActor>) () ->
-                            new DevOpsCommandResponseCorrelationActor(devOpsCommandSender, devOpsCommand));
+            return Props.create(DevOpsCommandResponseCorrelationActor.class, devOpsCommandSender, devOpsCommand);
         }
 
         private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
@@ -399,6 +408,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
         private final List<CommandResponse<?>> commandResponses = new ArrayList<>();
         private final boolean aggregateResults;
 
+        @SuppressWarnings("unused")
         private DevOpsCommandResponseCorrelationActor(final ActorRef devOpsCommandSender,
                 final DevOpsCommand<?> devOpsCommand) {
 

@@ -39,11 +39,6 @@
             <artifactId>ditto-services-connectivity-messaging</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>ditto-services-connectivity-util</artifactId>
-            <version>${project.version}</version>
-        </dependency>
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>

@@ -26,9 +26,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>ditto-services-connectivity-util</artifactId>
-            <version>${project.version}</version>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-base</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

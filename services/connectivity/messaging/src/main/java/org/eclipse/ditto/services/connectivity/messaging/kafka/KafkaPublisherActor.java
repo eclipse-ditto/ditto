@@ -39,7 +39,6 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
 import akka.kafka.ProducerMessage;
@@ -54,7 +53,7 @@ import akka.util.ByteString;
  * Responsible for publishing {@link org.eclipse.ditto.services.models.connectivity.ExternalMessage}s into an Kafka
  * broker.
  */
-public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
+final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
     static final String ACTOR_NAME = "kafkaPublisher";
 
@@ -67,17 +66,20 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
     private boolean shuttingDown = false;
     private ActorRef sourceActor;
 
-    private KafkaPublisherActor(final String connectionId, final List<Target> targets,
+    @SuppressWarnings("unused")
+    private KafkaPublisherActor(final String connectionId,
+            final List<Target> targets,
             final KafkaConnectionFactory factory,
             final ActorRef kafkaClientActor,
             final boolean dryRun) {
+
         super(connectionId, targets);
         this.kafkaClientActor = kafkaClientActor;
         this.dryRun = dryRun;
-        this.connectionFactory = factory;
+        connectionFactory = factory;
 
-        this.startInternalKafkaProducer();
-        this.reportInitialConnectionState();
+        startInternalKafkaProducer();
+        reportInitialConnectionState();
     }
 
     /**
@@ -90,17 +92,13 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
      * @param dryRun whether this publisher is only created for a test or not.
      * @return the Akka configuration Props object.
      */
-    static Props props(final String connectionId, final List<Target> targets,
-            final KafkaConnectionFactory factory, final ActorRef kafkaClientActor,
+    static Props props(final String connectionId,
+            final List<Target> targets,
+            final KafkaConnectionFactory factory,
+            final ActorRef kafkaClientActor,
             final boolean dryRun) {
-        return Props.create(KafkaPublisherActor.class, new Creator<KafkaPublisherActor>() {
-            private static final long serialVersionUID = 1L;
 
-            @Override
-            public KafkaPublisherActor create() {
-                return new KafkaPublisherActor(connectionId, targets, factory, kafkaClientActor, dryRun);
-            }
-        });
+        return Props.create(KafkaPublisherActor.class, connectionId, targets, factory, kafkaClientActor, dryRun);
     }
 
     private static Sink<ProducerMessage.Results<String, String, ConnectionMetricsCollector>, CompletionStage<Done>> publishSuccessSink() {
@@ -133,8 +131,10 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
     }
 
     @Override
-    protected void publishMessage(@Nullable final Target target, final KafkaPublishTarget publishTarget,
-            final ExternalMessage message, final ConnectionMetricsCollector publishedCounter) {
+    protected void publishMessage(@Nullable final Target target,
+            final KafkaPublishTarget publishTarget,
+            final ExternalMessage message,
+            final ConnectionMetricsCollector publishedCounter) {
 
         publishMessage(publishTarget, message, publishedCounter);
     }
@@ -152,8 +152,7 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
     }
 
     private static ProducerMessage.Envelope<String, String, ConnectionMetricsCollector> mapExternalMessageToKafkaMessage(
-            final KafkaPublishTarget publishTarget,
-            final ExternalMessage externalMessage,
+            final KafkaPublishTarget publishTarget, final ExternalMessage externalMessage,
             final ConnectionMetricsCollector metricsCollector) {
 
         final String payload = mapExternalMessagePayload(externalMessage);
@@ -177,8 +176,7 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
 
     private static String mapExternalMessagePayload(final ExternalMessage externalMessage) {
         if (externalMessage.isTextMessage()) {
-            return externalMessage.getTextPayload()
-                    .orElse("");
+            return externalMessage.getTextPayload().orElse("");
         } else if (externalMessage.isBytesMessage()) {
             return externalMessage.getBytePayload()
                     .map(ByteString::fromByteBuffer)
@@ -226,16 +224,17 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
 
     private void startInternalKafkaProducer() {
         logWithConnectionId().info("Starting internal Kafka producer.");
-        this.sourceActor = createInternalKafkaProducer(connectionFactory, this::handleCompletionOrFailure);
+        sourceActor = createInternalKafkaProducer(connectionFactory, this::handleCompletionOrFailure);
     }
 
     private void restartInternalKafkaProducer() {
         logWithConnectionId().info("Restarting internal Kafka producer");
-        this.sourceActor = createInternalKafkaProducer(connectionFactory, this::handleCompletionOrFailure);
+        sourceActor = createInternalKafkaProducer(connectionFactory, this::handleCompletionOrFailure);
     }
 
     private ActorRef createInternalKafkaProducer(final KafkaConnectionFactory factory,
             final BiFunction<Done, Throwable, Done> completionOrFailureHandler) {
+
         final Pair<ActorRef, CompletionStage<Done>> materializedFlowedValues =
                 Source.<ProducerMessage.Envelope<String, String, ConnectionMetricsCollector>>actorRef(100,
                         OverflowStrategy.dropHead())
@@ -269,7 +268,7 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
     }
 
     private void stopGracefully() {
-        this.shuttingDown = true;
+        shuttingDown = true;
         stopInternalKafkaProducer();
         logWithConnectionId().debug("Stopping myself.");
         getContext().stop(getSelf());
@@ -278,7 +277,7 @@ public final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTa
     /**
      * Message that allows gracefully stopping the publisher actor.
      */
-    static class GracefulStop {
+    static final class GracefulStop {
 
         static final GracefulStop INSTANCE = new GracefulStop();
 

@@ -27,7 +27,7 @@ public final class MessageCommandSizeValidator
     /**
      * System property name of the property defining the max Message payload size in bytes.
      */
-    public static final String DITTO_LIMITS_MESSAGES_MAX_SIZE_BYTES = "ditto.limits.messages.max-size.bytes";
+    public static final String DITTO_LIMITS_MESSAGES_MAX_SIZE_BYTES = "ditto.limits.messages.max-size";
 
     @Nullable private static MessageCommandSizeValidator instance;
 

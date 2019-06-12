@@ -16,6 +16,8 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
+
 import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -26,8 +28,6 @@ import akka.pattern.PatternsCS;
 import akka.stream.Attributes;
 import akka.stream.DelayOverflowStrategy;
 import akka.stream.javadsl.Source;
-
-import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
 
 /**
  * Collects changes from ThingUpdaters and forward them downstream on demand.
@@ -56,7 +56,7 @@ public final class ChangeQueueActor extends AbstractActor {
      * @return Props of a ChangeQueueActor.
      */
     public static Props props() {
-        return Props.create(ChangeQueueActor.class, ChangeQueueActor::new);
+        return Props.create(ChangeQueueActor.class);
     }
 
     @Override

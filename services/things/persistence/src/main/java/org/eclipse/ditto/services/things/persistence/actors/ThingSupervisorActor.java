@@ -22,13 +22,17 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.base.actors.ShutdownBehaviour;
+import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConfig;
+import org.eclipse.ditto.services.things.common.config.DittoThingsConfig;
 import org.eclipse.ditto.services.things.persistence.strategies.AbstractReceiveStrategy;
 import org.eclipse.ditto.services.things.persistence.strategies.ReceiveStrategy;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingUnavailableException;
 
 import akka.actor.AbstractActor;
@@ -41,7 +45,6 @@ import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
 import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.DeciderBuilder;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -60,12 +63,10 @@ public final class ThingSupervisorActor extends AbstractActor {
 
     private final String thingId;
     private final Props persistenceActorProps;
-    private final Duration minBackOff;
-    private final Duration maxBackOff;
-    private final double randomFactor;
+    private final ExponentialBackOffConfig exponentialBackOffConfig;
     private final ShutdownBehaviour shutdownBehaviour;
 
-    private ActorRef child;
+    @Nullable private ActorRef child;
     private long restartCount;
 
     private final SupervisorStrategy supervisorStrategy = new OneForOneStrategy(true, DeciderBuilder
@@ -80,25 +81,23 @@ public final class ThingSupervisorActor extends AbstractActor {
             .build());
 
 
-    private ThingSupervisorActor(final Duration minBackOff,
-            final Duration maxBackOff,
-            final double randomFactor,
-            final Function<String, Props> thingPersistenceActorPropsFactory,
-            final ActorRef pubSubMediator) {
+    private ThingSupervisorActor(final ActorRef pubSubMediator,
+            final Function<String, Props> thingPersistenceActorPropsFactory) {
 
+        final DittoThingsConfig thingsConfig = DittoThingsConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        );
         try {
             thingId = URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name());
         } catch (final UnsupportedEncodingException e) {
             throw new IllegalStateException("Unsupported encoding!", e);
         }
         persistenceActorProps = thingPersistenceActorPropsFactory.apply(thingId);
-        this.minBackOff = minBackOff;
-        this.maxBackOff = maxBackOff;
-        this.randomFactor = randomFactor;
-
+        exponentialBackOffConfig = thingsConfig.getThingConfig().getSupervisorConfig().getExponentialBackOffConfig();
         shutdownBehaviour = ShutdownBehaviour.fromId(thingId, pubSubMediator, getSelf());
 
         child = null;
+        restartCount = 0L;
     }
 
     /**
@@ -109,34 +108,18 @@ public final class ThingSupervisorActor extends AbstractActor {
      * </p>
      *
      * @param pubSubMediator Akka pub-sub mediator.
-     * @param minBackOff minimum (initial) duration until the child actor will started again, if it is terminated.
-     * @param maxBackOff the exponential back-off is capped to this duration.
-     * @param randomFactor after calculation of the exponential back-off an additional random delay based on this factor
-     * is added, e.g. `0.2` adds up to `20%` delay. In order to skip this additional delay pass in `0`.
      * @param thingPersistenceActorPropsFactory factory for creating Props to be used for creating
      * {@link ThingPersistenceActor}s.
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final ActorRef pubSubMediator,
-            final Duration minBackOff,
-            final Duration maxBackOff,
-            final double randomFactor,
             final Function<String, Props> thingPersistenceActorPropsFactory) {
 
-        return Props.create(ThingSupervisorActor.class, new Creator<ThingSupervisorActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public ThingSupervisorActor create() {
-                return new ThingSupervisorActor(minBackOff, maxBackOff, randomFactor, thingPersistenceActorPropsFactory,
-                        pubSubMediator);
-            }
-        });
+        return Props.create(ThingSupervisorActor.class, pubSubMediator, thingPersistenceActorPropsFactory);
     }
 
     private Collection<ReceiveStrategy<?>> initReceiveStrategies() {
-        final Collection<ReceiveStrategy<?>> result = new ArrayList<>();
-
+        final Collection<ReceiveStrategy<?>> result = new ArrayList<>(3);
         result.add(new StartChildStrategy());
         result.add(new ChildTerminatedStrategy());
         result.add(new ManualResetStrategy());
@@ -219,14 +202,15 @@ public final class ThingSupervisorActor extends AbstractActor {
         }
 
         private Duration calculateRestartDelay() {
-            final double rnd = 1.0 + ThreadLocalRandom.current().nextDouble() * randomFactor;
-            if (restartCount >= 30) // Duration overflow protection (> 100 years)
-            {
+            final Duration maxBackOff = exponentialBackOffConfig.getMax();
+            if (restartCount >= 30) { // Duration overflow protection (> 100 years)
                 return maxBackOff;
-            } else {
-                final double backOff = minBackOff.toNanos() * Math.pow(2, restartCount) * rnd;
-                return Duration.ofNanos(Math.min(maxBackOff.toNanos(), (long) backOff));
             }
+            final Duration minBackOff = exponentialBackOffConfig.getMin();
+            final double rnd =
+                    1.0 + ThreadLocalRandom.current().nextDouble() * exponentialBackOffConfig.getRandomFactor();
+            final double backOff = minBackOff.toNanos() * Math.pow(2, restartCount) * rnd;
+            return Duration.ofNanos(Math.min(maxBackOff.toNanos(), (long) backOff));
         }
 
     }
@@ -311,4 +295,5 @@ public final class ThingSupervisorActor extends AbstractActor {
     enum Control {
         PASSIVATE
     }
+
 }

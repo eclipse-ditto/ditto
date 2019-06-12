@@ -63,7 +63,7 @@ public final class CreateThingStrategy
 
     @Override
     public boolean isDefined(final CreateThing command) {
-        return CreateThing.class.isAssignableFrom(command.getClass());
+        return true;
     }
 
     @Override

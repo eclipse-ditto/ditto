@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.utils.akka.streaming;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_COMPLETED;
 import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_STARTED;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -36,6 +35,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.verification.VerificationWithTimeout;
 
@@ -58,10 +58,10 @@ import scala.concurrent.Future;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
- * Tests {@link DefaultStreamSupervisor}.
+ * Unit test for {@link DefaultStreamSupervisor}.
  */
 @RunWith(MockitoJUnitRunner.class)
-public class DefaultStreamSupervisorTest {
+public final class DefaultStreamSupervisorTest {
 
     private static final Duration START_OFFSET = Duration.ofMinutes(2);
 
@@ -106,9 +106,10 @@ public class DefaultStreamSupervisorTest {
     }
 
     /**
-     * This Test verifies the behavior of the first sync after the Actor has been started. The StreamSupervisor will
-     * send itself a CheckForActivity message after STREAM_INTERVAL which triggers synchronization. Afterwards it will
-     * persist a successful sync timestamp if it receives a Status.Success message.
+     * This Test verifies the behavior of the first sync after the Actor has been started.
+     * The StreamSupervisor will send itself a CheckForActivity message after STREAM_INTERVAL which triggers
+     * synchronization.
+     * Afterwards it will persist a successful sync timestamp if it receives a Status.Success message.
      */
     @Test
     public void successfulSync() throws Exception {
@@ -123,7 +124,7 @@ public class DefaultStreamSupervisorTest {
             verify(searchSyncPersistence).getTimestampAsync();
 
             getForwarderActor(streamSupervisor).tell(STREAM_STARTED, ActorRef.noSender());
-            sendMessageToForwarderAndExpectTerminated(this, streamSupervisor, STREAM_COMPLETED);
+            sendMessageToForwarderAndExpectTerminated(this, streamSupervisor);
 
             // verify the db has been updated with the queryEnd of the completed stream
             verify(searchSyncPersistence, SHORT_MOCKITO_TIMEOUT).setTimestamp(eq(expectedQueryEnd));
@@ -151,7 +152,7 @@ public class DefaultStreamSupervisorTest {
                     .thenReturn(Source.failed(new IllegalStateException("mocked stream-metadata-persistence error")));
 
             getForwarderActor(streamSupervisor).tell(STREAM_STARTED, ActorRef.noSender());
-            sendMessageToForwarderAndExpectTerminated(this, streamSupervisor, STREAM_COMPLETED);
+            sendMessageToForwarderAndExpectTerminated(this, streamSupervisor);
 
             // verify the db has been updated with the queryEnd of the completed stream
             verify(searchSyncPersistence, SHORT_MOCKITO_TIMEOUT).setTimestamp(eq(expectedQueryEnd));
@@ -161,7 +162,7 @@ public class DefaultStreamSupervisorTest {
     }
 
     @Test
-    public void streamIsRetriggeredOnTimeout() throws Exception {
+    public void streamIsReTriggeredOnTimeout() throws Exception {
         disableLogging();
         new TestKit(actorSystem) {{
             final Duration smallMaxIdleTime = Duration.ofMillis(10);
@@ -169,13 +170,13 @@ public class DefaultStreamSupervisorTest {
             final Instant expectedQueryEnd = KNOWN_LAST_SYNC.plus(STREAM_INTERVAL);
 
             // wait for the actor to start streaming the first time by expecting the corresponding send-message
-            expectStreamTriggerMsg(expectedQueryEnd, smallMaxIdleTime);
+            expectStreamTriggerMsg(expectedQueryEnd);
 
             // signal timeout to the supervisor
             expectForwarderTerminated(this, streamSupervisor, smallMaxIdleTime.plus(SHORT_TIMEOUT));
 
             // wait for the actor to re-start streaming
-            expectStreamTriggerMsg(expectedQueryEnd, smallMaxIdleTime);
+            expectStreamTriggerMsg(expectedQueryEnd);
 
             // verify the db has NOT been updated with the queryEnd, cause we never got a success-message
             verify(searchSyncPersistence, never()).setTimestamp(eq(expectedQueryEnd));
@@ -195,9 +196,16 @@ public class DefaultStreamSupervisorTest {
 
             final Duration oneMs = Duration.ofMillis(1L);
             final Duration oneDay = Duration.ofDays(1L);
-            final StreamConsumerSettings settings =
-                    StreamConsumerSettings.of(START_OFFSET, oneMs, INITIAL_START_OFFSET, oneDay, oneDay,
-                            ELEMENTS_STREAMED_PER_BATCH, oneMs);
+
+            final SyncConfig syncConfig = Mockito.mock(SyncConfig.class);
+            when(syncConfig.getStartOffset()).thenReturn(START_OFFSET);
+            when(syncConfig.getStreamInterval()).thenReturn(oneMs);
+            when(syncConfig.getInitialStartOffset()).thenReturn(INITIAL_START_OFFSET);
+            when(syncConfig.getMaxIdleTime()).thenReturn(oneDay);
+            when(syncConfig.getStreamingActorTimeout()).thenReturn(oneDay);
+            when(syncConfig.getElementsStreamedPerBatch()).thenReturn(ELEMENTS_STREAMED_PER_BATCH);
+            when(syncConfig.getOutdatedWarningOffset()).thenReturn(oneMs);
+            when(syncConfig.getMinimalDelayBetweenStreams()).thenReturn(Duration.ZERO);
 
             final String onRestartMessage = "creating DefaultStreamSupervisor";
 
@@ -207,7 +215,7 @@ public class DefaultStreamSupervisorTest {
                 getRef().tell(onRestartMessage, ActorRef.noSender());
 
                 return new DefaultStreamSupervisor<>(forwardTo.ref(), provider.ref(), String.class, Source::single,
-                        Function.identity(), searchSyncPersistence, materializer, settings);
+                        Function.identity(), searchSyncPersistence, materializer, syncConfig);
             });
 
             // WHEN: The stream supervisor is created
@@ -221,13 +229,9 @@ public class DefaultStreamSupervisorTest {
     }
 
     private void expectStreamTriggerMsg(final Instant expectedQueryEnd) {
-        expectStreamTriggerMsg(expectedQueryEnd, getDefaultMaxIdleTime());
-    }
-
-    private void expectStreamTriggerMsg(final Instant expectedQueryEnd, final Duration maxIdleTime) {
         final SudoStreamModifiedEntities msg = provider.expectMsgClass(FiniteDuration.apply(SHORT_TIMEOUT.toMillis(),
                 TimeUnit.MILLISECONDS), SudoStreamModifiedEntities.class);
-        final Duration streamingActorTimeout = getStreamConsumerSettings(maxIdleTime).getStreamingActorTimeout();
+        final Duration streamingActorTimeout = Duration.ofDays(1L);
         final SudoStreamModifiedEntities expectedStreamTriggerMsg =
                 SudoStreamModifiedEntities.of(KNOWN_LAST_SYNC, expectedQueryEnd, ELEMENTS_STREAMED_PER_BATCH,
                         streamingActorTimeout.toMillis(), DittoHeaders.empty());
@@ -235,36 +239,46 @@ public class DefaultStreamSupervisorTest {
     }
 
     private ActorRef createStreamSupervisor() {
-        return createStreamSupervisor(getDefaultMaxIdleTime());
+        return createStreamSupervisor(Duration.ofSeconds(10));
     }
 
     private ActorRef createStreamSupervisor(final Duration maxIdleTime) {
-        final StreamConsumerSettings streamConsumerSettings = getStreamConsumerSettings(maxIdleTime);
-        return actorSystem.actorOf(DefaultStreamSupervisor.props(forwardTo.ref(), provider.ref(),
-                String.class, Source::single,
-                Function.identity(), searchSyncPersistence, materializer, streamConsumerSettings));
+        return actorSystem.actorOf(DefaultStreamSupervisor.props(forwardTo.ref(),
+                provider.ref(),
+                String.class,
+                Source::single,
+                Function.identity(),
+                searchSyncPersistence,
+                materializer,
+                getStreamConsumerSettings(maxIdleTime)));
     }
 
-    private static Duration getDefaultMaxIdleTime() {
-        return Duration.ofSeconds(10);
+    private static SyncConfig getStreamConsumerSettings(final Duration maxIdleTime) {
+        final SyncConfig result = Mockito.mock(SyncConfig.class);
+        when(result.getStartOffset()).thenReturn(START_OFFSET);
+        when(result.getStreamInterval()).thenReturn(STREAM_INTERVAL);
+        when(result.getInitialStartOffset()).thenReturn(INITIAL_START_OFFSET);
+        when(result.getMaxIdleTime()).thenReturn(maxIdleTime);
+        when(result.getStreamingActorTimeout()).thenReturn(Duration.ofDays(1L));
+        when(result.getElementsStreamedPerBatch()).thenReturn(ELEMENTS_STREAMED_PER_BATCH);
+        when(result.getOutdatedWarningOffset()).thenReturn(Duration.ofDays(10L));
+        when(result.getMinimalDelayBetweenStreams()).thenReturn(Duration.ZERO);
+        return result;
     }
 
-    private static StreamConsumerSettings getStreamConsumerSettings(final Duration maxIdleTime) {
-        return StreamConsumerSettings.of(START_OFFSET, STREAM_INTERVAL, INITIAL_START_OFFSET, maxIdleTime,
-                Duration.ofDays(1), ELEMENTS_STREAMED_PER_BATCH, Duration.ofDays(10));
-    }
+    private void sendMessageToForwarderAndExpectTerminated(final TestKit testKit, final ActorRef superVisorActorRef)
+            throws Exception {
 
-    private void sendMessageToForwarderAndExpectTerminated(final TestKit testKit, final ActorRef superVisorActorRef,
-            final Object terminationCausingMsg) throws Exception {
         final ActorRef forwarderActor = getForwarderActor(superVisorActorRef);
 
         testKit.watch(forwarderActor);
-        forwarderActor.tell(terminationCausingMsg, testKit.getRef());
+        forwarderActor.tell(StreamConstants.STREAM_COMPLETED, testKit.getRef());
         testKit.expectTerminated(forwarderActor);
     }
 
     private void expectForwarderTerminated(final TestKit testKit, final ActorRef superVisorActorRef,
             final Duration timeout) throws Exception {
+
         try {
             final ActorRef forwarderActor = getForwarderActor(superVisorActorRef);
             expectTerminated(testKit, forwarderActor, timeout);
@@ -283,7 +297,7 @@ public class DefaultStreamSupervisorTest {
         return forwarderActorFuture.value().get().get();
     }
 
-    private void expectNotTerminated(final TestKit testKit, final ActorRef actor, final Duration timeout) {
+    private static void expectNotTerminated(final TestKit testKit, final ActorRef actor, final Duration timeout) {
         try {
             expectTerminated(testKit, actor, timeout);
             Assert.fail("the actor should not be terminated");
@@ -292,8 +306,7 @@ public class DefaultStreamSupervisorTest {
         }
     }
 
-    private void expectTerminated(final TestKit testKit, final ActorRef actor, final Duration timeout)
-            throws AssertionError {
+    private static void expectTerminated(final TestKit testKit, final ActorRef actor, final Duration timeout) {
         testKit.watch(actor);
         testKit.expectTerminated(FiniteDuration.apply(timeout.toNanos(), TimeUnit.NANOSECONDS), actor);
     }
@@ -304,4 +317,5 @@ public class DefaultStreamSupervisorTest {
     private void disableLogging() {
         actorSystem.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
     }
+
 }

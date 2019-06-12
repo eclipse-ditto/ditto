@@ -35,6 +35,8 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.typesafe.config.ConfigFactory;
+
 import akka.actor.ActorSystem;
 import akka.testkit.TestProbe;
 
@@ -43,7 +45,7 @@ import akka.testkit.TestProbe;
  */
 public class PolicyIdReferencePlaceholderResolverTest {
 
-    private static final ActorSystem actorSystem = ActorSystem.create();
+    private static final ActorSystem actorSystem = ActorSystem.create("test", ConfigFactory.load("test"));
     private TestProbe conciergeForwarderActorProbe;
     private PolicyIdReferencePlaceholderResolver sut;
 

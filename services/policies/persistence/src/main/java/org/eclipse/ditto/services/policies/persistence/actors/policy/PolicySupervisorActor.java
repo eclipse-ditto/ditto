@@ -18,19 +18,23 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.services.base.actors.ShutdownBehaviour;
+import org.eclipse.ditto.services.base.config.DittoServiceConfig;
+import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConfig;
+import org.eclipse.ditto.services.policies.common.config.DittoPoliciesConfig;
 import org.eclipse.ditto.services.policies.persistence.actors.AbstractReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.ReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.StrategyAwareReceiveBuilder;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyUnavailableException;
 
@@ -42,14 +46,13 @@ import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.DeciderBuilder;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Supervisor for {@link PolicyPersistenceActor} which means it will create, start and watch it as child actor.
  * <p>
- * If the child terminates, it will wait for the calculated exponential backoff time and restart it afterwards.
+ * If the child terminates, it will wait for the calculated exponential back-off time and restart it afterwards.
  * The child has to send {@link ManualReset} after it started successfully.
  * Between the termination of the child and the restart, this actor answers to all requests with a {@link
  * PolicyUnavailableException} as fail fast strategy.
@@ -60,75 +63,55 @@ public final class PolicySupervisorActor extends AbstractActor {
 
     private final Props persistenceActorProps;
     private final String policyId;
-    private final Duration minBackoff;
-    private final Duration maxBackoff;
-    private final double randomFactor;
-    private final SupervisorStrategy supervisorStrategy;
+    private final ExponentialBackOffConfig exponentialBackOffConfig;
     private final ShutdownBehaviour shutdownBehaviour;
 
-    private ActorRef child;
+    @Nullable private ActorRef child;
     private long restartCount;
 
-    private PolicySupervisorActor(final ActorRef pubSubMediator,
-            final Duration minBackoff,
-            final Duration maxBackoff,
-            final double randomFactor,
-            final SupervisorStrategy supervisorStrategy,
-            final SnapshotAdapter<Policy> snapshotAdapter) {
-        try {
-            this.policyId = URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name());
-        } catch (final UnsupportedEncodingException e) {
-            throw new IllegalStateException("Unsupported encoding", e);
-        }
-        this.persistenceActorProps =
-                PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator);
-        this.minBackoff = minBackoff;
-        this.maxBackoff = maxBackoff;
-        this.randomFactor = randomFactor;
-        this.supervisorStrategy = supervisorStrategy;
+    private final SupervisorStrategy supervisorStrategy =  new OneForOneStrategy(true, DeciderBuilder
+            .match(NullPointerException.class, e -> SupervisorStrategy.restart())
+            .match(ActorKilledException.class, e -> SupervisorStrategy.stop())
+            .matchAny(e -> SupervisorStrategy.escalate())
+            .build());
 
+    private PolicySupervisorActor(final ActorRef pubSubMediator,
+            final SnapshotAdapter<Policy> snapshotAdapter) {
+
+        final DittoPoliciesConfig policiesConfig = DittoPoliciesConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        );
+        try {
+            policyId = URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name());
+        } catch (final UnsupportedEncodingException e) {
+            throw new IllegalStateException("Unsupported encoding!", e);
+        }
+        persistenceActorProps = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator);
+        exponentialBackOffConfig = policiesConfig.getPolicyConfig().getSupervisorConfig().getExponentialBackOffConfig();
         shutdownBehaviour = ShutdownBehaviour.fromId(policyId, pubSubMediator, getSelf());
+
+        child = null;
+        restartCount = 0L;
     }
 
     /**
-     * Props for creating a {@link PolicySupervisorActor}.
+     * Props for creating a {@code PolicySupervisorActor}.
      * <p>
      * Exceptions in the child are handled with a supervision strategy that restarts the child on {@link
      * NullPointerException}'s, stops it for {@link ActorKilledException}'s and escalates all others.
      * </p>
      *
      * @param pubSubMediator the PubSub mediator actor.
-     * @param minBackoff minimum (initial) duration until the child actor will started again, if it is terminated.
-     * @param maxBackoff the exponential back-off is capped to this duration.
-     * @param randomFactor after calculation of the exponential back-off an additional random delay based on this factor
-     * is added, e.g. `0.2` adds up to `20%` delay. In order to skip this additional delay pass in `0`.
      * @param snapshotAdapter the adapter to serialize snapshots.
      * @return the {@link Props} to create this actor.
      */
-    public static Props props(final ActorRef pubSubMediator,
-            final Duration minBackoff,
-            final Duration maxBackoff,
-            final double randomFactor,
-            final SnapshotAdapter<Policy> snapshotAdapter) {
-        return Props.create(PolicySupervisorActor.class, new Creator<PolicySupervisorActor>() {
-            private static final long serialVersionUID = 1L;
+    public static Props props(final ActorRef pubSubMediator, final SnapshotAdapter<Policy> snapshotAdapter) {
 
-            @Override
-            public PolicySupervisorActor create() throws Exception {
-                return new PolicySupervisorActor(pubSubMediator, minBackoff, maxBackoff, randomFactor,
-                        new OneForOneStrategy(true, DeciderBuilder
-                                .match(NullPointerException.class, e -> SupervisorStrategy.restart())
-                                .match(ActorKilledException.class, e -> SupervisorStrategy.stop())
-                                .matchAny(e -> SupervisorStrategy.escalate())
-                                .build()),
-                        snapshotAdapter);
-            }
-        });
+        return Props.create(PolicySupervisorActor.class, pubSubMediator, snapshotAdapter);
     }
 
     private Collection<ReceiveStrategy<?>> initReceiveStrategies() {
-        final Collection<ReceiveStrategy<?>> result = new ArrayList<>();
-
+        final Collection<ReceiveStrategy<?>> result = new ArrayList<>(3);
         result.add(new StartChildStrategy());
         result.add(new ChildTerminatedStrategy());
         result.add(new ManualResetStrategy());
@@ -157,26 +140,11 @@ public final class PolicySupervisorActor extends AbstractActor {
         return shutdownBehaviour.createReceive().build().orElse(strategyAwareReceiveBuilder.build());
     }
 
-    private Optional<ActorRef> getChild() {
-        return Optional.ofNullable(child);
-    }
-
     private void startChild() {
-        if (!getChild().isPresent()) {
-            log.debug("Starting persistence actor for Policy with ID '{}'", policyId);
+        if (null == child) {
+            log.debug("Starting persistence actor for Policy with ID <{}>.", policyId);
             final ActorRef childRef = getContext().actorOf(persistenceActorProps, "pa");
             child = getContext().watch(childRef);
-        }
-    }
-
-    private Duration calculateRestartDelay() {
-        final double rnd = 1.0 + ThreadLocalRandom.current().nextDouble() * randomFactor;
-        if (restartCount >= 30) // Duration overflow protection (> 100 years)
-        {
-            return maxBackoff;
-        } else {
-            final double backoff = minBackoff.toNanos() * Math.pow(2, restartCount) * rnd;
-            return Duration.ofNanos(Math.min(maxBackoff.toNanos(), (long) backoff));
         }
     }
 
@@ -213,12 +181,25 @@ public final class PolicySupervisorActor extends AbstractActor {
                             getContext().dispatcher(), null);
             restartCount += 1;
         }
+
+        private Duration calculateRestartDelay() {
+            final Duration maxBackOff = exponentialBackOffConfig.getMax();
+            if (restartCount >= 30) { // Duration overflow protection (> 100 years)
+                return maxBackOff;
+            }
+            final Duration minBackOff = exponentialBackOffConfig.getMin();
+            final double rnd =
+                    1.0 + ThreadLocalRandom.current().nextDouble() * exponentialBackOffConfig.getRandomFactor();
+            final double backOff = minBackOff.toNanos() * Math.pow(2, restartCount) * rnd;
+            return Duration.ofNanos(Math.min(maxBackOff.toNanos(), (long) backOff));
+        }
+
     }
 
     /**
      * Message that is sent to the actor by itself to restart the child.
      */
-    private final class StartChild {
+    private static final class StartChild {
 
     }
 
@@ -236,6 +217,7 @@ public final class PolicySupervisorActor extends AbstractActor {
         public void doApply(final StartChild message) {
             startChild();
         }
+
     }
 
     /**
@@ -252,6 +234,7 @@ public final class PolicySupervisorActor extends AbstractActor {
         public void doApply(final ManualReset message) {
             restartCount = 0;
         }
+
     }
 
     /**
@@ -267,7 +250,7 @@ public final class PolicySupervisorActor extends AbstractActor {
 
         @Override
         public void doApply(final Object message) {
-            if (getChild().isPresent()) {
+            if (null != child) {
                 if (child.equals(getSender())) {
                     log.warning("Received unhandled message from child actor '{}': {}", policyId, message);
                     unhandled(message);
@@ -275,7 +258,7 @@ public final class PolicySupervisorActor extends AbstractActor {
                     child.forward(message, getContext());
                 }
             } else {
-                log.warning("Received message during downtime of child actor for Policy with ID '{}'", policyId);
+                log.warning("Received message during downtime of child actor for Policy with ID <{}>.", policyId);
                 final PolicyUnavailableException.Builder builder = PolicyUnavailableException.newBuilder(policyId);
                 if (message instanceof WithDittoHeaders) {
                     builder.dittoHeaders(((WithDittoHeaders) message).getDittoHeaders());
@@ -283,5 +266,7 @@ public final class PolicySupervisorActor extends AbstractActor {
                 getSender().tell(builder.build(), getSelf());
             }
         }
+
     }
+
 }

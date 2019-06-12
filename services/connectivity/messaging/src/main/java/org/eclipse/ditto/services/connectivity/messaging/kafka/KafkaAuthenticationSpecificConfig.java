@@ -17,6 +17,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
 import org.apache.kafka.common.config.SaslConfigs;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -27,7 +29,7 @@ import akka.kafka.ProducerSettings;
 /**
  * Adds the correct authentication for the chosen SASL mechanism in the specific config of the connection.
  */
-public final class KafkaAuthenticationSpecificConfig implements KafkaSpecificConfig {
+final class KafkaAuthenticationSpecificConfig implements KafkaSpecificConfig {
 
     private static final String SPECIFIC_CONFIG_SASL_MECHANISM_KEY = "saslMechanism";
 
@@ -37,7 +39,7 @@ public final class KafkaAuthenticationSpecificConfig implements KafkaSpecificCon
     private static final String DEFAULT_SASL_MECHANISM = PLAIN_SASL_MECHANISM;
     private static final Map<String, String> SASL_MECHANISMS_WITH_LOGIN_MODULE = new HashMap<>();
 
-    private static KafkaAuthenticationSpecificConfig instance;
+    @Nullable private static KafkaAuthenticationSpecificConfig instance;
 
     private KafkaAuthenticationSpecificConfig() {
         SASL_MECHANISMS_WITH_LOGIN_MODULE.put(PLAIN_SASL_MECHANISM,
@@ -49,10 +51,12 @@ public final class KafkaAuthenticationSpecificConfig implements KafkaSpecificCon
     }
 
     public static KafkaAuthenticationSpecificConfig getInstance() {
-        if (null == instance) {
-            instance = new KafkaAuthenticationSpecificConfig();
+        KafkaAuthenticationSpecificConfig result = instance;
+        if (null == result) {
+            result = new KafkaAuthenticationSpecificConfig();
+            instance = result;
         }
-        return instance;
+        return result;
     }
 
     @Override
@@ -78,7 +82,7 @@ public final class KafkaAuthenticationSpecificConfig implements KafkaSpecificCon
         return containsValidSaslMechanismConfiguration(connection);
     }
 
-    private boolean containsValidSaslMechanismConfiguration(final Connection connection) {
+    private static boolean containsValidSaslMechanismConfiguration(final Connection connection) {
         final String mechanism = getSaslMechanismOrDefault(connection);
         return SASL_MECHANISMS_WITH_LOGIN_MODULE.containsKey(mechanism.toUpperCase());
     }
@@ -86,6 +90,7 @@ public final class KafkaAuthenticationSpecificConfig implements KafkaSpecificCon
     @Override
     public ProducerSettings<String, String> apply(final ProducerSettings<String, String> producerSettings,
             final Connection connection) {
+
         final Optional<String> username = connection.getUsername();
         final Optional<String> password = connection.getPassword();
         // chose to not use isApplicable() but directly check username and password since we need to Optional#get them.
@@ -101,15 +106,15 @@ public final class KafkaAuthenticationSpecificConfig implements KafkaSpecificCon
         return producerSettings;
     }
 
-    private String getJaasConfig(final String loginModule, final String username, final String password) {
+    private static String getJaasConfig(final String loginModule, final String username, final String password) {
         return String.format(JAAS_CONFIG_TEMPLATE, loginModule, username, password);
     }
 
-    private String getSaslMechanismOrDefault(final Connection connection) {
+    private static String getSaslMechanismOrDefault(final Connection connection) {
         return connection.getSpecificConfig().getOrDefault(SPECIFIC_CONFIG_SASL_MECHANISM_KEY, DEFAULT_SASL_MECHANISM);
     }
 
-    private String getLoginModuleForSaslMechanism(final String saslMechanism) {
+    private static String getLoginModuleForSaslMechanism(final String saslMechanism) {
         return SASL_MECHANISMS_WITH_LOGIN_MODULE.get(saslMechanism);
     }
 

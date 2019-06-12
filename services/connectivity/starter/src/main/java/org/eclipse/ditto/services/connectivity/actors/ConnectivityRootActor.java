@@ -21,20 +21,20 @@ import java.net.ConnectException;
 import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import javax.annotation.Nullable;
 import javax.jms.JMSRuntimeException;
 import javax.naming.NamingException;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.services.base.config.ServiceConfigReader;
+import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ConnectionSupervisorActor;
 import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ReconnectActor;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceOperationsActor;
-import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
@@ -42,15 +42,16 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
+import org.eclipse.ditto.services.utils.config.LocalHostAddressSupplier;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
+import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
+import org.eclipse.ditto.services.utils.health.config.PersistenceConfig;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
-
-import com.typesafe.config.Config;
 
 import akka.Done;
 import akka.actor.AbstractActor;
@@ -72,7 +73,6 @@ import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.server.Route;
-import akka.japi.Creator;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
@@ -148,85 +148,45 @@ public final class ConnectivityRootActor extends AbstractActor {
                 return SupervisorStrategy.escalate();
             }).build());
 
-    private ConnectivityRootActor(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
+    @SuppressWarnings("unused")
+    private ConnectivityRootActor(final ConnectivityConfig connectivityConfig,
+            final ActorRef pubSubMediator,
             final ActorMaterializer materializer,
-            final Function<Signal<?>, Signal<?>> conciergeForwarderSignalTransformer,
+            final UnaryOperator<Signal<?>> conciergeForwarderSignalTransformer,
             @Nullable final ConnectivityCommandInterceptor commandValidator) {
 
-        final Config config = configReader.getRawConfig();
-        final boolean healthCheckEnabled = config.getBoolean(ConfigKeys.HealthCheck.ENABLED);
-        final Duration healthCheckInterval = config.getDuration(ConfigKeys.HealthCheck.INTERVAL);
-
-        final HealthCheckingActorOptions.Builder hcBuilder =
-                HealthCheckingActorOptions.getBuilder(healthCheckEnabled, healthCheckInterval);
-        if (config.getBoolean(ConfigKeys.HealthCheck.PERSISTENCE_ENABLED)) {
-            hcBuilder.enablePersistenceCheck();
-        }
-
-        final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
-        final ActorRef healthCheckingActor = startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
-                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, MongoHealthChecker.props()));
-
-        final Duration minBackoff = config.getDuration(ConfigKeys.Connection.SUPERVISOR_EXPONENTIAL_BACKOFF_MIN);
-        final Duration maxBackoff = config.getDuration(ConfigKeys.Connection.SUPERVISOR_EXPONENTIAL_BACKOFF_MAX);
-        final double randomFactor =
-                config.getDouble(ConfigKeys.Connection.SUPERVISOR_EXPONENTIAL_BACKOFF_RANDOM_FACTOR);
-        final int numberOfShards = config.getInt(ConfigKeys.Cluster.NUMBER_OF_SHARDS);
-
+        final ClusterConfig clusterConfig = connectivityConfig.getClusterConfig();
         final ActorSystem actorSystem = getContext().system();
 
-        final ActorRef conciergeEnforcerRouter =
-                ConciergeEnforcerClusterRouterFactory.createConciergeEnforcerClusterRouter(getContext(),
-                        configReader.cluster().numberOfShards());
-
-        final ActorRef conciergeForwarder = startChildActor(ConciergeForwarderActor.ACTOR_NAME,
-                ConciergeForwarderActor.props(pubSubMediator, conciergeEnforcerRouter,
-                        conciergeForwarderSignalTransformer));
-
-        final ClientActorPropsFactory propsFactory = DefaultClientActorPropsFactory.getInstance();
-        final Props connectionSupervisorProps =
-                ConnectionSupervisorActor.props(minBackoff, maxBackoff, randomFactor, pubSubMediator,
-                        conciergeForwarder, propsFactory, commandValidator);
-
-        final ClusterShardingSettings shardingSettings =
-                ClusterShardingSettings.create(actorSystem)
-                        .withRole(ConnectivityMessagingConstants.CLUSTER_ROLE);
-
-        final ActorRef connectionShardRegion = ClusterSharding.get(this.getContext().system())
-                .start(ConnectivityMessagingConstants.SHARD_REGION,
-                        connectionSupervisorProps,
-                        shardingSettings,
-                        ShardRegionExtractor.of(numberOfShards, getContext().getSystem()));
-
         final JavaDslMongoReadJournal mongoReadJournal = PersistenceQuery
-                .get(getContext().getSystem())
+                .get(actorSystem)
                 .getReadJournalFor(JavaDslMongoReadJournal.class, RECONNECT_READ_JOURNAL_PLUGIN_ID);
 
-        startClusterSingletonActor(ReconnectActor.ACTOR_NAME, ReconnectActor.props(connectionShardRegion,
-                mongoReadJournal::currentPersistenceIds));
+        final ActorRef conciergeForwarder =
+                getConciergeForwarder(clusterConfig, pubSubMediator, conciergeForwarderSignalTransformer);
+        final Props connectionSupervisorProps =
+                getConnectionSupervisorProps(pubSubMediator, conciergeForwarder, commandValidator);
 
-        startChildActor(ConnectionPersistenceOperationsActor.ACTOR_NAME, ConnectionPersistenceOperationsActor.props(pubSubMediator, config));
+        startClusterSingletonActor(
+                ReconnectActor.props(getConnectionShardRegion(actorSystem, connectionSupervisorProps, clusterConfig),
+                        mongoReadJournal::currentPersistenceIds));
 
-        String hostname = config.getString(ConfigKeys.Http.HOSTNAME);
-        if (hostname.isEmpty()) {
-            hostname = ConfigUtil.getLocalHostAddress();
-            log.info("No explicit hostname configured, using HTTP hostname: {}", hostname);
-        }
+        // TODO Fix compile error
+        startChildActor(ConnectionPersistenceOperationsActor.ACTOR_NAME,
+                ConnectionPersistenceOperationsActor.props(pubSubMediator, config));
 
-        final CompletionStage<ServerBinding> binding = Http.get(getContext().system()).bindAndHandle( //
-                createRoute(getContext().system(), healthCheckingActor).flow(getContext().system(), materializer),
-                ConnectHttp.toHost(hostname, config.getInt(ConfigKeys.Http.PORT)),
-                materializer);
-
-        binding.thenAccept(theBinding -> CoordinatedShutdown.get(getContext().getSystem()).addTask(
+        final CompletionStage<ServerBinding> binding =
+                getHttpBinding(connectivityConfig.getHttpConfig(), actorSystem, materializer,
+                        getHealthCheckingActor(connectivityConfig));
+        binding.thenAccept(theBinding -> CoordinatedShutdown.get(actorSystem).addTask(
                 CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_health_http_endpoint", () -> {
-                    log.info("Gracefully shutting down status/health HTTP endpoint..");
+                    log.info("Gracefully shutting down status/health HTTP endpoint ...");
                     return theBinding.terminate(Duration.ofSeconds(1))
                             .handle((httpTerminated, e) -> Done.getInstance());
                 })
         ).exceptionally(failure -> {
             log.error("Something very bad happened! " + failure.getMessage(), failure);
-            getContext().system().terminate();
+            actorSystem.terminate();
             return null;
         });
     }
@@ -234,7 +194,7 @@ public final class ConnectivityRootActor extends AbstractActor {
     /**
      * Creates Akka configuration object Props for this ConnectivityRootActor.
      *
-     * @param configReader the configuration reader of this service.
+     * @param connectivityConfig the configuration of the Connectivity service.
      * @param pubSubMediator the PubSub mediator Actor.
      * @param materializer the materializer for the akka actor system.
      * @param conciergeForwarderSignalTransformer a function which transforms signals before forwarding them to the
@@ -242,43 +202,33 @@ public final class ConnectivityRootActor extends AbstractActor {
      * @param commandValidator custom command validator for connectivity commands
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
+    public static Props props(final ConnectivityConfig connectivityConfig,
+            final ActorRef pubSubMediator,
             final ActorMaterializer materializer,
-            final Function<Signal<?>, Signal<?>> conciergeForwarderSignalTransformer,
+            final UnaryOperator<Signal<?>> conciergeForwarderSignalTransformer,
             final ConnectivityCommandInterceptor commandValidator) {
-        return Props.create(ConnectivityRootActor.class, new Creator<ConnectivityRootActor>() {
-            private static final long serialVersionUID = 1L;
 
-            @Override
-            public ConnectivityRootActor create() {
-                return new ConnectivityRootActor(configReader, pubSubMediator, materializer,
+        return Props.create(ConnectivityRootActor.class, connectivityConfig, pubSubMediator, materializer,
                         conciergeForwarderSignalTransformer, commandValidator);
-            }
-        });
     }
 
     /**
      * Creates Akka configuration object Props for this ConnectivityRootActor.
      *
-     * @param configReader the configuration reader of this service.
+     * @param connectivityConfig the configuration of the Connectivity service.
      * @param pubSubMediator the PubSub mediator Actor.
      * @param materializer the materializer for the akka actor system.
      * @param conciergeForwarderSignalTransformer a function which transforms signals before forwarding them to the
      * concierge service
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
+    public static Props props(final ConnectivityConfig connectivityConfig,
+            final ActorRef pubSubMediator,
             final ActorMaterializer materializer,
-            final Function<Signal<?>, Signal<?>> conciergeForwarderSignalTransformer) {
-        return Props.create(ConnectivityRootActor.class, new Creator<ConnectivityRootActor>() {
-            private static final long serialVersionUID = 1L;
+            final UnaryOperator<Signal<?>> conciergeForwarderSignalTransformer) {
 
-            @Override
-            public ConnectivityRootActor create() {
-                return new ConnectivityRootActor(configReader, pubSubMediator, materializer,
+        return Props.create(ConnectivityRootActor.class, connectivityConfig, pubSubMediator, materializer,
                         conciergeForwarderSignalTransformer, null);
-            }
-        });
     }
 
     @Override
@@ -302,12 +252,12 @@ public final class ConnectivityRootActor extends AbstractActor {
     }
 
     private ActorRef startChildActor(final String actorName, final Props props) {
-        log.info("Starting child actor '{}'", actorName);
+        log.info("Starting child actor <{}>.", actorName);
         return getContext().actorOf(props, actorName);
     }
 
-    private void startClusterSingletonActor(final String actorName, final Props props) {
-        ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, actorName, props);
+    private void startClusterSingletonActor(final Props props) {
+        ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, ReconnectActor.ACTOR_NAME, props);
     }
 
     private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {
@@ -315,6 +265,72 @@ public final class ConnectivityRootActor extends AbstractActor {
                 healthCheckingActor, actorSystem);
 
         return logRequest("http-request", () -> logResult("http-response", statusRoute::buildStatusRoute));
+    }
+
+    private ActorRef getHealthCheckingActor(final ConnectivityConfig connectivityConfig) {
+        final HealthCheckConfig healthCheckConfig = connectivityConfig.getHealthCheckConfig();
+        final HealthCheckingActorOptions.Builder hcBuilder =
+                HealthCheckingActorOptions.getBuilder(healthCheckConfig.isEnabled(), healthCheckConfig.getInterval());
+        final PersistenceConfig persistenceConfig = healthCheckConfig.getPersistenceConfig();
+        if (persistenceConfig.isEnabled()) {
+            hcBuilder.enablePersistenceCheck();
+        }
+        final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
+
+        return startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, MongoHealthChecker.props()));
+    }
+
+    private ActorRef getConciergeForwarder(final ClusterConfig clusterConfig, final ActorRef pubSubMediator,
+            final UnaryOperator<Signal<?>> conciergeForwarderSignalTransformer) {
+
+        final ActorRef conciergeEnforcerRouter =
+                ConciergeEnforcerClusterRouterFactory.createConciergeEnforcerClusterRouter(getContext(),
+                        clusterConfig.getNumberOfShards());
+
+        return startChildActor(ConciergeForwarderActor.ACTOR_NAME,
+                ConciergeForwarderActor.props(pubSubMediator, conciergeEnforcerRouter,
+                        conciergeForwarderSignalTransformer));
+    }
+
+    private static Props getConnectionSupervisorProps(final ActorRef pubSubMediator,
+            final ActorRef conciergeForwarder,
+            @Nullable final ConnectivityCommandInterceptor commandValidator) {
+
+        final ClientActorPropsFactory clientActorPropsFactory =
+                DefaultClientActorPropsFactory.getInstance();
+
+        return ConnectionSupervisorActor.props(pubSubMediator, conciergeForwarder, clientActorPropsFactory,
+                commandValidator);
+    }
+
+    private static ActorRef getConnectionShardRegion(final ActorSystem actorSystem,
+            final Props connectionSupervisorProps, final ClusterConfig clusterConfig) {
+
+        final ClusterShardingSettings shardingSettings = ClusterShardingSettings.create(actorSystem)
+                .withRole(ConnectivityMessagingConstants.CLUSTER_ROLE);
+
+        return ClusterSharding.get(actorSystem)
+                .start(ConnectivityMessagingConstants.SHARD_REGION,
+                        connectionSupervisorProps,
+                        shardingSettings,
+                        ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem));
+    }
+
+    private CompletionStage<ServerBinding> getHttpBinding(final HttpConfig httpConfig,
+            final ActorSystem actorSystem,
+            final ActorMaterializer materializer,
+            final ActorRef healthCheckingActor) {
+
+        String hostname = httpConfig.getHostname();
+        if (hostname.isEmpty()) {
+            hostname = LocalHostAddressSupplier.getInstance().get();
+            log.info("No explicit hostname configured, using HTTP hostname <{}>.", hostname);
+        }
+
+        return Http.get(actorSystem)
+                .bindAndHandle(createRoute(actorSystem, healthCheckingActor).flow(actorSystem, materializer),
+                        ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
     }
 
 }

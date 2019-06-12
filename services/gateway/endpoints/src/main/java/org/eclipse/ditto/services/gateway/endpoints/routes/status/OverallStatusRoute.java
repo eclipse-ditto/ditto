@@ -20,12 +20,13 @@ import static akka.http.javadsl.server.Directives.pathEndOrSingleSlash;
 import static akka.http.javadsl.server.Directives.rawPathPrefix;
 import static akka.http.javadsl.server.Directives.route;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.REALM_DEVOPS;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.authenticateDevopsBasic;
+import static org.eclipse.ditto.services.gateway.endpoints.directives.DevOpsBasicAuthenticationDirective.REALM_DEVOPS;
 
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
+import org.eclipse.ditto.services.gateway.endpoints.config.DevOpsConfig;
+import org.eclipse.ditto.services.gateway.endpoints.directives.DevOpsBasicAuthenticationDirective;
 import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 
@@ -48,20 +49,23 @@ public final class OverallStatusRoute {
     static final String PATH_HEALTH = "health";
     static final String PATH_CLUSTER = "cluster";
 
-
     private final Supplier<ClusterStatus> clusterStateSupplier;
     private final StatusAndHealthProvider statusHealthProvider;
+    private final DevOpsConfig devOpsConfig;
 
     /**
      * Constructs the {@code /status} route builder.
      *
      * @param clusterStateSupplier the supplier to get the cluster state.
      * @param statusHealthProvider the provider for retrieving health status of the cluster.
+     * @param devOpsConfig the configuration settings of the Gateway service's DevOps endpoint.
      */
     public OverallStatusRoute(final Supplier<ClusterStatus> clusterStateSupplier,
-            final StatusAndHealthProvider statusHealthProvider) {
+            final StatusAndHealthProvider statusHealthProvider, final DevOpsConfig devOpsConfig) {
+
         this.clusterStateSupplier = clusterStateSupplier;
         this.statusHealthProvider = statusHealthProvider;
+        this.devOpsConfig = devOpsConfig;
     }
 
     /**
@@ -70,27 +74,31 @@ public final class OverallStatusRoute {
      * @return the {@code /status} route.
      */
     public Route buildOverallStatusRoute() {
-        return rawPathPrefix(mergeDoubleSlashes().concat(PATH_OVERALL), () -> // /overall/*
-                authenticateDevopsBasic(REALM_DEVOPS, get(() -> // GET
-                        // /overall/status
-                        // /overall/status/health
-                        // /overall/status/cluster
-                        rawPathPrefix(mergeDoubleSlashes().concat(PATH_STATUS), () ->
-                                route(
-                                        // /status
-                                        pathEndOrSingleSlash(
-                                                () -> completeWithFuture(createOverallStatusResponse())),
-                                        // /status/health
-                                        path(PATH_HEALTH,
-                                                () -> completeWithFuture(createOverallHealthResponse())),
-                                        path(PATH_CLUSTER, () -> complete( // /status/cluster
-                                                HttpResponse.create().withStatus(StatusCodes.OK)
-                                                        .withEntity(ContentTypes.APPLICATION_JSON,
-                                                                clusterStateSupplier.get().toJson().toString()))
-                                        )
-                                ))
-
-                )));
+        return rawPathPrefix(mergeDoubleSlashes().concat(PATH_OVERALL), () -> { // /overall/*
+            final DevOpsBasicAuthenticationDirective devOpsBasicAuthenticationDirective =
+                    DevOpsBasicAuthenticationDirective.getInstance(devOpsConfig);
+            return devOpsBasicAuthenticationDirective.authenticateDevOpsBasic(REALM_DEVOPS, get(() -> // GET
+                            // /overall/status
+                            // /overall/status/health
+                            // /overall/status/cluster
+                            rawPathPrefix(mergeDoubleSlashes().concat(PATH_STATUS), () ->
+                                    route(
+                                            // /status
+                                            pathEndOrSingleSlash(
+                                                    () -> completeWithFuture(createOverallStatusResponse())),
+                                            // /status/health
+                                            path(PATH_HEALTH,
+                                                    () -> completeWithFuture(createOverallHealthResponse())),
+                                            path(PATH_CLUSTER, () -> complete( // /status/cluster
+                                                    HttpResponse.create().withStatus(StatusCodes.OK)
+                                                            .withEntity(ContentTypes.APPLICATION_JSON,
+                                                                    clusterStateSupplier.get().toJson().toString()))
+                                            )
+                                    )
+                            )
+                    )
+            );
+        });
     }
 
     private CompletionStage<HttpResponse> createOverallStatusResponse() {

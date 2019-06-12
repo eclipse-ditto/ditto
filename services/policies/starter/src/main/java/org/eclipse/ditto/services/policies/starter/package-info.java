@@ -12,7 +12,7 @@
  */
 
 /**
- * This package provides means for starting the Things service.
+ * This package provides means for starting the Policies service.
  */
 @org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault
 package org.eclipse.ditto.services.policies.starter;

@@ -22,7 +22,6 @@ import akka.actor.AbstractActor;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 
 /**
  * A ClientActor implementation that fails for every command received and answers with an exception.
@@ -41,14 +40,7 @@ public class FaultyClientActor extends AbstractActor {
     }
 
     public static Props props(final boolean allowFirstCreateCommand) {
-        return Props.create(FaultyClientActor.class, new Creator<FaultyClientActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public FaultyClientActor create() {
-                return new FaultyClientActor(allowFirstCreateCommand);
-            }
-        });
+        return Props.create(FaultyClientActor.class, allowFirstCreateCommand);
     }
 
     @Override

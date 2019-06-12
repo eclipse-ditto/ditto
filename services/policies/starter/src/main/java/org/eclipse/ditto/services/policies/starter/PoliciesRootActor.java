@@ -17,33 +17,33 @@ import static akka.http.javadsl.server.Directives.logResult;
 import static org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants.CLUSTER_ROLE;
 
 import java.net.ConnectException;
+import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.services.base.config.HealthConfigReader;
-import org.eclipse.ditto.services.base.config.HttpConfigReader;
-import org.eclipse.ditto.services.base.config.ServiceConfigReader;
+import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
+import org.eclipse.ditto.services.policies.common.config.PoliciesConfig;
 import org.eclipse.ditto.services.policies.persistence.actors.policies.PoliciesPersistenceStreamingActorCreator;
 import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicyPersistenceOperationsActor;
 import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicySupervisorActor;
-import org.eclipse.ditto.services.policies.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
+import org.eclipse.ditto.services.utils.config.LocalHostAddressSupplier;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
+import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.TagsConfig;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
-
-import com.typesafe.config.Config;
 
 import akka.Done;
 import akka.actor.AbstractActor;
@@ -65,7 +65,6 @@ import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.server.Route;
-import akka.japi.Creator;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
@@ -80,7 +79,7 @@ public final class PoliciesRootActor extends AbstractActor {
     /**
      * The name of this Actor in the ActorSystem.
      */
-    static final String ACTOR_NAME = "policiesRoot";
+    public static final String ACTOR_NAME = "policiesRoot";
 
     private static final String RESTARTING_CHILD_MESSAGE = "Restarting child...";
 
@@ -132,67 +131,62 @@ public final class PoliciesRootActor extends AbstractActor {
 
     private final RetrieveStatisticsDetailsResponseSupplier retrieveStatisticsDetailsResponseSupplier;
 
-    private PoliciesRootActor(final ServiceConfigReader configReader,
+    @SuppressWarnings("unused")
+    private PoliciesRootActor(final PoliciesConfig policiesConfig,
             final SnapshotAdapter<Policy> snapshotAdapter,
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
-        final int numberOfShards = configReader.cluster().numberOfShards();
-        final Config config = configReader.getRawConfig();
 
+        final ActorSystem actorSystem = getContext().system();
         final ClusterShardingSettings shardingSettings =
-                ClusterShardingSettings.create(getContext().system()).withRole(CLUSTER_ROLE);
+                ClusterShardingSettings.create(actorSystem).withRole(CLUSTER_ROLE);
 
-        final Duration minBackoff = config.getDuration(ConfigKeys.Policy.SUPERVISOR_EXPONENTIAL_BACKOFF_MIN);
-        final Duration maxBackoff = config.getDuration(ConfigKeys.Policy.SUPERVISOR_EXPONENTIAL_BACKOFF_MAX);
-        final double randomFactor = config.getDouble(ConfigKeys.Policy.SUPERVISOR_EXPONENTIAL_BACKOFF_RANDOM_FACTOR);
-        final Props policySupervisorProps = PolicySupervisorActor.props(pubSubMediator, minBackoff, maxBackoff,
-                randomFactor, snapshotAdapter);
+        final Props policySupervisorProps = PolicySupervisorActor.props(pubSubMediator, snapshotAdapter);
 
-        final int tagsStreamingCacheSize = config.getInt(ConfigKeys.POLICIES_TAGS_STREAMING_CACHE_SIZE);
+        final TagsConfig tagsConfig = policiesConfig.getTagsConfig();
         final ActorRef persistenceStreamingActor = startChildActor(PoliciesPersistenceStreamingActorCreator.ACTOR_NAME,
-                PoliciesPersistenceStreamingActorCreator.props(config, tagsStreamingCacheSize));
+                PoliciesPersistenceStreamingActorCreator.props(tagsConfig.getStreamingCacheSize()));
 
         pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
         pubSubMediator.tell(new DistributedPubSubMediator.Put(persistenceStreamingActor), getSelf());
 
-        final ActorRef policiesShardRegion = ClusterSharding.get(getContext().system())
+        final ClusterConfig clusterConfig = policiesConfig.getClusterConfig();
+        final ActorRef policiesShardRegion = ClusterSharding.get(actorSystem)
                 .start(PoliciesMessagingConstants.SHARD_REGION, policySupervisorProps, shardingSettings,
-                        ShardRegionExtractor.of(numberOfShards, getContext().getSystem()));
+                        ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem));
 
-        startChildActor(PolicyPersistenceOperationsActor.ACTOR_NAME, PolicyPersistenceOperationsActor.props(pubSubMediator, config));
+        // TODO Fix compilation error
+        startChildActor(PolicyPersistenceOperationsActor.ACTOR_NAME,
+                PolicyPersistenceOperationsActor.props(pubSubMediator, config));
 
         retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(policiesShardRegion,
                 PoliciesMessagingConstants.SHARD_REGION, log);
 
-        final HealthConfigReader healthConfig = configReader.health();
-
-        final boolean healthCheckEnabled = healthConfig.enabled();
-        final Duration healthCheckInterval = healthConfig.getInterval();
-
+        final HealthCheckConfig healthCheckConfig = policiesConfig.getHealthCheckConfig();
         final HealthCheckingActorOptions.Builder hcBuilder =
-                HealthCheckingActorOptions.getBuilder(healthCheckEnabled, healthCheckInterval);
-        if (healthConfig.persistenceEnabled()) {
+                HealthCheckingActorOptions.getBuilder(healthCheckConfig.isEnabled(), healthCheckConfig.getInterval());
+        if (healthCheckConfig.getPersistenceConfig().isEnabled()) {
             hcBuilder.enablePersistenceCheck();
         }
 
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
-        final Props healthCheckingActorProps =
-                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, MongoHealthChecker.props());
+        final Props healthCheckingActorProps = DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions,
+                MongoHealthChecker.props());
         final ActorRef healthCheckingActor =
                 startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME, healthCheckingActorProps);
 
-        final HttpConfigReader httpConfig = configReader.http();
+        final HttpConfig httpConfig = policiesConfig.getHttpConfig();
         String hostname = httpConfig.getHostname();
         if (hostname.isEmpty()) {
-            hostname = ConfigUtil.getLocalHostAddress();
-            log.info("No explicit hostname configured, using HTTP hostname: {}", hostname);
+            hostname = LocalHostAddressSupplier.getInstance().get();
+            log.info("No explicit hostname configured, using HTTP hostname <{}>.", hostname);
         }
 
-        final CompletionStage<ServerBinding> binding = Http.get(getContext().system())
-                .bindAndHandle(createRoute(getContext().system(), healthCheckingActor).flow(getContext().system(),
+        final CompletionStage<ServerBinding> binding = Http.get(actorSystem)
+                .bindAndHandle(createRoute(actorSystem, healthCheckingActor).flow(actorSystem,
                         materializer), ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
 
-        binding.thenAccept(theBinding -> CoordinatedShutdown.get(getContext().getSystem()).addTask(
+        binding.thenAccept(theBinding -> CoordinatedShutdown.get(actorSystem).addTask(
                 CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_health_http_endpoint", () -> {
                     log.info("Gracefully shutting down status/health HTTP endpoint..");
                     return theBinding.terminate(Duration.ofSeconds(1))
@@ -202,7 +196,7 @@ public final class PoliciesRootActor extends AbstractActor {
         binding.thenAccept(this::logServerBinding)
                 .exceptionally(failure -> {
                     log.error(failure, "Something very bad happened: {}", failure.getMessage());
-                    getContext().system().terminate();
+                    actorSystem.terminate();
                     return null;
                 });
     }
@@ -210,25 +204,18 @@ public final class PoliciesRootActor extends AbstractActor {
     /**
      * Creates Akka configuration object Props for this PoliciesRootActor.
      *
-     * @param configReader the configuration reader of this service.
+     * @param policiesConfig the configuration reader of this service.
      * @param snapshotAdapter serializer and deserializer of the Policies snapshot store.
      * @param pubSubMediator the PubSub mediator Actor.
      * @param materializer the materializer for the akka actor system.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ServiceConfigReader configReader,
+    public static Props props(final PoliciesConfig policiesConfig,
             final SnapshotAdapter<Policy> snapshotAdapter,
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
-        return Props.create(PoliciesRootActor.class, new Creator<PoliciesRootActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public PoliciesRootActor create() {
-                return new PoliciesRootActor(configReader, snapshotAdapter, pubSubMediator, materializer);
-            }
-        });
+        return Props.create(PoliciesRootActor.class, policiesConfig, snapshotAdapter, pubSubMediator, materializer);
     }
 
     @Override
@@ -248,13 +235,13 @@ public final class PoliciesRootActor extends AbstractActor {
     }
 
     private void handleRetrieveStatisticsDetails(final RetrieveStatisticsDetails command) {
-        log.info("Sending the namespace stats of the policy shard as requested..");
+        log.info("Sending the namespace stats of the policy shard as requested ...");
         PatternsCS.pipe(retrieveStatisticsDetailsResponseSupplier
                 .apply(command.getDittoHeaders()), getContext().dispatcher()).to(getSender());
     }
 
     private ActorRef startChildActor(final String actorName, final Props props) {
-        log.info("Starting child actor '{}'", actorName);
+        log.info("Starting child actor <{}>.", actorName);
         return getContext().actorOf(props, actorName);
     }
 
@@ -266,8 +253,8 @@ public final class PoliciesRootActor extends AbstractActor {
     }
 
     private void logServerBinding(final ServerBinding serverBinding) {
-        log.info("Bound to address {}:{}", serverBinding.localAddress().getHostString(),
-                serverBinding.localAddress().getPort());
+        final InetSocketAddress localAddress = serverBinding.localAddress();
+        log.info("Bound to address <{}:{}>.", localAddress.getHostString(), localAddress.getPort());
     }
 
 }

@@ -96,4 +96,5 @@ public final class ReconnectActorTest {
             probe.expectNoMsg();
         }};
     }
+
 }

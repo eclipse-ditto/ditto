@@ -39,6 +39,7 @@ public class PolicyCacheUpdateActor extends AbstractPubSubListenerActor {
 
     private final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache;
 
+    @SuppressWarnings("unused")
     private PolicyCacheUpdateActor(final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
             final ActorRef pubSubMediator, final String instanceIndex) {
 
@@ -60,8 +61,7 @@ public class PolicyCacheUpdateActor extends AbstractPubSubListenerActor {
         requireNonNull(policyEnforcerCache);
         requireNonNull(pubSubMediator);
 
-        return Props.create(PolicyCacheUpdateActor.class,
-                () -> new PolicyCacheUpdateActor(policyEnforcerCache, pubSubMediator, instanceIndex));
+        return Props.create(PolicyCacheUpdateActor.class, policyEnforcerCache, pubSubMediator, instanceIndex);
     }
 
     @Override
