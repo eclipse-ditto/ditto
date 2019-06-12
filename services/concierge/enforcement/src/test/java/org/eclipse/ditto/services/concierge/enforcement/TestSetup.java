@@ -99,15 +99,15 @@ public final class TestSetup {
         final Duration askTimeout = CACHES_CONFIG.getAskTimeout();
 
         final PolicyEnforcerCacheLoader policyEnforcerCacheLoader =
-                new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegion, null);
+                new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegion);
         final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache = CaffeineCache.of(Caffeine.newBuilder(),
                 policyEnforcerCacheLoader);
         final AclEnforcerCacheLoader aclEnforcerCacheLoader =
-                new AclEnforcerCacheLoader(askTimeout, thingsShardRegion, null);
+                new AclEnforcerCacheLoader(askTimeout, thingsShardRegion);
         final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache = CaffeineCache.of(Caffeine.newBuilder(),
                 aclEnforcerCacheLoader);
         final ThingEnforcementIdCacheLoader thingEnforcementIdCacheLoader =
-                new ThingEnforcementIdCacheLoader(askTimeout, thingsShardRegion, null);
+                new ThingEnforcementIdCacheLoader(askTimeout, thingsShardRegion);
         final Cache<EntityId, Entry<EntityId>> thingIdCache =
                 CaffeineCache.of(Caffeine.newBuilder(), thingEnforcementIdCacheLoader);
 

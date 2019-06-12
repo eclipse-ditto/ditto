@@ -16,12 +16,10 @@ import static java.util.Objects.requireNonNull;
 
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.enforcers.Enforcer;
@@ -52,10 +50,8 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<EntityI
      *
      * @param askTimeout the ask-timeout for communicating with the shard-region-proxy.
      * @param policiesShardRegionProxy the shard-region-proxy.
-     * @param predicate the test to execute before loading a cache entry, or null.
      */
-    public PolicyEnforcerCacheLoader(final Duration askTimeout, final ActorRef policiesShardRegionProxy,
-            @Nullable final Function<EntityId, CompletionStage<Boolean>> predicate) {
+    public PolicyEnforcerCacheLoader(final Duration askTimeout, final ActorRef policiesShardRegionProxy) {
         requireNonNull(askTimeout);
         requireNonNull(policiesShardRegionProxy);
 
@@ -64,7 +60,7 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<EntityI
                 PolicyEnforcerCacheLoader::handleSudoRetrievePolicyResponse;
 
         delegate = ActorAskCacheLoader.forShard(askTimeout, PolicyCommand.RESOURCE_TYPE, policiesShardRegionProxy,
-                commandCreator, responseTransformer).withPredicate(predicate);
+                commandCreator, responseTransformer);
     }
 
     @Override

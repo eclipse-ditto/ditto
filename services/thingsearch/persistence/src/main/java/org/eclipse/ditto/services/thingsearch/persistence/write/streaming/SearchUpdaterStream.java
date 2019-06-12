@@ -76,6 +76,7 @@ public final class SearchUpdaterStream {
     /**
      * Create a restart-able SearchUpdaterStream object.
      *
+     *
      * @param searchConfig the configuration settings of the Things-Search service.
      * @param actorSystem actor system to run the stream in.
      * @param thingsShard shard region proxy of things.
@@ -103,7 +104,7 @@ public final class SearchUpdaterStream {
 
         final EnforcementFlow enforcementFlow =
                 EnforcementFlow.of(streamConfig, thingsShard, policiesShard, messageDispatcher,
-                        deleteEvent, blockedNamespaces);
+                        deleteEvent);
 
         final MongoSearchUpdaterFlow mongoSearchUpdaterFlow = MongoSearchUpdaterFlow.of(database);
 

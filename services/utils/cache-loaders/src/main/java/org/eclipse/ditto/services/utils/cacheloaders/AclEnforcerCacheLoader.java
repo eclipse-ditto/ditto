@@ -17,7 +17,6 @@ import static java.util.Objects.requireNonNull;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -54,10 +53,8 @@ public final class AclEnforcerCacheLoader implements AsyncCacheLoader<EntityId, 
      *
      * @param askTimeout the ask-timeout for communicating with the shard-region-proxy.
      * @param thingsShardRegionProxy the shard-region-proxy.
-     * @param predicate the test to execute before loading a cache entry, or null.
      */
-    public AclEnforcerCacheLoader(final Duration askTimeout, final ActorRef thingsShardRegionProxy,
-            @Nullable final Function<EntityId, CompletionStage<Boolean>> predicate) {
+    public AclEnforcerCacheLoader(final Duration askTimeout, final ActorRef thingsShardRegionProxy) {
         requireNonNull(askTimeout);
         requireNonNull(thingsShardRegionProxy);
 
@@ -66,7 +63,7 @@ public final class AclEnforcerCacheLoader implements AsyncCacheLoader<EntityId, 
                 AclEnforcerCacheLoader::handleSudoRetrieveThingResponse;
 
         this.delegate = ActorAskCacheLoader.forShard(askTimeout, ThingCommand.RESOURCE_TYPE, thingsShardRegionProxy,
-                commandCreator, responseTransformer).withPredicate(predicate);
+                commandCreator, responseTransformer);
     }
 
     @Override
