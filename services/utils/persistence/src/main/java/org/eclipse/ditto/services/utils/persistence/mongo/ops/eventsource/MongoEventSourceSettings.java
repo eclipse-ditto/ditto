@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -39,13 +39,17 @@ public final class MongoEventSourceSettings {
     private final String suffixSeparator;
 
     private MongoEventSourceSettings(final String persistenceIdPrefix,
-            final boolean supportsNamespaces, final String metadataCollectionName, final String journalCollectionName,
-            final String snapshotCollectionName, @Nullable final String suffixSeparator) {
-        this.persistenceIdPrefix = requireNonNull(persistenceIdPrefix);
+            final boolean supportsNamespaces,
+            final String metadataCollectionName,
+            final String journalCollectionName,
+            final String snapshotCollectionName,
+            @Nullable final String suffixSeparator) {
+
+        this.persistenceIdPrefix = checkNotNull(persistenceIdPrefix, "persistence ID prefix");
         this.supportsNamespaces = supportsNamespaces;
-        this.metadataCollectionName = requireNonNull(metadataCollectionName);
-        this.journalCollectionName = requireNonNull(journalCollectionName);
-        this.snapshotCollectionName = requireNonNull(snapshotCollectionName);
+        this.metadataCollectionName = checkNotNull(metadataCollectionName, "metadata collection name");
+        this.journalCollectionName = checkNotNull(journalCollectionName, "journal collection name");
+        this.snapshotCollectionName = checkNotNull(snapshotCollectionName, "snapshot collection name");
 
         if (suffixSeparator != null && !supportsNamespaces) {
             throw new IllegalArgumentException("suffixSeparator is currently not allowed when namespaces are not " +
@@ -57,19 +61,23 @@ public final class MongoEventSourceSettings {
     /**
      * Create a new instance.
      *
-     * @param persistenceIdPrefix the prefix of the persistence id
-     * @param supportsNamespaces whether the underlying EventSource supports namespaces
-     * @param metadataCollectionName the name of the metadata collection
-     * @param journalCollectionName the name of the journal collection
-     * @param snapshotCollectionName the name of the snapshot collection
+     * @param persistenceIdPrefix the prefix of the persistence ID.
+     * @param supportsNamespaces whether the underlying EventSource supports namespaces.
+     * @param metadataCollectionName the name of the metadata collection.
+     * @param journalCollectionName the name of the journal collection.
+     * @param snapshotCollectionName the name of the snapshot collection.
      * @param suffixSeparator the suffix separator, may be {@code null}: if not null, it is assumed that there is one
-     * collection per namespace with the córresponding suffix
-     *
-     * @return the instance
+     * collection per namespace with the corresponding suffix.
+     * @return the instance.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static MongoEventSourceSettings of(final String persistenceIdPrefix,
-            final boolean supportsNamespaces, final String metadataCollectionName, final String journalCollectionName,
-            final String snapshotCollectionName, @Nullable final String suffixSeparator) {
+            final boolean supportsNamespaces,
+            final String metadataCollectionName,
+            final String journalCollectionName,
+            final String snapshotCollectionName,
+            @Nullable final String suffixSeparator) {
+
         return new MongoEventSourceSettings(persistenceIdPrefix, supportsNamespaces,
                 metadataCollectionName, journalCollectionName, snapshotCollectionName, suffixSeparator);
     }
@@ -78,28 +86,28 @@ public final class MongoEventSourceSettings {
      * Create a new instance based on a {@link Config}.
      *
      * @param config the config which contains the configuration of the EventSource
-     * @param persistenceIdPrefix the prefix of the persistence id
+     * @param persistenceIdPrefix the prefix of the persistence ID.
      * @param supportsNamespaces whether the underlying EventSource supports namespaces
      * @param journalPluginId the ID of the journal plugin to be read from the {@code config}
      * @param snapshotPluginId the ID of the snapshot plugin to be read from the {@code config}
-     *
-     * @return the instance
+     * @return the instance.
+     * @throws NullPointerException if any argument is {@code null}.
      */
-    public static MongoEventSourceSettings fromConfig(final Config config, final String persistenceIdPrefix,
+    public static MongoEventSourceSettings fromConfig(final Config config,
+            final String persistenceIdPrefix,
             final boolean supportsNamespaces,
             final String journalPluginId,
             final String snapshotPluginId) {
-        requireNonNull(persistenceIdPrefix);
-        requireNonNull(config);
-        requireNonNull(journalPluginId);
-        requireNonNull(snapshotPluginId);
+
+        checkNotNull(config, "config");
+        checkNotNull(journalPluginId, "journal plugin ID");
+        checkNotNull(snapshotPluginId, "snapshot plugin ID");
 
         final String metadataCollectionName = getCollectionName(config, journalPluginId, "metadata");
         final String journalCollectionName = getCollectionName(config, journalPluginId, "journal");
         final String snapshotCollectionName = getCollectionName(config, snapshotPluginId, "snaps");
 
-        final boolean isSuffixBuilderEnabled =
-                !readConfig(config, suffixBuilderPath("class"), "").trim().isEmpty();
+        final boolean isSuffixBuilderEnabled = !readConfig(config, suffixBuilderPath("class"), "").trim().isEmpty();
 
         final String suffixSeparator;
         if (isSuffixBuilderEnabled) {
@@ -108,8 +116,8 @@ public final class MongoEventSourceSettings {
             suffixSeparator = null;
         }
 
-        return new MongoEventSourceSettings(persistenceIdPrefix, supportsNamespaces,
-                metadataCollectionName, journalCollectionName, snapshotCollectionName, suffixSeparator);
+        return new MongoEventSourceSettings(persistenceIdPrefix, supportsNamespaces, metadataCollectionName,
+                journalCollectionName, snapshotCollectionName, suffixSeparator);
     }
 
     /**
@@ -201,4 +209,5 @@ public final class MongoEventSourceSettings {
                 ", suffixSeparator='" + suffixSeparator + '\'' +
                 ']';
     }
+
 }

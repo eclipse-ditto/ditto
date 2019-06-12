@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.things.persistence.actors;
 import java.util.Collections;
 
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.AbstractPersistenceOperationsActor;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.NamespacePersistenceOperations;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.PersistenceOperationsConfiguration;
@@ -42,42 +43,38 @@ public final class ThingPersistenceOperationsActor extends AbstractPersistenceOp
             final MongoClientWrapper mongoClientWrapper,
             final PersistenceOperationsConfiguration persistenceOperationsConfiguration) {
 
-        super(
-                pubSubMediator,
+        super(pubSubMediator,
                 ThingCommand.RESOURCE_TYPE,
                 namespaceOps,
                 null,
                 Collections.singleton(mongoClientWrapper),
-                persistenceOperationsConfiguration
-        );
+                persistenceOperationsConfiguration);
     }
 
     /**
      * Create Props of this actor.
      *
      * @param pubSubMediator Akka pub-sub mediator.
+     * @param mongoDbConfig the MongoDB configuration settings.
      * @param config Configuration with info about event journal, snapshot store, suffix-builder and database.
      * @return a Props object.
      */
-    public static Props props(final ActorRef pubSubMediator, final Config config) {
+    public static Props props(final ActorRef pubSubMediator, final MongoDbConfig mongoDbConfig, final Config config) {
         return Props.create(ThingPersistenceOperationsActor.class, () -> {
             final MongoEventSourceSettings eventSourceSettings =
                     MongoEventSourceSettings.fromConfig(config, ThingPersistenceActor.PERSISTENCE_ID_PREFIX, true,
                             ThingPersistenceActor.JOURNAL_PLUGIN_ID, ThingPersistenceActor.SNAPSHOT_PLUGIN_ID);
 
-            final MongoClientWrapper mongoClient = MongoClientWrapper.newInstance(config);
+            final MongoClientWrapper mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
             final MongoDatabase db = mongoClient.getDefaultDatabase();
 
-            final NamespacePersistenceOperations namespaceOps = MongoNamespacePersistenceOperations.of(db, eventSourceSettings);
+            final NamespacePersistenceOperations namespaceOps =
+                    MongoNamespacePersistenceOperations.of(db, eventSourceSettings);
             final PersistenceOperationsConfiguration persistenceOperationsConfiguration =
                     PersistenceOperationsConfiguration.fromConfig(config);
 
-            return new ThingPersistenceOperationsActor(
-                    pubSubMediator,
-                    namespaceOps,
-                    mongoClient,
-                    persistenceOperationsConfiguration
-            );
+            return new ThingPersistenceOperationsActor(pubSubMediator, namespaceOps, mongoClient,
+                    persistenceOperationsConfiguration);
         });
     }
 

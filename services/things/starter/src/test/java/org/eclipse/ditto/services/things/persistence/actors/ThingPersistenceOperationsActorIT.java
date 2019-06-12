@@ -12,10 +12,6 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors;
 
-import java.time.Duration;
-import java.util.Collections;
-import java.util.List;
-
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
@@ -29,7 +25,6 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -54,11 +49,6 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
     @Override
     protected String getServiceName() {
         return "things";
-    }
-
-    @Override
-    protected Config getExtraConfig() {
-        return ConfigFactory.load("thing-test");
     }
 
     @Override
@@ -95,7 +85,7 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
     protected ActorRef startActorUnderTest(final ActorSystem actorSystem, final ActorRef pubSubMediator,
             final Config config) {
 
-        final Props opsActorProps = ThingPersistenceOperationsActor.props(pubSubMediator);
+        final Props opsActorProps = ThingPersistenceOperationsActor.props(pubSubMediator, mongoDbConfig, config);
         return actorSystem.actorOf(opsActorProps, ThingPersistenceOperationsActor.ACTOR_NAME);
     }
 

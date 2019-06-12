@@ -103,7 +103,7 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
     protected ActorRef startActorUnderTest(final ActorSystem actorSystem, final ActorRef pubSubMediator,
             final Config config) {
 
-        final Props opsActorProps = ConnectionPersistenceOperationsActor.props(pubSubMediator, config);
+        final Props opsActorProps = ConnectionPersistenceOperationsActor.props(pubSubMediator, mongoDbConfig, config);
         return actorSystem.actorOf(opsActorProps, ConnectionPersistenceOperationsActor.ACTOR_NAME);
     }
 
@@ -117,8 +117,9 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
         final TestProbe conciergeForwarderProbe = new TestProbe(system, "conciergeForwarder");
         final ConnectivityCommandInterceptor dummyInterceptor = (command) -> {};
         final ClientActorPropsFactory entityActorFactory = DefaultClientActorPropsFactory.getInstance();
-        final Props props = ConnectionSupervisorActor.props(minBackOff, maxBackOff, randomFactor, pubSubMediator,
-                conciergeForwarderProbe.ref(), entityActorFactory, dummyInterceptor);
+        final Props props =
+                ConnectionSupervisorActor.props(pubSubMediator, conciergeForwarderProbe.ref(), entityActorFactory,
+                        dummyInterceptor);
 
         return system.actorOf(props, id);
     }

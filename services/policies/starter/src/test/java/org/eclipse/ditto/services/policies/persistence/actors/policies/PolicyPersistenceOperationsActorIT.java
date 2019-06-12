@@ -34,7 +34,6 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -69,11 +68,6 @@ public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceIT
     @Override
     protected String getServiceName() {
         return "policies";
-    }
-
-    @Override
-    protected Config getExtraConfig() {
-        return ConfigFactory.load("policy-test");
     }
 
     @Override
@@ -116,7 +110,7 @@ public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceIT
     protected ActorRef startActorUnderTest(final ActorSystem actorSystem, final ActorRef pubSubMediator,
             final Config config) {
 
-        final Props opsActorProps = PolicyPersistenceOperationsActor.props(pubSubMediator);
+        final Props opsActorProps = PolicyPersistenceOperationsActor.props(pubSubMediator, mongoDbConfig, config);
         return actorSystem.actorOf(opsActorProps, PolicyPersistenceOperationsActor.ACTOR_NAME);
     }
 

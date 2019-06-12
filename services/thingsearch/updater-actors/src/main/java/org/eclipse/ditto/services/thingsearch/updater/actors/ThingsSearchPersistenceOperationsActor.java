@@ -37,13 +37,7 @@ public final class ThingsSearchPersistenceOperationsActor extends AbstractPersis
             final NamespacePersistenceOperations namespaceOps,
             final PersistenceOperationsConfiguration persistenceOperationsConfiguration) {
 
-        super(
-                pubSubMediator,
-                ThingSearchCommand.RESOURCE_TYPE,
-                namespaceOps,
-                null,
-                persistenceOperationsConfiguration
-        );
+        super(pubSubMediator, ThingSearchCommand.RESOURCE_TYPE, namespaceOps, null, persistenceOperationsConfiguration);
     }
 
     /**
@@ -62,11 +56,8 @@ public final class ThingsSearchPersistenceOperationsActor extends AbstractPersis
                     final PersistenceOperationsConfiguration persistenceOperationsConfiguration =
                             PersistenceOperationsConfiguration.fromConfig(config);
 
-                    return new ThingsSearchPersistenceOperationsActor(
-                            pubSubMediator,
-                            persistence,
-                            persistenceOperationsConfiguration
-                    );
+                    return new ThingsSearchPersistenceOperationsActor(pubSubMediator, persistence,
+                            persistenceOperationsConfiguration);
                 });
 
     }

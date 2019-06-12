@@ -14,14 +14,8 @@ package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.services.thingsearch.common.config.DeleteConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.SearchConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.UpdaterConfig;
-import org.eclipse.ditto.services.thingsearch.common.util.RootSupervisorStrategyFactory;
-import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
-import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
-import org.eclipse.ditto.services.thingsearch.persistence.write.streaming.ChangeQueueActor;
-import org.eclipse.ditto.services.thingsearch.persistence.write.streaming.SearchUpdaterStream;
 import org.eclipse.ditto.services.thingsearch.common.util.RootSupervisorStrategyFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
@@ -137,9 +131,9 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final Props manualUpdaterProps = ManualUpdater.props(dittoMongoClient.getDefaultDatabase(), thingsUpdaterActor);
         startClusterSingletonActor(ManualUpdater.ACTOR_NAME, manualUpdaterProps);
 
-        // TODO Fix compilation error.
         startChildActor(ThingsSearchPersistenceOperationsActor.ACTOR_NAME,
-                ThingsSearchPersistenceOperationsActor.props(pubSubMediator, searchUpdaterPersistence, config));
+                ThingsSearchPersistenceOperationsActor.props(pubSubMediator, searchUpdaterPersistence,
+                        actorSystem.settings().config()));
 
         startThingsStreamSupervisor(updaterConfig.getThingsSyncConfig(), pubSubMediator, materializer,
                 thingsSyncPersistence);
@@ -236,7 +230,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     }
 
     private ActorRef startChildActor(final String actorName, final Props props) {
-        log.info("Starting child actor '{}'", actorName);
+        log.info("Starting child actor <{}>.", actorName);
         return getContext().actorOf(props, actorName);
     }
 

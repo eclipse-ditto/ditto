@@ -155,9 +155,9 @@ public final class PoliciesRootActor extends AbstractActor {
                 .start(PoliciesMessagingConstants.SHARD_REGION, policySupervisorProps, shardingSettings,
                         ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem));
 
-        // TODO Fix compilation error
         startChildActor(PolicyPersistenceOperationsActor.ACTOR_NAME,
-                PolicyPersistenceOperationsActor.props(pubSubMediator, config));
+                PolicyPersistenceOperationsActor.props(pubSubMediator, policiesConfig.getMongoDbConfig(),
+                        actorSystem.settings().config()));
 
         retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(policiesShardRegion,
                 PoliciesMessagingConstants.SHARD_REGION, log);

@@ -155,9 +155,9 @@ public final class ThingsRootActor extends AbstractActor {
                         ClusterShardingSettings.create(actorSystem).withRole(CLUSTER_ROLE),
                         ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem));
 
-        // TODO Fix compilation error.
         startChildActor(ThingPersistenceOperationsActor.ACTOR_NAME,
-                ThingPersistenceOperationsActor.props(pubSubMediator, config));
+                ThingPersistenceOperationsActor.props(pubSubMediator, thingsConfig.getMongoDbConfig(),
+                        actorSystem.settings().config()));
 
         retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(thingsShardRegion,
                 ThingsMessagingConstants.SHARD_REGION, log);

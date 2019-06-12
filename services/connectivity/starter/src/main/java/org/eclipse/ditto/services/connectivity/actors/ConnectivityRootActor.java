@@ -171,9 +171,9 @@ public final class ConnectivityRootActor extends AbstractActor {
                 ReconnectActor.props(getConnectionShardRegion(actorSystem, connectionSupervisorProps, clusterConfig),
                         mongoReadJournal::currentPersistenceIds));
 
-        // TODO Fix compile error
         startChildActor(ConnectionPersistenceOperationsActor.ACTOR_NAME,
-                ConnectionPersistenceOperationsActor.props(pubSubMediator, config));
+                ConnectionPersistenceOperationsActor.props(pubSubMediator, connectivityConfig.getMongoDbConfig(),
+                        actorSystem.settings().config()));
 
         final CompletionStage<ServerBinding> binding =
                 getHttpBinding(connectivityConfig.getHttpConfig(), actorSystem, materializer,
