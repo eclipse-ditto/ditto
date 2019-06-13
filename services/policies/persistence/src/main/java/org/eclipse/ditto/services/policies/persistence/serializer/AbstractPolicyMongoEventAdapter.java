@@ -130,7 +130,7 @@ public abstract class AbstractPolicyMongoEventAdapter implements EventAdapter {
 
     /**
      * A "payload" object was wrapping the events payload until the introduction of "cr-commands 1.0.0". This field has
-     * to be used as fallback for already persisted events with "things-model" < 3.0.0. Removing this workaround is
+     * to be used as fallback for already persisted events with "things-model" &lt; 3.0.0. Removing this workaround is
      * possible if we are sure that no "old" events are ever loaded again!
      *
      * @param jsonObject the jsonObject to be migrated.
