@@ -34,7 +34,7 @@ import org.eclipse.ditto.model.policies.PolicyBuilder;
 import org.eclipse.ditto.model.policies.PolicyLifecycle;
 import org.eclipse.ditto.model.policies.PolicyRevision;
 import org.eclipse.ditto.services.policies.persistence.actors.PersistenceActorTestBase;
-import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoEventAdapter;
+import org.eclipse.ditto.services.policies.persistence.serializer.DefaultPolicyMongoEventAdapter;
 import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSnapshotAdapter;
 import org.eclipse.ditto.services.policies.persistence.testhelper.Assertions;
 import org.eclipse.ditto.services.policies.persistence.testhelper.PoliciesJournalTestHelper;
@@ -77,7 +77,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
     private static final Duration VERY_LONG_DURATION = Duration.ofDays(100);
     private static final int PERSISTENCE_ASSERT_WAIT_AT_MOST_MS = 5000;
     private static final long PERSISTENCE_ASSERT_RETRY_DELAY_MS = 500;
-    private PolicyMongoEventAdapter eventAdapter;
+    private DefaultPolicyMongoEventAdapter eventAdapter;
     private PoliciesJournalTestHelper<Event> journalTestHelper;
     private PoliciesSnapshotTestHelper<Policy> snapshotTestHelper;
     private Map<Class<? extends Command>, BiFunction<Command, Long, Event>> commandToEventMapperRegistry;
@@ -153,7 +153,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
     @Override
     protected void setup(final Config customConfig) {
         super.setup(customConfig);
-        eventAdapter = new PolicyMongoEventAdapter((ExtendedActorSystem) actorSystem);
+        eventAdapter = new DefaultPolicyMongoEventAdapter((ExtendedActorSystem) actorSystem);
 
         journalTestHelper = new PoliciesJournalTestHelper<>(actorSystem, this::convertJournalEntryToEvent,
                 PolicyPersistenceActorSnapshottingTest::convertDomainIdToPersistenceId);
