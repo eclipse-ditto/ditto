@@ -31,6 +31,7 @@ import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.pattern.Patterns;
 import akka.stream.OverflowStrategy;
 import akka.stream.SourceRef;
+import akka.stream.javadsl.RestartSource;
 import akka.stream.javadsl.Source;
 
 /**
@@ -67,6 +68,16 @@ public final class SnapshotRevisionSource {
                 .flatMapConcat(SnapshotRevisionSource::handleSourceRef);
     }
 
+    public static Source<EntityIdWithRevision, NotUsed> createInfiniteSource(final ActorRef pubSubMediator) {
+        // TODO: configure?
+        final Duration minBackOff = Duration.ofSeconds(1L);
+        final Duration maxBackOff = Duration.ofSeconds(120L);
+        final double randomFactor = 0.5;
+
+        // RestartSource generates error logs if the stream restarts due to failure.
+        return RestartSource.withBackoff(minBackOff, maxBackOff, randomFactor, () -> create(pubSubMediator));
+    }
+
     private static DistributedPubSubMediator.Send requestStreamCommand(final String path) {
         return new DistributedPubSubMediator.Send(path, sudoStreamSnapshotRevisions(), false);
     }
@@ -90,7 +101,7 @@ public final class SnapshotRevisionSource {
                         final BatchedEntityIdWithRevisions<?> batch = (BatchedEntityIdWithRevisions) element;
                         final Source<? extends EntityIdWithRevision, NotUsed> source =
                                 Source.fromIterator(batch.getElements()::iterator);
-                        return source.map(x -> x);
+                        return source.<EntityIdWithRevision>map(x -> x);
                     } else {
                         return failedSourceDueToUnexpectedMessage("BatchedEntityIdWithRevisions", element);
                     }
