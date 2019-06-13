@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource;
 
+import static org.mockito.Mockito.mock;
+
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
@@ -20,13 +22,11 @@ import java.util.Random;
 import java.util.UUID;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.raw.RawConfigSupplier;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.NamespaceSuffixCollectionNames;
 import org.eclipse.ditto.services.utils.persistence.operations.AbstractPersistenceOperationsActor;
-import org.eclipse.ditto.services.utils.persistence.operations.DefaultPersistenceOperationsConfig;
 import org.eclipse.ditto.services.utils.persistence.operations.PersistenceOperationsConfig;
 import org.eclipse.ditto.services.utils.test.mongo.MongoDbResource;
 import org.eclipse.ditto.signals.commands.common.purge.PurgeEntities;
@@ -38,6 +38,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.rules.TestName;
+import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -78,9 +79,9 @@ public abstract class MongoEventSourceITAssertions {
         mongoDbUri = String.format("mongodb://%s:%s/test", mongoDbResource.getBindIp(), mongoDbResource.getPort());
 
         mongoDbConfig = DefaultMongoDbConfig.of(getConfig());
-        final Config testConfig = ConfigFactory.load("test");
-        persistenceOperationsConfig =
-                DefaultPersistenceOperationsConfig.of(DefaultScopedConfig.dittoScoped(testConfig));
+        persistenceOperationsConfig = mock(PersistenceOperationsConfig.class);
+        Mockito.when(persistenceOperationsConfig.getDelayAfterPersistenceActorShutdown())
+                .thenReturn(Duration.ofSeconds(5L));
     }
 
     private static Config getConfig() {
