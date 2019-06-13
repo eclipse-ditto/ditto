@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.persistence;
 
-import java.time.Duration;
 import java.util.Collections;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -103,19 +102,16 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
     protected ActorRef startActorUnderTest(final ActorSystem actorSystem, final ActorRef pubSubMediator,
             final Config config) {
 
-        final Props opsActorProps = ConnectionPersistenceOperationsActor.props(pubSubMediator, mongoDbConfig, config);
+        final Props opsActorProps = ConnectionPersistenceOperationsActor.props(pubSubMediator, mongoDbConfig, config,
+                persistenceOperationsConfig);
         return actorSystem.actorOf(opsActorProps, ConnectionPersistenceOperationsActor.ACTOR_NAME);
     }
 
     @Override
     protected ActorRef startEntityActor(final ActorSystem system, final ActorRef pubSubMediator, final String id) {
         // essentially never restart
-        final Duration minBackOff = Duration.ofSeconds(36000);
-        final Duration maxBackOff = Duration.ofSeconds(36000);
-        final double randomFactor = 0.2;
-
         final TestProbe conciergeForwarderProbe = new TestProbe(system, "conciergeForwarder");
-        final ConnectivityCommandInterceptor dummyInterceptor = (command) -> {};
+        final ConnectivityCommandInterceptor dummyInterceptor = command -> {};
         final ClientActorPropsFactory entityActorFactory = DefaultClientActorPropsFactory.getInstance();
         final Props props =
                 ConnectionSupervisorActor.props(pubSubMediator, conciergeForwarderProbe.ref(), entityActorFactory,

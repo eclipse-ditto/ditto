@@ -12,8 +12,9 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -27,7 +28,8 @@ import org.bson.Document;
 import akka.contrib.persistence.mongodb.JournallingFieldNames$;
 
 /**
- * Provides {@link MongoPersistenceOperationsSelection}s for selecting/deleting documents in a MongoDB EventSource persistence.
+ * Provides {@link MongoPersistenceOperationsSelection}s for selecting/deleting documents in a MongoDB EventSource
+ * persistence.
  */
 @Immutable
 final class MongoPersistenceOperationsSelectionProvider {
@@ -37,14 +39,15 @@ final class MongoPersistenceOperationsSelectionProvider {
     private final MongoEventSourceSettings settings;
 
     private MongoPersistenceOperationsSelectionProvider(final MongoEventSourceSettings settings) {
-        this.settings = requireNonNull(settings);
+        this.settings = checkNotNull(settings, "MongoEventSourceSettings");
     }
 
     /**
-     * Create a new instance.
+     * Returns an instance of {@code MongoPersistenceOperationsSelectionProvider}.
      *
-     * @param settings the MongoDB EventSource settings
-     * @return the instance
+     * @param settings the MongoDB EventSource settings.
+     * @return the instance.
+     * @throws NullPointerException if {@code settings} is {@code null}.
      */
     public static MongoPersistenceOperationsSelectionProvider of(final MongoEventSourceSettings settings) {
         return new MongoPersistenceOperationsSelectionProvider(settings);
@@ -53,39 +56,41 @@ final class MongoPersistenceOperationsSelectionProvider {
     /**
      * Select an entity by its ID.
      *
-     * @param entityId the ID
-     * @return a collection of {@link MongoPersistenceOperationsSelection} which represent all occurrence of the entity in the
-     * EventSource.
+     * @param entityId the ID.
+     * @return a collection of {@link MongoPersistenceOperationsSelection} which represent all occurrence of the entity
+     * in the EventSource.
+     * @throws NullPointerException if {@code entityId} is {@code null}.
      */
     public Collection<MongoPersistenceOperationsSelection> selectEntity(final String entityId) {
-        requireNonNull(entityId);
+        checkNotNull(entityId, "entity ID");
 
         if (settings.isSupportsNamespaces()) {
             validateAndExtractNamespace(entityId);
         }
 
-        return settings.getSuffixSeparator().isPresent()
-                ? selectEntityBySuffix(entityId)
-                : selectEntityWithoutSuffix(entityId);
+        return settings.getSuffixSeparator()
+                .map(suffixSeparator -> selectEntityBySuffix(entityId))
+                .orElseGet(() -> selectEntityWithoutSuffix(entityId));
     }
 
     /**
      * Select a complete namespace.
      *
-     * @param namespace the namespace
-     * @return a collection of {@link MongoPersistenceOperationsSelection} which represent all occurrence of a namespace in the
-     * EventSource.
+     * @param namespace the namespace.
+     * @return a collection of {@link MongoPersistenceOperationsSelection} which represent all occurrence of a namespace
+     * in the EventSource.
+     * @throws NullPointerException if {@code namespace} is {@code null}.
      */
-    public Collection<MongoPersistenceOperationsSelection> selectNamespace(final String namespace) {
-        requireNonNull(namespace);
+    public Collection<MongoPersistenceOperationsSelection> selectNamespace(final CharSequence namespace) {
+        checkNotNull(namespace, "namespace");
 
         if (!settings.isSupportsNamespaces()) {
-            throw new UnsupportedOperationException("Namespaces are not supported");
+            throw new UnsupportedOperationException("Namespaces are not supported!");
         }
 
-        return settings.getSuffixSeparator().isPresent()
-                ? selectNamespaceWithSuffix(namespace)
-                : selectNamespaceWithoutSuffix(namespace);
+        return settings.getSuffixSeparator()
+                .map(suffixSeparator -> selectNamespaceWithSuffix(namespace))
+                .orElseGet(() -> selectNamespaceWithoutSuffix(namespace));
     }
 
     private Collection<MongoPersistenceOperationsSelection> selectEntityBySuffix(final String entityId) {
@@ -103,7 +108,7 @@ final class MongoPersistenceOperationsSelectionProvider {
                 selectEntityByPid(settings.getSnapshotCollectionName(), entityId)));
     }
 
-    private Collection<MongoPersistenceOperationsSelection> selectNamespaceWithSuffix(final String namespace) {
+    private Collection<MongoPersistenceOperationsSelection> selectNamespaceWithSuffix(final CharSequence namespace) {
         return Collections.unmodifiableList(Arrays.asList(
                 selectNamespaceByPid(settings.getMetadataCollectionName(), namespace),
                 // collection "*Metadata" has no namespace suffix
@@ -111,7 +116,7 @@ final class MongoPersistenceOperationsSelectionProvider {
                 selectNamespaceBySuffix(settings.getSnapshotCollectionName(), namespace)));
     }
 
-    private Collection<MongoPersistenceOperationsSelection> selectNamespaceWithoutSuffix(final String namespace) {
+    private Collection<MongoPersistenceOperationsSelection> selectNamespaceWithoutSuffix(final CharSequence namespace) {
         return Collections.unmodifiableList(Arrays.asList(
                 selectNamespaceByPid(settings.getMetadataCollectionName(), namespace),
                 selectNamespaceByPid(settings.getJournalCollectionName(), namespace),
@@ -119,17 +124,20 @@ final class MongoPersistenceOperationsSelectionProvider {
     }
 
     private MongoPersistenceOperationsSelection selectNamespaceBySuffix(final String collection,
-            final String namespace) {
+            final CharSequence namespace) {
+
         final String suffixSeparator = settings.getSuffixSeparator().orElseThrow(IllegalStateException::new);
         final String suffixedCollection = String.format("%s%s%s", collection, suffixSeparator, namespace);
         return MongoPersistenceOperationsSelection.of(suffixedCollection, new Document());
     }
 
-    private MongoPersistenceOperationsSelection selectNamespaceByPid(final String collection, final String namespace) {
+    private MongoPersistenceOperationsSelection selectNamespaceByPid(final String collection,
+            final CharSequence namespace) {
+
         return MongoPersistenceOperationsSelection.of(collection, filterByPidPrefix(namespace));
     }
 
-    private Document filterByPidPrefix(final String namespace) {
+    private Document filterByPidPrefix(final CharSequence namespace) {
         final String pidRegex = String.format("^%s%s:", settings.getPersistenceIdPrefix(), namespace);
         return new Document(PID, new BsonRegularExpression(pidRegex));
     }
@@ -142,10 +150,11 @@ final class MongoPersistenceOperationsSelectionProvider {
         return MongoPersistenceOperationsSelection.of(suffixedCollection, filter);
     }
 
-    private String validateAndExtractNamespace(final String entityId) {
+    private static String validateAndExtractNamespace(final String entityId) {
         final int separatorIndex = entityId.indexOf(':');
-        if (separatorIndex == -1) {
-            throw new IllegalArgumentException("entityId does not have namespace: " + entityId);
+        if (-1 == separatorIndex) {
+            throw new IllegalArgumentException(
+                    MessageFormat.format("Entity ID <{0}> does not have namespace!", entityId));
         }
 
         return entityId.substring(0, separatorIndex);

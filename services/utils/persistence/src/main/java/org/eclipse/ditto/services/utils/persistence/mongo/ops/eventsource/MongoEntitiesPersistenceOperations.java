@@ -18,7 +18,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.bson.Document;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.EntityPersistenceOperations;
+import org.eclipse.ditto.services.utils.persistence.operations.EntityPersistenceOperations;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.MongoOpsUtil;
 
 import com.mongodb.reactivestreams.client.MongoCollection;

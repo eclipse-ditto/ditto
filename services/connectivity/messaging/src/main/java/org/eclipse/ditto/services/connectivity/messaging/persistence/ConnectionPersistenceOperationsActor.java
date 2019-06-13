@@ -12,16 +12,14 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.persistence;
 
-import java.util.Collections;
-
 import org.eclipse.ditto.services.connectivity.messaging.ConnectionActor;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.AbstractPersistenceOperationsActor;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.EntityPersistenceOperations;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.PersistenceOperationsConfiguration;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEntitiesPersistenceOperations;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEventSourceSettings;
+import org.eclipse.ditto.services.utils.persistence.operations.AbstractPersistenceOperationsActor;
+import org.eclipse.ditto.services.utils.persistence.operations.EntityPersistenceOperations;
+import org.eclipse.ditto.services.utils.persistence.operations.PersistenceOperationsConfig;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 
 import com.mongodb.reactivestreams.client.MongoDatabase;
@@ -40,14 +38,14 @@ public final class ConnectionPersistenceOperationsActor extends AbstractPersiste
     private ConnectionPersistenceOperationsActor(final ActorRef pubSubMediator,
             final EntityPersistenceOperations entitiesOps,
             final MongoClientWrapper mongoClientWrapper,
-            final PersistenceOperationsConfiguration persistenceOperationsConfiguration) {
+            final PersistenceOperationsConfig persistenceOperationsConfig) {
 
         super(pubSubMediator,
                 ConnectivityCommand.RESOURCE_TYPE,
                 null,
                 entitiesOps,
-                Collections.singleton(mongoClientWrapper),
-                persistenceOperationsConfiguration);
+                persistenceOperationsConfig,
+                mongoClientWrapper);
     }
 
     /**
@@ -56,9 +54,14 @@ public final class ConnectionPersistenceOperationsActor extends AbstractPersiste
      * @param pubSubMediator Akka pub-sub mediator.
      * @param mongoDbConfig the MongoDB configuration settings.
      * @param config configuration with info about event journal, snapshot store, suffix-builder and database.
+     * @param persistenceOperationsConfig the persistence operations configuration settings.
      * @return a Props object.
      */
-    public static Props props(final ActorRef pubSubMediator, final MongoDbConfig mongoDbConfig, final Config config) {
+    public static Props props(final ActorRef pubSubMediator,
+            final MongoDbConfig mongoDbConfig,
+            final Config config,
+            final PersistenceOperationsConfig persistenceOperationsConfig) {
+
         return Props.create(ConnectionPersistenceOperationsActor.class, () -> {
             final MongoEventSourceSettings eventSourceSettings =
                     MongoEventSourceSettings.fromConfig(config, ConnectionActor.PERSISTENCE_ID_PREFIX, false,
@@ -67,12 +70,11 @@ public final class ConnectionPersistenceOperationsActor extends AbstractPersiste
             final MongoClientWrapper mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
             final MongoDatabase db = mongoClient.getDefaultDatabase();
 
-            final EntityPersistenceOperations entitiesOps = MongoEntitiesPersistenceOperations.of(db, eventSourceSettings);
-            final PersistenceOperationsConfiguration persistenceOperationsConfiguration =
-                    PersistenceOperationsConfiguration.fromConfig(config);
+            final EntityPersistenceOperations entitiesOps =
+                    MongoEntitiesPersistenceOperations.of(db, eventSourceSettings);
 
             return new ConnectionPersistenceOperationsActor(pubSubMediator, entitiesOps, mongoClient,
-                    persistenceOperationsConfiguration);
+                    persistenceOperationsConfig);
         });
     }
 

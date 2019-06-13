@@ -173,7 +173,7 @@ public final class ConnectivityRootActor extends AbstractActor {
 
         startChildActor(ConnectionPersistenceOperationsActor.ACTOR_NAME,
                 ConnectionPersistenceOperationsActor.props(pubSubMediator, connectivityConfig.getMongoDbConfig(),
-                        actorSystem.settings().config()));
+                        actorSystem.settings().config(), connectivityConfig.getPersistenceOperationsConfig()));
 
         final CompletionStage<ServerBinding> binding =
                 getHttpBinding(connectivityConfig.getHttpConfig(), actorSystem, materializer,

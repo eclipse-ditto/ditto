@@ -12,15 +12,13 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors;
 
-import java.util.Collections;
-
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.AbstractPersistenceOperationsActor;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.NamespacePersistenceOperations;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.PersistenceOperationsConfiguration;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEventSourceSettings;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoNamespacePersistenceOperations;
+import org.eclipse.ditto.services.utils.persistence.operations.AbstractPersistenceOperationsActor;
+import org.eclipse.ditto.services.utils.persistence.operations.NamespacePersistenceOperations;
+import org.eclipse.ditto.services.utils.persistence.operations.PersistenceOperationsConfig;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
@@ -41,14 +39,14 @@ public final class ThingPersistenceOperationsActor extends AbstractPersistenceOp
     private ThingPersistenceOperationsActor(final ActorRef pubSubMediator,
             final NamespacePersistenceOperations namespaceOps,
             final MongoClientWrapper mongoClientWrapper,
-            final PersistenceOperationsConfiguration persistenceOperationsConfiguration) {
+            final PersistenceOperationsConfig persistenceOperationsConfig) {
 
         super(pubSubMediator,
                 ThingCommand.RESOURCE_TYPE,
                 namespaceOps,
                 null,
-                Collections.singleton(mongoClientWrapper),
-                persistenceOperationsConfiguration);
+                persistenceOperationsConfig,
+                mongoClientWrapper);
     }
 
     /**
@@ -57,9 +55,14 @@ public final class ThingPersistenceOperationsActor extends AbstractPersistenceOp
      * @param pubSubMediator Akka pub-sub mediator.
      * @param mongoDbConfig the MongoDB configuration settings.
      * @param config Configuration with info about event journal, snapshot store, suffix-builder and database.
+     * @param persistenceOperationsConfig the persistence operations config.
      * @return a Props object.
      */
-    public static Props props(final ActorRef pubSubMediator, final MongoDbConfig mongoDbConfig, final Config config) {
+    public static Props props(final ActorRef pubSubMediator,
+            final MongoDbConfig mongoDbConfig,
+            final Config config,
+            final PersistenceOperationsConfig persistenceOperationsConfig) {
+
         return Props.create(ThingPersistenceOperationsActor.class, () -> {
             final MongoEventSourceSettings eventSourceSettings =
                     MongoEventSourceSettings.fromConfig(config, ThingPersistenceActor.PERSISTENCE_ID_PREFIX, true,
@@ -70,11 +73,9 @@ public final class ThingPersistenceOperationsActor extends AbstractPersistenceOp
 
             final NamespacePersistenceOperations namespaceOps =
                     MongoNamespacePersistenceOperations.of(db, eventSourceSettings);
-            final PersistenceOperationsConfiguration persistenceOperationsConfiguration =
-                    PersistenceOperationsConfiguration.fromConfig(config);
 
             return new ThingPersistenceOperationsActor(pubSubMediator, namespaceOps, mongoClient,
-                    persistenceOperationsConfiguration);
+                    persistenceOperationsConfig);
         });
     }
 

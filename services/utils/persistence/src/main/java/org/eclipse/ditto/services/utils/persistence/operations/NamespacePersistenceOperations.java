@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.persistence.mongo.ops;
+package org.eclipse.ditto.services.utils.persistence.operations;
 
 import java.util.List;
 
@@ -30,6 +30,8 @@ public interface NamespacePersistenceOperations {
      *
      * @param namespace a namespace.
      * @return source of any error during the purge.
+     * @throws NullPointerException if {@code namespace} is {@code null}.
      */
     Source<List<Throwable>, NotUsed> purge(CharSequence namespace);
+
 }

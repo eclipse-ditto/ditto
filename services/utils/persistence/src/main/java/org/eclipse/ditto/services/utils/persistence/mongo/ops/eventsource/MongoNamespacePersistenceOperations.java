@@ -12,14 +12,14 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Collection;
 import java.util.List;
 
 import org.bson.Document;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.MongoOpsUtil;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.NamespacePersistenceOperations;
+import org.eclipse.ditto.services.utils.persistence.operations.NamespacePersistenceOperations;
 
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
@@ -37,9 +37,9 @@ public final class MongoNamespacePersistenceOperations implements NamespacePersi
 
     private MongoNamespacePersistenceOperations(final MongoDatabase db,
             final MongoEventSourceSettings eventSourceSettings) {
-        this.db = requireNonNull(db);
-        requireNonNull(eventSourceSettings);
-        this.selectionProvider = MongoPersistenceOperationsSelectionProvider.of(eventSourceSettings);
+
+        this.db = checkNotNull(db, "database");
+        selectionProvider = MongoPersistenceOperationsSelectionProvider.of(eventSourceSettings);
     }
 
     /**
@@ -51,24 +51,21 @@ public final class MongoNamespacePersistenceOperations implements NamespacePersi
      */
     public static MongoNamespacePersistenceOperations of(final MongoDatabase db,
             final MongoEventSourceSettings eventSourceSettings) {
+
         return new MongoNamespacePersistenceOperations(db, eventSourceSettings);
     }
 
     @Override
     public Source<List<Throwable>, NotUsed> purge(final CharSequence namespace) {
-        requireNonNull(namespace);
-
-        final Collection<MongoPersistenceOperationsSelection> selections = selectNamespace(namespace.toString());
-
-        return purgeAllSelections(selections);
+        return purgeAllSelections(selectNamespace(namespace));
     }
 
-    private Collection<MongoPersistenceOperationsSelection> selectNamespace(final String namespace) {
+    private Collection<MongoPersistenceOperationsSelection> selectNamespace(final CharSequence namespace) {
         return selectionProvider.selectNamespace(namespace);
     }
 
     private Source<List<Throwable>, NotUsed> purgeAllSelections(
-            final Collection<MongoPersistenceOperationsSelection> selections) {
+            final Iterable<MongoPersistenceOperationsSelection> selections) {
 
         Source<List<Throwable>, NotUsed> result = Source.empty();
 

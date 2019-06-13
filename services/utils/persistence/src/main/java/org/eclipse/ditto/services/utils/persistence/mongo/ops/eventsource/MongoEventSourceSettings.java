@@ -157,7 +157,7 @@ public final class MongoEventSourceSettings {
 
     /**
      * @return the suffix separator, may be empty; if not empty, it is assumed that there is one collection per
-     * namespace with the córresponding suffix
+     * namespace with the corresponding suffix
      */
     public Optional<String> getSuffixSeparator() {
         return Optional.ofNullable(suffixSeparator);

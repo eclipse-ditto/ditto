@@ -157,7 +157,7 @@ public final class PoliciesRootActor extends AbstractActor {
 
         startChildActor(PolicyPersistenceOperationsActor.ACTOR_NAME,
                 PolicyPersistenceOperationsActor.props(pubSubMediator, policiesConfig.getMongoDbConfig(),
-                        actorSystem.settings().config()));
+                        actorSystem.settings().config(), policiesConfig.getPersistenceOperationsConfig()));
 
         retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(policiesShardRegion,
                 PoliciesMessagingConstants.SHARD_REGION, log);

@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.persistence.mongo.ops;
+package org.eclipse.ditto.services.utils.persistence.operations;
 
 import java.util.Collection;
 import java.util.List;

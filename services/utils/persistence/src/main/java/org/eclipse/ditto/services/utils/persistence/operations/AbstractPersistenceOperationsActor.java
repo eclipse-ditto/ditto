@@ -10,9 +10,9 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.persistence.mongo.ops;
+package org.eclipse.ditto.services.utils.persistence.operations;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -56,63 +56,96 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
 
     private final ActorRef pubSubMediator;
     private final String resourceType;
-    @Nullable
-    private final NamespacePersistenceOperations namespaceOps;
-    @Nullable
-    private final EntityPersistenceOperations entitiesOps;
+    @Nullable private final NamespacePersistenceOperations namespaceOps;
+    @Nullable private final EntityPersistenceOperations entitiesOps;
     private final ActorMaterializer materializer;
-    private final List<Closeable> toCloseWhenStopped;
+    private final Collection<Closeable> toCloseWhenStopped;
 
     private final Duration delayAfterPersistenceActorShutdown;
 
-    /**
-     * Create a new instance of this actor.
-     *
-     * @param pubSubMediator the pubSubMediator
-     * @param resourceType the resource type
-     * @param namespaceOps the {@link NamespacePersistenceOperations}, maybe {@code null} when {@code entitiesOps} is not null
-     * @param entitiesOps the {@link EntityPersistenceOperations}, maybe {@code null} when {@code namespaceOps} is not null
-     * @param toCloseWhenStopped a list of {@link Closeable} which have to be closed when the actor is stopped
-     */
-    protected AbstractPersistenceOperationsActor(final ActorRef pubSubMediator, final String resourceType,
+    private AbstractPersistenceOperationsActor(final ActorRef pubSubMediator,
+            final String resourceType,
             @Nullable final NamespacePersistenceOperations namespaceOps,
             @Nullable final EntityPersistenceOperations entitiesOps,
-            final Collection<Closeable> toCloseWhenStopped,
-            final PersistenceOperationsConfiguration persistenceOperationsConfiguration) {
+            final PersistenceOperationsConfig persistenceOperationsConfig,
+            final Collection<Closeable> toCloseWhenStopped) {
 
-        this.pubSubMediator = requireNonNull(pubSubMediator);
-        this.resourceType = requireNonNull(resourceType);
+        this.pubSubMediator = checkNotNull(pubSubMediator, "pub-sub mediator");
+        this.resourceType = checkNotNull(resourceType, "resource type");
         if (namespaceOps == null && entitiesOps == null) {
             throw new IllegalArgumentException("At least one of namespaceOps or entitiesOps must be specified.");
         }
         this.namespaceOps = namespaceOps;
         this.entitiesOps = entitiesOps;
-        this.toCloseWhenStopped = Collections.unmodifiableList(new ArrayList<>(requireNonNull(toCloseWhenStopped)));
+        this.toCloseWhenStopped = Collections.unmodifiableCollection(toCloseWhenStopped);
         materializer = ActorMaterializer.create(getContext());
-        delayAfterPersistenceActorShutdown = persistenceOperationsConfiguration.getDelayAfterPersistenceActorShutdown();
+        delayAfterPersistenceActorShutdown = persistenceOperationsConfig.getDelayAfterPersistenceActorShutdown();
     }
 
     /**
-     * Create a new instance of this actor.
+     * Constructs a new instance of this actor.
+     *
+     * @param pubSubMediator the pubSubMediator.
+     * @param resourceType the resource type.
+     * @param namespaceOps the {@link NamespacePersistenceOperations}, maybe {@code null} when {@code entitiesOps} is
+     * not {@code null}.
+     * @param entitiesOps the {@link EntityPersistenceOperations}, maybe {@code null} when {@code namespaceOps} is not
+     * {@code null}.
+     * @param persistenceOperationsConfig the configuration settings of the persistence operations.
+     * @param toCloseWhenStopped a list of {@link Closeable} which have to be closed when the actor is stopped.
+     * @throws NullPointerException if {@code pubSubMediator}, {@code resourceType} or {@code toCloseWhenStopped} is
+     * {@code null}.
+     * @throws IllegalArgumentException if {@code namespaceOps} <em>and</em> {@code entitiesOps} is {@code null}.
+     */
+    protected AbstractPersistenceOperationsActor(final ActorRef pubSubMediator,
+            final String resourceType,
+            @Nullable final NamespacePersistenceOperations namespaceOps,
+            @Nullable final EntityPersistenceOperations entitiesOps,
+            final PersistenceOperationsConfig persistenceOperationsConfig,
+            final Closeable toCloseWhenStopped,
+            final Closeable ... optionalToCloseWhenStopped) {
+
+        this(pubSubMediator, resourceType, namespaceOps, entitiesOps, persistenceOperationsConfig,
+                toList(toCloseWhenStopped, optionalToCloseWhenStopped));
+    }
+
+    private static List<Closeable> toList(final Closeable toCloseWhenStopped,
+            final Closeable... optionalToCloseWhenStopped) {
+
+        checkNotNull(toCloseWhenStopped, "Closeable");
+        checkNotNull(optionalToCloseWhenStopped, "optional Closeables");
+
+        final List<Closeable> closeables = new ArrayList<>(1 + optionalToCloseWhenStopped.length);
+        closeables.add(toCloseWhenStopped);
+        Collections.addAll(closeables, optionalToCloseWhenStopped);
+        return closeables;
+    }
+
+    /**
+     * Constructs a new instance of this actor.
      *
      * @param pubSubMediator the pubSubMediator
      * @param resourceType the resource type
-     * @param namespaceOps the {@link NamespacePersistenceOperations}, maybe {@code null} when {@code entitiesOps} is not null
-     * @param entitiesOps the {@link EntityPersistenceOperations}, maybe {@code null} when {@code namespaceOps} is not null
+     * @param namespaceOps the {@link NamespacePersistenceOperations}, maybe {@code null} when {@code entitiesOps} is
+     * not {@code null}.
+     * @param entitiesOps the {@link EntityPersistenceOperations}, maybe {@code null} when {@code namespaceOps} is not
+     * {@code null}.
+     * @param persistenceOperationsConfig the configuration settings of the persistence operations.
+     * @throws NullPointerException if {@code pubSubMediator} or {@code resourceType} is {@code null}.
+     * @throws IllegalArgumentException if {@code namespaceOps} <em>and</em> {@code entitiesOps} is {@code null}.
      */
-    protected AbstractPersistenceOperationsActor(final ActorRef pubSubMediator, final String resourceType,
+    protected AbstractPersistenceOperationsActor(final ActorRef pubSubMediator,
+            final String resourceType,
             @Nullable final NamespacePersistenceOperations namespaceOps,
             @Nullable final EntityPersistenceOperations entitiesOps,
-            final PersistenceOperationsConfiguration persistenceOperationsConfiguration) {
+            final PersistenceOperationsConfig persistenceOperationsConfig) {
 
-        this(
-                pubSubMediator,
+        this(pubSubMediator,
                 resourceType,
                 namespaceOps,
                 entitiesOps,
-                Collections.emptyList(),
-                persistenceOperationsConfiguration
-        );
+                persistenceOperationsConfig,
+                Collections.emptyList());
     }
 
     @Override
@@ -127,15 +160,15 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
             try {
                 closeable.close();
             } catch (final IOException e) {
-                log.warning("Failed to close: <{}>", e.getMessage());
+                log.warning("Failed to close: <{}>!", e.getMessage());
             }
         });
         super.postStop();
     }
 
     private void subscribeForNamespaceCommands() {
-        if (namespaceOps != null) {
-            log.debug("Subscribing for  namespace commands");
+        if (null != namespaceOps) {
+            log.debug("Subscribing for namespace commands.");
             final ActorRef self = getSelf();
             final DistributedPubSubMediator.Subscribe subscribe =
                     new DistributedPubSubMediator.Subscribe(PurgeNamespace.TYPE, getSubscribeGroup(), self);
@@ -144,13 +177,13 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
     }
 
     private void subscribeForEntitiesCommands() {
-        if (entitiesOps != null) {
+        if (null != entitiesOps) {
             final ActorRef self = getSelf();
             final String topic = PurgeEntities.getTopic(resourceType);
             final DistributedPubSubMediator.Subscribe subscribe =
                     new DistributedPubSubMediator.Subscribe(topic, getSubscribeGroup(), self);
 
-            log.debug("Subscribing for  entities commands on topic <{}>", topic);
+            log.debug("Subscribing for  entities commands on topic <{}>.", topic);
             pubSubMediator.tell(subscribe, self);
         }
     }
@@ -170,8 +203,8 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
     }
 
     private void purgeNamespace(final PurgeNamespace purgeNamespace) {
-        if (namespaceOps == null) {
-            log.warning("Cannot handle namespace command: <{}>", purgeNamespace);
+        if (null == namespaceOps) {
+            log.warning("Cannot handle namespace command: <{}>!", purgeNamespace);
             return;
         }
 
@@ -189,12 +222,12 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
                                 purgeNamespace.getDittoHeaders());
                     } else {
                         LogUtil.enhanceLogWithCorrelationId(log, purgeNamespace);
-                        errors.forEach(error -> log.error(error, "Error purging namespace <{}>", namespace));
+                        errors.forEach(error -> log.error(error, "Error purging namespace <{}>!", namespace));
                         response = PurgeNamespaceResponse.failed(namespace, resourceType,
                                 purgeNamespace.getDittoHeaders());
                     }
                     sender.tell(response, getSelf());
-                    log.info("Successfully purged namespace <{}>", namespace);
+                    log.info("Successfully purged namespace <{}>.", namespace);
                 })
                 .exceptionally(error -> {
                     LogUtil.enhanceLogWithCorrelationId(log, purgeNamespace);
@@ -207,35 +240,35 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
 
     private void purgeEntities(final PurgeEntities purgeEntities) {
 
-        if (entitiesOps == null) {
-            log.warning("Cannot handle entities command: <{}>", purgeEntities);
+        if (null == entitiesOps) {
+            log.warning("Cannot handle entities command: <{}>.", purgeEntities);
             return;
         }
         if (!resourceType.equals(purgeEntities.getEntityType())) {
-            log.warning("Expected command with entityType <{}>, but got: <{}>", resourceType, purgeEntities);
+            log.warning("Expected command with entityType <{}>, but got: <{}>.", resourceType, purgeEntities);
             return;
         }
 
         shutDownPersistenceActorsOfEntitiesToPurge(purgeEntities);
-        schedulePurgingEntitesIn(delayAfterPersistenceActorShutdown, purgeEntities);
+        schedulePurgingEntitiesIn(delayAfterPersistenceActorShutdown, purgeEntities);
     }
 
     private void shutDownPersistenceActorsOfEntitiesToPurge(final PurgeEntities purgeEntities) {
         final ShutdownReason reason = ShutdownReasonFactory.getPurgeEntitiesReason(purgeEntities.getEntityIds());
         final Shutdown shutdown = Shutdown.getInstance(reason, purgeEntities.getDittoHeaders());
-        final DistributedPubSubMediator.Publish publish = new DistributedPubSubMediator.Publish(shutdown.getType(), shutdown);
-        pubSubMediator.tell(publish, getSelf());
+        pubSubMediator.tell(new DistributedPubSubMediator.Publish(shutdown.getType(), shutdown), getSelf());
     }
 
-    private void schedulePurgingEntitesIn(final Duration delay, final PurgeEntities purgeEntities) {
+    private void schedulePurgingEntitiesIn(final Duration delay, final PurgeEntities purgeEntities) {
         final ActorRef initiator = getSender();
-        getContext().system()
+        getContext()
+                .system()
                 .scheduler()
                 .scheduleOnce(delay, () -> doPurgeEntities(purgeEntities, initiator), getContext().dispatcher());
     }
 
     private void doPurgeEntities(final PurgeEntities purgeEntities, final ActorRef initiator) {
-        if (entitiesOps == null) {
+        if (null == entitiesOps) {
             log.warning("Cannot handle entities command: <{}>", purgeEntities);
             return;
         }
@@ -271,7 +304,7 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
     }
 
     private void handleSubscribeAck(final DistributedPubSubMediator.SubscribeAck subscribeAck) {
-        log.debug("Got subscribeAck <{}>", subscribeAck);
+        log.debug("Got subscribeAck <{}>.", subscribeAck);
     }
 
 }

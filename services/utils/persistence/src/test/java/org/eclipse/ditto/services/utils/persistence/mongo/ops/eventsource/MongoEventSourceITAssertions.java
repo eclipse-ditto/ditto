@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource;
 
-import java.math.BigInteger;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
@@ -21,11 +20,14 @@ import java.util.Random;
 import java.util.UUID;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.raw.RawConfigSupplier;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.AbstractPersistenceOperationsActor;
 import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.NamespaceSuffixCollectionNames;
+import org.eclipse.ditto.services.utils.persistence.operations.AbstractPersistenceOperationsActor;
+import org.eclipse.ditto.services.utils.persistence.operations.DefaultPersistenceOperationsConfig;
+import org.eclipse.ditto.services.utils.persistence.operations.PersistenceOperationsConfig;
 import org.eclipse.ditto.services.utils.test.mongo.MongoDbResource;
 import org.eclipse.ditto.signals.commands.common.purge.PurgeEntities;
 import org.eclipse.ditto.signals.commands.common.purge.PurgeEntitiesResponse;
@@ -62,6 +64,7 @@ public abstract class MongoEventSourceITAssertions {
      */
     private static MongoDbResource mongoDbResource;
     protected static String mongoDbUri;
+    protected static PersistenceOperationsConfig persistenceOperationsConfig;
 
     private ActorSystem actorSystem;
 
@@ -75,6 +78,9 @@ public abstract class MongoEventSourceITAssertions {
         mongoDbUri = String.format("mongodb://%s:%s/test", mongoDbResource.getBindIp(), mongoDbResource.getPort());
 
         mongoDbConfig = DefaultMongoDbConfig.of(getConfig());
+        final Config testConfig = ConfigFactory.load("test");
+        persistenceOperationsConfig =
+                DefaultPersistenceOperationsConfig.of(DefaultScopedConfig.dittoScoped(testConfig));
     }
 
     private static Config getConfig() {
@@ -138,8 +144,7 @@ public abstract class MongoEventSourceITAssertions {
      * @param id ID of the entity.
      * @return reference to the entity actor.
      */
-    protected abstract ActorRef startEntityActor(final ActorSystem system, final ActorRef pubSubMediator,
-            final String id);
+    protected abstract ActorRef startEntityActor(ActorSystem system, ActorRef pubSubMediator, String id);
 
     /**
      * Starts the NamespaceOps actor.
@@ -149,8 +154,7 @@ public abstract class MongoEventSourceITAssertions {
      * @param config configuration with info about event journal, snapshot store, metadata and database.
      * @return reference of the NamespaceOps actor.
      */
-    protected abstract ActorRef startActorUnderTest(final ActorSystem actorSystem, final ActorRef pubSubMediator,
-            final Config config);
+    protected abstract ActorRef startActorUnderTest(ActorSystem actorSystem, ActorRef pubSubMediator, Config config);
 
     /**
      * Get the command to create an entity belonging to the given resource type.
@@ -158,7 +162,7 @@ public abstract class MongoEventSourceITAssertions {
      * @param id ID of the entity.
      * @return Command to create it.
      */
-    protected abstract Object getCreateEntityCommand(final String id);
+    protected abstract Object getCreateEntityCommand(String id);
 
     /**
      * @return type of responses for successful entity creation.
@@ -206,11 +210,6 @@ public abstract class MongoEventSourceITAssertions {
      * @return config to feed the actor system and its actors.
      */
     private Config getEventSourcingConfiguration(final Config configOverride) {
-        final String databaseName =
-                name.getMethodName() + "-" + BigInteger.valueOf(System.currentTimeMillis()).toString(16);
-        final String mongoUriValue = String.format("\"mongodb://%s:%s/%s\"\n",
-                mongoDbResource.getBindIp(), mongoDbResource.getPort(), databaseName);
-
         // - do not log dead letters (i. e., events for which there is no subscriber)
         // - bind to random available port
         // - do not attempt to join an Akka cluster
@@ -240,8 +239,8 @@ public abstract class MongoEventSourceITAssertions {
                 .build();
 
         new TestKit(actorSystem) {{
-            final String purgedNamespace = "purgedNamespace.x" + RANDOM.nextInt(1000000);
-            final String survivingNamespace = "survivingNamespace.x" + RANDOM.nextInt(1000000);
+            final String purgedNamespace = "purgedNamespace.x" + RANDOM.nextInt(1_000_000);
+            final String survivingNamespace = "survivingNamespace.x" + RANDOM.nextInt(1_000_000);
 
             final String purgedId = purgedNamespace + ":name";
             final String survivingId = survivingNamespace + ":name";
@@ -350,7 +349,7 @@ public abstract class MongoEventSourceITAssertions {
         return ActorSystem.create(name, config);
     }
 
-    private static String prependNamespace(final String id, final String ns, boolean prepend) {
+    private static String prependNamespace(final String id, final String ns, final boolean prepend) {
         if (prepend) {
             return ns + ':' + id;
         } else {

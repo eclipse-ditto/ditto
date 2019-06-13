@@ -157,7 +157,7 @@ public final class ThingsRootActor extends AbstractActor {
 
         startChildActor(ThingPersistenceOperationsActor.ACTOR_NAME,
                 ThingPersistenceOperationsActor.props(pubSubMediator, thingsConfig.getMongoDbConfig(),
-                        actorSystem.settings().config()));
+                        actorSystem.settings().config(), thingsConfig.getPersistenceOperationsConfig()));
 
         retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(thingsShardRegion,
                 ThingsMessagingConstants.SHARD_REGION, log);

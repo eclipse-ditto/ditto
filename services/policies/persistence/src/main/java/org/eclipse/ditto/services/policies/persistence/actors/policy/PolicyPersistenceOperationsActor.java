@@ -12,17 +12,15 @@
  */
 package org.eclipse.ditto.services.policies.persistence.actors.policy;
 
-import java.util.Collections;
-
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.AbstractPersistenceOperationsActor;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.EntityPersistenceOperations;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.NamespacePersistenceOperations;
-import org.eclipse.ditto.services.utils.persistence.mongo.ops.PersistenceOperationsConfiguration;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEntitiesPersistenceOperations;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEventSourceSettings;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoNamespacePersistenceOperations;
+import org.eclipse.ditto.services.utils.persistence.operations.AbstractPersistenceOperationsActor;
+import org.eclipse.ditto.services.utils.persistence.operations.EntityPersistenceOperations;
+import org.eclipse.ditto.services.utils.persistence.operations.NamespacePersistenceOperations;
+import org.eclipse.ditto.services.utils.persistence.operations.PersistenceOperationsConfig;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
@@ -44,14 +42,14 @@ public final class PolicyPersistenceOperationsActor extends AbstractPersistenceO
             final NamespacePersistenceOperations namespaceOps,
             final EntityPersistenceOperations entitiesOps,
             final MongoClientWrapper mongoClient,
-            final PersistenceOperationsConfiguration persistenceOperationsConfiguration) {
+            final PersistenceOperationsConfig persistenceOperationsConfig) {
 
         super(pubSubMediator,
                 PolicyCommand.RESOURCE_TYPE,
                 namespaceOps,
                 entitiesOps,
-                Collections.singleton(mongoClient),
-                persistenceOperationsConfiguration);
+                persistenceOperationsConfig,
+                mongoClient);
     }
 
     /**
@@ -60,9 +58,14 @@ public final class PolicyPersistenceOperationsActor extends AbstractPersistenceO
      * @param pubSubMediator Akka pub-sub mediator.
      * @param mongoDbConfig the MongoDB configuration settings.
      * @param config Configuration with info about event journal, snapshot store, suffix-builder and database.
+     * @param persistenceOperationsConfig the persistence operations configuration settings.
      * @return a Props object.
      */
-    public static Props props(final ActorRef pubSubMediator, final MongoDbConfig mongoDbConfig, final Config config) {
+    public static Props props(final ActorRef pubSubMediator,
+            final MongoDbConfig mongoDbConfig,
+            final Config config,
+            final PersistenceOperationsConfig persistenceOperationsConfig) {
+
         return Props.create(PolicyPersistenceOperationsActor.class, () -> {
             final MongoEventSourceSettings eventSourceSettings =
                     MongoEventSourceSettings.fromConfig(config, PolicyPersistenceActor.PERSISTENCE_ID_PREFIX, true,
@@ -75,11 +78,9 @@ public final class PolicyPersistenceOperationsActor extends AbstractPersistenceO
                     MongoNamespacePersistenceOperations.of(db, eventSourceSettings);
             final EntityPersistenceOperations entitiesOps =
                     MongoEntitiesPersistenceOperations.of(db, eventSourceSettings);
-            final PersistenceOperationsConfiguration persistenceOperationsConfiguration =
-                    PersistenceOperationsConfiguration.fromConfig(config);
 
             return new PolicyPersistenceOperationsActor(pubSubMediator, namespaceOps, entitiesOps, mongoClient,
-                    persistenceOperationsConfiguration);
+                    persistenceOperationsConfig);
         });
     }
 

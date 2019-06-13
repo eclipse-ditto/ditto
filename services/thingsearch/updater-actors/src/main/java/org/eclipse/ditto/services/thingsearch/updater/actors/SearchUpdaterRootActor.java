@@ -133,7 +133,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
 
         startChildActor(ThingsSearchPersistenceOperationsActor.ACTOR_NAME,
                 ThingsSearchPersistenceOperationsActor.props(pubSubMediator, searchUpdaterPersistence,
-                        actorSystem.settings().config()));
+                        searchConfig.getPersistenceOperationsConfig()));
 
         startThingsStreamSupervisor(updaterConfig.getThingsSyncConfig(), pubSubMediator, materializer,
                 thingsSyncPersistence);
