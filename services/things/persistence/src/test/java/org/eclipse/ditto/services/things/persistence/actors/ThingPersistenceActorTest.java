@@ -33,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import org.assertj.core.api.Assertions;
+import org.awaitility.Awaitility;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
@@ -851,7 +852,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final Thing thing = createThingV2WithRandomId();
                 final String thingId = getIdOrThrow(thing);
 
-                ActorRef underTest = createPersistenceActorFor(thing);
+                final ActorRef underTest = createPersistenceActorFor(thing);
 
                 final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
@@ -863,16 +864,18 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 watch(underTest);
                 underTest.tell(PoisonPill.getInstance(), getRef());
                 expectTerminated(underTest);
-                underTest = Retry.untilSuccess(() -> createPersistenceActorFor(thing));
+                final ActorRef underTestAfterRestart = Retry.untilSuccess(() -> createPersistenceActorFor(thing));
 
                 final RetrieveThing retrieveThing = RetrieveThing.of(thingId, dittoHeadersV2);
-                underTest.tell(retrieveThing, getRef());
 
-                final RetrieveThingResponse retrieveThingResponse = expectMsgClass(RetrieveThingResponse.class);
-                final Thing thingAsPersisted = retrieveThingResponse.getThing();
-                assertThat(thingAsPersisted.getId()).contains(getIdOrThrow(thing));
-                assertThat(thingAsPersisted.getAttributes()).isEqualTo(thing.getAttributes());
-                assertThat(thingAsPersisted.getFeatures()).isEqualTo(thing.getFeatures());
+                Awaitility.await().atMost(10L, TimeUnit.SECONDS).untilAsserted(() -> {
+                    underTestAfterRestart.tell(retrieveThing, getRef());
+                    final RetrieveThingResponse retrieveThingResponse = expectMsgClass(RetrieveThingResponse.class);
+                    final Thing thingAsPersisted = retrieveThingResponse.getThing();
+                    assertThat(thingAsPersisted.getId()).contains(getIdOrThrow(thing));
+                    assertThat(thingAsPersisted.getAttributes()).isEqualTo(thing.getAttributes());
+                    assertThat(thingAsPersisted.getFeatures()).isEqualTo(thing.getFeatures());
+                });
             }
         };
     }
@@ -905,7 +908,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final RetrieveThing retrieveThing = RetrieveThing.of(thingId, dittoHeadersV2);
                 underTest.tell(retrieveThing, getRef());
 
-                // A deleted Thing cannot be retrieved anymore.
+                // A deleted Thing cannot be retrieved anymore (or is not accessible during initiation on slow systems)
                 expectMsgClass(ThingNotAccessibleException.class);
             }
         };
@@ -935,12 +938,13 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final Thing thingWithUpdatedAcl = incrementThingRevision(thingV1).setAccessControlList(acl);
                 final RetrieveThing retrieveThing =
                         RetrieveThing.of(thingWithUpdatedAcl.getId().orElse(null), dittoHeadersV1);
-                thingPersistenceActorRecovered.tell(retrieveThing, getRef());
-                expectMsgEquals(
-                        retrieveThingResponse(thingWithUpdatedAcl, thingWithUpdatedAcl.toJson(JsonSchemaVersion.V_1),
-                                dittoHeadersV1));
 
-                assertThat(getLastSender()).isEqualTo(thingPersistenceActorRecovered);
+                Awaitility.await().atMost(10L, TimeUnit.SECONDS).untilAsserted(() -> {
+                    thingPersistenceActorRecovered.tell(retrieveThing, getRef());
+                    expectMsgEquals(retrieveThingResponse(thingWithUpdatedAcl,
+                            thingWithUpdatedAcl.toJson(JsonSchemaVersion.V_1), dittoHeadersV1));
+                    assertThat(getLastSender()).isEqualTo(thingPersistenceActorRecovered);
+                });
             }
         };
     }
@@ -970,12 +974,13 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final Thing thingWithUpdatedAclEntry = incrementThingRevision(thingV1).setAclEntry(aclEntry);
                 final RetrieveThing retrieveThing =
                         RetrieveThing.of(getIdOrThrow(thingWithUpdatedAclEntry), dittoHeadersV1);
-                thingPersistenceActorRecovered.tell(retrieveThing, getRef());
 
-                expectMsgEquals(retrieveThingResponse(thingWithUpdatedAclEntry,
-                        thingWithUpdatedAclEntry.toJson(JsonSchemaVersion.V_1), dittoHeadersV1));
-
-                assertThat(getLastSender()).isEqualTo(thingPersistenceActorRecovered);
+                Awaitility.await().atMost(10L, TimeUnit.SECONDS).untilAsserted(() -> {
+                    thingPersistenceActorRecovered.tell(retrieveThing, getRef());
+                    expectMsgEquals(retrieveThingResponse(thingWithUpdatedAclEntry,
+                            thingWithUpdatedAclEntry.toJson(JsonSchemaVersion.V_1), dittoHeadersV1));
+                    assertThat(getLastSender()).isEqualTo(thingPersistenceActorRecovered);
+                });
             }
         };
     }
@@ -1009,12 +1014,13 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                         .removeAllPermissionsOf(aclEntry.getAuthorizationSubject());
 
                 final RetrieveThing retrieveThing = RetrieveThing.of(getIdOrThrow(thingV1), dittoHeadersV1);
-                thingPersistenceActorRecovered.tell(retrieveThing, getRef());
 
-                expectMsgEquals(retrieveThingResponse(expectedTing, expectedTing.toJson(JsonSchemaVersion.V_1),
-                        dittoHeadersV1));
-
-                assertThat(getLastSender()).isEqualTo(thingPersistenceActorRecovered);
+                Awaitility.await().atMost(10L, TimeUnit.SECONDS).untilAsserted(() -> {
+                    thingPersistenceActorRecovered.tell(retrieveThing, getRef());
+                    expectMsgEquals(retrieveThingResponse(expectedTing, expectedTing.toJson(JsonSchemaVersion.V_1),
+                            dittoHeadersV1));
+                    assertThat(getLastSender()).isEqualTo(thingPersistenceActorRecovered);
+                });
             }
         };
     }
@@ -1066,7 +1072,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final Thing thing = createThingV2WithRandomId();
                 final String thingId = getIdOrThrow(thing);
 
-                ActorRef underTest = createPersistenceActorFor(thing);
+                final ActorRef underTest = createPersistenceActorFor(thing);
 
                 final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
@@ -1092,15 +1098,17 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 watch(underTest);
                 underTest.tell(PoisonPill.getInstance(), getRef());
                 expectTerminated(underTest);
-                underTest = Retry.untilSuccess(() -> createPersistenceActorFor(thing));
+                final ActorRef underTestAfterRestart = Retry.untilSuccess(() -> createPersistenceActorFor(thing));
 
                 final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, dittoHeadersV2)
                         .withSelectedFields(versionFieldSelector)
                         .build();
-                underTest.tell(retrieveThing, getRef());
 
-                expectMsgEquals(retrieveThingResponse(thingExpected, thingExpected.toJson(versionFieldSelector),
-                        dittoHeadersV2));
+                Awaitility.await().atMost(10L, TimeUnit.SECONDS).untilAsserted(() -> {
+                    underTestAfterRestart.tell(retrieveThing, getRef());
+                    expectMsgEquals(retrieveThingResponse(thingExpected, thingExpected.toJson(versionFieldSelector),
+                            dittoHeadersV2));
+                });
             }
         };
     }
