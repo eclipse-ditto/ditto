@@ -31,7 +31,6 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.event.EventStream;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.actor.AbstractActorSubscriber;
 import akka.stream.actor.ActorSubscriberMessage;
@@ -51,6 +50,7 @@ public final class CommandSubscriber extends AbstractActorSubscriber {
     private final int backpressureQueueSize;
     private final List<String> outstandingCommandCorrelationIds = new ArrayList<>();
 
+    @SuppressWarnings("unused")
     private CommandSubscriber(final ActorRef delegateActor, final int backpressureQueueSize,
             final EventStream eventStream) {
         this.delegateActor = delegateActor;
@@ -69,14 +69,8 @@ public final class CommandSubscriber extends AbstractActorSubscriber {
      */
     public static Props props(final ActorRef delegateActor, final int backpressureQueueSize,
             final EventStream eventStream) {
-        return Props.create(CommandSubscriber.class, new Creator<CommandSubscriber>() {
-            private static final long serialVersionUID = 1L;
 
-            @Override
-            public CommandSubscriber create() {
-                return new CommandSubscriber(delegateActor, backpressureQueueSize, eventStream);
-            }
-        });
+        return Props.create(CommandSubscriber.class, delegateActor, backpressureQueueSize, eventStream);
     }
 
     @Override

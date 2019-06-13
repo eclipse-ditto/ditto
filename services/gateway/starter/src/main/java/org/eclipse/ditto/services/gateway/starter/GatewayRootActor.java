@@ -17,20 +17,36 @@ import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
-import org.eclipse.ditto.services.base.config.HealthConfigReader;
-import org.eclipse.ditto.services.base.config.HttpConfigReader;
-import org.eclipse.ditto.services.base.config.ServiceConfigReader;
+import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.AuthenticationConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.CachesConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.DevOpsConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.WebSocketConfig;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DittoGatewayAuthenticationDirectiveFactory;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.services.gateway.endpoints.routes.RootRoute;
-import org.eclipse.ditto.services.gateway.endpoints.routes.RouteFactory;
+import org.eclipse.ditto.services.gateway.endpoints.routes.devops.DevOpsRoute;
+import org.eclipse.ditto.services.gateway.endpoints.routes.health.CachingHealthRoute;
+import org.eclipse.ditto.services.gateway.endpoints.routes.policies.PoliciesRoute;
+import org.eclipse.ditto.services.gateway.endpoints.routes.sse.SseThingsRoute;
+import org.eclipse.ditto.services.gateway.endpoints.routes.stats.StatsRoute;
+import org.eclipse.ditto.services.gateway.endpoints.routes.status.OverallStatusRoute;
+import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
+import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
+import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebsocketRoute;
+import org.eclipse.ditto.services.gateway.endpoints.utils.DefaultHttpClientFacade;
+import org.eclipse.ditto.services.gateway.health.DittoStatusAndHealthProviderFactory;
 import org.eclipse.ditto.services.gateway.health.GatewayHttpReadinessCheck;
+import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
+import org.eclipse.ditto.services.gateway.health.config.HealthCheckConfig;
 import org.eclipse.ditto.services.gateway.proxy.actors.ProxyActor;
-import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
-import org.eclipse.ditto.services.gateway.starter.service.util.DefaultHttpClientFacade;
-import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
+import org.eclipse.ditto.services.gateway.starter.config.GatewayConfig;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
@@ -40,13 +56,16 @@ import org.eclipse.ditto.services.models.thingsearch.ThingsSearchConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
+import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
+import org.eclipse.ditto.services.utils.config.LocalHostAddressSupplier;
 import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
 import org.eclipse.ditto.services.utils.devops.LogbackLoggingFacade;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
-
-import com.typesafe.config.Config;
+import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
+import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
+import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 
 import akka.Done;
 import akka.actor.AbstractActor;
@@ -70,7 +89,6 @@ import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.server.Directives;
 import akka.http.javadsl.server.Route;
-import akka.japi.Creator;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
@@ -88,7 +106,7 @@ final class GatewayRootActor extends AbstractActor {
 
     private static final String AUTHENTICATION_DISPATCHER_NAME = "authentication-dispatcher";
 
-    private static final String CHILD_RESTART_INFO_MSG = "Restarting child...";
+    private static final String CHILD_RESTART_INFO_MSG = "Restarting child ...";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -121,7 +139,7 @@ final class GatewayRootActor extends AbstractActor {
                 return SupervisorStrategy.resume();
             }).match(DittoRuntimeException.class, e -> {
                 log.error(e,
-                        "DittoRuntimeException '{}' should not be escalated to GatewayRootActor. Simply resuming Actor.",
+                        "DittoRuntimeException <{}> should not be escalated to GatewayRootActor. Simply resuming Actor.",
                         e.getErrorCode());
                 return SupervisorStrategy.resume();
             }).match(ActorKilledException.class, e -> {
@@ -132,19 +150,20 @@ final class GatewayRootActor extends AbstractActor {
                 log.error(e, "Escalating above root actor!");
                 return SupervisorStrategy.escalate();
             }).matchAny(e -> {
-                log.error("Unknown message:'{}'! Escalating above root actor!", e);
+                log.error("Unknown message: '{}'! Escalating above root actor!", e);
                 return SupervisorStrategy.escalate();
             }).build());
 
     private final CompletionStage<ServerBinding> httpBinding;
 
-    private GatewayRootActor(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
+    @SuppressWarnings("unused")
+    private GatewayRootActor(final GatewayConfig gatewayConfig, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
-        final int numberOfShards = configReader.cluster().numberOfShards();
-        final Config config = configReader.getRawConfig();
-
         final ActorSystem actorSystem = context().system();
+
+        final ClusterConfig clusterConfig = gatewayConfig.getClusterConfig();
+        final int numberOfShards = clusterConfig.getNumberOfShards();
 
         // start the cluster sharding proxies for retrieving Statistics via StatisticActor about them:
         ClusterSharding.get(actorSystem)
@@ -160,11 +179,11 @@ final class GatewayRootActor extends AbstractActor {
 
         final ActorRef devOpsCommandsActor = startChildActor(DevOpsCommandsActor.ACTOR_NAME,
                 DevOpsCommandsActor.props(LogbackLoggingFacade.newInstance(), GatewayService.SERVICE_NAME,
-                        ConfigUtil.instanceIdentifier()));
+                        InstanceIdentifierSupplier.getInstance().get()));
 
         final ActorRef conciergeEnforcerRouter =
                 ConciergeEnforcerClusterRouterFactory.createConciergeEnforcerClusterRouter(getContext(),
-                        configReader.cluster().numberOfShards());
+                        numberOfShards);
 
         final ActorRef conciergeForwarder = startChildActor(ConciergeForwarderActor.ACTOR_NAME,
                 ConciergeForwarderActor.props(pubSubMediator, conciergeEnforcerRouter));
@@ -177,17 +196,18 @@ final class GatewayRootActor extends AbstractActor {
         final ActorRef streamingActor = startChildActor(StreamingActor.ACTOR_NAME,
                 StreamingActor.props(pubSubMediator, proxyActor));
 
-        final HealthConfigReader healthConfig = configReader.health();
-        final ActorRef healthCheckActor = createHealthCheckActor(healthConfig);
+        final HealthCheckConfig healthCheckConfig = gatewayConfig.getHealthCheckConfig();
+        final ActorRef healthCheckActor = createHealthCheckActor(healthCheckConfig);
 
-        final HttpConfigReader httpConfig = configReader.http();
+        final HttpConfig httpConfig = gatewayConfig.getHttpConfig();
         String hostname = httpConfig.getHostname();
         if (hostname.isEmpty()) {
-            hostname = ConfigUtil.getLocalHostAddress();
-            log.info("No explicit hostname configured, using HTTP hostname: {}", hostname);
+            hostname = LocalHostAddressSupplier.getInstance().get();
+            log.info("No explicit hostname configured, using HTTP hostname <{}>.", hostname);
         }
 
-        final Route rootRoute = createRoute(actorSystem, configReader, proxyActor, streamingActor, healthCheckActor);
+        final Route rootRoute = createRoute(actorSystem, gatewayConfig, proxyActor, streamingActor, healthCheckActor,
+                healthCheckConfig);
         final Route routeWithLogging = Directives.logRequest("http", Logging.DebugLevel(), (() -> rootRoute));
 
         httpBinding = Http.get(actorSystem)
@@ -195,10 +215,10 @@ final class GatewayRootActor extends AbstractActor {
                         ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
 
         httpBinding.thenAccept(theBinding -> {
-                    log.info("Serving HTTP requests on port {} ...", theBinding.localAddress().getPort());
+                    log.info("Serving HTTP requests on port <{}> ...", theBinding.localAddress().getPort());
                     CoordinatedShutdown.get(actorSystem).addTask(
                             CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_http_endpoint", () -> {
-                                log.info("Gracefully shutting down user HTTP endpoint..");
+                                log.info("Gracefully shutting down user HTTP endpoint ...");
                                 return theBinding.terminate(Duration.ofSeconds(10))
                                         .handle((httpTerminated, e) -> Done.getInstance());
                             });
@@ -213,21 +233,15 @@ final class GatewayRootActor extends AbstractActor {
     /**
      * Creates Akka configuration object Props for this actor.
      *
-     * @param configReader the configuration reader of this service.
+     * @param gatewayConfig the configuration settings of this service.
      * @param pubSubMediator the pub-sub mediator.
      * @param materializer the materializer for the akka actor system.
      * @return the Akka configuration Props object.
      */
-    static Props props(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
+    static Props props(final GatewayConfig gatewayConfig, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
-        return Props.create(GatewayRootActor.class, new Creator<GatewayRootActor>() {
-            private static final long serialVersionUID = 1L;
 
-            @Override
-            public GatewayRootActor create() {
-                return new GatewayRootActor(configReader, pubSubMediator, materializer);
-            }
-        });
+        return Props.create(GatewayRootActor.class, gatewayConfig, pubSubMediator, materializer);
     }
 
     @Override
@@ -251,56 +265,71 @@ final class GatewayRootActor extends AbstractActor {
     }
 
     private ActorRef startChildActor(final String actorName, final Props props) {
-        log.info("Starting child actor '{}'", actorName);
+        log.info("Starting child actor <{}>.", actorName);
         return getContext().actorOf(props, actorName);
     }
 
-    private Route createRoute(final ActorSystem actorSystem,
-            final ServiceConfigReader configReader,
+    private static Route createRoute(final ActorSystem actorSystem,
+            final GatewayConfig gatewayConfig,
             final ActorRef proxyActor,
             final ActorRef streamingActor,
-            final ActorRef healthCheckingActor) {
+            final ActorRef healthCheckingActor,
+            final HealthCheckConfig healthCheckConfig) {
 
-        final Config config = configReader.getRawConfig();
-
-        final HttpClientFacade httpClient = DefaultHttpClientFacade.getInstance(actorSystem);
-        final ClusterStatusSupplier clusterStateSupplier = new ClusterStatusSupplier(Cluster.get(actorSystem));
+        final AuthenticationConfig authConfig = gatewayConfig.getAuthenticationConfig();
+        final CachesConfig cachesConfig = gatewayConfig.getCachesConfig();
+        final DefaultHttpClientFacade httpClient = DefaultHttpClientFacade.getInstance(actorSystem, authConfig.getHttpProxyConfig());
         final MessageDispatcher authenticationDispatcher = actorSystem.dispatchers().lookup(
                 AUTHENTICATION_DISPATCHER_NAME);
-        final DittoGatewayAuthenticationDirectiveFactory authenticationDirectiveFactory =
-                new DittoGatewayAuthenticationDirectiveFactory(config, httpClient, authenticationDispatcher);
-        final RouteFactory routeFactory = RouteFactory.newInstance(actorSystem, proxyActor, streamingActor,
-                healthCheckingActor, clusterStateSupplier, authenticationDirectiveFactory);
-        final DittoHeadersSizeChecker dittoHeadersSizeChecker =
-                DittoHeadersSizeChecker.of(configReader.limits().headersMaxSize(),
-                        configReader.limits().authSubjectsCount());
+        final GatewayAuthenticationDirectiveFactory authenticationDirectiveFactory =
+                new DittoGatewayAuthenticationDirectiveFactory(authConfig, cachesConfig.getPublicKeysConfig(),
+                        httpClient, authenticationDispatcher);
 
-        return RootRoute.getBuilder()
-                .statsRoute(routeFactory.newStatsRoute())
-                .statusRoute(routeFactory.newStatusRoute())
-                .overallStatusRoute(routeFactory.newOverallStatusRoute())
-                .cachingHealthRoute(routeFactory.newCachingHealthRoute())
-                .devopsRoute(routeFactory.newDevopsRoute())
-                .policiesRoute(routeFactory.newPoliciesRoute())
-                .sseThingsRoute(routeFactory.newSseThingsRoute())
-                .thingsRoute(routeFactory.newThingsRoute())
-                .thingSearchRoute(routeFactory.newThingSearchRoute())
-                .websocketRoute(routeFactory.newWebSocketRoute())
-                .supportedSchemaVersions(config.getIntList(ConfigKeys.SCHEMA_VERSIONS))
-                .protocolAdapterProvider(routeFactory.getProtocolAdapterProvider())
-                .headerTranslator(routeFactory.getHeaderTranslator())
-                .httpAuthenticationDirective(routeFactory.newHttpAuthenticationDirective())
-                .wsAuthenticationDirective(routeFactory.newWsAuthenticationDirective())
+        final ProtocolAdapterProvider protocolAdapterProvider =
+                ProtocolAdapterProvider.load(gatewayConfig.getProtocolConfig(), actorSystem);
+        final HeaderTranslator headerTranslator = protocolAdapterProvider.getHttpHeaderTranslator();
+
+        final WebSocketConfig webSocketConfig = gatewayConfig.getWebSocketConfig();
+
+        final Supplier<ClusterStatus> clusterStateSupplier = new ClusterStatusSupplier(Cluster.get(actorSystem));
+        final StatusAndHealthProvider statusAndHealthProvider =
+                DittoStatusAndHealthProviderFactory.of(actorSystem, clusterStateSupplier, healthCheckConfig);
+
+        final LimitsConfig limitsConfig = gatewayConfig.getLimitsConfig();
+        final DittoHeadersSizeChecker dittoHeadersSizeChecker =
+                DittoHeadersSizeChecker.of(limitsConfig.getHeadersMaxSize(), limitsConfig.getAuthSubjectsMaxCount());
+
+        final HttpConfig httpConfig = gatewayConfig.getHttpConfig();
+        final DevOpsConfig devOpsConfig = authConfig.getDevOpsConfig();
+
+        return RootRoute.getBuilder(httpConfig)
+                .statsRoute(new StatsRoute(proxyActor, actorSystem, httpConfig, devOpsConfig, headerTranslator))
+                .statusRoute(new StatusRoute(clusterStateSupplier, healthCheckingActor, actorSystem))
+                .overallStatusRoute(new OverallStatusRoute(clusterStateSupplier, statusAndHealthProvider, devOpsConfig))
+                .cachingHealthRoute(
+                        new CachingHealthRoute(statusAndHealthProvider, gatewayConfig.getPublicHealthConfig()))
+                .devopsRoute(new DevOpsRoute(proxyActor, actorSystem, httpConfig, devOpsConfig, headerTranslator))
+                .policiesRoute(new PoliciesRoute(proxyActor, actorSystem, httpConfig, headerTranslator))
+                .sseThingsRoute(
+                        new SseThingsRoute(proxyActor, actorSystem, httpConfig, streamingActor, headerTranslator))
+                .thingsRoute(new ThingsRoute(proxyActor, actorSystem, gatewayConfig.getMessageConfig(),
+                        gatewayConfig.getClaimMessageConfig(), httpConfig, headerTranslator))
+                .thingSearchRoute(new ThingSearchRoute(proxyActor, actorSystem, httpConfig, headerTranslator))
+                .websocketRoute(new WebsocketRoute(streamingActor, webSocketConfig, actorSystem.eventStream()))
+                .supportedSchemaVersions(httpConfig.getSupportedSchemaVersions())
+                .protocolAdapterProvider(protocolAdapterProvider)
+                .headerTranslator(headerTranslator)
+                .httpAuthenticationDirective(authenticationDirectiveFactory.buildHttpAuthentication())
+                .wsAuthenticationDirective(authenticationDirectiveFactory.buildWsAuthentication())
                 .dittoHeadersSizeChecker(dittoHeadersSizeChecker)
                 .build();
     }
 
-    private ActorRef createHealthCheckActor(final HealthConfigReader healthConfig) {
-        final HealthCheckingActorOptions.Builder hcBuilder = HealthCheckingActorOptions
-                .getBuilder(healthConfig.enabled(),
-                        healthConfig.getInterval());
+    private ActorRef createHealthCheckActor(final HealthCheckConfig healthCheckConfig) {
+        final HealthCheckingActorOptions healthCheckingActorOptions =
+                HealthCheckingActorOptions.getBuilder(healthCheckConfig.isEnabled(), healthCheckConfig.getInterval())
+                        .build();
 
-        final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
         return startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
                 DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, null));
     }

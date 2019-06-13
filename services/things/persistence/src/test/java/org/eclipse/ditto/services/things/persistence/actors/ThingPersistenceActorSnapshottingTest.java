@@ -12,37 +12,16 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors;
 
-import static org.eclipse.ditto.signals.events.things.assertions.ThingEventAssertions.assertThat;
-import static org.junit.Assert.assertTrue;
-
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.BiFunction;
 
-import org.bson.BsonDocument;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingLifecycle;
-import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.model.things.assertions.DittoThingsAssertions;
-import org.eclipse.ditto.services.things.persistence.serializer.ThingMongoEventAdapter;
-import org.eclipse.ditto.services.things.persistence.testhelper.Assertions;
-import org.eclipse.ditto.services.things.persistence.testhelper.ThingsJournalTestHelper;
-import org.eclipse.ditto.services.things.persistence.testhelper.ThingsSnapshotTestHelper;
-import org.eclipse.ditto.services.things.starter.util.ConfigKeys;
-import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.services.utils.test.Retry;
-import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
@@ -54,10 +33,6 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.events.base.Event;
-import org.eclipse.ditto.signals.events.things.ThingCreated;
-import org.eclipse.ditto.signals.events.things.ThingDeleted;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
-import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestWatcher;
@@ -65,11 +40,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorRef;
-import akka.actor.ExtendedActorSystem;
 import akka.actor.PoisonPill;
 import akka.testkit.javadsl.TestKit;
 
@@ -79,6 +52,11 @@ import akka.testkit.javadsl.TestKit;
 public final class ThingPersistenceActorSnapshottingTest extends PersistenceActorTestBaseWithSnapshotting {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ThingPersistenceActorSnapshottingTest.class);
+
+
+    private static final JsonFieldSelector FIELD_SELECTOR = JsonFactory.newFieldSelector(Thing.JsonFields.ATTRIBUTES,
+            Thing.JsonFields.FEATURES, Thing.JsonFields.ID, Thing.JsonFields.MODIFIED, Thing.JsonFields.REVISION,
+            Thing.JsonFields.POLICY_ID, Thing.JsonFields.LIFECYCLE);
 
     @Rule
     public final TestWatcher watchman = new TestedMethodLoggingWatcher(LOGGER);
@@ -90,7 +68,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
      */
     @Test
     public void deletedThingIsSnapshotWithCorrectDataAndCanBeRecreated() {
-        setup(createNewDefaultTestConfig());
+        setup(testConfig);
 
         new TestKit(actorSystem) {
             {
@@ -162,7 +140,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
      */
     @Test
     public void thingInArbitraryStateIsSnapshotCorrectly() {
-        setup(createNewDefaultTestConfig());
+        setup(testConfig);
 
         new TestKit(actorSystem) {
             {
@@ -174,12 +152,12 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
 
-                LOGGER.info("Told CreateThing, expecting CreateThingResponse..");
+                LOGGER.info("Told CreateThing, expecting CreateThingResponse ...");
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
                 assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thing, 1);
 
-                LOGGER.info("Expecting Event made it to Journal and snapshots are empty..");
+                LOGGER.info("Expecting Event made it to Journal and snapshots are empty. ..");
 
                 final Event expectedCreatedEvent = toEvent(createThing, 1);
                 assertJournal(thingId, Collections.singletonList(expectedCreatedEvent));
@@ -192,7 +170,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 final ModifyThing modifyThing = ModifyThing.of(thingId, thingForModify, null, dittoHeadersV2);
                 underTest.tell(modifyThing, getRef());
 
-                LOGGER.info("Told ModifyThing, expecting ModifyThingResponse..");
+                LOGGER.info("Told ModifyThing, expecting ModifyThingResponse. ..");
 
                 final ModifyThingResponse modifyThingResponse = expectMsgClass(ModifyThingResponse.class);
                 ThingCommandAssertions.assertThat(modifyThingResponse).hasStatus(HttpStatusCode.NO_CONTENT);
@@ -209,23 +187,23 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                         .build();
                 underTest.tell(retrieveThing, getRef());
 
-                LOGGER.info("Told RetrieveThing, expecting RetrieveThingResponse..");
+                LOGGER.info("Told RetrieveThing, expecting RetrieveThingResponse ...");
 
                 final RetrieveThingResponse retrieveThingResponse = expectMsgClass(RetrieveThingResponse.class);
                 assertThingInResponse(retrieveThingResponse.getThing(), thingForModify, 2);
 
-                LOGGER.info("Restarting ThingPersistenceActor..");
+                LOGGER.info("Restarting ThingPersistenceActor ...");
 
                 // restart actor to recover thing state: make sure that the revision is still 2 (will be loaded from
                 // snapshot)
                 watch(underTest);
                 underTest.tell(PoisonPill.getInstance(), getRef());
 
-                LOGGER.info("Expecting ThingPersistenceActor to be terminated..");
+                LOGGER.info("Expecting ThingPersistenceActor to be terminated ...");
 
                 expectTerminated(underTest);
 
-                LOGGER.info("Recreating ThingPersistenceActor..");
+                LOGGER.info("Recreating ThingPersistenceActor ...");
 
                 underTest = Retry.untilSuccess(() -> createPersistenceActorFor(thingId));
 
@@ -242,7 +220,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
 
     @Test
     public void actorCannotBeStartedWithNegativeSnapshotThreshold() {
-        final Config customConfig = createNewDefaultTestConfig().withValue(ConfigKeys.Thing.SNAPSHOT_THRESHOLD,
+        final Config customConfig = createNewDefaultTestConfig().withValue(SNAPSHOT_THRESHOLD,
                 ConfigValueFactory.fromAnyRef(-1));
         setup(customConfig);
 

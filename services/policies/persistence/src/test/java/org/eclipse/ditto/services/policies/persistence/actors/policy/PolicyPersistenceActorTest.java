@@ -24,6 +24,7 @@ import static org.eclipse.ditto.services.policies.persistence.testhelper.ETagTes
 import static org.eclipse.ditto.services.policies.persistence.testhelper.ETagTestUtils.retrieveResourceResponse;
 import static org.eclipse.ditto.services.policies.persistence.testhelper.ETagTestUtils.retrieveSubjectResponse;
 
+import org.eclipse.ditto.model.base.entity.Revision;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
@@ -33,6 +34,7 @@ import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyBuilder;
 import org.eclipse.ditto.model.policies.PolicyEntry;
+import org.eclipse.ditto.model.policies.PolicyRevision;
 import org.eclipse.ditto.model.policies.PolicyTooLargeException;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.Resources;
@@ -44,8 +46,8 @@ import org.eclipse.ditto.model.policies.assertions.DittoPolicyAssertions;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.policies.persistence.TestConstants;
-import org.eclipse.ditto.services.policies.persistence.actors.PersistenceActorTestBase;
 import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSnapshotAdapter;
+import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.signals.commands.cleanup.Cleanup;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupResponse;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
@@ -75,11 +77,14 @@ import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyEntry;
 import org.eclipse.ditto.signals.commands.policies.query.RetrieveResource;
 import org.eclipse.ditto.signals.commands.policies.query.RetrieveSubject;
 import org.eclipse.ditto.signals.commands.policies.query.RetrieveSubjectResponse;
+import org.eclipse.ditto.signals.events.policies.PolicyCreated;
+import org.eclipse.ditto.signals.events.policies.PolicyEntryCreated;
 import org.junit.Before;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.testkit.TestActorRef;
 import akka.testkit.javadsl.TestKit;
 import scala.PartialFunction;
@@ -98,9 +103,6 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         setUpBase();
     }
 
-    /**
-     *
-     */
     @Test
     public void tryToRetrievePolicyWhichWasNotYetCreated() {
         final String policyId = "test.ns:23420815";
@@ -125,7 +127,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         final Policy policy = createPolicyWithRandomId();
         final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
 
-        final PolicyMongoSnapshotAdapter snapshotAdapter = new PolicyMongoSnapshotAdapter();
+        final SnapshotAdapter<Policy> snapshotAdapter = new PolicyMongoSnapshotAdapter();
         final Props props = PolicyPersistenceActor.props(policyIdOfActor, snapshotAdapter, pubSubMediator);
         final TestActorRef<PolicyPersistenceActor> underTest = TestActorRef.create(actorSystem, props);
         final PolicyPersistenceActor policyPersistenceActor = underTest.underlyingActor();
@@ -139,9 +141,6 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         }
     }
 
-    /**
-     *
-     */
     @Test
     public void createPolicy() {
         new TestKit(actorSystem) {
@@ -158,19 +157,14 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /**
-     *
-     */
     @Test
     public void modifyPolicy() {
         final Policy policy = createPolicyWithRandomId();
         final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
 
         final Policy modifiedPolicy = policy.setEntry(
-                PoliciesModelFactory.newPolicyEntry(Label.of("anotherOne"), POLICY_SUBJECTS,
-                        POLICY_RESOURCES_ALL));
-        final ModifyPolicy modifyPolicyCommand =
-                ModifyPolicy.of(policy.getId().get(), modifiedPolicy, dittoHeadersV2);
+                PoliciesModelFactory.newPolicyEntry(Label.of("anotherOne"), POLICY_SUBJECTS, POLICY_RESOURCES_ALL));
+        final ModifyPolicy modifyPolicyCommand = ModifyPolicy.of(policy.getId().get(), modifiedPolicy, dittoHeadersV2);
 
         new TestKit(actorSystem) {
             {
@@ -186,15 +180,11 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /**
-     *
-     */
     @Test
     public void retrievePolicy() {
         final Policy policy = createPolicyWithRandomId();
         final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
-        final PolicyCommand retrievePolicyCommand =
-                RetrievePolicy.of(policy.getId().orElse(null), dittoHeadersV2);
+        final PolicyCommand retrievePolicyCommand = RetrievePolicy.of(policy.getId().orElse(null), dittoHeadersV2);
         final PolicyQueryCommandResponse expectedResponse =
                 retrievePolicyResponse(incrementRevision(policy, 1), retrievePolicyCommand.getDittoHeaders());
 
@@ -212,9 +202,6 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /**
-     *
-     */
     @Test
     public void sudoRetrievePolicy() {
         final Policy policy = createPolicyWithRandomId();
@@ -237,9 +224,6 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /**
-     *
-     */
     @Test
     public void deletePolicy() {
         new TestKit(actorSystem) {
@@ -260,9 +244,6 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /**
-     *
-     */
     @Test
     public void createPolicyEntry() {
         new TestKit(actorSystem) {
@@ -297,16 +278,12 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /**
-     *
-     */
     @Test
     public void modifyPolicyEntry() {
         new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
-                final Subject newSubject =
-                        Subject.newInstance(SubjectIssuer.GOOGLE, "anotherOne");
+                final Subject newSubject = Subject.newInstance(SubjectIssuer.GOOGLE, "anotherOne");
                 final PolicyEntry policyEntryToModify = PoliciesModelFactory.newPolicyEntry(POLICY_LABEL,
                         Subjects.newInstance(POLICY_SUBJECT, newSubject), POLICY_RESOURCES_ALL);
 
@@ -336,16 +313,12 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /**
-     *
-     */
     @Test
     public void tryToModifyPolicyEntryWithInvalidPermissions() {
         new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
-                final Subject newSubject =
-                        Subject.newInstance(SubjectIssuer.GOOGLE, "anotherOne");
+                final Subject newSubject = Subject.newInstance(SubjectIssuer.GOOGLE, "anotherOne");
 
                 final DittoHeaders headersMockWithOtherAuth =
                         createDittoHeaders(JsonSchemaVersion.LATEST, AUTH_SUBJECT, UNAUTH_SUBJECT);
@@ -415,9 +388,6 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /**
-     *
-     */
     @Test
     public void removePolicyEntry() {
         new TestKit(actorSystem) {
@@ -453,9 +423,6 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /**
-     *
-     */
     @Test
     public void tryToRemoveLastPolicyEntry() {
         new TestKit(actorSystem) {
@@ -482,9 +449,6 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /**
-     *
-     */
     @Test
     public void createResource() {
         new TestKit(actorSystem) {
@@ -522,9 +486,6 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /**
-     *
-     */
     @Test
     public void modifyResource() {
         new TestKit(actorSystem) {
@@ -561,9 +522,6 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /**
-     *
-     */
     @Test
     public void tryToModifyResource() {
         new TestKit(actorSystem) {
@@ -594,9 +552,6 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /**
-     *
-     */
     @Test
     public void removeResource() {
         new TestKit(actorSystem) {
@@ -636,9 +591,6 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /**
-     *
-     */
     @Test
     public void createSubject() {
         new TestKit(actorSystem) {
@@ -675,9 +627,6 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /**
-     *
-     */
     @Test
     public void modifySubject() {
         new TestKit(actorSystem) {
@@ -713,9 +662,6 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /**
-     *
-     */
     @Test
     public void removeSubject() {
         new TestKit(actorSystem) {
@@ -752,9 +698,6 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /**
-     *
-     */
     @Test
     public void recoverPolicyCreated() {
         new TestKit(actorSystem) {
@@ -781,9 +724,6 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /**
-     *
-     */
     @Test
     public void recoverPolicyDeleted() {
         new TestKit(actorSystem) {
@@ -815,9 +755,6 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /**
-     *
-     */
     @Test
     public void recoverPolicyEntryModified() {
         new TestKit(actorSystem) {
@@ -830,6 +767,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final CreatePolicyResponse createPolicy1Response = expectMsgClass(CreatePolicyResponse.class);
                 DittoPolicyAssertions.assertThat(createPolicy1Response.getPolicyCreated().get())
                         .isEqualEqualToButModified(policy);
+                final DistributedPubSubMediator.Publish policyCreatedPublish =
+                        pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
+                assertThat(policyCreatedPublish.msg()).isInstanceOf(PolicyCreated.class);
 
                 final Subject newSubject =
                         Subject.newInstance(SubjectIssuer.GOOGLE, "anotherOne");
@@ -846,6 +786,10 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 expectMsgEquals(modifyPolicyEntryResponse(policy.getId().get(), policyEntry,
                         dittoHeadersV2, true));
 
+                final DistributedPubSubMediator.Publish policyEntryModifiedPublish =
+                        pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
+                assertThat(policyEntryModifiedPublish.msg()).isInstanceOf(PolicyEntryCreated.class);
+
                 // restart
                 final ActorRef policyPersistenceActorRecovered = createPersistenceActorFor(policy);
 
@@ -861,9 +805,6 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /**
-     *
-     */
     @Test
     public void recoverPolicyEntryDeleted() {
         new TestKit(actorSystem) {
@@ -897,9 +838,6 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /**
-     *
-     */
     @Test
     public void ensureSequenceNumberCorrectness() {
         new TestKit(actorSystem) {
@@ -935,9 +873,6 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /**
-     *
-     */
     @Test
     public void ensureSequenceNumberCorrectnessAfterRecovery() {
         new TestKit(actorSystem) {
@@ -990,7 +925,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                     .isEqualEqualToButModified(policy);
 
             final String entityId = PolicyPersistenceActor.PERSISTENCE_ID_PREFIX +
-                            policy.getId().orElseThrow(IllegalStateException::new);
+                    policy.getId().orElseThrow(IllegalStateException::new);
             policyPersistenceActor.tell(Cleanup.of(entityId, DittoHeaders.empty()), getRef());
             expectMsg(CleanupResponse.success(entityId, DittoHeaders.empty()));
         }};
@@ -1001,19 +936,21 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     }
 
     private ActorRef createPersistenceActorFor(final String policyId) {
-        final PolicyMongoSnapshotAdapter snapshotAdapter = new PolicyMongoSnapshotAdapter();
+        final SnapshotAdapter<Policy> snapshotAdapter = new PolicyMongoSnapshotAdapter();
         final Props props = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator);
         return actorSystem.actorOf(props);
     }
 
-    private Policy incrementRevision(final Policy policy, final int n) {
+    private static Policy incrementRevision(final Policy policy, final int n) {
         Policy withIncrementedRevision = policy;
         for (int i = 0; i < n; i++) {
-            withIncrementedRevision =
-                    withIncrementedRevision.toBuilder()
-                            .setRevision(withIncrementedRevision.getRevision().get().toLong() + 1)
-                            .build();
+            withIncrementedRevision = withIncrementedRevision.toBuilder()
+                    .setRevision(withIncrementedRevision.getRevision()
+                            .map(Revision::increment)
+                            .orElseGet(() -> PolicyRevision.newInstance(1)))
+                    .build();
         }
         return withIncrementedRevision;
     }
+
 }

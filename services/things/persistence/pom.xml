@@ -31,7 +31,7 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>ditto-services-things-util</artifactId>
+            <artifactId>ditto-services-things-common</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -217,7 +217,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <systemPropertyVariables>
-                        <ditto.limits.things.max-size.bytes>102400</ditto.limits.things.max-size.bytes> <!--  100 KiB -->
+                        <ditto.limits.things.max-size>102400</ditto.limits.things.max-size> <!--  100 KiB -->
                     </systemPropertyVariables>
                     <systemProperties>
                         <kamon.auto-start>true</kamon.auto-start>

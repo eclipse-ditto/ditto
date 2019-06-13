@@ -36,7 +36,6 @@ import org.eclipse.ditto.services.things.persistence.serializer.ThingMongoEventA
 import org.eclipse.ditto.services.things.persistence.testhelper.Assertions;
 import org.eclipse.ditto.services.things.persistence.testhelper.ThingsJournalTestHelper;
 import org.eclipse.ditto.services.things.persistence.testhelper.ThingsSnapshotTestHelper;
-import org.eclipse.ditto.services.things.starter.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
@@ -63,12 +62,20 @@ public abstract class PersistenceActorTestBaseWithSnapshotting extends Persisten
             Thing.JsonFields.FEATURES, Thing.JsonFields.ID, Thing.JsonFields.MODIFIED, Thing.JsonFields.REVISION,
             Thing.JsonFields.POLICY_ID, Thing.JsonFields.LIFECYCLE);
     static final int DEFAULT_TEST_SNAPSHOT_THRESHOLD = 2;
-    private static final int NEVER_TAKE_SNAPSHOT_THRESHOLD = Integer.MAX_VALUE;
     private static final boolean DEFAULT_TEST_SNAPSHOT_DELETE_OLD = true;
     private static final boolean DEFAULT_TEST_EVENTS_DELETE_OLD = true;
     private static final Duration VERY_LONG_DURATION = Duration.ofDays(100);
     private static final int PERSISTENCE_ASSERT_WAIT_AT_MOST_MS = 5000;
     private static final long PERSISTENCE_ASSERT_RETRY_DELAY_MS = 500;
+
+    private static final String SNAPSHOT_PREFIX = "ditto.things.thing.snapshot.";
+    static final String SNAPSHOT_THRESHOLD = SNAPSHOT_PREFIX + "threshold";
+    private static final String SNAPSHOT_DELETE_OLD = SNAPSHOT_PREFIX + "delete-old-snapshot";
+    private static final String EVENTS_DELETE_OLD = SNAPSHOT_PREFIX + "delete-old-events";
+    private static final String SNAPSHOT_INTERVAL = SNAPSHOT_PREFIX + "interval";
+    private static final String ACTIVITY_CHECK_PREFIX = "ditto.things.thing.activity-check";
+    private static final String ACTIVITY_CHECK_INTERVAL = ACTIVITY_CHECK_PREFIX + "inactive-interval";
+    private static final String ACTIVITY_CHECK_DELETED_INTERVAL = ACTIVITY_CHECK_PREFIX + "deleted-interval";
 
     private ThingMongoEventAdapter eventAdapter;
     private ThingsJournalTestHelper<ThingEvent> journalTestHelper;
@@ -78,16 +85,16 @@ public abstract class PersistenceActorTestBaseWithSnapshotting extends Persisten
 
     Config createNewDefaultTestConfig() {
         return ConfigFactory.empty()
-                .withValue(ConfigKeys.Thing.SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(
+                .withValue(SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(
                         DEFAULT_TEST_SNAPSHOT_THRESHOLD))
-                .withValue(ConfigKeys.Thing.ACTIVITY_CHECK_INTERVAL, ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION))
-                .withValue(ConfigKeys.Thing.ACTIVITY_CHECK_DELETED_INTERVAL,
+                .withValue(ACTIVITY_CHECK_INTERVAL, ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION))
+                .withValue(ACTIVITY_CHECK_DELETED_INTERVAL,
                         ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION))
-                .withValue(ConfigKeys.Thing.SNAPSHOT_DELETE_OLD, ConfigValueFactory.fromAnyRef(
+                .withValue(SNAPSHOT_DELETE_OLD, ConfigValueFactory.fromAnyRef(
                         DEFAULT_TEST_SNAPSHOT_DELETE_OLD))
-                .withValue(ConfigKeys.Thing.EVENTS_DELETE_OLD,
+                .withValue(EVENTS_DELETE_OLD,
                         ConfigValueFactory.fromAnyRef(DEFAULT_TEST_EVENTS_DELETE_OLD))
-                .withValue(ConfigKeys.Thing.SNAPSHOT_INTERVAL, ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION));
+                .withValue(SNAPSHOT_INTERVAL, ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION));
     }
 
     @Override

@@ -61,6 +61,13 @@ public interface Revision<T extends Revision<T>> extends Comparable<T> {
     boolean isLowerThanOrEqualTo(T other);
 
     /**
+     * Creates a new revision by incrementing this revision by one.
+     *
+     * @return the incremented revision.
+     */
+    T increment();
+
+    /**
      * Returns this revision as {@code long} value.
      *
      * @return this revision as {@code long} value.
@@ -74,4 +81,5 @@ public interface Revision<T extends Revision<T>> extends Comparable<T> {
      */
     @Override
     String toString();
+
 }

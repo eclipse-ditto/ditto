@@ -59,7 +59,7 @@ import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Rule;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.ExternalResource;
 import org.junit.runner.RunWith;
@@ -77,9 +77,8 @@ import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 import akka.util.ByteString;
 
-
 @RunWith(MockitoJUnitRunner.class)
-public class MqttClientActorTest {
+public final class MqttClientActorTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MqttClientActorTest.class);
 
@@ -97,12 +96,14 @@ public class MqttClientActorTest {
             .build();
 
     @SuppressWarnings("NullableProblems") private static ActorSystem actorSystem;
-    private String connectionId;
-    private static Connection connection;
-    private String serverHost;
+    private static final FreePort freePort = new FreePort();
 
-    private final FreePort freePort = new FreePort();
-    @Rule public final MqttServerRule mqttServer = new MqttServerRule(freePort.getPort());
+    @ClassRule
+    public static final MqttServerRule mqttServer = new MqttServerRule(freePort.getPort());
+
+    private String connectionId;
+    private String serverHost;
+    private Connection connection;
 
     @BeforeClass
     public static void setUp() {
@@ -119,13 +120,12 @@ public class MqttClientActorTest {
     public void initializeConnection() {
         connectionId = TestConstants.createRandomConnectionId();
         serverHost = "tcp://localhost:" + freePort.getPort();
-        connection =
-                ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT, ConnectivityStatus.OPEN,
-                        serverHost)
-                        .sources(singletonList(MQTT_SOURCE))
-                        .targets(singletonList(TARGET))
-                        .failoverEnabled(true)
-                        .build();
+        connection = ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT,
+                ConnectivityStatus.OPEN, serverHost)
+                .sources(singletonList(MQTT_SOURCE))
+                .targets(singletonList(TARGET))
+                .failoverEnabled(true)
+                .build();
     }
 
     @Test
@@ -159,8 +159,7 @@ public class MqttClientActorTest {
                         serverHost)
                         .sources(singletonList(mqttSource))
                         .build();
-        testConsumeModifyThing(connectionWithEnforcement, "eclipse/ditto/thing")
-                .expectMsgClass(ModifyThing.class);
+        testConsumeModifyThing(connectionWithEnforcement, "eclipse/ditto/thing").expectMsgClass(ModifyThing.class);
     }
 
     @Test
@@ -274,8 +273,7 @@ public class MqttClientActorTest {
     }
 
     private static Source newMqttSource(final int consumerCount, final int index, final String... sources) {
-        return ConnectivityModelFactory
-                .newSourceBuilder()
+        return ConnectivityModelFactory.newSourceBuilder()
                 .authorizationContext(AUTHORIZATION_CONTEXT)
                 .index(index)
                 .consumerCount(consumerCount)
@@ -388,15 +386,15 @@ public class MqttClientActorTest {
     private static Props mqttClientActor(final Connection connection, final ActorRef testProbe,
             final BiFunction<Connection, DittoHeaders, MqttConnectionFactory> factoryCreator) {
 
-        return Props.create(MqttClientActor.class, () ->
-                new MqttClientActor(connection, connection.getConnectionStatus(), testProbe, factoryCreator));
+        return Props.create(MqttClientActor.class, connection, connection.getConnectionStatus(), testProbe,
+                factoryCreator);
     }
 
     private static MqttMessage mqttMessage(final String topic, final String payload) {
         return MqttMessage.create(topic, ByteString.fromArray(payload.getBytes(UTF_8)));
     }
 
-    private static class FreePort {
+    private static final class FreePort {
 
         private final int port;
 
@@ -418,7 +416,7 @@ public class MqttClientActorTest {
      * Fools the fast-failing mechanism of BaseClientActor so that MqttClientActor can be tested.
      * BaseClientActor does not attempt to connect if the host address of the connection URI is not reachable.
      */
-    private static class MqttServerRule extends ExternalResource {
+    private static final class MqttServerRule extends ExternalResource {
 
         private final int port;
 
@@ -460,5 +458,7 @@ public class MqttClientActorTest {
                 // don't care; next test uses a new port.
             }
         }
+
     }
+
 }

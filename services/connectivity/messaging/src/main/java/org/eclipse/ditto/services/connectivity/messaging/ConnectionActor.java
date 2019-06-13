@@ -41,6 +41,9 @@ import org.eclipse.ditto.model.connectivity.FilteredTopic;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.SnapshotConfig;
 import org.eclipse.ditto.services.connectivity.messaging.kafka.KafkaValidator;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.RetrieveConnectionMetricsAggregatorActor;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.RetrieveConnectionStatusAggregatorActor;
@@ -50,12 +53,12 @@ import org.eclipse.ditto.services.connectivity.messaging.rabbitmq.RabbitMQValida
 import org.eclipse.ditto.services.connectivity.messaging.validation.CompoundConnectivityCommandInterceptor;
 import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.connectivity.messaging.validation.DittoConnectivityCommandValidator;
-import org.eclipse.ditto.services.connectivity.util.ConnectionConfigReader;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cleanup.AbstractPersistentActorWithTimersAndCleanup;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -103,7 +106,6 @@ import akka.cluster.routing.ClusterRouterPool;
 import akka.cluster.routing.ClusterRouterPoolSettings;
 import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
 import akka.persistence.RecoveryCompleted;
@@ -146,7 +148,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
             RabbitMQValidator.newInstance(),
             AmqpValidator.newInstance(),
             MqttValidator.newInstance(),
-            KafkaValidator.newInstance());
+            KafkaValidator.getInstance());
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -174,6 +176,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
     private final java.time.Duration clientActorAskTimeout;
     @Nullable private Cancellable stopSelfIfDeletedTrigger;
 
+    @SuppressWarnings("unused")
     private ConnectionActor(final String connectionId,
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
@@ -186,22 +189,25 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
         this.propsFactory = propsFactory;
         final DittoConnectivityCommandValidator dittoCommandValidator =
                 new DittoConnectivityCommandValidator(propsFactory, conciergeForwarder, CONNECTION_VALIDATOR);
+
         if (customCommandValidator != null) {
-            this.commandValidator =
+            commandValidator =
                     new CompoundConnectivityCommandInterceptor(dittoCommandValidator, customCommandValidator);
         } else {
-            this.commandValidator = dittoCommandValidator;
+            commandValidator = dittoCommandValidator;
         }
 
-        final ConnectionConfigReader configReader =
-                ConnectionConfigReader.fromRawConfig(getContext().system().settings().config());
-        snapshotThreshold = configReader.snapshotThreshold();
+        final ConnectionConfig connectionConfig = DittoConnectivityConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        ).getConnectionConfig();
+        final SnapshotConfig snapshotConfig = connectionConfig.getSnapshotConfig();
+        snapshotThreshold = snapshotConfig.getThreshold();
         snapshotAdapter = new ConnectionMongoSnapshotAdapter();
         connectionCreatedBehaviour = createConnectionCreatedBehaviour();
 
-        final java.time.Duration javaFlushTimeout = configReader.flushPendingResponsesTimeout();
+        final java.time.Duration javaFlushTimeout = connectionConfig.getFlushPendingResponsesTimeout();
         flushPendingResponsesTimeout = Duration.create(javaFlushTimeout.toMillis(), TimeUnit.MILLISECONDS);
-        clientActorAskTimeout = configReader.clientActorAskTimeout();
+        clientActorAskTimeout = connectionConfig.getClientActorAskTimeout();
 
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
     }
@@ -221,15 +227,8 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
             final ClientActorPropsFactory propsFactory,
             @Nullable final Consumer<ConnectivityCommand<?>> commandValidator) {
 
-        return Props.create(ConnectionActor.class, new Creator<ConnectionActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public ConnectionActor create() {
-                return new ConnectionActor(connectionId, pubSubMediator, conciergeForwarder, propsFactory,
-                        commandValidator);
-            }
-        });
+        return Props.create(ConnectionActor.class, connectionId, pubSubMediator, conciergeForwarder, propsFactory,
+                commandValidator);
     }
 
     @Override
@@ -497,8 +496,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
         });
     }
 
-    private void respondWithCreateConnectionResponse(final Connection connection,
-            final CreateConnection command,
+    private void respondWithCreateConnectionResponse(final Connection connection, final CreateConnection command,
             final ActorRef origin) {
 
         origin.tell(CreateConnectionResponse.of(connection, command.getDittoHeaders()), getSelf());
@@ -790,7 +788,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
         forwardToClientActors(props, command, () -> respondWithEmptyStatus(command, this.getSender()));
     }
 
-    private long extractTimeoutFromCommand(final DittoHeaders headers) {
+    private static long extractTimeoutFromCommand(final DittoHeaders headers) {
         return Optional.ofNullable(headers.get("timeout"))
                 .map(Long::parseLong)
                 .orElse(DEFAULT_RETRIEVE_STATUS_TIMEOUT);
@@ -819,7 +817,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
         log.debug("ClientActor not started, responding with empty connection status with status closed.");
         final RetrieveConnectionStatusResponse statusResponse =
                 RetrieveConnectionStatusResponse.closedResponse(connectionId,
-                        ConfigUtil.instanceIdentifier(),
+                        InstanceIdentifierSupplier.getInstance().get(),
                         connectionClosedAt == null ? Instant.EPOCH : connectionClosedAt,
                         ConnectivityStatus.CLOSED,
                         "[" + BaseClientState.DISCONNECTED + "] connection is closed",
@@ -996,8 +994,8 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
      */
     private static final class PerformTask {
 
-        final String description;
-        final Consumer<ConnectionActor> task;
+        private final String description;
+        private final Consumer<ConnectionActor> task;
 
         private PerformTask(final String description, final Consumer<ConnectionActor> task) {
             this.description = description;
@@ -1012,6 +1010,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
         public final String toString() {
             return String.format("PerformTask(%s)", description);
         }
+
     }
 
     /**
@@ -1037,18 +1036,12 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
          *
          * @return the Akka configuration Props object
          */
-        static Props props(final ActorRef clientActor,
-                final int expectedResponses,
-                final long timeout) {
-
+        static Props props(final ActorRef clientActor, final int expectedResponses, final long timeout) {
             return Props.create(AggregateActor.class, clientActor, expectedResponses, timeout);
         }
 
         @SuppressWarnings("unused")
-        private AggregateActor(final ActorRef clientActor,
-                final int expectedResponses,
-                final long timeout) {
-
+        private AggregateActor(final ActorRef clientActor, final int expectedResponses, final long timeout) {
             this.clientActor = clientActor;
             this.expectedResponses = expectedResponses;
             this.timeout = timeout;

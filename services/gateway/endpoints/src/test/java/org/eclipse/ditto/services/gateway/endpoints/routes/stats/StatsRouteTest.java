@@ -20,11 +20,13 @@ import java.util.Optional;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
+import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.commands.thingsearch.query.CountThingsResponse;
 import org.junit.Before;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.testkit.TestRoute;
@@ -33,7 +35,7 @@ import akka.http.javadsl.testkit.TestRouteResult;
 /**
  * Tests {@link StatsRoute}.
  */
-public class StatsRouteTest extends EndpointTestBase {
+public final class StatsRouteTest extends EndpointTestBase {
 
     private static final String STATS_PATH = "/" + StatsRoute.STATISTICS_PATH_PREFIX;
 
@@ -46,7 +48,11 @@ public class StatsRouteTest extends EndpointTestBase {
     }
 
     private void setUp(final ActorRef proxyActor) {
-        final StatsRoute statsRoute = new StatsRoute(proxyActor, system());
+        final ActorSystem actorSystem = system();
+        final ProtocolAdapterProvider adapterProvider = ProtocolAdapterProvider.load(protocolConfig, actorSystem);
+        final StatsRoute statsRoute = new StatsRoute(proxyActor, actorSystem, httpConfig, authConfig.getDevOpsConfig(),
+                adapterProvider.getHttpHeaderTranslator());
+
         statsTestRoute = testRoute(statsRoute.buildStatsRoute(KNOWN_CORRELATION_ID));
     }
 
@@ -58,8 +64,7 @@ public class StatsRouteTest extends EndpointTestBase {
 
     @Test
     public void getStatsThingsUrl() {
-        final TestRouteResult result = statsTestRoute.run(HttpRequest.GET(STATS_PATH +
-                "/" + StatsRoute.THINGS_PATH));
+        final TestRouteResult result = statsTestRoute.run(HttpRequest.GET(STATS_PATH + "/" + StatsRoute.THINGS_PATH));
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
     }
 

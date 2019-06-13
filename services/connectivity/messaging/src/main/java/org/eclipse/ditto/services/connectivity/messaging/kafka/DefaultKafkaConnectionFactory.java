@@ -13,7 +13,7 @@
 package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.services.connectivity.util.KafkaConfigReader;
+import org.eclipse.ditto.services.connectivity.messaging.config.KafkaConfig;
 
 import akka.kafka.ProducerMessage;
 import akka.kafka.ProducerSettings;
@@ -28,10 +28,24 @@ final class DefaultKafkaConnectionFactory implements KafkaConnectionFactory {
     private final Connection connection;
     private final ProducerSettings<String, String> settings;
 
-    DefaultKafkaConnectionFactory(final Connection connection,
-            final KafkaConfigReader config) {
+    private DefaultKafkaConnectionFactory(final Connection connection,
+            final ProducerSettings<String, String> producerSettings) {
+
         this.connection = connection;
-        settings = ProducerSettingsFactory.getInstance().createProducerSettings(connection, config);
+        settings = producerSettings;
+    }
+
+    /**
+     * Returns an instance of the default Kafka connection factory.
+     *
+     * @param connection the Kafka connection.
+     * @param kafkaConfig the Kafka configuration settings.
+     * @return an Kafka connection factory.
+     */
+    static DefaultKafkaConnectionFactory getInstance(final Connection connection, final KafkaConfig kafkaConfig) {
+        final ProducerSettingsFactory settingsFactory = ProducerSettingsFactory.getInstance(connection, kafkaConfig);
+
+        return new DefaultKafkaConnectionFactory(connection, settingsFactory.getProducerSettings());
     }
 
     @Override

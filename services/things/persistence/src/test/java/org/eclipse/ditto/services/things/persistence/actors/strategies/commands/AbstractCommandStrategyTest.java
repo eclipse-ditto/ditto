@@ -21,11 +21,11 @@ import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import java.util.Optional;
 import java.util.function.BiConsumer;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.Revision;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
@@ -66,16 +66,21 @@ public abstract class AbstractCommandStrategyTest {
         return DefaultContext.getInstance(THING_ID, logger, becomeCreatedRunnable, becomeDeletedRunnable);
     }
 
-    protected static void assertModificationResult(final CommandStrategy underTest, @Nullable final Thing thing,
-            final Command command, final Class<? extends ThingModifiedEvent> expectedEventClass,
+    protected static void assertModificationResult(final CommandStrategy underTest,
+            @Nullable final Thing thing,
+            final Command command,
+            final Class<? extends ThingModifiedEvent> expectedEventClass,
             final CommandResponse expectedCommandResponse) {
 
         assertModificationResult(underTest, thing, command, expectedEventClass, expectedCommandResponse, false);
     }
 
-    protected static void assertModificationResult(final CommandStrategy underTest, @Nullable final Thing thing,
-            final Command command, final Class<? extends ThingModifiedEvent> expectedEventClass,
-            final CommandResponse expectedCommandResponse, final boolean becomeDeleted) {
+    protected static void assertModificationResult(final CommandStrategy underTest,
+            @Nullable final Thing thing,
+            final Command command,
+            final Class<? extends ThingModifiedEvent> expectedEventClass,
+            final CommandResponse expectedCommandResponse,
+            final boolean becomeDeleted) {
 
         final CommandStrategy.Context context = getDefaultContext();
         final CommandStrategy.Result result = applyStrategy(underTest, context, thing, command);
@@ -84,7 +89,8 @@ public abstract class AbstractCommandStrategyTest {
     }
 
     protected static void assertErrorResult(final CommandStrategy underTest,
-            @Nullable final Thing thing, final Command command,
+            @Nullable final Thing thing,
+            final Command command,
             final DittoRuntimeException expectedException) {
 
         final CommandStrategy.Context context = getDefaultContext();
@@ -94,7 +100,8 @@ public abstract class AbstractCommandStrategyTest {
     }
 
     protected static void assertQueryResult(final CommandStrategy underTest,
-            @Nullable final Thing thing, final Command command,
+            @Nullable final Thing thing,
+            final Command command,
             final CommandResponse expectedCommandResponse) {
 
         final CommandStrategy.Context context = getDefaultContext();
@@ -104,11 +111,12 @@ public abstract class AbstractCommandStrategyTest {
     }
 
     protected static void assertUnhandledResult(final AbstractCommandStrategy underTest,
-            @Nullable final Thing thing, final Command command,
+            @Nullable final Thing thing,
+            final Command command,
             final WithDittoHeaders expectedResponse) {
 
         final CommandStrategy.Context context = getDefaultContext();
-        @SuppressWarnings("unchecked")final CommandStrategy.Result result =
+        @SuppressWarnings("unchecked") final CommandStrategy.Result result =
                 underTest.unhandled(context, thing, NEXT_REVISION, command);
 
         assertInfoResult(result, expectedResponse);
@@ -116,8 +124,10 @@ public abstract class AbstractCommandStrategyTest {
 
     private static void assertModificationResult(final CommandStrategy.Context context,
             final CommandStrategy.Result result,
-            final Class<? extends ThingModifiedEvent> eventClazz, @Nullable final Thing currentThing,
-            final WithDittoHeaders expectedResponse, final boolean becomeDeleted) {
+            final Class<? extends ThingModifiedEvent> eventClazz,
+            @Nullable final Thing currentThing,
+            final WithDittoHeaders expectedResponse,
+            final boolean becomeDeleted) {
 
         final ArgumentCaptor<ThingModifiedEvent> event = ArgumentCaptor.forClass(eventClazz);
         final DummyCommandHandler mock = mock(DummyCommandHandler.class);
@@ -129,10 +139,16 @@ public abstract class AbstractCommandStrategyTest {
 
         verify(mock).persist(event.capture(), consumer.capture());
         assertThat(event.getValue()).isInstanceOf(eventClazz);
-        final long newRevision = Optional.ofNullable(currentThing)
-                .flatMap(Thing::getRevision)
-                .map(rev -> rev.toLong() + 1)
-                .orElse(0L);
+
+        final long newRevision;
+        if (null == currentThing) {
+            newRevision = 0L;
+        } else {
+            newRevision = currentThing.getRevision()
+                    .map(Revision::increment)
+                    .map(Revision::toLong)
+                    .orElse(0L);
+        }
         final Thing modifiedThing = eventHandleStrategy.handle(event.getValue(), currentThing, newRevision);
         consumer.getValue().accept(event.getValue(), modifiedThing);
         verify(mock).notify(expectedResponse);
@@ -147,7 +163,9 @@ public abstract class AbstractCommandStrategyTest {
 
     private static void assertInfoResult(final CommandStrategy.Context context,
             final CommandStrategy.Result result,
-            final WithDittoHeaders infoResponse, final boolean waitForNotification) {
+            final WithDittoHeaders infoResponse,
+            final boolean waitForNotification) {
+
         final DummyCommandHandler mock = mock(DummyCommandHandler.class);
 
         result.apply(context, mock::persist, mock::notify);
@@ -180,4 +198,5 @@ public abstract class AbstractCommandStrategyTest {
         void becomeDeleted();
 
     }
+
 }

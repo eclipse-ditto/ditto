@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Optional;
 
@@ -45,9 +45,12 @@ import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
- * Abstract base implementation of a protocol adapter.
+ * Adapter for the Ditto protocol.
  */
-public class DittoProtocolAdapter implements ProtocolAdapter {
+public final class DittoProtocolAdapter implements ProtocolAdapter {
+
+    private final ErrorRegistry<DittoRuntimeException> errorRegistry;
+    private final HeaderTranslator headerTranslator;
 
     private final MessageCommandAdapter messageCommandAdapter;
     private final MessageCommandResponseAdapter messageCommandResponseAdapter;
@@ -57,20 +60,18 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
     private final ThingQueryCommandResponseAdapter thingQueryCommandResponseAdapter;
     private final ThingEventAdapter thingEventAdapter;
 
-    private final ErrorRegistry<DittoRuntimeException> errorRegistry;
-    private final HeaderTranslator headerTranslator;
-
     protected DittoProtocolAdapter(final ErrorRegistry<DittoRuntimeException> errorRegistry,
             final HeaderTranslator headerTranslator) {
+
         this.errorRegistry = errorRegistry;
-        this.messageCommandAdapter = MessageCommandAdapter.of(headerTranslator);
-        this.messageCommandResponseAdapter = MessageCommandResponseAdapter.of(headerTranslator);
-        this.thingModifyCommandAdapter = ThingModifyCommandAdapter.of(headerTranslator);
-        this.thingModifyCommandResponseAdapter = ThingModifyCommandResponseAdapter.of(headerTranslator);
-        this.thingQueryCommandAdapter = ThingQueryCommandAdapter.of(headerTranslator);
-        this.thingQueryCommandResponseAdapter = ThingQueryCommandResponseAdapter.of(headerTranslator);
-        this.thingEventAdapter = ThingEventAdapter.of(headerTranslator);
         this.headerTranslator = headerTranslator;
+        messageCommandAdapter = MessageCommandAdapter.of(headerTranslator);
+        messageCommandResponseAdapter = MessageCommandResponseAdapter.of(headerTranslator);
+        thingModifyCommandAdapter = ThingModifyCommandAdapter.of(headerTranslator);
+        thingModifyCommandResponseAdapter = ThingModifyCommandResponseAdapter.of(headerTranslator);
+        thingQueryCommandAdapter = ThingQueryCommandAdapter.of(headerTranslator);
+        thingQueryCommandResponseAdapter = ThingQueryCommandResponseAdapter.of(headerTranslator);
+        thingEventAdapter = ThingEventAdapter.of(headerTranslator);
     }
 
     /**
@@ -79,7 +80,8 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
      * @param headerTranslator translator between external and Ditto headers.
      */
     public static DittoProtocolAdapter of(final HeaderTranslator headerTranslator) {
-        return new DittoProtocolAdapter(GlobalErrorRegistry.getInstance(), requireNonNull(headerTranslator));
+        checkNotNull(headerTranslator, "headerTranslator");
+        return new DittoProtocolAdapter(GlobalErrorRegistry.getInstance(), headerTranslator);
     }
 
     /**
@@ -88,15 +90,15 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
      * @return the instance.
      */
     public static DittoProtocolAdapter newInstance() {
-        return new DittoProtocolAdapter(GlobalErrorRegistry.getInstance(), headerTranslator());
+        return new DittoProtocolAdapter(GlobalErrorRegistry.getInstance(), getHeaderTranslator());
     }
 
     /**
-     * Create a default header translator for this protocol adapter.
+     * Creates a default header translator for this protocol adapter.
      *
      * @return the default header translator.
      */
-    public static HeaderTranslator headerTranslator() {
+    public static HeaderTranslator getHeaderTranslator() {
         return HeaderTranslator.of(DittoHeaderDefinition.values(), MessageHeaderDefinition.values());
     }
 
@@ -395,4 +397,5 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
         final String thingId = topicPath.getNamespace() + ":" + topicPath.getId();
         return ThingErrorResponse.of(thingId, dittoRuntimeException, dittoRuntimeException.getDittoHeaders());
     }
+
 }

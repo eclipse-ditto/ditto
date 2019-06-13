@@ -27,7 +27,7 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>ditto-services-policies-util</artifactId>
+            <artifactId>ditto-services-policies-common</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -173,7 +173,7 @@
                 <configuration>
                     <systemPropertyVariables>
                         <!--  100 KiB -->
-                        <ditto.limits.policies.max-size.bytes>102400</ditto.limits.policies.max-size.bytes>
+                        <ditto.limits.policies.max-size>102400</ditto.limits.policies.max-size>
                     </systemPropertyVariables>
                     <systemProperties>
                         <kamon.auto-start>true</kamon.auto-start>

@@ -89,7 +89,7 @@ public interface DittoMongoClientBuilder {
 
         /**
          * Sets the maximum duration of a query.
-         * Default is {@value org.eclipse.ditto.services.utils.config.MongoConfig#MAX_QUERY_TIME_DEFAULT_SECS} seconds.
+         * Default is defined at {@link org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig.MongoDbConfigValue#MAX_QUERY_TIME}.
          *
          * @param maxQueryTime the maximum query time of {@code null} if the default value should be used.
          * @return this builder instance to allow method chaining.

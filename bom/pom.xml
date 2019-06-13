@@ -50,7 +50,7 @@
 
         <jjwt.version>0.10.6</jjwt.version>
         <asm.version>5.2</asm.version>
-        <qpid-jms-client.version>0.40.0</qpid-jms-client.version>
+        <qpid-jms-client.version>0.42.0</qpid-jms-client.version>
         <newmotion-akka-rabbitmq.version>5.0.0</newmotion-akka-rabbitmq.version>
         <amqp-client.version>5.4.2</amqp-client.version>
         <reactive-streams.version>1.0.2</reactive-streams.version>
@@ -97,6 +97,7 @@
 
         <scalatest.version>3.0.0</scalatest.version>
         <flapdoodle.version>2.2.0</flapdoodle.version>
+        <system-rules.version>1.19.0</system-rules.version>
     </properties>
 
     <dependencyManagement>
@@ -653,6 +654,12 @@
 
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-services-models-base</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-models-streaming</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -921,6 +928,13 @@
                 <groupId>org.openjdk.jmh</groupId>
                 <artifactId>jmh-generator-annprocess</artifactId>
                 <version>${jmh.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.github.stefanbirkner</groupId>
+                <artifactId>system-rules</artifactId>
+                <version>${system-rules.version}</version>
                 <scope>test</scope>
             </dependency>
 

@@ -26,9 +26,14 @@ import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.models.streaming.SudoStreamSnapshotRevisions;
 import org.eclipse.ditto.services.utils.akka.streaming.AbstractStreamingActor;
 import org.eclipse.ditto.services.utils.cache.ComparableCache;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
+
+import com.typesafe.config.Config;
 
 import akka.NotUsed;
 import akka.stream.javadsl.Source;
@@ -46,6 +51,8 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
 
     private final int streamingCacheSize;
     private final Function<PidWithSeqNr, T> entityMapper;
+
+    private final DittoMongoClient mongoClient;
     private final MongoReadJournal readJournal;
 
     /**
@@ -54,14 +61,43 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
      * @param streamingCacheSize the size of the streaming cache.
      * @param entityMapper the mapper used to map {@link PidWithSeqNr} to {@code T}. The resulting entity will be
      * streamed to the recipient actor.
-     * @param readJournal the journal to query for entities modified in a time window in the past. If {@code null}, the
-     * read journal will be retrieved from the actor context.
+     */
+    protected AbstractPersistenceStreamingActor(final int streamingCacheSize,
+            final Function<PidWithSeqNr, T> entityMapper) {
+        this.streamingCacheSize = streamingCacheSize;
+        this.entityMapper = requireNonNull(entityMapper);
+
+        final Config config = getContext().getSystem().settings().config();
+        final MongoDbConfig mongoDbConfig =
+                DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(config));
+        mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
+        readJournal = MongoReadJournal.newInstance(config, mongoClient);
+    }
+
+    /**
+     * Constructor for tests.
+     *
+     * @param streamingCacheSize the size of the streaming cache.
+     * @param entityMapper the mapper used to map {@link PidWithSeqNr} to {@code T}. The resulting entity will be
+     * streamed to the recipient actor.
+     * @param readJournal the ReadJournal to use instead of creating one in the non-test constructor.
      */
     protected AbstractPersistenceStreamingActor(final int streamingCacheSize,
             final Function<PidWithSeqNr, T> entityMapper, final MongoReadJournal readJournal) {
         this.streamingCacheSize = streamingCacheSize;
         this.entityMapper = requireNonNull(entityMapper);
+
+        final Config config = getContext().getSystem().settings().config();
+        final MongoDbConfig mongoDbConfig =
+                DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(config));
+        mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
         this.readJournal = readJournal;
+    }
+
+    @Override
+    public void postStop() throws Exception {
+        mongoClient.close();
+        super.postStop();
     }
 
     /**

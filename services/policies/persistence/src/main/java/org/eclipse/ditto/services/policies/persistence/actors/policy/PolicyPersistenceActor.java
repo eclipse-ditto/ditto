@@ -50,14 +50,17 @@ import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
+import org.eclipse.ditto.services.policies.common.config.DittoPoliciesConfig;
+import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.policies.persistence.actors.AbstractReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.ReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.StrategyAwareReceiveBuilder;
-import org.eclipse.ditto.services.policies.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cleanup.AbstractPersistentActorWithTimersAndCleanup;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.headers.conditional.ConditionalHeadersValidator;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
@@ -123,9 +126,6 @@ import org.eclipse.ditto.signals.events.policies.SubjectDeleted;
 import org.eclipse.ditto.signals.events.policies.SubjectModified;
 import org.eclipse.ditto.signals.events.policies.SubjectsModified;
 
-import com.typesafe.config.Config;
-
-import akka.ConfigurationException;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.PoisonPill;
@@ -133,7 +133,6 @@ import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ClusterSharding;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.function.Procedure;
 import akka.japi.pf.FI;
 import akka.japi.pf.ReceiveBuilder;
@@ -166,10 +165,9 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
     private final String policyId;
     private final SnapshotAdapter<Policy> snapshotAdapter;
     private final ActorRef pubSubMediator;
-    private final Duration activityCheckInterval;
-    private final Duration activityCheckDeletedInterval;
-    private final long snapshotThreshold;
+    private final PolicyConfig policyConfig;
     private final Receive handlePolicyEvents;
+
     private Policy policy;
     private long accessCounter;
     private long lastSnapshotSequenceNr = 0L;
@@ -180,21 +178,14 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
             final ActorRef pubSubMediator) {
 
         this.policyId = policyId;
-        this.pubSubMediator = pubSubMediator;
         this.snapshotAdapter = snapshotAdapter;
+        this.pubSubMediator = pubSubMediator;
+        final DittoPoliciesConfig policiesConfig = DittoPoliciesConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        );
+        this.policyConfig = policiesConfig.getPolicyConfig();
 
-        final Config config = getContext().system().settings().config();
-        activityCheckInterval = config.getDuration(ConfigKeys.Policy.ACTIVITY_CHECK_INTERVAL);
-        activityCheckDeletedInterval = config.getDuration(ConfigKeys.Policy.ACTIVITY_CHECK_DELETED_INTERVAL);
-        scheduleCheckForPolicyActivity(activityCheckInterval);
-
-        snapshotThreshold = config.getLong(ConfigKeys.Policy.SNAPSHOT_THRESHOLD);
-        if (snapshotThreshold < 0) {
-            throw new ConfigurationException(String.format("Config setting '%s' must be positive, but is: %d.",
-                    ConfigKeys.Policy.SNAPSHOT_THRESHOLD, snapshotThreshold));
-        }
-        final Duration snapshotInterval = config.getDuration(ConfigKeys.Policy.SNAPSHOT_INTERVAL);
-        scheduleSnapshot(snapshotInterval);
+        scheduleCheckForPolicyActivity(policyConfig.getActivityCheckConfig().getDeletedInterval());
 
         handlePolicyEvents = ReceiveBuilder.create()
 
@@ -206,7 +197,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
                         .build())
 
                 // # Policy Modification Recovery
-                .match(PolicyModified.class, pm -> {
+                .match(PolicyModified.class, pm -> null != policy, pm -> {
                     // we need to use the current policy as base otherwise we would loose its state
                     final PolicyBuilder copyBuilder = policy.toBuilder();
                     copyBuilder.removeAll(policy); // remove all old policyEntries!
@@ -217,20 +208,14 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
                 })
 
                 // # Policy Deletion Recovery
-                .match(PolicyDeleted.class, pd -> {
-                    if (policy != null) {
-                        policy = policy.toBuilder()
-                                .setLifecycle(PolicyLifecycle.DELETED)
-                                .setRevision(lastSequenceNr())
-                                .setModified(pd.getTimestamp().orElse(null))
-                                .build();
-                    } else {
-                        log.warning("Policy was null when 'PolicyDeleted' event should have been applied on recovery.");
-                    }
-                })
+                .match(PolicyDeleted.class, pd -> null != policy, pd -> policy = policy.toBuilder()
+                        .setLifecycle(PolicyLifecycle.DELETED)
+                        .setRevision(lastSequenceNr())
+                        .setModified(pd.getTimestamp().orElse(null))
+                        .build())
 
                 // # Policy Entries Modification Recovery
-                .match(PolicyEntriesModified.class, pem -> policy = policy.toBuilder()
+                .match(PolicyEntriesModified.class, pem -> null != policy, pem -> policy = policy.toBuilder()
                         .removeAll(policy.getEntriesSet())
                         .setAll(pem.getPolicyEntries())
                         .setRevision(lastSequenceNr())
@@ -239,28 +224,28 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
 
 
                 // # Policy Entry Creation Recovery
-                .match(PolicyEntryCreated.class, pec -> policy = policy.toBuilder()
+                .match(PolicyEntryCreated.class, pec -> null != policy, pec -> policy = policy.toBuilder()
                         .set(pec.getPolicyEntry())
                         .setRevision(lastSequenceNr())
                         .setModified(pec.getTimestamp().orElse(null))
                         .build())
 
                 // # Policy Entry Modification Recovery
-                .match(PolicyEntryModified.class, pem -> policy = policy.toBuilder()
+                .match(PolicyEntryModified.class, pem -> null != policy, pem -> policy = policy.toBuilder()
                         .set(pem.getPolicyEntry())
                         .setRevision(lastSequenceNr())
                         .setModified(pem.getTimestamp().orElse(null))
                         .build())
 
                 // # Policy Entry Deletion Recovery
-                .match(PolicyEntryDeleted.class, ped -> policy = policy.toBuilder()
+                .match(PolicyEntryDeleted.class, ped -> null != policy, ped -> policy = policy.toBuilder()
                         .remove(ped.getLabel())
                         .setRevision(lastSequenceNr())
                         .setModified(ped.getTimestamp().orElse(null))
                         .build())
 
                 // # Subjects Modification Recovery
-                .match(SubjectsModified.class, sm -> policy.getEntryFor(sm.getLabel())
+                .match(SubjectsModified.class, sm -> null != policy, sm -> policy.getEntryFor(sm.getLabel())
                         .map(policyEntry -> PoliciesModelFactory
                                 .newPolicyEntry(sm.getLabel(), sm.getSubjects(), policyEntry.getResources()))
                         .ifPresent(modifiedPolicyEntry -> policy = policy.toBuilder()
@@ -270,7 +255,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
                                 .build()))
 
                 // # Subject Creation Recovery
-                .match(SubjectCreated.class, sc -> policy.getEntryFor(sc.getLabel())
+                .match(SubjectCreated.class, sc -> null != policy, sc -> policy.getEntryFor(sc.getLabel())
                         .map(policyEntry -> PoliciesModelFactory
                                 .newPolicyEntry(sc.getLabel(), policyEntry.getSubjects().setSubject(sc.getSubject()),
                                         policyEntry.getResources()))
@@ -281,7 +266,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
                                 .build()))
 
                 // # Subject Modification Recovery
-                .match(SubjectModified.class, sm -> policy.getEntryFor(sm.getLabel())
+                .match(SubjectModified.class, sm -> null != policy, sm -> policy.getEntryFor(sm.getLabel())
                         .map(policyEntry -> PoliciesModelFactory
                                 .newPolicyEntry(sm.getLabel(), policyEntry.getSubjects().setSubject(sm.getSubject()),
                                         policyEntry.getResources()))
@@ -292,7 +277,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
                                 .build()))
 
                 // # Subject Deletion Recovery
-                .match(SubjectDeleted.class, sd -> policy = policy.toBuilder()
+                .match(SubjectDeleted.class, sd -> null != policy, sd -> policy = policy.toBuilder()
                         .forLabel(sd.getLabel())
                         .removeSubject(sd.getSubjectId())
                         .setRevision(lastSequenceNr())
@@ -300,7 +285,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
                         .build())
 
                 // # Resources Modification Recovery
-                .match(ResourcesModified.class, rm -> policy.getEntryFor(rm.getLabel())
+                .match(ResourcesModified.class, rm -> null != policy, rm -> policy.getEntryFor(rm.getLabel())
                         .map(policyEntry -> PoliciesModelFactory
                                 .newPolicyEntry(rm.getLabel(), policyEntry.getSubjects(), rm.getResources()))
                         .ifPresent(modifiedPolicyEntry -> policy = policy.toBuilder()
@@ -310,7 +295,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
                                 .build()))
 
                 // # Resource Creation Recovery
-                .match(ResourceCreated.class, rc -> policy.getEntryFor(rc.getLabel())
+                .match(ResourceCreated.class, rc -> null != policy, rc -> policy.getEntryFor(rc.getLabel())
                         .map(policyEntry -> PoliciesModelFactory.newPolicyEntry(rc.getLabel(),
                                 policyEntry.getSubjects(),
                                 policyEntry.getResources().setResource(rc.getResource())))
@@ -321,7 +306,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
                                 .build()))
 
                 // # Resource Modification Recovery
-                .match(ResourceModified.class, rm -> policy.getEntryFor(rm.getLabel())
+                .match(ResourceModified.class, rm -> null != policy, rm -> policy.getEntryFor(rm.getLabel())
                         .map(policyEntry -> PoliciesModelFactory.newPolicyEntry(rm.getLabel(),
                                 policyEntry.getSubjects(),
                                 policyEntry.getResources().setResource(rm.getResource())))
@@ -332,7 +317,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
                                 .build()))
 
                 // # Resource Deletion Recovery
-                .match(ResourceDeleted.class, rd -> policy = policy.toBuilder()
+                .match(ResourceDeleted.class, rd -> null != policy, rd -> policy = policy.toBuilder()
                         .forLabel(rd.getLabel())
                         .removeResource(rd.getResourceKey())
                         .setRevision(lastSequenceNr())
@@ -353,14 +338,8 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
     public static Props props(final String policyId,
             final SnapshotAdapter<Policy> snapshotAdapter,
             final ActorRef pubSubMediator) {
-        return Props.create(PolicyPersistenceActor.class, new Creator<PolicyPersistenceActor>() {
-            private static final long serialVersionUID = 1L;
 
-            @Override
-            public PolicyPersistenceActor create() {
-                return new PolicyPersistenceActor(policyId, snapshotAdapter, pubSubMediator);
-            }
-        });
+        return Props.create(PolicyPersistenceActor.class, policyId, snapshotAdapter, pubSubMediator);
     }
 
     /**
@@ -383,8 +362,13 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
         timers().startSingleTimer("activityCheck", checkForActivity, delay);
     }
 
-    private void scheduleSnapshot(final Duration interval) {
+    private void scheduleSnapshot() {
+        final Duration interval = policyConfig.getSnapshotConfig().getInterval();
         timers().startPeriodicTimer("takeSnapshot", new TakeSnapshot(), interval);
+    }
+
+    private void cancelSnapshot() {
+        timers().cancel("takeSnapshot");
     }
 
     @Override
@@ -465,6 +449,8 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
         final Receive superReceive = super.createReceive();
         getContext().become(superReceive.orElse(strategyAwareReceiveBuilder.build()), true);
         getContext().getParent().tell(new PolicySupervisorActor.ManualReset(), getSelf());
+        scheduleCheckForPolicyActivity(policyConfig.getActivityCheckConfig().getInactiveInterval());
+        scheduleSnapshot();
     }
 
     private Collection<ReceiveStrategy<?>> initPolicyCreatedStrategies() {
@@ -516,6 +502,15 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
 
         getContext().become(strategyAwareReceiveBuilder.build(), true);
         getContext().getParent().tell(new PolicySupervisorActor.ManualReset(), getSelf());
+
+        /*
+         * Check in the next X minutes and therefore
+         * - stay in-memory for a short amount of minutes after deletion
+         * - get a Snapshot when removed from memory
+         */
+        final ActivityCheckConfig activityCheckConfig = policyConfig.getActivityCheckConfig();
+        scheduleCheckForPolicyActivity(activityCheckConfig.getDeletedInterval());
+        cancelSnapshot();
     }
 
     private Collection<ReceiveStrategy<?>> initPolicyDeletedStrategies() {
@@ -543,7 +538,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
             handler.apply(persistedEvent);
 
             // save a snapshot if there were too many changes since the last snapshot
-            if ((lastSequenceNr() - lastSnapshotSequenceNr) >= snapshotThreshold) {
+            if ((lastSequenceNr() - lastSnapshotSequenceNr) >= policyConfig.getSnapshotConfig().getThreshold()) {
                 takeSnapshot("snapshot threshold is reached");
             }
             notifySubscribers(event);
@@ -1965,10 +1960,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
                 // - thing is deleted,
                 // - the latest snapshot is out of date
                 takeSnapshot("the policy is deleted and has no up-to-date snapshot");
-                scheduleCheckForPolicyActivity(activityCheckDeletedInterval);
+                scheduleCheckForPolicyActivity(policyConfig.getActivityCheckConfig().getDeletedInterval());
             } else if (accessCounter > message.getCurrentAccessCounter()) {
                 // if the Thing was accessed in any way since the last check
-                scheduleCheckForPolicyActivity(activityCheckInterval);
+                scheduleCheckForPolicyActivity(policyConfig.getActivityCheckConfig().getInactiveInterval());
             } else {
                 // safe to shutdown after a period of inactivity if:
                 // - policy is active (and taking regular snapshots of itself), or

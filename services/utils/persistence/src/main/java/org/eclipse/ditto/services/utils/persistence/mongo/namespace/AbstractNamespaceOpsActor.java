@@ -14,8 +14,12 @@ package org.eclipse.ditto.services.utils.persistence.mongo.namespace;
 
 import java.io.Closeable;
 import java.util.Collection;
+import java.util.function.Function;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespace;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespaceResponse;
 
@@ -51,11 +55,16 @@ public abstract class AbstractNamespaceOpsActor<S> extends AbstractActor {
      * Create a new instance of this actor.
      *
      * @param pubSubMediator Akka pub-sub mediator.
-     * @param namespaceOps implementation of namespace operations on the persistence.
+     * @param namespaceOpsFunction implementation of namespace operations on the persistence.
      */
-    protected AbstractNamespaceOpsActor(final ActorRef pubSubMediator, final NamespaceOps<S> namespaceOps) {
+    protected AbstractNamespaceOpsActor(final ActorRef pubSubMediator,
+            final Function<MongoDbConfig, NamespaceOps<S>> namespaceOpsFunction) {
         this.pubSubMediator = pubSubMediator;
-        this.namespaceOps = namespaceOps;
+
+        final DefaultMongoDbConfig mongoDbConfig = DefaultMongoDbConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        );
+        this.namespaceOps = namespaceOpsFunction.apply(mongoDbConfig);
         materializer = ActorMaterializer.create(getContext());
     }
 

@@ -12,19 +12,21 @@
  */
 package org.eclipse.ditto.services.concierge.enforcement;
 
-import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
+import org.eclipse.ditto.services.concierge.common.DittoConciergeConfig;
+import org.eclipse.ditto.services.concierge.common.EnforcementConfig;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 import org.eclipse.ditto.services.utils.cache.EntityId;
 import org.eclipse.ditto.services.utils.cache.InvalidateCacheEntry;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.ExpiringTimerBuilder;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
@@ -52,6 +54,8 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
      */
     protected final Contextual<WithDittoHeaders> contextual;
 
+    private final EnforcementConfig enforcementConfig;
+
     @Nullable
     private final Cache<EntityId, Entry<EntityId>> thingIdCache;
     @Nullable
@@ -59,35 +63,34 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     @Nullable
     private final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache;
 
+
     /**
      * Create an instance of this actor.
      *
      * @param pubSubMediator Akka pub-sub-mediator.
      * @param conciergeForwarder the concierge forwarder.
-     * @param askTimeout how long to wait for entity actors.
-     * @param bufferSize the buffer size used for the Source queue.
-     * @param parallelism parallelism to use for processing messages in parallel.
      * @param thingIdCache the cache for Thing IDs to either ACL or Policy ID.
      * @param aclEnforcerCache the ACL cache.
      * @param policyEnforcerCache the Policy cache.
      */
     protected AbstractEnforcerActor(final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
-            final Duration askTimeout,
-            final int bufferSize,
-            final int parallelism,
             @Nullable final Cache<EntityId, Entry<EntityId>> thingIdCache,
             @Nullable final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache,
             @Nullable final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache) {
 
-        super(bufferSize, parallelism);
+        super();
+
+        enforcementConfig = DittoConciergeConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        ).getEnforcementConfig();
 
         this.thingIdCache = thingIdCache;
         this.aclEnforcerCache = aclEnforcerCache;
         this.policyEnforcerCache = policyEnforcerCache;
 
         contextual = new Contextual<>(null, getSelf(), getContext().getSystem().deadLetters(),
-                pubSubMediator, conciergeForwarder, askTimeout, log, null, null,
+                pubSubMediator, conciergeForwarder, enforcementConfig.getAskTimeout(), log, null, null,
                 null, null, createResponseReceiversCache());
 
         // register for sending messages via pub/sub to this enforcer
@@ -144,6 +147,21 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
 
     @Override
     protected abstract Sink<Contextual<WithDittoHeaders>, ?> processedMessageSink();
+
+    @Override
+    protected int getBufferSize() {
+        return enforcementConfig.getBufferSize();
+    }
+
+    @Override
+    protected int getParallelism() {
+        return enforcementConfig.getParallelism();
+    }
+
+    @Override
+    protected int getMaxNamespacesSubstreams() {
+        return enforcementConfig.getMaxNamespacesSubstreams();
+    }
 
     @Override
     protected Contextual<WithDittoHeaders> mapMessage(final WithDittoHeaders message) {

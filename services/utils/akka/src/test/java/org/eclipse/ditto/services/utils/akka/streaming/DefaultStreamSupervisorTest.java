@@ -39,6 +39,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.verification.VerificationWithTimeout;
 
@@ -48,6 +49,7 @@ import com.typesafe.config.ConfigFactory;
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.Props;
 import akka.pattern.Patterns;
 import akka.stream.ActorMaterializer;
 import akka.stream.Attributes;
@@ -58,10 +60,10 @@ import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
- * Tests {@link DefaultStreamSupervisor}.
+ * Unit test for {@link DefaultStreamSupervisor}.
  */
 @RunWith(MockitoJUnitRunner.class)
-public class DefaultStreamSupervisorTest {
+public final class DefaultStreamSupervisorTest {
 
     private static final EntityIdWithRevision TAG_1 = new AbstractEntityIdWithRevision("element1", 1L) {};
     private static final EntityIdWithRevision TAG_2 = new AbstractEntityIdWithRevision("element2", 2L) {};
@@ -116,6 +118,7 @@ public class DefaultStreamSupervisorTest {
      */
     @Test
     public void successfulSync() {
+        disableLogging();
         new TestKit(actorSystem) {{
             final ActorRef streamSupervisor = createStreamSupervisor();
             final Instant expectedQueryEnd = KNOWN_LAST_SYNC.plus(STREAM_INTERVAL);
@@ -191,30 +194,69 @@ public class DefaultStreamSupervisorTest {
             final BatchedEntityIdWithRevisions<?> msg =
                     BatchedEntityIdWithRevisions.of(EntityIdWithRevision.class, Collections.singletonList(TAG_1));
 
-            expectStreamTriggerMsg(expectedQueryEnd, smallMaxIdleTime);
+            expectStreamTriggerMsg(expectedQueryEnd);
             Patterns.pipe(Source.single(msg).runWith(StreamRefs.sourceRef(), materializer), actorSystem.dispatcher())
                     .to(supervisor);
 
-            expectStreamTriggerMsg(expectedQueryEnd, smallMaxIdleTime);
+            expectStreamTriggerMsg(expectedQueryEnd);
             Patterns.pipe(Source.single(msg).runWith(StreamRefs.sourceRef(), materializer), actorSystem.dispatcher())
                     .to(supervisor);
 
-            expectStreamTriggerMsg(expectedQueryEnd, smallMaxIdleTime);
+            expectStreamTriggerMsg(expectedQueryEnd);
 
             // verify the db has NOT been updated with the queryEnd, cause we never got a success-message
             verify(searchSyncPersistence, never()).setTimestamp(eq(expectedQueryEnd));
         }};
     }
 
+    @Test
+    public void supervisorRestartsIfStreamItDoesNotStartOrStopStreamForTooLong() {
+        actorSystem.log().info("Logging disabled for this test because many stack traces are expected.");
+        actorSystem.log().info("Re-enable logging should the test fail.");
+        disableLogging();
 
-    private void expectStreamTriggerMsg(final Instant expectedQueryEnd) {
-        expectStreamTriggerMsg(expectedQueryEnd, getDefaultMaxIdleTime());
+        new TestKit(actorSystem) {{
+
+            // GIVEN: A stream supervisor props with extremely short outdated warn offset and stream interval
+            //        that sends messages on restart
+
+            final Duration oneMs = Duration.ofMillis(1L);
+            final Duration oneDay = Duration.ofDays(1L);
+
+            final SyncConfig syncConfig = Mockito.mock(SyncConfig.class);
+            when(syncConfig.getStartOffset()).thenReturn(START_OFFSET);
+            when(syncConfig.getStreamInterval()).thenReturn(oneMs);
+            when(syncConfig.getInitialStartOffset()).thenReturn(INITIAL_START_OFFSET);
+            when(syncConfig.getStreamingActorTimeout()).thenReturn(oneDay);
+            when(syncConfig.getElementsStreamedPerBatch()).thenReturn(ELEMENTS_STREAMED_PER_BATCH);
+            when(syncConfig.getOutdatedWarningOffset()).thenReturn(oneMs);
+            when(syncConfig.getMinimalDelayBetweenStreams()).thenReturn(Duration.ZERO);
+
+            final String onRestartMessage = "creating DefaultStreamSupervisor";
+
+            final Props propsWithCreationHook = Props.create(DefaultStreamSupervisor.class, () -> {
+
+                // send message to testkit on creation
+                getRef().tell(onRestartMessage, ActorRef.noSender());
+
+                return new DefaultStreamSupervisor<>(forwardTo.ref(), provider.ref(), String.class, Source::single,
+                        Function.identity(), searchSyncPersistence, materializer, syncConfig);
+            });
+
+            // WHEN: The stream supervisor is created
+            actorSystem.actorOf(propsWithCreationHook);
+
+            // THEN: The stream supervisor keeps restarting.
+            for (int i = 0; i < 10; ++i) {
+                expectMsg(onRestartMessage);
+            }
+        }};
     }
 
-    private void expectStreamTriggerMsg(final Instant expectedQueryEnd, final Duration maxIdleTime) {
+    private void expectStreamTriggerMsg(final Instant expectedQueryEnd) {
         final SudoStreamModifiedEntities msg = provider.expectMsgClass(FiniteDuration.apply(SHORT_TIMEOUT.toMillis(),
                 TimeUnit.MILLISECONDS), SudoStreamModifiedEntities.class);
-        final Duration streamingActorTimeout = getStreamConsumerSettings(maxIdleTime).getStreamingActorTimeout();
+        final Duration streamingActorTimeout = Duration.ofDays(1L);
         final SudoStreamModifiedEntities expectedStreamTriggerMsg =
                 SudoStreamModifiedEntities.of(KNOWN_LAST_SYNC, expectedQueryEnd, ELEMENTS_STREAMED_PER_BATCH,
                         streamingActorTimeout.toMillis(), DittoHeaders.empty());
@@ -222,23 +264,27 @@ public class DefaultStreamSupervisorTest {
     }
 
     private ActorRef createStreamSupervisor() {
-        return createStreamSupervisor(getDefaultMaxIdleTime());
+        return createStreamSupervisor(Duration.ofSeconds(10));
     }
 
     private ActorRef createStreamSupervisor(final Duration maxIdleTime) {
-        final StreamConsumerSettings streamConsumerSettings = getStreamConsumerSettings(maxIdleTime);
+        final SyncConfig syncConfig = getStreamConsumerSettings(maxIdleTime);
         return actorSystem.actorOf(DefaultStreamSupervisor.props(forwardTo.ref(), provider.ref(),
                 EntityIdWithRevision.class, Source::single,
-                Function.identity(), searchSyncPersistence, materializer, streamConsumerSettings));
+                Function.identity(), searchSyncPersistence, materializer, syncConfig));
     }
 
-    private static Duration getDefaultMaxIdleTime() {
-        return Duration.ofSeconds(10);
-    }
-
-    private static StreamConsumerSettings getStreamConsumerSettings(final Duration maxIdleTime) {
-        return StreamConsumerSettings.of(START_OFFSET, STREAM_INTERVAL, INITIAL_START_OFFSET, maxIdleTime,
-                Duration.ofDays(1), ELEMENTS_STREAMED_PER_BATCH, Duration.ofDays(10));
+    private static SyncConfig getStreamConsumerSettings(final Duration maxIdleTime) {
+        final SyncConfig result = Mockito.mock(SyncConfig.class);
+        when(result.getStartOffset()).thenReturn(START_OFFSET);
+        when(result.getStreamInterval()).thenReturn(STREAM_INTERVAL);
+        when(result.getInitialStartOffset()).thenReturn(INITIAL_START_OFFSET);
+        when(result.getMaxIdleTime()).thenReturn(maxIdleTime);
+        when(result.getStreamingActorTimeout()).thenReturn(Duration.ofDays(1L));
+        when(result.getElementsStreamedPerBatch()).thenReturn(ELEMENTS_STREAMED_PER_BATCH);
+        when(result.getOutdatedWarningOffset()).thenReturn(Duration.ofDays(10L));
+        when(result.getMinimalDelayBetweenStreams()).thenReturn(Duration.ZERO);
+        return result;
     }
 
     private void expectNotTerminated(final TestKit testKit, final ActorRef actor, final Duration timeout) {
@@ -250,8 +296,7 @@ public class DefaultStreamSupervisorTest {
         }
     }
 
-    private void expectTerminated(final TestKit testKit, final ActorRef actor, final Duration timeout)
-            throws AssertionError {
+    private static void expectTerminated(final TestKit testKit, final ActorRef actor, final Duration timeout) {
         testKit.watch(actor);
         testKit.expectTerminated(FiniteDuration.apply(timeout.toNanos(), TimeUnit.NANOSECONDS), actor);
     }
@@ -262,4 +307,5 @@ public class DefaultStreamSupervisorTest {
     private void disableLogging() {
         actorSystem.eventStream().setLogLevel(Attributes.logLevelOff());
     }
+
 }

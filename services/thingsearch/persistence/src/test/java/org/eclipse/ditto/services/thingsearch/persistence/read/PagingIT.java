@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
@@ -27,15 +28,16 @@ import org.eclipse.ditto.model.query.SortOption;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.base.config.DittoLimitsConfigReader;
-import org.eclipse.ditto.services.base.config.LimitsConfigReader;
-import org.junit.Before;
-import org.junit.Test;
-
-import com.typesafe.config.ConfigFactory;
-
+import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
+import org.eclipse.ditto.services.utils.config.ScopedConfig;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 /**
  * Tests for the paging functionality of search persistence.
@@ -51,16 +53,24 @@ public final class PagingIT extends AbstractReadPersistenceITBase {
     private static final String THING_ID6 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId6");
     private static final List<String> THING_IDS = Arrays.asList(THING_ID1, THING_ID2, THING_ID3, THING_ID4, THING_ID5,
             THING_ID6);
-    private final ThingsFieldExpressionFactory eft = new ThingsFieldExpressionFactoryImpl();
+
+    private static DefaultLimitsConfig limitsConfig;
 
     private int maxPageSizeFromConfig;
     private int defaultPageSizeFromConfig;
 
+    private final ThingsFieldExpressionFactory eft = new ThingsFieldExpressionFactoryImpl();
+
+    @BeforeClass
+    public static void initTestFixture() {
+        final Config testConfig = ConfigFactory.load("test");
+        limitsConfig = DefaultLimitsConfig.of(testConfig.getConfig(ScopedConfig.DITTO_SCOPE));
+    }
+
     @Before
     public void setUp() {
-        final LimitsConfigReader limitsConfigReader = DittoLimitsConfigReader.fromRawConfig(ConfigFactory.load("test"));
-        maxPageSizeFromConfig = limitsConfigReader.thingsSearchMaxPageSize();
-        defaultPageSizeFromConfig = limitsConfigReader.thingsSearchDefaultPageSize();
+        maxPageSizeFromConfig = limitsConfig.getThingsSearchMaxPageSize();
+        defaultPageSizeFromConfig = limitsConfig.getThingsSearchDefaultPageSize();
     }
 
     @Test
@@ -158,7 +168,7 @@ public final class PagingIT extends AbstractReadPersistenceITBase {
         assertThat(actualResult.nextPageOffset()).isEqualTo(expectedNextPageOffset);
     }
 
-    private void insertThings(final List<String> thingIds) {
+    private void insertThings(final Collection<String> thingIds) {
         shuffleAndPersist(createThings(thingIds));
     }
 

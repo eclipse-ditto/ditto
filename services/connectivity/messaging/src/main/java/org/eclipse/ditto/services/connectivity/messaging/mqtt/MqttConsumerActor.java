@@ -51,6 +51,7 @@ public final class MqttConsumerActor extends BaseConsumerActor {
     private final boolean dryRun;
     @Nullable private final EnforcementFilterFactory<String, String> topicEnforcementFilterFactory;
 
+    @SuppressWarnings("unused")
     private MqttConsumerActor(final String connectionId, final ActorRef messageMappingProcessor,
             final AuthorizationContext sourceAuthorizationContext, @Nullable final Enforcement enforcement,
             final boolean dryRun, final String sourceAddress) {
@@ -81,16 +82,9 @@ public final class MqttConsumerActor extends BaseConsumerActor {
             final AuthorizationContext sourceAuthorizationContext,
             @Nullable final Enforcement enforcement,
             final boolean dryRun, final String topic) {
-        return Props.create(MqttConsumerActor.class, new Creator<MqttConsumerActor>() {
-            private static final long serialVersionUID = 1L;
 
-            @Override
-            public MqttConsumerActor create() {
-                return new MqttConsumerActor(connectionId, messageMappingProcessor, sourceAuthorizationContext,
-                        enforcement,
-                        dryRun, topic);
-            }
-        });
+        return Props.create(MqttConsumerActor.class, connectionId, messageMappingProcessor, sourceAuthorizationContext,
+                        enforcement, dryRun, topic);
     }
 
     @Override

@@ -29,6 +29,14 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-json</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-model-base</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-models-base</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>com.typesafe</groupId>
@@ -41,6 +49,12 @@
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-actor_${scala.version}</artifactId>
+        </dependency>
+
+        <!-- ### Testing ### -->
+        <dependency>
+            <groupId>com.github.stefanbirkner</groupId>
+            <artifactId>system-rules</artifactId>
         </dependency>
     </dependencies>
 

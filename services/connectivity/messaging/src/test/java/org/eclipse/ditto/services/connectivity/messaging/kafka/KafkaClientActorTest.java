@@ -70,7 +70,7 @@ import akka.testkit.javadsl.TestKit;
  */
 @SuppressWarnings({"squid:S3599", "squid:S1171"})
 @RunWith(MockitoJUnitRunner.class)
-public class KafkaClientActorTest {
+public final class KafkaClientActorTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaClientActorTest.class);
 
@@ -79,6 +79,7 @@ public class KafkaClientActorTest {
     private static final String HOST = "localhost";
     private static final String TOPIC = "target";
     private static final Target TARGET = newTarget(TOPIC, AUTHORIZATION_CONTEXT, null, 0, Topic.TWIN_EVENTS);
+
     private static ActorSystem actorSystem;
     private static ServerSocket mockServer;
 
@@ -111,7 +112,7 @@ public class KafkaClientActorTest {
             try {
                 mockServer.close();
                 LOGGER.info("Successfully closed mock server.");
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 LOGGER.info("Got unexpected exception while closing the mock server.", e);
             }
         } else {
@@ -131,14 +132,14 @@ public class KafkaClientActorTest {
                 .failoverEnabled(true)
                 .specificConfig(specificConfig)
                 .build();
-        when(publisherActorFactory.name()).thenReturn("actorName");
+        when(publisherActorFactory.getActorName()).thenReturn("actorName");
     }
 
     @Test
     public void testConnect() {
         new TestKit(actorSystem) {{
             final MockKafkaPublisher mockKafkaPublisher = provideMockKafkaPublisher(actorSystem);
-            final Props props = kafkaClientActor(connection, getRef());
+            final Props props = getKafkaClientActorProps(getRef());
             final ActorRef kafkaClientActor = actorSystem.actorOf(props);
 
             kafkaClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
@@ -155,7 +156,7 @@ public class KafkaClientActorTest {
     public void testPublishToTopic() {
         new TestKit(actorSystem) {{
             final MockKafkaPublisher mockKafkaPublisher = provideMockKafkaPublisher(actorSystem);
-            final Props props = kafkaClientActor(connection, getRef());
+            final Props props = getKafkaClientActorProps(getRef());
             final ActorRef kafkaClientActor = actorSystem.actorOf(props);
 
             kafkaClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
@@ -185,7 +186,7 @@ public class KafkaClientActorTest {
     public void testTestConnection() {
         new TestKit(actorSystem) {{
             final MockKafkaPublisher mockKafkaPublisher = provideMockKafkaPublisher(actorSystem);
-            final Props props = kafkaClientActor(connection, getRef());
+            final Props props = getKafkaClientActorProps(getRef());
             final ActorRef kafkaClientActor = actorSystem.actorOf(props);
 
             kafkaClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
@@ -198,7 +199,7 @@ public class KafkaClientActorTest {
     public void testTestConnectionFails() {
         new TestKit(actorSystem) {{
             final MockKafkaPublisher mockKafkaPublisher = provideMockKafkaPublisher(actorSystem);
-            final Props props = kafkaClientActor(connection, getRef());
+            final Props props = getKafkaClientActorProps(getRef());
             final ActorRef kafkaClientActor = actorSystem.actorOf(props);
 
             kafkaClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
@@ -211,7 +212,7 @@ public class KafkaClientActorTest {
     public void testRetrieveConnectionMetrics() {
         new TestKit(actorSystem) {{
             final MockKafkaPublisher mockKafkaPublisher = provideMockKafkaPublisher(actorSystem);
-            final Props props = kafkaClientActor(connection, getRef());
+            final Props props = getKafkaClientActorProps(getRef());
             final ActorRef kafkaClientActor = actorSystem.actorOf(props);
 
             kafkaClientActor.tell(OpenConnection.of(connection.getId(), DittoHeaders.empty()), getRef());
@@ -224,11 +225,11 @@ public class KafkaClientActorTest {
         }};
     }
 
-    private Props kafkaClientActor(final Connection connection, final ActorRef conciergeForwarder) {
+    private Props getKafkaClientActorProps(final ActorRef conciergeForwarder) {
         return KafkaClientActor.props(connection, conciergeForwarder, publisherActorFactory);
     }
 
-    private Map<String, String> specificConfigWithBootstrapServers(final String... hostAndPort) {
+    private static Map<String, String> specificConfigWithBootstrapServers(final String... hostAndPort) {
         final Map<String, String> specificConfig = new HashMap<>();
         specificConfig.put("bootstrapServers", String.join(",", hostAndPort));
         return specificConfig;
@@ -242,16 +243,16 @@ public class KafkaClientActorTest {
         return mockKafkaPublisher;
     }
 
-    private static class MockKafkaPublisher {
+    private static final class MockKafkaPublisher {
 
         private final TestProbe testProbe;
 
         MockKafkaPublisher(final ActorSystem actorSystem) {
-            this.testProbe = TestProbe.apply(actorSystem);
+            testProbe = TestProbe.apply(actorSystem);
         }
 
         Props publisherActorProps() {
-            return Props.create(MockKafkaPublisherActor.class, () -> new MockKafkaPublisherActor(testProbe.ref()));
+            return Props.create(MockKafkaPublisherActor.class, testProbe.ref());
         }
 
         void expectPublisherStarted(final ActorRef kafkaClientActor) {
@@ -282,12 +283,12 @@ public class KafkaClientActorTest {
             }
 
             ActorRef getActorRef() {
-                return this.actorRef;
+                return actorRef;
             }
 
         }
 
-        private static class MockKafkaPublisherActor extends AbstractActor {
+        private static final class MockKafkaPublisherActor extends AbstractActor {
 
             private final ActorRef testProbe;
 
@@ -298,7 +299,7 @@ public class KafkaClientActorTest {
             }
 
             public static Props props(final ActorRef testProbe) {
-                return Props.create(MockKafkaPublisherActor.class, () -> new MockKafkaPublisherActor(testProbe));
+                return Props.create(MockKafkaPublisherActor.class, testProbe);
             }
 
             @Override

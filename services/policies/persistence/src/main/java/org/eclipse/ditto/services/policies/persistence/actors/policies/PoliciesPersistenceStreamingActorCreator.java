@@ -12,12 +12,12 @@
  */
 package org.eclipse.ditto.services.policies.persistence.actors.policies;
 
+import java.util.regex.Pattern;
+
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicyPersistenceActor;
 import org.eclipse.ditto.services.utils.persistence.mongo.DefaultPersistenceStreamingActor;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr;
-
-import com.typesafe.config.Config;
 
 import akka.actor.Props;
 
@@ -31,6 +31,7 @@ public final class PoliciesPersistenceStreamingActorCreator {
      * The name of the created Actor in the ActorSystem.
      */
     public static final String ACTOR_NAME = "persistenceStreamingActor";
+    private static final Pattern PERSISTENCE_ID_PATTERN = Pattern.compile(PolicyPersistenceActor.PERSISTENCE_ID_PREFIX);
 
     private PoliciesPersistenceStreamingActorCreator() {
         throw new AssertionError();
@@ -39,18 +40,17 @@ public final class PoliciesPersistenceStreamingActorCreator {
     /**
      * Creates Akka configuration object Props for this PersistenceQueriesActor.
      *
-     * @param config the actor system configuration.
      * @param streamingCacheSize the size of the streaming cache.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Config config, final int streamingCacheSize) {
-        return DefaultPersistenceStreamingActor.props(PolicyTag.class, config, streamingCacheSize,
-                PoliciesPersistenceStreamingActorCreator::createElement);
+    public static Props props(final int streamingCacheSize) {
+        return DefaultPersistenceStreamingActor.props(PolicyTag.class,
+                streamingCacheSize, PoliciesPersistenceStreamingActorCreator::createElement);
     }
 
     private static PolicyTag createElement(final PidWithSeqNr pidWithSeqNr) {
-        final String id = pidWithSeqNr.getPersistenceId()
-                .replaceFirst(PolicyPersistenceActor.PERSISTENCE_ID_PREFIX, "");
+        final String id = PERSISTENCE_ID_PATTERN.matcher(pidWithSeqNr.getPersistenceId()).replaceFirst("");
         return PolicyTag.of(id, pidWithSeqNr.getSequenceNr());
     }
+
 }

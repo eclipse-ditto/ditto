@@ -44,7 +44,6 @@ import akka.actor.ActorRef;
 import akka.actor.Cancellable;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.persistence.AbstractPersistentActor;
 import akka.persistence.RecoveryCompleted;
@@ -83,6 +82,7 @@ final class BatchCoordinatorActor extends AbstractPersistentActor {
     private ActorRef originalSender;
     private Cancellable shutdown;
 
+    @SuppressWarnings("unused")
     private BatchCoordinatorActor(final String batchId, final ActorRef eventRecipient,
             final ActorRef conciergeForwarder) {
         this.batchId = batchId;
@@ -103,14 +103,7 @@ final class BatchCoordinatorActor extends AbstractPersistentActor {
      * @return the Akka configuration Props object.
      */
     static Props props(final String batchId, final ActorRef eventRecipient, final ActorRef conciergeForwarder) {
-        return Props.create(BatchCoordinatorActor.class, new Creator<BatchCoordinatorActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public BatchCoordinatorActor create() {
-                return new BatchCoordinatorActor(batchId, eventRecipient, conciergeForwarder);
-            }
-        });
+        return Props.create(BatchCoordinatorActor.class, batchId, eventRecipient, conciergeForwarder);
     }
 
     @Override

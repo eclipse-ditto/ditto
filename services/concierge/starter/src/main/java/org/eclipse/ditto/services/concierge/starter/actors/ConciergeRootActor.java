@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.concierge.starter.actors;
 
 import static akka.http.javadsl.server.Directives.logRequest;
 import static akka.http.javadsl.server.Directives.logResult;
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.net.ConnectException;
 import java.time.Duration;
@@ -22,19 +22,20 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.services.base.config.HealthConfigReader;
-import org.eclipse.ditto.services.base.config.HttpConfigReader;
+import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.concierge.actors.batch.BatchSupervisorActor;
+import org.eclipse.ditto.services.concierge.common.ConciergeConfig;
 import org.eclipse.ditto.services.concierge.starter.proxy.AbstractEnforcerActorFactory;
-import org.eclipse.ditto.services.concierge.util.config.AbstractConciergeConfigReader;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.config.LocalHostAddressSupplier;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
+import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
+import org.eclipse.ditto.services.utils.health.config.PersistenceConfig;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
 
@@ -43,6 +44,7 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorInitializationException;
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
+import akka.actor.ActorRefFactory;
 import akka.actor.ActorSystem;
 import akka.actor.CoordinatedShutdown;
 import akka.actor.InvalidActorNameException;
@@ -122,79 +124,77 @@ public final class ConciergeRootActor extends AbstractActor {
                 return SupervisorStrategy.escalate();
             }).build());
 
-    private <C extends AbstractConciergeConfigReader> ConciergeRootActor(final C configReader,
+    @SuppressWarnings("unused")
+    private <C extends ConciergeConfig> ConciergeRootActor(final C conciergeConfig,
             final ActorRef pubSubMediator,
-            final AbstractEnforcerActorFactory<C> authorizationProxyPropsFactory,
+            final AbstractEnforcerActorFactory<C> enforcerActorFactory,
             final ActorMaterializer materializer) {
-
-        requireNonNull(configReader);
-        requireNonNull(pubSubMediator);
-        requireNonNull(authorizationProxyPropsFactory);
-        requireNonNull(materializer);
 
         pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
 
         final ActorContext context = getContext();
 
-        authorizationProxyPropsFactory.startEnforcerActor(context, configReader, pubSubMediator);
+        enforcerActorFactory.startEnforcerActor(context, conciergeConfig, pubSubMediator);
 
         final ActorRef conciergeForwarder = context.findChild(ConciergeForwarderActor.ACTOR_NAME).orElseThrow(() ->
                 new IllegalStateException("ConciergeForwarder could not be found"));
 
-        startClusterSingletonActor(context, BatchSupervisorActor.ACTOR_NAME,
-                BatchSupervisorActor.props(pubSubMediator, conciergeForwarder));
+        startClusterSingletonActor(context, BatchSupervisorActor.props(pubSubMediator, conciergeForwarder));
 
-        final ActorRef healthCheckingActor = startHealthCheckingActor(context, configReader);
+        final ActorRef healthCheckingActor = startHealthCheckingActor(context, conciergeConfig);
 
-        final HttpConfigReader httpConfig = configReader.http();
-
-        bindHttpStatusRoute(healthCheckingActor, httpConfig, materializer);
+        bindHttpStatusRoute(healthCheckingActor, conciergeConfig.getHttpConfig(), materializer);
     }
 
     /**
      * Creates Akka configuration object Props for this actor.
      *
-     * @param configReader the config reader.
+     * @param conciergeConfig the config of Concierge.
      * @param pubSubMediator the PubSub mediator Actor.
-     * @param authorizationProxyPropsFactory the {@link AbstractEnforcerActorFactory}.
+     * @param enforcerActorFactory factory for creating sharded enforcer actors.
      * @param materializer the materializer for the Akka actor system.
      * @return the Akka configuration Props object.
+     * @throws NullPointerException if any argument is {@code null}.
      */
-    public static <C extends AbstractConciergeConfigReader> Props props(final C configReader,
+    public static <C extends ConciergeConfig> Props props(final C conciergeConfig,
             final ActorRef pubSubMediator,
-            final AbstractEnforcerActorFactory<C> authorizationProxyPropsFactory,
+            final AbstractEnforcerActorFactory<C> enforcerActorFactory,
             final ActorMaterializer materializer) {
 
-        return Props.create(ConciergeRootActor.class,
-                () -> new ConciergeRootActor(configReader, pubSubMediator, authorizationProxyPropsFactory,
-                        materializer));
+        checkNotNull(conciergeConfig, "config of Concierge");
+        checkNotNull(pubSubMediator, "pub-sub mediator");
+        checkNotNull(enforcerActorFactory, "EnforcerActor factory");
+        checkNotNull(materializer, "ActorMaterializer");
+
+        return Props.create(ConciergeRootActor.class, conciergeConfig, pubSubMediator, enforcerActorFactory,
+                materializer);
     }
 
 
-    private static void startClusterSingletonActor(final akka.actor.ActorContext context, final String actorName,
-            final Props props) {
-
-        ClusterUtil.startSingleton(context, ConciergeMessagingConstants.CLUSTER_ROLE, actorName, props);
+    private static void startClusterSingletonActor(final akka.actor.ActorContext context, final Props props) {
+        ClusterUtil.startSingleton(context, ConciergeMessagingConstants.CLUSTER_ROLE, BatchSupervisorActor.ACTOR_NAME,
+                props);
     }
 
-    private static ActorRef startHealthCheckingActor(final ActorContext context,
-            final AbstractConciergeConfigReader configReader) {
+    private static ActorRef startHealthCheckingActor(final ActorRefFactory context,
+            final ConciergeConfig conciergeConfig) {
 
-        final HealthConfigReader healthConfig = configReader.health();
-        final HealthCheckingActorOptions.Builder hcBuilder = HealthCheckingActorOptions
-                .getBuilder(healthConfig.enabled(), healthConfig.getInterval());
+        final HealthCheckConfig healthCheckConfig = conciergeConfig.getHealthCheckConfig();
 
-        if (healthConfig.persistenceEnabled()) {
+        final HealthCheckingActorOptions.Builder hcBuilder =
+                HealthCheckingActorOptions.getBuilder(healthCheckConfig.isEnabled(), healthCheckConfig.getInterval());
+
+        final PersistenceConfig persistenceConfig = healthCheckConfig.getPersistenceConfig();
+        if (persistenceConfig.isEnabled()) {
             hcBuilder.enablePersistenceCheck();
         }
-
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
+
         return startChildActor(context, DefaultHealthCheckingActorFactory.ACTOR_NAME,
                 DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, MongoHealthChecker.props()));
     }
 
-    private static ActorRef startChildActor(final akka.actor.ActorContext context, final String actorName,
-            final Props props) {
+    private static ActorRef startChildActor(final ActorRefFactory context, final String actorName, final Props props) {
 
         return context.actorOf(props, actorName);
     }
@@ -222,11 +222,12 @@ public final class ConciergeRootActor extends AbstractActor {
                 }).build();
     }
 
-    private void bindHttpStatusRoute(final ActorRef healthCheckingActor, final HttpConfigReader httpConfig,
+    private void bindHttpStatusRoute(final ActorRef healthCheckingActor, final HttpConfig httpConfig,
             final ActorMaterializer materializer) {
+
         String hostname = httpConfig.getHostname();
         if (hostname.isEmpty()) {
-            hostname = ConfigUtil.getLocalHostAddress();
+            hostname = LocalHostAddressSupplier.getInstance().get();
             log.info("No explicit hostname configured, using HTTP hostname: {}", hostname);
         }
 

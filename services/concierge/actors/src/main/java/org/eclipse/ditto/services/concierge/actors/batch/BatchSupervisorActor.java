@@ -40,7 +40,6 @@ import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.persistence.AbstractPersistentActor;
@@ -74,6 +73,7 @@ public final class BatchSupervisorActor extends AbstractPersistentActor {
 
     private Set<String> batchIds;
 
+    @SuppressWarnings("unused")
     private BatchSupervisorActor(final ActorRef pubSubMediator, final ActorRef conciergeForwarder) {
         this.pubSubMediator = pubSubMediator;
         this.conciergeForwarder = conciergeForwarder;
@@ -90,14 +90,8 @@ public final class BatchSupervisorActor extends AbstractPersistentActor {
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator, final ActorRef conciergeForwarder) {
-        return Props.create(BatchSupervisorActor.class, new Creator<BatchSupervisorActor>() {
-            private static final long serialVersionUID = 1L;
 
-            @Override
-            public BatchSupervisorActor create() {
-                return new BatchSupervisorActor(pubSubMediator, conciergeForwarder);
-            }
-        });
+        return Props.create(BatchSupervisorActor.class, pubSubMediator, conciergeForwarder);
     }
 
     @Override

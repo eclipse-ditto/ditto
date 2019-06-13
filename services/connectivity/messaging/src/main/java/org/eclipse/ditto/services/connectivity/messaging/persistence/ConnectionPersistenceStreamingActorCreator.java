@@ -17,8 +17,6 @@ import org.eclipse.ditto.services.models.connectivity.ConnectionTag;
 import org.eclipse.ditto.services.utils.persistence.mongo.DefaultPersistenceStreamingActor;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr;
 
-import com.typesafe.config.Config;
-
 import akka.actor.Props;
 
 
@@ -39,12 +37,11 @@ public final class ConnectionPersistenceStreamingActorCreator {
     /**
      * Creates Akka configuration object Props for this PersistenceQueriesActor.
      *
-     * @param config the actor system configuration.
      * @param streamingCacheSize the size of the streaming cache.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Config config, final int streamingCacheSize) {
-        return DefaultPersistenceStreamingActor.props(ConnectionTag.class, config, streamingCacheSize,
+    public static Props props(final int streamingCacheSize) {
+        return DefaultPersistenceStreamingActor.props(ConnectionTag.class, streamingCacheSize,
                 ConnectionPersistenceStreamingActorCreator::createElement);
     }
 

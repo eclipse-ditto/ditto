@@ -260,6 +260,7 @@ public final class BatchSupervisorActorTest {
 
         private final ActorRef enforcerActor;
 
+        @SuppressWarnings("unused")
         private ConciergeForwarderActorMock(final ActorRef enforcerActor) {
             this.enforcerActor = enforcerActor;
         }
@@ -273,8 +274,7 @@ public final class BatchSupervisorActorTest {
          */
         public static Props props(final ActorRef enforcerActor) {
 
-            return Props.create(ConciergeForwarderActorMock.class,
-                    () -> new ConciergeForwarderActorMock(enforcerActor));
+            return Props.create(ConciergeForwarderActorMock.class, enforcerActor);
         }
 
         @Override

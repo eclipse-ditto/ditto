@@ -13,9 +13,10 @@
 package org.eclipse.ditto.services.connectivity.mapping.javascript.benchmark;
 
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
+import org.eclipse.ditto.services.connectivity.mapping.DefaultMappingConfig;
+import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 
-import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 /**
@@ -23,13 +24,15 @@ import com.typesafe.config.ConfigFactory;
  */
 public interface MapToDittoProtocolScenario {
 
-    Config MAPPING_CONFIG = ConfigFactory.parseString("javascript {\n" +
-            "        maxScriptSizeBytes = 50000 # 50kB\n" +
-            "        maxScriptExecutionTime = 500ms\n" +
-            "        maxScriptStackDepth = 10\n" +
-            "      }");
+    MappingConfig MAPPING_CONFIG =
+            DefaultMappingConfig.of(ConfigFactory.parseString("javascript {\n" +
+                    "        maxScriptSizeBytes = 50000 # 50kB\n" +
+                    "        maxScriptExecutionTime = 500ms\n" +
+                    "        maxScriptStackDepth = 10\n" +
+                    "      }"));
 
     MessageMapper getMessageMapper();
 
     ExternalMessage getExternalMessage();
+
 }

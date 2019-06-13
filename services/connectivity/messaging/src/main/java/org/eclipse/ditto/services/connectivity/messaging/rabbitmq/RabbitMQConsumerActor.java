@@ -49,7 +49,6 @@ import com.rabbitmq.client.Envelope;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.routing.ConsistentHashingRouter;
 
@@ -67,6 +66,7 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
 
     private final EnforcementFilterFactory<Map<String, String>, String> headerEnforcementFilterFactory;
 
+    @SuppressWarnings("unused")
     private RabbitMQConsumerActor(final String connectionId, final String sourceAddress,
             final ActorRef messageMappingProcessor, final AuthorizationContext authorizationContext,
             @Nullable final Enforcement enforcement, @Nullable final HeaderMapping headerMapping) {
@@ -90,16 +90,9 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
     static Props props(final String source, final ActorRef messageMappingProcessor, final
     AuthorizationContext authorizationContext, @Nullable final Enforcement enforcement,
             @Nullable final HeaderMapping headerMapping, final String connectionId) {
-        return Props.create(
-                RabbitMQConsumerActor.class, new Creator<RabbitMQConsumerActor>() {
-                    private static final long serialVersionUID = 1L;
 
-                    @Override
-                    public RabbitMQConsumerActor create() {
-                        return new RabbitMQConsumerActor(connectionId, source, messageMappingProcessor,
+        return Props.create(RabbitMQConsumerActor.class, connectionId, source, messageMappingProcessor,
                                 authorizationContext, enforcement, headerMapping);
-                    }
-                });
     }
 
     @Override

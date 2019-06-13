@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.utils.persistence.mongo.namespace;
 
 import java.math.BigInteger;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
@@ -21,9 +22,10 @@ import java.util.UUID;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.config.raw.RawConfigSupplier;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.NamespaceSuffixCollectionNames;
-import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.SuffixBuilderConfig;
 import org.eclipse.ditto.services.utils.test.mongo.MongoDbResource;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespace;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespaceResponse;
@@ -51,10 +53,14 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
     private static final Duration EXPECT_MESSAGE_TIMEOUT = Duration.ofSeconds(10);
     private static final Random RANDOM = new Random();
 
+    protected static MongoDbConfig mongoDbConfig;
+
     /**
      * Embedded MongoDB resource.
      */
     private static MongoDbResource mongoDbResource;
+    protected static String mongoDbUri;
+
     private ActorSystem actorSystem;
 
     @Rule public TestName name = new TestName();
@@ -63,11 +69,21 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
     public static void startMongoDb() {
         mongoDbResource = new MongoDbResource("localhost");
         mongoDbResource.start();
+
+        mongoDbUri = String.format("mongodb://%s:%s/test", mongoDbResource.getBindIp(), mongoDbResource.getPort());
+
+        mongoDbConfig = DefaultMongoDbConfig.of(getConfig());
+    }
+
+    private static Config getConfig() {
+        Config mongoDbTestConfig = ConfigFactory.parseMap(Collections.singletonMap("mongodb.uri", mongoDbUri));
+        mongoDbTestConfig = mongoDbTestConfig.withFallback(ConfigFactory.parseResources("mongodb_test"));
+        return mongoDbTestConfig;
     }
 
     @AfterClass
     public static void tearDown() {
-        if (mongoDbResource != null) {
+        if (null != mongoDbResource) {
             mongoDbResource.stop();
             mongoDbResource = null;
         }
@@ -82,7 +98,8 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
     public void purgeNamespaceWithSuffixBuilder() {
         // cannot start actor system in @Before because config is specific to the test executed
         final Config eventSourcingConfiguration = getEventSourcingConfiguration(ConfigFactory.empty());
-        final ActorSystem actorSystem = startActorSystem(eventSourcingConfiguration);
+        final Config ditto = ConfigFactory.empty().withValue("ditto", getConfig().root());
+        actorSystem = startActorSystem(ditto.withFallback(eventSourcingConfiguration));
         // suffix builder is active by default
         purgeNamespace(actorSystem, eventSourcingConfiguration);
     }
@@ -92,7 +109,8 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
         final Config configOverride =
                 ConfigFactory.parseString("akka.contrib.persistence.mongodb.mongo.suffix-builder.class=\"\"");
         final Config eventSourcingConfiguration = getEventSourcingConfiguration(configOverride);
-        actorSystem = startActorSystem(eventSourcingConfiguration);
+        final Config ditto = ConfigFactory.empty().withValue("ditto", getConfig().root());
+        actorSystem = startActorSystem(ditto.withFallback(eventSourcingConfiguration));
         // suffix builder is active by default
         purgeNamespace(actorSystem, eventSourcingConfiguration);
     }
@@ -119,17 +137,16 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
                 "akka.cluster.seed-nodes=[]\n" +
                 "akka.coordinated-shutdown.exit-jvm=off\n" +
                 "ditto.things.log-incoming-messages=true\n" +
-                "akka.contrib.persistence.mongodb.mongo.mongouri=" + mongoUriValue +
-                "ditto.services-utils-config.mongodb.uri=" + mongoUriValue;
+                "akka.contrib.persistence.mongodb.mongo.mongouri=\"" + mongoDbUri + "\"\n";
 
         // load the service config for info about event journal, snapshot store and metadata
         final Config configWithSuffixBuilder = ConfigFactory.parseString(testConfig)
-                .withFallback(ConfigUtil.determineConfig(getServiceName()));
+                .withFallback(RawConfigSupplier.of(getServiceName()).get());
 
         // set namespace suffix config before persisting any event - NullPointerException otherwise
-        NamespaceSuffixCollectionNames.setConfig(new SuffixBuilderConfig(getSupportedPrefixes()));
+        NamespaceSuffixCollectionNames.setSupportedPrefixes(getSupportedPrefixes());
 
-        return configOverride.withFallback(configWithSuffixBuilder);
+        return configOverride.withFallback(configWithSuffixBuilder).withFallback(getExtraConfig());
     }
 
     private ActorSystem startActorSystem(final Config config) {
@@ -146,6 +163,11 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
      * @return name of the configured service.
      */
     protected abstract String getServiceName();
+
+    /**
+     * @return the extra Config to use in this test.
+     */
+    protected abstract Config getExtraConfig();
 
     /**
      * @return list of supported persistence ID prefixes - usually a singleton of the actor's resource type.
@@ -211,8 +233,7 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
      * @param id ID of the entity.
      * @return reference to the entity actor.
      */
-    protected abstract ActorRef startEntityActor(final ActorSystem system, final ActorRef pubSubMediator,
-            final String id);
+    protected abstract ActorRef startEntityActor(ActorSystem system, ActorRef pubSubMediator, String id);
 
     /**
      * Starts the NamespaceOps actor.
@@ -222,8 +243,7 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
      * @param config configuration with info about event journal, snapshot store, metadata and database.
      * @return reference of the NamespaceOps actor.
      */
-    protected abstract ActorRef startActorUnderTest(final ActorSystem actorSystem, final ActorRef pubSubMediator,
-            final Config config);
+    protected abstract ActorRef startActorUnderTest(ActorSystem actorSystem, ActorRef pubSubMediator, Config config);
 
     /**
      * Get the command to create an entity belonging to the given resource type.
@@ -231,7 +251,7 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
      * @param id ID of the entity.
      * @return Command to create it.
      */
-    protected abstract Object getCreateEntityCommand(final String id);
+    protected abstract Object getCreateEntityCommand(String id);
 
     /**
      * @return type of responses for successful entity creation.
@@ -254,7 +274,7 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
      * @param id ID of the entity.
      * @return Command to retrieve it.
      */
-    protected abstract Object getRetrieveEntityCommand(final String id);
+    protected abstract Object getRetrieveEntityCommand(String id);
 
     /**
      * @return resource type of the NamespaceOps actor being tested.

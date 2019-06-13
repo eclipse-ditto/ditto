@@ -13,7 +13,7 @@
 package org.eclipse.ditto.services.gateway.endpoints.routes;
 
 import static akka.http.javadsl.server.Directives.completeWithFuture;
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -32,16 +32,13 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.actors.HttpRequestActor;
 import org.eclipse.ditto.services.gateway.endpoints.actors.HttpRequestActorPropsFactory;
+import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.utils.akka.AkkaClassLoader;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
-import org.eclipse.ditto.services.utils.protocol.ProtocolConfigReader;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -64,9 +61,6 @@ import akka.util.ByteString;
  */
 public abstract class AbstractRoute {
 
-    // TODO YC: refactor config key.
-    private static final String HTTP_REQUEST_ACTOR_PROPS_FACTORY_CONFIG_KEY = "ditto.gateway.http.actor-props-factory";
-
     /**
      * Don't configure URL decoding as JsonParseOptions because Akka-Http already decodes the fields-param and we would
      * decode twice.
@@ -80,6 +74,8 @@ public abstract class AbstractRoute {
     protected final ActorRef proxyActor;
     protected final ActorMaterializer materializer;
     protected final ActorSystem actorSystem;
+
+    private final HttpConfig httpConfig;
     private final HeaderTranslator headerTranslator;
     private final HttpRequestActorPropsFactory httpRequestActorPropsFactory;
 
@@ -88,21 +84,20 @@ public abstract class AbstractRoute {
      *
      * @param proxyActor an actor selection of the actor handling delegating to persistence.
      * @param actorSystem the ActorSystem to use.
+     * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
+     * @param headerTranslator translates headers from external sources or to external sources.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    protected AbstractRoute(final ActorRef proxyActor, final ActorSystem actorSystem) {
-        requireNonNull(proxyActor, "The delegate actor must not be null!");
-        requireNonNull(actorSystem, "The actor system must not be null!");
+    protected AbstractRoute(final ActorRef proxyActor,
+            final ActorSystem actorSystem,
+            final HttpConfig httpConfig,
+            final HeaderTranslator headerTranslator) {
 
-        this.proxyActor = proxyActor;
-        this.actorSystem = actorSystem;
+        this.proxyActor = checkNotNull(proxyActor, "delegate actor");
+        this.actorSystem = checkNotNull(actorSystem, "actor system");
+        this.httpConfig = httpConfig;
+        this.headerTranslator = checkNotNull(headerTranslator, "header translator");
 
-        final Config config = actorSystem.settings().config();
-        final ProtocolConfigReader protocolConfig = ProtocolConfigReader.fromRawConfig(config);
-        final ProtocolAdapterProvider protocolAdapterProvider =
-                protocolConfig.loadProtocolAdapterProvider(actorSystem);
-
-        headerTranslator = protocolAdapterProvider.getHttpHeaderTranslator();
         LOGGER.debug("Using headerTranslator <{}>.", headerTranslator);
 
         materializer = ActorMaterializer.create(ActorMaterializerSettings.create(actorSystem)
@@ -118,9 +113,9 @@ public abstract class AbstractRoute {
                         }
                 ), actorSystem);
 
-        final String propsFactoryClass = config.getString(HTTP_REQUEST_ACTOR_PROPS_FACTORY_CONFIG_KEY);
         httpRequestActorPropsFactory =
-                AkkaClassLoader.instantiate(actorSystem, HttpRequestActorPropsFactory.class, propsFactoryClass);
+                AkkaClassLoader.instantiate(actorSystem, HttpRequestActorPropsFactory.class,
+                        httpConfig.getActorPropsFactoryFullQualifiedClassname());
     }
 
     /**
@@ -134,12 +129,12 @@ public abstract class AbstractRoute {
     }
 
     protected Route handlePerRequest(final RequestContext ctx, final Command command) {
-        return handlePerRequest(ctx, command.getDittoHeaders(), Source.empty(),
-                emptyRequestBody -> command);
+        return handlePerRequest(ctx, command.getDittoHeaders(), Source.empty(), emptyRequestBody -> command);
     }
 
     protected Route handlePerRequest(final RequestContext ctx, final Command command,
             final Function<JsonValue, JsonValue> responseTransformFunction) {
+
         return handlePerRequest(ctx, command.getDittoHeaders(), Source.empty(),
                 emptyRequestBody -> command, responseTransformFunction);
     }
@@ -148,6 +143,7 @@ public abstract class AbstractRoute {
             final DittoHeaders dittoHeaders,
             final Source<ByteString, ?> payloadSource,
             final Function<String, Command> requestJsonToCommandFunction) {
+
         return handlePerRequest(ctx, dittoHeaders, payloadSource, requestJsonToCommandFunction, null);
     }
 
@@ -156,6 +152,7 @@ public abstract class AbstractRoute {
             final Source<ByteString, ?> payloadSource,
             final Function<String, Command> requestJsonToCommandFunction,
             final Function<JsonValue, JsonValue> responseTransformFunction) {
+
         final CompletableFuture<HttpResponse> httpResponseFuture = new CompletableFuture<>();
 
         payloadSource
@@ -225,9 +222,10 @@ public abstract class AbstractRoute {
     protected ActorRef createHttpPerRequestActor(final RequestContext ctx,
             final CompletableFuture<HttpResponse> httpResponseFuture) {
 
-        final Props props =
-                httpRequestActorPropsFactory.props(proxyActor, headerTranslator, ctx.getRequest(), httpResponseFuture);
+        final Props props = httpRequestActorPropsFactory.props(
+                proxyActor, headerTranslator, ctx.getRequest(), httpResponseFuture, httpConfig);
 
         return actorSystem.actorOf(props);
     }
+
 }

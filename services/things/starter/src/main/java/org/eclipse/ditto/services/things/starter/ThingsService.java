@@ -12,8 +12,16 @@
  */
 package org.eclipse.ditto.services.things.starter;
 
+import org.eclipse.ditto.services.base.DittoService;
+import org.eclipse.ditto.services.things.common.config.DittoThingsConfig;
+import org.eclipse.ditto.services.things.common.config.ThingsConfig;
+import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import akka.actor.ActorRef;
+import akka.actor.Props;
+import akka.stream.ActorMaterializer;
 
 /**
  * Entry point of the Things Service.
@@ -23,12 +31,17 @@ import org.slf4j.LoggerFactory;
  * <li>Wires up Akka HTTP Routes</li>
  * </ul>
  */
-public final class ThingsService extends AbstractThingsService {
+public final class ThingsService extends DittoService<ThingsConfig> {
+
+    /**
+     * Name of the Things service.
+     */
+    public static final String SERVICE_NAME = "things";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ThingsService.class);
 
     private ThingsService() {
-        super(LOGGER);
+        super(LOGGER, SERVICE_NAME, ThingsRootActor.ACTOR_NAME);
     }
 
     /**
@@ -39,6 +52,19 @@ public final class ThingsService extends AbstractThingsService {
     public static void main(final String[] args) {
         final ThingsService thingsService = new ThingsService();
         thingsService.start().getWhenTerminated().toCompletableFuture().join();
+    }
+
+    @Override
+    protected ThingsConfig getServiceSpecificConfig(final ScopedConfig dittoConfig) {
+        return DittoThingsConfig.of(dittoConfig);
+    }
+
+    @Override
+    protected Props getMainRootActorProps(final ThingsConfig thingsConfig, final ActorRef pubSubMediator,
+            final ActorMaterializer materializer) {
+
+        return ThingsRootActor.props(thingsConfig, pubSubMediator, materializer,
+                ThingPersistenceActorPropsFactory.getInstance(pubSubMediator));
     }
 
 }
