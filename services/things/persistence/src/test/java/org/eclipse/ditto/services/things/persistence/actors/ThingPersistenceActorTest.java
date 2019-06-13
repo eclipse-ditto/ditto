@@ -919,7 +919,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         new TestKit(actorSystem) {
             {
                 final Thing thingV1 = createThingV1WithRandomId();
-                final ActorRef thingPersistenceActor = createPersistenceActorFor(thingV1);
+                final ActorRef thingPersistenceActor = watch(createPersistenceActorFor(thingV1));
 
                 final CreateThing createThing = CreateThing.of(thingV1, null, dittoHeadersV1);
                 thingPersistenceActor.tell(createThing, getRef());
@@ -933,7 +933,10 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 expectMsgEquals(modifyAclResponse(thingV1.getId().get(), acl, dittoHeadersV1, false));
 
                 // restart
-                final ActorRef thingPersistenceActorRecovered = createPersistenceActorFor(thingV1);
+                thingPersistenceActor.tell(PoisonPill.getInstance(), getRef());
+                expectTerminated(thingPersistenceActor);
+                final ActorRef thingPersistenceActorRecovered =
+                        Retry.untilSuccess(() -> createPersistenceActorFor(thingV1));
 
                 final Thing thingWithUpdatedAcl = incrementThingRevision(thingV1).setAccessControlList(acl);
                 final RetrieveThing retrieveThing =
@@ -954,7 +957,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         new TestKit(actorSystem) {
             {
                 final Thing thingV1 = createThingV1WithRandomId();
-                final ActorRef thingPersistenceActor = createPersistenceActorFor(thingV1);
+                final ActorRef thingPersistenceActor = watch(createPersistenceActorFor(thingV1));
 
                 final CreateThing createThing = CreateThing.of(thingV1, null, dittoHeadersV1);
                 thingPersistenceActor.tell(createThing, getRef());
@@ -969,7 +972,10 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 expectMsgEquals(modifyAclEntryResponse(getIdOrThrow(thingV1), aclEntry, dittoHeadersV1, true));
 
                 // restart
-                final ActorRef thingPersistenceActorRecovered = createPersistenceActorFor(thingV1);
+                thingPersistenceActor.tell(PoisonPill.getInstance(), getRef());
+                expectTerminated(thingPersistenceActor);
+                final ActorRef thingPersistenceActorRecovered =
+                        Retry.untilSuccess(() -> createPersistenceActorFor(thingV1));
 
                 final Thing thingWithUpdatedAclEntry = incrementThingRevision(thingV1).setAclEntry(aclEntry);
                 final RetrieveThing retrieveThing =
@@ -993,7 +999,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final AclEntry aclEntry = newAclEntry(AUTHORIZATION_SUBJECT, PERMISSIONS);
                 final Thing thingWithUpdatedAclEntry = thingV1.setAclEntry(aclEntry);
 
-                final ActorRef underTest = createPersistenceActorFor(thingWithUpdatedAclEntry);
+                final ActorRef underTest = watch(createPersistenceActorFor(thingWithUpdatedAclEntry));
                 final CreateThing createThing = CreateThing.of(thingWithUpdatedAclEntry, null, dittoHeadersV1);
                 underTest.tell(createThing, getRef());
 
@@ -1008,7 +1014,10 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                         dittoHeadersV1));
 
                 // restart
-                final ActorRef thingPersistenceActorRecovered = createPersistenceActorFor(thingV1);
+                underTest.tell(PoisonPill.getInstance(), getRef());
+                expectTerminated(underTest);
+                final ActorRef thingPersistenceActorRecovered =
+                        Retry.untilSuccess(() -> createPersistenceActorFor(thingV1));
 
                 final Thing expectedTing = incrementThingRevision(thingWithUpdatedAclEntry)
                         .removeAllPermissionsOf(aclEntry.getAuthorizationSubject());
@@ -1336,7 +1345,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV1WithRandomId();
-                final ActorRef thingPersistenceActor = createPersistenceActorFor(thing);
+                final ActorRef thingPersistenceActor = watch(createPersistenceActorFor(thing));
                 final JsonFieldSelector fieldSelector = Thing.JsonFields.MODIFIED.getPointer().toFieldSelector();
 
                 // create thing
@@ -1345,17 +1354,22 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 expectMsgClass(CreateThingResponse.class);
                 final Instant createThingResponseTimestamp = Instant.now();
 
-                // retrieve thing from recovered actor
-                final ActorRef thingPersistenceActorRecovered = createPersistenceActorFor(thing);
+                // restart
+                thingPersistenceActor.tell(PoisonPill.getInstance(), getRef());
+                expectTerminated(thingPersistenceActor);
+                final ActorRef thingPersistenceActorRecovered =
+                        Retry.untilSuccess(() -> createPersistenceActorFor(thing));
+
                 final RetrieveThing retrieveThing = RetrieveThing.getBuilder(getIdOrThrow(thing), dittoHeadersV1)
                         .withSelectedFields(fieldSelector)
                         .build();
-                thingPersistenceActorRecovered.tell(retrieveThing, getRef());
 
-                final RetrieveThingResponse retrieveThingResponse = expectMsgClass(RetrieveThingResponse.class);
-                assertThat(retrieveThingResponse.getThing()).isNotModifiedAfter(createThingResponseTimestamp);
-
-                assertThat(getLastSender()).isEqualTo(thingPersistenceActorRecovered);
+                Awaitility.await().atMost(10L, TimeUnit.SECONDS).untilAsserted(() -> {
+                    thingPersistenceActorRecovered.tell(retrieveThing, getRef());
+                    final RetrieveThingResponse retrieveThingResponse = expectMsgClass(RetrieveThingResponse.class);
+                    assertThat(retrieveThingResponse.getThing()).isNotModifiedAfter(createThingResponseTimestamp);
+                    assertThat(getLastSender()).isEqualTo(thingPersistenceActorRecovered);
+                });
             }
         };
     }
