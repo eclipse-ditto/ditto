@@ -38,6 +38,8 @@ public final class EndpointTestConstants {
     public static final StatusCode DUMMY_COMMAND_SUCCESS = StatusCodes.OK;
     public static final BasicHttpCredentials DEVOPS_CREDENTIALS =
             HttpCredentials.createBasicHttpCredentials("devops", "devops!");
+    public static final BasicHttpCredentials STATUS_CREDENTIALS =
+            HttpCredentials.createBasicHttpCredentials("devops", "status!");
 
     private EndpointTestConstants() {
         throw new AssertionError();

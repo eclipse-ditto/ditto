@@ -12,27 +12,18 @@
  */
 package org.eclipse.ditto.services.utils.config.raw;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValue;
-import com.typesafe.config.ConfigValueFactory;
-import com.typesafe.config.ConfigValueType;
 
 /**
  * Reads the secrets from files and provides them as single {@link Config} object.
@@ -52,13 +43,14 @@ final class SecretsAsConfigSupplier implements Supplier<Config> {
      */
     static final String SECRETS_CONFIG_PATH = "secrets";
 
-    private static final String SECRETS_DIR_PATH_DEFAULT = "/run" + "/secrets";
-    private static final Logger LOGGER = LoggerFactory.getLogger(SecretsAsConfigSupplier.class);
+    private static final String SECRETS_DIR_PATH_DEFAULT = "/run/secrets";
 
     private final Path secretsDirPath;
+    private final Config secretsConfig;
 
-    private SecretsAsConfigSupplier(final Path theSecretsDirPath) {
+    private SecretsAsConfigSupplier(final Path theSecretsDirPath, final Config theSecretsConfig) {
         secretsDirPath = theSecretsDirPath;
+        secretsConfig = theSecretsConfig;
     }
 
     /**
@@ -66,8 +58,8 @@ final class SecretsAsConfigSupplier implements Supplier<Config> {
      *
      * @return the instance.
      */
-    static SecretsAsConfigSupplier getInstance() {
-        return new SecretsAsConfigSupplier(determineSecretsDirPath());
+    static SecretsAsConfigSupplier getInstance(final Config initialConfig) {
+        return new SecretsAsConfigSupplier(determineSecretsDirPath(), getSecretsConfig(initialConfig));
     }
 
     private static Path determineSecretsDirPath() {
@@ -80,30 +72,24 @@ final class SecretsAsConfigSupplier implements Supplier<Config> {
 
     @Override
     public Config get() {
-        final ConfigValue secrets = tryToGetSecretsFromFileSystemAsConfigObject();
-        if (ConfigValueType.NULL != secrets.valueType()) {
-            return ConfigFactory.parseMap(Collections.singletonMap(SECRETS_CONFIG_PATH, secrets));
-        }
-        return ConfigFactory.empty();
+        return tryToGetSecretsFromFileSystemAsConfigObject().atKey(SECRETS_CONFIG_PATH);
     }
 
-    private ConfigValue tryToGetSecretsFromFileSystemAsConfigObject() {
-        try (final Stream<Path> filesStream = Files.list(secretsDirPath)) {
-            return getSecretsFromFileSystemAsConfigObject(filesStream);
-        } catch (final IOException e) {
-            LOGGER.warn("No secrets present at path <{}>!", secretsDirPath, e);
-            return ConfigValueFactory.fromAnyRef(null);
-        }
+    private Config tryToGetSecretsFromFileSystemAsConfigObject() {
+        final Map<String, ConfigValue> secrets = new HashMap<>();
+        secretsConfig.root().keySet().forEach(secretEntryKey -> {
+            final Config secretEntry = secretsConfig.getConfig(secretEntryKey);
+            final String secretName = secretEntry.getString(Secret.SECRET_NAME);
+            getSecretValueFromFileSystem(secretName).ifPresent(secret ->
+                    secrets.put(secretEntryKey, secret.toConfig().root()));
+        });
+        return ConfigFactory.parseMap(secrets);
     }
 
-    private static ConfigValue getSecretsFromFileSystemAsConfigObject(final Stream<Path> filesStream) {
-        final Map<String, String> secrets = filesStream.map(SecretFromPathReader::of)
-                .map(SecretFromPathReader::get)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .collect(Collectors.toMap(Secret::getName, Secret::getValue));
-
-        return ConfigValueFactory.fromMap(secrets);
+    private Optional<Secret> getSecretValueFromFileSystem(final String secretName) {
+        final Path secretPath = secretsDirPath.resolve(secretName);
+        final SecretFromPathReader secretFromPathReader = SecretFromPathReader.of(secretName, secretPath);
+        return secretFromPathReader.get();
     }
 
     /**
@@ -113,6 +99,12 @@ final class SecretsAsConfigSupplier implements Supplier<Config> {
      */
     Path getSecretsDirPath() {
         return secretsDirPath;
+    }
+
+    private static Config getSecretsConfig(final Config initialConfig) {
+        return initialConfig.hasPath(SECRETS_CONFIG_PATH)
+                ? initialConfig.getConfig(SECRETS_CONFIG_PATH)
+                : ConfigFactory.empty();
     }
 
 }
