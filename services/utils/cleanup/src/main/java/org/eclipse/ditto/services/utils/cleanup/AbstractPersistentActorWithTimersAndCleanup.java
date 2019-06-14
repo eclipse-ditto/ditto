@@ -69,7 +69,7 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
             if (latestSnapshotSequenceNumber > lastCleanupExecutedAtSequenceNumber) {
                 startCleanup(latestSnapshotSequenceNumber);
             } else {
-                log.debug("Snapshot revision did not change since last cleanup, hence there is nothing to delete.");
+                log.debug("Snapshot revision did not change since last cleanup, nothing to delete.");
                 getSender().tell(CleanupResponse.success(persistenceId(), DittoHeaders.empty()), getSelf());
             }
         } else {
@@ -95,17 +95,16 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
     private void checkCleanupCompleted() {
         if (deleteSnapshotsResponse != null && deleteMessagesResponse != null) {
             if (isCleanupCompletedSuccessfully()) {
-                log.debug("Cleanup for '{}' completed.", persistenceId());
+                log.info("Cleanup for '{}' completed.", persistenceId());
                 Optional.ofNullable(origin).ifPresent(o -> o.tell(CleanupResponse.success(persistenceId(),
                         DittoHeaders.empty()), getSelf()));
-                finishCleanup();
             } else {
                 log.info("Cleanup for '{}' failed. Snapshots: {}. Messages: {}.", persistenceId(),
                         getResponseStatus(deleteSnapshotsResponse), getResponseStatus(deleteMessagesResponse));
                 Optional.ofNullable(origin).ifPresent(o -> o.tell(CleanupResponse.failure(persistenceId(),
                         DittoHeaders.empty()), getSelf()));
-                finishCleanup();
             }
+            finishCleanup();
         }
     }
 
@@ -120,6 +119,9 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
         } else if (message instanceof DeleteSnapshotsFailure) {
             return String.format("%s (%s)", message.getClass().getSimpleName(),
                     ((DeleteSnapshotsFailure) message).cause().getMessage());
+        } else if (message instanceof DeleteMessagesFailure) {
+            return String.format("%s (%s)", message.getClass().getSimpleName(),
+                    ((DeleteMessagesFailure) message).cause().getMessage());
         } else {
             return message.getClass().getSimpleName();
         }

@@ -43,6 +43,24 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>ditto-services-utils-akka</artifactId>
         </dependency>
+
+        <!-- tests -->
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-stream-testkit_${scala.version}</artifactId>
+            <version>${akka.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-slf4j_2.12</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>
