@@ -64,6 +64,7 @@ import org.junit.Test;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -127,7 +128,7 @@ public class PolicyCommandEnforcementTest {
 
     @Before
     public void init() {
-        system = ActorSystem.create();
+        system = ActorSystem.create("test", ConfigFactory.load("test"));
 
         policiesShardRegionProbe = createPoliciesShardRegionProbe();
 
@@ -502,8 +503,8 @@ public class PolicyCommandEnforcementTest {
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
         enforcementProviders.add(enforcementProvider);
 
-        return system.actorOf(EnforcerActor.props(pubSubMediator, enforcementProviders, Duration.ofSeconds(10),
-                conciergeForwarder, system.dispatcher(), 1, 2, null, null, null),
+        return system.actorOf(EnforcerActor.props(pubSubMediator, enforcementProviders, conciergeForwarder,
+                null, null, null),
                 ENTITY_ID.toString());
     }
 

@@ -190,7 +190,7 @@
     }
 
     $.getJSON("/status/health", function (data) {
-        const keysToIgnore = ['status', 'thing-cache-aware', 'dc-default', 'policy-cache-aware'];
+        const keysToIgnore = ['status', 'thing-cache-aware', 'dc-default', 'policy-cache-aware', 'blocked-namespaces-aware'];
         let overallStatus = data.status;
         $(`<p>
             <span class="health-key"></span>

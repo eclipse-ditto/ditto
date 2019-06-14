@@ -12,10 +12,11 @@
  */
 package org.eclipse.ditto.services.gateway.health;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -33,7 +34,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
+import org.eclipse.ditto.services.gateway.health.config.HealthCheckConfig;
 import org.eclipse.ditto.services.utils.akka.SimpleCommand;
 import org.eclipse.ditto.services.utils.akka.SimpleCommandResponse;
 import org.eclipse.ditto.services.utils.health.StatusDetailMessage;
@@ -57,29 +58,32 @@ final class ClusterStatusAndHealthHelper {
 
     private static final String STATUS_SUPPLIER_PATH = "/user/" + StatusSupplierActor.ACTOR_NAME;
 
-    protected final ActorSystem actorSystem;
+    private final ActorSystem actorSystem;
     private final Supplier<ClusterStatus> clusterStateSupplier;
+    private final HealthCheckConfig healthCheckConfig;
 
     private ClusterStatusAndHealthHelper(final ActorSystem actorSystem,
-            final Supplier<ClusterStatus> clusterStateSupplier) {
-        this.actorSystem = actorSystem;
-        this.clusterStateSupplier = clusterStateSupplier;
+            final Supplier<ClusterStatus> clusterStateSupplier, final HealthCheckConfig healthCheckConfig) {
+
+        this.actorSystem = checkNotNull(actorSystem, "ActorSystem");
+        this.clusterStateSupplier = checkNotNull(clusterStateSupplier, "cluster state Supplier");
+        this.healthCheckConfig = checkNotNull(healthCheckConfig, "HealthCheckConfig");
     }
 
     /**
-     * Returns a new {@link ClusterStatusAndHealthHelper}.
+     * Returns a new {@code ClusterStatusAndHealthHelper}.
      *
      * @param actorSystem the ActorSystem to use.
      * @param clusterStateSupplier the {@link ClusterStatus} supplier to use in order to find out the reachable cluster
      * nodes.
-     * @return the {@link ClusterStatusAndHealthHelper}.
+     * @param healthCheckConfig the config of for health checking.
+     * @return the ClusterStatusAndHealthHelper.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     static ClusterStatusAndHealthHelper of(final ActorSystem actorSystem,
-            final Supplier<ClusterStatus> clusterStateSupplier) {
-        requireNonNull(actorSystem);
-        requireNonNull(clusterStateSupplier);
+            final Supplier<ClusterStatus> clusterStateSupplier, final HealthCheckConfig healthCheckConfig) {
 
-        return new ClusterStatusAndHealthHelper(actorSystem, clusterStateSupplier);
+        return new ClusterStatusAndHealthHelper(actorSystem, clusterStateSupplier, healthCheckConfig);
     }
 
     /**
@@ -151,13 +155,9 @@ final class ClusterStatusAndHealthHelper {
         final ClusterStatus clusterStatus = clusterStateSupplier.get();
         final List<CompletableFuture<StatusInfo>> healths = new ArrayList<>();
 
-        final boolean healthClusterRolesEnabled =
-                actorSystem.settings().config().getBoolean(ConfigKeys.HEALTH_CHECK_CLUSTER_ROLES_ENABLED);
-
-        if (healthClusterRolesEnabled) {
-            final JsonArray expectedRoles = actorSystem.settings()
-                    .config()
-                    .getStringList(ConfigKeys.HEALTH_CHECK_CLUSTER_ROLES_EXPECTED)
+        final HealthCheckConfig.ClusterRolesConfig clusterRolesConfig = healthCheckConfig.getClusterRolesConfig();
+        if (clusterRolesConfig.isEnabled()) {
+            final JsonArray expectedRoles = clusterRolesConfig.getExpectedClusterRoles()
                     .stream()
                     .sorted(Comparator.comparing(Function.identity()))
                     .map(JsonValue::of)
@@ -234,13 +234,13 @@ final class ClusterStatusAndHealthHelper {
                 .thenApply(statuses -> StatusInfo.composite(statuses).label(JSON_KEY_ROLES));
     }
 
-    private static <T> List<CompletableFuture<T>> sendCommandToRemoteAddresses(final ActorSystem actorSystem,
+    private <T> List<CompletableFuture<T>> sendCommandToRemoteAddresses(final ActorSystem actorSystem,
             final SimpleCommand command,
-            final Set<String> reachable,
+            final Collection<String> reachable,
             final RemoteResponseTransformer<Object, Throwable, T> responseTransformer) {
 
-        final Duration healthCheckServiceTimeout =
-                actorSystem.settings().config().getDuration(ConfigKeys.HEALTH_CHECK_SERVICE_TIMEOUT);
+        final Duration healthCheckServiceTimeout = healthCheckConfig.getServiceTimeout();
+
         return reachable.stream()
                 .map(addressString -> addressString + STATUS_SUPPLIER_PATH)
                 .map(actorSystem::actorSelection)
@@ -262,4 +262,5 @@ final class ClusterStatusAndHealthHelper {
         R apply(T responseToBeMapped, U throwable, String addressString);
 
     }
+
 }

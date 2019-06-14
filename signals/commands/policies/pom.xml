@@ -75,7 +75,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <systemPropertyVariables>
-                        <ditto.limits.policies.max-size.bytes>102400</ditto.limits.policies.max-size.bytes> <!--  100 KiB -->
+                        <ditto.limits.policies.max-size>102400</ditto.limits.policies.max-size> <!--  100 KiB -->
                     </systemPropertyVariables>
                 </configuration>
             </plugin>

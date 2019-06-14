@@ -27,7 +27,7 @@
     <dependencies>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-config</artifactId>
+            <artifactId>ditto-model-base</artifactId>
         </dependency>
 
         <dependency>

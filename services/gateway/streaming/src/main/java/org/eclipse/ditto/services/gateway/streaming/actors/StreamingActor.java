@@ -33,7 +33,6 @@ import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 
@@ -65,6 +64,7 @@ public final class StreamingActor extends AbstractActor {
     private final Gauge streamingSessionsCounter;
     private final Cancellable sessionCounterScheduler;
 
+    @SuppressWarnings("unused")
     private StreamingActor(final ActorRef pubSubMediator, final ActorRef commandRouter) {
         this.pubSubMediator = pubSubMediator;
         this.commandRouter = commandRouter;
@@ -96,14 +96,8 @@ public final class StreamingActor extends AbstractActor {
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator, final ActorRef commandRouter) {
-        return Props.create(StreamingActor.class, new Creator<StreamingActor>() {
-            private static final long serialVersionUID = 1L;
 
-            @Override
-            public StreamingActor create() {
-                return new StreamingActor(pubSubMediator, commandRouter);
-            }
-        });
+        return Props.create(StreamingActor.class, pubSubMediator, commandRouter);
     }
 
     @Override

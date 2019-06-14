@@ -27,7 +27,7 @@ public class DefaultConnectionMonitorRegistryTest {
 
     @Test
     public void fromConfig() {
-        assertThat(DefaultConnectionMonitorRegistry.fromConfig(TestConstants.Monitoring.MONITORING_CONFIG_READER))
+        assertThat(DefaultConnectionMonitorRegistry.fromConfig(TestConstants.MONITORING_CONFIG))
                 .isNotNull();
     }
 

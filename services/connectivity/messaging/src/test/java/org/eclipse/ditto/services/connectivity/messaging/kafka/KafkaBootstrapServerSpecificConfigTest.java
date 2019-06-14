@@ -37,7 +37,6 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
-import org.eclipse.ditto.services.connectivity.util.ConnectionConfigReader;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -52,11 +51,9 @@ public class KafkaBootstrapServerSpecificConfigTest {
     private static final String FAIL_MESSAGE_TEMPLATE = "bootstrapServers: %s";
 
     private static final DittoHeaders HEADERS = DittoHeaders.empty();
-    private static final Config CONFIG =
-            ConnectionConfigReader.fromRawConfig(TestConstants.CONFIG).kafka().internalProducerSettings();
+    private static final Config CONFIG = TestConstants.CONNECTION_CONFIG.getKafkaConfig().getInternalProducerConfig();
     private static final ProducerSettings<String, String>
             DEFAULT_PRODUCER_SETTINGS = ProducerSettings.create(CONFIG, new StringSerializer(), new StringSerializer());
-
 
     private static final String DEFAULT_SERVER = "s1.org.apache.kafka:9092";
     private static final String DEFAULT_SERVER_2 = "s2.org.apache.kafka:9092";

@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.gateway.endpoints.actors;
 import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 import akka.actor.ActorRef;
@@ -28,11 +29,14 @@ import akka.http.javadsl.model.HttpResponse;
  */
 public final class HttpRequestActor extends AbstractHttpRequestActor {
 
+    @SuppressWarnings("unused")
     private HttpRequestActor(final ActorRef proxyActor,
             final HeaderTranslator headerTranslator,
             final HttpRequest request,
-            final CompletableFuture<HttpResponse> httpResponseFuture) {
-        super(proxyActor, headerTranslator, request, httpResponseFuture);
+            final CompletableFuture<HttpResponse> httpResponseFuture,
+            final HttpConfig httpConfig) {
+
+        super(proxyActor, headerTranslator, request, httpResponseFuture, httpConfig);
     }
 
     /**
@@ -40,17 +44,21 @@ public final class HttpRequestActor extends AbstractHttpRequestActor {
      * request}, and {@code httpResponseFuture} which will be completed with a {@link HttpResponse}.
      *
      * @param proxyActor the proxy actor which delegates commands.
-     * @param headerTranslator the {@link HeaderTranslator} used to map ditto headers to (external) Http headers.
+     * @param headerTranslator the {@link org.eclipse.ditto.protocoladapter.HeaderTranslator} used to map ditto headers
+     * to (external) Http headers.
      * @param request the HTTP request
      * @param httpResponseFuture the completable future which is completed with a HTTP response.
+     * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
      * @return the configuration object.
      */
     public static Props props(final ActorRef proxyActor,
             final HeaderTranslator headerTranslator,
             final HttpRequest request,
-            final CompletableFuture<HttpResponse> httpResponseFuture) {
+            final CompletableFuture<HttpResponse> httpResponseFuture,
+            final HttpConfig httpConfig) {
 
-        return Props.create(HttpRequestActor.class,
-                () -> new HttpRequestActor(proxyActor, headerTranslator, request, httpResponseFuture));
+        return Props.create(HttpRequestActor.class, proxyActor, headerTranslator, request, httpResponseFuture,
+                httpConfig);
     }
+
 }

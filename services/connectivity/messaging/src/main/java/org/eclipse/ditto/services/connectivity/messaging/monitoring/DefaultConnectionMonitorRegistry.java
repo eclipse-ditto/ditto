@@ -24,9 +24,9 @@ import org.eclipse.ditto.model.connectivity.LogCategory;
 import org.eclipse.ditto.model.connectivity.LogType;
 import org.eclipse.ditto.model.connectivity.MetricDirection;
 import org.eclipse.ditto.model.connectivity.MetricType;
+import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLoggerRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.ConnectivityCounterRegistry;
-import org.eclipse.ditto.services.connectivity.util.MonitoringConfigReader;
 
 /**
  * Default implementation of {@link org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry}.
@@ -48,7 +48,7 @@ public final class DefaultConnectionMonitorRegistry implements ConnectionMonitor
      * @return a new instance of {@code DefaultConnectionMonitorRegistry}.
      * @throws java.lang.NullPointerException if {@code config} is null.
      */
-    public static DefaultConnectionMonitorRegistry fromConfig(final MonitoringConfigReader config) {
+    public static DefaultConnectionMonitorRegistry fromConfig(final MonitoringConfig config) {
         checkNotNull(config);
 
         final ConnectionLoggerRegistry loggerRegistry = ConnectionLoggerRegistry.fromConfig(config.logger());

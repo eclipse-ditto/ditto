@@ -52,7 +52,7 @@ public class MockClientActor extends AbstractActor {
     }
 
     public static Props props(final ActorRef delegate) {
-        return Props.create(MockClientActor.class, () -> new MockClientActor(delegate));
+        return Props.create(MockClientActor.class, delegate);
     }
 
     @Override

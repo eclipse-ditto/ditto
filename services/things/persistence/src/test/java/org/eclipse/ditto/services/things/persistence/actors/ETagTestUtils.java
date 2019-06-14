@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.things.persistence.actors;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.Revision;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.AccessControlList;
@@ -25,6 +26,7 @@ import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntryResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclResponse;
@@ -75,7 +77,9 @@ public abstract class ETagTestUtils {
     public static ModifyThingResponse modifyThingResponse(final Thing currentThing, final Thing modifiedThing,
             final DittoHeaders dittoHeaders, final boolean created) {
         final Thing modifiedThingWithUpdatedRevision = modifiedThing.toBuilder()
-                .setRevision(currentThing.getRevision().get().toLong() + 1)
+                .setRevision(currentThing.getRevision()
+                        .map(Revision::increment)
+                        .orElseGet(() -> ThingRevision.newInstance(1L)))
                 .build();
         final DittoHeaders dittoHeadersWithETag =
                 appendETagToDittoHeaders(modifiedThingWithUpdatedRevision, dittoHeaders);

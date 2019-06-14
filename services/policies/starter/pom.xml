@@ -36,12 +36,12 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>ditto-services-policies-persistence</artifactId>
+            <artifactId>ditto-services-policies-common</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>ditto-services-policies-util</artifactId>
+            <artifactId>ditto-services-policies-persistence</artifactId>
             <version>${project.version}</version>
         </dependency>
 

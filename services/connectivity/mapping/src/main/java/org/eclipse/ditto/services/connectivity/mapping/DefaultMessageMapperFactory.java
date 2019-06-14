@@ -24,9 +24,8 @@ import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 
-import com.typesafe.config.Config;
-
 import akka.actor.ActorSystem;
+import akka.actor.DynamicAccess;
 import akka.actor.ExtendedActorSystem;
 import akka.event.DiagnosticLoggingAdapter;
 import scala.collection.immutable.List$;
@@ -41,14 +40,15 @@ import scala.reflect.ClassTag;
  * </p>
  * <p>
  * Due to this, the factory can be instantiated with a reference to the actors log adapter and will log problems to
- * the debug and warning level (no info and error). Setting a log adapter does not change factory behaviour!
+ * the debug and warning level (no info and error).
+ * Setting a log adapter does not change factory behaviour!
  * </p>
  */
 @Immutable
 public final class DefaultMessageMapperFactory implements MessageMapperFactory {
 
     private final String connectionId;
-    private final Config mappingConfig;
+    private final MappingConfig mappingConfig;
 
     /**
      * The actor system used for dynamic class instantiation.
@@ -63,13 +63,13 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
     private final DiagnosticLoggingAdapter log;
 
     private DefaultMessageMapperFactory(final String connectionId,
-            final Config mappingConfig,
+            final MappingConfig mappingConfig,
             final ExtendedActorSystem actorSystem,
             final MessageMapperInstantiation messageMappers,
             final DiagnosticLoggingAdapter log) {
 
         this.connectionId = checkNotNull(connectionId);
-        this.mappingConfig = checkNotNull(mappingConfig);
+        this.mappingConfig = checkNotNull(mappingConfig, "MappingConfig");
         this.actorSystem = checkNotNull(actorSystem);
         this.messageMappers = checkNotNull(messageMappers);
         this.log = checkNotNull(log);
@@ -80,33 +80,40 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
      *
      * @param connectionId ID of the connection.
      * @param actorSystem the actor system to use for mapping config + dynamicAccess.
+     * @param mappingConfig the configuration of the mapping behaviour.
      * @param log the log adapter used for debug and warning logs.
      * @return the new instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static DefaultMessageMapperFactory of(final String connectionId, final ActorSystem actorSystem,
+    public static DefaultMessageMapperFactory of(final String connectionId,
+            final ActorSystem actorSystem,
+            final MappingConfig mappingConfig,
             final DiagnosticLoggingAdapter log) {
 
-        final Config mappingConfig = actorSystem.settings().config().getConfig("ditto.connectivity.mapping");
         final ExtendedActorSystem extendedActorSystem = (ExtendedActorSystem) actorSystem;
         final MessageMapperInstantiation messageMappers =
-                loadMessageMappersInstantiation(mappingConfig, extendedActorSystem);
+                tryToLoadMessageMappersInstantiation(mappingConfig, extendedActorSystem);
 
         return new DefaultMessageMapperFactory(connectionId, mappingConfig, extendedActorSystem, messageMappers, log);
     }
 
-    private static MessageMapperInstantiation loadMessageMappersInstantiation(final Config mappingConfig,
+    private static MessageMapperInstantiation tryToLoadMessageMappersInstantiation(final MappingConfig mappingConfig,
             final ExtendedActorSystem actorSystem) {
 
         try {
-            final String className = mappingConfig.getString("factory");
-            final ClassTag<MessageMapperInstantiation> tag =
-                    scala.reflect.ClassTag$.MODULE$.apply(MessageMapperInstantiation.class);
-            return actorSystem.dynamicAccess().createInstanceFor(className, List$.MODULE$.empty(), tag).get();
+            return loadMessageMappersInstantiation(mappingConfig.getFactoryName(), actorSystem.dynamicAccess());
         } catch (final Exception e) {
             final String message = e.getClass().getCanonicalName() + ": " + e.getMessage();
             throw MessageMapperConfigurationFailedException.newBuilder(message).build();
         }
+    }
+
+    private static MessageMapperInstantiation loadMessageMappersInstantiation(final String className,
+            final DynamicAccess dynamicAccess) {
+
+        final ClassTag<MessageMapperInstantiation> tag =
+                scala.reflect.ClassTag$.MODULE$.apply(MessageMapperInstantiation.class);
+        return dynamicAccess.createInstanceFor(className, List$.MODULE$.empty(), tag).get();
     }
 
     @Override

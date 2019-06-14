@@ -25,12 +25,12 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.KafkaConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
-import org.eclipse.ditto.services.connectivity.util.ConnectionConfigReader;
-import org.eclipse.ditto.services.connectivity.util.KafkaConfigReader;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -55,11 +55,12 @@ public final class KafkaClientActor extends BaseClientActor {
             final ConnectivityStatus desiredConnectionStatus,
             final ActorRef conciergeForwarder,
             final KafkaPublisherActorFactory factory) {
+
         super(connection, desiredConnectionStatus, conciergeForwarder);
-        final KafkaConfigReader configReader =
-                ConnectionConfigReader.fromRawConfig(getContext().system().settings().config()).kafka();
-        this.connectionFactory = KafkaConnectionFactory.of(connection, configReader);
-        this.publisherActorFactory = factory;
+        final ConnectionConfig connectionConfig = connectivityConfig.getConnectionConfig();
+        final KafkaConfig kafkaConfig = connectionConfig.getKafkaConfig();
+        connectionFactory = DefaultKafkaConnectionFactory.getInstance(connection, kafkaConfig);
+        publisherActorFactory = factory;
         pendingStatusReportsFromStreams = new HashSet<>();
     }
 
@@ -71,8 +72,10 @@ public final class KafkaClientActor extends BaseClientActor {
      * @param factory factory for creating a kafka publisher actor.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, final ActorRef conciergeForwarder,
+    public static Props props(final Connection connection,
+            final ActorRef conciergeForwarder,
             final KafkaPublisherActorFactory factory) {
+
         return Props.create(KafkaClientActor.class, validateConnection(connection), connection.getConnectionStatus(),
                 conciergeForwarder, factory);
     }
@@ -86,7 +89,7 @@ public final class KafkaClientActor extends BaseClientActor {
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inTestingState() {
         return super.inTestingState()
                 .event(Status.Status.class, (e, d) -> !Objects.equals(getSender(), getSelf()),
-                        (status, data) -> this.handleStatusReportFromChildren(status))
+                        (status, data) -> handleStatusReportFromChildren(status))
                 .event(ClientConnected.class, BaseClientData.class, (event, data) -> {
                     final String url = data.getConnection().getUri();
                     final String message = "Kafka connection to " + url + " established successfully";
@@ -102,7 +105,7 @@ public final class KafkaClientActor extends BaseClientActor {
     @Override
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectingState() {
         return super.inConnectingState()
-                .event(Status.Status.class, (status, data) -> this.handleStatusReportFromChildren(status));
+                .event(Status.Status.class, (status, data) -> handleStatusReportFromChildren(status));
     }
 
     @Override
@@ -153,7 +156,7 @@ public final class KafkaClientActor extends BaseClientActor {
         log.info("Starting Kafka publisher actor.");
         // ensure no previous publisher stays in memory
         stopKafkaPublisher();
-        kafkaPublisherActor = startChildActorConflictFree(publisherActorFactory.name(),
+        kafkaPublisherActor = startChildActorConflictFree(publisherActorFactory.getActorName(),
                 publisherActorFactory.props(connectionId(), getTargetsOrEmptyList(), connectionFactory, getSelf(),
                         dryRun));
         pendingStatusReportsFromStreams.add(kafkaPublisherActor);
@@ -161,7 +164,6 @@ public final class KafkaClientActor extends BaseClientActor {
 
     @Override
     protected void cleanupResourcesForConnection() {
-
         pendingStatusReportsFromStreams.clear();
         stopKafkaPublisher();
     }

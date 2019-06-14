@@ -18,9 +18,9 @@ import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
+import java.security.spec.KeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.text.MessageFormat;
-import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -40,9 +40,10 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.services.gateway.security.cache.PublicKeyIdWithIssuer;
-import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
+import org.eclipse.ditto.services.gateway.util.HttpClientFacade;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
+import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayJwtIssuerNotSupportedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +56,6 @@ import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
 import akka.stream.javadsl.Sink;
 import akka.util.ByteString;
-
 
 /**
  * Implementation of {@link PublicKeyProvider}. This provider requests keys at the {@link SubjectIssuer} and caches
@@ -72,21 +72,23 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
     private final Cache<PublicKeyIdWithIssuer, PublicKey> publicKeyCache;
 
     private DittoPublicKeyProvider(final JwtSubjectIssuersConfig jwtSubjectIssuersConfig,
-            final HttpClientFacade httpClient, final int maxCacheEntries, final Duration expiry,
+            final HttpClientFacade httpClient,
+            final CacheConfig publicKeysConfig,
             final String cacheName) {
 
         this.jwtSubjectIssuersConfig = argumentNotNull(jwtSubjectIssuersConfig);
         this.httpClient = argumentNotNull(httpClient);
-        argumentNotNull(expiry);
+        argumentNotNull(publicKeysConfig, "config of the public keys cache");
         argumentNotNull(cacheName);
 
         final AsyncCacheLoader<PublicKeyIdWithIssuer, PublicKey> loader = this::loadPublicKey;
 
         final Caffeine<PublicKeyIdWithIssuer, PublicKey> caffeine = Caffeine.newBuilder()
-                .maximumSize(maxCacheEntries)
-                .expireAfterWrite(expiry.getSeconds(), TimeUnit.SECONDS)
+                .maximumSize(publicKeysConfig.getMaximumSize())
+                .expireAfterWrite(publicKeysConfig.getExpireAfterWrite())
                 .removalListener(new CacheRemovalListener());
-        this.publicKeyCache = CaffeineCache.of(caffeine, loader, cacheName);
+
+        publicKeyCache = CaffeineCache.of(caffeine, loader, cacheName);
     }
 
     /**
@@ -94,18 +96,17 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
      *
      * @param jwtSubjectIssuersConfig the configuration of supported JWT subject issuers
      * @param httpClient the http client.
-     * @param maxCacheEntries the max amount of public keys to cache.
-     * @param expiry the expiry of cache entries in minutes.
+     * @param publicKeysCacheConfig the config of the public keys cache.
      * @param cacheName The name of the cache.
      * @return the PublicKeyProvider.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static PublicKeyProvider of(final JwtSubjectIssuersConfig jwtSubjectIssuersConfig,
             final HttpClientFacade httpClient,
-            final int maxCacheEntries, final Duration expiry,
+            final CacheConfig publicKeysCacheConfig,
             final String cacheName) {
-        return new DittoPublicKeyProvider(jwtSubjectIssuersConfig, httpClient, maxCacheEntries, expiry,
-                cacheName);
+
+        return new DittoPublicKeyProvider(jwtSubjectIssuersConfig, httpClient, publicKeysCacheConfig, cacheName);
     }
 
     @Override
@@ -119,6 +120,7 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
     /* this method is used to asynchronously load the public key into the cache */
     private CompletableFuture<PublicKey> loadPublicKey(final PublicKeyIdWithIssuer publicKeyIdWithIssuer,
             final Executor executor) {
+
         final String issuer = publicKeyIdWithIssuer.getIssuer();
         final String keyId = publicKeyIdWithIssuer.getKeyId();
         LOGGER.debug("Loading public key with id <{}> from issuer <{}>.", keyId, issuer);
@@ -168,7 +170,7 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
         return response;
     }
 
-    private PublicKey mapToPublicKey(final JsonArray publicKeys, final String keyId, final String resource) {
+    private static PublicKey mapToPublicKey(final JsonArray publicKeys, final String keyId, final String resource) {
         LOGGER.debug("Trying to find key with id <{}> in json array <{}>.", keyId, publicKeys);
 
         for (final JsonValue jsonValue : publicKeys) {
@@ -179,7 +181,7 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
                 if (jsonWebKey.getId().equals(keyId)) {
                     LOGGER.debug("Found matching JsonWebKey for id <{}>: <{}>.", keyId, jsonWebKey);
                     final KeyFactory keyFactory = KeyFactory.getInstance(jsonWebKey.getType());
-                    final RSAPublicKeySpec rsaPublicKeySpec =
+                    final KeySpec rsaPublicKeySpec =
                             new RSAPublicKeySpec(jsonWebKey.getModulus(), jsonWebKey.getExponent());
                     return keyFactory.generatePublic(rsaPublicKeySpec);
                 }
@@ -198,8 +200,11 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
         @Override
         public void onRemoval(@Nullable final PublicKeyIdWithIssuer key, @Nullable final PublicKey value,
                 @Nonnull final com.github.benmanes.caffeine.cache.RemovalCause cause) {
+
             final String msgTemplate = "Removed PublicKey with ID <{}> from cache due to cause '{}'.";
             LOGGER.debug(msgTemplate, key, cause);
         }
+
     }
+
 }

@@ -39,21 +39,22 @@ import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.model.placeholders.ThingPlaceholder;
 import org.eclipse.ditto.model.placeholders.TopicPathPlaceholder;
+import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLoggerRegistry;
-import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
-import org.eclipse.ditto.services.connectivity.util.MonitoringConfigReader;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.signals.base.Signal;
 
 import akka.actor.AbstractActor;
@@ -80,22 +81,28 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
     private final ConnectionMonitor responseDroppedMonitor;
 
-
     protected BasePublisherActor(final String connectionId, final List<Target> targets) {
         this.connectionId = checkNotNull(connectionId, "connectionId");
         this.targets = checkNotNull(targets, "targets");
         resourceStatusMap = new HashMap<>();
         final Instant now = Instant.now();
         targets.forEach(target ->
-                resourceStatusMap.put(target, ConnectivityModelFactory.newTargetStatus(ConfigUtil.instanceIdentifier(),
-                        ConnectivityStatus.OPEN, target.getAddress(), "Started at " + now)));
+                resourceStatusMap.put(target,
+                        ConnectivityModelFactory.newTargetStatus(getInstanceIdentifier(), ConnectivityStatus.OPEN,
+                                target.getAddress(), "Started at " + now)));
 
-        final MonitoringConfigReader
-                monitoringConfig = ConfigKeys.Monitoring.fromRawConfig(getContext().system().settings().config());
+        final MonitoringConfig monitoringConfig = DittoConnectivityConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        ).getMonitoringConfig();
         connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
         responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(this.connectionId);
         responsePublishedMonitor = connectionMonitorRegistry.forResponsePublished(this.connectionId);
-        connectionLogger = ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger()).forConnection(this.connectionId);
+        connectionLogger =
+                ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger()).forConnection(this.connectionId);
+    }
+
+    private static String getInstanceIdentifier() {
+        return InstanceIdentifierSupplier.getInstance().get();
     }
 
     @Override
@@ -104,7 +111,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         preEnhancement(receiveBuilder);
 
         receiveBuilder
-                .match(OutboundSignal.WithExternalMessage.class, this::isResponseOrError, outbound -> {
+                .match(OutboundSignal.WithExternalMessage.class, BasePublisherActor::isResponseOrError, outbound -> {
                     final ExternalMessage response = outbound.getExternalMessage();
                     final String correlationId = response.getHeaders().get(CORRELATION_ID.getKey());
                     ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log(), correlationId, connectionId);
@@ -119,7 +126,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                         publishMessage(null, replyTarget, response, responsePublishedMonitor);
                     } else {
                         log().info("Response dropped, missing replyTo address: {}", response);
-                        responseDroppedMonitor.failure(outbound.getSource(), "Response dropped since it was missing a replyTo address.");
+                        responseDroppedMonitor.failure(outbound.getSource(),
+                                "Response dropped since it was missing a replyTo address.");
                     }
                 })
                 .match(OutboundSignal.WithExternalMessage.class, outbound -> {
@@ -134,7 +142,9 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                         log().info("Publishing mapped message of type <{}> to target address <{}>",
                                 outboundSource.getType(), target.getAddress());
 
-                        final ConnectionMonitor publishedMonitor = connectionMonitorRegistry.forOutboundPublished(connectionId, target.getOriginalAddress());
+                        final ConnectionMonitor publishedMonitor =
+                                connectionMonitorRegistry.forOutboundPublished(connectionId,
+                                        target.getOriginalAddress());
                         try {
                             final T publishTarget = toPublishTarget(target.getAddress());
                             final ExternalMessage messageWithMappedHeaders =
@@ -142,7 +152,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                             publishMessage(target, publishTarget, messageWithMappedHeaders, publishedMonitor);
                         } catch (final DittoRuntimeException e) {
                             // TODO: might there be private information in the exception message so we shouldn't be allowed to see them?
-                            publishedMonitor.failure(outboundSource, "Ran into a failure when applying header mapping: {0}",
+                            publishedMonitor.failure(outboundSource,
+                                    "Ran into a failure when applying header mapping: {0}",
                                     e.getMessage());
                             log().warning("Got unexpected DittoRuntimeException when applying header mapping - " +
                                             "thus NOT publishing the message: {} {}",
@@ -164,11 +175,10 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     private Collection<ResourceStatus> getCurrentTargetStatus() {
         if (resourceStatusMap.isEmpty()) {
             return Collections.singletonList(
-                    ConnectivityModelFactory.newTargetStatus(ConfigUtil.instanceIdentifier(), ConnectivityStatus.UNKNOWN,
-                            null, null));
-        } else {
-            return resourceStatusMap.values();
+                    ConnectivityModelFactory.newTargetStatus(getInstanceIdentifier(), ConnectivityStatus.UNKNOWN, null,
+                            null));
         }
+        return resourceStatusMap.values();
     }
 
     /**
@@ -203,6 +213,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
     /**
      * Publishes the passed {@code message} to the passed {@code publishTarget}.
+     *
      * @param target the nullable Target for getting even more information about the configured Target to publish to.
      * @param publishTarget the {@link PublishTarget} to publish to.
      * @param message the {@link org.eclipse.ditto.services.models.connectivity.ExternalMessage} to publish.
@@ -222,8 +233,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * @param outboundSignal the OutboundSignal to check.
      * @return {@code true} if the OutboundSignal is a response or an error, {@code false} otherwise
      */
-    private boolean isResponseOrError(final OutboundSignal.WithExternalMessage outboundSignal) {
-        return (outboundSignal.getExternalMessage().isResponse() || outboundSignal.getExternalMessage().isError());
+    private static boolean isResponseOrError(final OutboundSignal.WithExternalMessage outboundSignal) {
+        return outboundSignal.getExternalMessage().isResponse() || outboundSignal.getExternalMessage().isError();
     }
 
     /**
@@ -266,7 +277,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             final ExpressionResolver expressionResolver = PlaceholderFactory.newExpressionResolver(
                     PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, originalHeaders),
                     PlaceholderFactory.newPlaceholderResolver(THING_PLACEHOLDER, sourceSignal.getId()),
-                    PlaceholderFactory.newPlaceholderResolver(TOPIC_PLACEHOLDER, originalMessage.getTopicPath().orElse(null))
+                    PlaceholderFactory.newPlaceholderResolver(TOPIC_PLACEHOLDER,
+                            originalMessage.getTopicPath().orElse(null))
             );
 
             final Map<String, String> mappedHeaders = mapping.getMapping().entrySet().stream()

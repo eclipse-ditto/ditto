@@ -26,7 +26,7 @@ public final class ThingCommandSizeValidator extends AbstractCommandSizeValidato
     /**
      * System property name of the property defining the max Thing size in bytes.
      */
-    public static final String DITTO_LIMITS_THINGS_MAX_SIZE_BYTES = "ditto.limits.things.max-size.bytes";
+    public static final String DITTO_LIMITS_THINGS_MAX_SIZE_BYTES = "ditto.limits.things.max-size";
 
     @Nullable private static ThingCommandSizeValidator instance;
 

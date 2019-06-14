@@ -36,6 +36,7 @@ public final class DefaultStreamForwarder<E> extends AbstractStreamForwarder<E> 
     private final Class<E> elementClass;
     private final Function<E, Source<Object, NotUsed>> mapEntityFunction;
 
+    @SuppressWarnings("unused")
     private DefaultStreamForwarder(final ActorRef recipient, final ActorRef completionRecipient,
             final Duration maxIdleTime, final Class<E> elementClass,
             final Function<E, Source<Object, NotUsed>> mapEntityFunction) {
@@ -60,8 +61,9 @@ public final class DefaultStreamForwarder<E> extends AbstractStreamForwarder<E> 
     public static <E> Props props(final ActorRef recipient, final ActorRef completionRecipient,
             final Duration maxIdleTime, final Class<E> elementClass,
             final Function<E, Source<Object, NotUsed>> mapEntity) {
-        return Props.create(DefaultStreamForwarder.class, () ->
-                new DefaultStreamForwarder<>(recipient, completionRecipient, maxIdleTime, elementClass, mapEntity));
+
+        return Props.create(DefaultStreamForwarder.class, recipient, completionRecipient, maxIdleTime, elementClass,
+                mapEntity);
     }
 
     @Override
