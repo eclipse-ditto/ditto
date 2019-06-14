@@ -19,7 +19,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.query.QueryBuilder;
 import org.eclipse.ditto.model.query.QueryBuilderFactory;
 import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.services.base.config.LimitsConfigReader;
+import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 
 
 /**
@@ -28,18 +28,17 @@ import org.eclipse.ditto.services.base.config.LimitsConfigReader;
 @Immutable
 public final class MongoQueryBuilderFactory implements QueryBuilderFactory {
 
-    private final LimitsConfigReader limitsConfigReader;
+    private final LimitsConfig limitsConfig;
 
-    public MongoQueryBuilderFactory(final LimitsConfigReader limitsConfigReader) {
-
-        this.limitsConfigReader = limitsConfigReader;
+    public MongoQueryBuilderFactory(final LimitsConfig limitsConfig) {
+        this.limitsConfig = limitsConfig;
     }
 
     @Override
     public QueryBuilder newBuilder(final Criteria criteria) {
         checkCriteria(criteria);
         return MongoQueryBuilder.limited(criteria,
-                limitsConfigReader.thingsSearchMaxPageSize(), limitsConfigReader.thingsSearchDefaultPageSize());
+                limitsConfig.getThingsSearchMaxPageSize(), limitsConfig.getThingsSearchDefaultPageSize());
     }
 
     @Override

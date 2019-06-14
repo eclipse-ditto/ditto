@@ -40,7 +40,6 @@ import org.eclipse.ditto.services.things.persistence.serializer.ThingMongoEventA
 import org.eclipse.ditto.services.things.persistence.testhelper.Assertions;
 import org.eclipse.ditto.services.things.persistence.testhelper.ThingsJournalTestHelper;
 import org.eclipse.ditto.services.things.persistence.testhelper.ThingsSnapshotTestHelper;
-import org.eclipse.ditto.services.things.starter.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -68,7 +67,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorRef;
@@ -82,33 +80,22 @@ import scala.concurrent.duration.FiniteDuration;
  */
 public final class ThingPersistenceActorSnapshottingTest extends PersistenceActorTestBase {
 
-    private static final int DEFAULT_TEST_SNAPSHOT_THRESHOLD = 2;
     private static final int NEVER_TAKE_SNAPSHOT_THRESHOLD = Integer.MAX_VALUE;
-    private static final boolean DEFAULT_TEST_SNAPSHOT_DELETE_OLD = true;
-    private static final boolean DEFAULT_TEST_EVENTS_DELETE_OLD = true;
-    private static final Duration VERY_LONG_DURATION = Duration.ofDays(100);
     private static final int PERSISTENCE_ASSERT_WAIT_AT_MOST_MS = 5000;
     private static final long PERSISTENCE_ASSERT_RETRY_DELAY_MS = 500;
+    private static final String SNAPSHOT_PREFIX = "ditto.things.thing.snapshot.";
+    private static final String SNAPSHOT_DELETE_OLD = SNAPSHOT_PREFIX + "delete-old-snapshot";
+    private static final String EVENTS_DELETE_OLD = SNAPSHOT_PREFIX + "delete-old-events";
+    private static final String SNAPSHOT_THRESHOLD = SNAPSHOT_PREFIX + "threshold";
+    private static final String SNAPSHOT_INTERVAL = SNAPSHOT_PREFIX + "interval";
+    private static final String ACTIVITY_CHECK_PREFIX = "ditto.things.thing.activity-check";
+    private static final String ACTIVITY_CHECK_DELETED_INTERVAL = ACTIVITY_CHECK_PREFIX + "deleted-interval";
 
     private static final JsonFieldSelector FIELD_SELECTOR = JsonFactory.newFieldSelector(Thing.JsonFields.ATTRIBUTES,
             Thing.JsonFields.FEATURES, Thing.JsonFields.ID, Thing.JsonFields.MODIFIED, Thing.JsonFields.REVISION,
             Thing.JsonFields.POLICY_ID, Thing.JsonFields.LIFECYCLE);
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ThingPersistenceActorSnapshottingTest.class);
-
-    private static Config createNewDefaultTestConfig() {
-        return ConfigFactory.empty()
-                .withValue(ConfigKeys.Thing.SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(
-                        DEFAULT_TEST_SNAPSHOT_THRESHOLD))
-                .withValue(ConfigKeys.Thing.ACTIVITY_CHECK_INTERVAL, ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION))
-                .withValue(ConfigKeys.Thing.ACTIVITY_CHECK_DELETED_INTERVAL,
-                        ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION))
-                .withValue(ConfigKeys.Thing.SNAPSHOT_DELETE_OLD, ConfigValueFactory.fromAnyRef(
-                        DEFAULT_TEST_SNAPSHOT_DELETE_OLD))
-                .withValue(ConfigKeys.Thing.EVENTS_DELETE_OLD,
-                        ConfigValueFactory.fromAnyRef(DEFAULT_TEST_EVENTS_DELETE_OLD))
-                .withValue(ConfigKeys.Thing.SNAPSHOT_INTERVAL, ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION));
-    }
 
     private ThingMongoEventAdapter eventAdapter;
     private ThingsJournalTestHelper<ThingEvent> journalTestHelper;
@@ -152,7 +139,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
      */
     @Test
     public void deletedThingIsSnapshotWithCorrectDataAndCanBeRecreated() {
-        setup(createNewDefaultTestConfig());
+        setup(testConfig);
 
         new TestKit(actorSystem) {
             {
@@ -224,9 +211,8 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
     @Test
     public void snapshotOfDeletedThingIsNotDeletedWhenAlreadySnapshot() {
         final int activityCheckDeletedIntervalSecs = 2;
-        final Config customConfig = createNewDefaultTestConfig().
-                withValue(ConfigKeys.Thing.ACTIVITY_CHECK_DELETED_INTERVAL, ConfigValueFactory.fromAnyRef(Duration
-                        .ofSeconds(activityCheckDeletedIntervalSecs)));
+        final Config customConfig = testConfig.withValue(ACTIVITY_CHECK_DELETED_INTERVAL,
+                ConfigValueFactory.fromAnyRef(Duration.ofSeconds(activityCheckDeletedIntervalSecs)));
         setup(customConfig);
 
         new TestKit(actorSystem) {
@@ -236,7 +222,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
 
                 // use a supervisor actor, otherwise we could reuse the actorSystem in this test because the
                 // thingsPersistenceActor will stop its parent, leading to the actorSystem being terminated
-                ActorRef underTest = createSupervisorActorFor(thingId);
+                final ActorRef underTest = createSupervisorActorFor(thingId);
                 watch(underTest);
 
                 final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
@@ -294,7 +280,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
      */
     @Test
     public void thingInArbitraryStateIsSnapshotCorrectly() {
-        setup(createNewDefaultTestConfig());
+        setup(testConfig);
 
         new TestKit(actorSystem) {
             {
@@ -306,12 +292,12 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
 
-                LOGGER.info("Told CreateThing, expecting CreateThingResponse..");
+                LOGGER.info("Told CreateThing, expecting CreateThingResponse ...");
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
                 assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thing, 1);
 
-                LOGGER.info("Expecting Event made it to Journal and snapshots are empty..");
+                LOGGER.info("Expecting Event made it to Journal and snapshots are empty. ..");
 
                 final Event expectedCreatedEvent = toEvent(createThing, 1);
                 assertJournal(thingId, Collections.singletonList(expectedCreatedEvent));
@@ -324,13 +310,13 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 final ModifyThing modifyThing = ModifyThing.of(thingId, thingForModify, null, dittoHeadersV2);
                 underTest.tell(modifyThing, getRef());
 
-                LOGGER.info("Told ModifyThing, expecting ModifyThingResponse..");
+                LOGGER.info("Told ModifyThing, expecting ModifyThingResponse. ..");
 
                 final ModifyThingResponse modifyThingResponse = expectMsgClass(ModifyThingResponse.class);
                 ThingCommandAssertions.assertThat(modifyThingResponse).hasStatus(HttpStatusCode.NO_CONTENT);
 
                 LOGGER.info(
-                        "Expecting Event made it to Journal, CreateEvent was deleted and snapshots contain Thing..");
+                        "Expecting Event made it to Journal, CreateEvent was deleted and snapshots contain Thing ...");
 
                 final Event expectedModifiedEvent = toEvent(modifyThing, 2);
                 // created-event has been deleted due to snapshot
@@ -343,23 +329,23 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                         .build();
                 underTest.tell(retrieveThing, getRef());
 
-                LOGGER.info("Told RetrieveThing, expecting RetrieveThingResponse..");
+                LOGGER.info("Told RetrieveThing, expecting RetrieveThingResponse ...");
 
                 final RetrieveThingResponse retrieveThingResponse = expectMsgClass(RetrieveThingResponse.class);
                 assertThingInResponse(retrieveThingResponse.getThing(), thingForModify, 2);
 
-                LOGGER.info("Restarting ThingPersistenceActor..");
+                LOGGER.info("Restarting ThingPersistenceActor ...");
 
                 // restart actor to recover thing state: make sure that the revision is still 2 (will be loaded from
                 // snapshot)
                 watch(underTest);
                 underTest.tell(PoisonPill.getInstance(), getRef());
 
-                LOGGER.info("Expecting ThingPersistenceActor to be terminated..");
+                LOGGER.info("Expecting ThingPersistenceActor to be terminated ...");
 
                 expectTerminated(underTest);
 
-                LOGGER.info("Recreating ThingPersistenceActor..");
+                LOGGER.info("Recreating ThingPersistenceActor ...");
 
                 underTest = Retry.untilSuccess(() -> createPersistenceActorFor(thingId));
 
@@ -376,13 +362,13 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
 
     /**
      * Checks that the old snapshot is not deleted when configuration property
-     * {@link ConfigKeys.Thing#SNAPSHOT_DELETE_OLD} is {@code false}.
+     * {@link #SNAPSHOT_DELETE_OLD} is {@code false}.
      */
     @Test
     public void oldSnapshotIsNotDeletedWhenSnapshotDeleteOldIsFalse() {
-        final Config customConfig = createNewDefaultTestConfig().
-                withValue(ConfigKeys.Thing.SNAPSHOT_DELETE_OLD, ConfigValueFactory.fromAnyRef(false)).
-                withValue(ConfigKeys.Thing.SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(1));
+        final Config customConfig = testConfig
+                .withValue(SNAPSHOT_DELETE_OLD, ConfigValueFactory.fromAnyRef(false))
+                .withValue(SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(1));
         setup(customConfig);
 
         new TestKit(actorSystem) {
@@ -390,7 +376,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 final Thing thing = createThingV2WithRandomId();
                 final String thingId = thing.getId().orElseThrow(IllegalStateException::new);
 
-                final ActorRef underTest = createPersistenceActorFor(thingId);
+                final ActorRef underTest = createPersistenceActorFor(thingId, getThingConfig(customConfig));
 
                 final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
@@ -438,14 +424,13 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
     }
 
     /**
-     * Checks that old events are not deleted when configuration property
-     * {@link ConfigKeys.Thing#EVENTS_DELETE_OLD} is {@code false}.
+     * Checks that old events are not deleted when configuration property {@link #EVENTS_DELETE_OLD} is {@code false}.
      */
     @Test
     public void oldEventsAreNotDeletedWhenEventsDeleteOldIsFalse() {
-        final Config customConfig = createNewDefaultTestConfig().
-                withValue(ConfigKeys.Thing.EVENTS_DELETE_OLD, ConfigValueFactory.fromAnyRef(false)).
-                withValue(ConfigKeys.Thing.SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(1));
+        final Config customConfig = testConfig
+                .withValue(EVENTS_DELETE_OLD, ConfigValueFactory.fromAnyRef(false))
+                .withValue(SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(1));
         setup(customConfig);
 
         new TestKit(actorSystem) {
@@ -453,7 +438,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 final Thing thing = createThingV2WithRandomId();
                 final String thingId = thing.getId().orElseThrow(IllegalStateException::new);
 
-                final ActorRef underTest = createPersistenceActorFor(thingId);
+                final ActorRef underTest = createPersistenceActorFor(thingId, getThingConfig(customConfig));
 
                 final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
@@ -508,10 +493,9 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
     @Test
     public void snapshotIsCreatedAfterSnapshotIntervalHasPassed() {
         final int snapshotIntervalSecs = 5;
-        final Config customConfig = createNewDefaultTestConfig().
-                withValue(ConfigKeys.Thing.SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(Long.MAX_VALUE)).
-                withValue(ConfigKeys.Thing.SNAPSHOT_INTERVAL,
-                        ConfigValueFactory.fromAnyRef(Duration.ofSeconds(snapshotIntervalSecs)));
+        final Config customConfig = testConfig
+                .withValue(SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(Long.MAX_VALUE))
+                .withValue(SNAPSHOT_INTERVAL, ConfigValueFactory.fromAnyRef(Duration.ofSeconds(snapshotIntervalSecs)));
         setup(customConfig);
 
         new TestKit(actorSystem) {
@@ -519,7 +503,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 final Thing thing = createThingV2WithRandomId();
                 final String thingId = thing.getId().orElseThrow(IllegalStateException::new);
 
-                final ActorRef underTest = createPersistenceActorFor(thingId);
+                final ActorRef underTest = createPersistenceActorFor(thingId, getThingConfig(customConfig));
 
                 final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
@@ -568,18 +552,16 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
     @Test
     public void snapshotsAreNotCreatedTwiceIfSnapshotHasBeenAlreadyBeenCreatedDueToThresholdAndSnapshotIntervalHasPassed() {
         final int snapshotIntervalMillisecs = 3;
-        final Config customConfig = createNewDefaultTestConfig().
-                withValue(ConfigKeys.Thing.SNAPSHOT_INTERVAL,
-                        ConfigValueFactory.fromAnyRef(Duration.ofSeconds(snapshotIntervalMillisecs)));
+        final Config customConfig = testConfig.withValue(SNAPSHOT_INTERVAL,
+                ConfigValueFactory.fromAnyRef(Duration.ofSeconds(snapshotIntervalMillisecs)));
         setup(customConfig);
 
         new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV2WithRandomId();
-                final String thingId = thing.getId()
-                        .orElseThrow(IllegalStateException::new);
+                final String thingId = thing.getId().orElseThrow(IllegalStateException::new);
 
-                final ActorRef underTest = createPersistenceActorFor(thingId);
+                final ActorRef underTest = createPersistenceActorFor(thingId, getThingConfig(customConfig));
 
                 final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
@@ -617,9 +599,8 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
 
     @Test
     public void lastSnapshotIsNotDeletedIfProtected() {
-        final Config customConfig = createNewDefaultTestConfig()
-                .withValue(ConfigKeys.Thing.SNAPSHOT_THRESHOLD,
-                        ConfigValueFactory.fromAnyRef(NEVER_TAKE_SNAPSHOT_THRESHOLD));
+        final Config customConfig = testConfig
+                .withValue(SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(NEVER_TAKE_SNAPSHOT_THRESHOLD));
         setup(customConfig);
 
         new TestKit(actorSystem) {
@@ -627,7 +608,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 final Thing thing = createThingV2WithRandomId();
                 final String thingId = thing.getId().orElseThrow(IllegalStateException::new);
 
-                final ActorRef underTest = createPersistenceActorFor(thingId);
+                final ActorRef underTest = createPersistenceActorFor(thingId, getThingConfig(customConfig));
 
                 final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
@@ -678,8 +659,8 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
 
     @Test
     public void retrieveThingWithSnapshotRevision() {
-        final Config customConfig = createNewDefaultTestConfig().withValue(ConfigKeys.Thing.SNAPSHOT_THRESHOLD,
-                ConfigValueFactory.fromAnyRef(NEVER_TAKE_SNAPSHOT_THRESHOLD));
+        final Config customConfig =
+                testConfig.withValue(SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(NEVER_TAKE_SNAPSHOT_THRESHOLD));
         setup(customConfig);
 
         new TestKit(actorSystem) {
@@ -687,7 +668,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 final Thing thing = createThingV2WithRandomId();
                 final String thingId = thing.getId().orElseThrow(IllegalStateException::new);
 
-                final ActorRef underTest = createPersistenceActorFor(thingId);
+                final ActorRef underTest = createPersistenceActorFor(thingId, getThingConfig(customConfig));
 
                 final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
@@ -760,38 +741,20 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
         };
     }
 
-    @Test
-    public void actorCannotBeStartedWithNegativeSnapshotThreshold() {
-        final Config customConfig = createNewDefaultTestConfig().withValue(ConfigKeys.Thing.SNAPSHOT_THRESHOLD,
-                ConfigValueFactory.fromAnyRef(-1));
-        setup(customConfig);
-
-        disableLogging();
-        new TestKit(actorSystem) {
-            {
-                final ActorRef underTest = createPersistenceActorFor("fail");
-                watch(underTest);
-                expectTerminated(underTest);
-            }
-        };
-    }
-
     private static void assertThingInSnapshot(final Thing actualThing, final Thing expectedThing) {
         assertThingInResponse(actualThing, expectedThing, expectedThing.getRevision().map(ThingRevision::toLong)
                 .orElseThrow(IllegalArgumentException::new));
     }
 
     private static void assertThingInJournal(final Thing actualThing, final Thing expectedThing) {
-        final Thing expectedComparisonThing = ThingsModelFactory.newThingBuilder(expectedThing)
-                .build();
-
         DittoThingsAssertions.assertThat(actualThing)
-                .hasEqualJson(expectedComparisonThing, FIELD_SELECTOR, IS_MODIFIED.negate())
+                .hasEqualJson(expectedThing, FIELD_SELECTOR, IS_MODIFIED.negate())
                 .hasNoModified();
     }
 
     private static void assertThingInResponse(final Thing actualThing, final Thing expectedThing,
             final long expectedRevision) {
+
         final Thing expectedComparisonThing = ThingsModelFactory.newThingBuilder(expectedThing)
                 .setRevision(expectedRevision)
                 .build();

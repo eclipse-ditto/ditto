@@ -25,8 +25,12 @@ import javax.jms.JMSRuntimeException;
 import javax.naming.NamingException;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnavailableException;
 
@@ -39,7 +43,6 @@ import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
 import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import scala.concurrent.duration.FiniteDuration;
@@ -47,11 +50,9 @@ import scala.concurrent.duration.FiniteDuration;
 /**
  * Supervisor for {@link ConnectionActor} which means it will create, start and watch it as child actor.
  * <p>
- * If the child terminates, it will wait for the calculated exponential backoff time and restart it afterwards. The
+ * If the child terminates, it will wait for the calculated exponential back-off time and restart it afterwards. The
  * child has to send {@link ManualReset} after it started successfully. Between the termination of the child and the
- * restart, this actor answers to all requests with a
- * {@link ConnectionUnavailableException} as fail fast
- * strategy.
+ * restart, this actor answers to all requests with a {@link ConnectionUnavailableException} as fail fast strategy.
  * </p>
  */
 public final class ConnectionSupervisorActor extends AbstractActor {
@@ -59,79 +60,62 @@ public final class ConnectionSupervisorActor extends AbstractActor {
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final String connectionId;
-    private final Duration minBackoff;
-    private final Duration maxBackoff;
-    private final double randomFactor;
-    private final SupervisorStrategy supervisorStrategy;
+    private final ExponentialBackOffConfig exponentialBackOffConfig;
     private final Props persistenceActorProps;
 
     @Nullable private ActorRef child;
     private long restartCount;
 
-    private ConnectionSupervisorActor(final SupervisorStrategy supervisorStrategy,
-            final Duration minBackoff,
-            final Duration maxBackoff,
-            final double randomFactor,
-            final ActorRef pubSubMediator,
+    private final SupervisorStrategy supervisorStrategy = new OneForOneStrategy(true, DeciderBuilder
+            .match(JMSRuntimeException.class, e -> SupervisorStrategy.resume())
+            .match(NullPointerException.class, e -> SupervisorStrategy.restart())
+            .match(JMSException.class, e -> SupervisorStrategy.stop())
+            .match(NamingException.class, e -> SupervisorStrategy.stop())
+            .match(ActorKilledException.class, e -> SupervisorStrategy.stop())
+            .matchAny(e -> SupervisorStrategy.escalate())
+            .build());
+
+    @SuppressWarnings("unused")
+    private ConnectionSupervisorActor(final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory propsFactory,
             @Nullable final ConnectivityCommandInterceptor commandValidator) {
+
         try {
-            this.connectionId = URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name());
+            connectionId = URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name());
         } catch (final UnsupportedEncodingException e) {
             throw new IllegalStateException("Unsupported encoding", e);
         }
-        this.supervisorStrategy = supervisorStrategy;
-        this.minBackoff = minBackoff;
-        this.maxBackoff = maxBackoff;
-        this.randomFactor = randomFactor;
-        this.persistenceActorProps =
+
+        final ConnectionConfig connectionConfig = DittoConnectivityConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        ).getConnectionConfig();
+        exponentialBackOffConfig = connectionConfig.getSupervisorConfig().getExponentialBackOffConfig();
+
+        persistenceActorProps =
                 ConnectionActor.props(connectionId, pubSubMediator, conciergeForwarder, propsFactory, commandValidator);
     }
 
     /**
-     * Props for creating a {@link ConnectionSupervisorActor}.
+     * Props for creating a {@code ConnectionSupervisorActor}.
      * <p>
-     * Exceptions in the child are handled with a supervision strategy that restarts the child on {@link
-     * NullPointerException}'s, stops it for {@link ActorKilledException}'s and escalates all others.
+     * Exceptions in the child are handled with a supervision strategy that restarts the child on NullPointerExceptions,
+     * stops it for {@link ActorKilledException}'s and escalates all others.
      * </p>
      *
-     * @param minBackoff minimum (initial) duration until the child actor will started again, if it is terminated.
-     * @param maxBackoff the exponential back-off is capped to this duration.
-     * @param randomFactor after calculation of the exponential back-off an additional random delay based on this factor
-     * is added, e.g. `0.2` adds up to `20%` delay. In order to skip this additional delay pass in `0`.
-     * for accessing the connection cache in cluster.
      * @param pubSubMediator the PubSub mediator actor.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
      * @param propsFactory the {@link ClientActorPropsFactory}
      * @param commandValidator a custom command validator for connectivity commands
      * @return the {@link Props} to create this actor.
      */
-    public static Props props(final Duration minBackoff,
-            final Duration maxBackoff,
-            final double randomFactor,
-            final ActorRef pubSubMediator,
+    public static Props props(final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
             final ClientActorPropsFactory propsFactory,
             @Nullable final ConnectivityCommandInterceptor commandValidator) {
 
-        return Props.create(ConnectionSupervisorActor.class, new Creator<ConnectionSupervisorActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public ConnectionSupervisorActor create() {
-                return new ConnectionSupervisorActor(new OneForOneStrategy(true, DeciderBuilder
-                        .match(JMSRuntimeException.class, e -> SupervisorStrategy.resume())
-                        .match(NullPointerException.class, e -> SupervisorStrategy.restart())
-                        .match(JMSException.class, e -> SupervisorStrategy.stop())
-                        .match(NamingException.class, e -> SupervisorStrategy.stop())
-                        .match(ActorKilledException.class, e -> SupervisorStrategy.stop())
-                        .matchAny(e -> SupervisorStrategy.escalate())
-                        .build()),
-                        minBackoff, maxBackoff, randomFactor, pubSubMediator, conciergeForwarder, propsFactory,
-                        commandValidator);
-            }
-        });
+        return Props.create(ConnectionSupervisorActor.class, pubSubMediator, conciergeForwarder, propsFactory,
+                commandValidator);
     }
 
     @Override
@@ -166,15 +150,15 @@ public final class ConnectionSupervisorActor extends AbstractActor {
                     ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
                     if (child != null) {
                         if (child.equals(getSender())) {
-                            log.warning("Received unhandled message from child actor '{}': {}", connectionId, message);
+                            log.warning("Received unhandled message from child actor <{}>: {}", connectionId, message);
                             unhandled(message);
                         } else {
-                            log.debug("Forwarding <{}> message to child {}.", message.getClass().getSimpleName(),
+                            log.debug("Forwarding <{}> message to child <{}>.", message.getClass().getSimpleName(),
                                     child.path());
                             child.forward(message, getContext());
                         }
                     } else {
-                        log.warning("Received message '{}' during downtime of child actor for Connection with ID '{}'",
+                        log.warning("Received message <{}> during downtime of child actor for Connection with ID <{}>.",
                                 message.getClass().getSimpleName(), connectionId);
                         final ConnectionUnavailableException.Builder builder =
                                 ConnectionUnavailableException.newBuilder(connectionId);
@@ -190,21 +174,28 @@ public final class ConnectionSupervisorActor extends AbstractActor {
     private void startChild() {
         ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
         if (child == null) {
-            log.debug("Starting persistence actor for Connection with ID '{}'", connectionId);
+            log.debug("Starting persistence actor for Connection with ID <{}>.", connectionId);
             final ActorRef childRef = getContext().actorOf(persistenceActorProps, "pa");
             child = getContext().watch(childRef);
         }
     }
 
+    /*
+     * - minBackOff: minimum (initial) duration until the child actor will started again, if it is terminated.
+     * - maxBackOff: the exponential back-off is capped to this duration.
+     * - randomFactor: after calculation of the exponential back-off an additional random delay based on this factor
+     *   is added, e. g. `0.2` adds up to `20 %` delay. In order to skip this additional delay pass in `0`.
+     */
     private Duration calculateRestartDelay() {
-        final double rnd = 1.0 + ThreadLocalRandom.current().nextDouble() * randomFactor;
+        final double rnd = 1.0 + ThreadLocalRandom.current().nextDouble() * exponentialBackOffConfig.getRandomFactor();
+        final Duration maxBackOff = exponentialBackOffConfig.getMax();
         if (restartCount >= 30) // Duration overflow protection (> 100 years)
         {
-            return maxBackoff;
-        } else {
-            final double backoff = minBackoff.toNanos() * Math.pow(2, restartCount) * rnd;
-            return Duration.ofNanos(Math.min(maxBackoff.toNanos(), (long) backoff));
+            return maxBackOff;
         }
+        final Duration minBackOff = exponentialBackOffConfig.getMin();
+        final double backOff = minBackOff.toNanos() * Math.pow(2, restartCount) * rnd;
+        return Duration.ofNanos(Math.min(maxBackOff.toNanos(), (long) backOff));
     }
 
     /**

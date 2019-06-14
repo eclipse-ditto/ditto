@@ -38,9 +38,9 @@ import org.eclipse.ditto.model.connectivity.LogEntry;
 import org.eclipse.ditto.model.connectivity.LogType;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
-import org.eclipse.ditto.services.connectivity.util.MonitoringConfigReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,7 +77,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
      * @return a new instance of {@code ConnectionLoggerRegistry}.
      */
     public static ConnectionLoggerRegistry fromConfig(
-            final MonitoringConfigReader.MonitoringLoggerConfigReader config) {
+            final MonitoringLoggerConfig config) {
         checkNotNull(config);
         return new ConnectionLoggerRegistry(config.successCapacity(), config.failureCapacity(), config.logDuration());
     }

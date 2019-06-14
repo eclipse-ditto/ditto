@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpClientActor;
@@ -26,18 +28,21 @@ import akka.actor.Props;
 /**
  * The default implementation of {@link ClientActorPropsFactory}.
  */
+@Immutable
 public final class DefaultClientActorPropsFactory implements ClientActorPropsFactory {
 
-    private static final DefaultClientActorPropsFactory INSTANCE = new DefaultClientActorPropsFactory();
 
     private DefaultClientActorPropsFactory() {
     }
 
     /**
-     * @return factory instance
+     * Returns an instance of {@code DefaultClientActorPropsFactory}.
+     *
+     * @return the factory instance.
+     * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ClientActorPropsFactory getInstance() {
-        return INSTANCE;
+    public static DefaultClientActorPropsFactory getInstance() {
+        return new DefaultClientActorPropsFactory();
     }
 
     @Override
@@ -51,9 +56,11 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
             case MQTT:
                 return MqttClientActor.props(connection, conciergeForwarder);
             case KAFKA:
-                return KafkaClientActor.props(connection, conciergeForwarder, DefaultKafkaPublisherActorFactory.getInstance());
+                return KafkaClientActor.props(connection, conciergeForwarder,
+                        DefaultKafkaPublisherActorFactory.getInstance());
             default:
                 throw new IllegalArgumentException("ConnectionType <" + connectionType + "> is not supported.");
         }
     }
+
 }

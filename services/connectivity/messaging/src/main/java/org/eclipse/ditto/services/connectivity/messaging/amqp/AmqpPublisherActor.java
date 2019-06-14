@@ -49,7 +49,6 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -84,6 +83,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     private final Session session;
     private final Map<Destination, MessageProducer> producerMap;
 
+    @SuppressWarnings("unused")
     private AmqpPublisherActor(final String connectionId, final List<Target> targets, final Session session) {
         super(connectionId, targets);
         this.session = checkNotNull(session, "session");
@@ -94,19 +94,12 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
      * Creates Akka configuration object {@link Props} for this {@code AmqpPublisherActor}.
      *
      * @param connectionId the id of the connection this publisher belongs to
-     * @param targets the targets.
+     * @param targets the targets configured for the connection
      * @param session the jms session
      * @return the Akka configuration Props object.
      */
     static Props props(final String connectionId, final List<Target> targets, final Session session) {
-        return Props.create(AmqpPublisherActor.class, new Creator<AmqpPublisherActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public AmqpPublisherActor create() {
-                return new AmqpPublisherActor(connectionId, targets, session);
-            }
-        });
+        return Props.create(AmqpPublisherActor.class, connectionId, targets, session);
     }
 
     @Override

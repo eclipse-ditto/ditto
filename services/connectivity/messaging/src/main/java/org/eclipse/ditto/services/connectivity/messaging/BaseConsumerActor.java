@@ -23,20 +23,21 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
+import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
-import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
-import org.eclipse.ditto.services.connectivity.util.MonitoringConfigReader;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 
-import akka.actor.AbstractActor;
+import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
 
 /**
  * Base class for consumer actors that holds common fields and handles the address status.
  */
-public abstract class BaseConsumerActor extends AbstractActor {
+public abstract class BaseConsumerActor extends AbstractActorWithTimers {
 
     protected final String sourceAddress;
     protected final ActorRef messageMappingProcessor;
@@ -56,18 +57,19 @@ public abstract class BaseConsumerActor extends AbstractActor {
         this.messageMappingProcessor = checkNotNull(messageMappingProcessor, "messageMappingProcessor");
         this.authorizationContext = checkNotNull(authorizationContext, "authorizationContext");
         this.headerMapping = headerMapping;
-        resourceStatus = ConnectivityModelFactory.newSourceStatus(ConfigUtil.instanceIdentifier(),
+        resourceStatus = ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
                 ConnectivityStatus.OPEN, sourceAddress, "Started at " + Instant.now());
 
-        final MonitoringConfigReader monitoringConfig =
-                ConfigKeys.Monitoring.fromRawConfig(getContext().system().settings().config());
+        final MonitoringConfig monitoringConfig = DittoConnectivityConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        ).getMonitoringConfig();
+
         this.connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
         inboundMonitor = connectionMonitorRegistry.forInboundConsumed(connectionId, sourceAddress);
     }
 
     protected ResourceStatus getCurrentSourceStatus() {
-
-        return ConnectivityModelFactory.newSourceStatus(ConfigUtil.instanceIdentifier(),
+        return ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
                 resourceStatus != null ? resourceStatus.getStatus() : ConnectivityStatus.UNKNOWN,
                 sourceAddress,
                 resourceStatus != null ? resourceStatus.getStatusDetails().orElse(null) : null);
@@ -75,12 +77,16 @@ public abstract class BaseConsumerActor extends AbstractActor {
 
     protected void handleAddressStatus(final ResourceStatus resourceStatus) {
         if (resourceStatus.getResourceType() == ResourceStatus.ResourceType.UNKNOWN) {
-            this.resourceStatus = ConnectivityModelFactory.newSourceStatus(ConfigUtil.instanceIdentifier(),
+            this.resourceStatus = ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
                     resourceStatus.getStatus(), sourceAddress,
                     resourceStatus.getStatusDetails().orElse(null));
         } else {
             this.resourceStatus = resourceStatus;
         }
+    }
+
+    private static String getInstanceIdentifier() {
+        return InstanceIdentifierSupplier.getInstance().get();
     }
 
 }

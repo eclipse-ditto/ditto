@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.actors;
 
-import static org.eclipse.ditto.services.gateway.starter.service.util.FireAndForgetMessageUtil.isFireAndForgetMessage;
+import static org.eclipse.ditto.services.gateway.util.FireAndForgetMessageUtil.isFireAndForgetMessage;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -34,7 +34,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageTimeoutException;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
-import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
+import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -44,8 +44,6 @@ import org.eclipse.ditto.signals.commands.base.WithEntity;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.SendMessageAcceptedResponse;
-
-import com.typesafe.config.Config;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -90,7 +88,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     private final ActorRef proxyActor;
     private final HeaderTranslator headerTranslator;
     private final CompletableFuture<HttpResponse> httpResponseFuture;
-    private final java.time.Duration serverRequestTimeout;
+    private final HttpConfig httpConfig;
     private final AbstractActor.Receive commandResponseAwaiting;
 
     private java.time.Duration messageTimeout;
@@ -99,15 +97,15 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     protected AbstractHttpRequestActor(final ActorRef proxyActor,
             final HeaderTranslator headerTranslator,
             final HttpRequest request,
-            final CompletableFuture<HttpResponse> httpResponseFuture) {
+            final CompletableFuture<HttpResponse> httpResponseFuture,
+            final HttpConfig httpConfig) {
 
         this.proxyActor = proxyActor;
         this.headerTranslator = headerTranslator;
         this.httpResponseFuture = httpResponseFuture;
+        this.httpConfig = httpConfig;
 
-        final Config config = getContext().system().settings().config();
-        serverRequestTimeout = config.getDuration(ConfigKeys.AKKA_HTTP_SERVER_REQUEST_TIMEOUT);
-        getContext().setReceiveTimeout(serverRequestTimeout);
+        getContext().setReceiveTimeout(httpConfig.getRequestTimeout());
 
         // wrap JsonRuntimeExceptions
         commandResponseAwaiting = ReceiveBuilder.create()
@@ -204,10 +202,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     private static HttpResponse addEntityAccordingToContentType(final HttpResponse response, final String entityPlain,
             final DittoHeaders dittoHeaders) {
 
-        if (hasPlainTextContentType(dittoHeaders)) {
-            return response.withEntity(CONTENT_TYPE_TEXT, ByteString.fromString(entityPlain));
-        }
-        return response.withEntity(CONTENT_TYPE_JSON, ByteString.fromString(entityPlain));
+        final ContentType contentType = hasPlainTextContentType(dittoHeaders) ? CONTENT_TYPE_TEXT : CONTENT_TYPE_JSON;
+        return response.withEntity(contentType, ByteString.fromString(entityPlain));
     }
 
     private HttpResponse createCommandResponse(final HttpRequest request, final CommandResponse commandResponse,
@@ -267,12 +263,10 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
             // if the URI contains the ID, but *not* at the beginning
             if (uriIdIndex > 0) {
-                createdLocation =
-                        uriStr.substring(0, uriIdIndex) + commandResponse.getId() +
-                                commandResponse.getResourcePath().toString();
+                createdLocation = uriStr.substring(0, uriIdIndex) + commandResponse.getId() +
+                        commandResponse.getResourcePath();
             } else {
-                createdLocation = uriStr + "/" + commandResponse.getId() + commandResponse.getResourcePath()
-                        .toString();
+                createdLocation = uriStr + "/" + commandResponse.getId() + commandResponse.getResourcePath();
             }
 
             if (createdLocation.endsWith("/")) {
@@ -421,7 +415,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             handleDittoRuntimeException(new MessageTimeoutException(messageTimeout.getSeconds()));
         } else {
             logger.warning("No response within server request timeout (<{}>), shutting actor down.",
-                    serverRequestTimeout);
+                    httpConfig.getRequestTimeout());
             // note that we do not need to send a response here, this is handled by RequestTimeoutHandlingDirective
             stop();
         }
@@ -441,7 +435,9 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         completeWithResult(response);
     }
 
-    private HttpResponse buildResponseWithoutHeadersFromDittoRuntimeException(final DittoRuntimeException exception) {
+    private static HttpResponse buildResponseWithoutHeadersFromDittoRuntimeException(
+            final DittoRuntimeException exception) {
+
         final HttpResponse responseWithoutHeaders = HttpResponse.create().withStatus(exception.getStatusCode().toInt());
         if (HttpStatusCode.NOT_MODIFIED.equals(exception.getStatusCode())) {
             return responseWithoutHeaders;

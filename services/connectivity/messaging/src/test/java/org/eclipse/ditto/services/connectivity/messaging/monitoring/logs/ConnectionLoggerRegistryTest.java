@@ -42,10 +42,10 @@ import org.eclipse.ditto.model.connectivity.LogEntry;
 import org.eclipse.ditto.model.connectivity.LogLevel;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
+import org.eclipse.ditto.services.connectivity.messaging.config.DefaultMonitoringLoggerConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLoggerRegistry.ConnectionLogs;
-import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
-import org.eclipse.ditto.services.connectivity.util.MonitoringConfigReader;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -60,10 +60,10 @@ public final class ConnectionLoggerRegistryTest {
     private static final String ID = ConnectionLoggerRegistryTest.class.getSimpleName();
 
     private final ConnectionLoggerRegistry underTest =
-            ConnectionLoggerRegistry.fromConfig(TestConstants.Monitoring.MONITORING_CONFIG_READER.logger());
+            ConnectionLoggerRegistry.fromConfig(TestConstants.MONITORING_CONFIG.logger());
 
     private final Duration moreThanLoggingDuration =
-            TestConstants.Monitoring.MONITORING_CONFIG_READER.logger().logDuration()
+            TestConstants.MONITORING_CONFIG.logger().logDuration()
                     .plusMinutes(1);
 
     @Test
@@ -246,7 +246,7 @@ public final class ConnectionLoggerRegistryTest {
     public void usesCorrectCapacitiesFromConfig() {
         final int successCapacity = 2;
         final int failureCapacity = 1;
-        final MonitoringConfigReader.MonitoringLoggerConfigReader specialConfig =
+        final MonitoringLoggerConfig specialConfig =
                 configWithCapacities(successCapacity, failureCapacity);
         final ConnectionLoggerRegistry specialLoggerRegistry = ConnectionLoggerRegistry.fromConfig(specialConfig);
 
@@ -284,7 +284,7 @@ public final class ConnectionLoggerRegistryTest {
                 .forEach(i -> logger.accept(randomInfoProvider()));
     }
 
-    private MonitoringConfigReader.MonitoringLoggerConfigReader configWithCapacities(final int successCapacity,
+    private MonitoringLoggerConfig configWithCapacities(final int successCapacity,
             final int failureCapacity) {
         final Map<String, Object> loggerEntries = new HashMap<>();
         loggerEntries.put("successCapacity", successCapacity);
@@ -292,11 +292,10 @@ public final class ConnectionLoggerRegistryTest {
         loggerEntries.put("logDuration", "1d");
 
         final Map<String, Object> configEntries = new HashMap<>();
-        configEntries.put("ditto.connectivity.monitoring.logger", loggerEntries);
+        configEntries.put("logger", loggerEntries);
 
         final Config config = ConfigFactory.parseMap(configEntries);
-        final MonitoringConfigReader monitoringConfigReader = ConfigKeys.Monitoring.fromRawConfig(config);
-        return monitoringConfigReader.logger();
+        return DefaultMonitoringLoggerConfig.of(config);
     }
 
     @Test

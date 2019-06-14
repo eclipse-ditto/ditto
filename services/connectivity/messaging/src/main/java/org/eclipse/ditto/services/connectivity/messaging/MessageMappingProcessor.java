@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELATION_ID;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -28,12 +27,13 @@ import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
-import org.eclipse.ditto.services.base.config.DittoLimitsConfigReader;
-import org.eclipse.ditto.services.base.config.LimitsConfigReader;
+import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.connectivity.mapping.DefaultMessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
+import org.eclipse.ditto.services.connectivity.mapping.MessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
@@ -41,11 +41,9 @@ import org.eclipse.ditto.services.models.connectivity.InboundExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
-import org.eclipse.ditto.services.utils.protocol.ProtocolConfigReader;
+import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.signals.base.Signal;
-
-import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 import akka.event.DiagnosticLoggingAdapter;
@@ -69,9 +67,12 @@ public final class MessageMappingProcessor {
     private final ProtocolAdapter protocolAdapter;
     private final DittoHeadersSizeChecker dittoHeadersSizeChecker;
 
-    private MessageMappingProcessor(final String connectionId, final MessageMapperRegistry registry,
-            final DiagnosticLoggingAdapter log, final ProtocolAdapter protocolAdapter,
+    private MessageMappingProcessor(final String connectionId,
+            final MessageMapperRegistry registry,
+            final DiagnosticLoggingAdapter log,
+            final ProtocolAdapter protocolAdapter,
             final DittoHeadersSizeChecker dittoHeadersSizeChecker) {
+
         this.connectionId = connectionId;
         this.registry = registry;
         this.log = log;
@@ -80,34 +81,39 @@ public final class MessageMappingProcessor {
     }
 
     /**
-     * Initializes a new command processor with mappers defined in mapping mappingContext. The dynamic access is needed
-     * to instantiate message mappers for an actor system
+     * Initializes a new command processor with mappers defined in mapping mappingContext.
+     * The dynamic access is needed to instantiate message mappers for an actor system.
      *
      * @param connectionId the connection that the processor works for.
-     * @param mappingContext the mapping Context
-     * @param actorSystem the dynamic access used for message mapper instantiation
-     * @param log the log adapter
-     * @return the processor instance
+     * @param mappingContext the mapping Context.
+     * @param actorSystem the dynamic access used for message mapper instantiation.
+     * @param connectivityConfig the configuration settings of the Connectivity service.
+     * @param protocolAdapterProvider provides the ProtocolAdapter to be used.
+     * @param log the log adapter.
+     * @return the processor instance.
      * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException if the configuration of
-     * one of the {@code mappingContext} is invalid
+     * one of the {@code mappingContext} is invalid.
      * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException if the configuration of
-     * one of the {@code mappingContext} failed for a mapper specific reason
+     * one of the {@code mappingContext} failed for a mapper specific reason.
      */
-    public static MessageMappingProcessor of(final String connectionId, @Nullable final MappingContext mappingContext,
-            final ActorSystem actorSystem, final DiagnosticLoggingAdapter log) {
+    public static MessageMappingProcessor of(final String connectionId,
+            @Nullable final MappingContext mappingContext,
+            final ActorSystem actorSystem,
+            final ConnectivityConfig connectivityConfig,
+            final ProtocolAdapterProvider protocolAdapterProvider,
+            final DiagnosticLoggingAdapter log) {
+
+        final MessageMapperFactory messageMapperFactory =
+                DefaultMessageMapperFactory.of(connectionId, actorSystem, connectivityConfig.getMappingConfig(), log);
         final MessageMapperRegistry registry =
-                DefaultMessageMapperFactory.of(connectionId, actorSystem, log)
-                        .registryOf(DittoMessageMapper.CONTEXT, mappingContext);
-        final Config rawConfig = actorSystem.settings().config();
-        final ProtocolConfigReader protocolConfigReader =
-                ProtocolConfigReader.fromRawConfig(rawConfig);
-        final ProtocolAdapter protocolAdapter =
-                protocolConfigReader.loadProtocolAdapterProvider(actorSystem).getProtocolAdapter(null);
-        final LimitsConfigReader limitsConfigReader =
-                DittoLimitsConfigReader.fromRawConfig(rawConfig);
+                messageMapperFactory.registryOf(DittoMessageMapper.CONTEXT, mappingContext);
+
+        final LimitsConfig limitsConfig = connectivityConfig.getLimitsConfig();
         final DittoHeadersSizeChecker dittoHeadersSizeChecker =
-                DittoHeadersSizeChecker.of(limitsConfigReader.headersMaxSize(), limitsConfigReader.authSubjectsCount());
-        return new MessageMappingProcessor(connectionId, registry, log, protocolAdapter, dittoHeadersSizeChecker);
+                DittoHeadersSizeChecker.of(limitsConfig.getHeadersMaxSize(), limitsConfig.getAuthSubjectsMaxCount());
+
+        return new MessageMappingProcessor(connectionId, registry, log,
+                protocolAdapterProvider.getProtocolAdapter(null), dittoHeadersSizeChecker);
     }
 
     /**
@@ -141,20 +147,10 @@ public final class MessageMappingProcessor {
                         overAllProcessingTimer));
     }
 
-    /**
-     * Truncate headers to send in an error response. This is necessary because the consumer actor and the publisher
-     * actor may not reside in the same connectivity instance due to cluster routing.
-     *
-     * @param externalHeaders headers of the external message that generated the error response.
-     * @return the error response.
-     */
-    DittoHeaders truncateHeadersForErrorResponse(final Map<String, String> externalHeaders) {
-        return dittoHeadersSizeChecker.truncateHeaders(externalHeaders);
-    }
-
     private Optional<InboundExternalMessage> convertMessage(final ExternalMessage message,
             final StartedTimer overAllProcessingTimer) {
-        checkNotNull(message);
+
+        checkNotNull(message, "external message");
 
         try {
             final Optional<Adaptable> adaptableOpt = withTimer(
@@ -163,16 +159,13 @@ public final class MessageMappingProcessor {
 
             return adaptableOpt.map(adaptable -> {
                 enhanceLogFromAdaptable(adaptable);
-                final Signal<?> signal = this.<Signal<?>>withTimer(
+                final Signal<?> signal = MessageMappingProcessor.<Signal<?>>withTimer(
                         overAllProcessingTimer.startNewSegment(PROTOCOL_SEGMENT_NAME),
                         () -> protocolAdapter.fromAdaptable(adaptable));
 
-                return dittoHeadersSizeChecker.run(signal.getDittoHeaders(),
-                        signal.getDittoHeaders().getAuthorizationContext(),
-                        headers -> MappedInboundExternalMessage.of(message, adaptable.getTopicPath(), signal),
-                        error -> {
-                            throw error;
-                        });
+                dittoHeadersSizeChecker.check(signal.getDittoHeaders());
+
+                return MappedInboundExternalMessage.of(message, adaptable.getTopicPath(), signal);
             });
         } catch (final DittoRuntimeException e) {
             throw e;
@@ -190,6 +183,7 @@ public final class MessageMappingProcessor {
             final Signal signal,
             final Supplier<Adaptable> adaptableSupplier,
             final StartedTimer overAllProcessingTimer) {
+
         checkNotNull(adaptableSupplier);
 
         try {
@@ -244,7 +238,6 @@ public final class MessageMappingProcessor {
     }
 
     private MessageMapper getMapper(final Adaptable adaptable) {
-
         enhanceLogFromAdaptable(adaptable);
         return registry.getMapper().orElseGet(() -> {
             log.debug("Falling back to Default MessageMapper for mapping Adaptable as no MessageMapper was present: {}",
@@ -257,7 +250,7 @@ public final class MessageMappingProcessor {
         ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, adaptable, connectionId);
     }
 
-    private <T> T withTimer(final StartedTimer timer, final Supplier<T> supplier) {
+    private static <T> T withTimer(final StartedTimer timer, final Supplier<T> supplier) {
         try {
             final T result = supplier.get();
             timer.tag(TracingTags.MAPPING_SUCCESS, true)
@@ -277,4 +270,5 @@ public final class MessageMappingProcessor {
                 .expirationHandling(expiredTimer -> expiredTimer.tag(TracingTags.MAPPING_SUCCESS, false))
                 .build();
     }
+
 }

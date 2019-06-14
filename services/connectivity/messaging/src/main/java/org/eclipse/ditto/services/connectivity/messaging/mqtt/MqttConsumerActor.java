@@ -37,6 +37,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
+import akka.routing.ConsistentHashingRouter;
 import akka.stream.alpakka.mqtt.MqttMessage;
 
 /**
@@ -52,6 +53,7 @@ public final class MqttConsumerActor extends BaseConsumerActor {
     private final boolean dryRun;
     @Nullable private final EnforcementFilterFactory<String, String> topicEnforcementFilterFactory;
 
+    @SuppressWarnings("unused")
     private MqttConsumerActor(final String connectionId, final ActorRef messageMappingProcessor,
             final AuthorizationContext sourceAuthorizationContext, @Nullable final Enforcement enforcement,
             final boolean dryRun, final String sourceAddress) {
@@ -82,16 +84,9 @@ public final class MqttConsumerActor extends BaseConsumerActor {
             final AuthorizationContext sourceAuthorizationContext,
             @Nullable final Enforcement enforcement,
             final boolean dryRun, final String topic) {
-        return Props.create(MqttConsumerActor.class, new Creator<MqttConsumerActor>() {
-            private static final long serialVersionUID = 1L;
 
-            @Override
-            public MqttConsumerActor create() {
-                return new MqttConsumerActor(connectionId, messageMappingProcessor, sourceAuthorizationContext,
-                        enforcement,
-                        dryRun, topic);
-            }
-        });
+        return Props.create(MqttConsumerActor.class, connectionId, messageMappingProcessor, sourceAuthorizationContext,
+                        enforcement, dryRun, topic);
     }
 
     @Override
@@ -113,8 +108,12 @@ public final class MqttConsumerActor extends BaseConsumerActor {
         HashMap<String, String> headers = null;
         try {
             ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
-            log.debug("Received MQTT message on topic {}: {}", message.topic(), message.payload().utf8String());
+            if (log.isDebugEnabled()) {
+                log.debug("Received MQTT message on topic <{}>: {}", message.topic(),
+                        message.payload().utf8String());
+            }
             headers = new HashMap<>();
+
             headers.put(MQTT_TOPIC_HEADER, message.topic());
             final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers)
                     .withBytes(message.payload().toByteBuffer())
@@ -124,7 +123,8 @@ public final class MqttConsumerActor extends BaseConsumerActor {
                     .build();
             inboundMonitor.success(externalMessage);
 
-            messageMappingProcessor.tell(externalMessage, getSelf());
+            final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(externalMessage, message.topic());
+            messageMappingProcessor.tell(msg, getSelf());
             replyStreamAck();
         } catch (final DittoRuntimeException e) {
             log.info("Failed to handle MQTT message: {}", e.getMessage());

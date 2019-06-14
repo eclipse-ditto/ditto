@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
-import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.services.connectivity.util.KafkaConfigReader;
-
 import akka.NotUsed;
 import akka.kafka.ProducerMessage;
 import akka.stream.javadsl.Flow;
@@ -22,7 +19,7 @@ import akka.stream.javadsl.Flow;
 /**
  * Creates Kafka sinks.
  */
-public interface KafkaConnectionFactory {
+interface KafkaConnectionFactory {
 
     /**
      * Identifier of the connection.
@@ -38,16 +35,5 @@ public interface KafkaConnectionFactory {
      * @return Akka stream flow that publishes Kafka messages to the broker.
      */
     <T> Flow<ProducerMessage.Envelope<String, String, T>, ProducerMessage.Results<String, String, T>, NotUsed> newFlow();
-
-    /**
-     * Create a default Kafka connection factory.
-     *
-     * @param connection the Kafka connection.
-     * @param config the Kafka config reader.
-     * @return an Kafka connection factory.
-     */
-    static KafkaConnectionFactory of(final Connection connection, final KafkaConfigReader config) {
-        return new DefaultKafkaConnectionFactory(connection, config);
-    }
 
 }

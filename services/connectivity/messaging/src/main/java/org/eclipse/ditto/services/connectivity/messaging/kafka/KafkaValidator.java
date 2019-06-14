@@ -51,15 +51,16 @@ public final class KafkaValidator extends AbstractProtocolValidator {
     private static final Collection<String> ACCEPTED_SCHEMES =
             Collections.unmodifiableList(Arrays.asList("tcp", "ssl"));
 
-    private static final Collection<KafkaSpecificConfig> SPECIFIC_CONFIGS =
-            Collections.unmodifiableList(Arrays.asList(KafkaAuthenticationSpecificConfig.getInstance(), KafkaBootstrapServerSpecificConfig.getInstance()));
+    private static final Collection<KafkaSpecificConfig> SPECIFIC_CONFIGS = Collections.unmodifiableList(
+            Arrays.asList(KafkaAuthenticationSpecificConfig.getInstance(),
+                    KafkaBootstrapServerSpecificConfig.getInstance()));
 
     /**
-     * Create a new {@code MqttConnectionSpec}.
+     * Returns an instance of the Kafka validator.
      *
-     * @return a new instance.
+     * @return the instance.
      */
-    public static KafkaValidator newInstance() {
+    public static KafkaValidator getInstance() {
         return new KafkaValidator();
     }
 
@@ -79,6 +80,7 @@ public final class KafkaValidator extends AbstractProtocolValidator {
     @Override
     protected void validateSource(final Source source, final DittoHeaders dittoHeaders,
             final Supplier<String> sourceDescription) {
+
         final String message = "Kafka connectivity currently does not provide sources.";
         throw ConnectionConfigurationInvalidException.newBuilder(message)
                 .dittoHeaders(dittoHeaders)
@@ -88,14 +90,17 @@ public final class KafkaValidator extends AbstractProtocolValidator {
     @Override
     protected void validateTarget(final Target target, final DittoHeaders dittoHeaders,
             final Supplier<String> targetDescription) {
+
         final String placeholderReplacement = UUID.randomUUID().toString();
         final String addressWithoutPlaceholders = validateTemplateAndReplace(target.getAddress(), dittoHeaders,
                 placeholderReplacement, newThingPlaceholder(), newTopicPathPlaceholder(), newHeadersPlaceholder());
 
-        this.validateAddress(addressWithoutPlaceholders, dittoHeaders, placeholderReplacement);
+        validateAddress(addressWithoutPlaceholders, dittoHeaders, placeholderReplacement);
     }
 
-    private void validateAddress(final String address, final DittoHeaders dittoHeaders, final String placeholderReplacement) {
+    private static void validateAddress(final String address, final DittoHeaders dittoHeaders,
+            final String placeholderReplacement) {
+
         if (KafkaPublishTarget.containsKey(address)) {
             validateTargetAddressWithKey(address, dittoHeaders, placeholderReplacement);
         } else if (KafkaPublishTarget.containsPartition(address)) {
@@ -105,26 +110,32 @@ public final class KafkaValidator extends AbstractProtocolValidator {
         }
     }
 
-    private void validateTargetAddressWithKey(final String targetAddress, final DittoHeaders dittoHeaders, final String placeholderReplacement) {
+    private static void validateTargetAddressWithKey(final String targetAddress, final DittoHeaders dittoHeaders,
+            final String placeholderReplacement) {
+
         final String[] split = targetAddress.split(KafkaPublishTarget.KEY_SEPARATOR, 2);
         validateTopic(split[0], dittoHeaders, placeholderReplacement);
         validateKey(split[1], dittoHeaders);
     }
 
-    private void validateTargetAddressWithPartition(final String targetAddress,
+    private static void validateTargetAddressWithPartition(final String targetAddress,
             final DittoHeaders dittoHeaders, final String placeholderReplacement) {
+
         final String[] split = targetAddress.split(KafkaPublishTarget.PARTITION_SEPARATOR, 2);
         validateTopic(split[0], dittoHeaders, placeholderReplacement);
         validatePartition(split[1], dittoHeaders, placeholderReplacement);
     }
 
-    private void validateTopic(final String topic, final DittoHeaders dittoHeaders, final String placeholderReplacement) {
+    private static void validateTopic(final String topic, final DittoHeaders dittoHeaders,
+            final String placeholderReplacement) {
+
         if (topic.isEmpty()) {
             throwEmptyException("topic", dittoHeaders);
         }
 
         try {
-            final String topicWithoutPlaceholders = topic.replaceAll(Pattern.quote(placeholderReplacement), DUMMY_TOPIC);
+            final String topicWithoutPlaceholders =
+                    topic.replaceAll(Pattern.quote(placeholderReplacement), DUMMY_TOPIC);
             Topic.validate(topicWithoutPlaceholders);
         } catch (final InvalidTopicException e) {
             final String message = MessageFormat.format(INVALID_TOPIC_FORMAT, topic, e.getMessage());
@@ -135,18 +146,21 @@ public final class KafkaValidator extends AbstractProtocolValidator {
         }
     }
 
-    private void validateKey(final String key, final DittoHeaders dittoHeaders) {
+    private static void validateKey(final String key, final DittoHeaders dittoHeaders) {
         if (key.isEmpty()) {
             throwEmptyException("key", dittoHeaders);
         }
     }
 
-    private void validatePartition(final String partition, final DittoHeaders dittoHeaders, final String placeholderReplacement) {
+    private static void validatePartition(final String partition, final DittoHeaders dittoHeaders,
+            final String placeholderReplacement) {
+
         if (partition.isEmpty()) {
             throwEmptyException("partition", dittoHeaders);
         }
         try {
-            final String partitionWithoutPlaceholders = partition.replaceAll(Pattern.quote(placeholderReplacement), DUMMY_PARTITION);
+            final String partitionWithoutPlaceholders =
+                    partition.replaceAll(Pattern.quote(placeholderReplacement), DUMMY_PARTITION);
             Integer.parseInt(partitionWithoutPlaceholders);
         } catch (final NumberFormatException e) {
             final String message = MessageFormat.format("Can not parse partition number from {0}.",
@@ -157,10 +171,12 @@ public final class KafkaValidator extends AbstractProtocolValidator {
         }
     }
 
-    private void validateSpecificConfigs(final Connection connection, final DittoHeaders dittoHeaders) {
-        SPECIFIC_CONFIGS.stream()
-                .filter(specificConfig -> specificConfig.isApplicable(connection))
-                .forEach(specificConfig -> specificConfig.validateOrThrow(connection, dittoHeaders));
+    private static void validateSpecificConfigs(final Connection connection, final DittoHeaders dittoHeaders) {
+        for (final KafkaSpecificConfig specificConfig : SPECIFIC_CONFIGS) {
+            if (specificConfig.isApplicable(connection)) {
+                specificConfig.validateOrThrow(connection, dittoHeaders);
+            }
+        }
     }
 
     private static void throwEmptyException(final String type, final DittoHeaders dittoHeaders) {

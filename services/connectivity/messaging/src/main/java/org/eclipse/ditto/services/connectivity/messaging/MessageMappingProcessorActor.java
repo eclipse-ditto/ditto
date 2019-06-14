@@ -62,16 +62,19 @@ import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.model.placeholders.ThingPlaceholder;
 import org.eclipse.ditto.model.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
+import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
-import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
-import org.eclipse.ditto.services.connectivity.util.MonitoringConfigReader;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.InboundExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
@@ -85,7 +88,6 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -104,9 +106,10 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private final ActorRef publisherActor;
     private final Map<String, StartedTimer> timers;
 
-    private final MessageMappingProcessor processor;
+    private final MessageMappingProcessor messageMappingProcessor;
     private final String connectionId;
     private final ActorRef conciergeForwarder;
+    private final LimitsConfig limitsConfig;
 
     private final Function<ExternalMessage, ExternalMessage> placeholderSubstitution;
     private final BiFunction<ExternalMessage, DittoHeaders, DittoHeaders> adjustHeaders;
@@ -120,15 +123,21 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private final ConnectionMonitor responseDroppedMonitor;
     private final ConnectionMonitor responseMappedMonitor;
 
+    @SuppressWarnings("unused")
     private MessageMappingProcessorActor(final ActorRef publisherActor,
             final ActorRef conciergeForwarder,
-            final MessageMappingProcessor processor,
+            final MessageMappingProcessor messageMappingProcessor,
             final String connectionId) {
 
         this.publisherActor = publisherActor;
         this.conciergeForwarder = conciergeForwarder;
-        this.processor = processor;
+        this.messageMappingProcessor = messageMappingProcessor;
         this.connectionId = connectionId;
+
+        this.limitsConfig = DefaultLimitsConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        );
+
         timers = new ConcurrentHashMap<>();
         placeholderSubstitution = new PlaceholderSubstitution();
         adjustHeaders = new AdjustHeaders(connectionId);
@@ -136,8 +145,9 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         applySignalIdEnforcement = new ApplySignalIdEnforcement(log);
         replaceTargetAddressPlaceholders = new PlaceholderInTargetAddressSubstitution();
 
-        final MonitoringConfigReader monitoringConfig = ConfigKeys.Monitoring
-                .fromRawConfig(getContext().system().settings().config());
+        final MonitoringConfig monitoringConfig = DittoConnectivityConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        ).getMonitoringConfig();
         this.connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
         responseDispatchedMonitor = connectionMonitorRegistry.forResponseDispatched(connectionId);
         responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(connectionId);
@@ -150,7 +160,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
      * @param publisherActor actor that handles/publishes outgoing messages.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
      * @param processor the MessageMappingProcessor to use.
-     * @param connectionId the connection id.
+     * @param connectionId the connection ID.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef publisherActor,
@@ -158,14 +168,8 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             final MessageMappingProcessor processor,
             final String connectionId) {
 
-        return Props.create(MessageMappingProcessorActor.class, new Creator<MessageMappingProcessorActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public MessageMappingProcessorActor create() {
-                return new MessageMappingProcessorActor(publisherActor, conciergeForwarder, processor, connectionId);
-            }
-        });
+        return Props.create(MessageMappingProcessorActor.class, publisherActor, conciergeForwarder, processor,
+                connectionId);
     }
 
     @Override
@@ -192,10 +196,13 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         try {
             mapExternalMessageToSignalAndForwardToConcierge(externalMessage);
         } catch (final DittoRuntimeException e) {
-            responseMappedMonitor.getLogger().failure("Got exception {0} when processing external message: {1}", e.getErrorCode(), e.getMessage());
+            responseMappedMonitor.getLogger()
+                    .failure("Got exception {0} when processing external message: {1}", e.getErrorCode(),
+                            e.getMessage());
             handleDittoRuntimeException(e, externalMessage.getHeaders());
         } catch (final Exception e) {
-            responseMappedMonitor.getLogger().failure("Got unknown exception when processing external message: {1}", e.getMessage());
+            responseMappedMonitor.getLogger()
+                    .failure("Got unknown exception when processing external message: {1}", e.getMessage());
             log.warning("Got <{}> when message was processed: <{}>", e.getClass().getSimpleName(), e.getMessage());
         }
     }
@@ -207,7 +214,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         final Optional<InboundExternalMessage> inboundMessageOpt =
                 connectionMonitorRegistry.forInboundMapped(connectionId, source)
                         .wrapExecution(messageWithAuthSubject)
-                        .execute(() -> processor.process(messageWithAuthSubject));
+                        .execute(() -> messageMappingProcessor.process(messageWithAuthSubject));
 
         if (inboundMessageOpt.isPresent()) {
             final InboundExternalMessage inboundMessage = inboundMessageOpt.get();
@@ -260,27 +267,33 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         handleCommandResponse(errorResponse, exception);
     }
 
+    private ThingErrorResponse convertExceptionToErrorResponse(final DittoRuntimeException exception,
+            final Map<String, String> externalHeaders) {
+
+        final DittoHeaders mergedDittoHeaders = DittoHeaders.newBuilder(exception.getDittoHeaders())
+                .putHeaders(externalHeaders)
+                .build();
+
+        /*
+         * Truncate headers to send in an error response.
+         * This is necessary because the consumer actor and the publisher actor may not reside in the same connectivity
+         * instance due to cluster routing.
+         */
+        return ThingErrorResponse.of(exception, mergedDittoHeaders.truncate(limitsConfig.getHeadersMaxSize()));
+    }
+
     private static String stackTraceAsString(final DittoRuntimeException exception) {
         final StringWriter stringWriter = new StringWriter();
         exception.printStackTrace(new PrintWriter(stringWriter));
         return stringWriter.toString();
     }
 
-    private ThingErrorResponse convertExceptionToErrorResponse(
-            final DittoRuntimeException exception,
-            final Map<String, String> externalHeaders) {
-
-        final DittoHeaders mergedDittoHeaders =
-                DittoHeaders.newBuilder(exception.getDittoHeaders()).putHeaders(externalHeaders).build();
-
-        return ThingErrorResponse.of(exception, processor.truncateHeadersForErrorResponse(mergedDittoHeaders));
-    }
-
     private void handleCommandResponse(final CommandResponse<?> response) {
         this.handleCommandResponse(response, null);
     }
 
-    private void handleCommandResponse(final CommandResponse<?> response, @Nullable final DittoRuntimeException exception) {
+    private void handleCommandResponse(final CommandResponse<?> response,
+            @Nullable final DittoRuntimeException exception) {
         enhanceLogUtil(response);
         finishTrace(response);
         recordResponse(response, exception);
@@ -346,7 +359,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         try {
             final Set<ConnectionMonitor> monitors = getMonitorsForMappedSignal(outbound, connectionId);
             return ConnectionMonitor.wrapExecution(monitors, outbound.getSource())
-                    .execute(() -> processor.process(outbound.getSource()));
+                    .execute(() -> messageMappingProcessor.process(outbound.getSource()));
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException during processing Signal: {} - {}", e.getMessage(),
                     e.getDescription().orElse(""));

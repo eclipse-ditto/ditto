@@ -46,9 +46,8 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
+import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringCounterConfig;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLoggerRegistry;
-import org.eclipse.ditto.services.connectivity.util.MonitoringConfigReader;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 
 /**
@@ -70,7 +69,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
         // intentionally empty
     }
 
-    public static ConnectivityCounterRegistry fromConfig(final MonitoringConfigReader.MonitoringCounterConfigReader config) {
+    public static ConnectivityCounterRegistry fromConfig(final MonitoringCounterConfig config) {
         checkNotNull(config);
         return new ConnectivityCounterRegistry();
     }
@@ -340,8 +339,8 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
     }
 
     /**
-     * Merges the passed in {@link RetrieveConnectionMetricsResponse}s into each other returning a new
-     * {@link RetrieveConnectionMetricsResponse} containing the merged information.
+     * Merges the passed in {@link RetrieveConnectionMetricsResponse}s into each other returning a new {@link
+     * RetrieveConnectionMetricsResponse} containing the merged information.
      *
      * @param first the first RetrieveConnectionMetricsResponse to merge.
      * @param second the second RetrieveConnectionMetricsResponse to merge.
@@ -530,4 +529,5 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
         }
 
     }
+
 }

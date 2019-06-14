@@ -33,7 +33,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.services.base.config.DittoLimitsConfigReader;
+import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.query.QueryParser;
 import org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence;
@@ -66,9 +66,7 @@ public final class SearchActorIT {
     private static final AuthorizationContext AUTH_CONTEXT =
             AuthorizationContext.newInstance(AuthorizationSubject.newInstance("ditto:ditto"));
 
-    private static final QueryParser QUERY_PARSER =
-            SearchRootActor.getQueryParser(DittoLimitsConfigReader.fromRawConfig(ConfigFactory.empty()));
-
+    private static QueryParser queryParser;
     private static MongoDbResource mongoResource;
     private static DittoMongoClient mongoClient;
 
@@ -81,6 +79,7 @@ public final class SearchActorIT {
 
     @BeforeClass
     public static void startMongoResource() {
+        queryParser = SearchRootActor.getQueryParser(DefaultLimitsConfig.of(ConfigFactory.empty()));
         mongoResource = new MongoDbResource("localhost");
         mongoResource.start();
         mongoClient = provideClientWrapper();
@@ -106,14 +105,13 @@ public final class SearchActorIT {
     }
 
     private MongoThingsSearchPersistence provideReadPersistence() {
-        final MongoThingsSearchPersistence result =
-                new MongoThingsSearchPersistence(mongoClient.getDefaultDatabase(), actorSystem);
+        final MongoThingsSearchPersistence result = new MongoThingsSearchPersistence(mongoClient, actorSystem);
         // explicitly trigger CompletableFuture to make sure that indices are created before test runs
         result.initializeIndices().toCompletableFuture().join();
         return result;
     }
 
-    private TestSearchUpdaterStream provideWritePersistence() {
+    private static TestSearchUpdaterStream provideWritePersistence() {
         return TestSearchUpdaterStream.of(mongoClient.getDefaultDatabase());
     }
 
@@ -123,7 +121,6 @@ public final class SearchActorIT {
                         "mongodb://" + mongoResource.getBindIp() + ":" + mongoResource.getPort() + "/testSearchDB")
                 .build();
     }
-
 
     @After
     public void after() {
@@ -154,7 +151,7 @@ public final class SearchActorIT {
     @Test
     public void testSearch() {
         new TestKit(actorSystem) {{
-            final ActorRef underTest = actorSystem.actorOf(SearchActor.props(QUERY_PARSER, readPersistence));
+            final ActorRef underTest = actorSystem.actorOf(SearchActor.props(queryParser, readPersistence));
 
             insertTestThings();
 
@@ -169,7 +166,7 @@ public final class SearchActorIT {
     @Test
     public void testCursorSearch() {
         new TestKit(actorSystem) {{
-            final ActorRef underTest = actorSystem.actorOf(SearchActor.props(QUERY_PARSER, readPersistence));
+            final ActorRef underTest = actorSystem.actorOf(SearchActor.props(queryParser, readPersistence));
             final Supplier<AssertionError> noCursor =
                     () -> new AssertionError("No cursor where a cursor is expected");
 
@@ -199,7 +196,7 @@ public final class SearchActorIT {
         }};
     }
 
-    private QueryThings queryThings(final int size, final @Nullable String cursor) {
+    private static QueryThings queryThings(final int size, final @Nullable String cursor) {
         final List<String> options = new ArrayList<>();
         if (cursor == null) {
             options.add("sort(-attributes/c,+attributes/b,-attributes/a,+attributes/null/1,-attributes/null/2)");
@@ -242,7 +239,7 @@ public final class SearchActorIT {
                 .collect(JsonCollectors.valuesToArray());
     }
 
-    private static Thing template(final Thing thing, final int i, final String attribute) {
+    private static Thing template(final Thing thing, final int i, final CharSequence attribute) {
         return thing.toBuilder()
                 .setId("thing:" + i)
                 .setAttribute(JsonPointer.of(attribute), JsonValue.of(i))

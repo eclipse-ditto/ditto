@@ -32,7 +32,7 @@ import akka.http.javadsl.testkit.TestRouteResult;
 /**
  * Tests {@link OverallStatusRoute}.
  */
-public class OverallStatusRouteTest extends EndpointTestBase {
+public final class OverallStatusRouteTest extends EndpointTestBase {
 
     private static final String OVERALL_PATH = "/" + OverallStatusRoute.PATH_OVERALL;
     private static final String OVERALL_STATUS_PATH = OVERALL_PATH + "/" + OverallStatusRoute.PATH_STATUS;
@@ -47,9 +47,10 @@ public class OverallStatusRouteTest extends EndpointTestBase {
     public void setUp() {
         final Supplier<ClusterStatus> clusterStateSupplier = createClusterStatusSupplierMock();
         final StatusAndHealthProvider statusHealthProvider =
-                DittoStatusAndHealthProviderFactory.of(system(), clusterStateSupplier);
-        final OverallStatusRoute statusRoute =
-                new OverallStatusRoute(clusterStateSupplier, statusHealthProvider);
+                DittoStatusAndHealthProviderFactory.of(system(), clusterStateSupplier, healthCheckConfig);
+
+        final OverallStatusRoute statusRoute = new OverallStatusRoute(clusterStateSupplier, statusHealthProvider,
+                authConfig.getDevOpsConfig());
         statusTestRoute = testRoute(statusRoute.buildOverallStatusRoute());
     }
 

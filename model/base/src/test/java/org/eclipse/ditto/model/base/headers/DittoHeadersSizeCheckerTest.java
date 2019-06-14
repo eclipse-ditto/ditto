@@ -12,15 +12,10 @@
  */
 package org.eclipse.ditto.model.base.headers;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.Collections;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
+import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Test;
-import org.mockito.Mockito;
 
 /**
  * Tests {@link org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker}.
@@ -28,44 +23,8 @@ import org.mockito.Mockito;
 public final class DittoHeadersSizeCheckerTest {
 
     @Test
-    public void handleIntegerOverflowOnSummation() {
-        final int mapSize = 1024;
-
-        final CharSequence longString = mockString(Integer.MAX_VALUE / mapSize + 1);
-
-        final DittoHeadersSizeChecker underTest = DittoHeadersSizeChecker.of(Integer.MAX_VALUE, 0);
-
-        final Map<CharSequence, CharSequence> mapWithManyEntries =
-                IntStream.range(0, mapSize).boxed().collect(Collectors.toMap(String::valueOf, i -> longString));
-
-        assertThat(underTest.areHeadersTooLarge(mapWithManyEntries)).isTrue();
+    public void assertImmutability() {
+        assertInstancesOf(DittoHeadersSizeChecker.class, areImmutable());
     }
 
-    @Test
-    public void handleIntegerOverflowOnEntry() {
-        final CharSequence maxString = mockString(Integer.MAX_VALUE);
-
-        final DittoHeadersSizeChecker underTest = DittoHeadersSizeChecker.of(65536, 65536);
-
-        final Map<CharSequence, CharSequence> singletonMap = Collections.singletonMap(maxString, maxString);
-
-        assertThat(underTest.areHeadersTooLarge(singletonMap)).isTrue();
-    }
-
-    @Test
-    public void handleIntegerUnderflow() {
-        final CharSequence maxString = mockString(Integer.MAX_VALUE);
-
-        final DittoHeadersSizeChecker underTest = DittoHeadersSizeChecker.of(Integer.MIN_VALUE, 65536);
-
-        final Map<CharSequence, CharSequence> singletonMap = Collections.singletonMap(maxString, "");
-
-        assertThat(underTest.areHeadersTooLarge(singletonMap)).isTrue();
-    }
-
-    private static CharSequence mockString(final int length) {
-        final CharSequence mockString = Mockito.mock(CharSequence.class);
-        Mockito.when(mockString.length()).thenReturn(length);
-        return mockString;
-    }
 }

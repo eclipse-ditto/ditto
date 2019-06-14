@@ -37,14 +37,14 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Unit tests for {@link DefaultClientActorPropsFactory}.
  */
-public class DefaultClientActorPropsFactoryTest extends WithMockServers {
+public final class DefaultClientActorPropsFactoryTest extends WithMockServers {
 
     private ActorSystem actorSystem;
     private Serialization serialization;
     private ClientActorPropsFactory underTest;
 
     @Before
-    public void setUp() throws java.io.NotSerializableException {
+    public void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
         serialization = SerializationExtension.get(actorSystem);
         underTest = DefaultClientActorPropsFactory.getInstance();
@@ -59,8 +59,9 @@ public class DefaultClientActorPropsFactoryTest extends WithMockServers {
     }
 
     /**
-     * Tests serialization of props of AMQP_091 client actor. The props needs to be serializable because client actors
-     * may be created on a different connectivity service instance using a local connection object.
+     * Tests serialization of props of AMQP_091 client actor.
+     * The props needs to be serializable because client actors may be created on a different connectivity service
+     * instance using a local connection object.
      */
     @Test
     public void amqp091ActorPropsIsSerializable() {
@@ -68,8 +69,9 @@ public class DefaultClientActorPropsFactoryTest extends WithMockServers {
     }
 
     /**
-     * Tests serialization of props of AMQP_10 client actor. The props needs to be serializable because client actors
-     * may be created on a different connectivity service instance using a local connection object.
+     * Tests serialization of props of AMQP_10 client actor.
+     * The props needs to be serializable because client actors may be created on a different connectivity service
+     * instance using a local connection object.
      */
     @Test
     public void amqp10ActorPropsIsSerializable() {
@@ -137,4 +139,5 @@ public class DefaultClientActorPropsFactoryTest extends WithMockServers {
                 .targets(template.getTargets())
                 .build();
     }
+
 }

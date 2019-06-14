@@ -32,7 +32,7 @@ import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 
 import com.newmotion.akka.rabbitmq.ChannelCreated;
 import com.newmotion.akka.rabbitmq.ChannelMessage;
@@ -41,7 +41,6 @@ import com.rabbitmq.client.AMQP;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -70,6 +69,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
 
     @Nullable private ActorRef channelActor;
 
+    @SuppressWarnings("unused")
     private RabbitMQPublisherActor(final List<Target> targets, final String connectionId) {
         super(connectionId, targets);
     }
@@ -82,14 +82,8 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
      * @return the Akka configuration Props object.
      */
     static Props props(final String connectionId, final List<Target> targets) {
-        return Props.create(RabbitMQPublisherActor.class, new Creator<RabbitMQPublisherActor>() {
-            private static final long serialVersionUID = 1L;
 
-            @Override
-            public RabbitMQPublisherActor create() {
-                return new RabbitMQPublisherActor(targets, connectionId);
-            }
-        });
+        return Props.create(RabbitMQPublisherActor.class, targets, connectionId);
     }
 
     @Override
@@ -118,7 +112,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
                                                 resourceStatusMap.put(
                                                         target,
                                                         ConnectivityModelFactory.newTargetStatus(
-                                                                ConfigUtil.instanceIdentifier(),
+                                                                InstanceIdentifierSupplier.getInstance().get(),
                                                                 ConnectivityStatus.FAILED,
                                                                 target.getAddress(),
                                                                 "Exchange '" + exchange + "' was missing at " +

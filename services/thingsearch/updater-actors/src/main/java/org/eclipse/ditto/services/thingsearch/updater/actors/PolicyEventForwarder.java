@@ -22,7 +22,10 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
+import org.eclipse.ditto.services.thingsearch.common.config.DittoSearchConfig;
+import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
@@ -44,9 +47,6 @@ import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 
-import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
-import org.eclipse.ditto.services.thingsearch.persistence.write.streaming.SearchUpdaterStreamConfigReader;
-
 /**
  * Cluster singleton that forwards policy events to updater shard region with buffering.
  */
@@ -67,6 +67,7 @@ final class PolicyEventForwarder extends AbstractActor {
     private Map<String, Long> policyRevisions = new HashMap<>();
     private KillSwitch killSwitch;
 
+    @SuppressWarnings("unused")
     private PolicyEventForwarder(final ActorRef pubSubMediator,
             final ActorRef thingsUpdater,
             final BlockedNamespaces blockedNamespaces,
@@ -75,7 +76,8 @@ final class PolicyEventForwarder extends AbstractActor {
         this.thingsUpdater = thingsUpdater;
         this.persistence = persistence;
         blockNamespaceBehavior = BlockNamespaceBehavior.of(blockedNamespaces);
-        interval = SearchUpdaterStreamConfigReader.of(getContext().getSystem().settings().config()).writeInterval();
+        interval = DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
+                .getStreamConfig().getWriteInterval();
 
         final Subscribe subscribe = new Subscribe(PolicyEvent.TYPE_PREFIX, ACTOR_NAME, getSelf());
         pubSubMediator.tell(subscribe, getSelf());
@@ -96,8 +98,7 @@ final class PolicyEventForwarder extends AbstractActor {
             final BlockedNamespaces blockedNamespaces,
             final ThingsSearchUpdaterPersistence persistence) {
 
-        return Props.create(PolicyEventForwarder.class,
-                () -> new PolicyEventForwarder(pubSubMediator, thingsUpdater, blockedNamespaces, persistence));
+        return Props.create(PolicyEventForwarder.class, pubSubMediator, thingsUpdater, blockedNamespaces, persistence);
     }
 
     @Override
@@ -211,4 +212,5 @@ final class PolicyEventForwarder extends AbstractActor {
         DUMP_POLICY_REVISIONS,
         STREAM_COMPLETED
     }
+
 }

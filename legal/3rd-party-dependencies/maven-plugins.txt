@@ -23,5 +23,5 @@
    org.codehaus.mojo:flatten-maven-plugin:maven-plugin:1.0.1:runtime
    org.codehaus.mojo:license-maven-plugin:maven-plugin:1.17:runtime
    org.codehaus.mojo:versions-maven-plugin:maven-plugin:2.5:runtime
-   org.jacoco:jacoco-maven-plugin:maven-plugin:0.8.0:runtime
+   org.jacoco:jacoco-maven-plugin:maven-plugin:0.8.3:runtime
    org.sonatype.plugins:port-allocator-maven-plugin:maven-plugin:1.2:runtime

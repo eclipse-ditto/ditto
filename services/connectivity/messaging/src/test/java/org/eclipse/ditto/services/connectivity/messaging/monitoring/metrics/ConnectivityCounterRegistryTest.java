@@ -50,7 +50,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public class ConnectivityCounterRegistryTest {
 
     private static final ConnectivityCounterRegistry COUNTER_REGISTRY =
-            ConnectivityCounterRegistry.fromConfig(TestConstants.Monitoring.MONITORING_CONFIG_READER.counter());
+            ConnectivityCounterRegistry.fromConfig(TestConstants.MONITORING_CONFIG.counter());
     private static final String CONNECTION_ID = "theConnection";
     private static final String SOURCE = "source1";
     private static final String TARGET = "target1";

@@ -12,16 +12,24 @@
  */
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
-import java.time.Duration;
+import javax.annotation.Nullable;
 
-import org.eclipse.ditto.services.base.config.ServiceConfigReader;
-import org.eclipse.ditto.services.utils.akka.streaming.StreamConsumerSettings;
+import org.eclipse.ditto.services.thingsearch.common.config.DeleteConfig;
+import org.eclipse.ditto.services.thingsearch.common.config.SearchConfig;
+import org.eclipse.ditto.services.thingsearch.common.config.UpdaterConfig;
+import org.eclipse.ditto.services.thingsearch.common.util.RootSupervisorStrategyFactory;
+import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
+import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
+import org.eclipse.ditto.services.thingsearch.persistence.write.streaming.ChangeQueueActor;
+import org.eclipse.ditto.services.thingsearch.persistence.write.streaming.SearchUpdaterStream;
+import org.eclipse.ditto.services.utils.akka.streaming.SyncConfig;
 import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
-import org.eclipse.ditto.services.utils.config.MongoConfig;
+import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonCommandListener;
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonConnectionPoolListener;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
@@ -29,7 +37,6 @@ import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;
 import com.mongodb.reactivestreams.client.MongoDatabase;
-import com.typesafe.config.Config;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -40,17 +47,9 @@ import akka.actor.SupervisorStrategy;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.ActorMaterializer;
 import akka.stream.KillSwitch;
-
-import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
-import org.eclipse.ditto.services.thingsearch.common.util.RootSupervisorStrategyFactory;
-import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
-import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
-import org.eclipse.ditto.services.thingsearch.persistence.write.streaming.ChangeQueueActor;
-import org.eclipse.ditto.services.thingsearch.persistence.write.streaming.SearchUpdaterStream;
 
 /**
  * Our "Parent" Actor which takes care of supervision of all other Actors in our system.
@@ -67,6 +66,8 @@ public final class SearchUpdaterRootActor extends AbstractActor {
 
     private static final String KAMON_METRICS_PREFIX = "updater";
 
+    private static final String SEARCH_ROLE = "things-search";
+
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
     private final SupervisorStrategy supervisorStrategy = RootSupervisorStrategyFactory.createStrategy(log);
@@ -75,42 +76,43 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     private final ActorRef thingsUpdaterActor;
     private final DittoMongoClient dittoMongoClient;
 
-    private SearchUpdaterRootActor(final ServiceConfigReader configReader,
+    @SuppressWarnings("unused")
+    private SearchUpdaterRootActor(final SearchConfig searchConfig,
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer,
             final TimestampPersistence thingsSyncPersistence,
             final TimestampPersistence policiesSyncPersistence) {
 
-        final int numberOfShards = configReader.cluster().numberOfShards();
+        final ClusterConfig clusterConfig = searchConfig.getClusterConfig();
+        final int numberOfShards = clusterConfig.getNumberOfShards();
 
-        final Config config = configReader.getRawConfig();
         final ActorSystem actorSystem = getContext().getSystem();
+
+        final MongoDbConfig mongoDbConfig = searchConfig.getMongoDbConfig();
+        dittoMongoClient = MongoClientWrapper.getBuilder(mongoDbConfig)
+                .addCommandListener(getCommandListenerOrNull(mongoDbConfig.getMonitoringConfig()))
+                .addConnectionPoolListener(getConnectionPoolListenerOrNull(mongoDbConfig.getMonitoringConfig()))
+                .build();
+
         final ShardRegionFactory shardRegionFactory = ShardRegionFactory.getInstance(actorSystem);
         final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
-
-        dittoMongoClient = startMongoClientWrapper(getContext());
-
-
         final ActorRef changeQueueActor = getContext().actorOf(ChangeQueueActor.props(), ChangeQueueActor.ACTOR_NAME);
         updaterStreamKillSwitch =
-                startSearchUpdaterStream(actorSystem, shardRegionFactory, numberOfShards, changeQueueActor,
-                        dittoMongoClient.getDefaultDatabase(), blockedNamespaces);
+                startSearchUpdaterStream(searchConfig, actorSystem, shardRegionFactory, numberOfShards,
+                        changeQueueActor, dittoMongoClient.getDefaultDatabase(), blockedNamespaces);
 
         final ThingsSearchUpdaterPersistence searchUpdaterPersistence =
                 MongoThingsSearchUpdaterPersistence.of(dittoMongoClient.getDefaultDatabase());
 
         pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
 
-        final boolean eventProcessingActive = config.getBoolean(ConfigKeys.EVENT_PROCESSING_ACTIVE);
+        final UpdaterConfig updaterConfig = searchConfig.getUpdaterConfig();
+        final boolean eventProcessingActive = updaterConfig.isEventProcessingActive();
         if (!eventProcessingActive) {
-            log.warning("Event processing is disabled.");
+            log.warning("Event processing is disabled!");
         }
 
-        final Duration thingUpdaterMaxIdleTime =
-                config.getDuration(ConfigKeys.THING_UPDATER_MAX_IDLE_TIME);
-
-        final Props thingUpdaterProps =
-                ThingUpdater.props(pubSubMediator, changeQueueActor, thingUpdaterMaxIdleTime);
+        final Props thingUpdaterProps = ThingUpdater.props(pubSubMediator, changeQueueActor);
 
         final ActorRef updaterShardRegion =
                 shardRegionFactory.getSearchUpdaterShardRegion(numberOfShards, thingUpdaterProps, CLUSTER_ROLE);
@@ -130,69 +132,81 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final Props manualUpdaterProps = ManualUpdater.props(dittoMongoClient.getDefaultDatabase(), thingsUpdaterActor);
         startClusterSingletonActor(ManualUpdater.ACTOR_NAME, manualUpdaterProps);
 
-        // TODO: refactor config.
         // start namespace ops actor as cluster singleton
-        if (config.getBoolean("ditto.things-search.delete.namespace")) {
+        final DeleteConfig deleteConfig = searchConfig.getDeleteConfig();
+        if (deleteConfig.isDeleteNamespace()) {
             startClusterSingletonActor(ThingsSearchNamespaceOpsActor.ACTOR_NAME,
                     ThingsSearchNamespaceOpsActor.props(pubSubMediator, searchUpdaterPersistence));
         }
 
-        final boolean thingsSynchronizationActive = config.getBoolean(ConfigKeys.THINGS_SYNCER_ACTIVE);
-        if (thingsSynchronizationActive) {
-            final StreamConsumerSettings streamConsumerSettings = createThingsStreamConsumerSettings(config);
+        startThingsStreamSupervisor(updaterConfig.getThingsSyncConfig(), pubSubMediator, materializer,
+                thingsSyncPersistence);
 
+        startPoliciesStreamsSupervisor(updaterConfig.getPoliciesSyncConfig(), pubSubMediator, materializer,
+                policiesSyncPersistence, searchUpdaterPersistence);
+    }
+
+    private void startThingsStreamSupervisor(final SyncConfig thingsSyncConfig,
+            final ActorRef pubSubMediator,
+            final ActorMaterializer materializer,
+            final TimestampPersistence thingsSyncPersistence) {
+
+        if (thingsSyncConfig.isEnabled()) {
             startClusterSingletonActor(ThingsStreamSupervisorCreator.ACTOR_NAME,
                     ThingsStreamSupervisorCreator.props(thingsUpdaterActor, pubSubMediator, thingsSyncPersistence,
-                            materializer, streamConsumerSettings));
+                            materializer, thingsSyncConfig));
         } else {
-            log.warning("Things synchronization is not active");
+            log.warning("Things synchronization is not active!");
         }
+    }
 
-        final boolean policiesSynchronizationActive = config.getBoolean(ConfigKeys.POLICIES_SYNCER_ACTIVE);
-        if (policiesSynchronizationActive) {
-            final StreamConsumerSettings streamConsumerSettings = createPoliciesStreamConsumerSettings(config);
+    private void startPoliciesStreamsSupervisor(final SyncConfig policiesSyncConfig,
+            final ActorRef pubSubMediator,
+            final ActorMaterializer materializer,
+            final TimestampPersistence policiesSyncPersistence,
+            final ThingsSearchUpdaterPersistence searchUpdaterPersistence) {
 
+        if (policiesSyncConfig.isEnabled()) {
             startClusterSingletonActor(PoliciesStreamSupervisorCreator.ACTOR_NAME,
                     PoliciesStreamSupervisorCreator.props(thingsUpdaterActor, pubSubMediator, policiesSyncPersistence,
-                            materializer, streamConsumerSettings, searchUpdaterPersistence));
+                            materializer, policiesSyncConfig, searchUpdaterPersistence));
         } else {
-            log.warning("Policies synchronization is not active");
+            log.warning("Policies synchronization is not active!");
         }
     }
 
-    private static StreamConsumerSettings createThingsStreamConsumerSettings(final Config config) {
-        return StreamConsumerSettings.fromRelativeConfig(config.getConfig(ConfigKeys.SYNC_THINGS));
+    @Nullable
+    private static CommandListener getCommandListenerOrNull(final MongoDbConfig.MonitoringConfig monitoringConfig) {
+        return monitoringConfig.isCommandsEnabled() ? new KamonCommandListener(KAMON_METRICS_PREFIX) : null;
     }
 
-    private static StreamConsumerSettings createPoliciesStreamConsumerSettings(final Config config) {
-        return StreamConsumerSettings.fromRelativeConfig(config.getConfig(ConfigKeys.SYNC_POLICIES));
+    @Nullable
+    private static ConnectionPoolListener getConnectionPoolListenerOrNull(
+            final MongoDbConfig.MonitoringConfig monitoringConfig) {
+
+        return monitoringConfig.isConnectionPoolEnabled()
+                ? new KamonConnectionPoolListener(KAMON_METRICS_PREFIX)
+                : null;
     }
 
     /**
      * Creates Akka configuration object Props for this SearchUpdaterRootActor.
      *
-     * @param configReader the configuration reader of this service.
+     * @param searchConfig the configuration settings of the Things-Search service.
      * @param pubSubMediator the PubSub mediator Actor.
      * @param materializer actor materializer to create stream actors.
      * @param thingsSyncPersistence persistence for background synchronization of things.
      * @param policiesSyncPersistence persistence for background synchronization of policies.
      * @return a Props object to create this actor.
      */
-    public static Props props(final ServiceConfigReader configReader,
+    public static Props props(final SearchConfig searchConfig,
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer,
             final TimestampPersistence thingsSyncPersistence,
             final TimestampPersistence policiesSyncPersistence) {
 
-        return Props.create(SearchUpdaterRootActor.class, new Creator<SearchUpdaterRootActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public SearchUpdaterRootActor create() {
-                return new SearchUpdaterRootActor(configReader, pubSubMediator, materializer, thingsSyncPersistence,
-                        policiesSyncPersistence);
-            }
-        });
+        return Props.create(SearchUpdaterRootActor.class, searchConfig, pubSubMediator, materializer,
+                thingsSyncPersistence, policiesSyncPersistence);
     }
 
     @Override
@@ -220,10 +234,10 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     }
 
     private void startClusterSingletonActor(final String actorName, final Props props) {
-        ClusterUtil.startSingleton(getContext(), ConfigKeys.SEARCH_ROLE, actorName, props);
+        ClusterUtil.startSingleton(getContext(), SEARCH_ROLE, actorName, props);
     }
 
-    private KillSwitch startSearchUpdaterStream(
+    private KillSwitch startSearchUpdaterStream(final SearchConfig searchConfig,
             final ActorSystem actorSystem,
             final ShardRegionFactory shardRegionFactory,
             final int numberOfShards,
@@ -235,33 +249,10 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final ActorRef policiesShard = shardRegionFactory.getPoliciesShardRegion(numberOfShards);
 
         final SearchUpdaterStream searchUpdaterStream =
-                SearchUpdaterStream.of(actorSystem, thingsShard, policiesShard, changeQueueActor, mongoDatabase,
-                        blockedNamespaces);
+                SearchUpdaterStream.of(searchConfig, actorSystem, thingsShard, policiesShard, changeQueueActor,
+                        mongoDatabase, blockedNamespaces);
 
         return searchUpdaterStream.start(getContext());
     }
 
-    /**
-     * Start a Mongo client wrapper in an actor. The actor should close the client when it stops.
-     *
-     * @param context the context of the actor calling this method.
-     * @return a new MongoClientWrapper.
-     */
-    static DittoMongoClient startMongoClientWrapper(final ActorContext context) {
-
-        final ActorSystem actorSystem = context.getSystem();
-
-        final Config config = actorSystem.settings().config();
-
-        final CommandListener kamonCommandListener = config.getBoolean(ConfigKeys.MONITORING_COMMANDS_ENABLED) ?
-                new KamonCommandListener(KAMON_METRICS_PREFIX) : null;
-        final ConnectionPoolListener kamonConnectionPoolListener =
-                config.getBoolean(ConfigKeys.MONITORING_CONNECTION_POOL_ENABLED) ?
-                        new KamonConnectionPoolListener(KAMON_METRICS_PREFIX) : null;
-
-        return MongoClientWrapper.getBuilder(MongoConfig.of(config))
-                .addCommandListener(kamonCommandListener)
-                .addConnectionPoolListener(kamonConnectionPoolListener)
-                .build();
-    }
 }

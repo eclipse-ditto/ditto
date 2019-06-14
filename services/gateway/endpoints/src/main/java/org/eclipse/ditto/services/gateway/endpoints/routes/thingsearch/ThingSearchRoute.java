@@ -30,6 +30,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.signals.commands.thingsearch.query.CountThings;
@@ -56,10 +58,16 @@ public final class ThingSearchRoute extends AbstractRoute {
      *
      * @param proxyActor an actor selection of the command delegating actor.
      * @param actorSystem the ActorSystem to use.
+     * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
+     * @param headerTranslator translates headers from external sources or to external sources.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public ThingSearchRoute(final ActorRef proxyActor, final ActorSystem actorSystem) {
-        super(proxyActor, actorSystem);
+    public ThingSearchRoute(final ActorRef proxyActor,
+            final ActorSystem actorSystem,
+            final HttpConfig httpConfig,
+            final HeaderTranslator headerTranslator) {
+
+        super(proxyActor, actorSystem, httpConfig, headerTranslator);
     }
 
     /**
@@ -143,7 +151,6 @@ public final class ThingSearchRoute extends AbstractRoute {
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private static Set<String> calculateNamespaces(final Optional<String> namespacesString) {
-
         final Function<String, Set<String>> splitAndRemoveEmpty =
                 s -> Arrays.stream(s.split(","))
                         .filter(segment -> !segment.isEmpty())
@@ -151,9 +158,7 @@ public final class ThingSearchRoute extends AbstractRoute {
 
         // if no namespaces are given explicitly via query parameter,
         // return null to signify the lack of namespace restriction
-        final Set<String> defaultNamespaces = null;
-
-        return namespacesString.map(splitAndRemoveEmpty).orElse(defaultNamespaces);
+        return namespacesString.map(splitAndRemoveEmpty).orElse(null);
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")

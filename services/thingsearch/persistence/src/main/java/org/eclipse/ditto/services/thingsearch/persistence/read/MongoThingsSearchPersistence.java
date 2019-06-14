@@ -40,8 +40,8 @@ import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetSortBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQuery;
-import org.eclipse.ditto.services.utils.config.MongoConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil;
+import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.services.utils.persistence.mongo.indices.IndexInitializer;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayQueryTimeExceededException;
 
@@ -76,10 +76,11 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
     /**
      * Initializes the things search persistence with a passed in {@code persistence}.
      *
-     * @param database the mongoDB database.
+     * @param mongoClient the mongoDB persistence wrapper.
      * @param actorSystem the Akka ActorSystem.
      */
-    public MongoThingsSearchPersistence(final MongoDatabase database, final ActorSystem actorSystem) {
+    public MongoThingsSearchPersistence(final DittoMongoClient mongoClient, final ActorSystem actorSystem) {
+        final MongoDatabase database = mongoClient.getDefaultDatabase();
         // configure search persistence to stress the primary as little as possible and tolerate inconsistency
         collection = database
                 .getCollection(PersistenceConstants.THINGS_COLLECTION_NAME)
@@ -88,7 +89,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
         log = Logging.getLogger(actorSystem, getClass());
         final ActorMaterializer materializer = ActorMaterializer.create(actorSystem);
         indexInitializer = IndexInitializer.of(database, materializer);
-        maxQueryTime = MongoConfig.of(actorSystem.settings().config()).getMaxQueryTime();
+        maxQueryTime = mongoClient.getDittoSettings().getMaxQueryTime();
         hints = MongoHints.empty();
     }
 
@@ -139,7 +140,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
 
         return Source.fromPublisher(aggregatePublisher)
                 .map(document -> {
-                    final String namespace = (document.get(PersistenceConstants.FIELD_ID) != null)
+                    final String namespace = document.get(PersistenceConstants.FIELD_ID) != null
                             ? document.get(PersistenceConstants.FIELD_ID).toString()
                             : "NOT_MIGRATED";
                     final long count = Long.parseLong(document.get(PersistenceConstants.FIELD_COUNT).toString());
@@ -253,7 +254,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
         return mongoQuery.getSortOptionsAsBson();
     }
 
-    private PartialFunction<Throwable, Throwable> handleMongoExecutionTimeExceededException() {
+    private static PartialFunction<Throwable, Throwable> handleMongoExecutionTimeExceededException() {
         return new PFBuilder<Throwable, Throwable>()
                 .match(Throwable.class, error ->
                         error instanceof MongoExecutionTimeoutException
@@ -262,4 +263,5 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
                 )
                 .build();
     }
+
 }

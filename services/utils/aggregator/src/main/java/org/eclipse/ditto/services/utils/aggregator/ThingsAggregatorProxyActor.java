@@ -50,7 +50,6 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.PatternsCS;
@@ -81,6 +80,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
     private final ActorRef targetActor;
     private final ActorMaterializer actorMaterializer;
 
+    @SuppressWarnings("unused")
     private ThingsAggregatorProxyActor(final ActorRef targetActor) {
         this.targetActor = targetActor;
         actorMaterializer = ActorMaterializer.create(getContext());
@@ -93,14 +93,8 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
      * @return the Akka configuration Props object
      */
     public static Props props(final ActorRef targetActor) {
-        return Props.create(ThingsAggregatorProxyActor.class, new Creator<ThingsAggregatorProxyActor>() {
-            private static final long serialVersionUID = 1L;
 
-            @Override
-            public ThingsAggregatorProxyActor create() {
-                return new ThingsAggregatorProxyActor(targetActor);
-            }
-        });
+        return Props.create(ThingsAggregatorProxyActor.class, targetActor);
     }
 
     private static void stopTimer(final StartedTimer timer) {

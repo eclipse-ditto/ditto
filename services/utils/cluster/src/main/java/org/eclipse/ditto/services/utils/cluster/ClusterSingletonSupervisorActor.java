@@ -42,11 +42,13 @@ final class ClusterSingletonSupervisorActor extends AbstractActor {
     private final SupervisorStrategy supervisorStrategy;
     private final ActorRef child;
 
+    @SuppressWarnings("unused")
     ClusterSingletonSupervisorActor(final Props childProps) {
         this.supervisorStrategy = buildDefaultSupervisorStrategy();
         this.child = getContext().actorOf(childProps, "supervised-child");
     }
 
+    @SuppressWarnings("unused")
     ClusterSingletonSupervisorActor(final Props childProps, final SupervisorStrategy supervisorStrategy) {
         this.supervisorStrategy = supervisorStrategy;
         this.child = getContext().actorOf(childProps, "supervised-child");
@@ -136,6 +138,7 @@ final class ClusterSingletonSupervisorActor extends AbstractActor {
      * @return the Akka configuration Props object.
      */
     public static Props props(final Props childProps, final SupervisorStrategy supervisorStrategy) {
+
         return Props.create(ClusterSingletonSupervisorActor.class, childProps, supervisorStrategy);
     }
 

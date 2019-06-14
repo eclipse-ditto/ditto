@@ -55,6 +55,12 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
     private static final int DEFAULT_SEND_TIMEOUT = 0;
     private static final boolean DEFAULT_PRESETTLE_PRODUCERS_VALUE = true;
 
+    /**
+     * Input buffer size for consumers. Set to a small value to prevent flooding.
+     * Not settable by specific config.
+     */
+    private static final int DEFAULT_PREFETCH_POLICY_ALL = 10;
+
     private ConnectionBasedJmsConnectionFactory() {
         // no-op
     }
@@ -151,7 +157,7 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
             encodedId = id.replaceAll("[^a-zA-Z0-9]+", "");
         }
         final List<String> jmsParams = specificConfig.entrySet().stream()
-                .filter(e -> e.getKey().startsWith("jms"))
+                .filter(ConnectionBasedJmsConnectionFactory::isPermittedJmsConfig)
                 .map(e -> e.getKey() + "=" + e.getValue())
                 .collect(Collectors.toList());
 
@@ -172,7 +178,16 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
             jmsParams.add("jms.username=" + username);
             jmsParams.add("jms.password=" + password);
         }
+
+        // set prefetch policy no matter what the specific config is
+        jmsParams.add("jms.prefetchPolicy.all=" + DEFAULT_PREFETCH_POLICY_ALL);
+
         return jmsParams;
+    }
+
+    private static boolean isPermittedJmsConfig(final Map.Entry<String, String> configEntry) {
+        final String key = configEntry.getKey();
+        return key.startsWith("jms") && !key.startsWith("jms.prefetchPolicy");
     }
 
     private static List<String> getAmqpParameters(final boolean anonymous,

@@ -29,10 +29,11 @@ import org.slf4j.LoggerFactory;
 import akka.kafka.ProducerSettings;
 
 /**
- * Handles all bootstrap server related configuration. Expects the specific config of a connection to contain a
- * non-empty list of bootstrap servers. The list will be merged with the server found in the connection uri.
+ * Handles all bootstrap server related configuration.
+ * Expects the specific config of a connection to contain a non-empty list of bootstrap servers.
+ * The list will be merged with the server found in the connection URI.
  */
-public final class KafkaBootstrapServerSpecificConfig implements KafkaSpecificConfig {
+final class KafkaBootstrapServerSpecificConfig implements KafkaSpecificConfig {
 
     private static final Logger LOG = LoggerFactory.getLogger(KafkaBootstrapServerSpecificConfig.class);
 
@@ -81,6 +82,7 @@ public final class KafkaBootstrapServerSpecificConfig implements KafkaSpecificCo
     @Override
     public ProducerSettings<String, String> apply(final ProducerSettings<String, String> producerSettings,
             final Connection connection) {
+
         final String mergedBootstrapServers;
         if (isValid(connection)) {
             final String bootstrapServerFromUri = getBootstrapServerFromUri(connection);

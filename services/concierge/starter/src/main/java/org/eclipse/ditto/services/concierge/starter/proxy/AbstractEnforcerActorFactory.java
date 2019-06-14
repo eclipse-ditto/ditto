@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.concierge.starter.proxy;
 
 import java.util.Optional;
 
-import org.eclipse.ditto.services.concierge.util.config.AbstractConciergeConfigReader;
+import org.eclipse.ditto.services.concierge.common.ConciergeConfig;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 
 import akka.actor.ActorContext;
@@ -25,12 +25,7 @@ import akka.cluster.sharding.ClusterSharding;
 /**
  * Abstract class whose implementations create a sharded {@code EnforcerActor}.
  */
-public abstract class AbstractEnforcerActorFactory<C extends AbstractConciergeConfigReader> {
-
-    /**
-     * The dispatcher name of the Executor to use in order to perform asynchronous operations in enforcement.
-     */
-    protected static final String ENFORCER_DISPATCHER = "enforcer-dispatcher";
+public abstract class AbstractEnforcerActorFactory<C extends ConciergeConfig> {
 
     /**
      * Start a proxy to a shard region.
@@ -56,11 +51,10 @@ public abstract class AbstractEnforcerActorFactory<C extends AbstractConciergeCo
      * Start the {@code EnforcerActor} and all dependent actors.
      *
      * @param context context in which to start actors other than shard regions and shard region proxies.
-     * @param configReader the configuration reader of Concierge service.
+     * @param conciergeConfig the configuration of Concierge.
      * @param pubSubMediator Akka pub-sub mediator.
      * @return actor reference to {@code EnforcerActor} shard region.
      */
-    public abstract ActorRef startEnforcerActor(ActorContext context, C configReader,
-            ActorRef pubSubMediator);
+    public abstract ActorRef startEnforcerActor(ActorContext context, C conciergeConfig, ActorRef pubSubMediator);
 
 }
