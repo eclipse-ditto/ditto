@@ -138,7 +138,7 @@ public final class DittoSearchConfig implements SearchConfig {
 
     @Override
     public PersistenceOperationsConfig getPersistenceOperationsConfig() {
-        return null;
+        return persistenceOperationsConfig;
     }
 
     @Override
