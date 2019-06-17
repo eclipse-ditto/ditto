@@ -38,7 +38,7 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 public interface PersistenceOperationsConfig {
 
     /**
-     * The duration to wait before starting the actual purging after a persistence actor has been shut down.
+     * Returns the duration to wait before starting the actual purging after a persistence actor has been shut down.
      * This is required to allow the persistence actor to write the last snapshot/event when shutting down before the
      * purging takes place.
      *
@@ -52,7 +52,7 @@ public interface PersistenceOperationsConfig {
     enum PersistenceOperationsConfigValue implements KnownConfigValue {
 
         /**
-         *
+         * The duration to wait before starting the actual purging after a persistence actor has been shut down.
          */
         DELAY_AFTER_PERSISTENCE_ACTOR_SHUTDOWN("delay-after-persistence-actor-shutdown", Duration.ofSeconds(5L));
 
