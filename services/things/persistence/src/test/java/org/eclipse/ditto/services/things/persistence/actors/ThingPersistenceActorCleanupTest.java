@@ -28,6 +28,8 @@ import org.eclipse.ditto.signals.commands.cleanup.Cleanup;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupResponse;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
 import org.eclipse.ditto.signals.events.base.Event;
@@ -76,7 +78,7 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
                 assertJournal(thingId, expectedEvents);
                 assertSnapshotsEmpty(thingId);
 
-                // send multiple MofifyThing commands...
+                // send multiple ModifyThing commands...
                 long latestSnapshot = 0;
                 for (int i = 2; i < 12; i++) {
 
@@ -126,6 +128,52 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
                 expectMsgEquals(modifyThingResponse(modifiedThing, dittoHeadersV2));
 
                 return toEvent(modifyThingCommand, revisionNumber);
+            }
+        };
+    }
+
+    @Test
+    public void testDeletedThingIsCleanedUpCorrectly() {
+        setup(createNewDefaultTestConfig());
+        final List<Event> expectedEvents = new ArrayList<>();
+
+        new TestKit(actorSystem) {{
+                final Thing thing = createThingV2WithRandomId();
+                final String thingId =
+                        thing.getId().orElseThrow(() -> new IllegalStateException("ID must not be null!"));
+                final ActorRef persistenceActorUnderTest = createPersistenceActorFor(thingId);
+
+                // create a thing...
+                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
+                persistenceActorUnderTest.tell(createThing, getRef());
+                final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
+                final Thing thingCreated = createThingResponse.getThingCreated()
+                        .orElseThrow(IllegalStateException::new);
+                assertThingInResponse(thingCreated, thing, 1);
+                // ...and verify journal and snapshot state
+                expectedEvents.add(toEvent(createThing, 1));
+                assertJournal(thingId, expectedEvents);
+                assertSnapshotsEmpty(thingId);
+
+                // delete the thing...
+                final DeleteThing deleteThing = DeleteThing.of(thingId, dittoHeadersV2);
+                persistenceActorUnderTest.tell(deleteThing, getRef());
+                final DeleteThingResponse deleteThingResponse = expectMsgClass(DeleteThingResponse.class);
+
+                final Thing expectedDeletedSnapshot = toDeletedThing(thingCreated, 2);
+                assertSnapshots(thingId, Collections.singletonList(expectedDeletedSnapshot));
+                final Event deletedEvent = toEvent(deleteThing, 2);
+                expectedEvents.add(deletedEvent);
+                assertJournal(thingId, expectedEvents);
+
+                // tell the persistence actor to clean up
+                persistenceActorUnderTest.tell(Cleanup.of(thingId, DittoHeaders.empty()), getRef());
+                expectMsg(CleanupResponse.success(ThingPersistenceActor.PERSISTENCE_ID_PREFIX + thingId,
+                        DittoHeaders.empty()));
+
+                // we expect only the latest snapshot to exist after cleanup
+                assertSnapshots(thingId, Collections.singletonList(expectedDeletedSnapshot));
+                assertJournal(thingId, Collections.singletonList(deletedEvent));
             }
         };
     }

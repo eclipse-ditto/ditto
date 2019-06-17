@@ -283,14 +283,12 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
         final ReceiveBuilder receiveBuilder = ReceiveBuilder.create()
                 .match(Command.class, COMMAND_RECEIVE_STRATEGY::isDefined, commandHandler);
 
-        final Receive receive =
-                super.createReceive().orElse(
-                        new StrategyAwareReceiveBuilder(receiveBuilder, log)
-                                .matchEach(getTakeSnapshotStrategies())
-                                .match(new CheckForActivityStrategy())
-                                .matchAny(new MatchAnyAfterInitializeStrategy())
-                                .build()
-                );
+        final Receive receive = new StrategyAwareReceiveBuilder(receiveBuilder, log)
+                .withReceiveFromSuperClass(super.createReceive())
+                .matchEach(getTakeSnapshotStrategies())
+                .match(new CheckForActivityStrategy())
+                .matchAny(new MatchAnyAfterInitializeStrategy())
+                .build();
 
         getContext().become(receive, true);
         getContext().getParent().tell(ThingSupervisorActor.ManualReset.INSTANCE, getSelf());
@@ -337,6 +335,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
                 .match(CreateThing.class, CREATE_THING_STRATEGY::isDefined, commandHandler);
 
         final Receive receive = new StrategyAwareReceiveBuilder(receiveBuilder, log)
+                .withReceiveFromSuperClass(super.createReceive())
                 .matchEach(getTakeSnapshotStrategies())
                 .match(new CheckForActivityStrategy())
                 .matchAny(new ThingNotFoundStrategy())

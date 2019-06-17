@@ -913,7 +913,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     }
 
     @Test
-    public void testPolicyPersistenceActorRespondsToCleanupCommand() {
+    public void testPolicyPersistenceActorRespondsToCleanupCommandInCreatedState() {
         new TestKit(actorSystem) {{
             final Policy policy = createPolicyWithRandomId();
             final ActorRef policyPersistenceActor = createPersistenceActorFor(policy);
@@ -923,6 +923,29 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
             final CreatePolicyResponse createPolicy1Response = expectMsgClass(CreatePolicyResponse.class);
             DittoPolicyAssertions.assertThat(createPolicy1Response.getPolicyCreated().get())
                     .isEqualEqualToButModified(policy);
+
+            final String entityId = PolicyPersistenceActor.PERSISTENCE_ID_PREFIX +
+                    policy.getId().orElseThrow(IllegalStateException::new);
+            policyPersistenceActor.tell(Cleanup.of(entityId, DittoHeaders.empty()), getRef());
+            expectMsg(CleanupResponse.success(entityId, DittoHeaders.empty()));
+        }};
+    }
+
+    @Test
+    public void testPolicyPersistenceActorRespondsToCleanupCommandInDeletedState() {
+        new TestKit(actorSystem) {{
+            final Policy policy = createPolicyWithRandomId();
+            final ActorRef policyPersistenceActor = createPersistenceActorFor(policy);
+
+            final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
+            policyPersistenceActor.tell(createPolicyCommand, getRef());
+            final CreatePolicyResponse createPolicy1Response = expectMsgClass(CreatePolicyResponse.class);
+            DittoPolicyAssertions.assertThat(createPolicy1Response.getPolicyCreated().get())
+                    .isEqualEqualToButModified(policy);
+
+            final DeletePolicy deletePolicyCommand = DeletePolicy.of(policy.getId().orElseThrow(() -> new IllegalStateException("no id")), dittoHeadersV2);
+            policyPersistenceActor.tell(deletePolicyCommand, getRef());
+            expectMsgClass(DeletePolicyResponse.class);
 
             final String entityId = PolicyPersistenceActor.PERSISTENCE_ID_PREFIX +
                     policy.getId().orElseThrow(IllegalStateException::new);

@@ -442,12 +442,12 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
      */
     private void becomePolicyCreatedHandler() {
         final Collection<ReceiveStrategy<?>> policyCreatedStrategies = initPolicyCreatedStrategies();
-        final StrategyAwareReceiveBuilder strategyAwareReceiveBuilder = new StrategyAwareReceiveBuilder();
+        final StrategyAwareReceiveBuilder strategyAwareReceiveBuilder =
+                new StrategyAwareReceiveBuilder().withReceiveFromSuperClass(super.createReceive());
         policyCreatedStrategies.forEach(strategyAwareReceiveBuilder::match);
         strategyAwareReceiveBuilder.matchAny(new MatchAnyAfterInitializeStrategy());
 
-        final Receive superReceive = super.createReceive();
-        getContext().become(superReceive.orElse(strategyAwareReceiveBuilder.build()), true);
+        getContext().become(strategyAwareReceiveBuilder.build(), true);
         getContext().getParent().tell(new PolicySupervisorActor.ManualReset(), getSelf());
         scheduleCheckForPolicyActivity(policyConfig.getActivityCheckConfig().getInactiveInterval());
         scheduleSnapshot();
@@ -496,7 +496,8 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
 
     private void becomePolicyDeletedHandler() {
         final Collection<ReceiveStrategy<?>> policyDeletedStrategies = initPolicyDeletedStrategies();
-        final StrategyAwareReceiveBuilder strategyAwareReceiveBuilder = new StrategyAwareReceiveBuilder();
+        final StrategyAwareReceiveBuilder strategyAwareReceiveBuilder =
+                new StrategyAwareReceiveBuilder().withReceiveFromSuperClass(super.createReceive());
         policyDeletedStrategies.forEach(strategyAwareReceiveBuilder::match);
         strategyAwareReceiveBuilder.matchAny(new PolicyNotFoundStrategy());
 
