@@ -18,6 +18,8 @@
  import org.eclipse.ditto.model.namespaces.NamespaceReader;
  import org.eclipse.ditto.signals.commands.common.Shutdown;
  import org.eclipse.ditto.signals.commands.common.ShutdownReason;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
 
  import akka.actor.ActorRef;
  import akka.actor.PoisonPill;
@@ -29,6 +31,8 @@
   * the information hold by this behaviour.
   */
  public final class ShutdownBehaviour {
+
+     private static final Logger LOG = LoggerFactory.getLogger(ShutdownBehaviour.class);
 
      private final String namespace;
      private final String entityId;
@@ -82,6 +86,7 @@
          final ShutdownReason shutdownReason = shutdown.getReason();
 
          if(shutdownReason.isRelevantFor(namespace) || shutdownReason.isRelevantFor(entityId)) {
+             LOG.info("Shutting down <{}> due to <{}>.", self, shutdown);
              self.tell(PoisonPill.getInstance(), ActorRef.noSender());
          }
      }

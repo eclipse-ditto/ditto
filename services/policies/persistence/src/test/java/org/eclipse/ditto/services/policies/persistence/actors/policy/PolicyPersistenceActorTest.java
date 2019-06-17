@@ -27,6 +27,7 @@ import static org.eclipse.ditto.services.policies.persistence.testhelper.ETagTes
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.awaitility.Awaitility;
 import org.eclipse.ditto.model.base.entity.Revision;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -75,6 +76,7 @@ import org.eclipse.ditto.signals.commands.policies.modify.ModifySubject;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandResponse;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicy;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyEntry;
+import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyResponse;
 import org.eclipse.ditto.signals.commands.policies.query.RetrieveResource;
 import org.eclipse.ditto.signals.commands.policies.query.RetrieveSubject;
 import org.eclipse.ditto.signals.commands.policies.query.RetrieveSubjectResponse;
@@ -740,17 +742,16 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 DittoPolicyAssertions.assertThat(createPolicy1Response.getPolicyCreated().get())
                         .isEqualEqualToButModified(policy);
 
-                final DeletePolicy deletePolicy = DeletePolicy.of(policy.getId().orElse(null), dittoHeadersV2);
+                final DeletePolicy deletePolicy = DeletePolicy.of(policy.getId().get(), dittoHeadersV2);
                 policyPersistenceActor.tell(deletePolicy, getRef());
-                expectMsgEquals(DeletePolicyResponse.of(policy.getId().orElse(null), dittoHeadersV2));
+                expectMsgEquals(DeletePolicyResponse.of(policy.getId().get(), dittoHeadersV2));
 
                 // restart
                 final ActorRef policyPersistenceActorRecovered = createPersistenceActorFor(policy);
-                final RetrievePolicy retrievePolicy =
-                        RetrievePolicy.of(policy.getId().orElse(null), dittoHeadersV2);
-                policyPersistenceActorRecovered.tell(retrievePolicy, getRef());
 
                 // A deleted Policy cannot be retrieved anymore.
+                final RetrievePolicy retrievePolicy = RetrievePolicy.of(policy.getId().get(), dittoHeadersV2);
+                policyPersistenceActorRecovered.tell(retrievePolicy, getRef());
                 expectMsgClass(PolicyNotAccessibleException.class);
 
                 assertThat(getLastSender()).isEqualTo(policyPersistenceActorRecovered);
@@ -799,9 +800,13 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final Policy policyWithUpdatedPolicyEntry = policy.setEntry(policyEntry);
                 final RetrievePolicy retrievePolicy =
                         RetrievePolicy.of(policyWithUpdatedPolicyEntry.getId().orElse(null), dittoHeadersV2);
-                policyPersistenceActorRecovered.tell(retrievePolicy, getRef());
-                expectMsgEquals(
-                        retrievePolicyResponse(incrementRevision(policyWithUpdatedPolicyEntry, 2), dittoHeadersV2));
+                final RetrievePolicyResponse expectedResponse =
+                        retrievePolicyResponse(incrementRevision(policyWithUpdatedPolicyEntry, 2), dittoHeadersV2);
+
+                Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
+                    policyPersistenceActorRecovered.tell(retrievePolicy, getRef());
+                    expectMsgEquals(expectedResponse);
+                });
 
                 assertThat(getLastSender()).isEqualTo(policyPersistenceActorRecovered);
             }
@@ -822,7 +827,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                         .isEqualEqualToButModified(policy);
 
                 final DeletePolicyEntry deletePolicyEntry =
-                        DeletePolicyEntry.of(policy.getId().orElse(null), ANOTHER_POLICY_LABEL, dittoHeadersV2);
+                        DeletePolicyEntry.of(policy.getId().get(), ANOTHER_POLICY_LABEL, dittoHeadersV2);
                 policyPersistenceActor.tell(deletePolicyEntry, getRef());
                 expectMsgEquals(DeletePolicyEntryResponse.of(policy.getId().orElse(null), ANOTHER_POLICY_LABEL,
                         dittoHeadersV2));
@@ -831,10 +836,15 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final ActorRef policyPersistenceActorRecovered = createPersistenceActorFor(policy);
 
                 final RetrievePolicy retrievePolicy =
-                        RetrievePolicy.of(policy.getId().orElse(null), dittoHeadersV2);
-                policyPersistenceActorRecovered.tell(retrievePolicy, getRef());
-                expectMsgEquals(retrievePolicyResponse(incrementRevision(policy, 2).removeEntry(ANOTHER_POLICY_LABEL),
-                        dittoHeadersV2));
+                        RetrievePolicy.of(policy.getId().get(), dittoHeadersV2);
+                final RetrievePolicyResponse expectedResponse =
+                        retrievePolicyResponse(incrementRevision(policy, 2).removeEntry(ANOTHER_POLICY_LABEL),
+                                dittoHeadersV2);
+
+                Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
+                    policyPersistenceActorRecovered.tell(retrievePolicy, getRef());
+                    expectMsgEquals(expectedResponse);
+                });
 
                 assertThat(getLastSender()).isEqualTo(policyPersistenceActorRecovered);
             }

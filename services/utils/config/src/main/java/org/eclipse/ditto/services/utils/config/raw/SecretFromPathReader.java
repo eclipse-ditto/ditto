@@ -41,9 +41,11 @@ final class SecretFromPathReader implements Supplier<Optional<Secret>> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SecretFromPathReader.class);
 
+    private final String secretName;
     private final Path path;
 
-    private SecretFromPathReader(final Path thePath) {
+    private SecretFromPathReader(final String theSecretName, final Path thePath) {
+        secretName = theSecretName;
         path = thePath;
     }
 
@@ -55,7 +57,21 @@ final class SecretFromPathReader implements Supplier<Optional<Secret>> {
      * @throws NullPointerException if {@code path} is {@code null}.
      */
     static SecretFromPathReader of(final Path path) {
-        return new SecretFromPathReader(checkNotNull(path, "Secret path"));
+        checkNotNull(path, "Secret path");
+        final String secretName = String.valueOf(path.getName(path.getNameCount() - 1));
+        return of(checkNotNull(secretName, "Secret name"), path);
+    }
+
+    /**
+     * Returns an instance of {@code SecretFromPathReader}.
+     *
+     * @param secretName name of the secret.
+     * @param path denotes a file that is supposed to contain the information for creating a {@link Secret} object.
+     * @return the instance.
+     * @throws NullPointerException if {@code path} is {@code null}.
+     */
+    static SecretFromPathReader of(final String secretName, final Path path) {
+        return new SecretFromPathReader(secretName, path);
     }
 
     @Override
@@ -74,7 +90,6 @@ final class SecretFromPathReader implements Supplier<Optional<Secret>> {
     }
 
     private Secret readSecretFromPath() throws IOException {
-        final String secretName = String.valueOf(path.getName(path.getNameCount() - 1));
         final List<String> lines = Files.readAllLines(path);
         if (lines.isEmpty()) {
             final String msgTemplate = "Expected a secret but file <{0}> was empty!";

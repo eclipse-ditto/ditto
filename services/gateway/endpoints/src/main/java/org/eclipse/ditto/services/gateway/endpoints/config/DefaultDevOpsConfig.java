@@ -31,10 +31,12 @@ public final class DefaultDevOpsConfig implements DevOpsConfig {
 
     private final boolean secureStatus;
     private final String password;
+    private final String statusPassword;
 
     private DefaultDevOpsConfig(final ConfigWithFallback configWithFallback) {
         secureStatus = configWithFallback.getBoolean(DevOpsConfigValue.SECURE_STATUS.getConfigPath());
         password = configWithFallback.getString(DevOpsConfigValue.PASSWORD.getConfigPath());
+        statusPassword = configWithFallback.getString(DevOpsConfigValue.STATUS_PASSWORD.getConfigPath());
     }
 
     /**
@@ -59,6 +61,11 @@ public final class DefaultDevOpsConfig implements DevOpsConfig {
     }
 
     @Override
+    public String getStatusPassword() {
+        return statusPassword;
+    }
+
+    @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
@@ -68,12 +75,13 @@ public final class DefaultDevOpsConfig implements DevOpsConfig {
         }
         final DefaultDevOpsConfig that = (DefaultDevOpsConfig) o;
         return secureStatus == that.secureStatus &&
-                password.equals(that.password);
+                password.equals(that.password) &&
+                statusPassword.equals(that.statusPassword);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(secureStatus, password);
+        return Objects.hash(secureStatus, password, statusPassword);
     }
 
     @Override
@@ -81,6 +89,7 @@ public final class DefaultDevOpsConfig implements DevOpsConfig {
         return getClass().getSimpleName() + " [" +
                 "secureStatus=" + secureStatus +
                 ", password=*****" +
+                ", statusPassword=*****" +
                 "]";
     }
 

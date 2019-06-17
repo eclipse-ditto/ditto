@@ -16,9 +16,6 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Collections;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -168,16 +165,12 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
     }
 
     protected String entityToString(final HttpEntity entity) {
-        try {
-            final int timeoutMillis = 10_000;
-            return entity.toStrict(timeoutMillis, materializer())
-                    .toCompletableFuture()
-                    .get(timeoutMillis, TimeUnit.MILLISECONDS)
-                    .getData()
-                    .utf8String();
-        } catch (final InterruptedException | ExecutionException | TimeoutException e) {
-            throw new IllegalStateException(e);
-        }
+        final int timeoutMillis = 10_000;
+        return entity.toStrict(timeoutMillis, materializer())
+                .toCompletableFuture()
+                .join()
+                .getData()
+                .utf8String();
     }
 
     protected static void assertWebsocketUpgradeExpectedResult(final TestRouteResult result) {
