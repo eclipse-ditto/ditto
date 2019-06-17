@@ -38,7 +38,9 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 public interface PersistenceOperationsConfig {
 
     /**
-     * TODO
+     * The duration to wait before starting the actual purging after a persistence actor has been shut down.
+     * This is required to allow the persistence actor to write the last snapshot/event when shutting down before the
+     * purging takes place.
      *
      * @return the delay.
      */
