@@ -16,11 +16,13 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithResource;
 
 import akka.actor.AbstractActor;
 import akka.actor.Props;
+import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -36,11 +38,19 @@ public final class MockEntitiesActor extends AbstractActor {
         return Props.create(MockEntitiesActor.class);
     }
 
+    final LoggingAdapter log = LogUtil.obtain(this);
+
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(Signal.class, signal -> getSender().tell(getReply(signal), getSelf()))
-                .matchAny(message -> getSender().tell(NO_REPLY, getSelf()))
+                .match(Signal.class, signal -> {
+                    log.info("Got signal <{}>", signal);
+                    getSender().tell(getReply(signal), getSelf());
+                })
+                .matchAny(message -> {
+                    log.info("Got non-signal <{}>", message);
+                    getSender().tell(NO_REPLY, getSelf());
+                })
                 .build();
     }
 

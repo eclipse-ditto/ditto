@@ -20,6 +20,8 @@ import org.eclipse.ditto.model.namespaces.NamespaceReader;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
 import org.eclipse.ditto.signals.commands.common.ShutdownReason;
 import org.eclipse.ditto.signals.commands.common.ShutdownReasonType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
@@ -30,6 +32,8 @@ import akka.japi.pf.ReceiveBuilder;
  * Actor behavior that shuts itself down on command.
  */
 public final class ShutdownNamespaceBehavior {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ShutdownNamespaceBehavior.class);
 
     private final String namespace;
     private final ActorRef self;
@@ -79,6 +83,7 @@ public final class ShutdownNamespaceBehavior {
         final ShutdownReason shutdownReason = shutdown.getReason();
         if (ShutdownReasonType.Known.PURGE_NAMESPACE.equals(shutdownReason.getType()) &&
                 Objects.equals(namespace, shutdownReason.getDetailsOrThrow())) {
+            LOG.info("Shutting down <{}> due to <{}>.", self, shutdown);
             self.tell(PoisonPill.getInstance(), ActorRef.noSender());
         }
     }
