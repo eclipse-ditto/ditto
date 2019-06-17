@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Objects;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.services.concierge.common.PersistenceIdsConfig;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
@@ -37,7 +38,7 @@ import akka.stream.javadsl.Source;
 /**
  * Stream all snapshot revisions of all known entities.
  */
-public final class SnapshotRevisionSource {
+public final class PersistenceIdSource {
 
     // TODO: configure?
     private static final List<String> PERSISTENCE_STREAMING_ACTOR_PATHS =
@@ -45,45 +46,41 @@ public final class SnapshotRevisionSource {
                     PoliciesMessagingConstants.POLICIES_STREAM_PROVIDER_ACTOR_PATH,
                     ConnectivityMessagingConstants.STREAM_PROVIDER_ACTOR_PATH);
 
-    private static final int BURST = 25;
-
-    // timeout requesting a stream
-    private static final Duration INITIAL_TIMEOUT = Duration.ofSeconds(10L);
-
-    // long timeout; do not want to cancel stream if no credit available
-    private static final long TIMEOUT_MILLIS = 600_000L;
-
     /**
      * Create a stream of snapshot revisions of all known entities.
      * The stream fails if there is a failure requesting any stream or processing any stream element.
      *
+     * @param config configuration of the persistence ID source.
      * @param pubSubMediator the pub-sub mediator.
      * @return source of entity IDs with revisions of their latest snapshots.
      */
-    public static Source<EntityIdWithRevision, NotUsed> create(final ActorRef pubSubMediator) {
-        return Source.fromIterator(PERSISTENCE_STREAMING_ACTOR_PATHS::iterator)
+    public static Source<EntityIdWithRevision, NotUsed> create(final PersistenceIdsConfig config,
+            final ActorRef pubSubMediator) {
+        return Source.from(PERSISTENCE_STREAMING_ACTOR_PATHS)
                 .buffer(1, OverflowStrategy.backpressure())
-                .map(SnapshotRevisionSource::requestStreamCommand)
-                .mapAsync(1, command -> Patterns.ask(pubSubMediator, command, INITIAL_TIMEOUT))
-                .flatMapConcat(SnapshotRevisionSource::handleSourceRef);
+                .map(path -> requestStreamCommand(config, path))
+                .mapAsync(1, command -> Patterns.ask(pubSubMediator, command, config.getStreamRequestTimeout()))
+                .flatMapConcat(PersistenceIdSource::handleSourceRef);
     }
 
-    public static Source<EntityIdWithRevision, NotUsed> createInfiniteSource(final ActorRef pubSubMediator) {
-        // TODO: configure?
-        final Duration minBackOff = Duration.ofSeconds(1L);
-        final Duration maxBackOff = Duration.ofSeconds(120L);
-        final double randomFactor = 0.5;
+    public static Source<EntityIdWithRevision, NotUsed> createInfiniteSource(final PersistenceIdsConfig config,
+            final ActorRef pubSubMediator) {
+        final Duration minBackOff = config.getBackOffMin();
+        final Duration maxBackOff = config.getBackOffMax();
+        final double randomFactor = config.getBackOffRandomFactor();
 
         // RestartSource generates error logs if the stream restarts due to failure.
-        return RestartSource.withBackoff(minBackOff, maxBackOff, randomFactor, () -> create(pubSubMediator));
+        return RestartSource.withBackoff(minBackOff, maxBackOff, randomFactor, () -> create(config, pubSubMediator));
     }
 
-    private static DistributedPubSubMediator.Send requestStreamCommand(final String path) {
-        return new DistributedPubSubMediator.Send(path, sudoStreamSnapshotRevisions(), false);
+    private static DistributedPubSubMediator.Send requestStreamCommand(final PersistenceIdsConfig config,
+            final String path) {
+        return new DistributedPubSubMediator.Send(path, sudoStreamSnapshotRevisions(config), false);
     }
 
-    private static SudoStreamSnapshotRevisions sudoStreamSnapshotRevisions() {
-        return SudoStreamSnapshotRevisions.of(BURST, TIMEOUT_MILLIS, DittoHeaders.empty());
+    private static SudoStreamSnapshotRevisions sudoStreamSnapshotRevisions(final PersistenceIdsConfig config) {
+        return SudoStreamSnapshotRevisions.of(config.getBurst(), config.getStreamIdleTimeout().toMillis(),
+                DittoHeaders.empty());
     }
 
     private static Source<EntityIdWithRevision, NotUsed> handleSourceRef(final Object reply) {
@@ -100,8 +97,8 @@ public final class SnapshotRevisionSource {
                     if (element instanceof BatchedEntityIdWithRevisions) {
                         final BatchedEntityIdWithRevisions<?> batch = (BatchedEntityIdWithRevisions) element;
                         final Source<? extends EntityIdWithRevision, NotUsed> source =
-                                Source.fromIterator(batch.getElements()::iterator);
-                        return source.<EntityIdWithRevision>map(x -> x);
+                                Source.from(batch.getElements());
+                        return source.map(x -> x);
                     } else {
                         return failedSourceDueToUnexpectedMessage("BatchedEntityIdWithRevisions", element);
                     }

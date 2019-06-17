@@ -29,6 +29,7 @@ import org.junit.runners.Parameterized;
 import akka.actor.ActorSystem;
 import akka.japi.Pair;
 import akka.stream.ActorMaterializer;
+import akka.stream.Attributes;
 import akka.stream.Graph;
 import akka.stream.SourceShape;
 import akka.stream.javadsl.GraphDSL$;
@@ -42,18 +43,26 @@ import akka.stream.testkit.javadsl.TestSource;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests {@link org.eclipse.ditto.services.utils.akka.controlflow.Transistor}.
- * TODO: document what this tests.
+ * Tests {@link org.eclipse.ditto.services.utils.akka.controlflow.Transistor} with all combinations of activation orders
+ * of its 2 inlets and 1 outlet, and whether the amount of elements delivered is limited by collector elements, credits, or
+ * downstream requests. An inlet activates when it pushes; an outlet activates when it pulls. These tests are supposed
+ * to catch graph stage logic interface violations such as double-pulling.
  */
 @RunWith(Parameterized.class)
 public final class TransistorTest {
 
+    /**
+     * Name of the inlets and the outlet.
+     */
     public enum Terminal {
-        SOURCE,
-        GATE,
-        DRAIN
+        COLLECTOR,
+        BASE,
+        EMITTER
     }
 
+    /**
+     * @return All combinations of inlet/outlet activation orders and the limiting agent of elements delivered.
+     */
     @Parameterized.Parameters(name = "{0}")
     public static List<Parameter> parameters() {
         return permutations(Arrays.asList(Terminal.values()))
@@ -65,39 +74,45 @@ public final class TransistorTest {
     public Parameter parameter;
 
     private ActorSystem system;
-    private TestPublisher.Probe<Integer> source;
-    private TestPublisher.Probe<Integer> gate;
-    private TestSubscriber.Probe<Integer> drain;
+    private TestPublisher.Probe<Integer> collector;
+    private TestPublisher.Probe<Integer> base;
+    private TestSubscriber.Probe<Integer> emitter;
 
+    /**
+     * Connect a transistor to 2 test collectors and a test sink.
+     */
     @Before
     public void init() {
         system = ActorSystem.create();
-        final Source<Integer, TestPublisher.Probe<Integer>> sourceSource = TestSource.probe(system);
-        final Source<Integer, TestPublisher.Probe<Integer>> gateSource = TestSource.probe(system);
-        final Sink<Integer, TestSubscriber.Probe<Integer>> drainSink = TestSink.probe(system);
+        final Source<Integer, TestPublisher.Probe<Integer>> collectorSource = TestSource.probe(system);
+        final Source<Integer, TestPublisher.Probe<Integer>> baseSource = TestSource.probe(system);
+        final Sink<Integer, TestSubscriber.Probe<Integer>> emitterSink = TestSink.probe(system);
         final Transistor<Integer> underTest = Transistor.of();
 
         final Graph<SourceShape<Integer>, Pair<TestPublisher.Probe<Integer>, TestPublisher.Probe<Integer>>>
-                sourceGateTransistor =
+                collectorGateTransistor =
                 GraphDSL$.MODULE$.create3(
-                        sourceSource, gateSource, underTest,
-                        (source, gate, notUsed) -> Pair.create(source, gate),
-                        (builder, sourceShape, gateShape, transistorShape) -> {
-                            builder.from(sourceShape.out()).toInlet(transistorShape.in0());
-                            builder.from(gateShape.out()).toInlet(transistorShape.in1());
+                        collectorSource, baseSource, underTest,
+                        (collector, base, notUsed) -> Pair.create(collector, base),
+                        (builder, collectorShape, baseShape, transistorShape) -> {
+                            builder.from(collectorShape.out()).toInlet(transistorShape.in0());
+                            builder.from(baseShape.out()).toInlet(transistorShape.in1());
                             return SourceShape.of(transistorShape.out());
                         });
 
         final Pair<Pair<TestPublisher.Probe<Integer>, TestPublisher.Probe<Integer>>, TestSubscriber.Probe<Integer>> m =
-                Source.fromGraph(sourceGateTransistor)
-                        .toMat(drainSink, Keep.both())
+                Source.fromGraph(collectorGateTransistor)
+                        .toMat(emitterSink, Keep.both())
                         .run(ActorMaterializer.create(system));
 
-        source = m.first().first();
-        gate = m.first().second();
-        drain = m.second();
+        collector = m.first().first();
+        base = m.first().second();
+        emitter = m.second();
     }
 
+    /**
+     * Stop the actor system, terminating all running streams.
+     */
     @After
     public void stop() {
         if (system != null) {
@@ -107,43 +122,59 @@ public final class TransistorTest {
 
     @Test
     public void test() {
+        // Push/pull from inlets/outlet according to their activation order.
+        // The limiting terminal restricts the number of elements passing through to 4.
         for (final Terminal terminal : parameter.activationOrder) {
             switch (terminal) {
-                case SOURCE:
-                    source.sendNext(1).sendNext(2).sendNext(3).sendNext(4);
-                    if (isNotLimiting(Terminal.SOURCE)) {
-                        source.sendNext(5).sendNext(6).sendNext(7).sendNext(8);
+                case COLLECTOR:
+                    collector.sendNext(1).sendNext(2).sendNext(3).sendNext(4);
+                    if (isNotLimiting(Terminal.COLLECTOR)) {
+                        collector.sendNext(5).sendNext(6).sendNext(7).sendNext(8);
                     }
                     break;
-                case GATE:
-                    gate.sendNext(1).sendNext(3);
-                    if (isNotLimiting(Terminal.GATE)) {
-                        gate.sendNext(5).sendNext(7).sendNext(9);
+                case BASE:
+                    base.sendNext(1).sendNext(3);
+                    if (isNotLimiting(Terminal.BASE)) {
+                        base.sendNext(5).sendNext(7).sendNext(9);
                     }
                     break;
-                case DRAIN:
-                    drain.request(4);
-                    if (isNotLimiting(Terminal.DRAIN)) {
-                        drain.request(3).request(2);
+                case EMITTER:
+                    emitter.request(4);
+                    if (isNotLimiting(Terminal.EMITTER)) {
+                        emitter.request(3).request(2);
                     }
                     break;
             }
         }
-        drain.expectNext(1, 2, 3, 4);
-        source.sendComplete();
-        gate.sendComplete();
-        drain.expectComplete();
+        // Exactly 4 elements should pass through the stream.
+        emitter.expectNext(1, 2, 3, 4);
+        collector.sendComplete();
+        base.sendComplete();
+        emitter.expectComplete();
     }
 
     private boolean isNotLimiting(final Terminal terminal) {
         return parameter.limitingTerminal != terminal;
     }
 
+    /**
+     * Generates all permutations of a list of elements.
+     *
+     * @param elements what to permute.
+     * @param <T> type of elements.
+     * @return stream of all permutations of the elements.
+     */
     private static <T> Stream<List<T>> permutations(final List<T> elements) {
         return permutations(elements.size())
                 .map(indices -> indices.stream().map(elements::get).collect(Collectors.toList()));
     }
 
+    /**
+     * Generate all permutations of 0, 1, ..., n-1.
+     *
+     * @param n a positive integer.
+     * @return permutations of all non-negative integers smaller than n.
+     */
     private static Stream<List<Integer>> permutations(final int n) {
         if (n <= 0) {
             return Stream.of(Collections.emptyList());
@@ -159,6 +190,9 @@ public final class TransistorTest {
         }
     }
 
+    /**
+     *
+     */
     public static final class Parameter {
 
         private final List<Terminal> activationOrder;

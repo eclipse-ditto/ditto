@@ -12,10 +12,10 @@
  */
 package org.eclipse.ditto.services.concierge.actors.cleanup.credits;
 
-import java.time.Duration;
 import java.util.List;
 
 import org.eclipse.ditto.services.concierge.actors.cleanup.messages.CreditDecision;
+import org.eclipse.ditto.services.concierge.common.CreditDecisionConfig;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
 
 import akka.NotUsed;
@@ -64,32 +64,29 @@ import akka.stream.javadsl.Source;
  *                    based on MongoDB metrics
  * }</pre>
  */
-public final class CreditDecisionFlow {
+public final class CreditDecisionSource {
 
     // TODO: refactor into settings class
     // TODO: document
     public static Graph<SourceShape<CreditDecision>, NotUsed> create(
+            final CreditDecisionConfig config,
             final ActorContext context,
             final ActorRef pubSubMediator,
-            final Duration initialDelay,
-            final Duration interval,
-            final long timerThreshold,
-            final int creditPerBatch,
-            final Duration metricTimeout,
             final LoggingAdapter log) {
 
         final Source<Tick, NotUsed> tickSource =
-                Source.tick(initialDelay, interval, new Tick()).mapMaterializedValue(whatever -> NotUsed.getInstance());
+                Source.tick(config.getInterval(), config.getInterval(), new Tick())
+                        .mapMaterializedValue(whatever -> NotUsed.getInstance());
 
         // TODO: better to give ClusterStatusSupplier instead of ActorSystem?
         final Graph<FanOutShape2<Tick, Integer, CreditDecision>, NotUsed> clusterStatusStage =
                 ClusterStatusStage.create(context.system());
 
         final Graph<FanOutShape2<Integer, List<StatusInfo>, CreditDecision>, NotUsed> persistenceStatusStage =
-                PersistenceStatusStage.create(pubSubMediator, context, metricTimeout);
+                PersistenceStatusStage.create(pubSubMediator, context, config.getMetricReportTimeout());
 
         final Graph<FlowShape<List<StatusInfo>, CreditDecision>, NotUsed> decisionByMetricStage =
-                DecisionByMetricStage.create(timerThreshold, creditPerBatch);
+                DecisionByMetricStage.create(config.getTimerThreshold(), config.getCreditPerBatch());
 
         return GraphDSL.create(builder -> {
             final SourceShape<Tick> tick = builder.add(tickSource);

@@ -14,53 +14,48 @@ package org.eclipse.ditto.services.concierge.common;
 
 import java.time.Duration;
 
-import javax.annotation.concurrent.Immutable;
-
-import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
- * Provides configuration settings of the caches of Concierge.
+ * Provides configuration settings for persistence cleanup actions.
  */
-@Immutable
-public interface CachesConfig {
+public interface PersistenceCleanupConfig {
 
     /**
-     * Returns the duration to wait for entity shard regions.
+     * Returns how long to wait before scheduling persistence cleanup actions.
      *
-     * @return the internal ask timeout duration.
+     * @return duration of the quiet period.
      */
-    Duration getAskTimeout();
+    Duration getQuietPeriod();
 
     /**
-     * Returns the config of the ID cache.
-     *
-     * @return the config.
-     */
-    CacheConfig getIdCacheConfig();
-
-    /**
-     * Returns the config of the enforcer cache.
+     * Returns configuration settings for credit decision.
      *
      * @return the config.
      */
-    CacheConfig getEnforcerCacheConfig();
+    CreditDecisionConfig getCreditDecisionConfig();
 
     /**
-     * An enumeration of the known config path expressions and their associated default values for
-     * {@code CachesConfig}.
+     * Returns configuration settings for the persistence ID stream.
+     *
+     * @return the config.
      */
-    enum CachesConfigValue implements KnownConfigValue {
+    PersistenceIdsConfig getPersistenceIdsConfig();
+
+    /**
+     * Enumeration of known config keys and default values for {@code PersistenceCleanupConfig}
+     */
+    enum ConfigValue implements KnownConfigValue {
 
         /**
-         * The duration to wait for entity shard regions.
+         * Duration between service start-up and the beginning of cleanup actions.
          */
-        ASK_TIMEOUT("ask-timeout", Duration.ofSeconds(10L));
+        QUIET_PERIOD("quiet-period", Duration.ofMinutes(5L));
 
         private final String path;
         private final Object defaultValue;
 
-        CachesConfigValue(final String thePath, final Object theDefaultValue) {
+        ConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }
@@ -74,7 +69,5 @@ public interface CachesConfig {
         public Object getDefaultValue() {
             return defaultValue;
         }
-
     }
-
 }

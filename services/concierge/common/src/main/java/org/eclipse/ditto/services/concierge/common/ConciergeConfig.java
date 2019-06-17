@@ -45,4 +45,11 @@ public interface ConciergeConfig extends ServiceSpecificConfig, WithHealthCheckC
      */
     ThingsAggregatorConfig getThingsAggregatorConfig();
 
+    /**
+     * Returns the config for persistence cleanup actions.
+     *
+     * @return the config.
+     */
+    PersistenceCleanupConfig getPersistenceCleanupConfig();
+
 }

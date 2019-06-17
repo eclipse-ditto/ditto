@@ -27,14 +27,41 @@ import akka.stream.stage.GraphStageLogicWithLogging;
 
 /**
  * Flow of elements regulated by credits arriving at a side channel.
- * TODO: document in the manner of standard stream components.
+ * The inlets/outlets (terminals) are named after a bipolar junction transistor.
+ * <ul>
+ * <li>Collector: Inflow of elements.</li>
+ * <li>Emitter: Outflow of elements.</li>
+ * <li>Base: Inflow of integers to limit the number of elements going from collector to emitter.</li>
+ * </ul>
+ *
+ * <pre>
+ * {@code
+ *                     Collector<T>
+ *                          +
+ *                          |
+ *                          |
+ *                    ++    |
+ *                    ||    |
+ *                    ||<---+
+ *                    ||
+ * Base<Integer> +--->||
+ *                    ||
+ *                    ||+---+
+ *                    ||    |
+ *                    ++    |
+ *                          |
+ *                          |
+ *                          v
+ *                      Emitter<T>
+ * }
+ * </pre>
  */
 public final class Transistor<T> extends GraphStage<FanInShape2<T, Integer, T>> {
 
-    private final Inlet<T> source = Inlet.create("source");
-    private final Inlet<Integer> gate = Inlet.create("gate");
-    private final Outlet<T> drain = Outlet.create("drain");
-    private final FanInShape2<T, Integer, T> shape = new FanInShape2<>(source, gate, drain);
+    private final Inlet<T> collector = Inlet.create("collector");
+    private final Inlet<Integer> base = Inlet.create("base");
+    private final Outlet<T> emitter = Outlet.create("emitter");
+    private final FanInShape2<T, Integer, T> shape = new FanInShape2<>(collector, base, emitter);
 
     private Transistor() {}
 
@@ -60,7 +87,7 @@ public final class Transistor<T> extends GraphStage<FanInShape2<T, Integer, T>> 
 
     private final class TransistorLogic extends GraphStageLogicWithLogging {
 
-        // how many times I can pull
+        // how many times I am allowed to pull
         private int credit = 0;
 
         // how many times I can push
@@ -72,21 +99,21 @@ public final class Transistor<T> extends GraphStage<FanInShape2<T, Integer, T>> 
         private TransistorLogic() {
             super(shape);
 
-            setHandler(gate, new AbstractInHandler() {
+            setHandler(base, new AbstractInHandler() {
                 @Override
                 public void onPush() {
-                    final int newCredit = grab(gate);
+                    final int newCredit = grab(base);
                     log().debug("credit = {} + {}", credit, newCredit);
                     credit += newCredit;
-                    pull(gate);
+                    pull(base);
                     considerPullSource();
                 }
             });
 
-            setHandler(source, new AbstractInHandler() {
+            setHandler(collector, new AbstractInHandler() {
                 @Override
                 public void onPush() {
-                    final T element = grab(source);
+                    final T element = grab(collector);
                     log().debug("grabbed {}", element);
                     inflight.add(element);
                     considerPushDrain();
@@ -94,7 +121,7 @@ public final class Transistor<T> extends GraphStage<FanInShape2<T, Integer, T>> 
                 }
             });
 
-            setHandler(drain, new AbstractOutHandler() {
+            setHandler(emitter, new AbstractOutHandler() {
                 @Override
                 public void onPull() {
                     demand++;
@@ -106,15 +133,15 @@ public final class Transistor<T> extends GraphStage<FanInShape2<T, Integer, T>> 
 
         @Override
         public void preStart() {
-            pull(gate);
+            pull(base);
         }
 
         private void considerPullSource() {
             if (credit > 0 & demand > 0 && inflight.isEmpty()) {
-                if (!hasBeenPulled(source)) {
+                if (!hasBeenPulled(collector)) {
                     credit--;
                     log().debug("pulling; {} credit left", credit);
-                    pull(source);
+                    pull(collector);
                 }
             }
         }
@@ -124,7 +151,7 @@ public final class Transistor<T> extends GraphStage<FanInShape2<T, Integer, T>> 
                 demand--;
                 final T element = inflight.poll();
                 log().debug("pushing {}; {} demand left", element, demand);
-                push(drain, element);
+                push(emitter, element);
             }
         }
     }

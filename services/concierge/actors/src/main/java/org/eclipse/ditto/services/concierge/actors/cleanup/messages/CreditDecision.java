@@ -12,10 +12,12 @@
  */
 package org.eclipse.ditto.services.concierge.actors.cleanup.messages;
 
+import java.util.Objects;
+
 import javax.annotation.concurrent.Immutable;
 
 /**
- * Decision about how many credits to give to clenaup actions.
+ * Decision about how many credits to give to cleanup actions.
  */
 @Immutable
 public final class CreditDecision {
@@ -67,5 +69,18 @@ public final class CreditDecision {
         return explanation;
     }
 
-    // TODO: Equals, hashcode, test
+    @Override
+    public boolean equals(final Object o) {
+        if (o instanceof CreditDecision) {
+            final CreditDecision that = (CreditDecision) o;
+            return credit == that.credit && Objects.equals(explanation, that.explanation);
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(credit, explanation);
+    }
 }

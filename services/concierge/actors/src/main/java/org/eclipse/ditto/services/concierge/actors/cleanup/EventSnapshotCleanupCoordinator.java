@@ -12,10 +12,22 @@
  */
 package org.eclipse.ditto.services.concierge.actors.cleanup;
 
-import java.time.Duration;
+import org.eclipse.ditto.services.concierge.actors.cleanup.credits.CreditDecisionSource;
+import org.eclipse.ditto.services.concierge.actors.cleanup.messages.CreditDecision;
+import org.eclipse.ditto.services.concierge.actors.cleanup.persistenceids.PersistenceIdSource;
+import org.eclipse.ditto.services.concierge.common.PersistenceCleanupConfig;
+import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 
+import akka.NotUsed;
 import akka.actor.AbstractActor;
+import akka.actor.ActorRef;
+import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
+import akka.stream.Graph;
+import akka.stream.SourceShape;
+import akka.stream.javadsl.Flow;
+import akka.stream.javadsl.Source;
 
 /**
  * Cluster singleton actor to assembles the stream to cleanup old snapshots and events and report on its status.
@@ -51,14 +63,40 @@ import akka.japi.pf.ReceiveBuilder;
  */
 public final class EventSnapshotCleanupCoordinator extends AbstractActor {
 
-    // TODO: turn these into configurations.
-    static final Duration HEALTH_CHECK_INTERVAL = Duration.ofMinutes(1L);
-    static final Duration METRICS_REPORT_INTERVAL = Duration.ofSeconds(5L);
+    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+
+    private final PersistenceCleanupConfig config;
+    private final ActorRef pubSubMediator;
+
+    public EventSnapshotCleanupCoordinator(final PersistenceCleanupConfig config, final ActorRef pubSubMediator) {
+        this.config = config;
+        this.pubSubMediator = pubSubMediator;
+    }
 
     @Override
     public Receive createReceive() {
         // TODO
         return ReceiveBuilder.create()
                 .build();
+    }
+
+    private Source<EntityIdWithRevision, NotUsed> assembleSource() {
+        // TODO
+        return null;
+    }
+
+    private <T> Flow<T, T, NotUsed> reportToSelf() {
+        return Flow.fromFunction(x -> {
+            getSelf().tell(x, getSelf());
+            return x;
+        });
+    }
+
+    private Graph<SourceShape<CreditDecision>, NotUsed> creditDecisionSource() {
+        return CreditDecisionSource.create(config.getCreditDecisionConfig(), getContext(), pubSubMediator, log);
+    }
+
+    private Graph<SourceShape<EntityIdWithRevision>, NotUsed> persistenceIdSource() {
+        return PersistenceIdSource.createInfiniteSource(config.getPersistenceIdsConfig(), pubSubMediator);
     }
 }

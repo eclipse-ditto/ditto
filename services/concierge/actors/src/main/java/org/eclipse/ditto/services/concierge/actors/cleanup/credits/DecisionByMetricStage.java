@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.concierge.actors.cleanup.credits;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
@@ -49,7 +50,7 @@ import scala.util.Right;
  */
 final class DecisionByMetricStage {
 
-    static Graph<FlowShape<List<StatusInfo>, CreditDecision>, NotUsed> create(final long timerThreshold,
+    static Graph<FlowShape<List<StatusInfo>, CreditDecision>, NotUsed> create(final Duration timerThreshold,
             final int creditPerBatch) {
 
         return GraphDSL.create(builder -> {
@@ -57,7 +58,7 @@ final class DecisionByMetricStage {
                     builder.add(Filter.multiplexByEither(DecisionByMetricStage::getMaxTimerNanos));
 
             final FlowShape<Long, CreditDecision> decision =
-                    builder.add(Flow.fromFunction(nanos -> decide(nanos, timerThreshold, creditPerBatch)));
+                    builder.add(Flow.fromFunction(nanos -> decide(nanos, timerThreshold.toNanos(), creditPerBatch)));
 
             final UniformFanInShape<CreditDecision, CreditDecision> merge =
                     builder.add(Merge.create(2, true));
