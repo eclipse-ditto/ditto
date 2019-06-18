@@ -12,10 +12,14 @@
  */
 package org.eclipse.ditto.services.utils.cleanup;
 
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.same;
+
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
-import javax.annotation.Nullable;
-
+import org.mockito.ArgumentMatcher;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +27,7 @@ import akka.persistence.SelectedSnapshot;
 import akka.persistence.SnapshotMetadata;
 import akka.persistence.SnapshotSelectionCriteria;
 import akka.persistence.snapshot.japi.SnapshotStore;
+import scala.compat.java8.FutureConverters;
 import scala.concurrent.Future;
 
 /**
@@ -32,12 +37,9 @@ import scala.concurrent.Future;
 public class MockSnapshotStorePlugin extends SnapshotStore {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MockSnapshotStorePlugin.class);
+    static final String FAIL_DELETE_SNAPSHOT = "failDeleteSnapshot";
 
-    @Nullable private static SnapshotStore mock = null;
-
-    static void setMock(final SnapshotStore journal) {
-        mock = journal;
-    }
+    private static SnapshotStore snapshotStore = Mockito.mock(SnapshotStore.class);
 
     @Override
     public Future<Optional<SelectedSnapshot>> doLoadAsync(final String persistenceId,
@@ -57,16 +59,34 @@ public class MockSnapshotStorePlugin extends SnapshotStore {
     @Override
     public Future<Void> doDeleteAsync(final SnapshotMetadata metadata) {
         LOGGER.debug("[doDeleteAsync]: {}", metadata);
-        return getMock().doDeleteAsync(metadata);
+        snapshotStore.doDeleteAsync(metadata);
+        if (FAIL_DELETE_SNAPSHOT.equals(metadata.persistenceId())) {
+            final CompletableFuture<Void> failDeleteSnapshot = new CompletableFuture<>();
+            failDeleteSnapshot.completeExceptionally(new IllegalStateException(FAIL_DELETE_SNAPSHOT));
+            return FutureConverters.toScala(failDeleteSnapshot);
+        } else {
+            return Future.successful(null);
+        }
     }
 
     @Override
     public Future<Void> doDeleteAsync(final String persistenceId, final SnapshotSelectionCriteria criteria) {
         LOGGER.debug("[doDeleteAsync]: {} -> {}", persistenceId, criteria);
-        return getMock().doDeleteAsync(persistenceId, criteria);
+        snapshotStore.doDeleteAsync(persistenceId, criteria);
+        if (FAIL_DELETE_SNAPSHOT.equals(persistenceId)) {
+            final CompletableFuture<Void> failDeleteSnapshot = new CompletableFuture<>();
+            failDeleteSnapshot.completeExceptionally(new IllegalStateException(FAIL_DELETE_SNAPSHOT));
+            return FutureConverters.toScala(failDeleteSnapshot);
+        } else {
+            return Future.successful(null);
+        }
     }
 
-    private SnapshotStore getMock() {
-        return Optional.ofNullable(mock).orElseThrow(() -> new IllegalStateException("Forgot to set mock?"));
+    static void verify(final String persistenceId, final int toSequenceNr) {
+        Mockito.verify(snapshotStore).doDeleteAsync(same(persistenceId), argThat(matchesCriteria(toSequenceNr)));
+    }
+
+    private static ArgumentMatcher<SnapshotSelectionCriteria> matchesCriteria(final long maxSequenceNumber) {
+        return arg -> arg != null && maxSequenceNumber == arg.maxSequenceNr();
     }
 }

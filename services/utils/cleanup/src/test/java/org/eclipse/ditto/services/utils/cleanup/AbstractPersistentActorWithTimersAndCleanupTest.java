@@ -13,15 +13,12 @@
 package org.eclipse.ditto.services.utils.cleanup;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.eclipse.ditto.services.utils.cleanup.MockJournalPlugin.FAIL_DELETE_MESSAGE;
+import static org.eclipse.ditto.services.utils.cleanup.MockJournalPlugin.SLOW_DELETE;
+import static org.eclipse.ditto.services.utils.cleanup.MockSnapshotStorePlugin.FAIL_DELETE_SNAPSHOT;
 
+import java.time.Duration;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.IntStream;
 
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
@@ -29,13 +26,10 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.cleanup.Cleanup;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupCommandResponse;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-import org.mockito.ArgumentMatcher;
-import org.mockito.Mockito;
 
 import com.typesafe.config.ConfigFactory;
 
@@ -44,25 +38,13 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.japi.Creator;
 import akka.persistence.SaveSnapshotSuccess;
-import akka.persistence.SnapshotMetadata;
-import akka.persistence.SnapshotSelectionCriteria;
-import akka.persistence.journal.japi.AsyncWriteJournal;
-import akka.persistence.snapshot.japi.SnapshotStore;
 import akka.testkit.javadsl.TestKit;
-import scala.compat.java8.FutureConverters;
-import scala.concurrent.Future;
 
 @SuppressWarnings("NullableProblems")
 public class AbstractPersistentActorWithTimersAndCleanupTest {
 
-    private static final String FAIL_DELETE_SNAPSHOT = "failDeleteSnapshot";
-    private static final String FAIL_DELETE_MESSAGE = "failDeleteMessage";
-    private static final String SLOW_DELETE = "slowDelete";
     private static final int SNAPSHOT_THRESHOLD = 5;
-
     private static ActorSystem actorSystem;
-    private AsyncWriteJournal journalMock;
-    private SnapshotStore snapshotStoreMock;
 
     @Rule
     public TestName name = new TestName();
@@ -79,51 +61,8 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
         }
     }
 
-    @Before
-    public void setUp() {
-        journalMock = Mockito.mock(AsyncWriteJournal.class);
-        snapshotStoreMock = Mockito.mock(SnapshotStore.class);
-
-        MockJournalPlugin.setMock(journalMock);
-        MockSnapshotStorePlugin.setMock(snapshotStoreMock);
-
-        // success case - all mocks complete with success
-        configureForSuccess(name.getMethodName());
-
-        // snapshot delete throws exception
-        final CompletableFuture<Void> failDeleteSnapshot = new CompletableFuture<>();
-        failDeleteSnapshot.completeExceptionally(new IllegalStateException(FAIL_DELETE_SNAPSHOT));
-        when(journalMock.doAsyncDeleteMessagesTo(same(FAIL_DELETE_SNAPSHOT), anyLong())).thenReturn(Future.successful(null));
-        when(snapshotStoreMock.doDeleteAsync(argThat(matchesId(FAIL_DELETE_SNAPSHOT)))).thenReturn(
-                FutureConverters.toScala(failDeleteSnapshot));
-        when(snapshotStoreMock.doDeleteAsync(same(FAIL_DELETE_SNAPSHOT),
-                any(SnapshotSelectionCriteria.class))).thenReturn(FutureConverters.toScala(failDeleteSnapshot));
-
-        // message delete throws exception
-        final CompletableFuture<Void> failDeleteMessage = new CompletableFuture<>();
-        failDeleteMessage.completeExceptionally(new IllegalStateException(FAIL_DELETE_MESSAGE));
-        when(journalMock.doAsyncDeleteMessagesTo(same(FAIL_DELETE_MESSAGE), anyLong())).thenReturn(
-                FutureConverters.toScala(failDeleteMessage));
-        when(snapshotStoreMock.doDeleteAsync(argThat(matchesId(FAIL_DELETE_MESSAGE)))).thenReturn(
-                Future.successful(null));
-        when(snapshotStoreMock.doDeleteAsync(same(FAIL_DELETE_MESSAGE),
-                any(SnapshotSelectionCriteria.class))).thenReturn(Future.successful(null));
-
-        // do not complete future to simulate long running delete
-        final CompletableFuture<Void> futureConcurrent = new CompletableFuture<>();
-        when(journalMock.doAsyncDeleteMessagesTo(same(SLOW_DELETE), anyLong()))
-                .thenReturn(FutureConverters.toScala(futureConcurrent));
-    }
-
-    private void configureForSuccess(final String persistenceId) {
-        when(journalMock.doAsyncDeleteMessagesTo(same(persistenceId), anyLong())).thenReturn(Future.successful(null));
-        when(snapshotStoreMock.doDeleteAsync(argThat(matchesId(persistenceId)))).thenReturn(Future.successful(null));
-        when(snapshotStoreMock.doDeleteAsync(same(persistenceId), any(SnapshotSelectionCriteria.class))).thenReturn(Future.successful(null));
-    }
-
-
     @Test
-    public void testDeleteSucceeds() throws InterruptedException {
+    public void testDeleteSucceeds() {
         new TestKit(actorSystem) {{
             // GIVEN: persistence actor with some messages and snapshots
             final ActorRef persistenceActor = childActorOf(DummyPersistentActor.props(persistenceId()));
@@ -136,8 +75,6 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
             final CleanupCommandResponse cleanupCommandResponse = expectMsgClass(CleanupCommandResponse.class);
             assertThat(cleanupCommandResponse.getStatusCode()).isEqualTo(HttpStatusCode.OK);
             verifyPersistencePluginCalledWithCorrectArguments(persistenceId(), 9);
-
-            Thread.sleep(1000);
         }};
     }
 
@@ -207,7 +144,7 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
             // WHEN: concurrent cleanup is sent
             persistenceActor.tell(Cleanup.of(SLOW_DELETE, DittoHeaders.empty()), getRef());
             persistenceActor.tell(Cleanup.of(SLOW_DELETE, DittoHeaders.empty()), getRef());
-            final CleanupCommandResponse cleanupFailed = expectMsgClass(CleanupCommandResponse.class);
+            final CleanupCommandResponse cleanupFailed = expectMsgClass(Duration.ofSeconds(10), CleanupCommandResponse.class);
 
             // THEN: second command is rejected and only first command ist executed by plugin
             assertThat(cleanupFailed.getStatusCode()).isEqualTo(HttpStatusCode.INTERNAL_SERVER_ERROR);
@@ -245,20 +182,14 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
     private void modifyDummyAndWaitForSnapshotSuccess(final TestKit testKit,
             final ActorRef persistenceActor, final int times) {
         IntStream.range(0, times).forEach(i -> persistenceActor.tell("SAVE", ActorRef.noSender()));
-        IntStream.range(0, times / SNAPSHOT_THRESHOLD).forEach(i -> testKit.expectMsgClass(SaveSnapshotSuccess.class));
+        IntStream.range(0, times / SNAPSHOT_THRESHOLD).forEach(i -> testKit.expectMsgClass(Duration.ofSeconds(10),
+                SaveSnapshotSuccess.class));
     }
 
-    private ArgumentMatcher<SnapshotMetadata> matchesId(final String persistenceId) {
-        return arg -> arg != null && persistenceId.equals(arg.persistenceId());
-    }
-
-    private void verifyPersistencePluginCalledWithCorrectArguments(final String persistenceId, final int toSequenceNr) {
-        verify(journalMock).doAsyncDeleteMessagesTo(persistenceId, toSequenceNr);
-        verify(snapshotStoreMock).doDeleteAsync(same(persistenceId), argThat(matchesCriteria(toSequenceNr)));
-    }
-
-    private ArgumentMatcher<SnapshotSelectionCriteria> matchesCriteria(final long maxSequenceNumber) {
-        return arg -> arg != null && maxSequenceNumber == arg.maxSequenceNr();
+    private void verifyPersistencePluginCalledWithCorrectArguments(final String persistenceId,
+            final int toSequenceNumber) {
+        MockJournalPlugin.verify(persistenceId, toSequenceNumber);
+        MockSnapshotStorePlugin.verify(persistenceId, toSequenceNumber);
     }
 
     private String persistenceId() {
