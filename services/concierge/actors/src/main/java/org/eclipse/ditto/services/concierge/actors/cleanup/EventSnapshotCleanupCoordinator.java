@@ -14,10 +14,17 @@ package org.eclipse.ditto.services.concierge.actors.cleanup;
 
 import java.time.Instant;
 import java.util.ArrayDeque;
+import java.util.Collections;
 import java.util.Deque;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.concierge.actors.ShardRegions;
 import org.eclipse.ditto.services.concierge.actors.cleanup.credits.CreditDecisionSource;
@@ -30,6 +37,9 @@ import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.controlflow.Transistor;
+import org.eclipse.ditto.services.utils.health.RetrieveHealth;
+import org.eclipse.ditto.services.utils.health.StatusDetailMessage;
+import org.eclipse.ditto.services.utils.health.StatusInfo;
 import org.eclipse.ditto.signals.commands.cleanup.Cleanup;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
@@ -40,6 +50,7 @@ import akka.Done;
 import akka.NotUsed;
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
+import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
@@ -92,8 +103,23 @@ import scala.PartialFunction;
  */
 public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTimers {
 
+    /**
+     * Name of this actor.
+     */
+    public static final String ACTOR_NAME = "eventSnapshotCleanupCoordinator";
+
+    private static final JsonFieldDefinition<JsonArray> CREDIT_DECISIONS =
+            JsonFactory.newJsonArrayFieldDefinition("credit-decisions");
+
+    private static final JsonFieldDefinition<JsonArray> ACTIONS =
+            JsonFactory.newJsonArrayFieldDefinition("actions");
+
+    private static final JsonFieldDefinition<JsonArray> EVENTS =
+            JsonFactory.newJsonArrayFieldDefinition("events");
+
     private static final String RESOURCE_TYPE = "resource-type";
     private static final String ERROR = "error";
+    private static final String START = "start";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -124,6 +150,20 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
 
     private KillSwitch killSwitch;
 
+    /**
+     * Create Akka Props object for this actor.
+     *
+     * @param config configuration for persistence cleanup.
+     * @param pubSubMediator the pub-sub-mediator.
+     * @param shardRegions shard regions of persistence actors.
+     * @return Props to create this actor with.
+     */
+    public static Props props(final PersistenceCleanupConfig config, final ActorRef pubSubMediator,
+            final ShardRegions shardRegions) {
+
+        return Props.create(EventSnapshotCleanupCoordinator.class, config, pubSubMediator, shardRegions);
+    }
+
     @Override
     public Receive createReceive() {
         return sleeping();
@@ -131,7 +171,8 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
 
     private Receive sleeping() {
         return ReceiveBuilder.create()
-                .matchEquals(Event.WOKE_UP, this::wokeUp)
+                .matchEquals(WokeUp.WOKE_UP, this::wokeUp)
+                .match(RetrieveHealth.class, this::retrieveHealth)
                 .matchAny(message -> log.warning("Unexpected message while sleeping: <{}>", message))
                 .build();
     }
@@ -142,7 +183,8 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
                         enqueue(creditDecisions, creditDecision, config.getKeptCreditDecisions()))
                 .match(CleanupResponse.class, cleanupResponse ->
                         enqueue(actions, cleanupResponse, config.getKeptActions()))
-                .matchEquals(Event.STREAM_TERMINATED, this::streamTerminated)
+                .match(StreamTerminated.class, this::streamTerminated)
+                .match(RetrieveHealth.class, this::retrieveHealth)
                 .matchAny(message -> log.warning("Unexpected message while streaming: <{}>", message))
                 .build();
     }
@@ -184,18 +226,20 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
 
         materializedValues.second()
                 .<Void>handle((result, error) -> {
-                    log.error("Stream terminated. Result=<{}> Error=<{}>", result, error);
-                    getSelf().tell(Event.STREAM_TERMINATED, getSelf());
+                    final String description = String.format("Stream terminated. Result=<%s> Error=<%s>",
+                            Objects.toString(result), Objects.toString(error));
+                    log.info(description);
+                    getSelf().tell(new StreamTerminated(description), getSelf());
                     return null;
                 });
     }
 
     private void scheduleWakeUp() {
-        getTimers().startSingleTimer(Event.WOKE_UP, Event.WOKE_UP, config.getQuietPeriod());
+        getTimers().startSingleTimer(WokeUp.WOKE_UP, WokeUp.WOKE_UP, config.getQuietPeriod());
     }
 
     private Source<EntityIdWithRevision, NotUsed> assembleSource() {
-        return Source.fromGraph(GraphDSL.create(builder -> {
+        final Graph<SourceShape<EntityIdWithRevision>, NotUsed> graph = GraphDSL.create(builder -> {
             final SourceShape<EntityIdWithRevision> persistenceIds = builder.add(persistenceIdSource());
             final SourceShape<Integer> credit = builder.add(creditSource());
             final FanInShape2<EntityIdWithRevision, Integer, EntityIdWithRevision> transistor =
@@ -205,7 +249,9 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
             builder.from(credit.out()).toInlet(transistor.in1());
 
             return SourceShape.of(transistor.out());
-        }));
+        });
+
+        return Source.fromGraph(graph).log("pid-source", log);
     }
 
     private Source<Integer, NotUsed> creditSource() {
@@ -216,7 +262,7 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
     }
 
     private Graph<SourceShape<EntityIdWithRevision>, NotUsed> persistenceIdSource() {
-        return PersistenceIdSource.createInfiniteSource(config.getPersistenceIdsConfig(), pubSubMediator);
+        return PersistenceIdSource.create(config.getPersistenceIdsConfig(), pubSubMediator);
     }
 
     // include self-reporting for acknowledged
@@ -241,6 +287,7 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
         return Flow.<EntityIdWithRevision>create()
                 .mapAsync(config.getParallelism(), askShardRegionByTagType::apply)
                 .via(reportToSelf())
+                .log(EventSnapshotCleanupCoordinator.class.getSimpleName(), log)
                 .toMat(Sink.ignore(), Keep.right());
     }
 
@@ -262,9 +309,57 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
                 });
     }
 
+    private void retrieveHealth(final RetrieveHealth trigger) {
+        getSender().tell(renderStatusInfo(), getSelf());
+    }
+
+    private StatusInfo renderStatusInfo() {
+        return StatusInfo.fromStatus(StatusInfo.Status.UP,
+                Collections.singletonList(StatusDetailMessage.of(StatusDetailMessage.Level.INFO, render())));
+    }
+
+    private JsonObject render() {
+        return JsonObject.newBuilder()
+                .set(EVENTS, events.stream()
+                        .map(EventSnapshotCleanupCoordinator::renderEvent)
+                        .collect(JsonCollectors.valuesToArray()))
+                .set(CREDIT_DECISIONS, creditDecisions.stream()
+                        .map(EventSnapshotCleanupCoordinator::renderCreditDecision)
+                        .collect(JsonCollectors.valuesToArray()))
+                .set(ACTIONS, actions.stream()
+                        .map(EventSnapshotCleanupCoordinator::renderAction)
+                        .collect(JsonCollectors.valuesToArray()))
+                .build();
+    }
+
+    private static JsonObject renderEvent(final Pair<Instant, Event> element) {
+        return JsonObject.newBuilder()
+                .set(element.first().toString(), element.second().name())
+                .build();
+    }
+
+    private static JsonObject renderCreditDecision(final Pair<Instant, CreditDecision> element) {
+        return JsonObject.newBuilder()
+                .set(element.first().toString(), element.second().toString())
+                .build();
+    }
+
+    private static JsonObject renderAction(final Pair<Instant, CleanupResponse> element) {
+        final CleanupResponse response = element.second();
+        final DittoHeaders headers = response.getDittoHeaders();
+        final int status = response.getStatusCodeValue();
+        final String resourceType = headers.getOrDefault(RESOURCE_TYPE, "unknown");
+        final String start = headers.getOrDefault(START, "unknown");
+        final String tagLine = String.format("%d <%s:%s> start=%s", status, resourceType, response.getId(), start);
+        return JsonObject.newBuilder()
+                .set(element.first().toString(), tagLine)
+                .build();
+    }
+
     private static Cleanup getCommand(final String resourceType, final String id) {
         final DittoHeaders headers = DittoHeaders.newBuilder()
                 .putHeader(RESOURCE_TYPE, resourceType)
+                .putHeader(START, Instant.now().toString())
                 .build();
         return Cleanup.of(id, headers);
     }
@@ -276,8 +371,26 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
         }
     }
 
-    private enum Event {
-        WOKE_UP,
-        STREAM_TERMINATED
+    private interface Event {
+
+        String name();
+    }
+
+    private enum WokeUp implements Event {
+        WOKE_UP
+    }
+
+    private final class StreamTerminated implements Event {
+
+        private final String whatHappened;
+
+        private StreamTerminated(final String whatHappened) {
+            this.whatHappened = whatHappened;
+        }
+
+        @Override
+        public String name() {
+            return whatHappened;
+        }
     }
 }

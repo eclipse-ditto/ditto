@@ -83,4 +83,9 @@ public final class CreditDecision {
     public int hashCode() {
         return Objects.hash(credit, explanation);
     }
+
+    @Override
+    public String toString() {
+        return String.format("%d: %s", credit, explanation);
+    }
 }

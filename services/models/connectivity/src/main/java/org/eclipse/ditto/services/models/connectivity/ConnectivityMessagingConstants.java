@@ -33,7 +33,7 @@ public final class ConnectivityMessagingConstants {
     /**
      * Path of the connectivity-stream-provider actor.
      */
-    public static final String STREAM_PROVIDER_ACTOR_PATH = "/connectivityRoot/persistenceStreamingActor";
+    public static final String STREAM_PROVIDER_ACTOR_PATH = "/user/connectivityRoot/persistenceStreamingActor";
 
     /*
      * Inhibit instantiation of this utility class.
