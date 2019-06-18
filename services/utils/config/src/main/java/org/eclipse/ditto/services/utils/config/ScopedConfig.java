@@ -12,6 +12,9 @@
  */
 package org.eclipse.ditto.services.utils.config;
 
+import java.text.MessageFormat;
+import java.time.Duration;
+
 import javax.annotation.concurrent.Immutable;
 
 import com.typesafe.config.Config;
@@ -71,4 +74,37 @@ public interface ScopedConfig extends Config, WithConfigPath {
      * The {@code ditto} "root" scope used in most of the configurations in Eclipse Ditto.
      */
     String DITTO_SCOPE = "ditto";
+
+    /**
+     * Same as {@link #getDuration(String)} but with the guarantee that the returned Duration is non-negative.
+     *
+     * @param withConfigPath provides the config path to get the Duration value for.
+     * @return the duration.
+     * @throws DittoConfigError if the Duration at the config path is negative.
+     */
+    default Duration getNonNegativeDurationOrThrow(final WithConfigPath withConfigPath) {
+        final Duration result = getDuration(withConfigPath.getConfigPath());
+        if (result.isNegative()) {
+            final String msgPattern = "The duration at <{0}> must not be negative but it was <{1}>!";
+            throw new DittoConfigError(MessageFormat.format(msgPattern, withConfigPath.getConfigPath(), result));
+        }
+        return result;
+    }
+
+    /**
+     * Same as {@link #getInt(String)} but with the guarantee that the returned value is positive.
+     *
+     * @param withConfigPath provides the config path to get the int value for.
+     * @return the int value.
+     * @throws DittoConfigError if the int value at the config path is zero or negative.
+     */
+    default int getPositiveIntOrThrow(final WithConfigPath withConfigPath) {
+        final int result = getInt(withConfigPath.getConfigPath());
+        if (1 > result) {
+            final String msgPattern = "The int value at <{0}> must be positive but it was <{1}>!";
+            throw new DittoConfigError(MessageFormat.format(msgPattern, withConfigPath.getConfigPath(), result));
+        }
+        return result;
+    }
+
 }

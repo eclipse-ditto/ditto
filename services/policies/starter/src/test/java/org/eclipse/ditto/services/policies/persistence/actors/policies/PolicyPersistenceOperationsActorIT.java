@@ -14,17 +14,16 @@ package org.eclipse.ditto.services.policies.persistence.actors.policies;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.SubjectType;
-import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicyNamespaceOpsActor;
+import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicyPersistenceOperationsActor;
 import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicySupervisorActor;
 import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSnapshotAdapter;
-import org.eclipse.ditto.services.utils.persistence.mongo.namespace.EventSourceNamespaceOpsActorTestCases;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy;
@@ -32,19 +31,39 @@ import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicyResponse;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicy;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyResponse;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
+import org.junit.Test;
 
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 
 /**
- * Tests {@link org.eclipse.ditto.services.policies.persistence.actors.policy.PolicyNamespaceOpsActor}.
+ * Tests {@link PolicyPersistenceOperationsActor}.
  */
 @AllValuesAreNonnullByDefault
-public final class PolicyNamespaceOpsActorIT extends EventSourceNamespaceOpsActorTestCases {
+public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceITAssertions {
+
+    @Test
+    public void purgeNamespaceWithoutSuffix() {
+        assertPurgeNamespaceWithoutSuffix();
+    }
+
+    @Test
+    public void purgeNamespaceWithSuffix() {
+        assertPurgeNamespaceWithSuffix();
+    }
+
+    @Test
+    public void purgeEntitiesWithNamespaceWithoutSuffix() {
+        assertPurgeEntitiesWithNamespaceWithoutSuffix();
+    }
+
+    @Test
+    public void purgeEntitiesWithNamespaceWithSuffix() {
+        assertPurgeEntitiesWithNamespaceWithSuffix();
+    }
 
     @Override
     protected String getServiceName() {
@@ -52,18 +71,8 @@ public final class PolicyNamespaceOpsActorIT extends EventSourceNamespaceOpsActo
     }
 
     @Override
-    protected Config getExtraConfig() {
-        return ConfigFactory.load("policy-test");
-    }
-
-    @Override
     protected String getResourceType() {
         return PolicyCommand.RESOURCE_TYPE;
-    }
-
-    @Override
-    protected List<String> getSupportedPrefixes() {
-        return Collections.singletonList(PolicyCommand.RESOURCE_TYPE);
     }
 
     @Override
@@ -101,8 +110,9 @@ public final class PolicyNamespaceOpsActorIT extends EventSourceNamespaceOpsActo
     protected ActorRef startActorUnderTest(final ActorSystem actorSystem, final ActorRef pubSubMediator,
             final Config config) {
 
-        final Props namespaceOpsActorProps = PolicyNamespaceOpsActor.props(pubSubMediator);
-        return actorSystem.actorOf(namespaceOpsActorProps, PolicyNamespaceOpsActor.ACTOR_NAME);
+        final Props opsActorProps = PolicyPersistenceOperationsActor.props(pubSubMediator, mongoDbConfig, config,
+                persistenceOperationsConfig);
+        return actorSystem.actorOf(opsActorProps, PolicyPersistenceOperationsActor.ACTOR_NAME);
     }
 
     @Override

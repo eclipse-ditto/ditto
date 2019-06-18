@@ -35,13 +35,13 @@ public interface ShutdownReasonType extends CharSequence {
      */
     @Immutable
     final class Unknown implements ShutdownReasonType {
-        
+
         private final String typeName;
-        
+
         private Unknown(final CharSequence theTypeName) {
             typeName = argumentNotEmpty(theTypeName, "typeName").toString();
         }
-        
+
         /**
          * Returns an instance of {@code Unknown}.
          *
@@ -106,11 +106,16 @@ public interface ShutdownReasonType extends CharSequence {
         /**
          * A namespace is going to be purged.
          */
-        PURGE_NAMESPACE("purge-namespace");
+        PURGE_NAMESPACE("purge-namespace"),
+
+        /**
+         * Entities are going to be purged.
+         */
+        PURGE_ENTITIES("purge-entities");
 
         private final String typeName;
 
-        private Known(final String theTypeName) {
+        Known(final String theTypeName) {
             typeName = theTypeName;
         }
 

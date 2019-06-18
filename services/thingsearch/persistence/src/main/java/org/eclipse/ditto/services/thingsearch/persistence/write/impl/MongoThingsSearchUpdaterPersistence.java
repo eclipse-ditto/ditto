@@ -12,15 +12,15 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.write.impl;
 
-import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETE_AT;
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
 import static com.mongodb.client.model.Filters.in;
 import static com.mongodb.client.model.Filters.lt;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETE_AT;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import org.bson.BsonDateTime;
 import org.bson.BsonDocument;
@@ -30,6 +30,8 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
+import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
+import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.AbstractWriteModel;
 import org.reactivestreams.Publisher;
 
@@ -42,9 +44,6 @@ import com.mongodb.reactivestreams.client.MongoDatabase;
 import akka.NotUsed;
 import akka.japi.pf.PFBuilder;
 import akka.stream.javadsl.Source;
-
-import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
-import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 
 /**
  * MongoDB specific implementation of the {@link ThingsSearchUpdaterPersistence}.
@@ -101,7 +100,7 @@ public final class MongoThingsSearchUpdaterPersistence implements ThingsSearchUp
     }
 
     @Override
-    public Source<Optional<Throwable>, NotUsed> purge(final String namespace) {
+    public Source<List<Throwable>, NotUsed> purge(final CharSequence namespace) {
         final Bson filter = thingNamespaceFilter(namespace);
         final Bson update = new BsonDocument().append(AbstractWriteModel.SET,
                 new BsonDocument().append(FIELD_DELETE_AT, new BsonDateTime(0L)));
@@ -109,13 +108,14 @@ public final class MongoThingsSearchUpdaterPersistence implements ThingsSearchUp
         final WriteModel<Document> writeModel = new UpdateManyModel<>(filter, update, updateOptions);
 
         return Source.fromPublisher(collection.bulkWrite(Collections.singletonList(writeModel)))
-                .map(bulkWriteResult -> Optional.<Throwable>empty())
-                .recoverWithRetries(1, new PFBuilder<Throwable, Source<Optional<Throwable>, NotUsed>>()
-                        .matchAny(throwable -> Source.single(Optional.of(throwable)))
+                .map(bulkWriteResult -> Collections.<Throwable>emptyList())
+                .recoverWithRetries(1, new PFBuilder<Throwable, Source<List<Throwable>, NotUsed>>()
+                        .matchAny(throwable -> Source.single(Collections.singletonList(throwable)))
                         .build());
     }
 
-    private Document thingNamespaceFilter(final String namespace) {
-        return new Document().append(PersistenceConstants.FIELD_NAMESPACE, new BsonString(namespace));
+    private Document thingNamespaceFilter(final CharSequence namespace) {
+        return new Document().append(PersistenceConstants.FIELD_NAMESPACE, new BsonString(namespace.toString()));
     }
+
 }

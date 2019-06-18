@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.services.thingsearch.common.config.DeleteConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.SearchConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.UpdaterConfig;
 import org.eclipse.ditto.services.thingsearch.common.util.RootSupervisorStrategyFactory;
@@ -132,12 +131,9 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final Props manualUpdaterProps = ManualUpdater.props(dittoMongoClient.getDefaultDatabase(), thingsUpdaterActor);
         startClusterSingletonActor(ManualUpdater.ACTOR_NAME, manualUpdaterProps);
 
-        // start namespace ops actor as cluster singleton
-        final DeleteConfig deleteConfig = searchConfig.getDeleteConfig();
-        if (deleteConfig.isDeleteNamespace()) {
-            startClusterSingletonActor(ThingsSearchNamespaceOpsActor.ACTOR_NAME,
-                    ThingsSearchNamespaceOpsActor.props(pubSubMediator, searchUpdaterPersistence));
-        }
+        startChildActor(ThingsSearchPersistenceOperationsActor.ACTOR_NAME,
+                ThingsSearchPersistenceOperationsActor.props(pubSubMediator, searchUpdaterPersistence,
+                        searchConfig.getPersistenceOperationsConfig()));
 
         startThingsStreamSupervisor(updaterConfig.getThingsSyncConfig(), pubSubMediator, materializer,
                 thingsSyncPersistence);
@@ -231,6 +227,11 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     @Override
     public SupervisorStrategy supervisorStrategy() {
         return supervisorStrategy;
+    }
+
+    private ActorRef startChildActor(final String actorName, final Props props) {
+        log.info("Starting child actor <{}>.", actorName);
+        return getContext().actorOf(props, actorName);
     }
 
     private void startClusterSingletonActor(final String actorName, final Props props) {

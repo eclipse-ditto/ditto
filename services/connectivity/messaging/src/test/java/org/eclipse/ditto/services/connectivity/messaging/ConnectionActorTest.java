@@ -113,9 +113,9 @@ public final class ConnectionActorTest extends WithMockServers {
     @Before
     public void init() {
         connectionId = TestConstants.createRandomConnectionId();
-        final Connection connection = TestConstants.createConnection(connectionId, actorSystem);
+        final Connection connection = TestConstants.createConnection(connectionId);
         final Connection closedConnection =
-                TestConstants.createConnection(connectionId, actorSystem, ConnectivityStatus.CLOSED,
+                TestConstants.createConnection(connectionId, ConnectivityStatus.CLOSED,
                         TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT);
         createConnection = CreateConnection.of(connection, DittoHeaders.empty());
         createClosedConnection = CreateConnection.of(closedConnection, DittoHeaders.empty());
@@ -502,7 +502,7 @@ public final class ConnectionActorTest extends WithMockServers {
 
     @Test
     public void testThingEventIsForwardedToFilteredTarget() {
-        final Connection connection = TestConstants.createConnection(connectionId, actorSystem,
+        final Connection connection = TestConstants.createConnection(connectionId,
                 TestConstants.Targets.TARGET_WITH_PLACEHOLDER);
 
         // expect that address is still with placeholders (as replacement was moved to MessageMappingProcessorActor

@@ -127,7 +127,7 @@ public final class DefaultClientActorPropsFactoryTest extends WithMockServers {
 
     private Connection randomConnection(final ConnectionType connectionType) {
         final Connection template =
-                TestConstants.createConnection(TestConstants.createRandomConnectionId(), actorSystem);
+                TestConstants.createConnection(TestConstants.createRandomConnectionId());
 
         return ConnectivityModelFactory
                 .newConnectionBuilder(template.getId(),
