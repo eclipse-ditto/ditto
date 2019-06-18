@@ -17,14 +17,14 @@ import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.KNOWN_THING_ID;
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.UNKNOWN_PATH;
 
-import java.time.Duration;
-
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
+import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.junit.Before;
 import org.junit.Test;
 
+import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.server.Route;
@@ -34,7 +34,7 @@ import akka.http.javadsl.testkit.TestRouteResult;
 /**
  * Tests {@link MessagesRoute}.
  */
-public class MessagesRouteTest extends EndpointTestBase {
+public final class MessagesRouteTest extends EndpointTestBase {
 
     private static final String INBOX_PATH = "/" + MessagesRoute.PATH_INBOX;
     private static final String INBOX_CLAIM_PATH = INBOX_PATH + "/" + MessagesRoute.PATH_CLAIM;
@@ -57,18 +57,17 @@ public class MessagesRouteTest extends EndpointTestBase {
 
     @Before
     public void setUp() {
-        messagesRoute =
-                new MessagesRoute(createDummyResponseActor(), system(), Duration.ofSeconds(1), Duration.ofSeconds(60),
-                        Duration.ofSeconds(1), Duration.ofSeconds(60));
-        final Route thingsMessagesRoute =
-                extractRequestContext(
-                        ctx -> messagesRoute.buildThingsInboxOutboxRoute(ctx, DittoHeaders.newBuilder().build(),
-                                KNOWN_THING_ID));
+        final ActorSystem actorSystem = system();
+        final ProtocolAdapterProvider adapterProvider = ProtocolAdapterProvider.load(protocolConfig, actorSystem);
+
+        messagesRoute = new MessagesRoute(createDummyResponseActor(), actorSystem, messageConfig, claimMessageConfig,
+                httpConfig, adapterProvider.getHttpHeaderTranslator());
+        final Route thingsMessagesRoute = extractRequestContext(
+                ctx -> messagesRoute.buildThingsInboxOutboxRoute(ctx, DittoHeaders.empty(), KNOWN_THING_ID));
         thingsMessagesTestRoute = testRoute(thingsMessagesRoute);
-        final Route featuresMessagesRoute =
-                extractRequestContext(ctx -> messagesRoute.buildFeaturesInboxOutboxRoute(ctx, DittoHeaders
-                                .newBuilder().build(),
-                        KNOWN_THING_ID, KNOWN_FEATURE_ID));
+        final Route featuresMessagesRoute = extractRequestContext(
+                ctx -> messagesRoute.buildFeaturesInboxOutboxRoute(ctx, DittoHeaders.empty(), KNOWN_THING_ID,
+                        KNOWN_FEATURE_ID));
         featuresMessagesTestRoute = testRoute(featuresMessagesRoute);
     }
 

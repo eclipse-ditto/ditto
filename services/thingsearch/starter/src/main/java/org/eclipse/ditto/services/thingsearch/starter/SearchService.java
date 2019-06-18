@@ -12,18 +12,32 @@
  */
 package org.eclipse.ditto.services.thingsearch.starter;
 
+import org.eclipse.ditto.services.base.DittoService;
+import org.eclipse.ditto.services.thingsearch.common.config.DittoSearchConfig;
+import org.eclipse.ditto.services.thingsearch.common.config.SearchConfig;
+import org.eclipse.ditto.services.thingsearch.starter.actors.SearchRootActor;
+import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import akka.actor.ActorRef;
+import akka.actor.Props;
+import akka.stream.ActorMaterializer;
 
 /**
  * Entry point for the Things Search service.
  */
-public class SearchService extends AbstractSearchService {
+public class SearchService extends DittoService<SearchConfig> {
+
+    /**
+     * Name of things-search service.
+     */
+    public static final String SERVICE_NAME = "things-search";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SearchService.class);
 
     private SearchService() {
-        super(LOGGER);
+        super(LOGGER, SERVICE_NAME, SearchRootActor.ACTOR_NAME);
     }
 
     /**
@@ -35,4 +49,17 @@ public class SearchService extends AbstractSearchService {
         final SearchService searchService = new SearchService();
         searchService.start();
     }
+
+    @Override
+    protected SearchConfig getServiceSpecificConfig(final ScopedConfig dittoConfig) {
+        return DittoSearchConfig.of(dittoConfig);
+    }
+
+    @Override
+    protected Props getMainRootActorProps(final SearchConfig searchConfig, final ActorRef pubSubMediator,
+            final ActorMaterializer materializer) {
+
+        return SearchRootActor.props(searchConfig, pubSubMediator, materializer);
+    }
+
 }

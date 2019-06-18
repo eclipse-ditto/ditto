@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.assertj.core.util.Maps;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonArrayBuilder;
 import org.eclipse.ditto.json.JsonFactory;
@@ -285,7 +286,6 @@ public final class ImmutableDittoHeadersTest {
      */
     @Test
     public void allKnownHeadersAreTested() {
-
         final Set<String> testedHeaderNames = createMapContainingAllKnownHeaders().keySet();
 
         final String[] knownHeaderNames = Arrays.stream(DittoHeaderDefinition.values())
@@ -294,6 +294,73 @@ public final class ImmutableDittoHeadersTest {
                 .toArray(String[]::new);
 
         assertThat(testedHeaderNames).containsExactlyInAnyOrder(knownHeaderNames);
+    }
+
+    @Test
+    public void tryToCheckIfEntriesSizeIsGreaterThanNegativeLong() {
+        final long negativeLong = -3L;
+        final ImmutableDittoHeaders underTest = ImmutableDittoHeaders.of(
+                Maps.newHashMap(DittoHeaderDefinition.CORRELATION_ID.getKey(), KNOWN_CORRELATION_ID));
+
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> underTest.isEntriesSizeGreaterThan(negativeLong))
+                .withMessage("The size to compare to must not be negative but it was <%s>!", negativeLong)
+                .withNoCause();
+    }
+
+    @Test
+    public void entriesSizeIsGreaterThanZeroIfHeadersAreNotEmpty() {
+        final ImmutableDittoHeaders underTest = ImmutableDittoHeaders.of(
+                Maps.newHashMap(DittoHeaderDefinition.CORRELATION_ID.getKey(), KNOWN_CORRELATION_ID));
+
+        assertThat(underTest.isEntriesSizeGreaterThan(0)).isTrue();
+    }
+
+    @Test
+    public void entriesSizeIsNotGreaterThanZeroIfHeadersAreEmpty() {
+        final ImmutableDittoHeaders underTest = ImmutableDittoHeaders.of(Collections.emptyMap());
+
+        assertThat(underTest.isEntriesSizeGreaterThan(0)).isFalse();
+    }
+
+    @Test
+    public void entriesSizeIsNotGreaterThanComparedSize() {
+        final String key = DittoHeaderDefinition.CORRELATION_ID.getKey();
+        final String value = KNOWN_CORRELATION_ID;
+        final long comparisonSize = key.length() + value.length();
+        final ImmutableDittoHeaders underTest = ImmutableDittoHeaders.of(Maps.newHashMap(key, value));
+
+        assertThat(underTest.isEntriesSizeGreaterThan(comparisonSize)).isFalse();
+    }
+
+    @Test
+    public void entriesSizeIsGreaterThanComparedSize() {
+        final String key = DittoHeaderDefinition.CORRELATION_ID.getKey();
+        final String value = KNOWN_CORRELATION_ID;
+        final long entrySize = key.length() + value.length();
+        final ImmutableDittoHeaders underTest = ImmutableDittoHeaders.of(Maps.newHashMap(key, value));
+        final long comparisonSize = entrySize - 1;
+
+        assertThat(underTest.isEntriesSizeGreaterThan(comparisonSize)).isTrue();
+    }
+
+    @Test
+    public void truncateLargeHeaders() {
+        final HashMap<String, String> oversizeMap = new HashMap<>();
+        oversizeMap.put("k", ""); // header size=1, total size=1
+        oversizeMap.put("m", "1"); // header size=2, total size=3
+        oversizeMap.put("f", "12"); // header size=3, total size=6
+        oversizeMap.put("d", "123"); // header size=4, total size=10
+        oversizeMap.put("M", "1234"); // header size=5, total size=15
+        final DittoHeaders oversizeHeaders = ImmutableDittoHeaders.of(oversizeMap);
+
+        final DittoHeaders truncatedHeaders = oversizeHeaders.truncate(8L);
+
+        final Map<String, String> expected = new HashMap<>(oversizeMap);
+        expected.remove("d");
+        expected.remove("M");
+
+        assertThat(truncatedHeaders).isEqualTo(expected);
     }
 
     private static Map<String, String> createMapContainingAllKnownHeaders() {

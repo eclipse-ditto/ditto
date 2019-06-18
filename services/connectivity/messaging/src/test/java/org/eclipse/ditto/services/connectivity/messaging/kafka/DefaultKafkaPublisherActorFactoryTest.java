@@ -14,24 +14,29 @@ package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.Before;
 import org.junit.Test;
 
 /**
  * Unit test for {@link org.eclipse.ditto.services.connectivity.messaging.kafka.KafkaPublisherActorFactory}.
  */
-public class DefaultKafkaPublisherActorFactoryTest {
+public final class DefaultKafkaPublisherActorFactoryTest {
 
-    private DefaultKafkaPublisherActorFactory underTest = DefaultKafkaPublisherActorFactory.getInstance();
+    private DefaultKafkaPublisherActorFactory underTest;
+
+    @Before
+    public void setUp() {
+        underTest = DefaultKafkaPublisherActorFactory.getInstance();
+    }
 
     @Test
     public void testName() {
-        assertThat(underTest.name()).isEqualTo(KafkaPublisherActor.ACTOR_NAME);
+        assertThat(underTest.getActorName()).isEqualTo(KafkaPublisherActor.ACTOR_NAME);
     }
 
     @Test
     public void testProps() {
-        assertThat(underTest.props(null, null, null, null, false))
-                .isNotNull();
+        assertThat(underTest.props(null, null, null, null, false)).isNotNull();
     }
 
 }

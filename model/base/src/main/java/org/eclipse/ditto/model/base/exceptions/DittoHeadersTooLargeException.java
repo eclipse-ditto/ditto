@@ -15,6 +15,7 @@ package org.eclipse.ditto.model.base.exceptions;
 import static org.eclipse.ditto.model.base.common.HttpStatusCode.REQUEST_HEADER_FIELDS_TOO_LARGE;
 
 import java.net.URI;
+import java.text.MessageFormat;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -53,10 +54,9 @@ public final class DittoHeadersTooLargeException extends DittoRuntimeException {
      * @param maxSize maximum size of the headers.
      * @return the builder.
      */
-    public static DittoRuntimeExceptionBuilder<DittoHeadersTooLargeException> newSizeLimitBuilder(final int maxSize) {
-        final String description =
-                String.format("The number of bytes exceeded the maximum allowed value %d.", maxSize);
-        return new Builder().description(description);
+    public static DittoRuntimeExceptionBuilder<DittoHeadersTooLargeException> newSizeLimitBuilder(final long maxSize) {
+        final String msgPattern = "The number of bytes exceeded the maximum allowed value <{0}>!";
+        return new Builder().description(MessageFormat.format(msgPattern, maxSize));
     }
 
     /**
@@ -68,10 +68,9 @@ public final class DittoHeadersTooLargeException extends DittoRuntimeException {
      */
     public static DittoRuntimeExceptionBuilder<DittoHeadersTooLargeException> newAuthSubjectsLimitBuilder(
             final int actualAuthSubjectCount, final int maxAuthSubjectsCount) {
-        final String description =
-                String.format("The number of authorization subjects %d exceeded the maximum allowed value %d.",
-                        actualAuthSubjectCount, maxAuthSubjectsCount);
-        return new Builder().description(description);
+
+        final String msgPtrn = "The number of authorization subjects <{0}> exceeded the maximum allowed value <{1}>.";
+        return new Builder().description(MessageFormat.format(msgPtrn, actualAuthSubjectCount, maxAuthSubjectsCount));
     }
 
     /**

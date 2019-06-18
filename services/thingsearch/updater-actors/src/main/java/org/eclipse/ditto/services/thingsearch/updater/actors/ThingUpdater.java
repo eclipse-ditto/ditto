@@ -24,8 +24,11 @@ import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.streaming.IdentifiableStreamingMessage;
 import org.eclipse.ditto.services.models.things.ThingTag;
+import org.eclipse.ditto.services.thingsearch.common.config.DittoSearchConfig;
+import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.actor.AbstractActor;
@@ -35,8 +38,6 @@ import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.event.Logging;
-
-import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
 
 /**
  * This Actor initiates persistence updates related to 1 thing.
@@ -55,14 +56,17 @@ final class ThingUpdater extends AbstractActor {
     private long policyRevision = -1L;
 
     private ThingUpdater(final ActorRef pubSubMediator,
-            final ActorRef changeQueueActor,
-            final java.time.Duration maxIdleTime) {
+            final ActorRef changeQueueActor) {
+
+        final DittoSearchConfig dittoSearchConfig = DittoSearchConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        );
 
         thingId = tryToGetThingId();
         shutdownNamespaceBehavior = ShutdownNamespaceBehavior.fromId(thingId, pubSubMediator, getSelf());
         this.changeQueueActor = changeQueueActor;
 
-        getContext().setReceiveTimeout(maxIdleTime);
+        getContext().setReceiveTimeout(dittoSearchConfig.getUpdaterConfig().getMaxIdleTime());
     }
 
     /**
@@ -70,15 +74,11 @@ final class ThingUpdater extends AbstractActor {
      *
      * @param pubSubMediator Akka pub-sub mediator.
      * @param changeQueueActor reference of the change queue actor.
-     * @param maxIdleTime the interval at which is checked, if the corresponding Thing is still actively
-     * updated.
      * @return the Akka configuration Props object
      */
-    static Props props(final ActorRef pubSubMediator,
-            final ActorRef changeQueueActor,
-            final java.time.Duration maxIdleTime) {
+    static Props props(final ActorRef pubSubMediator, final ActorRef changeQueueActor) {
 
-        return Props.create(ThingUpdater.class, () -> new ThingUpdater(pubSubMediator, changeQueueActor, maxIdleTime));
+        return Props.create(ThingUpdater.class, pubSubMediator, changeQueueActor);
     }
 
     @Override

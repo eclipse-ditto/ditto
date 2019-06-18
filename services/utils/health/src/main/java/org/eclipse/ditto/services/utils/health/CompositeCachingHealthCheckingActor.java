@@ -23,7 +23,6 @@ import java.util.concurrent.TimeUnit;
 import akka.actor.ActorRef;
 import akka.actor.Cancellable;
 import akka.actor.Props;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -45,6 +44,7 @@ public final class CompositeCachingHealthCheckingActor extends AbstractHealthChe
     /**
      * Constructs a {@link CompositeCachingHealthCheckingActor}.
      */
+    @SuppressWarnings("unused")
     private CompositeCachingHealthCheckingActor(final Map<String, Props> childActorProps, final Duration updateInterval,
             final boolean enabled) {
         this.labelsToChildActors = new LinkedHashMap<>();
@@ -73,14 +73,8 @@ public final class CompositeCachingHealthCheckingActor extends AbstractHealthChe
      */
     public static Props props(final Map<String, Props> childActorProps, final Duration updateInterval,
             final boolean enabled) {
-        return Props.create(CompositeCachingHealthCheckingActor.class, new Creator<CompositeCachingHealthCheckingActor>() {
-            private static final long serialVersionUID = 1L;
 
-            @Override
-            public CompositeCachingHealthCheckingActor create() {
-                return new CompositeCachingHealthCheckingActor(childActorProps, updateInterval, enabled);
-            }
-        });
+        return Props.create(CompositeCachingHealthCheckingActor.class, childActorProps, updateInterval, enabled);
     }
 
     @Override

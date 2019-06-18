@@ -46,8 +46,10 @@ import org.mockito.Mockito;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
+import akka.routing.ConsistentHashingPool;
+import akka.routing.ConsistentHashingRouter;
 import akka.routing.DefaultResizer;
-import akka.routing.RoundRobinPool;
+import akka.routing.Resizer;
 import akka.testkit.javadsl.TestKit;
 
 /**
@@ -142,13 +144,7 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
                             .getProperties()
             );
 
-            final MessageMappingProcessor mappingProcessor = getMessageMappingProcessor(mappingContext);
-
-            final Props messageMappingProcessorProps =
-                    MessageMappingProcessorActor.props(getRef(), getRef(), mappingProcessor, CONNECTION_ID);
-
-            final ActorRef processor = actorSystem.actorOf(messageMappingProcessorProps,
-                    MessageMappingProcessorActor.ACTOR_NAME + "-plainStringMappingTest");
+            final ActorRef processor = setupActor(getRef(), getRef(), mappingContext);
 
             final Source source = Mockito.mock(Source.class);
             Mockito.when(source.getAuthorizationContext())
@@ -193,21 +189,23 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
             final ActorRef underTest = setupActor(getTestActor(), getTestActor(), null);
             final ExternalMessage in =
                     ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap()).withText("").build();
-            underTest.tell(in, null);
+            final ConsistentHashingRouter.ConsistentHashableEnvelope msg =
+                    new ConsistentHashingRouter.ConsistentHashableEnvelope(in, "foo");
+            underTest.tell(msg, null);
         }};
     }
 
     private ActorRef setupActor(final ActorRef publisherActor, final ActorRef conciergeForwarderActor,
-            @Nullable final MappingContext mappingContext) {
+            final MappingContext mappingContext) {
         final MessageMappingProcessor mappingProcessor = getMessageMappingProcessor(mappingContext);
 
         final Props messageMappingProcessorProps =
                 MessageMappingProcessorActor.props(publisherActor, conciergeForwarderActor, mappingProcessor,
                         CONNECTION_ID);
 
-        final DefaultResizer resizer = new DefaultResizer(1, 5);
+        final Resizer resizer = new DefaultResizer(2, 2);
 
-        return actorSystem.actorOf(new RoundRobinPool(2)
+        return actorSystem.actorOf(new ConsistentHashingPool(2)
                         .withDispatcher("message-mapping-processor-dispatcher")
                         .withResizer(resizer)
                         .props(messageMappingProcessorProps),
@@ -219,13 +217,7 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
         new TestKit(actorSystem) {{
 
             final ActorRef testActor = getTestActor();
-            final MessageMappingProcessor mappingProcessor = getMessageMappingProcessor(null);
-
-            final Props messageMappingProcessorProps =
-                    MessageMappingProcessorActor.props(testActor, testActor, mappingProcessor, CONNECTION_ID);
-
-            final ActorRef processor = actorSystem.actorOf(messageMappingProcessorProps,
-                    MessageMappingProcessorActor.ACTOR_NAME + "-jmsMessageWithNullPropertyAndNullContentTypeTest");
+            final ActorRef processor = setupActor(testActor, testActor, null);
 
             final Source source = Mockito.mock(Source.class);
             Mockito.when(source.getAuthorizationContext())
@@ -258,8 +250,9 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
         }};
     }
 
-    private MessageMappingProcessor getMessageMappingProcessor(@Nullable final MappingContext mappingContext) {
-        return MessageMappingProcessor.of(CONNECTION_ID, mappingContext, actorSystem,
-                Mockito.mock(DiagnosticLoggingAdapter.class));
+    private static MessageMappingProcessor getMessageMappingProcessor(@Nullable final MappingContext mappingContext) {
+        return MessageMappingProcessor.of(CONNECTION_ID, mappingContext, actorSystem, TestConstants.CONNECTIVITY_CONFIG,
+                protocolAdapterProvider, Mockito.mock(DiagnosticLoggingAdapter.class));
     }
+
 }

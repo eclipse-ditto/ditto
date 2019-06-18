@@ -25,7 +25,6 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.PatternsCS;
 import akka.util.Timeout;
@@ -55,6 +54,7 @@ public final class StatusSupplierActor extends AbstractActor {
 
     private final String rootActorName;
 
+    @SuppressWarnings("unused")
     private StatusSupplierActor(final String rootActorName) {
         this.rootActorName = rootActorName;
     }
@@ -67,14 +67,8 @@ public final class StatusSupplierActor extends AbstractActor {
      * @return the Akka configuration Props object
      */
     public static Props props(final String rootActorName) {
-        return Props.create(StatusSupplierActor.class, new Creator<StatusSupplierActor>() {
-            private static final long serialVersionUID = 1L;
 
-            @Override
-            public StatusSupplierActor create() throws Exception {
-                return new StatusSupplierActor(rootActorName);
-            }
-        });
+        return Props.create(StatusSupplierActor.class, rootActorName);
     }
 
     @Override

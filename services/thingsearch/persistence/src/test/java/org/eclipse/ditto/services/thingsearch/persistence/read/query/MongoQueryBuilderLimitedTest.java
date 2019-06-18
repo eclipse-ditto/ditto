@@ -23,12 +23,14 @@ import org.eclipse.ditto.model.query.SortDirection;
 import org.eclipse.ditto.model.query.SortOption;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.expression.SimpleFieldExpressionImpl;
-import org.eclipse.ditto.services.base.config.DittoLimitsConfigReader;
-import org.eclipse.ditto.services.base.config.LimitsConfigReader;
+import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
+import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 /**
@@ -39,16 +41,24 @@ public final class MongoQueryBuilderLimitedTest {
     private static final SortOption KNOWN_SORT_OPTION =
             new SortOption(new SimpleFieldExpressionImpl(FIELD_ID), SortDirection.DESC);
 
-    private Criteria criteria = Mockito.mock(Criteria.class);
-    private MongoQueryBuilder underTest;
+    private static DefaultLimitsConfig limitsConfig;
+
+    private final Criteria criteria = Mockito.mock(Criteria.class);
+
     private int maxPageSizeFromConfig;
     private int defaultPageSizeFromConfig;
+    private MongoQueryBuilder underTest;
+
+    @BeforeClass
+    public static void initTestFixture() {
+        final Config testConfig = ConfigFactory.load("test");
+        limitsConfig = DefaultLimitsConfig.of(testConfig.getConfig(ScopedConfig.DITTO_SCOPE));
+    }
 
     @Before
     public void setUp() {
-        final LimitsConfigReader limitsConfigReader = DittoLimitsConfigReader.fromRawConfig(ConfigFactory.load("test"));
-        maxPageSizeFromConfig = limitsConfigReader.thingsSearchMaxPageSize();
-        defaultPageSizeFromConfig = limitsConfigReader.thingsSearchDefaultPageSize();
+        maxPageSizeFromConfig = limitsConfig.getThingsSearchMaxPageSize();
+        defaultPageSizeFromConfig = limitsConfig.getThingsSearchDefaultPageSize();
         underTest = MongoQueryBuilder.limited(criteria, maxPageSizeFromConfig, defaultPageSizeFromConfig);
     }
 

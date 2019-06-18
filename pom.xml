@@ -162,6 +162,28 @@
                 <role>Committer</role>
             </roles>
         </developer>
+        <developer>
+            <id>stmaute</id>
+            <name>Stefan Maute</name>
+            <email>stefan.maute@bosch-si.com</email>
+            <url>https://github.com/stmaute</url>
+            <organization>Bosch Software Innovations GmbH</organization>
+            <organizationUrl>http://www.bosch-si.com</organizationUrl>
+            <roles>
+                <role>Committer</role>
+            </roles>
+        </developer>
+        <developer>
+            <id>Yannic92</id>
+            <name>Yannic Klem</name>
+            <email>yannic.klem@bosch-si.com</email>
+            <url>https://github.com/Yannic92</url>
+            <organization>Bosch Software Innovations GmbH</organization>
+            <organizationUrl>http://www.bosch-si.com</organizationUrl>
+            <roles>
+                <role>Committer</role>
+            </roles>
+        </developer>
     </developers>
 
     <modules>
@@ -557,6 +579,9 @@
                     </excludes>
                     <useDefaultExcludes>true</useDefaultExcludes>
                     <encoding>UTF-8</encoding>
+                    <mapping>
+                        <java>SLASHSTAR_STYLE</java>
+                    </mapping>
                 </configuration>
                 <executions>
                     <execution>

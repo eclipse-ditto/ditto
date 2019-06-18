@@ -12,6 +12,11 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.suffixes;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
+import java.text.MessageFormat;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
@@ -20,9 +25,11 @@ import org.slf4j.LoggerFactory;
 import akka.contrib.persistence.mongodb.CanSuffixCollectionNames;
 
 /**
- * Class to get suffix of a collection name based on the persistenceId of an entity.
+ * Class to get suffix of a collection name based on the persistence ID of an entity.
  */
 public final class NamespaceSuffixCollectionNames implements CanSuffixCollectionNames {
+
+    static final int MAX_SUFFIX_CHARS_LENGTH = 45;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NamespaceSuffixCollectionNames.class);
 
@@ -31,44 +38,45 @@ public final class NamespaceSuffixCollectionNames implements CanSuffixCollection
     private static final String REPLACE_REGEX =
             String.format("[%s]", Pattern.quote(new String(FORBIDDEN_CHARS_IN_MONGO_COLLECTION_NAMES)));
 
-    static final int MAX_SUFFIX_CHARS_LENGTH = 45;
-
-    private static SuffixBuilderConfig suffixBuilderConfig;
+    private static final Collection<String> SUPPORTED_PREFIXES = new HashSet<>();
 
     /**
-     * Injects the {@link SuffixBuilderConfig} to use for the instance of this service.
+     * Globally sets the provided supported prefixes.
+     * The currently set prefixes are completely replaced.
      *
-     * @param suffixBuilderConfig the SuffixBuilderConfig to use
+     * @param supportedPrefixes the prefixes that are supported by this service.
+     * @throws NullPointerException if {@code supportedPrefixes} is {@code null}.
      */
-    public static void setConfig(final SuffixBuilderConfig suffixBuilderConfig) {
-        NamespaceSuffixCollectionNames.suffixBuilderConfig = suffixBuilderConfig;
-        LOGGER.info("Namespace appending to mongodb collection names is enabled");
+    public static void setSupportedPrefixes(final Collection<String> supportedPrefixes) {
+        checkNotNull(supportedPrefixes, "supported prefixes");
+        resetConfig();
+        SUPPORTED_PREFIXES.addAll(supportedPrefixes);
+        LOGGER.info("Namespace appending to MongoDB collection names is enabled.");
     }
 
     /**
      * Resets the SuffixBuilderConfig to use.
      */
     static void resetConfig() {
-        suffixBuilderConfig = null;
+        SUPPORTED_PREFIXES.clear();
     }
 
     /**
-     * Gets the suffix of the collection name for the given persistenceId.
+     * Gets the suffix of the collection name for the given persistence ID.
      *
-     * @param persistenceId The persistenceId of the entity.
-     * @return The suffix for the collection name without any forbidden characters.
+     * @param persistenceId the persistence ID of the entity.
+     * @return the suffix for the collection name without any forbidden characters.
+     * @throws PersistenceIdInvalidException if {@code persistenceId} did not contain at least two colons ({@code ":"}.
      */
     @Override
     public String getSuffixFromPersistenceId(final String persistenceId) {
-
         final String[] persistenceIdSplitByColons = persistenceId.split(":");
-
         if (persistenceIdSplitByColons.length < 2) {
             throw new PersistenceIdInvalidException(persistenceId);
         }
 
         final String prefix = persistenceIdSplitByColons[0];
-        if (!suffixBuilderConfig.getSupportedPrefixes().contains(prefix)) {
+        if (!SUPPORTED_PREFIXES.contains(prefix)) {
             return "";
         }
 
@@ -78,8 +86,8 @@ public final class NamespaceSuffixCollectionNames implements CanSuffixCollection
     /**
      * Removes all characters that are forbidden in mongodb collection names.
      *
-     * @param input The original input
-     * @return The input without forbidden characters which  are replaced by "#"
+     * @param input the original input.
+     * @return the input without forbidden characters which  are replaced by "#".
      */
     @Override
     public String validateMongoCharacters(final String input) {
@@ -87,10 +95,10 @@ public final class NamespaceSuffixCollectionNames implements CanSuffixCollection
     }
 
     /**
-     * Removes all characters that are forbidden in mongodb collection names.
+     * Removes all characters that are forbidden in MongoDB collection names.
      *
-     * @param input The original input
-     * @return The input without forbidden characters which  are replaced by "#"
+     * @param input the original input.
+     * @return the input without forbidden characters which  are replaced by "#".
      */
     static String doValidateMongoCharacters(final String input) {
         final String escaped = input.replaceAll(REPLACE_REGEX, "#");
@@ -110,7 +118,10 @@ public final class NamespaceSuffixCollectionNames implements CanSuffixCollection
         private static final long serialVersionUID = -4789912839628096316L;
 
         private  PersistenceIdInvalidException(final String persistenceId){
-            super(String.format("Persistence id <%s> is not in the expected format of <prefix:namespace:name>", persistenceId));
+            super(MessageFormat.format("Persistence ID <{0}> is not in the expected format of <prefix:namespace:name>!",
+                    persistenceId));
         }
+
     }
+
 }

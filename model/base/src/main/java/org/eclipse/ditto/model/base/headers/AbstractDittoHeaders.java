@@ -12,10 +12,13 @@
  */
 package org.eclipse.ditto.model.base.headers;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkArgument;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -218,6 +221,59 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     @Override
     public Set<Entry<String, String>> entrySet() {
         return headers.entrySet();
+    }
+
+    @Override
+    public boolean isEntriesSizeGreaterThan(final long size) {
+        checkArgument(size, s -> 0 <= size,
+                () -> MessageFormat.format("The size to compare to must not be negative but it was <{0}>!", size));
+
+        long quota = size;
+
+        for (final Entry<String, String> entry : headers.entrySet()) {
+            quota -= getEntryLength(entry);
+            if (0 > quota) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public DittoHeaders truncate(final long maxSizeBytes) {
+        checkArgument(maxSizeBytes, s -> 0 <= maxSizeBytes,
+                () -> MessageFormat.format("The max size bytes must not be negative but it was <{0}>!", maxSizeBytes));
+
+        final DittoHeadersBuilder builder = DittoHeaders.newBuilder();
+        long quota = maxSizeBytes;
+
+        for (final Map.Entry<String, String> entry : getSortedEntriesByLength()) {
+            quota -= getEntryLength(entry);
+            if (quota < 0) {
+                break;
+            }
+            builder.putHeader(entry.getKey(), entry.getValue());
+        }
+        return builder.build();
+    }
+
+    /*
+     * Returns the header entries sorted by their length. The sort order is ascending,
+     * i. e. the smallest entry is the first.
+     */
+    @Nonnull
+    private List<Entry<String, String>> getSortedEntriesByLength() {
+        return headers.entrySet()
+                    .stream()
+                    .sorted(Comparator.comparingInt(AbstractDittoHeaders::getEntryLength))
+                    .collect(Collectors.toList());
+    }
+
+    private static int getEntryLength(final Map.Entry<String, String> entry) {
+        final String key = entry.getKey();
+        final String value = entry.getValue();
+
+        return key.length() + value.length();
     }
 
     @Override

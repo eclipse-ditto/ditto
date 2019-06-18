@@ -16,11 +16,13 @@ import static java.util.stream.Collectors.toMap;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
 import javax.jms.BytesMessage;
@@ -31,6 +33,7 @@ import javax.jms.MessageConsumer;
 import javax.jms.MessageListener;
 import javax.jms.TextMessage;
 
+import org.apache.qpid.jms.JmsMessageConsumer;
 import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.message.facade.JmsMessageFacade;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsMessageFacade;
@@ -45,17 +48,20 @@ import org.eclipse.ditto.model.placeholders.EnforcementFactoryFactory;
 import org.eclipse.ditto.model.placeholders.EnforcementFilterFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.BaseConsumerActor;
+import org.eclipse.ditto.services.connectivity.messaging.config.Amqp10Config;
+import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
+import akka.routing.ConsistentHashingRouter;
 
 /**
  * Actor which receives message from an AMQP source and forwards them to a {@code MessageMappingProcessorActor}.
@@ -66,11 +72,20 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
      * The name prefix of this Actor in the ActorSystem.
      */
     static final String ACTOR_NAME_PREFIX = "amqpConsumerActor-";
+    private static final String RESTART_MESSAGE_CONSUMER = "restartMessageConsumer";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final MessageConsumer messageConsumer;
     private final EnforcementFilterFactory<Map<String, String>, String> headerEnforcementFilterFactory;
 
+    // the configured throttling interval
+    private final Duration throttlingInterval;
+    // the configured maximum of messages per interval
+    private final int throttlingLimit;
+    // the state for message throttling
+    private final AtomicReference<ThrottleState> throttleState;
+
+    @SuppressWarnings("unused")
     private AmqpConsumerActor(final String connectionId, final String sourceAddress,
             final MessageConsumer messageConsumer,
             final ActorRef messageMappingProcessor, final Source source) {
@@ -78,6 +93,13 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                 source.getHeaderMapping().orElse(null));
         this.messageConsumer = checkNotNull(messageConsumer);
         checkNotNull(source, "source");
+
+        final Amqp10Config amqp10Config = DittoConnectivityConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        ).getConnectionConfig().getAmqp10Config();
+        throttlingInterval = amqp10Config.getConsumerThrottlingInterval();
+        throttlingLimit = amqp10Config.getConsumerThrottlingLimit();
+        throttleState = new AtomicReference<>(new ThrottleState(0L, 0));
 
         final Enforcement enforcement = source.getEnforcement().orElse(null);
 
@@ -89,7 +111,6 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     /**
      * Creates Akka configuration object {@link Props} for this {@code AmqpConsumerActor}.
      *
-     *
      * @param connectionId the connection id
      * @param sourceAddress the source address of messages
      * @param messageConsumer the JMS message consumer
@@ -100,20 +121,15 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     static Props props(final String connectionId, final String sourceAddress,
             final MessageConsumer messageConsumer,
             final ActorRef messageMappingProcessor, final Source source) {
-        return Props.create(AmqpConsumerActor.class, new Creator<AmqpConsumerActor>() {
-            private static final long serialVersionUID = 1L;
 
-            @Override
-            public AmqpConsumerActor create() {
-                return new AmqpConsumerActor(connectionId, sourceAddress, messageConsumer, messageMappingProcessor,
-                        source);
-            }
-        });
+        return Props.create(AmqpConsumerActor.class, connectionId, sourceAddress, messageConsumer,
+                messageMappingProcessor, source);
     }
 
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
+                .match(RestartMessageConsumer.class, this::handleRestartMessageConsumer)
                 .match(JmsMessage.class, this::handleJmsMessage)
                 .match(ResourceStatus.class, this::handleAddressStatus)
                 .match(RetrieveAddressStatus.class, ras -> getSender().tell(getCurrentSourceStatus(), getSelf()))
@@ -143,33 +159,88 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     @Override
     public void onMessage(final Message message) {
         getSelf().tell(message, ActorRef.noSender());
+        if (isThrottlingEnabled()) {
+            throttleMessageConsumer();
+        }
+    }
+
+    private boolean isThrottlingEnabled() {
+        return throttlingInterval.toMillis() > 0 && throttlingLimit > 0;
+    }
+
+    /**
+     * Tracks the number of messages consumed within the last {@code throttlingInterval}. If the number exceeds the
+     * configured {@code throttlingLimit} the messageConsumer is stopped and scheduled to be restarted after the
+     * current interval. The method is always called from the same JMS dispatcher thread.
+     */
+    private void throttleMessageConsumer() {
+        final long interval = System.currentTimeMillis() / throttlingInterval.toMillis();
+        final ThrottleState state = throttleState.updateAndGet(previousState -> {
+            final int nextMessages;
+            if (interval == previousState.currentInterval) {
+                nextMessages = previousState.currentMessagePerInterval + 1;
+            } else {
+                nextMessages = 1;
+            }
+            return new ThrottleState(interval, nextMessages);
+        });
+        if (state.currentMessagePerInterval >= throttlingLimit) {
+            log.info("Stopping message consumer, message limit of {}/{} exceeded.", throttlingLimit,
+                    throttlingInterval);
+            ((JmsMessageConsumer) messageConsumer).stop();
+            // calculate timestamp of next interval when the consumer should be restarted
+            final long restartConsumerAt = (interval + 1) * throttlingInterval.toMillis();
+            getSelf().tell(new RestartMessageConsumer(restartConsumerAt), ActorRef.noSender());
+        }
+    }
+
+    /**
+     * Restarts the message consumer either immediately or schedules the restart of the consumer with some delay.
+     *
+     * @param restartMessageConsumer the message signalling that we should restart the consumer
+     */
+    private void handleRestartMessageConsumer(final RestartMessageConsumer restartMessageConsumer) {
+        final long delay = restartMessageConsumer.getRestartAt() - System.currentTimeMillis();
+        if (delay <= 25) { // restart message consumer immediately if delay is negative or too small to schedule
+            log.debug("Restarting message consumer.");
+            ((JmsMessageConsumer) messageConsumer).start();
+        } else { // otherwise schedule restarting of consumer
+            log.debug("Scheduling restart of message consumer after {}ms.", delay);
+            getTimers().startSingleTimer(RESTART_MESSAGE_CONSUMER, restartMessageConsumer, Duration.ofMillis(delay));
+        }
     }
 
     private void handleJmsMessage(final JmsMessage message) {
         Map<String, String> headers = null;
+        String hashKey = "";
         try {
+            hashKey = message.getJMSDestination() != null ? message.getJMSDestination().toString() : sourceAddress;
             headers = extractHeadersMapFromJmsMessage(message);
             final ExternalMessageBuilder builder = ExternalMessageFactory.newExternalMessageBuilder(headers);
             final ExternalMessage externalMessage = extractPayloadFromMessage(message, builder)
-                        .withAuthorizationContext(authorizationContext)
-                        .withEnforcement(headerEnforcementFilterFactory.getFilter(headers)).withHeaderMapping(headerMapping)
-                        .withSourceAddress(sourceAddress)
-                        .build();
+                    .withAuthorizationContext(authorizationContext)
+                    .withEnforcement(headerEnforcementFilterFactory.getFilter(headers)).withHeaderMapping(headerMapping)
+                    .withSourceAddress(sourceAddress)
+                    .build();
             inboundCounter.recordSuccess();
 
-            LogUtil.enhanceLogWithCorrelationId(log, externalMessage.findHeader(DittoHeaderDefinition.CORRELATION_ID.getKey()));
+            LogUtil.enhanceLogWithCorrelationId(log,
+                    externalMessage.findHeader(DittoHeaderDefinition.CORRELATION_ID.getKey()));
             if (log.isDebugEnabled()) {
                 log.debug("Received message from AMQP 1.0 ({}): {}", externalMessage.getHeaders(),
                         externalMessage.getTextPayload().orElse("binary"));
             }
-            messageMappingProcessor.forward(externalMessage, getContext());
+            final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(externalMessage, hashKey);
+            messageMappingProcessor.forward(msg, getContext());
         } catch (final DittoRuntimeException e) {
             inboundCounter.recordFailure();
             log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());
             if (headers != null) {
                 // forwarding to messageMappingProcessor only make sense if we were able to extract the headers,
                 // because we need a reply-to address to send the error response
-                messageMappingProcessor.forward(e.setDittoHeaders(DittoHeaders.of(headers)), getContext());
+                final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(
+                        e.setDittoHeaders(DittoHeaders.of(headers)), hashKey);
+                messageMappingProcessor.forward(msg, getContext());
             }
         } catch (final Exception e) {
             inboundCounter.recordFailure();
@@ -258,6 +329,30 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
         } catch (final JMSException e) {
             log.debug("Property '{}' could not be read, dropping...", key);
             return null;
+        }
+    }
+
+    private static final class RestartMessageConsumer {
+
+        private long restartAt;
+
+        private RestartMessageConsumer(final long restartAt) {
+            this.restartAt = restartAt;
+        }
+
+        private long getRestartAt() {
+            return restartAt;
+        }
+    }
+
+    private static final class ThrottleState {
+
+        private final long currentInterval;
+        private final int currentMessagePerInterval;
+
+        private ThrottleState(final long currentInterval, final int currentMessagePerInterval) {
+            this.currentInterval = currentInterval;
+            this.currentMessagePerInterval = currentMessagePerInterval;
         }
     }
 }

@@ -12,9 +12,12 @@
  */
 package org.eclipse.ditto.services.concierge.starter;
 
+import org.eclipse.ditto.services.base.DittoService;
+import org.eclipse.ditto.services.concierge.common.ConciergeConfig;
+import org.eclipse.ditto.services.concierge.common.DittoConciergeConfig;
 import org.eclipse.ditto.services.concierge.starter.actors.ConciergeRootActor;
 import org.eclipse.ditto.services.concierge.starter.proxy.DefaultEnforcerActorFactory;
-import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
+import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,12 +28,17 @@ import akka.stream.ActorMaterializer;
 /**
  * The Concierge service for Eclipse Ditto.
  */
-public final class ConciergeService extends AbstractConciergeService<ConciergeConfigReader> {
+public final class ConciergeService extends DittoService<ConciergeConfig> {
+
+    /**
+     * Name of Ditto's Concierge service.
+     */
+    public static final String SERVICE_NAME = "concierge";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ConciergeService.class);
 
     private ConciergeService() {
-        super(LOGGER, ConciergeConfigReader.from(SERVICE_NAME));
+        super(LOGGER, SERVICE_NAME, ConciergeRootActor.ACTOR_NAME);
     }
 
     /**
@@ -44,10 +52,15 @@ public final class ConciergeService extends AbstractConciergeService<ConciergeCo
     }
 
     @Override
-    protected Props getMainRootActorProps(final ConciergeConfigReader configReader, final ActorRef pubSubMediator,
+    protected ConciergeConfig getServiceSpecificConfig(final ScopedConfig dittoConfig) {
+        return DittoConciergeConfig.of(dittoConfig);
+    }
+
+    @Override
+    protected Props getMainRootActorProps(final ConciergeConfig serviceSpecificConfig, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
-        return ConciergeRootActor.props(configReader, pubSubMediator, new DefaultEnforcerActorFactory(),
+        return ConciergeRootActor.props(serviceSpecificConfig, pubSubMediator, new DefaultEnforcerActorFactory(),
                 materializer);
     }
 

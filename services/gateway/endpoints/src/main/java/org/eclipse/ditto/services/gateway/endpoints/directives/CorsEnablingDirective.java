@@ -17,6 +17,7 @@ import static akka.http.javadsl.server.Directives.extractActorSystem;
 import static akka.http.javadsl.server.Directives.options;
 import static akka.http.javadsl.server.Directives.respondWithHeaders;
 import static akka.http.javadsl.server.Directives.route;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -24,7 +25,7 @@ import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
-import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
+import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpMethods;
@@ -48,39 +49,46 @@ public final class CorsEnablingDirective {
             AccessControlAllowMethods.create(HttpMethods.OPTIONS, HttpMethods.GET, HttpMethods.PUT,
                     HttpMethods.POST, HttpMethods.HEAD, HttpMethods.DELETE));
 
-    private CorsEnablingDirective() {
-        // no op
+    private final HttpConfig httpConfig;
+
+    private CorsEnablingDirective(final HttpConfig httpConfig) {
+        this.httpConfig = checkNotNull(httpConfig, "HTTP config");
+    }
+
+    /**
+     * Returns an instance of {@code CorsEnablingDirective}.
+     *
+     * @param httpConfig the configuration settings of the Gateway service's HTTP behaviour.
+     * @return the instance.
+     * @throws NullPointerException if {@code httpConfig} is {@code null}.
+     */
+    public static CorsEnablingDirective getInstance(final HttpConfig httpConfig) {
+        return new CorsEnablingDirective(httpConfig);
     }
 
     /**
      * Enables CORS - Cross-Origin Resource Sharing - for the wrapped {@code inner} Route.
      *
-     * @param inner the inner route to be wrapped with the CORS enabling
-     * @return the new route wrapping {@code inner} with the CORS enabling
+     * @param inner the inner route to be wrapped with the CORS enabling.
+     * @return the new route wrapping {@code inner} with the CORS enabling.
      */
-    public static Route enableCors(final Supplier<Route> inner) {
-
+    public Route enableCors(final Supplier<Route> inner) {
         return extractActorSystem(actorSystem -> {
-            final boolean enableCors = actorSystem.settings().config().getBoolean(ConfigKeys.ENABLE_CORS);
-            if (enableCors) {
-                return Directives.optionalHeaderValueByType(AccessControlRequestHeaders.class, corsRequestHeaders -> {
-                    final ArrayList<HttpHeader> newHeaders = new ArrayList<>(CORS_HEADERS);
-                    corsRequestHeaders.ifPresent(toAdd ->
-                            newHeaders.add(AccessControlAllowHeaders.create(
-                                    StreamSupport.stream(toAdd.getHeaders().spliterator(), false)
-                                            .toArray(String[]::new))
-                            )
-                    );
-                    return route(
-                            options(() ->
-                                    complete(HttpResponse.create().withStatus(StatusCodes.OK).addHeaders(newHeaders))
-                            ),
-                            respondWithHeaders(newHeaders, inner)
-                    );
-                });
-            } else {
+            if (!httpConfig.isEnableCors()) {
                 return inner.get();
             }
+            return Directives.optionalHeaderValueByType(AccessControlRequestHeaders.class, corsRequestHeaders -> {
+                final ArrayList<HttpHeader> newHeaders = new ArrayList<>(CORS_HEADERS);
+                corsRequestHeaders.ifPresent(toAdd ->
+                        newHeaders.add(AccessControlAllowHeaders.create(
+                                StreamSupport.stream(toAdd.getHeaders().spliterator(), false).toArray(String[]::new))
+                        )
+                );
+                return route(options(() -> complete(
+                        HttpResponse.create().withStatus(StatusCodes.OK).addHeaders(newHeaders))),
+                        respondWithHeaders(newHeaders, inner)
+                );
+            });
         });
     }
 

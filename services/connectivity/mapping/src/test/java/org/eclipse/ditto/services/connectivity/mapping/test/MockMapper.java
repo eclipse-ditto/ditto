@@ -18,22 +18,23 @@ import javax.annotation.Nonnull;
 
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperConfiguration;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 
-import com.typesafe.config.Config;
-
-
-public class MockMapper implements MessageMapper {
+public final class MockMapper implements MessageMapper {
 
     public static final String OPT_IS_VALID = "Mock";
 
     public MockMapper() {
+        super();
     }
 
     @Override
-    public void configure(@Nonnull final Config mappingConfig, @Nonnull final MessageMapperConfiguration configuration) {
+    public void configure(@Nonnull final MappingConfig mappingConfig,
+            @Nonnull final MessageMapperConfiguration configuration) {
+
         configuration.findProperty(OPT_IS_VALID).map(Boolean::valueOf).filter(Boolean.TRUE::equals).orElseThrow
                 (() -> MessageMapperConfigurationInvalidException.newBuilder(OPT_IS_VALID).build());
     }
@@ -49,6 +50,5 @@ public class MockMapper implements MessageMapper {
     public Optional<ExternalMessage> map(@Nonnull final Adaptable adaptable) {
         return Optional.empty();
     }
-
 
 }

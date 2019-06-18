@@ -14,9 +14,6 @@ package org.eclipse.ditto.services.policies.persistence.actors.policy;
 
 import org.eclipse.ditto.services.utils.persistence.mongo.namespace.AbstractEventSourceNamespaceOpsActor;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
-import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
-
-import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -24,24 +21,24 @@ import akka.actor.Props;
 /**
  * Namespace operations for the event-sourcing persistence of policies.
  */
-@AllValuesAreNonnullByDefault
 public final class PolicyNamespaceOpsActor extends AbstractEventSourceNamespaceOpsActor {
 
     public static final String ACTOR_NAME = "policyNamespaceOps";
 
-    private PolicyNamespaceOpsActor(final ActorRef pubSubMediator, final Config config) {
-        super(pubSubMediator, config);
+    @SuppressWarnings("unused")
+    private PolicyNamespaceOpsActor(final ActorRef pubSubMediator) {
+
+        super(pubSubMediator);
     }
 
     /**
      * Create Props of this actor.
      *
      * @param pubSubMediator Akka pub-sub mediator.
-     * @param config Configuration with info about event journal, snapshot store, suffix-builder and database.
      * @return a Props object.
      */
-    public static Props props(final ActorRef pubSubMediator, final Config config) {
-        return Props.create(PolicyNamespaceOpsActor.class, () -> new PolicyNamespaceOpsActor(pubSubMediator, config));
+    public static Props props(final ActorRef pubSubMediator) {
+        return Props.create(PolicyNamespaceOpsActor.class, pubSubMediator);
     }
 
     @Override

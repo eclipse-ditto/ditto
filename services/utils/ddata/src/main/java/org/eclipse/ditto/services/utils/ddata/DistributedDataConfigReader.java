@@ -12,15 +12,13 @@
  */
 package org.eclipse.ditto.services.utils.ddata;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.annotation.concurrent.Immutable;
-
-import org.eclipse.ditto.services.utils.config.AbstractConfigReader;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -32,7 +30,7 @@ import akka.cluster.ddata.ReplicatorSettings;
  * Distributed data configuration reader.
  */
 @Immutable
-public final class DistributedDataConfigReader extends AbstractConfigReader {
+public final class DistributedDataConfigReader {
 
     /**
      * Config key of reference config for Akka distributed data.
@@ -54,8 +52,10 @@ public final class DistributedDataConfigReader extends AbstractConfigReader {
 
     private static final Duration DEFAULT_ASK_TIMEOUT = Duration.ofSeconds(5L);
 
+    private final Config config;
+
     private DistributedDataConfigReader(final Config config) {
-        super(config);
+        this.config = config;
     }
 
     /**
@@ -70,14 +70,12 @@ public final class DistributedDataConfigReader extends AbstractConfigReader {
     public static DistributedDataConfigReader of(final ActorSystem actorSystem, final CharSequence name,
             final CharSequence role) {
 
-        requireNonNull(actorSystem, "The ActorSystem must not be null!");
-
         final Map<String, Object> specificConfig = new HashMap<>(2);
-        specificConfig.put(ACTOR_NAME_KEY, requireNonNull(name, "The name must not be null!").toString());
-        specificConfig.put(CLUSTER_ROLE_KEY, requireNonNull(role, "The role must not be null!").toString());
+        specificConfig.put(ACTOR_NAME_KEY, checkNotNull(name, "name").toString());
+        specificConfig.put(CLUSTER_ROLE_KEY, checkNotNull(role, "role").toString());
 
-        return new DistributedDataConfigReader(
-                ConfigFactory.parseMap(specificConfig).withFallback(getFallbackConfig(actorSystem)));
+        return new DistributedDataConfigReader(ConfigFactory.parseMap(specificConfig)
+                .withFallback(getFallbackConfig(checkNotNull(actorSystem, "ActorSystem"))));
     }
 
     private static Config getFallbackConfig(final ActorSystem actorSystem) {
@@ -120,7 +118,11 @@ public final class DistributedDataConfigReader extends AbstractConfigReader {
      * @return the timeout of reads.
      */
     public Duration getReadTimeout() {
-        return getIfPresent(READ_TIMEOUT_KEY, config::getDuration).orElse(DEFAULT_ASK_TIMEOUT);
+        final String readTimeoutKey = READ_TIMEOUT_KEY;
+        if (config.hasPath(readTimeoutKey)) {
+            return config.getDuration(readTimeoutKey);
+        }
+        return DEFAULT_ASK_TIMEOUT;
     }
 
     /**
@@ -129,7 +131,11 @@ public final class DistributedDataConfigReader extends AbstractConfigReader {
      * @return the timeout of writes.
      */
     public Duration getWriteTimeout() {
-        return getIfPresent(WRITE_TIMEOUT_KEY, config::getDuration).orElse(DEFAULT_ASK_TIMEOUT);
+        final String writeTimeoutKey = WRITE_TIMEOUT_KEY;
+        if (config.hasPath(writeTimeoutKey)) {
+            return config.getDuration(writeTimeoutKey);
+        }
+        return DEFAULT_ASK_TIMEOUT;
     }
 
 }

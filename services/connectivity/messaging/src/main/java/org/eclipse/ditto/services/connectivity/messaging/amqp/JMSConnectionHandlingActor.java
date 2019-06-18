@@ -44,7 +44,6 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.dispatch.MessageDispatcher;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 
 /**
  * This actor executes operations (connect/disconnect) on JMS Connection/Session. It is separated into an actor
@@ -72,6 +71,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
     private final ExceptionListener exceptionListener;
     private final JmsConnectionFactory jmsConnectionFactory;
 
+    @SuppressWarnings("unused")
     private JMSConnectionHandlingActor(final Connection connection, final ExceptionListener exceptionListener,
             final JmsConnectionFactory jmsConnectionFactory) {
 
@@ -91,14 +91,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
     static Props props(final Connection connection, final ExceptionListener exceptionListener,
             final JmsConnectionFactory jmsConnectionFactory) {
 
-        return Props.create(JMSConnectionHandlingActor.class, new Creator<JMSConnectionHandlingActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public JMSConnectionHandlingActor create() {
-                return new JMSConnectionHandlingActor(connection, exceptionListener, jmsConnectionFactory);
-            }
-        });
+        return Props.create(JMSConnectionHandlingActor.class, connection, exceptionListener, jmsConnectionFactory);
     }
 
     static Props propsWithOwnDispatcher(final Connection connection, final ExceptionListener exceptionListener,

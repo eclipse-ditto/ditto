@@ -19,9 +19,9 @@ import static akka.http.javadsl.server.Directives.post;
 import static akka.http.javadsl.server.Directives.put;
 import static akka.http.javadsl.server.Directives.rawPathPrefix;
 import static akka.http.javadsl.server.Directives.route;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.REALM_DEVOPS;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.authenticateDevopsBasic;
+import static org.eclipse.ditto.services.gateway.endpoints.directives.DevOpsBasicAuthenticationDirective.REALM_DEVOPS;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -35,6 +35,10 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.devops.ImmutableLoggerConfig;
+import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.services.gateway.endpoints.config.DevOpsConfig;
+import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
+import org.eclipse.ditto.services.gateway.endpoints.directives.DevOpsBasicAuthenticationDirective;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.signals.commands.devops.ChangeLogLevel;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
@@ -55,7 +59,7 @@ import akka.japi.function.Function;
 public final class DevOpsRoute extends AbstractRoute {
 
     /**
-     * Public endpoint of devops.
+     * Public endpoint of DevOps.
      */
     public static final String PATH_DEVOPS = "devops";
 
@@ -67,34 +71,49 @@ public final class DevOpsRoute extends AbstractRoute {
      */
     private static final String TIMEOUT_PARAMETER = "timeout";
 
+    private final DevOpsConfig devOpsConfig;
+
     /**
      * Constructs the {@code /devops} route builder.
      *
      * @param actorSystem the Actor System.
+     * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
+     * @param devOpsConfig the configuration settings of the Gateway service's DevOps endpoint.
+     * @param headerTranslator translates headers from external sources or to external sources.
+     * @throws NullPointerException if any argument is {@code null}.
      */
-    public DevOpsRoute(final ActorRef proxyActor, final ActorSystem actorSystem) {
-        super(proxyActor, actorSystem);
+    public DevOpsRoute(final ActorRef proxyActor,
+            final ActorSystem actorSystem,
+            final HttpConfig httpConfig,
+            final DevOpsConfig devOpsConfig,
+            final HeaderTranslator headerTranslator) {
+
+        super(proxyActor, actorSystem, httpConfig, headerTranslator);
+        this.devOpsConfig = checkNotNull(devOpsConfig, "DevOpsConfig");
     }
 
     /**
      * @return the {@code /devops} route.
      */
-    public Route buildDevopsRoute(final RequestContext ctx) {
-        return rawPathPrefix(mergeDoubleSlashes().concat(PATH_DEVOPS), () -> // /devops
-                authenticateDevopsBasic(REALM_DEVOPS,
-                        parameterOptional(Unmarshaller.sync(Long::parseLong), TIMEOUT_PARAMETER, optionalTimeout ->
-                                route(
-                                        rawPathPrefix(mergeDoubleSlashes().concat(PATH_LOGGING),
-                                                () -> // /devops/logging
-                                                        logging(ctx, createHeaders(optionalTimeout))
-                                        ),
-                                        rawPathPrefix(mergeDoubleSlashes().concat(PATH_PIGGYBACK),
-                                                () -> // /devops/piggyback
-                                                        piggyback(ctx, createHeaders(optionalTimeout))
-                                        )
-                                )
-                        )
-                ));
+    public Route buildDevOpsRoute(final RequestContext ctx) {
+        return rawPathPrefix(mergeDoubleSlashes().concat(PATH_DEVOPS), () -> {// /devops
+            final DevOpsBasicAuthenticationDirective devOpsBasicAuthenticationDirective =
+                    DevOpsBasicAuthenticationDirective.getInstance(devOpsConfig);
+            return devOpsBasicAuthenticationDirective.authenticateDevOpsBasic(REALM_DEVOPS,
+                    parameterOptional(Unmarshaller.sync(Long::parseLong), TIMEOUT_PARAMETER, optionalTimeout ->
+                            route(
+                                    rawPathPrefix(mergeDoubleSlashes().concat(PATH_LOGGING),
+                                            () -> // /devops/logging
+                                                    logging(ctx, createHeaders(optionalTimeout))
+                                    ),
+                                    rawPathPrefix(mergeDoubleSlashes().concat(PATH_PIGGYBACK),
+                                            () -> // /devops/piggyback
+                                                    piggyback(ctx, createHeaders(optionalTimeout))
+                                    )
+                            )
+                    )
+            );
+        });
     }
 
     /*
@@ -115,8 +134,7 @@ public final class DevOpsRoute extends AbstractRoute {
      * @return {@code /devops/<logging|piggyback>/} route.
      */
     private static Route buildRouteWithOptionalServiceNameAndInstance(final RequestContext ctx,
-            final DittoHeaders dittoHeaders,
-            final RouteBuilderWithOptionalServiceNameAndInstance routeBuilder) {
+            final DittoHeaders dittoHeaders, final RouteBuilderWithOptionalServiceNameAndInstance routeBuilder) {
 
         return route(
                 // /devops/<logging|piggyback>/<serviceName>
@@ -130,8 +148,7 @@ public final class DevOpsRoute extends AbstractRoute {
      * @return {@code /devops/<logging|piggyback>/<serviceName>} route.
      */
     private static Route buildRouteWithServiceNameAndOptionalInstance(final RequestContext ctx,
-            final DittoHeaders dittoHeaders,
-            final RouteBuilderWithOptionalServiceNameAndInstance routeBuilder) {
+            final DittoHeaders dittoHeaders, final RouteBuilderWithOptionalServiceNameAndInstance routeBuilder) {
 
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), serviceName ->
                 route(
@@ -157,7 +174,9 @@ public final class DevOpsRoute extends AbstractRoute {
         );
     }
 
-    private Route routeLogging(final RequestContext ctx, final String serviceName, final String instance,
+    private Route routeLogging(final RequestContext ctx,
+            final String serviceName,
+            final String instance,
             final DittoHeaders dittoHeaders) {
 
         return route(
@@ -180,8 +199,11 @@ public final class DevOpsRoute extends AbstractRoute {
         );
     }
 
-    private Route routePiggyback(final RequestContext ctx, @Nullable final String serviceName,
-            @Nullable final String instance, final DittoHeaders dittoHeaders) {
+    private Route routePiggyback(final RequestContext ctx,
+            @Nullable final String serviceName,
+            @Nullable final String instance,
+            final DittoHeaders dittoHeaders) {
+
         return post(() ->
                 extractDataBytes(payloadSource ->
                         handlePerRequest(ctx, dittoHeaders, payloadSource,
@@ -224,19 +246,21 @@ public final class DevOpsRoute extends AbstractRoute {
         );
     }
 
-    private static Function<JsonValue, JsonValue> transformResponse(final String serviceName, final String instance) {
+    private static Function<JsonValue, JsonValue> transformResponse(final CharSequence serviceName,
+            final String instance) {
+
         final JsonPointer transformerPointer = transformerPointer(serviceName, instance);
         if (transformerPointer.isEmpty()) {
             return resp -> resp;
-        } else {
-            return resp -> resp.asObject()
-                    .getValue(transformerPointer)
-                    .orElse(JsonFactory.nullObject());
         }
+        return resp -> resp.asObject()
+                .getValue(transformerPointer)
+                .orElse(JsonFactory.nullObject());
     }
 
-    private static JsonPointer transformerPointer(@Nullable final String serviceName,
+    private static JsonPointer transformerPointer(@Nullable final CharSequence serviceName,
             @Nullable final String instance) {
+
         JsonPointer newPointer = JsonPointer.empty();
         if (serviceName != null) {
             newPointer = newPointer.append(JsonPointer.of(serviceName));
@@ -257,8 +281,8 @@ public final class DevOpsRoute extends AbstractRoute {
     @FunctionalInterface
     private interface RouteBuilderWithOptionalServiceNameAndInstance {
 
-        Route build(final RequestContext ctx, final String serviceName, final String instance,
-                final DittoHeaders dittoHeaders);
+        Route build(RequestContext ctx, String serviceName, String instance, DittoHeaders dittoHeaders);
+
     }
 
 }

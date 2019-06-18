@@ -115,7 +115,9 @@ public class MongoReadJournal {
         final MongoDatabase database = mongoClient.getDefaultDatabase();
         final Document filterDocument = createFilterObject(start, end);
 
-        return resolveJournalCollectionNames(journalCollectionPrefix, database)
+        log.debug("Looking for journal collection with pattern <{}>.", journalCollectionPrefix);
+
+        return resolveJournalCollectionNames(journalCollectionPrefix, database, log)
                 .map(database::getCollection)
                 .map(journal -> journal.find(filterDocument, Document.class)
                         .projection(PROJECT_DOCUMENT)
@@ -207,13 +209,19 @@ public class MongoReadJournal {
      * @return a source of resolved journal collection names which matched the prefix.
      */
     private static Source<String, NotUsed> resolveJournalCollectionNames(final Pattern journalCollectionPrefix,
-            final MongoDatabase database) {
+            final MongoDatabase database, final Logger log) {
 
         // starts with "journalCollectionPrefix":
         final ListCollectionsPublisher<Document> documentListCollectionsPublisher = database.listCollections();
         return Source.fromPublisher(
                 documentListCollectionsPublisher.filter(Filters.regex(COLLECTION_NAME_FIELD, journalCollectionPrefix))
-        ).map(document -> document.getString(COLLECTION_NAME_FIELD));
+        ).map(document -> document.getString(COLLECTION_NAME_FIELD))
+        // Double check in case the Mongo API persistence layer in use does not support listCollections with filtering
+        .filter(collectionName -> journalCollectionPrefix.matcher(collectionName).matches())
+        .map(collectionName -> {
+            log.debug("Journal collection <{}> with pattern <{}> found.", collectionName, journalCollectionPrefix);
+            return collectionName;
+        });
     }
 
 }

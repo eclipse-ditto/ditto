@@ -72,6 +72,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.typesafe.config.ConfigFactory;
+
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.testkit.TestActorRef;
@@ -87,7 +89,7 @@ public final class ThingCommandEnforcementTest {
 
     @Before
     public void init() {
-        system = ActorSystem.create();
+        system = ActorSystem.create("test", ConfigFactory.load("test"));
         final TestActorRef<MockEntitiesActor> testActorRef =
                 new TestActorRef<>(system, MockEntitiesActor.props(), system.guardian(), UUID.randomUUID().toString());
         mockEntitiesActorInstance = testActorRef.underlyingActor();
@@ -541,7 +543,7 @@ public final class ThingCommandEnforcementTest {
             fishForMsgClass(this, SudoRetrieveThing.class);
             reply(ThingNotAccessibleException.newBuilder(THING_ID).build());
 
-            expectMsgClass(CreateThing.class);
+            fishForMsgClass(this, CreateThing.class);
         }};
     }
 

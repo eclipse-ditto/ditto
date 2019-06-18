@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.connectivity.mapping.javascript;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
@@ -39,6 +38,8 @@ import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.services.connectivity.mapping.DefaultMappingConfig;
+import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
@@ -48,7 +49,6 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 /**
@@ -59,7 +59,7 @@ import com.typesafe.config.ConfigFactory;
  * several times to find out how it performs once the JVM warmed up.
  */
 //@RunWith(Parameterized.class)
-public class JavaScriptMessageMapperRhinoTest {
+public final class JavaScriptMessageMapperRhinoTest {
 
 //    @Parameterized.Parameters
 //    public static List<Object[]> data() {
@@ -79,12 +79,12 @@ public class JavaScriptMessageMapperRhinoTest {
     private static final ByteBuffer MAPPING_INCOMING_PAYLOAD_BYTES = ByteBuffer.wrap(
             MAPPING_INCOMING_PAYLOAD_STRING.getBytes(StandardCharsets.UTF_8));
 
-    private final static Config MAPPING_CONFIG = ConfigFactory.parseString("javascript {\n" +
-            "        maxScriptSizeBytes = 50000 # 50kB\n" +
-            "        maxScriptExecutionTime = 500ms\n" +
-            "        maxScriptStackDepth = 10\n" +
-            "      }");
-
+    private static final MappingConfig MAPPING_CONFIG =
+            DefaultMappingConfig.of(ConfigFactory.parseString("javascript {\n" +
+                    "        maxScriptSizeBytes = 50000 # 50kB\n" +
+                    "        maxScriptExecutionTime = 500ms\n" +
+                    "        maxScriptStackDepth = 10\n" +
+                    "      }"));
 
     private static final String MAPPING_INCOMING_PLAIN =
             "function mapToDittoProtocolMsg(\n" +
@@ -241,7 +241,6 @@ public class JavaScriptMessageMapperRhinoTest {
             "    );" +
             "}";
 
-
     private static final String MAPPING_INCOMING_DEFAULT = "function mapToDittoProtocolMsg(\n" +
             "  headers,\n" +
             "  textPayload,\n" +
@@ -303,7 +302,6 @@ public class JavaScriptMessageMapperRhinoTest {
             "    contentType // The returned Content-Type\n" +
             "  );\n" +
             "}\n";
-
 
     private static MessageMapper javaScriptRhinoMapperNoop;
     private static MessageMapper javaScriptRhinoMapperPlain;
@@ -510,18 +508,19 @@ public class JavaScriptMessageMapperRhinoTest {
                 CreateThing.of(newThing, null, DittoHeaders.newBuilder().correlationId(correlationId).build());
         final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(createThing);
 
-        final long startTs = System.nanoTime();
+        assertThat(javaScriptRhinoMapperPlain.map(adaptable)).hasValueSatisfying(rawMessage -> {
+            System.out.println(rawMessage);
 
-        final Optional<ExternalMessage> rawMessageOpt = javaScriptRhinoMapperPlain.map(adaptable);
-        final ExternalMessage rawMessage = rawMessageOpt.get();
-        System.out.println(rawMessage);
-        System.out.println(
-                "testPlainJavascriptOutgoingMapping Duration: " + (System.nanoTime() - startTs) / 1000000.0 + "ms");
+            final long startTs = System.nanoTime();
+            System.out.println(
+                    "testPlainJavascriptOutgoingMapping Duration: " + (System.nanoTime() - startTs) / 1_000_000.0 +
+                            "ms");
 
-        assertThat(rawMessage.findContentType()).contains(CONTENT_TYPE_PLAIN);
-        assertThat(rawMessage.findHeader(HEADER_CORRELATION_ID)).contains(correlationId);
-        assertThat(rawMessage.isTextMessage()).isTrue();
-        assertThat(rawMessage.getTextPayload()).contains("Thing ID was: " + thingId);
+            assertThat(rawMessage.findContentType()).contains(CONTENT_TYPE_PLAIN);
+            assertThat(rawMessage.findHeader(HEADER_CORRELATION_ID)).contains(correlationId);
+            assertThat(rawMessage.isTextMessage()).isTrue();
+            assertThat(rawMessage.getTextPayload()).contains("Thing ID was: " + thingId);
+        });
     }
 
     @Test
@@ -530,14 +529,12 @@ public class JavaScriptMessageMapperRhinoTest {
         final Map<String, String> headers = new HashMap<>();
         headers.put(HEADER_CORRELATION_ID, correlationId);
         headers.put(ExternalMessage.CONTENT_TYPE_HEADER, CONTENT_TYPE_PLAIN);
-        final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
-                .build();
-
+        final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers).build();
 
         final long startTs = System.nanoTime();
         final Optional<Adaptable> adaptableOpt = javaScriptRhinoMapperEmpty.map(message);
         System.out.println(
-                "testEmptyJavascriptIncomingMapping Duration: " + (System.nanoTime() - startTs) / 1000000.0 + "ms");
+                "testEmptyJavascriptIncomingMapping Duration: " + (System.nanoTime() - startTs) / 1_000_000.0 + "ms");
 
         assertThat(adaptableOpt).isEmpty();
     }
@@ -558,7 +555,7 @@ public class JavaScriptMessageMapperRhinoTest {
 
         final Optional<ExternalMessage> rawMessageOpt = javaScriptRhinoMapperEmpty.map(adaptable);
         System.out.println(
-                "testEmptyJavascriptOutgoingMapping Duration: " + (System.nanoTime() - startTs) / 1000000.0 + "ms");
+                "testEmptyJavascriptOutgoingMapping Duration: " + (System.nanoTime() - startTs) / 1_000_000.0 + "ms");
 
         assertThat(rawMessageOpt).isEmpty();
     }
@@ -573,20 +570,26 @@ public class JavaScriptMessageMapperRhinoTest {
                 .withBytes(MAPPING_INCOMING_PAYLOAD_BYTES)
                 .build();
 
-        final long startTs = System.nanoTime();
-        final Optional<Adaptable> adaptableOpt = javaScriptRhinoMapperBinary.map(message);
-        final Adaptable adaptable = adaptableOpt.get();
-        System.out.println(adaptable);
-        System.out.println(
-                "testBinaryJavascriptIncomingMapping Duration: " + (System.nanoTime() - startTs) / 1000000.0 + "ms");
+        assertThat(javaScriptRhinoMapperBinary.map(message)).hasValueSatisfying(adaptable -> {
+            System.out.println(adaptable);
 
-        assertThat(adaptable.getTopicPath().getChannel()).isEqualTo(TopicPath.Channel.TWIN);
-        assertThat(adaptable.getTopicPath().getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
-        assertThat(adaptable.getTopicPath().getAction()).contains(TopicPath.Action.MODIFY);
-        assertThat(adaptable.getTopicPath().getNamespace()).isEqualTo(MAPPING_INCOMING_NAMESPACE);
-        assertThat(adaptable.getTopicPath().getId()).isEqualTo(MAPPING_INCOMING_ID);
-        assertThat(adaptable.getPayload().getPath().toString()).isEqualTo(MAPPING_INCOMING_PATH);
-        assertThat(adaptable.getPayload().getValue()).contains(JsonValue.of(MAPPING_INCOMING_PAYLOAD_STRING));
+            final long startTs = System.nanoTime();
+            System.out.println(
+                    "testBinaryJavascriptIncomingMapping Duration: " + (System.nanoTime() - startTs) / 1_000_000.0 +
+                            "ms");
+
+            assertThat(adaptable.getTopicPath()).satisfies(topicPath -> {
+                assertThat(topicPath.getChannel()).isEqualTo(TopicPath.Channel.TWIN);
+                assertThat(topicPath.getCriterion()).isEqualTo(TopicPath.Criterion.COMMANDS);
+                assertThat(topicPath.getAction()).contains(TopicPath.Action.MODIFY);
+                assertThat(topicPath.getNamespace()).isEqualTo(MAPPING_INCOMING_NAMESPACE);
+                assertThat(topicPath.getId()).isEqualTo(MAPPING_INCOMING_ID);
+            });
+            assertThat(adaptable.getPayload()).satisfies(payload -> {
+                assertThat(payload.getPath().toString()).isEqualTo(MAPPING_INCOMING_PATH);
+                assertThat(payload.getValue()).contains(JsonValue.of(MAPPING_INCOMING_PAYLOAD_STRING));
+            });
+        });
     }
 
     @Test
@@ -601,35 +604,38 @@ public class JavaScriptMessageMapperRhinoTest {
                 CreateThing.of(newThing, null, DittoHeaders.newBuilder().correlationId(correlationId).build());
         final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(createThing);
 
-        final long startTs = System.nanoTime();
-        final Optional<ExternalMessage> rawMessageOpt = javaScriptRhinoMapperBinary.map(adaptable);
-        final ExternalMessage rawMessage = rawMessageOpt.get();
-        System.out.println(rawMessage);
-        System.out.println(
-                "testBinaryJavascriptOutgoingMapping Duration: " + (System.nanoTime() - startTs) / 1000000.0 + "ms");
+        assertThat(javaScriptRhinoMapperBinary.map(adaptable)).hasValueSatisfying(rawMessage -> {
+            System.out.println(rawMessage);
 
-        assertThat(rawMessage.findContentType()).contains(CONTENT_TYPE_BINARY);
-        assertThat(rawMessage.findHeader(HEADER_CORRELATION_ID)).contains(correlationId);
-        assertThat(rawMessage.isTextMessage()).isFalse();
-        assertThat(rawMessage.isBytesMessage()).isTrue();
-        assertThat(rawMessage.getTextPayload()).isEmpty();
-        assertThat(rawMessage.getBytePayload()).map(buf -> byteBuffer2String(buf, StandardCharsets.UTF_8))
-                .contains(thingId);
+            final long startTs = System.nanoTime();
+            System.out.println(
+                    "testBinaryJavascriptOutgoingMapping Duration: " + (System.nanoTime() - startTs) / 1_000_000.0 +
+                            "ms");
+
+            assertThat(rawMessage.findContentType()).contains(CONTENT_TYPE_BINARY);
+            assertThat(rawMessage.findHeader(HEADER_CORRELATION_ID)).contains(correlationId);
+            assertThat(rawMessage.isTextMessage()).isFalse();
+            assertThat(rawMessage.isBytesMessage()).isTrue();
+            assertThat(rawMessage.getTextPayload()).isEmpty();
+            assertThat(rawMessage.getBytePayload()).map(JavaScriptMessageMapperRhinoTest::byteBuffer2String)
+                    .contains(thingId);
+        });
     }
 
     @Nullable
-    private static String byteBuffer2String(@Nullable final ByteBuffer buf, Charset charset) {
+    private static String byteBuffer2String(@Nullable final ByteBuffer buf) {
         if (buf == null) {
             return null;
         }
 
-        byte[] bytes;
+        final byte[] bytes;
         if (buf.hasArray()) {
             bytes = buf.array();
         } else {
             buf.rewind();
             bytes = new byte[buf.remaining()];
         }
-        return new String(bytes, charset);
+        return new String(bytes, StandardCharsets.UTF_8);
     }
+
 }

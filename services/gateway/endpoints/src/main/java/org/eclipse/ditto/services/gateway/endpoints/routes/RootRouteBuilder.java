@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes;
 
-import java.util.List;
+import java.util.Collection;
 
 import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
@@ -140,7 +140,7 @@ public interface RootRouteBuilder {
      * @param versions the versions to set.
      * @return the Builder to allow method chaining.
      */
-    RootRouteBuilder supportedSchemaVersions(List<Integer> versions);
+    RootRouteBuilder supportedSchemaVersions(Collection<Integer> versions);
 
     /**
      * Sets the protocol adapter provider.
