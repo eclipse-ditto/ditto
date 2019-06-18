@@ -421,7 +421,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectingState() {
         return matchEventEquals(StateTimeout(), BaseClientData.class, this::connectionTimedOut)
                 .event(ConnectionFailure.class, BaseClientData.class, this::connectionFailure)
-                .event(ClientConnected.class, BaseClientData.class, this::clientConnected);
+                .event(ClientConnected.class, BaseClientData.class, this::clientConnected)
+                .event(CloseConnection.class, BaseClientData.class, this::closeConnection);
     }
 
     /**
@@ -507,6 +508,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             final BaseClientData data) {
         final ActorRef sender = getSender();
         doDisconnectClient(data.getConnection(), sender);
+        cancelScheduledReconnect();
         return goTo(DISCONNECTING).using(setSession(data, sender, closeConnection.getDittoHeaders())
                 .setDesiredConnectionStatus(ConnectivityStatus.CLOSED)
                 .setConnectionStatusDetails("closing or deleting connection at " + Instant.now()));
@@ -525,11 +527,37 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             cleanupResourcesForConnection();
             final DittoRuntimeException error = newConnectionFailedException(data.getConnection(), dittoHeaders);
             sender.tell(new Status.Failure(error), getSelf());
-            return goTo(UNKNOWN)
+            scheduleReconnect();
+            return goTo(CONNECTING)
                     .using(data.setConnectionStatus(ConnectivityStatus.FAILED)
                             .setConnectionStatusDetails(error.getMessage())
                             .resetSession());
         }
+    }
+
+    private void reconnect(final BaseClientData data) {
+        // TODO: add monitoring log after monitoring branch is connected and also add connection ids to logs.
+        log.debug("Trying to reconnect.");
+        final ActorRef sender = data.getSessionSender().orElse(null);
+        final Connection connection = data.getConnection();
+        if (canConnectViaSocket(connection)) {
+            doConnectClient(connection, sender);
+        } else {
+            log.info("Socket is closed, scheduling a reconnect.");
+            cleanupResourcesForConnection();
+            scheduleReconnect();
+        }
+    }
+
+    private void scheduleReconnect() {
+        final Duration connectingTimeout = clientConfig.getConnectingTimeout();
+        log.debug("Schedule reconnect in <{}>.", connectingTimeout);
+        setTimer(RECONNECT_TIMER_NAME, StateTimeout(), connectingTimeout, false);
+    }
+
+    private void cancelScheduledReconnect() {
+        log.debug("Stop scheduled reconnect.");
+        cancelTimer(RECONNECT_TIMER_NAME);
     }
 
     private FSM.State<BaseClientState, BaseClientData> testConnection(final TestConnection testConnection,
@@ -584,7 +612,16 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         });
         cleanupResourcesForConnection();
         cleanupFurtherResourcesOnConnectionTimeout(stateName());
-        return goTo(UNKNOWN).using(data.resetSession()
+
+        final BaseClientState nextState;
+        if (ConnectivityStatus.OPEN.equals(data.getDesiredConnectionStatus())) {
+            reconnect(data);
+            nextState = CONNECTING;
+
+        } else {
+            nextState = UNKNOWN;
+        }
+        return goTo(nextState).using(data.resetSession()
                 .setConnectionStatus(ConnectivityStatus.FAILED)
                 .setConnectionStatusDetails("Connection timed out at " + Instant.now() + " while " + stateName()));
     }
@@ -596,6 +633,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
             allocateResourcesOnConnection(clientConnected);
             data.getSessionSender().ifPresent(origin -> origin.tell(new Status.Success(CONNECTED), getSelf()));
+            cancelScheduledReconnect();
             return goTo(CONNECTED).using(data.resetSession()
                     .setConnectionStatus(ConnectivityStatus.OPEN)
                     .setConnectionStatusDetails("Connected at " + Instant.now()));
@@ -621,7 +659,15 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
             cleanupResourcesForConnection();
             data.getSessionSender().ifPresent(sender -> sender.tell(getStatusToReport(event.getFailure()), getSelf()));
-            return goTo(UNKNOWN).using(data.resetSession()
+
+            final BaseClientState nextState;
+            if (ConnectivityStatus.OPEN.equals(data.getDesiredConnectionStatus())) {
+                scheduleReconnect();
+                nextState = CONNECTING;
+            } else {
+                nextState = UNKNOWN;
+            }
+            return goTo(nextState).using(data.resetSession()
                     .setConnectionStatus(ConnectivityStatus.FAILED)
                     .setConnectionStatusDetails(event.getFailureDescription())
             );
