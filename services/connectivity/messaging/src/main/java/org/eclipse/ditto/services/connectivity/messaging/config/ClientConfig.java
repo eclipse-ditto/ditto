@@ -33,6 +33,21 @@ public interface ClientConfig {
     Duration getInitTimeout();
 
     /**
+     * Timeout when connecting to a remote system. If the connection could not be established after this time, the
+     * service will try to reconnect. If a failure happened during connecting, then the service will wait for this
+     * time until it will try to reconnect.
+     * @return the connecting timeout.
+     */
+    Duration getConnectingTimeout();
+
+    /**
+     * How long the service will wait for a successful connection when testing a new connection. If no response is
+     * received after this duration, the test will be assumed a failure.
+     * @return the testing timeout.
+     */
+    Duration getTestingTimeout();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for {@code ClientConfig}.
      */
     enum ClientConfigValue implements KnownConfigValue {
@@ -40,12 +55,22 @@ public interface ClientConfig {
         /**
          * The duration after the init process is triggered.
          */
-        INIT_TIMEOUT("init-timeout", Duration.ofSeconds(5L));
+        INIT_TIMEOUT("init-timeout", Duration.ofSeconds(5L)),
+
+        /**
+         * See documentation on {@link ClientConfig#getConnectingTimeout()}.
+         */
+        CONNECTING_TIMEOUT("connecting-timeout", Duration.ofSeconds(60L)),
+
+        /**
+         * See documentation on {@link ClientConfig#getTestingTimeout()}.
+         */
+        TESTING_TIMEOUT("testing-timeout", Duration.ofSeconds(10L));
 
         private final String path;
         private final Object defaultValue;
 
-        private ClientConfigValue(final String thePath, final Object theDefaultValue) {
+        ClientConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }
