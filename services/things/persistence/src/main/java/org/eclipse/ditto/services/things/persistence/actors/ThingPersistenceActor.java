@@ -36,9 +36,7 @@ import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.DefaultContext;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.events.EventHandleStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.events.EventStrategy;
-import org.eclipse.ditto.services.things.persistence.serializer.SnapshotTag;
 import org.eclipse.ditto.services.things.persistence.serializer.ThingMongoSnapshotAdapter;
-import org.eclipse.ditto.services.things.persistence.serializer.ThingWithSnapshotTag;
 import org.eclipse.ditto.services.things.persistence.strategies.AbstractReceiveStrategy;
 import org.eclipse.ditto.services.things.persistence.strategies.ReceiveStrategy;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -93,7 +91,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
     private final DiagnosticLoggingAdapter log;
     private final String thingId;
     private final ActorRef pubSubMediator;
-    private final SnapshotAdapter<ThingWithSnapshotTag> snapshotAdapter;
+    private final SnapshotAdapter<Thing> snapshotAdapter;
     private final Receive handleThingEvents;
     private final ThingConfig thingConfig;
     private final boolean logIncomingMessages;
@@ -110,7 +108,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
     private Thing thing;
 
     ThingPersistenceActor(final String thingId, final ActorRef pubSubMediator,
-            final SnapshotAdapter<ThingWithSnapshotTag> snapshotAdapter) {
+            final SnapshotAdapter<Thing> snapshotAdapter) {
 
         this.thingId = thingId;
         this.pubSubMediator = pubSubMediator;
@@ -148,7 +146,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
      * @return the Akka configuration Props object
      */
     public static Props props(final String thingId, final ActorRef pubSubMediator,
-            final SnapshotAdapter<ThingWithSnapshotTag> snapshotAdapter) {
+            final SnapshotAdapter<Thing> snapshotAdapter) {
 
         return Props.create(ThingPersistenceActor.class,
                 () -> new ThingPersistenceActor(thingId, pubSubMediator, snapshotAdapter));
@@ -407,9 +405,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
             log.info("Taking snapshot for Thing with ID <{}> and sequence number <{}> because {}.", thingId, revision,
                     reason);
 
-            final ThingWithSnapshotTag thingWithSnapshotTag =
-                    ThingWithSnapshotTag.newInstance(thing, SnapshotTag.UNPROTECTED);
-            final Object snapshotSubject = snapshotAdapter.toSnapshotStore(thingWithSnapshotTag);
+            final Object snapshotSubject = snapshotAdapter.toSnapshotStore(thing);
             saveSnapshot(snapshotSubject);
 
             lastSnapshotRevision = revision;
