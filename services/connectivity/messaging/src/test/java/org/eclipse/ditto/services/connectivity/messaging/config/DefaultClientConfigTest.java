@@ -64,6 +64,12 @@ public final class DefaultClientConfigTest {
         softly.assertThat(underTest.getInitTimeout())
                 .as(ClientConfig.ClientConfigValue.INIT_TIMEOUT.getConfigPath())
                 .isEqualTo(ClientConfig.ClientConfigValue.INIT_TIMEOUT.getDefaultValue());
+        softly.assertThat(underTest.getConnectingTimeout())
+                .as(ClientConfig.ClientConfigValue.CONNECTING_TIMEOUT.getConfigPath())
+                .isEqualTo(ClientConfig.ClientConfigValue.CONNECTING_TIMEOUT.getDefaultValue());
+        softly.assertThat(underTest.getTestingTimeout())
+                .as(ClientConfig.ClientConfigValue.TESTING_TIMEOUT.getConfigPath())
+                .isEqualTo(ClientConfig.ClientConfigValue.TESTING_TIMEOUT.getDefaultValue());
     }
 
     @Test
@@ -73,5 +79,12 @@ public final class DefaultClientConfigTest {
         softly.assertThat(underTest.getInitTimeout())
                 .as(ClientConfig.ClientConfigValue.INIT_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(1L));
+        softly.assertThat(underTest.getConnectingTimeout())
+                .as(ClientConfig.ClientConfigValue.CONNECTING_TIMEOUT.getConfigPath())
+                .isEqualTo(Duration.ofSeconds(30L));
+        softly.assertThat(underTest.getTestingTimeout())
+                .as(ClientConfig.ClientConfigValue.TESTING_TIMEOUT.getConfigPath())
+                .isEqualTo(Duration.ofSeconds(5L));
     }
+
 }

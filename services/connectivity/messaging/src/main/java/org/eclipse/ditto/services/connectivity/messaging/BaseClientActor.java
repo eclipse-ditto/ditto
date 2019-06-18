@@ -26,18 +26,14 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.TimeUnit;
-import java.util.function.IntFunction;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -91,8 +87,6 @@ import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.routing.ConsistentHashingPool;
 import akka.routing.ConsistentHashingRouter;
-import scala.concurrent.duration.Duration;
-import scala.concurrent.duration.FiniteDuration;
 import scala.util.Either;
 import scala.util.Left;
 import scala.util.Right;
@@ -100,21 +94,20 @@ import scala.util.Right;
 /**
  * Base class for ClientActors which implement the connection handling for various connectivity protocols.
  * <p>
- * The actor expects to receive a {@link CreateConnection} command after it was started.
- * If this command is not received within timeout (can be the case when this actor is remotely deployed after the
- * command was sent) the actor requests the required information from ConnectionActor.
+ * The actor expects to receive a {@link CreateConnection} command after it was started. If this command is not received
+ * within timeout (can be the case when this actor is remotely deployed after the command was sent) the actor requests
+ * the required information from ConnectionActor.
  * </p>
  */
 public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseClientData> {
 
-    protected static final int CONNECTING_TIMEOUT = 10;
-    protected static final int TEST_CONNECTION_TIMEOUT = 10;
-
     private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
+    private static final String RECONNECT_TIMER_NAME = "reconnectTimer";
 
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     protected final ConnectivityConfig connectivityConfig;
+    protected final ClientConfig clientConfig;
     private final ProtocolAdapterProvider protocolAdapterProvider;
     private final ActorRef conciergeForwarder;
     private final Gauge clientGauge;
@@ -135,6 +128,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         this.connectivityConfig = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         );
+        this.clientConfig = this.connectivityConfig.getClientConfig();
         this.conciergeForwarder = conciergeForwarder;
         protocolAdapterProvider =
                 ProtocolAdapterProvider.load(connectivityConfig.getProtocolConfig(), getContext().getSystem());
@@ -147,7 +141,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 .tag("id", connection.getId())
                 .tag("type", connection.getConnectionType().getName());
 
-        startWith(UNKNOWN, startingData, getInitTimeout());
+        startWith(UNKNOWN, startingData, clientConfig.getInitTimeout());
 
         // stable states
         when(UNKNOWN, inUnknownState());
@@ -155,10 +149,10 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         when(DISCONNECTED, inDisconnectedState());
 
         // volatile states that time out
-        final FiniteDuration connectingTimeout = Duration.create(CONNECTING_TIMEOUT, TimeUnit.SECONDS);
+        final Duration connectingTimeout = clientConfig.getConnectingTimeout();
         when(CONNECTING, connectingTimeout, inConnectingState());
         when(DISCONNECTING, connectingTimeout, inDisconnectingState());
-        when(TESTING, connectingTimeout, inTestingState());
+        when(TESTING, clientConfig.getTestingTimeout(), inTestingState());
 
         onTransition(this::onTransition);
 
@@ -169,16 +163,9 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         initialize();
     }
 
-    private FiniteDuration getInitTimeout() {
-        final ClientConfig clientConfig = connectivityConfig.getClientConfig();
-        final java.time.Duration javaInitTimeout = clientConfig.getInitTimeout();
-        return Duration.create(javaInitTimeout.toMillis(), TimeUnit.MILLISECONDS);
-    }
-
     /**
-     * Handles {@link TestConnection} commands by returning a CompletionState of
-     * {@link akka.actor.Status.Status Status} which may be {@link akka.actor.Status.Success Success} or
-     * {@link akka.actor.Status.Failure Failure}.
+     * Handles {@link TestConnection} commands by returning a CompletionState of {@link akka.actor.Status.Status Status}
+     * which may be {@link akka.actor.Status.Success Success} or {@link akka.actor.Status.Failure Failure}.
      *
      * @param connection the Connection to test
      * @return the CompletionStage with the test result
@@ -219,8 +206,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     protected abstract void doDisconnectClient(Connection connection, @Nullable ActorRef origin);
 
     /**
-     * Release any temporary resources allocated during a connection operation when the operation times out.
-     * Do nothing by default.
+     * Release any temporary resources allocated during a connection operation when the operation times out. Do nothing
+     * by default.
      *
      * @param state current state of the client actor.
      */
@@ -267,9 +254,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     /**
-     * Escapes the passed actorName in a actorName valid way.
-     * Actor name should be a valid URL with ASCII letters, see also {@code akka.actor.ActorPath#isValidPathElement},
-     * therefor we encode the name as an ASCII URL.
+     * Escapes the passed actorName in a actorName valid way. Actor name should be a valid URL with ASCII letters, see
+     * also {@code akka.actor.ActorPath#isValidPathElement}, therefor we encode the name as an ASCII URL.
      *
      * @param name the actorName to escape.
      * @return the escaped name.
@@ -281,23 +267,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             // should never happen, every JDK must support US_ASCII
             throw new IllegalStateException(e);
         }
-    }
-
-    /**
-     * Transforms a List of CompletableFutures to a CompletableFuture of a List.
-     *
-     * @param futures the stream of futures
-     * @param <T> the type of the CompletableFuture and the List elements
-     * @return the CompletableFuture of a List
-     */
-    protected static <T> CompletableFuture<List<T>> collectAsList(final Stream<CompletionStage<T>> futures) {
-        final CompletableFuture<T>[] futureArray = futures.map(CompletionStage::toCompletableFuture)
-                .toArray((IntFunction<CompletableFuture<T>[]>) CompletableFuture[]::new);
-
-        return CompletableFuture.allOf(futureArray).thenApply(aVoid ->
-                Arrays.stream(futureArray)
-                        .map(CompletableFuture::join)
-                        .collect(Collectors.toList()));
     }
 
     /**
@@ -435,8 +404,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     /**
-     * Creates the handler for messages in disconnected state.
-     * Overwrite and extend by additional matchers.
+     * Creates the handler for messages in disconnected state. Overwrite and extend by additional matchers.
      *
      * @return an FSM function builder
      */
@@ -446,8 +414,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     /**
-     * Creates the handler for messages in connecting state.
-     * Overwrite and extend by additional matchers.
+     * Creates the handler for messages in connecting state. Overwrite and extend by additional matchers.
      *
      * @return an FSM function builder
      */
@@ -458,8 +425,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     /**
-     * Creates the handler for messages in connected state.
-     * Overwrite and extend by additional matchers.
+     * Creates the handler for messages in connected state. Overwrite and extend by additional matchers.
      *
      * @return an FSM function builder
      */
@@ -468,8 +434,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     /**
-     * Creates the handler for messages in disconnected state.
-     * Overwrite and extend by additional matchers.
+     * Creates the handler for messages in disconnected state. Overwrite and extend by additional matchers.
      *
      * @return an FSM function builder
      */
@@ -480,8 +445,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     /**
-     * Creates the handler for messages in testing state.
-     * Overwrite and extend by additional matchers.
+     * Creates the handler for messages in testing state. Overwrite and extend by additional matchers.
      *
      * @return an FSM function builder
      */
@@ -497,7 +461,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                     data.getSessionSender().ifPresent(sender -> {
                         final DittoRuntimeException error = ConnectionFailedException.newBuilder(connectionId())
                                 .description(String.format("Failed to open requested connection within <%d> seconds!",
-                                        TEST_CONNECTION_TIMEOUT))
+                                        clientConfig.getTestingTimeout().getSeconds()))
                                 .dittoHeaders(data.getSessionHeaders())
                                 .build();
                         sender.tell(new Status.Failure(error), getSelf());
@@ -660,7 +624,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             return goTo(UNKNOWN).using(data.resetSession()
                     .setConnectionStatus(ConnectivityStatus.FAILED)
                     .setConnectionStatusDetails(event.getFailureDescription())
-                    .setSessionSender(getSender())
             );
         });
     }
@@ -762,7 +725,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             case DISCONNECTING:
                 return ConnectionSignalIllegalException.newBuilder(connectionId())
                         .operationName(state.name().toLowerCase())
-                        .timeout(CONNECTING_TIMEOUT)
+                        .timeout(clientConfig.getConnectingTimeout())
                         .dittoHeaders(headers)
                         .build();
             default:
@@ -890,9 +853,10 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
              * This however will also limit throughput as the used hashing key is often connection source address based
              * and does not yet "know" of the Thing ID.
              */
-            messageMappingProcessorActor = getContext().actorOf(new ConsistentHashingPool(connection.getProcessorPoolSize())
-                    .withDispatcher("message-mapping-processor-dispatcher")
-                    .props(props), nextChildActorName(MessageMappingProcessorActor.ACTOR_NAME));
+            messageMappingProcessorActor =
+                    getContext().actorOf(new ConsistentHashingPool(connection.getProcessorPoolSize())
+                            .withDispatcher("message-mapping-processor-dispatcher")
+                            .props(props), nextChildActorName(MessageMappingProcessorActor.ACTOR_NAME));
         } else {
             log.info("MessageMappingProcessor already instantiated: not initializing again.");
         }
@@ -911,7 +875,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return prefix + ++childActorCount;
     }
 
-    private BaseClientData setSession(final BaseClientData data, final ActorRef sender, final DittoHeaders headers) {
+    private BaseClientData setSession(final BaseClientData data, @Nullable final ActorRef sender,
+            @Nullable final DittoHeaders headers) {
         if (!Objects.equals(sender, getSelf()) && !Objects.equals(sender, getContext().system().deadLetters())) {
             return data.setSessionSender(sender)
                     .setSessionHeaders(headers);
@@ -946,7 +911,10 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return answerToPublish;
     }
 
-    private static String describeEventualCause(final Throwable throwable) {
+    private static String describeEventualCause(@Nullable final Throwable throwable) {
+        if (null == throwable) {
+            return "Unkown cause.";
+        }
         final Throwable cause = throwable.getCause();
         if (cause == null || cause == throwable) {
             return "Cause: " + throwable.getMessage();

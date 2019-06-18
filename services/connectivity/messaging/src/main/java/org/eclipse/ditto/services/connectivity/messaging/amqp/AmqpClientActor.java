@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
 import java.net.URI;
 import java.text.MessageFormat;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -173,7 +172,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     protected CompletionStage<Status.Status> doTestConnection(final Connection connection) {
         // delegate to child actor because the QPID JMS client is blocking until connection is opened/closed
         return Patterns.ask(getTestConnectionHandler(connection),
-                new JmsConnect(getSender()), Duration.ofSeconds(TEST_CONNECTION_TIMEOUT))
+                new JmsConnect(getSender()), clientConfig.getTestingTimeout())
                 // compose the disconnect because otherwise the actor hierarchy might be stopped too fast
                 .thenCompose(response -> {
                     log.debug("Closing JMS connection after testing connection.");
@@ -181,7 +180,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                         final JmsConnection jmsConnection = ((JmsConnected) response).connection;
                         final JmsDisconnect jmsDisconnect = new JmsDisconnect(ActorRef.noSender(), jmsConnection);
                         return Patterns.ask(getDisconnectConnectionHandler(connection), jmsDisconnect,
-                                Duration.ofSeconds(TEST_CONNECTION_TIMEOUT))
+                                clientConfig.getTestingTimeout())
                                 // replace jmsDisconnected message with original response
                                 .thenApply(jmsDisconnected -> response);
                     } else {
