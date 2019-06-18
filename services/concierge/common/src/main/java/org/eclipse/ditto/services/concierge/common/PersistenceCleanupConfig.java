@@ -29,6 +29,20 @@ public interface PersistenceCleanupConfig {
     Duration getQuietPeriod();
 
     /**
+     * Returns how long to wait for a cleanup-response before considering it failed.
+     *
+     * @return timeout of cleanup commands.
+     */
+    Duration getCleanupTimeout();
+
+    /**
+     * Returns how many cleanup commands to execute in parallel.
+     *
+     * @return the parallelism.
+     */
+    int getParallelism();
+
+    /**
      * Returns configuration settings for credit decision.
      *
      * @return the config.
@@ -43,6 +57,27 @@ public interface PersistenceCleanupConfig {
     PersistenceIdsConfig getPersistenceIdsConfig();
 
     /**
+     * Returns how many credit decisions to keep in the actor state.
+     *
+     * @return number of kept credit decisions.
+     */
+    int getKeptCreditDecisions();
+
+    /**
+     * Returns how many actions to keep in the actor state.
+     *
+     * @return number of kept actions.
+     */
+    int getKeptActions();
+
+    /**
+     * Returns how many events to keep in the actor state.
+     *
+     * @return number of kept events.
+     */
+    int getKeptEvents();
+
+    /**
      * Enumeration of known config keys and default values for {@code PersistenceCleanupConfig}
      */
     enum ConfigValue implements KnownConfigValue {
@@ -50,7 +85,32 @@ public interface PersistenceCleanupConfig {
         /**
          * Duration between service start-up and the beginning of cleanup actions.
          */
-        QUIET_PERIOD("quiet-period", Duration.ofMinutes(5L));
+        QUIET_PERIOD("quiet-period", Duration.ofMinutes(5L)),
+
+        /**
+         * Timeout waiting for cleanup response.
+         */
+        CLEANUP_TIMEOUT("cleanup-timeout", Duration.ofSeconds(30L)),
+
+        /**
+         * Number of clewanup commands to execute in parallel.
+         */
+        PARALLELISM("parallelism", 1),
+
+        /**
+         * How many credit decisions to keep in the actor state.
+         */
+        KEEP_CREDIT_DECISIONS("keep.credit-decisions", 25),
+
+        /**
+         * How many actions to keep in the actor state.
+         */
+        KEEP_ACTIONS("keep.actions", 100),
+
+        /**
+         * How many events to keep in the actor state.
+         */
+        KEEP_EVENTS("keep.events", 25);
 
         private final String path;
         private final Object defaultValue;

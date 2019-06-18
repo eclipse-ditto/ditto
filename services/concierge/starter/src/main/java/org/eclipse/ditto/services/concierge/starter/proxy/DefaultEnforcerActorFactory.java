@@ -25,10 +25,10 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.concierge.actors.ShardRegions;
 import org.eclipse.ditto.services.concierge.cache.update.PolicyCacheUpdateActor;
 import org.eclipse.ditto.services.concierge.common.CachesConfig;
 import org.eclipse.ditto.services.concierge.common.ConciergeConfig;
-import org.eclipse.ditto.services.concierge.common.EnforcementConfig;
 import org.eclipse.ditto.services.concierge.enforcement.EnforcementProvider;
 import org.eclipse.ditto.services.concierge.enforcement.EnforcerActor;
 import org.eclipse.ditto.services.concierge.enforcement.LiveSignalEnforcement;
@@ -41,8 +41,6 @@ import org.eclipse.ditto.services.concierge.starter.actors.DispatcherActor;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
-import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
-import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CacheFactory;
 import org.eclipse.ditto.services.utils.cache.EntityId;
@@ -51,7 +49,6 @@ import org.eclipse.ditto.services.utils.cacheloaders.AclEnforcerCacheLoader;
 import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.services.utils.cacheloaders.ThingEnforcementIdCacheLoader;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
-import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
@@ -68,9 +65,9 @@ import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 
 /**
- * Ditto default implementation of{@link AbstractEnforcerActorFactory}.
+ * Ditto default implementation of{@link EnforcerActorFactory}.
  */
-public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFactory<ConciergeConfig> {
+public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<ConciergeConfig> {
 
     /**
      * Default namespace for {@code CreateThing} commands without any namespace.
@@ -82,20 +79,15 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
 
     @Override
     public ActorRef startEnforcerActor(final ActorContext context, final ConciergeConfig conciergeConfig,
-            final ActorRef pubSubMediator) {
+            final ActorRef pubSubMediator, final ShardRegions shardRegions) {
 
         final CachesConfig cachesConfig = conciergeConfig.getCachesConfig();
         final Duration askTimeout = cachesConfig.getAskTimeout();
         final ActorSystem actorSystem = context.system();
 
-        final ClusterConfig clusterConfig = conciergeConfig.getClusterConfig();
-        final int numberOfShards = clusterConfig.getNumberOfShards();
+        final ActorRef policiesShardRegionProxy = shardRegions.policies();
 
-        final ActorRef policiesShardRegionProxy = startProxy(actorSystem, numberOfShards,
-                PoliciesMessagingConstants.SHARD_REGION, PoliciesMessagingConstants.CLUSTER_ROLE);
-
-        final ActorRef thingsShardRegionProxy = startProxy(actorSystem, numberOfShards,
-                ThingsMessagingConstants.SHARD_REGION, ThingsMessagingConstants.CLUSTER_ROLE);
+        final ActorRef thingsShardRegionProxy = shardRegions.things();
 
         final AsyncCacheLoader<EntityId, Entry<EntityId>> thingEnforcerIdCacheLoader =
                 new ThingEnforcementIdCacheLoader(askTimeout, thingsShardRegionProxy);
@@ -131,9 +123,8 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
                 aclEnforcerCache));
 
         final ActorRef conciergeEnforcerRouter =
-                ConciergeEnforcerClusterRouterFactory.createConciergeEnforcerClusterRouter(context, numberOfShards);
-
-        final EnforcementConfig enforcementConfig = conciergeConfig.getEnforcementConfig();
+                ConciergeEnforcerClusterRouterFactory.createConciergeEnforcerClusterRouter(context,
+                        conciergeConfig.getClusterConfig().getNumberOfShards());
 
         context.actorOf(DispatcherActor.props(pubSubMediator, conciergeEnforcerRouter), DispatcherActor.ACTOR_NAME);
 

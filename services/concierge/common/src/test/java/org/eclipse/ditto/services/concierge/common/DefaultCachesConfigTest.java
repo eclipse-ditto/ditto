@@ -46,9 +46,7 @@ public final class DefaultCachesConfigTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DefaultCachesConfig.class,
-                areImmutable(),
-                provided(CachesConfig.class).isAlsoImmutable());
+        assertInstancesOf(DefaultCachesConfig.class, areImmutable());
     }
 
     @Test

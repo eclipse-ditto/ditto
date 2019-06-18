@@ -45,9 +45,7 @@ public final class DefaultThingsAggregatorConfigTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DefaultThingsAggregatorConfig.class,
-                areImmutable(),
-                provided(ThingsAggregatorConfig.class).isAlsoImmutable());
+        assertInstancesOf(DefaultThingsAggregatorConfig.class, areImmutable());
     }
 
     @Test

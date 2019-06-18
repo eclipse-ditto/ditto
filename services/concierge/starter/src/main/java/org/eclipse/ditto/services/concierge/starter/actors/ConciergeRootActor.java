@@ -23,9 +23,10 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.base.config.http.HttpConfig;
+import org.eclipse.ditto.services.concierge.actors.ShardRegions;
 import org.eclipse.ditto.services.concierge.actors.batch.BatchSupervisorActor;
 import org.eclipse.ditto.services.concierge.common.ConciergeConfig;
-import org.eclipse.ditto.services.concierge.starter.proxy.AbstractEnforcerActorFactory;
+import org.eclipse.ditto.services.concierge.starter.proxy.EnforcerActorFactory;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -127,14 +128,15 @@ public final class ConciergeRootActor extends AbstractActor {
     @SuppressWarnings("unused")
     private <C extends ConciergeConfig> ConciergeRootActor(final C conciergeConfig,
             final ActorRef pubSubMediator,
-            final AbstractEnforcerActorFactory<C> enforcerActorFactory,
+            final EnforcerActorFactory<C> enforcerActorFactory,
             final ActorMaterializer materializer) {
 
         pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
 
         final ActorContext context = getContext();
+        final ShardRegions shardRegions = ShardRegions.of(getContext().getSystem(), conciergeConfig.getClusterConfig());
 
-        enforcerActorFactory.startEnforcerActor(context, conciergeConfig, pubSubMediator);
+        enforcerActorFactory.startEnforcerActor(context, conciergeConfig, pubSubMediator, shardRegions);
 
         final ActorRef conciergeForwarder = context.findChild(ConciergeForwarderActor.ACTOR_NAME).orElseThrow(() ->
                 new IllegalStateException("ConciergeForwarder could not be found"));
@@ -158,7 +160,7 @@ public final class ConciergeRootActor extends AbstractActor {
      */
     public static <C extends ConciergeConfig> Props props(final C conciergeConfig,
             final ActorRef pubSubMediator,
-            final AbstractEnforcerActorFactory<C> enforcerActorFactory,
+            final EnforcerActorFactory<C> enforcerActorFactory,
             final ActorMaterializer materializer) {
 
         checkNotNull(conciergeConfig, "config of Concierge");

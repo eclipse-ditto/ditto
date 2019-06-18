@@ -66,6 +66,26 @@ public final class DefaultPersistenceCleanupConfigTest {
         softly.assertThat(underTest.getQuietPeriod())
                 .as(PersistenceCleanupConfig.ConfigValue.QUIET_PERIOD.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(100L));
+
+        softly.assertThat(underTest.getCleanupTimeout())
+                .as(PersistenceCleanupConfig.ConfigValue.CLEANUP_TIMEOUT.getConfigPath())
+                .isEqualTo(Duration.ofSeconds(150L));
+
+        softly.assertThat(underTest.getParallelism())
+                .as(PersistenceCleanupConfig.ConfigValue.PARALLELISM.getConfigPath())
+                .isEqualTo(160L);
+
+        softly.assertThat(underTest.getKeptCreditDecisions())
+                .as(PersistenceCleanupConfig.ConfigValue.KEEP_CREDIT_DECISIONS.getConfigPath())
+                .isEqualTo(170L);
+
+        softly.assertThat(underTest.getKeptActions())
+                .as(PersistenceCleanupConfig.ConfigValue.KEEP_ACTIONS.getConfigPath())
+                .isEqualTo(180L);
+
+        softly.assertThat(underTest.getKeptEvents())
+                .as(PersistenceCleanupConfig.ConfigValue.KEEP_EVENTS.getConfigPath())
+                .isEqualTo(190L);
     }
 
     private PersistenceCleanupConfig createFromConfig() {
