@@ -133,13 +133,13 @@ public final class TransistorTest {
                     }
                     break;
                 case BASE:
-                    base.sendNext(1).sendNext(3);
+                    base.sendNext(4);
                     if (isNotLimiting(Terminal.BASE)) {
                         base.sendNext(5).sendNext(7).sendNext(9);
                     }
                     break;
                 case EMITTER:
-                    emitter.request(4);
+                    emitter.request(2).request(2);
                     if (isNotLimiting(Terminal.EMITTER)) {
                         emitter.request(3).request(2);
                     }
@@ -148,9 +148,16 @@ public final class TransistorTest {
         }
         // Exactly 4 elements should pass through the stream.
         emitter.expectNext(1, 2, 3, 4);
-        collector.sendComplete();
-        base.sendComplete();
-        emitter.expectComplete();
+
+        if (isNotLimiting(Terminal.EMITTER)) {
+            collector.sendComplete();
+            base.sendComplete();
+            emitter.expectComplete();
+        } else {
+            emitter.cancel();
+            base.expectCancellation();
+            collector.expectCancellation();
+        }
     }
 
     private boolean isNotLimiting(final Terminal terminal) {

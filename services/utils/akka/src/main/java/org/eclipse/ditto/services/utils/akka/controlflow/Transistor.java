@@ -103,10 +103,9 @@ public final class Transistor<T> extends GraphStage<FanInShape2<T, Integer, T>> 
                 @Override
                 public void onPush() {
                     final int newCredit = grab(base);
-                    log().debug("credit = {} + {}", credit, newCredit);
-                    credit += newCredit;
-                    pull(base);
-                    considerPullSource();
+                    log().debug("credit: {} -> {}", credit, newCredit);
+                    credit = newCredit;
+                    considerPullSourceAndBase();
                 }
             });
 
@@ -117,7 +116,7 @@ public final class Transistor<T> extends GraphStage<FanInShape2<T, Integer, T>> 
                     log().debug("grabbed {}", element);
                     inflight.add(element);
                     considerPushDrain();
-                    considerPullSource();
+                    considerPullSourceAndBase();
                 }
             });
 
@@ -126,7 +125,7 @@ public final class Transistor<T> extends GraphStage<FanInShape2<T, Integer, T>> 
                 public void onPull() {
                     demand++;
                     considerPushDrain();
-                    considerPullSource();
+                    considerPullSourceAndBase();
                 }
             });
         }
@@ -136,13 +135,17 @@ public final class Transistor<T> extends GraphStage<FanInShape2<T, Integer, T>> 
             pull(base);
         }
 
-        private void considerPullSource() {
+        private void considerPullSourceAndBase() {
             if (credit > 0 & demand > 0 && inflight.isEmpty()) {
                 if (!hasBeenPulled(collector)) {
                     credit--;
                     log().debug("pulling; {} credit left", credit);
                     pull(collector);
                 }
+            }
+            // pull base if no credit left
+            if (credit <= 0 && !hasBeenPulled(base)) {
+                pull(base);
             }
         }
 
