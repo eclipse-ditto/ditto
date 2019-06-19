@@ -29,6 +29,8 @@ import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
 import org.eclipse.ditto.services.utils.metrics.config.MetricsConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
+import org.eclipse.ditto.services.utils.persistence.operations.DefaultPersistenceOperationsConfig;
+import org.eclipse.ditto.services.utils.persistence.operations.PersistenceOperationsConfig;
 import org.eclipse.ditto.services.utils.protocol.config.DefaultProtocolConfig;
 import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
 
@@ -41,22 +43,22 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
     private static final String CONFIG_PATH = "connectivity";
 
     private final DittoServiceConfig serviceSpecificConfig;
-    private final DefaultMongoDbConfig mongoDbConfig;
-    private final DefaultHealthCheckConfig healthCheckConfig;
-    private final DefaultConnectionConfig connectionConfig;
-    private final DefaultMappingConfig mappingConfig;
-    private final DefaultReconnectConfig reconnectConfig;
-    private final DefaultClientConfig clientConfig;
-    private final DefaultProtocolConfig protocolConfig;
+    private final PersistenceOperationsConfig persistenceOperationsConfig;
+    private final MongoDbConfig mongoDbConfig;
+    private final HealthCheckConfig healthCheckConfig;
+    private final ConnectionConfig connectionConfig;
+    private final MappingConfig mappingConfig;
+    private final ReconnectConfig reconnectConfig;
+    private final ClientConfig clientConfig;
+    private final ProtocolConfig protocolConfig;
     private final MonitoringConfig monitoringConfig;
 
     private DittoConnectivityConfig(final ScopedConfig dittoScopedConfig) {
-
         serviceSpecificConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
+        persistenceOperationsConfig = DefaultPersistenceOperationsConfig.of(dittoScopedConfig);
         mongoDbConfig = DefaultMongoDbConfig.of(dittoScopedConfig);
         healthCheckConfig = DefaultHealthCheckConfig.of(dittoScopedConfig);
         protocolConfig = DefaultProtocolConfig.of(dittoScopedConfig);
-
         connectionConfig = DefaultConnectionConfig.of(serviceSpecificConfig);
         mappingConfig = DefaultMappingConfig.of(serviceSpecificConfig);
         reconnectConfig = DefaultReconnectConfig.of(serviceSpecificConfig);
@@ -122,6 +124,11 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
     }
 
     @Override
+    public PersistenceOperationsConfig getPersistenceOperationsConfig() {
+        return persistenceOperationsConfig;
+    }
+
+    @Override
     public MongoDbConfig getMongoDbConfig() {
         return mongoDbConfig;
     }
@@ -147,6 +154,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
         }
         final DittoConnectivityConfig that = (DittoConnectivityConfig) o;
         return Objects.equals(serviceSpecificConfig, that.serviceSpecificConfig) &&
+                Objects.equals(persistenceOperationsConfig, that.persistenceOperationsConfig) &&
                 Objects.equals(mongoDbConfig, that.mongoDbConfig) &&
                 Objects.equals(healthCheckConfig, that.healthCheckConfig) &&
                 Objects.equals(connectionConfig, that.connectionConfig) &&
@@ -159,14 +167,15 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(serviceSpecificConfig, mongoDbConfig, healthCheckConfig, connectionConfig, mappingConfig,
-                reconnectConfig, clientConfig, protocolConfig, monitoringConfig);
+        return Objects.hash(serviceSpecificConfig, persistenceOperationsConfig, mongoDbConfig, healthCheckConfig,
+                connectionConfig, mappingConfig, reconnectConfig, clientConfig, protocolConfig, monitoringConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "serviceSpecificConfig=" + serviceSpecificConfig +
+                ", persistenceOperationsConfig=" + persistenceOperationsConfig +
                 ", mongoDbConfig=" + mongoDbConfig +
                 ", healthCheckConfig=" + healthCheckConfig +
                 ", connectionConfig=" + connectionConfig +

@@ -12,4 +12,4 @@
  */
 
 @org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault
-package org.eclipse.ditto.services.utils.persistence.mongo.namespace;
+package org.eclipse.ditto.services.utils.persistence.mongo.ops;

@@ -510,7 +510,7 @@ public final class ConnectionActorTest extends WithMockServers {
 
     @Test
     public void testThingEventIsForwardedToFilteredTarget() {
-        final Connection connection = TestConstants.createConnection(connectionId, actorSystem,
+        final Connection connection = TestConstants.createConnection(connectionId,
                 TestConstants.Targets.TARGET_WITH_PLACEHOLDER);
 
         // expect that address is still with placeholders (as replacement was moved to MessageMappingProcessorActor

@@ -12,15 +12,8 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.status;
 
-import static akka.http.javadsl.server.Directives.complete;
-import static akka.http.javadsl.server.Directives.completeWithFuture;
-import static akka.http.javadsl.server.Directives.get;
-import static akka.http.javadsl.server.Directives.path;
-import static akka.http.javadsl.server.Directives.pathEndOrSingleSlash;
-import static akka.http.javadsl.server.Directives.rawPathPrefix;
-import static akka.http.javadsl.server.Directives.route;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.DevOpsBasicAuthenticationDirective.REALM_DEVOPS;
+import static org.eclipse.ditto.services.gateway.endpoints.directives.DevOpsBasicAuthenticationDirective.REALM_STATUS;
 
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
@@ -34,11 +27,12 @@ import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.server.Route;
+import akka.http.javadsl.server.directives.RouteDirectives;
 
 /**
  * Builder for creating Akka HTTP routes for {@code /status}.
  */
-public final class OverallStatusRoute {
+public final class OverallStatusRoute extends RouteDirectives {
 
     /**
      * Public endpoint of overall status.
@@ -74,30 +68,26 @@ public final class OverallStatusRoute {
      * @return the {@code /status} route.
      */
     public Route buildOverallStatusRoute() {
-        return rawPathPrefix(mergeDoubleSlashes().concat(PATH_OVERALL), () -> { // /overall/*
+        return rawPathPrefix(mergeDoubleSlashes().concat(PATH_OVERALL), () -> {// /overall/*
             final DevOpsBasicAuthenticationDirective devOpsBasicAuthenticationDirective =
                     DevOpsBasicAuthenticationDirective.getInstance(devOpsConfig);
-            return devOpsBasicAuthenticationDirective.authenticateDevOpsBasic(REALM_DEVOPS, get(() -> // GET
-                            // /overall/status
-                            // /overall/status/health
-                            // /overall/status/cluster
-                            rawPathPrefix(mergeDoubleSlashes().concat(PATH_STATUS), () ->
-                                    route(
-                                            // /status
-                                            pathEndOrSingleSlash(
-                                                    () -> completeWithFuture(createOverallStatusResponse())),
-                                            // /status/health
-                                            path(PATH_HEALTH,
-                                                    () -> completeWithFuture(createOverallHealthResponse())),
-                                            path(PATH_CLUSTER, () -> complete( // /status/cluster
-                                                    HttpResponse.create().withStatus(StatusCodes.OK)
-                                                            .withEntity(ContentTypes.APPLICATION_JSON,
-                                                                    clusterStateSupplier.get().toJson().toString()))
-                                            )
-                                    )
+            return devOpsBasicAuthenticationDirective.authenticateDevOpsBasic(REALM_STATUS, get(() -> // GET
+                    // /overall/status
+                    // /overall/status/health
+                    // /overall/status/cluster
+                    rawPathPrefix(mergeDoubleSlashes().concat(PATH_STATUS), () -> concat(
+                            // /status
+                            pathEndOrSingleSlash(() -> completeWithFuture(createOverallStatusResponse())),
+                            // /status/health
+                            path(PATH_HEALTH, () -> completeWithFuture(createOverallHealthResponse())),
+                            // /status/cluster
+                            path(PATH_CLUSTER, () -> complete(
+                                    HttpResponse.create().withStatus(StatusCodes.OK)
+                                            .withEntity(ContentTypes.APPLICATION_JSON,
+                                                    clusterStateSupplier.get().toJson().toString()))
                             )
-                    )
-            );
+                    ))
+            ));
         });
     }
 

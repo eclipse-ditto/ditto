@@ -18,11 +18,18 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueFactory;
+
 /**
  * This class represents a secret that consists of a key and an associated value.
  */
 @Immutable
 final class Secret {
+
+    static final String SECRET_NAME = "name";
+    private static final String SECRET_VALUE = "value";
 
     private final String name;
     private final String value;
@@ -60,6 +67,17 @@ final class Secret {
      */
     String getValue() {
         return value;
+    }
+
+    /**
+     * Returns this secret as a config object.
+     *
+     * @return the config object.
+     */
+    Config toConfig() {
+        return ConfigFactory.empty()
+                .withValue(SECRET_NAME, ConfigValueFactory.fromAnyRef(name))
+                .withValue(SECRET_VALUE, ConfigValueFactory.fromAnyRef(value));
     }
 
     @Override
