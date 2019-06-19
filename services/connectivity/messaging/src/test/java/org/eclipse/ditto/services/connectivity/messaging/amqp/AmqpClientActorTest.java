@@ -194,8 +194,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                 .build();
 
         final ThrowableAssert.ThrowingCallable props1 =
-                () -> AmqpClientActor.propsForTests(connection, connectionStatus,
-                        null, null);
+                () -> AmqpClientActor.propsForTests(connection, connectionStatus, null, null);
         final ThrowableAssert.ThrowingCallable props2 =
                 () -> AmqpClientActor.propsForTests(connection, connectionStatus, null,
                         jmsConnectionFactory);
@@ -584,7 +583,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     @Test
     public void testTargetAddressPlaceholderReplacement() throws JMSException {
         final Connection connection =
-                TestConstants.createConnection(CONNECTION_ID, actorSystem,
+                TestConstants.createConnection(CONNECTION_ID,
                         TestConstants.Targets.TARGET_WITH_PLACEHOLDER);
 
         // target Placeholder: target:{{ thing:namespace }}/{{thing:name}}@{{ topic:channel }}

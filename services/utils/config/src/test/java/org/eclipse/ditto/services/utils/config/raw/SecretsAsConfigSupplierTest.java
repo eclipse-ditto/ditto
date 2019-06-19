@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.utils.config.raw;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.services.utils.config.raw.SecretsAsConfigSupplier.SECRETS_CONFIG_PATH;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -22,7 +23,6 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -32,8 +32,6 @@ import org.junit.contrib.java.lang.system.EnvironmentVariables;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigValue;
-import com.typesafe.config.ConfigValueFactory;
 
 /**
  * Unit test for {@link org.eclipse.ditto.services.utils.config.raw.SecretsAsConfigSupplier}.
@@ -47,11 +45,13 @@ public final class SecretsAsConfigSupplierTest {
     public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
 
     private static Path secretsDirPath;
+    private static Config initialConfig;
 
     @BeforeClass
     public static void initTestFixture() throws URISyntaxException {
         final URL secretsDirUrl = SecretsAsConfigSupplierTest.class.getResource(KNOWN_SECRETS_DIR_PATH);
         secretsDirPath = Paths.get(secretsDirUrl.toURI());
+        initialConfig = ConfigFactory.load("test");
     }
 
     @Before
@@ -63,7 +63,7 @@ public final class SecretsAsConfigSupplierTest {
     public void assertImmutability() {
         assertInstancesOf(SecretsAsConfigSupplier.class,
                 areImmutable(),
-                provided(Path.class).isAlsoImmutable());
+                provided(Path.class, Config.class).areAlsoImmutable());
     }
 
     @Test
@@ -71,7 +71,7 @@ public final class SecretsAsConfigSupplierTest {
         final Path expectedPath = Paths.get("/run/secrets");
 
         environmentVariables.clear(SecretsAsConfigSupplier.SECRETS_DIR_PATH_ENV_VARIABLE_NAME);
-        final SecretsAsConfigSupplier underTest = SecretsAsConfigSupplier.getInstance();
+        final SecretsAsConfigSupplier underTest = SecretsAsConfigSupplier.getInstance(initialConfig);
 
         assertThat(underTest.getSecretsDirPath()).isEqualTo(expectedPath);
     }
@@ -80,7 +80,7 @@ public final class SecretsAsConfigSupplierTest {
     public void useSecretsDirPathOfSystemEnvironment() {
         final Path expectedPath = secretsDirPath;
 
-        final SecretsAsConfigSupplier underTest = SecretsAsConfigSupplier.getInstance();
+        final SecretsAsConfigSupplier underTest = SecretsAsConfigSupplier.getInstance(initialConfig);
 
         assertThat(underTest.getSecretsDirPath()).isEqualTo(expectedPath);
     }
@@ -88,16 +88,14 @@ public final class SecretsAsConfigSupplierTest {
     @Test
     public void getEmptyConfigForNotExistingDir() {
         environmentVariables.set(SecretsAsConfigSupplier.SECRETS_DIR_PATH_ENV_VARIABLE_NAME, "plumbus");
-        final SecretsAsConfigSupplier underTest = SecretsAsConfigSupplier.getInstance();
+        final SecretsAsConfigSupplier underTest = SecretsAsConfigSupplier.getInstance(initialConfig);
 
-        assertThat(underTest.get()).isEqualTo(ConfigFactory.empty());
+        assertThat(underTest.get()).isEqualTo(ConfigFactory.empty().atKey(SECRETS_CONFIG_PATH));
     }
 
     @Test
     public void getEmptyConfigForEmptyDir() throws URISyntaxException {
-        final Config expectedConfig = ConfigFactory.empty()
-                .withValue(SecretsAsConfigSupplier.SECRETS_CONFIG_PATH,
-                        ConfigValueFactory.fromMap(Collections.emptyMap()));
+        final Config expectedConfig = ConfigFactory.empty().atKey(SECRETS_CONFIG_PATH);
 
         final URL emptyDirParentUrl = SecretsAsConfigSupplierTest.class.getResource(".");
         final Path parentPath = Paths.get(emptyDirParentUrl.toURI());
@@ -107,19 +105,17 @@ public final class SecretsAsConfigSupplierTest {
 
         environmentVariables.set(SecretsAsConfigSupplier.SECRETS_DIR_PATH_ENV_VARIABLE_NAME, emptyDirPath.toString());
 
-        final SecretsAsConfigSupplier underTest = SecretsAsConfigSupplier.getInstance();
+        final SecretsAsConfigSupplier underTest = SecretsAsConfigSupplier.getInstance(initialConfig);
 
         assertThat(underTest.get()).isEqualTo(expectedConfig);
     }
 
     @Test
     public void getReturnsExpectedSecretsConfig() {
-        final ConfigValue expectedSecretsConfig =
-                ConfigValueFactory.fromMap(Collections.singletonMap("plumbus_password", "612brapples"));
-        final Config expectedConfig = ConfigFactory.parseMap(
-                Collections.singletonMap(SecretsAsConfigSupplier.SECRETS_CONFIG_PATH, expectedSecretsConfig));
+        final Config expectedConfig =
+                ConfigFactory.parseString("secrets.test{name=plumbus_password,value=612brapples}");
 
-        final SecretsAsConfigSupplier underTest = SecretsAsConfigSupplier.getInstance();
+        final SecretsAsConfigSupplier underTest = SecretsAsConfigSupplier.getInstance(initialConfig);
 
         assertThat(underTest.get()).isEqualTo(expectedConfig);
     }

@@ -36,10 +36,6 @@ import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
 import org.junit.Test;
 
-import com.typesafe.config.ConfigFactory;
-
-import akka.actor.ActorSystem;
-
 /**
  * Tests {@link org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator}.
  */
@@ -56,7 +52,6 @@ public class ConnectionValidatorTest {
 
     @Test
     public void acceptValidConnection() {
-        final ActorSystem system = ActorSystem.create(getClass().getSimpleName(), ConfigFactory.load("test"));
         final Connection connection = createConnection("connectionId");
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
         underTest.validate(connection, DittoHeaders.empty());

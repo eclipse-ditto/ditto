@@ -115,8 +115,8 @@ final class FileBasedConfigSupplier implements Supplier<Config> {
                 .orElseGet(() -> initialConfig.withFallback(getSecretsAsConfig()));
     }
 
-    private static Config getSecretsAsConfig() {
-        return SecretsAsConfigSupplier.getInstance().get();
+    private Config getSecretsAsConfig() {
+        return SecretsAsConfigSupplier.getInstance(initialConfig).get();
     }
 
 }

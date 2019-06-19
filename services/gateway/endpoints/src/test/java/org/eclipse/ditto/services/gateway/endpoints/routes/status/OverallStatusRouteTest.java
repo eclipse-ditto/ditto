@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.status;
 
+import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.STATUS_CREDENTIALS;
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.UNKNOWN_PATH;
 
 import java.util.function.Supplier;
@@ -83,6 +84,13 @@ public final class OverallStatusRouteTest extends EndpointTestBase {
     public void getOverallStatusClusterWithAuth() {
         final TestRouteResult result = statusTestRoute.run(withDevopsCredentials(HttpRequest.GET(
                 OVERALL_STATUS_CLUSTER_PATH)));
+        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+    }
+
+    @Test
+    public void getOverallStatusClusterAsStatusUser() {
+        final TestRouteResult result =
+                statusTestRoute.run(HttpRequest.GET(OVERALL_STATUS_CLUSTER_PATH).addCredentials(STATUS_CREDENTIALS));
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
     }
 

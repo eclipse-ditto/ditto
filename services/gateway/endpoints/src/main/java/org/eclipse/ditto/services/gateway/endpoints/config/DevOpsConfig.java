@@ -30,11 +30,18 @@ public interface DevOpsConfig {
     boolean isSecureStatus();
 
     /**
-     * Returns the BasicAuth password of the DevOps resources.
+     * Returns the BasicAuth password of all DevOps resources.
      *
      * @return the password.
      */
     String getPassword();
+
+    /**
+     * Returns the BasicAuth password for status resources only.
+     *
+     * @return the status password.
+     */
+    String getStatusPassword();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for
@@ -48,9 +55,14 @@ public interface DevOpsConfig {
         SECURE_STATUS("securestatus", true),
 
         /**
-         * The BasicAuth password of the DevOps resources.
+         * The BasicAuth password of all DevOps resources.
          */
-        PASSWORD("password", "foobar");
+        PASSWORD("password", "foobar"),
+
+        /**
+         * The BasicAuth password for status resources only.
+         */
+        STATUS_PASSWORD("statusPassword", "status");
 
         private final String path;
         private final Object defaultValue;

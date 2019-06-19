@@ -19,6 +19,7 @@ import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThin
 import org.eclipse.ditto.services.utils.test.GlobalCommandRegistryTestCases;
 import org.eclipse.ditto.signals.commands.batch.ExecuteBatch;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
+import org.eclipse.ditto.signals.commands.common.purge.PurgeEntities;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnection;
 import org.eclipse.ditto.signals.commands.devops.ExecutePiggybackCommand;
@@ -48,7 +49,8 @@ public final class ConciergeServiceGlobalCommandRegistryTest extends GlobalComma
                 Shutdown.class,
                 PurgeNamespace.class,
                 RetrieveResource.class,
-                DeleteSubject.class
+                DeleteSubject.class,
+                PurgeEntities.class
         );
     }
 

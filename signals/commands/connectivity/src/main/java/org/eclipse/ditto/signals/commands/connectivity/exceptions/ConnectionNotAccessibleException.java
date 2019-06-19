@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.signals.commands.connectivity.exceptions;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.net.URI;
 import java.text.MessageFormat;
 
@@ -19,12 +21,16 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityException;
 
@@ -46,12 +52,16 @@ public final class ConnectionNotAccessibleException extends DittoRuntimeExceptio
 
     private static final long serialVersionUID = -3207647419678933094L;
 
+    private final String connectionId;
+
     private ConnectionNotAccessibleException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
-            @Nullable final URI href) {
+            @Nullable final URI href,
+            final String connectionId) {
         super(ERROR_CODE, HttpStatusCode.NOT_FOUND, dittoHeaders, message, description, cause, href);
+        this.connectionId = connectionId;
     }
 
     /**
@@ -62,20 +72,6 @@ public final class ConnectionNotAccessibleException extends DittoRuntimeExceptio
      */
     public static Builder newBuilder(final String id) {
         return new Builder(id);
-    }
-
-    /**
-     * Constructs a new {@code ConnectionNotAccessibleException} object with given message.
-     *
-     * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
-     * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new ConnectionNotAccessibleException.
-     */
-    public static ConnectionNotAccessibleException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
     }
 
     /**
@@ -91,12 +87,21 @@ public final class ConnectionNotAccessibleException extends DittoRuntimeExceptio
      */
     public static ConnectionNotAccessibleException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return new Builder()
+        return new Builder(readConnectionId(jsonObject))
                 .dittoHeaders(dittoHeaders)
                 .message(readMessage(jsonObject))
                 .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
                 .href(readHRef(jsonObject).orElse(null))
                 .build();
+    }
+
+    private static String readConnectionId(final JsonObject jsonObject) {
+        checkNotNull(jsonObject, "JSON object");
+        return jsonObject.getValueOrThrow(JsonFields.CONNECTION_ID);
+    }
+
+    public String getConnectionId() {
+        return connectionId;
     }
 
     /**
@@ -105,12 +110,10 @@ public final class ConnectionNotAccessibleException extends DittoRuntimeExceptio
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<ConnectionNotAccessibleException> {
 
-        private Builder() {
-            description(DEFAULT_DESCRIPTION);
-        }
+        private final String connectionId;
 
         private Builder(final String id) {
-            this();
+            this.connectionId = id;
             message(MessageFormat.format(MESSAGE_TEMPLATE, id));
         }
 
@@ -120,8 +123,27 @@ public final class ConnectionNotAccessibleException extends DittoRuntimeExceptio
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-            return new ConnectionNotAccessibleException(dittoHeaders, message, description, cause, href);
+            return new ConnectionNotAccessibleException(dittoHeaders, message, description, cause, href, connectionId);
         }
+    }
+
+
+    /**
+     * An enumeration of the known {@link org.eclipse.ditto.json.JsonField}s of a {@code DittoRuntimeException}.
+     */
+    @Immutable
+    public static final class JsonFields {
+
+        /**
+         * JSON field containing connection id of the connection that is not accessible.
+         */
+        public static final JsonFieldDefinition<String> CONNECTION_ID =
+                JsonFactory.newStringFieldDefinition("connectionId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        private JsonFields() {
+            throw new AssertionError();
+        }
+
     }
 
 }

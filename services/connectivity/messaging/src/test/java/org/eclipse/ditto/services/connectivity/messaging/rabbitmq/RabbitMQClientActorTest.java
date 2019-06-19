@@ -155,10 +155,9 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
         new TestKit(actorSystem) {{
             final String randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connectionWithoutTargets =
-                    TestConstants.createConnection(randomConnectionId, actorSystem, new Target[0]);
+                    TestConstants.createConnection(randomConnectionId, new Target[0]);
             final Props props =
-                    RabbitMQClientActor.propsForTests(connectionWithoutTargets, CONNECTION_STATUS,
-                            getRef(),
+                    RabbitMQClientActor.propsForTests(connectionWithoutTargets, CONNECTION_STATUS, getRef(),
                             (con, exHandler) -> mockConnectionFactory).withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
             watch(rabbitClientActor);
