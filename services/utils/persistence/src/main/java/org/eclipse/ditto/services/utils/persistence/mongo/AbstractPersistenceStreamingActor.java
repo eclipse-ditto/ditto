@@ -162,7 +162,7 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
     public Source<T, NotUsed> visit(final SudoStreamPids command) {
         return javaDslMongoReadJournal.persistenceIds()
                 .map(pid -> mapEntity(new PidWithSeqNr(pid, 0L)))
-                .log("snapshot-revisions-streaming", log);
+                .log("pid-streaming", log);
     }
 
     private T mapEntity(final PidWithSeqNr pidWithSeqNr) {

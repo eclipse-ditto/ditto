@@ -61,6 +61,17 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
                 .build();
     }
 
+    /**
+     * Return the number of events to keep after an cleanup action.
+     * If this number is positive, the PID will not be removed from
+     * the set of current PIDs known to the persistence plugin.
+     *
+     * @return number of stale events to keep.
+     */
+    protected long staleEventsKeptAfterCleanup() {
+        return 0;
+    }
+
     private void handleCleanupCommand(final Cleanup cleanup) {
         log.debug("Received Cleanup command: {}", cleanup);
         if (origin == null) {
@@ -130,11 +141,12 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
     private void startCleanup(final long latestSnapshotSequenceNumber) {
         origin = getSender();
         final long maxSnapSeqNoToDelete = latestSnapshotSequenceNumber - 1;
+        final long maxEventSeqNoToDelete = latestSnapshotSequenceNumber - staleEventsKeptAfterCleanup();
         log.info("Starting cleanup for '{}', deleting snapshots to sequence number {} and events to {}.",
-                persistenceId(), maxSnapSeqNoToDelete, latestSnapshotSequenceNumber);
+                persistenceId(), maxSnapSeqNoToDelete, maxEventSeqNoToDelete);
         final SnapshotSelectionCriteria deletionCriteria =
                 SnapshotSelectionCriteria.create(maxSnapSeqNoToDelete, Long.MAX_VALUE);
-        deleteMessages(latestSnapshotSequenceNumber);
+        deleteMessages(maxEventSeqNoToDelete);
         deleteSnapshots(deletionCriteria);
         lastCleanupExecutedAtSequenceNumber = latestSnapshotSequenceNumber;
     }

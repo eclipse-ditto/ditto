@@ -308,6 +308,20 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                 .build();
     }
 
+    /**
+     * Keep 1 stale event for cleanup if the connection's desired state is open so that this actor's pid stays
+     * in the set of current persistence IDs known to the persistence plugin and will be woken up by the reconnect
+     * actor after service restart.
+     *
+     * @return number of stale events to keep after cleanup.
+     */
+    @Override
+    protected long staleEventsKeptAfterCleanup() {
+        final boolean isDesiredStateOpen =
+                connection != null && connection.getConnectionStatus() == ConnectivityStatus.OPEN;
+        return isDesiredStateOpen ? 1 : 0;
+    }
+
     private void restoreConnection(@Nullable final Connection theConnection) {
         connection = theConnection;
         if (theConnection != null) {
