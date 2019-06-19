@@ -15,6 +15,7 @@ package org.eclipse.ditto.signals.commands.connectivity.query;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
@@ -119,8 +120,8 @@ public final class RetrieveConnectionMetricsResponse
                 });
     }
 
-    public boolean getContainsFailure() {
-        return jsonObject.getValue(JsonFields.CONTAINS_FAILURES).orElse(false);
+    public Optional<Boolean> getContainsFailure() {
+        return jsonObject.getValue(JsonFields.CONTAINS_FAILURES);
     }
 
     /**
@@ -158,10 +159,8 @@ public final class RetrieveConnectionMetricsResponse
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, connectionId, predicate);
-        jsonObjectBuilder.set(JsonFields.CONTAINS_FAILURES, getContainsFailure(), predicate);
-        jsonObjectBuilder.set(JsonFields.CONNECTION_METRICS, getConnectionMetrics().toJson(), predicate);
-        jsonObjectBuilder.set(JsonFields.SOURCE_METRICS, getSourceMetrics().toJson(), predicate);
-        jsonObjectBuilder.set(JsonFields.TARGET_METRICS, getTargetMetrics().toJson(), predicate);
+
+        jsonObjectBuilder.setAll(jsonObject);
     }
 
     @Override

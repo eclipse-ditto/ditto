@@ -150,34 +150,10 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
             final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveConnectionStatusResponse>(TYPE, jsonObject).deserialize(
                 statusCode -> {
-                    final String readConnectionId =
+                    final String connectionId =
                             jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
-                    final ConnectivityStatus readConnectionStatus =
-                            ConnectivityStatus.forName(jsonObject.getValueOrThrow(JsonFields.CONNECTION_STATUS))
-                                    .orElse(ConnectivityStatus.UNKNOWN);
-                    final ConnectivityStatus readLiveStatus =
-                            ConnectivityStatus.forName(jsonObject.getValueOrThrow(JsonFields.LIVE_STATUS))
-                                    .orElse(ConnectivityStatus.UNKNOWN);
-                    final String connSinceStr = jsonObject.getValue(JsonFields.CONNECTED_SINCE).orElse(null);
-                    final Instant readConnectedSince = connSinceStr != null ? Instant.parse(connSinceStr) : null;
 
-                    final List<ResourceStatus> readClientStatus =
-                            readAddressStatus(jsonObject.getValueOrThrow(JsonFields.CLIENT_STATUS));
-
-                    final List<ResourceStatus> readSourceStatus =
-                            readAddressStatus(jsonObject.getValueOrThrow(JsonFields.SOURCE_STATUS));
-
-                    final List<ResourceStatus> readTargetStatus =
-                            readAddressStatus(jsonObject.getValueOrThrow(JsonFields.TARGET_STATUS));
-
-                    return getBuilder(readConnectionId, dittoHeaders)
-                            .connectionStatus(readConnectionStatus)
-                            .liveStatus(readLiveStatus)
-                            .connectedSince(readConnectedSince)
-                            .clientStatus(readClientStatus)
-                            .sourceStatus(readSourceStatus)
-                            .targetStatus(readTargetStatus)
-                            .build();
+                    return of(connectionId, jsonObject, dittoHeaders);
                 });
     }
 
@@ -239,21 +215,8 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, connectionId, predicate);
-        jsonObjectBuilder.set(JsonFields.CONNECTION_STATUS, getConnectionStatus().getName(), predicate);
-        jsonObjectBuilder.set(JsonFields.LIVE_STATUS, getLiveStatus().getName(), predicate);
-        final Optional<Instant> connectedSince = getConnectedSince();
-        jsonObjectBuilder.set(JsonFields.CONNECTED_SINCE, connectedSince != null ? connectedSince.get().toString() : null,
-                predicate);
 
-        jsonObjectBuilder.set(JsonFields.CLIENT_STATUS, getClientStatus().stream()
-                .map(source -> source.toJson(schemaVersion, thePredicate))
-                .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
-        jsonObjectBuilder.set(JsonFields.SOURCE_STATUS, getSourceStatus().stream()
-                .map(source -> source.toJson(schemaVersion, thePredicate))
-                .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
-        jsonObjectBuilder.set(JsonFields.TARGET_STATUS, getTargetStatus().stream()
-                .map(source -> source.toJson(schemaVersion, thePredicate))
-                .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
+        jsonObjectBuilder.setAll(jsonObject);
     }
 
     @Override
@@ -263,10 +226,10 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
 
     @Override
     public RetrieveConnectionStatusResponse setEntity(final JsonValue entity) {
-        final JsonObject jsonObject1 = entity.asObject();
+        final JsonObject jsonEntity = entity.asObject();
 
-        return of(jsonObject1.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID),
-                jsonObject1, getDittoHeaders());
+        return of(jsonEntity.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID),
+                jsonEntity, getDittoHeaders());
     }
 
     @Override
@@ -281,14 +244,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
 
     @Override
     public RetrieveConnectionStatusResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return getBuilder(connectionId, dittoHeaders)
-                .connectionStatus(getConnectionStatus())
-                .liveStatus(getLiveStatus())
-                .connectedSince(getConnectedSince().orElse(null))
-                .clientStatus(getClientStatus())
-                .sourceStatus(getSourceStatus())
-                .targetStatus(getTargetStatus())
-                .build();
+        return of(connectionId, jsonObject, dittoHeaders);
     }
 
     public static Builder getBuilder(final String connectionId, final DittoHeaders dittoHeaders) {
