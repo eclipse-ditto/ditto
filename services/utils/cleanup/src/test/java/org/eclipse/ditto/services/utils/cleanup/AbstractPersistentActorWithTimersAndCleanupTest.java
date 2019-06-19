@@ -79,6 +79,23 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
     }
 
     @Test
+    public void testZeroStaleEventsKept() {
+        new TestKit(actorSystem) {{
+            // GIVEN: persistence actor with some messages and snapshots
+            final ActorRef persistenceActor = childActorOf(DummyPersistentActor.props(persistenceId(), 0L));
+            modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 10);
+
+            // WHEN: cleanup is sent
+            persistenceActor.tell(Cleanup.of(persistenceId(), DittoHeaders.empty()), getRef());
+
+            // THEN: command is successful and plugin is called
+            final CleanupCommandResponse cleanupCommandResponse = expectMsgClass(CleanupCommandResponse.class);
+            assertThat(cleanupCommandResponse.getStatusCode()).isEqualTo(HttpStatusCode.OK);
+            verifyPersistencePluginCalledWithCorrectArguments(persistenceId(), 9, 10);
+        }};
+    }
+
+    @Test
     public void testDeleteMessagesFails() {
         new TestKit(actorSystem) {{
             // GIVEN: persistence actor with some messages and snapshots
@@ -144,7 +161,8 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
             // WHEN: concurrent cleanup is sent
             persistenceActor.tell(Cleanup.of(SLOW_DELETE, DittoHeaders.empty()), getRef());
             persistenceActor.tell(Cleanup.of(SLOW_DELETE, DittoHeaders.empty()), getRef());
-            final CleanupCommandResponse cleanupFailed = expectMsgClass(Duration.ofSeconds(10), CleanupCommandResponse.class);
+            final CleanupCommandResponse cleanupFailed =
+                    expectMsgClass(Duration.ofSeconds(10), CleanupCommandResponse.class);
 
             // THEN: second command is rejected and only first command ist executed by plugin
             assertThat(cleanupFailed.getStatusCode()).isEqualTo(HttpStatusCode.INTERNAL_SERVER_ERROR);
@@ -186,10 +204,15 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
                 SaveSnapshotSuccess.class));
     }
 
-    private void verifyPersistencePluginCalledWithCorrectArguments(final String persistenceId,
-            final int toSequenceNumber) {
-        MockJournalPlugin.verify(persistenceId, toSequenceNumber);
-        MockSnapshotStorePlugin.verify(persistenceId, toSequenceNumber);
+    private void verifyPersistencePluginCalledWithCorrectArguments(final String persistenceId, final int toSn) {
+        verifyPersistencePluginCalledWithCorrectArguments(persistenceId, toSn, toSn);
+    }
+
+    private void verifyPersistencePluginCalledWithCorrectArguments(final String persistenceId, final int snapsSn,
+            final int journalSn) {
+
+        MockSnapshotStorePlugin.verify(persistenceId, snapsSn);
+        MockJournalPlugin.verify(persistenceId, journalSn);
     }
 
     private String persistenceId() {
@@ -199,15 +222,27 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
     static class DummyPersistentActor extends AbstractPersistentActorWithTimersAndCleanup {
 
         private final String persistenceId;
+        private final long staleEventsKept;
         private long lastSnapshotSeqNo = 0;
 
-        private DummyPersistentActor(final String persistenceId) {
+        private DummyPersistentActor(final String persistenceId, final long staleEventsKept) {
             this.persistenceId = persistenceId;
+            this.staleEventsKept = staleEventsKept;
         }
 
         static Props props(final String persistenceId) {
+            return props(persistenceId, 1L);
+        }
+
+        static Props props(final String persistenceId, final long staleEventsKept) {
             return Props.create(
-                    DummyPersistentActor.class, (Creator<DummyPersistentActor>) () -> new DummyPersistentActor(persistenceId));
+                    DummyPersistentActor.class,
+                    (Creator<DummyPersistentActor>) () -> new DummyPersistentActor(persistenceId, staleEventsKept));
+        }
+
+        @Override
+        protected long staleEventsKeptAfterCleanup() {
+            return staleEventsKept;
         }
 
         @Override
