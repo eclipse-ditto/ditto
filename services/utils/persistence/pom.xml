@@ -156,6 +156,10 @@
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-persistence-query_${scala.version}</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

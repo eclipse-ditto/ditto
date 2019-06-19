@@ -33,5 +33,5 @@ public interface StartStreamRequestVisitor<T> {
      * @param command the command.
      * @return the evaluation result.
      */
-    T visit(SudoStreamSnapshotRevisions command);
+    T visit(SudoStreamPids command);
 }

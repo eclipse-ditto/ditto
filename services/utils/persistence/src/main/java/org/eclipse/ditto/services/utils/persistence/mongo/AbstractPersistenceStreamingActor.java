@@ -23,7 +23,7 @@ import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.models.streaming.StartStreamRequest;
 import org.eclipse.ditto.services.models.streaming.StartStreamRequestVisitor;
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
-import org.eclipse.ditto.services.models.streaming.SudoStreamSnapshotRevisions;
+import org.eclipse.ditto.services.models.streaming.SudoStreamPids;
 import org.eclipse.ditto.services.utils.akka.streaming.AbstractStreamingActor;
 import org.eclipse.ditto.services.utils.cache.ComparableCache;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
@@ -36,6 +36,7 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import com.typesafe.config.Config;
 
 import akka.NotUsed;
+import akka.contrib.persistence.mongodb.JavaDslMongoReadJournal;
 import akka.stream.javadsl.Source;
 
 /**
@@ -54,6 +55,7 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
 
     private final DittoMongoClient mongoClient;
     private final MongoReadJournal readJournal;
+    private final JavaDslMongoReadJournal javaDslMongoReadJournal;
 
     /**
      * Constructor.
@@ -72,6 +74,7 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
                 DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(config));
         mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
         readJournal = MongoReadJournal.newInstance(config, mongoClient);
+        javaDslMongoReadJournal = readJournal.toJavaDslMongoReadJournal(getContext().getSystem());
     }
 
     /**
@@ -92,6 +95,7 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
                 DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(config));
         mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
         this.readJournal = readJournal;
+        javaDslMongoReadJournal = readJournal.toJavaDslMongoReadJournal(getContext().getSystem());
     }
 
     @Override
@@ -155,9 +159,9 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
     }
 
     @Override
-    public Source<T, NotUsed> visit(final SudoStreamSnapshotRevisions command) {
-        return readJournal.readMetadata()
-                .map(this::mapEntity)
+    public Source<T, NotUsed> visit(final SudoStreamPids command) {
+        return javaDslMongoReadJournal.persistenceIds()
+                .map(pid -> mapEntity(new PidWithSeqNr(pid, 0L)))
                 .log("snapshot-revisions-streaming", log);
     }
 

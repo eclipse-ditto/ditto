@@ -36,7 +36,10 @@ import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.typesafe.config.Config;
 
 import akka.NotUsed;
+import akka.actor.ActorSystem;
+import akka.contrib.persistence.mongodb.JavaDslMongoReadJournal;
 import akka.contrib.persistence.mongodb.JournallingFieldNames$;
+import akka.persistence.query.PersistenceQuery;
 import akka.stream.javadsl.Source;
 
 /**
@@ -93,13 +96,15 @@ public class MongoReadJournal {
     private final Pattern journalCollectionPrefix;
     private final MongoCollection<Document> metadataCollection;
     private final DittoMongoClient mongoClient;
+    private final String autoStartJournalConfigKey;
     private final Logger log;
 
     private MongoReadJournal(final Pattern journalCollectionPrefix, final String metadataCollectionName,
-            final DittoMongoClient mongoClient) {
+            final DittoMongoClient mongoClient, final String autoStartJournalConfigKey) {
         this.journalCollectionPrefix = journalCollectionPrefix;
         this.metadataCollection = mongoClient.getCollection(metadataCollectionName);
         this.mongoClient = mongoClient;
+        this.autoStartJournalConfigKey = autoStartJournalConfigKey;
         log = LoggerFactory.getLogger(MongoTimestampPersistence.class);
     }
 
@@ -111,20 +116,22 @@ public class MongoReadJournal {
      * @return A {@code MongoReadJournal} object.
      */
     public static MongoReadJournal newInstance(final Config config, final DittoMongoClient mongoClient) {
-        final Config journalConfig = extractAutoStartJournalConfig(config);
+        final String autoStartJournalConfigKey = extractAutoStartJournalConfigKey(config);
+        final Config journalConfig = config.getConfig(autoStartJournalConfigKey);
         final Pattern journalCollectionPrefix = resolveJournalCollectionPrefix(journalConfig);
         final String metadataCollectionName = journalConfig.getString(METADATA_COLLECTION_NAME_KEY);
-        return new MongoReadJournal(journalCollectionPrefix, metadataCollectionName, mongoClient);
+        return new MongoReadJournal(journalCollectionPrefix, metadataCollectionName, mongoClient,
+                autoStartJournalConfigKey);
     }
 
     /**
-     * Read all content of the metadata collection.
+     * Create a {@code JavaDslMongoReadJournal} for the event journal known to this object.
      *
      * @return source of the content of the entire metadata collection.
      */
-    public Source<PidWithSeqNr, NotUsed> readMetadata() {
-        return Source.fromPublisher(metadataCollection.find().sort(METADATA_SORT_DOCUMENT))
-                .map(doc -> new PidWithSeqNr(doc.getString(PROCESSOR_ID), doc.getLong(MAX_SN)));
+    public JavaDslMongoReadJournal toJavaDslMongoReadJournal(final ActorSystem actorSystem) {
+        return PersistenceQuery.get(actorSystem)
+                .getReadJournalFor(JavaDslMongoReadJournal.class, autoStartJournalConfigKey);
     }
 
     /**
@@ -196,9 +203,9 @@ public class MongoReadJournal {
      * {@code akka.persistence.journal.auto-start-journals} contains exactly 1 configuration key {@code
      * <JOURNAL_KEY>}, which points to the configuration of the auto-start journal.
      *
-     * @param config The actor system's configuration.
+     * @param config The key to the configuration of the auto-start journal.
      */
-    private static Config extractAutoStartJournalConfig(final Config config) {
+    private static String extractAutoStartJournalConfigKey(final Config config) {
         final List<String> autoStartJournals = config.getStringList(AKKA_PERSISTENCE_JOURNAL_AUTO_START_JOURNALS);
         if (autoStartJournals.size() != 1) {
             final String message = String.format("Expect %s to be a singleton list, but it is List(%s)",
@@ -206,8 +213,7 @@ public class MongoReadJournal {
                     String.join(", ", autoStartJournals));
             throw new IllegalArgumentException(message);
         } else {
-            final String journalKey = autoStartJournals.get(0);
-            return config.getConfig(journalKey);
+            return autoStartJournals.get(0);
         }
     }
 

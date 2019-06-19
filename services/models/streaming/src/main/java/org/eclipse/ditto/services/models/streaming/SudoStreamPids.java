@@ -39,11 +39,11 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
  */
 @Immutable
 @AllValuesAreNonnullByDefault
-@JsonParsableCommand(typePrefix = SudoStreamSnapshotRevisions.TYPE_PREFIX, name = SudoStreamSnapshotRevisions.NAME)
-public final class SudoStreamSnapshotRevisions extends AbstractCommand<SudoStreamSnapshotRevisions>
+@JsonParsableCommand(typePrefix = SudoStreamPids.TYPE_PREFIX, name = SudoStreamPids.NAME)
+public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
         implements StartStreamRequest {
 
-    static final String NAME = "SudoStreamSnapshotRevisions";
+    static final String NAME = "SudoStreamPids";
 
     /**
      * Type of this command.
@@ -60,7 +60,7 @@ public final class SudoStreamSnapshotRevisions extends AbstractCommand<SudoStrea
 
     private final long timeoutMillis;
 
-    private SudoStreamSnapshotRevisions(final Integer burst, final Long timeoutMillis,
+    private SudoStreamPids(final Integer burst, final Long timeoutMillis,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, dittoHeaders);
@@ -78,10 +78,10 @@ public final class SudoStreamSnapshotRevisions extends AbstractCommand<SudoStrea
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static SudoStreamSnapshotRevisions of(final Integer burst, final Long timeoutMillis,
+    public static SudoStreamPids of(final Integer burst, final Long timeoutMillis,
             final DittoHeaders dittoHeaders) {
 
-        return new SudoStreamSnapshotRevisions(burst, timeoutMillis, dittoHeaders);
+        return new SudoStreamPids(burst, timeoutMillis, dittoHeaders);
     }
 
     /**
@@ -93,12 +93,12 @@ public final class SudoStreamSnapshotRevisions extends AbstractCommand<SudoStrea
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the passed in {@code jsonObject} was not in the expected format.
      */
-    public static SudoStreamSnapshotRevisions fromJson(final JsonObject jsonObject,
+    public static SudoStreamPids fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
         final int burst = jsonObject.getValueOrThrow(JSON_BURST);
         final long timeoutMillis = jsonObject.getValueOrThrow(JSON_TIMEOUT_MILLIS);
-        return SudoStreamSnapshotRevisions.of(burst, timeoutMillis, dittoHeaders);
+        return SudoStreamPids.of(burst, timeoutMillis, dittoHeaders);
     }
 
     @Override
@@ -135,7 +135,7 @@ public final class SudoStreamSnapshotRevisions extends AbstractCommand<SudoStrea
     }
 
     @Override
-    public SudoStreamSnapshotRevisions setDittoHeaders(final DittoHeaders dittoHeaders) {
+    public SudoStreamPids setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(burst, timeoutMillis, dittoHeaders);
     }
 
@@ -146,8 +146,8 @@ public final class SudoStreamSnapshotRevisions extends AbstractCommand<SudoStrea
 
     @Override
     public boolean equals(@Nullable final Object obj) {
-        if (obj instanceof SudoStreamSnapshotRevisions) {
-            final SudoStreamSnapshotRevisions that = (SudoStreamSnapshotRevisions) obj;
+        if (obj instanceof SudoStreamPids) {
+            final SudoStreamPids that = (SudoStreamPids) obj;
             return burst == that.burst && timeoutMillis == that.timeoutMillis && super.equals(that);
         } else {
             return false;
@@ -156,7 +156,7 @@ public final class SudoStreamSnapshotRevisions extends AbstractCommand<SudoStrea
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return other instanceof SudoStreamSnapshotRevisions;
+        return other instanceof SudoStreamPids;
     }
 
     @Override

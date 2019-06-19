@@ -28,37 +28,37 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.models.streaming.SudoStreamSnapshotRevisions}.
+ * Unit test for {@link SudoStreamPids}.
  */
-public final class SudoStreamSnapshotRevisionsTest {
+public final class SudoStreamPidsTest {
 
     private static final int KNOWN_BURST = 1234;
     private static final long KNOWN_TIMEOUT = 60_000L;
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(Command.JsonFields.TYPE, SudoStreamSnapshotRevisions.TYPE)
-            .set(SudoStreamSnapshotRevisions.JSON_BURST, KNOWN_BURST)
-            .set(SudoStreamSnapshotRevisions.JSON_TIMEOUT_MILLIS, KNOWN_TIMEOUT)
+            .set(Command.JsonFields.TYPE, SudoStreamPids.TYPE)
+            .set(SudoStreamPids.JSON_BURST, KNOWN_BURST)
+            .set(SudoStreamPids.JSON_TIMEOUT_MILLIS, KNOWN_TIMEOUT)
             .build();
 
     private static final DittoHeaders EMPTY_DITTO_HEADERS = DittoHeaders.empty();
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(SudoStreamSnapshotRevisions.class, areImmutable());
+        assertInstancesOf(SudoStreamPids.class, areImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(SudoStreamSnapshotRevisions.class)
+        EqualsVerifier.forClass(SudoStreamPids.class)
                 .withRedefinedSuperclass()
                 .verify();
     }
 
     @Test
     public void toJsonReturnsExpected() {
-        final SudoStreamSnapshotRevisions underTest =
-                SudoStreamSnapshotRevisions.of(KNOWN_BURST, KNOWN_TIMEOUT, EMPTY_DITTO_HEADERS);
+        final SudoStreamPids underTest =
+                SudoStreamPids.of(KNOWN_BURST, KNOWN_TIMEOUT, EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
@@ -66,11 +66,11 @@ public final class SudoStreamSnapshotRevisionsTest {
 
     @Test
     public void createInstanceFromValidJson() {
-        final SudoStreamSnapshotRevisions underTest =
-                SudoStreamSnapshotRevisions.fromJson(KNOWN_JSON, EMPTY_DITTO_HEADERS);
+        final SudoStreamPids underTest =
+                SudoStreamPids.fromJson(KNOWN_JSON, EMPTY_DITTO_HEADERS);
 
-        final SudoStreamSnapshotRevisions expectedCommand =
-                SudoStreamSnapshotRevisions.of(KNOWN_BURST, KNOWN_TIMEOUT, EMPTY_DITTO_HEADERS);
+        final SudoStreamPids expectedCommand =
+                SudoStreamPids.of(KNOWN_BURST, KNOWN_TIMEOUT, EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
         assertThat(underTest).isEqualTo(expectedCommand);
@@ -78,8 +78,8 @@ public final class SudoStreamSnapshotRevisionsTest {
 
     @Test
     public void parseWithRegistry() {
-        final SudoStreamSnapshotRevisions expected =
-                SudoStreamSnapshotRevisions.fromJson(KNOWN_JSON, EMPTY_DITTO_HEADERS);
+        final SudoStreamPids expected =
+                SudoStreamPids.fromJson(KNOWN_JSON, EMPTY_DITTO_HEADERS);
 
         final Jsonifiable parsed = GlobalCommandRegistry.getInstance().parse(KNOWN_JSON, EMPTY_DITTO_HEADERS);
 

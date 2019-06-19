@@ -22,7 +22,7 @@ import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConst
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
-import org.eclipse.ditto.services.models.streaming.SudoStreamSnapshotRevisions;
+import org.eclipse.ditto.services.models.streaming.SudoStreamPids;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 
 import akka.NotUsed;
@@ -80,8 +80,8 @@ public final class PersistenceIdSource {
         return new DistributedPubSubMediator.Send(path, sudoStreamSnapshotRevisions(config), false);
     }
 
-    private static SudoStreamSnapshotRevisions sudoStreamSnapshotRevisions(final PersistenceIdsConfig config) {
-        return SudoStreamSnapshotRevisions.of(config.getBurst(), config.getStreamIdleTimeout().toMillis(),
+    private static SudoStreamPids sudoStreamSnapshotRevisions(final PersistenceIdsConfig config) {
+        return SudoStreamPids.of(config.getBurst(), config.getStreamIdleTimeout().toMillis(),
                 DittoHeaders.empty());
     }
 
