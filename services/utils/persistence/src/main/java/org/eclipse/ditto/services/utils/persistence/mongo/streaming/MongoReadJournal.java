@@ -34,6 +34,7 @@ import com.mongodb.reactivestreams.client.ListCollectionsPublisher;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueFactory;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
@@ -130,8 +131,12 @@ public class MongoReadJournal {
      * @return source of the content of the entire metadata collection.
      */
     public JavaDslMongoReadJournal toJavaDslMongoReadJournal(final ActorSystem actorSystem) {
+        final String pluginId = autoStartJournalConfigKey.replaceAll("journal$", "") + "readjournal";
+        final Config config = actorSystem.settings().config().getConfig(autoStartJournalConfigKey)
+                .withValue("class", ConfigValueFactory.fromAnyRef("akka.contrib.persistence.mongodb.MongoReadJournal"))
+                .atKey(pluginId);
         return PersistenceQuery.get(actorSystem)
-                .getReadJournalFor(JavaDslMongoReadJournal.class, autoStartJournalConfigKey);
+                .getReadJournalFor(JavaDslMongoReadJournal.class, pluginId, config);
     }
 
     /**
