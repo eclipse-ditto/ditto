@@ -51,6 +51,7 @@ import org.eclipse.ditto.services.utils.health.config.PersistenceConfig;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoMetricsReporter;
+import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 
@@ -78,7 +79,6 @@ import akka.http.javadsl.server.Route;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
-import akka.persistence.query.PersistenceQuery;
 import akka.stream.ActorMaterializer;
 
 /**
@@ -92,8 +92,6 @@ public final class ConnectivityRootActor extends AbstractActor {
     public static final String ACTOR_NAME = "connectivityRoot";
 
     private static final String CLUSTER_ROLE = "connectivity";
-    private static final String RECONNECT_READ_JOURNAL_PLUGIN_ID =
-            "akka-contrib-mongodb-persistence-reconnect-readjournal";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -160,9 +158,8 @@ public final class ConnectivityRootActor extends AbstractActor {
         final ClusterConfig clusterConfig = connectivityConfig.getClusterConfig();
         final ActorSystem actorSystem = getContext().system();
 
-        final JavaDslMongoReadJournal mongoReadJournal = PersistenceQuery
-                .get(actorSystem)
-                .getReadJournalFor(JavaDslMongoReadJournal.class, RECONNECT_READ_JOURNAL_PLUGIN_ID);
+        final JavaDslMongoReadJournal mongoReadJournal =
+                MongoReadJournal.newInstance(actorSystem).toJavaDslMongoReadJournal(actorSystem);
 
         final ActorRef conciergeForwarder =
                 getConciergeForwarder(clusterConfig, pubSubMediator, conciergeForwarderSignalTransformer);

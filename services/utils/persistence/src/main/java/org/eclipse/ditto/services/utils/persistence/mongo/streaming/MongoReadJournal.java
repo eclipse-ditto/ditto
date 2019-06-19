@@ -22,7 +22,11 @@ import java.util.regex.Pattern;
 
 import org.bson.Document;
 import org.bson.types.ObjectId;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
+import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -107,6 +111,19 @@ public class MongoReadJournal {
         this.mongoClient = mongoClient;
         this.autoStartJournalConfigKey = autoStartJournalConfigKey;
         log = LoggerFactory.getLogger(MongoTimestampPersistence.class);
+    }
+
+    /**
+     * Create a read journal for an actor system with a persistence plugin having a unique auto-start journal.
+     *
+     * @param system the actor system.
+     * @return the read journal.
+     */
+    public static MongoReadJournal newInstance(final ActorSystem system) {
+        final Config config = system.settings().config();
+        final MongoDbConfig mongoDbConfig =
+                DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(config));
+        return newInstance(config, MongoClientWrapper.newInstance(mongoDbConfig));
     }
 
     /**
