@@ -35,7 +35,6 @@ import org.slf4j.LoggerFactory;
 import com.mongodb.QueryOperators;
 import com.mongodb.client.model.Filters;
 import com.mongodb.reactivestreams.client.ListCollectionsPublisher;
-import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueFactory;
@@ -70,25 +69,19 @@ public class MongoReadJournal {
 
     private static final String JOURNAL_COLLECTION_NAME_KEY = "overrides.journal-collection";
 
-    private static final String METADATA_COLLECTION_NAME_KEY = "overrides.metadata-collection";
-
     private static final String ID = JournallingFieldNames$.MODULE$.ID();
     private static final String PROCESSOR_ID = JournallingFieldNames$.MODULE$.PROCESSOR_ID();
-    private static final String MAX_SN = JournallingFieldNames$.MODULE$.MAX_SN();
     private static final String TO = JournallingFieldNames$.MODULE$.TO();
     private static final String GTE = QueryOperators.GTE;
     private static final String LT = QueryOperators.LT;
 
     private static final Integer PROJECT_INCLUDE = 1;
     private static final Integer SORT_DESCENDING = -1;
-    private static final Integer SORT_ASCENDING = 1;
 
     private static final Document JOURNAL_PROJECT_DOCUMENT =
             toDocument(new Object[][]{{PROCESSOR_ID, PROJECT_INCLUDE}, {TO, PROJECT_INCLUDE}});
 
     private static final Document JOURNAL_SORT_DOCUMENT = toDocument(new Object[][]{{ID, SORT_DESCENDING}});
-
-    private static final Document METADATA_SORT_DOCUMENT = toDocument(new Object[][]{{PROCESSOR_ID, SORT_ASCENDING}});
 
     private static final String COLLECTION_NAME_FIELD = "name";
 
@@ -99,15 +92,13 @@ public class MongoReadJournal {
     private static final int CONCURRENT_JOURNAL_READS = 5;
 
     private final Pattern journalCollectionPrefix;
-    private final MongoCollection<Document> metadataCollection;
     private final DittoMongoClient mongoClient;
     private final String autoStartJournalConfigKey;
     private final Logger log;
 
-    private MongoReadJournal(final Pattern journalCollectionPrefix, final String metadataCollectionName,
-            final DittoMongoClient mongoClient, final String autoStartJournalConfigKey) {
+    private MongoReadJournal(final Pattern journalCollectionPrefix, final DittoMongoClient mongoClient,
+            final String autoStartJournalConfigKey) {
         this.journalCollectionPrefix = journalCollectionPrefix;
-        this.metadataCollection = mongoClient.getCollection(metadataCollectionName);
         this.mongoClient = mongoClient;
         this.autoStartJournalConfigKey = autoStartJournalConfigKey;
         log = LoggerFactory.getLogger(MongoTimestampPersistence.class);
@@ -137,9 +128,7 @@ public class MongoReadJournal {
         final String autoStartJournalConfigKey = extractAutoStartJournalConfigKey(config);
         final Config journalConfig = config.getConfig(autoStartJournalConfigKey);
         final Pattern journalCollectionPrefix = resolveJournalCollectionPrefix(journalConfig);
-        final String metadataCollectionName = journalConfig.getString(METADATA_COLLECTION_NAME_KEY);
-        return new MongoReadJournal(journalCollectionPrefix, metadataCollectionName, mongoClient,
-                autoStartJournalConfigKey);
+        return new MongoReadJournal(journalCollectionPrefix, mongoClient, autoStartJournalConfigKey);
     }
 
     /**

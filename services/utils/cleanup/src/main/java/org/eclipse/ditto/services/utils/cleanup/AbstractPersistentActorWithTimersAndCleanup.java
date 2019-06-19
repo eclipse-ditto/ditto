@@ -129,12 +129,12 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
 
     private void startCleanup(final long latestSnapshotSequenceNumber) {
         origin = getSender();
-        final long maxSeqNoToDelete = latestSnapshotSequenceNumber - 1;
-        log.info("Starting cleanup for '{}', deleting snapshots and events up to sequence number {}.",
-                persistenceId(), maxSeqNoToDelete);
+        final long maxSnapSeqNoToDelete = latestSnapshotSequenceNumber - 1;
+        log.info("Starting cleanup for '{}', deleting snapshots to sequence number {} and events to {}.",
+                persistenceId(), maxSnapSeqNoToDelete, latestSnapshotSequenceNumber);
         final SnapshotSelectionCriteria deletionCriteria =
-                SnapshotSelectionCriteria.create(maxSeqNoToDelete, Long.MAX_VALUE);
-        deleteMessages(maxSeqNoToDelete);
+                SnapshotSelectionCriteria.create(maxSnapSeqNoToDelete, Long.MAX_VALUE);
+        deleteMessages(latestSnapshotSequenceNumber);
         deleteSnapshots(deletionCriteria);
         lastCleanupExecutedAtSequenceNumber = latestSnapshotSequenceNumber;
     }
