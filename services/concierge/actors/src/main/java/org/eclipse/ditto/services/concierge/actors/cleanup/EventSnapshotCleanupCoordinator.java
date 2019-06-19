@@ -117,7 +117,6 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
     private static final JsonFieldDefinition<JsonArray> EVENTS =
             JsonFactory.newJsonArrayFieldDefinition("events");
 
-    private static final String RESOURCE_TYPE = "resource-type";
     private static final String ERROR = "error";
     private static final String START = "start";
 
@@ -197,7 +196,7 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
     }
 
     private void streamTerminated(final Event streamTerminated) {
-        log.warning("Stream terminated. will restart after quiet period.");
+        log.info("Stream terminated. will restart after quiet period.");
         enqueue(events, streamTerminated, config.getKeptEvents());
         scheduleWakeUp();
         getContext().become(sleeping());
@@ -277,10 +276,9 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
                         .match(ConnectionTag.class, connTag ->
                                 askShardRegion(shardRegions.connections(), ConnectivityCommand.RESOURCE_TYPE, connTag))
                         .matchAny(e -> {
-                            final DittoHeaders headers = DittoHeaders.newBuilder()
-                                    .putHeader(ERROR, "Unexpected entity ID type: " + e)
-                                    .build();
-                            return CompletableFuture.completedFuture(CleanupResponse.failure(e.getId(), headers));
+                            final CleanupResponse error =
+                                    CleanupResponse.failure("Unexpected entity ID type: ", DittoHeaders.empty());
+                            return CompletableFuture.completedFuture(error);
                         })
                         .build();
 
@@ -294,17 +292,18 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
     private CompletionStage<CleanupResponse> askShardRegion(final ActorRef shardRegion, final String resourceType,
             final EntityIdWithRevision tag) {
         final String id = tag.getId();
-        final Cleanup command = getCommand(resourceType, id);
+        final Cleanup command = getCommand(id);
         return Patterns.ask(shardRegion, command, config.getCleanupTimeout())
                 .handle((result, error) -> {
                     if (result instanceof CleanupResponse) {
-                        return (CleanupResponse) result;
+                        final CleanupResponse response = ((CleanupResponse) result);
+                        final DittoHeaders headers =
+                                command.getDittoHeaders().toBuilder().putHeaders(response.getDittoHeaders()).build();
+                        return response.setDittoHeaders(headers);
                     } else {
-                        final DittoHeaders headers = command.getDittoHeaders()
-                                .toBuilder()
-                                .putHeader(ERROR, "Unexpected response from shard: " + result + "; Error: " + error)
-                                .build();
-                        return CleanupResponse.failure(id, headers);
+                        final String msg = String.format("Unexpected response from shard <%s>: result=<%s> error=<%s>",
+                                resourceType, Objects.toString(result), Objects.toString(error));
+                        return CleanupResponse.failure(msg, command.getDittoHeaders());
                     }
                 });
     }
@@ -348,17 +347,15 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
         final CleanupResponse response = element.second();
         final DittoHeaders headers = response.getDittoHeaders();
         final int status = response.getStatusCodeValue();
-        final String resourceType = headers.getOrDefault(RESOURCE_TYPE, "unknown");
         final String start = headers.getOrDefault(START, "unknown");
-        final String tagLine = String.format("%d <%s:%s> start=%s", status, resourceType, response.getId(), start);
+        final String tagLine = String.format("%d start=%s <%s>", status, start, response.getId());
         return JsonObject.newBuilder()
                 .set(element.first().toString(), tagLine)
                 .build();
     }
 
-    private static Cleanup getCommand(final String resourceType, final String id) {
+    private static Cleanup getCommand(final String id) {
         final DittoHeaders headers = DittoHeaders.newBuilder()
-                .putHeader(RESOURCE_TYPE, resourceType)
                 .putHeader(START, Instant.now().toString())
                 .build();
         return Cleanup.of(id, headers);

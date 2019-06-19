@@ -44,27 +44,6 @@ public interface PersistenceIdsConfig {
     Duration getStreamIdleTimeout();
 
     /**
-     * Returns the minimum back-off when restarting the persistence ID stream.
-     *
-     * @return the minimum back-off.
-     */
-    Duration getBackOffMin();
-
-    /**
-     * Returns the maximum back-off when restarting the persistence ID stream.
-     *
-     * @return the maximum back-off.
-     */
-    Duration getBackOffMax();
-
-    /**
-     * Returns the back-off random factor when restarting the persistence ID stream.
-     *
-     * @return the back-off random factor.
-     */
-    Double getBackOffRandomFactor();
-
-    /**
      * Enumeration of known config keys and default values for {@code PersistenceIdsConfig}
      */
     enum ConfigValue implements KnownConfigValue {
@@ -82,22 +61,7 @@ public interface PersistenceIdsConfig {
         /**
          * Idle timeout of the stream.
          */
-        STREAM_IDLE_TIMEOUT("stream-idle-timeout", Duration.ofMinutes(10L)),
-
-        /**
-         * Minimum back-off when restarting the stream.
-         */
-        BACK_OFF_MIN("back-off.min", Duration.ofSeconds(1L)),
-
-        /**
-         * Maximum back-off when restarting the stream.
-         */
-        BACK_OFF_MAX("back-off.max", Duration.ofMinutes(2L)),
-
-        /**
-         * Back-off random factor when restarting the stream.
-         */
-        BACK_OFF_RANDOM_FACTOR("back-off.random-factor", 0.5);
+        STREAM_IDLE_TIMEOUT("stream-idle-timeout", Duration.ofMinutes(10L));
 
         private final String path;
         private final Object defaultValue;

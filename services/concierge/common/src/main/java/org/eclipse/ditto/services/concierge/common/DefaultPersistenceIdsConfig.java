@@ -29,17 +29,11 @@ final class DefaultPersistenceIdsConfig implements PersistenceIdsConfig {
     private final int burst;
     private final Duration streamRequestTimeout;
     private final Duration streamIdleTimeout;
-    private final Duration backOffMin;
-    private final Duration backOffMax;
-    private final double backOffRandomFactor;
 
     private DefaultPersistenceIdsConfig(final Config config) {
         burst = config.getInt(ConfigValue.BURST.getConfigPath());
         streamRequestTimeout = config.getDuration(ConfigValue.STREAM_REQUEST_TIMEOUT.getConfigPath());
         streamIdleTimeout = config.getDuration(ConfigValue.STREAM_IDLE_TIMEOUT.getConfigPath());
-        backOffMin = config.getDuration(ConfigValue.BACK_OFF_MIN.getConfigPath());
-        backOffMax = config.getDuration(ConfigValue.BACK_OFF_MAX.getConfigPath());
-        backOffRandomFactor = config.getDouble(ConfigValue.BACK_OFF_RANDOM_FACTOR.getConfigPath());
     }
 
     static PersistenceIdsConfig of(final Config config) {
@@ -63,30 +57,12 @@ final class DefaultPersistenceIdsConfig implements PersistenceIdsConfig {
     }
 
     @Override
-    public Duration getBackOffMin() {
-        return backOffMin;
-    }
-
-    @Override
-    public Duration getBackOffMax() {
-        return backOffMax;
-    }
-
-    @Override
-    public Double getBackOffRandomFactor() {
-        return backOffRandomFactor;
-    }
-
-    @Override
     public boolean equals(final Object o) {
         if (o instanceof DefaultPersistenceIdsConfig) {
             final DefaultPersistenceIdsConfig that = (DefaultPersistenceIdsConfig) o;
             return burst == that.burst &&
                     Objects.equals(streamRequestTimeout, that.streamRequestTimeout) &&
-                    Objects.equals(streamIdleTimeout, that.streamIdleTimeout) &&
-                    Objects.equals(backOffMin, that.backOffMin) &&
-                    Objects.equals(backOffMax, that.backOffMax) &&
-                    Double.compare(backOffRandomFactor, that.backOffRandomFactor) == 0;
+                    Objects.equals(streamIdleTimeout, that.streamIdleTimeout);
         } else {
             return false;
         }
@@ -94,8 +70,7 @@ final class DefaultPersistenceIdsConfig implements PersistenceIdsConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(burst, streamRequestTimeout, streamIdleTimeout, backOffMin, backOffMax,
-                backOffRandomFactor);
+        return Objects.hash(burst, streamRequestTimeout, streamIdleTimeout);
     }
 
     @Override
@@ -104,9 +79,6 @@ final class DefaultPersistenceIdsConfig implements PersistenceIdsConfig {
                 "[ burst=" + burst +
                 ", streamRequestTimeout" + streamRequestTimeout +
                 ", streamIdleTimeout" + streamIdleTimeout +
-                ", backOffMin" + backOffMin +
-                ", backOffMax" + backOffMax +
-                ", backOffRandomFactor" + backOffRandomFactor +
                 "]";
     }
 }

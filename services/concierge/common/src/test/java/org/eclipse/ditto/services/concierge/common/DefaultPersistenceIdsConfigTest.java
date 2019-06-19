@@ -72,18 +72,6 @@ public class DefaultPersistenceIdsConfigTest {
         softly.assertThat(underTest.getStreamIdleTimeout())
                 .as(PersistenceIdsConfig.ConfigValue.STREAM_IDLE_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(800L));
-
-        softly.assertThat(underTest.getBackOffMin())
-                .as(PersistenceIdsConfig.ConfigValue.BACK_OFF_MIN.getConfigPath())
-                .isEqualTo(Duration.ofSeconds(900L));
-
-        softly.assertThat(underTest.getBackOffMax())
-                .as(PersistenceIdsConfig.ConfigValue.BACK_OFF_MAX.getConfigPath())
-                .isEqualTo(Duration.ofSeconds(1000L));
-
-        softly.assertThat(underTest.getBackOffRandomFactor())
-                .as(PersistenceIdsConfig.ConfigValue.BACK_OFF_RANDOM_FACTOR.getConfigPath())
-                .isEqualTo(1100);
     }
 
     private PersistenceIdsConfig createFromConfig() {
