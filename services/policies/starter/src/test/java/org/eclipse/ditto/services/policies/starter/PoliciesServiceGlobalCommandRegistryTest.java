@@ -12,11 +12,10 @@
  */
 package org.eclipse.ditto.services.policies.starter;
 
-import java.util.Arrays;
-
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
+import org.eclipse.ditto.services.utils.health.RetrieveHealth;
 import org.eclipse.ditto.services.utils.test.GlobalCommandRegistryTestCases;
 import org.eclipse.ditto.signals.commands.cleanup.Cleanup;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
@@ -29,8 +28,9 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
 
 public class PoliciesServiceGlobalCommandRegistryTest extends GlobalCommandRegistryTestCases {
+
     public PoliciesServiceGlobalCommandRegistryTest() {
-        super(Arrays.asList(
+        super(
                 SudoStreamModifiedEntities.class,
                 SudoRetrieveThing.class,
                 SudoRetrievePolicy.class,
@@ -42,6 +42,8 @@ public class PoliciesServiceGlobalCommandRegistryTest extends GlobalCommandRegis
                 PurgeNamespace.class,
                 RetrieveResource.class,
                 DeleteSubject.class,
-                Cleanup.class));
+                Cleanup.class,
+                RetrieveHealth.class
+        );
     }
 }

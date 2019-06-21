@@ -11,12 +11,12 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.connectivity;
-import java.util.Arrays;
 
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
+import org.eclipse.ditto.services.utils.health.RetrieveHealth;
 import org.eclipse.ditto.services.utils.test.GlobalCommandRegistryTestCases;
 import org.eclipse.ditto.signals.commands.batch.ExecuteBatch;
 import org.eclipse.ditto.signals.commands.cleanup.Cleanup;
@@ -33,8 +33,9 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 
 public class ConnectivityServiceGlobalCommandRegistryTest extends GlobalCommandRegistryTestCases {
+
     public ConnectivityServiceGlobalCommandRegistryTest() {
-        super(Arrays.asList(
+        super(
                 SudoStreamModifiedEntities.class,
                 SudoRetrieveThing.class,
                 SudoRetrievePolicy.class,
@@ -51,6 +52,8 @@ public class ConnectivityServiceGlobalCommandRegistryTest extends GlobalCommandR
                 PurgeNamespace.class,
                 RetrieveResource.class,
                 DeleteSubject.class,
-                Cleanup.class));
+                Cleanup.class,
+                RetrieveHealth.class
+        );
     }
 }
