@@ -113,7 +113,7 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
                 // only events after the latest snapshot should survive
                 final long revision = latestSnapshot;
                 final List<Event> expectedEventsAfterCleanup = expectedEvents.stream()
-                        .filter(e -> e.getRevision() >= revision)
+                        .filter(e -> e.getRevision() > revision)
                         .collect(Collectors.toList());
                 assertJournal(thingId, expectedEventsAfterCleanup);
             }
@@ -173,7 +173,7 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
 
                 // we expect only the latest snapshot to exist after cleanup
                 assertSnapshots(thingId, Collections.singletonList(expectedDeletedSnapshot));
-                assertJournal(thingId, Collections.singletonList(deletedEvent));
+                assertJournal(thingId, Collections.emptyList());
             }
         };
     }
