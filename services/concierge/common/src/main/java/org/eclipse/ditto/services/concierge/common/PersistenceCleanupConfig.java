@@ -16,6 +16,8 @@ import java.time.Duration;
 
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
+import com.typesafe.config.Config;
+
 /**
  * Provides configuration settings for persistence cleanup actions.
  */
@@ -76,6 +78,23 @@ public interface PersistenceCleanupConfig {
      * @return number of kept events.
      */
     int getKeptEvents();
+
+    /**
+     * Return the config in HOCON format.
+     *
+     * @return the HOCON.
+     */
+    Config getConfig();
+
+    /**
+     * Create a persistence cleanup config from HOCON config.
+     *
+     * @param config the HOCON.
+     * @return the corresponding persistence cleanup config.
+     */
+    static PersistenceCleanupConfig of(final Config config) {
+        return DefaultPersistenceCleanupConfig.of(config);
+    }
 
     /**
      * Enumeration of known config keys and default values for {@code PersistenceCleanupConfig}

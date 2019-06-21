@@ -31,6 +31,7 @@ final class DefaultPersistenceCleanupConfig implements PersistenceCleanupConfig 
     private final int keptEvents;
     private final CreditDecisionConfig creditDecisionConfig;
     private final PersistenceIdsConfig persistenceIdsConfig;
+    private final Config config;
 
     private DefaultPersistenceCleanupConfig(final Config config) {
         this.quietPeriod = config.getDuration(ConfigValue.QUIET_PERIOD.getConfigPath());
@@ -41,6 +42,7 @@ final class DefaultPersistenceCleanupConfig implements PersistenceCleanupConfig 
         this.keptEvents = config.getInt(ConfigValue.KEEP_EVENTS.getConfigPath());
         this.creditDecisionConfig = DefaultCreditDecisionConfig.of(config);
         this.persistenceIdsConfig = DefaultPersistenceIdsConfig.of(config);
+        this.config = config;
     }
 
     static PersistenceCleanupConfig of(final Config serviceSpecificConfig) {
@@ -86,6 +88,11 @@ final class DefaultPersistenceCleanupConfig implements PersistenceCleanupConfig 
     @Override
     public int getKeptEvents() {
         return keptEvents;
+    }
+
+    @Override
+    public Config getConfig() {
+        return config;
     }
 
     @Override

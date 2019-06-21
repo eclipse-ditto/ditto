@@ -20,6 +20,8 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
@@ -36,6 +38,8 @@ import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.actors.ModifyConfigBehavior;
+import org.eclipse.ditto.services.utils.akka.actors.RetrieveConfigBehavior;
 import org.eclipse.ditto.services.utils.akka.controlflow.Transistor;
 import org.eclipse.ditto.services.utils.health.RetrieveHealth;
 import org.eclipse.ditto.services.utils.health.StatusDetailMessage;
@@ -45,6 +49,10 @@ import org.eclipse.ditto.signals.commands.cleanup.CleanupResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigRenderOptions;
 
 import akka.Done;
 import akka.NotUsed;
@@ -101,7 +109,8 @@ import scala.PartialFunction;
  *
  * }</pre>
  */
-public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTimers {
+public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTimers
+        implements RetrieveConfigBehavior, ModifyConfigBehavior {
 
     /**
      * Name of this actor.
@@ -117,12 +126,13 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
     private static final JsonFieldDefinition<JsonArray> EVENTS =
             JsonFactory.newJsonArrayFieldDefinition("events");
 
-    private static final String ERROR = "error";
     private static final String START = "start";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final PersistenceCleanupConfig config;
+    // config may change.
+    private PersistenceCleanupConfig config;
+
     private final ActorRef pubSubMediator;
     private final ShardRegions shardRegions;
     private final ActorMaterializer materializer;
@@ -131,6 +141,9 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
     private final Deque<Pair<Instant, CreditDecision>> creditDecisions;
     private final Deque<Pair<Instant, CleanupResponse>> actions;
     private final Deque<Pair<Instant, Event>> events;
+
+    @Nullable
+    private KillSwitch killSwitch;
 
     private EventSnapshotCleanupCoordinator(final PersistenceCleanupConfig config, final ActorRef pubSubMediator,
             final ShardRegions shardRegions) {
@@ -146,8 +159,6 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
         actions = new ArrayDeque<>(config.getKeptActions() + 1);
         events = new ArrayDeque<>(config.getKeptEvents() + 1);
     }
-
-    private KillSwitch killSwitch;
 
     /**
      * Create Akka Props object for this actor.
@@ -168,12 +179,27 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
         return sleeping();
     }
 
+    @Override
+    public Config getConfig() {
+        return config.getConfig();
+    }
+
+    @Override
+    public Config setConfig(final Config config) {
+        // TODO: replace ConfigWithFallback - it breaks AbstractConfigValue.withFallback!
+        // Workaround: re-parse my config
+        final Config fallback = ConfigFactory.parseString(getConfig().root().render(ConfigRenderOptions.concise()));
+        this.config = PersistenceCleanupConfig.of(config.withFallback(fallback));
+        return this.config.getConfig();
+    }
+
     private Receive sleeping() {
         return ReceiveBuilder.create()
                 .matchEquals(WokeUp.WOKE_UP, this::wokeUp)
                 .match(RetrieveHealth.class, this::retrieveHealth)
-                .matchAny(message -> log.warning("Unexpected message while sleeping: <{}>", message))
-                .build();
+                .build()
+                .orElse(retrieveConfigBehavior())
+                .orElse(modifyConfigBehavior());
     }
 
     private Receive streaming() {
@@ -184,8 +210,9 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
                         enqueue(actions, cleanupResponse, config.getKeptActions()))
                 .match(StreamTerminated.class, this::streamTerminated)
                 .match(RetrieveHealth.class, this::retrieveHealth)
-                .matchAny(message -> log.warning("Unexpected message while streaming: <{}>", message))
-                .build();
+                .build()
+                .orElse(retrieveConfigBehavior())
+                .orElse(modifyConfigBehavior());
     }
 
     private void wokeUp(final Event wokeUp) {
