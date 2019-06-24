@@ -99,6 +99,7 @@ The "DevOps commands" API allows Ditto operators to make changes to a running in
 The following DevOps commands are supported:
 
 * Dynamically retrieve and change log levels
+* Dynamically retrieve service configuration
 * Piggyback commands
 
 
@@ -200,6 +201,83 @@ instances of gateway-service to `DEBUG`:
 {
     "logger": "org.eclipse.ditto",
     "level": "debug"
+}
+```
+
+### Dynamically retrieve configurations
+
+Runtime configurations of services are available for the Ditto operator at
+`/devopps/config/` with optional restrictions by service name, instance ID and configuration path.
+The entire runtime configuration of a service may be dozens of kilobytes big. If it exceeds the cluster message size
+of 250 kB, then it can only be read piece by piece via the `path` query parameter.
+
+#### Retrieve all service configurations
+
+Retrieve the configuration at the path `ditto.info` thus:
+
+`GET /devops/config?path=ditto.info`
+
+It is recommended to not omit the query parameter `path`. Otherwise the full configurations of all services are
+aggregated in the response, which can become megabytes big.
+
+Response example:
+
+```json
+{
+  "?": {
+    "?": {
+      "type": "common.responses:retrieveConfig",
+      "status": 200,
+      "config": {
+        "instance-index": "1",
+        "service-name": "gateway"
+      }
+    },
+    "?1": {
+      "type": "common.responses:retrieveConfig",
+      "status": 200,
+      "config": {
+        "instance-index": "1",
+        "service-name": "connectivity"
+      }
+    }
+  }
+}
+```
+
+#### Retrieve the configuration of a service instance
+
+Retrieving the configuration of a specific service instance is much faster
+because the response is not aggregated from an unknown number of respondents
+over the duration given in the query parameter `timeout`.
+
+To retrieve `ditto` configuration from Gateway instance `1`:
+
+`GET /devops/config/gateway/1?path=ditto`
+
+Response example:
+
+```json
+{
+  "?": {
+    "?": {
+      "type": "common.responses:retrieveConfig",
+      "status": 200,
+      "config": {
+        "cluster": {
+          "number-of-shards": 20
+        },
+        "gateway": {
+          "authentication": {
+            "devops": {
+              "password": "foobar",
+              "securestatus": false
+            }
+          }
+        }
+      }
+    }
+  }
 }
 ```
 

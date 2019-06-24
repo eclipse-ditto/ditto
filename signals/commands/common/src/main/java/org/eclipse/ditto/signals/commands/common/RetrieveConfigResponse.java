@@ -20,6 +20,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -36,11 +37,11 @@ public final class RetrieveConfigResponse extends CommonCommandResponse<Retrieve
      */
     public static final String TYPE = TYPE_PREFIX + RetrieveConfig.NAME;
 
-    private static final JsonFieldDefinition<JsonObject> CONFIG = JsonFactory.newJsonObjectFieldDefinition("config");
+    private static final JsonFieldDefinition<JsonValue> CONFIG = JsonFactory.newJsonValueFieldDefinition("config");
 
-    private final JsonObject config;
+    private final JsonValue config;
 
-    private RetrieveConfigResponse(final JsonObject config, final DittoHeaders dittoHeaders) {
+    private RetrieveConfigResponse(final JsonValue config, final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatusCode.OK, dittoHeaders);
         this.config = config;
     }
@@ -52,7 +53,7 @@ public final class RetrieveConfigResponse extends CommonCommandResponse<Retrieve
      * @param headers Ditto headers.
      * @return the {@code RetrieveConfigResponse}.
      */
-    public static RetrieveConfigResponse of(final JsonObject config, final DittoHeaders headers) {
+    public static RetrieveConfigResponse of(final JsonValue config, final DittoHeaders headers) {
         return new RetrieveConfigResponse(config, headers);
     }
 
@@ -81,7 +82,6 @@ public final class RetrieveConfigResponse extends CommonCommandResponse<Retrieve
         return new RetrieveConfigResponse(config, dittoHeaders);
     }
 
-
     @Override
     public boolean equals(final Object that) {
         if (super.equals(that) && that instanceof RetrieveConfigResponse) {
@@ -95,5 +95,10 @@ public final class RetrieveConfigResponse extends CommonCommandResponse<Retrieve
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), config);
+    }
+
+    @Override
+    public String toString() {
+        return "RetrieveConfigResponse[config=" + config + "," + super.toString() + "]";
     }
 }

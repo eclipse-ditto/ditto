@@ -12,13 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.devops;
 
-import static akka.http.javadsl.server.Directives.extractDataBytes;
-import static akka.http.javadsl.server.Directives.get;
-import static akka.http.javadsl.server.Directives.parameterOptional;
-import static akka.http.javadsl.server.Directives.post;
-import static akka.http.javadsl.server.Directives.put;
-import static akka.http.javadsl.server.Directives.rawPathPrefix;
-import static akka.http.javadsl.server.Directives.route;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.DevOpsBasicAuthenticationDirective.REALM_DEVOPS;
@@ -40,6 +33,8 @@ import org.eclipse.ditto.services.gateway.endpoints.config.DevOpsConfig;
 import org.eclipse.ditto.services.gateway.endpoints.config.HttpConfig;
 import org.eclipse.ditto.services.gateway.endpoints.directives.DevOpsBasicAuthenticationDirective;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
+import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
+import org.eclipse.ditto.signals.commands.common.RetrieveConfig;
 import org.eclipse.ditto.signals.commands.devops.ChangeLogLevel;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
 import org.eclipse.ditto.signals.commands.devops.ExecutePiggybackCommand;
@@ -65,11 +60,23 @@ public final class DevOpsRoute extends AbstractRoute {
 
     private static final String PATH_LOGGING = "logging";
     private static final String PATH_PIGGYBACK = "piggyback";
+    private static final String PATH_CONFIG = "config";
 
     /**
      * Timeout in milliseconds of how long to wait for all responses before returning.
      */
     private static final String TIMEOUT_PARAMETER = "timeout";
+
+    /**
+     * Path parameter for retrieving config.
+     */
+    private static final String PATH_PARAMETER = "path";
+
+    /**
+     * Actor path of DevOpsCommandsActor for ALL services. Not starting DevOpsCommandsActor at this path results
+     * in the service not getting any RetrieveConfig commands.
+     */
+    private static final String DEVOPS_COMMANDS_ACTOR_SELECTION = "/user/devOpsCommandsActor";
 
     private final DevOpsConfig devOpsConfig;
 
@@ -101,7 +108,7 @@ public final class DevOpsRoute extends AbstractRoute {
                     DevOpsBasicAuthenticationDirective.getInstance(devOpsConfig);
             return devOpsBasicAuthenticationDirective.authenticateDevOpsBasic(REALM_DEVOPS,
                     parameterOptional(Unmarshaller.sync(Long::parseLong), TIMEOUT_PARAMETER, optionalTimeout ->
-                            route(
+                            concat(
                                     rawPathPrefix(mergeDoubleSlashes().concat(PATH_LOGGING),
                                             () -> // /devops/logging
                                                     logging(ctx, createHeaders(optionalTimeout))
@@ -109,7 +116,10 @@ public final class DevOpsRoute extends AbstractRoute {
                                     rawPathPrefix(mergeDoubleSlashes().concat(PATH_PIGGYBACK),
                                             () -> // /devops/piggyback
                                                     piggyback(ctx, createHeaders(optionalTimeout))
-                                    )
+                                    ),
+                                    rawPathPrefix(mergeDoubleSlashes().concat(PATH_CONFIG),
+                                            () -> // /devops/config
+                                                    config(ctx, createHeaders(optionalTimeout)))
                             )
                     )
             );
@@ -131,12 +141,19 @@ public final class DevOpsRoute extends AbstractRoute {
     }
 
     /*
+     * @return {@code /devops/config} route.
+     */
+    private Route config(final RequestContext ctx, final DittoHeaders dittoHeaders) {
+        return buildRouteWithOptionalServiceNameAndInstance(ctx, dittoHeaders, this::routeConfig);
+    }
+
+    /*
      * @return {@code /devops/<logging|piggyback>/} route.
      */
-    private static Route buildRouteWithOptionalServiceNameAndInstance(final RequestContext ctx,
+    private Route buildRouteWithOptionalServiceNameAndInstance(final RequestContext ctx,
             final DittoHeaders dittoHeaders, final RouteBuilderWithOptionalServiceNameAndInstance routeBuilder) {
 
-        return route(
+        return concat(
                 // /devops/<logging|piggyback>/<serviceName>
                 buildRouteWithServiceNameAndOptionalInstance(ctx, dittoHeaders, routeBuilder),
                 // /devops/<logging|piggyback>/
@@ -147,11 +164,11 @@ public final class DevOpsRoute extends AbstractRoute {
     /*
      * @return {@code /devops/<logging|piggyback>/<serviceName>} route.
      */
-    private static Route buildRouteWithServiceNameAndOptionalInstance(final RequestContext ctx,
+    private Route buildRouteWithServiceNameAndOptionalInstance(final RequestContext ctx,
             final DittoHeaders dittoHeaders, final RouteBuilderWithOptionalServiceNameAndInstance routeBuilder) {
 
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), serviceName ->
-                route(
+                concat(
                         // /devops/<logging|piggyback>/<serviceName>/<instance>
                         buildRouteWithServiceNameAndInstance(ctx, serviceName, dittoHeaders, routeBuilder),
                         // /devops/<logging|piggyback>/<serviceName>
@@ -163,7 +180,7 @@ public final class DevOpsRoute extends AbstractRoute {
     /*
      * @return {@code /devops/<logging|piggyback>/<serviceName>/<instance>} route.
      */
-    private static Route buildRouteWithServiceNameAndInstance(final RequestContext ctx,
+    private Route buildRouteWithServiceNameAndInstance(final RequestContext ctx,
             final String serviceName,
             final DittoHeaders dittoHeaders,
             final RouteBuilderWithOptionalServiceNameAndInstance routeBuilder) {
@@ -179,7 +196,7 @@ public final class DevOpsRoute extends AbstractRoute {
             final String instance,
             final DittoHeaders dittoHeaders) {
 
-        return route(
+        return concat(
                 get(() ->
                         handlePerRequest(ctx,
                                 RetrieveLoggerConfig.ofAllKnownLoggers(serviceName, instance, dittoHeaders),
@@ -216,13 +233,15 @@ public final class DevOpsRoute extends AbstractRoute {
 
                                     // serviceName and instance from URL are preferred
                                     if (serviceName == null) {
-                                        serviceName1 = parsedJson.getValue(DevOpsCommand.JsonFields.JSON_SERVICE_NAME).orElse(serviceName);
+                                        serviceName1 = parsedJson.getValue(DevOpsCommand.JsonFields.JSON_SERVICE_NAME)
+                                                .orElse(serviceName);
                                     } else {
                                         serviceName1 = serviceName;
                                     }
 
                                     if (instance == null) {
-                                        instance1 = parsedJson.getValue(DevOpsCommand.JsonFields.JSON_INSTANCE).orElse(instance);
+                                        instance1 = parsedJson.getValue(DevOpsCommand.JsonFields.JSON_INSTANCE)
+                                                .orElse(instance);
                                     } else {
                                         instance1 = instance;
                                     }
@@ -244,6 +263,28 @@ public final class DevOpsRoute extends AbstractRoute {
                         )
                 )
         );
+    }
+
+    private Route routeConfig(final RequestContext ctx,
+            final String serviceName,
+            final String instance,
+            final DittoHeaders dittoHeaders) {
+
+        final DittoHeaders headersWithAggregate = dittoHeaders.toBuilder()
+                .putHeader(DevOpsCommandsActor.AGGREGATE_HEADER,
+                        String.valueOf(serviceName == null || instance == null))
+                .build();
+
+        return get(() -> parameterOptional(PATH_PARAMETER, path ->
+                handlePerRequest(ctx,
+                        ExecutePiggybackCommand.of(
+                                serviceName, instance, DEVOPS_COMMANDS_ACTOR_SELECTION,
+                                RetrieveConfig.of(path.orElse(null), headersWithAggregate).toJson(),
+                                headersWithAggregate
+                        )
+                )
+        ));
+
     }
 
     private static Function<JsonValue, JsonValue> transformResponse(final CharSequence serviceName,

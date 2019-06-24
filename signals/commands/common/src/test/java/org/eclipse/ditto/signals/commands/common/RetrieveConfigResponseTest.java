@@ -17,6 +17,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -28,7 +29,7 @@ public final class RetrieveConfigResponseTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(RetrieveConfigResponse.class, areImmutable(), provided(JsonObject.class).isAlsoImmutable());
+        assertInstancesOf(RetrieveConfigResponse.class, areImmutable(), provided(JsonValue.class).isAlsoImmutable());
     }
 
     @Test

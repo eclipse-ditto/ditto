@@ -12,12 +12,18 @@
  */
 package org.eclipse.ditto.services.utils.akka.actors;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonRuntimeException;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.signals.commands.common.RetrieveConfig;
 import org.eclipse.ditto.signals.commands.common.RetrieveConfigResponse;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigRenderOptions;
+import com.typesafe.config.ConfigValue;
 
 import akka.actor.AbstractActor;
 import akka.actor.Actor;
@@ -44,11 +50,23 @@ public interface RetrieveConfigBehavior extends Actor {
     default AbstractActor.Receive retrieveConfigBehavior() {
         return ReceiveBuilder.create()
                 .match(RetrieveConfig.class, retrieveConfig -> {
-                    final JsonObject configObject =
-                            JsonObject.of(getConfig().root().render(ConfigRenderOptions.concise()));
-                    final RetrieveConfigResponse response =
-                            RetrieveConfigResponse.of(configObject, retrieveConfig.getDittoHeaders());
-                    sender().tell(response, self());
+                    try {
+                        final Config rootConfig = getConfig();
+                        final ConfigValue configValue =
+                                retrieveConfig.getPath().map(rootConfig::getValue).orElseGet(rootConfig::root);
+                        final JsonValue configJson =
+                                JsonFactory.readFrom(configValue.render(ConfigRenderOptions.concise()));
+                        final RetrieveConfigResponse response =
+                                RetrieveConfigResponse.of(configJson, retrieveConfig.getDittoHeaders());
+                        sender().tell(response, self());
+                    } catch (final ConfigException | DittoRuntimeException | JsonRuntimeException e) {
+                        final JsonObject payload = JsonObject.newBuilder()
+                                .set("error", e.toString())
+                                .build();
+                        final RetrieveConfigResponse response =
+                                RetrieveConfigResponse.of(payload, retrieveConfig.getDittoHeaders());
+                        sender().tell(response, self());
+                    }
                 })
                 .build();
     }
