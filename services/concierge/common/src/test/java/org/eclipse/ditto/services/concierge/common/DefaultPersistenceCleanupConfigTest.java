@@ -40,7 +40,7 @@ public final class DefaultPersistenceCleanupConfigTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(DefaultPersistenceCleanupConfig.class, areImmutable(),
-                provided(CreditDecisionConfig.class, PersistenceIdsConfig.class).areAlsoImmutable());
+                provided(CreditDecisionConfig.class, PersistenceIdsConfig.class, Config.class).areAlsoImmutable());
     }
 
     @Test

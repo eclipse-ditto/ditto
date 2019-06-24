@@ -106,7 +106,8 @@ final class DefaultPersistenceCleanupConfig implements PersistenceCleanupConfig 
                     keptActions == that.keptActions &&
                     keptEvents == that.keptEvents &&
                     Objects.equals(creditDecisionConfig, that.creditDecisionConfig) &&
-                    Objects.equals(persistenceIdsConfig, that.persistenceIdsConfig);
+                    Objects.equals(persistenceIdsConfig, that.persistenceIdsConfig) &&
+                    Objects.equals(config, that.config);
         } else {
             return false;
         }
@@ -115,7 +116,7 @@ final class DefaultPersistenceCleanupConfig implements PersistenceCleanupConfig 
     @Override
     public int hashCode() {
         return Objects.hash(quietPeriod, cleanupTimeout, parallelism, keptCreditDecisions, keptActions, keptEvents,
-                creditDecisionConfig, persistenceIdsConfig);
+                creditDecisionConfig, persistenceIdsConfig, config);
     }
 
     @Override
