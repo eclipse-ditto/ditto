@@ -154,7 +154,6 @@ public final class ConnectionActor extends AbstractPersistentActor {
      */
     public static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-snapshots";
 
-    private static final FiniteDuration DELETED_ACTOR_LIFETIME = Duration.create(10L, TimeUnit.SECONDS);
     private static final Duration DELETED_ACTOR_LIFETIME = Duration.ofSeconds(10);
     private static final long DEFAULT_RETRIEVE_STATUS_TIMEOUT = 500L;
 
