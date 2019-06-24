@@ -12,7 +12,9 @@
  */
 package org.eclipse.ditto.services.concierge.actors.cleanup;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
@@ -47,6 +49,9 @@ import org.eclipse.ditto.services.utils.health.StatusDetailMessage;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
 import org.eclipse.ditto.signals.commands.cleanup.Cleanup;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupResponse;
+import org.eclipse.ditto.signals.commands.common.Shutdown;
+import org.eclipse.ditto.signals.commands.common.ShutdownReason;
+import org.eclipse.ditto.signals.commands.common.ShutdownResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
@@ -117,6 +122,11 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
      * Name of this actor.
      */
     public static final String ACTOR_NAME = "eventSnapshotCleanupCoordinator";
+
+    /**
+     * Shutdown-reason type to restart stream after non-default time.
+     */
+    private static final String RESTART_AFTER = "restartAfter";
 
     private static final JsonFieldDefinition<JsonArray> CREDIT_DECISIONS =
             JsonFactory.newJsonArrayFieldDefinition("credit-decisions");
@@ -198,6 +208,7 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
         return ReceiveBuilder.create()
                 .matchEquals(WokeUp.WOKE_UP, this::wokeUp)
                 .match(RetrieveHealth.class, this::retrieveHealth)
+                .match(Shutdown.class, this::shutdownStream)
                 .build()
                 .orElse(retrieveConfigBehavior())
                 .orElse(modifyConfigBehavior());
@@ -211,9 +222,38 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
                         enqueue(actions, cleanupResponse, config.getKeptActions()))
                 .match(StreamTerminated.class, this::streamTerminated)
                 .match(RetrieveHealth.class, this::retrieveHealth)
+                .match(Shutdown.class, this::shutdownStream)
                 .build()
                 .orElse(retrieveConfigBehavior())
                 .orElse(modifyConfigBehavior());
+    }
+
+    private void shutdownStream(final Shutdown shutdown) {
+        log.info("Terminating stream on demand: <{}>", shutdown);
+        shutdownKillSwitch();
+
+        final Event streamTerminated = new StreamTerminated("Got " + shutdown);
+        enqueue(events, streamTerminated, config.getKeptEvents());
+        getContext().become(sleeping());
+
+        final ShutdownReason shutdownReason = shutdown.getReason();
+        Duration wakeUpDelay;
+        String message;
+        if (RESTART_AFTER.equals(shutdownReason.getType().toString()) && shutdownReason.getDetails().isPresent()) {
+            try {
+                wakeUpDelay = Duration.parse(shutdownReason.getDetailsOrThrow());
+                message = "Restarting stream in " + wakeUpDelay;
+            } catch (final DateTimeParseException e) {
+                wakeUpDelay = config.getQuietPeriod();
+                message = String.format("Unable to parse <%s> to duration; restarting in <%s>.",
+                        shutdownReason.getDetailsOrThrow(), wakeUpDelay);
+            }
+        } else {
+            wakeUpDelay = config.getQuietPeriod();
+            message = String.format("There is no reason:{type=<%s>,details=<timestamp>}; restarting in <%s>.", RESTART_AFTER, wakeUpDelay);
+        }
+        scheduleWakeUp(wakeUpDelay);
+        getSender().tell(ShutdownResponse.of(message, shutdown.getDittoHeaders()), getSelf());
     }
 
     private void wokeUp(final Event wokeUp) {
@@ -237,12 +277,15 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
         });
     }
 
-    private void restartStream() {
+    private void shutdownKillSwitch() {
         if (killSwitch != null) {
-            log.info("Shutting down previous stream.");
             killSwitch.shutdown();
             killSwitch = null;
         }
+    }
+
+    private void restartStream() {
+        shutdownKillSwitch();
 
         Pair<UniqueKillSwitch, CompletionStage<Done>> materializedValues =
                 assembleSource().viaMat(KillSwitches.single(), Keep.right())
@@ -262,7 +305,11 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
     }
 
     private void scheduleWakeUp() {
-        getTimers().startSingleTimer(WokeUp.WOKE_UP, WokeUp.WOKE_UP, config.getQuietPeriod());
+        scheduleWakeUp(config.getQuietPeriod());
+    }
+
+    private void scheduleWakeUp(final Duration when) {
+        getTimers().startSingleTimer(WokeUp.WOKE_UP, WokeUp.WOKE_UP, when);
     }
 
     private Source<EntityIdWithRevision, NotUsed> assembleSource() {
