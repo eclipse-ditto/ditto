@@ -42,6 +42,7 @@ import org.eclipse.ditto.services.utils.akka.actors.ModifyConfigBehavior;
 import org.eclipse.ditto.services.utils.akka.actors.RetrieveConfigBehavior;
 import org.eclipse.ditto.services.utils.akka.controlflow.Transistor;
 import org.eclipse.ditto.services.utils.health.RetrieveHealth;
+import org.eclipse.ditto.services.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.services.utils.health.StatusDetailMessage;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
 import org.eclipse.ditto.signals.commands.cleanup.Cleanup;
@@ -336,7 +337,7 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
     }
 
     private void retrieveHealth(final RetrieveHealth trigger) {
-        getSender().tell(renderStatusInfo(), getSelf());
+        getSender().tell(RetrieveHealthResponse.of(renderStatusInfo(), trigger.getDittoHeaders()), getSelf());
     }
 
     private StatusInfo renderStatusInfo() {

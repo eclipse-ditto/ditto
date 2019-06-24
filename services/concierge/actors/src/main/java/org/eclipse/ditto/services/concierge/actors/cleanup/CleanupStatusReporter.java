@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.concierge.actors.cleanup;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.utils.health.AbstractHealthCheckingActor;
 import org.eclipse.ditto.services.utils.health.RetrieveHealth;
+import org.eclipse.ditto.services.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
 
 import akka.actor.ActorRef;
@@ -51,7 +52,7 @@ public final class CleanupStatusReporter extends AbstractHealthCheckingActor {
     @Override
     protected Receive matchCustomMessages() {
         return ReceiveBuilder.create()
-                .match(StatusInfo.class, this::updateHealth)
+                .match(RetrieveHealthResponse.class, response -> updateHealth(response.getStatusInfo()))
                 .build();
     }
 
