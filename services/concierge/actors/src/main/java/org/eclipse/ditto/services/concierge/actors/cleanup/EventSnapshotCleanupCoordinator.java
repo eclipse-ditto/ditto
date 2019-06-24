@@ -43,6 +43,7 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.actors.ModifyConfigBehavior;
 import org.eclipse.ditto.services.utils.akka.actors.RetrieveConfigBehavior;
 import org.eclipse.ditto.services.utils.akka.controlflow.Transistor;
+import org.eclipse.ditto.services.utils.config.DittoConfigError;
 import org.eclipse.ditto.services.utils.health.RetrieveHealth;
 import org.eclipse.ditto.services.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.services.utils.health.StatusDetailMessage;
@@ -57,6 +58,7 @@ import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigRenderOptions;
 
@@ -200,7 +202,11 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
         // TODO: replace ConfigWithFallback - it breaks AbstractConfigValue.withFallback!
         // Workaround: re-parse my config
         final Config fallback = ConfigFactory.parseString(getConfig().root().render(ConfigRenderOptions.concise()));
-        this.config = PersistenceCleanupConfig.fromConfig(config.withFallback(fallback));
+        try {
+            this.config = PersistenceCleanupConfig.fromConfig(config.withFallback(fallback));
+        } catch (final DittoConfigError | ConfigException e) {
+            log.error(e, "Failed to set config");
+        }
         return this.config.getConfig();
     }
 
