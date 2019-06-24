@@ -50,6 +50,10 @@ final class DefaultPersistenceCleanupConfig implements PersistenceCleanupConfig 
                 ConfigWithFallback.newInstance(serviceSpecificConfig, CONFIG_PATH, ConfigValue.values()));
     }
 
+    static PersistenceCleanupConfig updated(final Config extractedConfig) {
+        return new DefaultPersistenceCleanupConfig(extractedConfig);
+    }
+
     @Override
     public Duration getQuietPeriod() {
         return quietPeriod;

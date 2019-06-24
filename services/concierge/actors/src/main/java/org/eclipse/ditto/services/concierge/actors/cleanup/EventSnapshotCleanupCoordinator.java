@@ -200,7 +200,7 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
         // TODO: replace ConfigWithFallback - it breaks AbstractConfigValue.withFallback!
         // Workaround: re-parse my config
         final Config fallback = ConfigFactory.parseString(getConfig().root().render(ConfigRenderOptions.concise()));
-        this.config = PersistenceCleanupConfig.of(config.withFallback(fallback));
+        this.config = PersistenceCleanupConfig.fromConfig(config.withFallback(fallback));
         return this.config.getConfig();
     }
 
@@ -250,7 +250,8 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
             }
         } else {
             wakeUpDelay = config.getQuietPeriod();
-            message = String.format("There is no reason:{type=<%s>,details=<timestamp>}; restarting in <%s>.", RESTART_AFTER, wakeUpDelay);
+            message = String.format("There is no reason:{type=<%s>,details=<timestamp>}; restarting in <%s>.",
+                    RESTART_AFTER, wakeUpDelay);
         }
         scheduleWakeUp(wakeUpDelay);
         getSender().tell(ShutdownResponse.of(message, shutdown.getDittoHeaders()), getSelf());

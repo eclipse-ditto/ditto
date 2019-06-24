@@ -92,8 +92,8 @@ public interface PersistenceCleanupConfig {
      * @param config the HOCON.
      * @return the corresponding persistence cleanup config.
      */
-    static PersistenceCleanupConfig of(final Config config) {
-        return DefaultPersistenceCleanupConfig.of(config);
+    static PersistenceCleanupConfig fromConfig(final Config config) {
+        return DefaultPersistenceCleanupConfig.updated(config);
     }
 
     /**
