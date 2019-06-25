@@ -220,7 +220,8 @@ Retrieve the configuration at the path `ditto.info` thus:
 It is recommended to not omit the query parameter `path`. Otherwise the full configurations of all services are
 aggregated in the response, which can become megabytes big.
 
-Response example:
+The path `ditto.info` points to information on service name, service instance index, JVM arguments and environment
+variables. Response example:
 
 ```json
 {
@@ -229,16 +230,32 @@ Response example:
       "type": "common.responses:retrieveConfig",
       "status": 200,
       "config": {
-        "instance-index": "1",
-        "service-name": "gateway"
+        "env": {
+          "PATH": "/usr/games:/usr/local/games"
+        },
+        "service": {
+          "instance-index": "1",
+          "service-name": "gateway"
+        },
+        "vm-args": [
+          "-Dfile.encoding=UTF-8"
+        ]
       }
     },
     "?1": {
       "type": "common.responses:retrieveConfig",
       "status": 200,
       "config": {
-        "instance-index": "1",
-        "service-name": "connectivity"
+        "env": {
+          "CONNECTIVITY_FLUSH_PENDING_RESPONSES_TIMEOUT": "3d"
+        },
+        "service": {
+          "instance-index": "1",
+          "service-name": "connectivity"
+        },
+        "vm-args": [
+          "-Dditto.connectivity.connection.snapshot.threshold=2"
+        ]
       }
     }
   }
