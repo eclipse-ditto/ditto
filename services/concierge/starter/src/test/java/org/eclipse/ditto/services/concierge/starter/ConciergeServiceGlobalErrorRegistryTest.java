@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.services.concierge.starter;
 
-import java.util.Arrays;
-
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.messages.AuthorizationSubjectBlockedException;
@@ -35,8 +33,7 @@ import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidNamespac
 public final class ConciergeServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
 
     public ConciergeServiceGlobalErrorRegistryTest() {
-        super(Arrays.asList(
-                UnknownCommandException.class,
+        super(UnknownCommandException.class,
                 DittoHeaderInvalidException.class,
                 PolicyEntryInvalidException.class,
                 AclEntryInvalidException.class,
@@ -51,7 +48,7 @@ public final class ConciergeServiceGlobalErrorRegistryTest extends GlobalErrorRe
                 BatchAlreadyExecutingException.class,
                 InvalidNamespacesException.class,
                 NamespaceBlockedException.class,
-                PlaceholderFunctionSignatureInvalidException.class
-        ));
+                PlaceholderFunctionSignatureInvalidException.class);
     }
+
 }

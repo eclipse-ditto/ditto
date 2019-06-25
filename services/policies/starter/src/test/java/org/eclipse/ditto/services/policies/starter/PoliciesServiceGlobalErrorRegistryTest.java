@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.services.policies.starter;
 
-import java.util.Arrays;
-
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.messages.AuthorizationSubjectBlockedException;
 import org.eclipse.ditto.model.namespaces.NamespaceBlockedException;
@@ -29,8 +27,7 @@ import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInval
 public final class PoliciesServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
 
     public PoliciesServiceGlobalErrorRegistryTest() {
-        super(Arrays.asList(
-                DittoHeaderInvalidException.class,
+        super(DittoHeaderInvalidException.class,
                 PolicyEntryInvalidException.class,
                 AclEntryInvalidException.class,
                 CommandNotSupportedException.class,
@@ -39,7 +36,7 @@ public final class PoliciesServiceGlobalErrorRegistryTest extends GlobalErrorReg
                 AclModificationInvalidException.class,
                 AuthorizationSubjectBlockedException.class,
                 JsonTypeNotParsableException.class,
-                NamespaceBlockedException.class
-        ));
+                NamespaceBlockedException.class);
     }
+
 }

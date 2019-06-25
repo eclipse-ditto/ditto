@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.starter;
 
-import java.util.Arrays;
-
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.messages.AuthorizationSubjectBlockedException;
@@ -36,8 +34,7 @@ import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidNamespac
 public final class GatewayServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
 
     public GatewayServiceGlobalErrorRegistryTest() {
-        super(Arrays.asList(
-                UnknownCommandException.class,
+        super(UnknownCommandException.class,
                 DittoHeaderInvalidException.class,
                 PolicyEntryInvalidException.class,
                 AclEntryInvalidException.class,
@@ -53,7 +50,7 @@ public final class GatewayServiceGlobalErrorRegistryTest extends GlobalErrorRegi
                 InvalidNamespacesException.class,
                 NamespaceBlockedException.class,
                 PlaceholderFunctionSignatureInvalidException.class,
-                JwtAudienceInvalidException.class
-        ));
+                JwtAudienceInvalidException.class);
     }
+
 }

@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.services.thingsearch.starter;
 
-import java.util.Arrays;
-
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.messages.AuthorizationSubjectBlockedException;
 import org.eclipse.ditto.model.namespaces.NamespaceBlockedException;
@@ -28,12 +26,10 @@ import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInval
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidNamespacesException;
 
-
 public final class ThingSearchServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
 
     public ThingSearchServiceGlobalErrorRegistryTest() {
-        super(Arrays.asList(
-                ThingNotAccessibleException.class,
+        super(ThingNotAccessibleException.class,
                 DittoHeaderInvalidException.class,
                 PolicyEntryInvalidException.class,
                 AclEntryInvalidException.class,
@@ -44,7 +40,7 @@ public final class ThingSearchServiceGlobalErrorRegistryTest extends GlobalError
                 AuthorizationSubjectBlockedException.class,
                 JsonTypeNotParsableException.class,
                 InvalidNamespacesException.class,
-                NamespaceBlockedException.class
-        ));
+                NamespaceBlockedException.class);
     }
+
 }
