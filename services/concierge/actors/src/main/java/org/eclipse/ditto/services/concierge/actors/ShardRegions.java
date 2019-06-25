@@ -25,7 +25,7 @@ import akka.actor.ActorSystem;
 import akka.cluster.sharding.ClusterSharding;
 
 /**
- * TODO: document
+ * Create and retrieve shard region proxies.
  */
 public final class ShardRegions {
 
@@ -48,23 +48,52 @@ public final class ShardRegions {
                 ConnectivityMessagingConstants.SHARD_REGION);
     }
 
+    /**
+     * Create a set of shard region proxies
+     *
+     * @param actorSystem the actor system.
+     * @param clusterConfig the cluster config of the actor system.
+     * @return a new ShardRegions object.
+     */
     public static ShardRegions of(final ActorSystem actorSystem, final ClusterConfig clusterConfig) {
         return new ShardRegions(actorSystem, clusterConfig);
     }
 
+    /**
+     * Return the policies shard region proxy.
+     *
+     * @return policies shard region proxy.
+     */
     public ActorRef policies() {
         return policies;
     }
 
+    /**
+     * Return the things shard region proxy.
+     *
+     * @return things shard region proxy.
+     */
     public ActorRef things() {
         return things;
     }
 
+    /**
+     * Return the connections shard region proxy.
+     *
+     * @return connections shard region proxy.
+     */
     public ActorRef connections() {
         return connections;
     }
 
-    public ActorRef startProxy(final String clusterRole, final String shardRegionName) {
+    /**
+     * Start proxy of a shard region of one's choosing. The actor reference is not cached.
+     *
+     * @param shardRegionName name of the shard region.
+     * @param clusterRole role of cluster members where the shard region resides.
+     * @return reference of the shard region proxy.
+     */
+    public ActorRef startProxy(final String shardRegionName, final String clusterRole) {
         return startShardRegionProxy(clusterSharding, extractor, clusterRole, shardRegionName);
     }
 

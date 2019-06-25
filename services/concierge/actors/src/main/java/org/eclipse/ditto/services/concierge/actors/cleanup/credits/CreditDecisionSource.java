@@ -66,8 +66,15 @@ import akka.stream.javadsl.Source;
  */
 public final class CreditDecisionSource {
 
-    // TODO: refactor into settings class
-    // TODO: document
+    /**
+     * Create an infinite source of credit decisions.
+     *
+     * @param config credit decision configuration.
+     * @param context an actor context to access the actor system and to create actors.
+     * @param pubSubMediator the pub-sub-mediator.
+     * @param log logger for the source.
+     * @return a source of credit decisions.
+     */
     public static Graph<SourceShape<CreditDecision>, NotUsed> create(
             final CreditDecisionConfig config,
             final ActorContext context,
@@ -78,7 +85,6 @@ public final class CreditDecisionSource {
                 Source.tick(config.getInterval(), config.getInterval(), new Tick())
                         .mapMaterializedValue(whatever -> NotUsed.getInstance());
 
-        // TODO: better to give ClusterStatusSupplier instead of ActorSystem?
         final Graph<FanOutShape2<Tick, Integer, CreditDecision>, NotUsed> clusterStatusStage =
                 ClusterStatusStage.create(context.system());
 
