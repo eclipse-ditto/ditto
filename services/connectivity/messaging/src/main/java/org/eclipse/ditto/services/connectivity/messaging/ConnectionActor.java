@@ -168,7 +168,6 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
 
     private long lastSnapshotSequenceNr = -1L;
     private long confirmedSnapshotSequenceNr = -1L;
-    private boolean snapshotInProgress = false;
 
     private Set<Topic> uniqueTopics = Collections.emptySet();
 
@@ -890,17 +889,14 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
             pubSubMediator.tell(new DistributedPubSubMediator.Publish(event.getType(), event, true), getSelf());
 
             // save a snapshot if there were too many changes since the last snapshot
-            if ((lastSequenceNr() - lastSnapshotSequenceNr) > snapshotThreshold) {
+            if ((lastSequenceNr() - lastSnapshotSequenceNr) >= snapshotThreshold) {
                 doSaveSnapshot();
             }
         });
     }
 
     private void doSaveSnapshot() {
-        if (snapshotInProgress) {
-            log.debug("Already requested taking a Snapshot - not doing it again");
-        } else if (connection != null) {
-            snapshotInProgress = true;
+        if (connection != null) {
             log.info("Attempting to save Snapshot for Connection: <{}> ...", connection);
             // save a snapshot
             final Object snapshotToStore = snapshotAdapter.toSnapshotStore(connection);
@@ -979,7 +975,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
 
     private void handleSnapshotSuccess(final SaveSnapshotSuccess sss) {
         log.debug("Snapshot was saved successfully: {}", sss);
-        confirmedSnapshotSequenceNr = sss.metadata().sequenceNr();
+        confirmedSnapshotSequenceNr = Math.max(confirmedSnapshotSequenceNr, sss.metadata().sequenceNr());
     }
 
     private void schedulePendingResponse(final ConnectivityCommandResponse response, final ActorRef sender) {

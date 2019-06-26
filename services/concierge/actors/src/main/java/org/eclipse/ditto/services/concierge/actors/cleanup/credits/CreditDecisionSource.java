@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.concierge.actors.cleanup.credits;
 
+import java.time.Duration;
 import java.util.List;
 
 import org.eclipse.ditto.services.concierge.actors.cleanup.messages.CreditDecision;
@@ -82,7 +83,7 @@ public final class CreditDecisionSource {
             final LoggingAdapter log) {
 
         final Source<Tick, NotUsed> tickSource =
-                Source.tick(config.getInterval(), config.getInterval(), new Tick())
+                Source.tick(Duration.ZERO, config.getInterval(), new Tick())
                         .mapMaterializedValue(whatever -> NotUsed.getInstance());
 
         final Graph<FanOutShape2<Tick, Integer, CreditDecision>, NotUsed> clusterStatusStage =
