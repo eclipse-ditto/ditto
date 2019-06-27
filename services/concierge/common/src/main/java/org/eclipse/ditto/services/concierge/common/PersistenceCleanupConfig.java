@@ -24,6 +24,13 @@ import com.typesafe.config.Config;
 public interface PersistenceCleanupConfig {
 
     /**
+     * Returns whether background cleanup is turned on.
+     *
+     * @return true or false.
+     */
+    boolean isEnabled();
+
+    /**
      * Returns how long to wait before scheduling persistence cleanup actions.
      *
      * @return duration of the quiet period.
@@ -100,6 +107,11 @@ public interface PersistenceCleanupConfig {
      * Enumeration of known config keys and default values for {@code PersistenceCleanupConfig}
      */
     enum ConfigValue implements KnownConfigValue {
+
+        /**
+         * Whether background cleanup is turned on.
+         */
+        ENABLED("enabled", true),
 
         /**
          * Duration between service start-up and the beginning of cleanup actions.

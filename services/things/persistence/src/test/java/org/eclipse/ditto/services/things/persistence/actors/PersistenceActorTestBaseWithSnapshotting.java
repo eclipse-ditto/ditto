@@ -62,16 +62,12 @@ public abstract class PersistenceActorTestBaseWithSnapshotting extends Persisten
             Thing.JsonFields.FEATURES, Thing.JsonFields.ID, Thing.JsonFields.MODIFIED, Thing.JsonFields.REVISION,
             Thing.JsonFields.POLICY_ID, Thing.JsonFields.LIFECYCLE);
     static final int DEFAULT_TEST_SNAPSHOT_THRESHOLD = 2;
-    private static final boolean DEFAULT_TEST_SNAPSHOT_DELETE_OLD = true;
-    private static final boolean DEFAULT_TEST_EVENTS_DELETE_OLD = true;
     private static final Duration VERY_LONG_DURATION = Duration.ofDays(100);
     private static final int PERSISTENCE_ASSERT_WAIT_AT_MOST_MS = 5000;
     private static final long PERSISTENCE_ASSERT_RETRY_DELAY_MS = 500;
 
     private static final String SNAPSHOT_PREFIX = "ditto.things.thing.snapshot.";
     static final String SNAPSHOT_THRESHOLD = SNAPSHOT_PREFIX + "threshold";
-    private static final String SNAPSHOT_DELETE_OLD = SNAPSHOT_PREFIX + "delete-old-snapshot";
-    private static final String EVENTS_DELETE_OLD = SNAPSHOT_PREFIX + "delete-old-events";
     private static final String SNAPSHOT_INTERVAL = SNAPSHOT_PREFIX + "interval";
     private static final String ACTIVITY_CHECK_PREFIX = "ditto.things.thing.activity-check";
     private static final String ACTIVITY_CHECK_INTERVAL = ACTIVITY_CHECK_PREFIX + "inactive-interval";
@@ -90,10 +86,6 @@ public abstract class PersistenceActorTestBaseWithSnapshotting extends Persisten
                 .withValue(ACTIVITY_CHECK_INTERVAL, ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION))
                 .withValue(ACTIVITY_CHECK_DELETED_INTERVAL,
                         ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION))
-                .withValue(SNAPSHOT_DELETE_OLD, ConfigValueFactory.fromAnyRef(
-                        DEFAULT_TEST_SNAPSHOT_DELETE_OLD))
-                .withValue(EVENTS_DELETE_OLD,
-                        ConfigValueFactory.fromAnyRef(DEFAULT_TEST_EVENTS_DELETE_OLD))
                 .withValue(SNAPSHOT_INTERVAL, ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION));
     }
 

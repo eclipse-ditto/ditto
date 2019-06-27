@@ -23,6 +23,7 @@ final class DefaultPersistenceCleanupConfig implements PersistenceCleanupConfig 
 
     private static final String CONFIG_PATH = "persistence-cleanup";
 
+    private final boolean enabled;
     private final Duration quietPeriod;
     private final Duration cleanupTimeout;
     private final int parallelism;
@@ -34,6 +35,7 @@ final class DefaultPersistenceCleanupConfig implements PersistenceCleanupConfig 
     private final Config config;
 
     private DefaultPersistenceCleanupConfig(final Config config) {
+        this.enabled = config.getBoolean(ConfigValue.ENABLED.getConfigPath());
         this.quietPeriod = config.getDuration(ConfigValue.QUIET_PERIOD.getConfigPath());
         this.cleanupTimeout = config.getDuration(ConfigValue.CLEANUP_TIMEOUT.getConfigPath());
         this.parallelism = config.getInt(ConfigValue.PARALLELISM.getConfigPath());
@@ -52,6 +54,11 @@ final class DefaultPersistenceCleanupConfig implements PersistenceCleanupConfig 
 
     static PersistenceCleanupConfig updated(final Config extractedConfig) {
         return new DefaultPersistenceCleanupConfig(extractedConfig);
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return enabled;
     }
 
     @Override
@@ -103,7 +110,8 @@ final class DefaultPersistenceCleanupConfig implements PersistenceCleanupConfig 
     public boolean equals(final Object o) {
         if (o instanceof DefaultPersistenceCleanupConfig) {
             final DefaultPersistenceCleanupConfig that = (DefaultPersistenceCleanupConfig) o;
-            return Objects.equals(quietPeriod, that.quietPeriod) &&
+            return enabled == that.enabled &&
+                    Objects.equals(quietPeriod, that.quietPeriod) &&
                     Objects.equals(cleanupTimeout, that.cleanupTimeout) &&
                     parallelism == that.parallelism &&
                     keptCreditDecisions == that.keptCreditDecisions &&
@@ -119,14 +127,15 @@ final class DefaultPersistenceCleanupConfig implements PersistenceCleanupConfig 
 
     @Override
     public int hashCode() {
-        return Objects.hash(quietPeriod, cleanupTimeout, parallelism, keptCreditDecisions, keptActions, keptEvents,
-                creditDecisionConfig, persistenceIdsConfig, config);
+        return Objects.hash(enabled, quietPeriod, cleanupTimeout, parallelism, keptCreditDecisions, keptActions,
+                keptEvents, creditDecisionConfig, persistenceIdsConfig, config);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() +
-                "[ quietPeriod=" + quietPeriod +
+                "[ enabled=" + enabled +
+                ", quietPeriod=" + quietPeriod +
                 ", cleanupTimeout=" + cleanupTimeout +
                 ", parallelism=" + parallelism +
                 ", keptCreditDecisions" + keptCreditDecisions +

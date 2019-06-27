@@ -63,6 +63,10 @@ public final class DefaultPersistenceCleanupConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final PersistenceCleanupConfig underTest = createFromConfig();
 
+        softly.assertThat(underTest.isEnabled())
+                .as(PersistenceCleanupConfig.ConfigValue.ENABLED.getConfigPath())
+                .isFalse();
+
         softly.assertThat(underTest.getQuietPeriod())
                 .as(PersistenceCleanupConfig.ConfigValue.QUIET_PERIOD.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(100L));

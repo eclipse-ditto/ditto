@@ -39,20 +39,6 @@ public interface SnapshotConfig {
     long getThreshold();
 
     /**
-     * Indicates whether to delete old snapshot when taking a snapshot.
-     *
-     * @return {@code true} if the old snapshot should be deleted, {@code false} else.
-     */
-    boolean isDeleteOldSnapshot();
-
-    /**
-     * Indicates whether to delete old events when taking a snapshot.
-     *
-     * @return {@code true} if the old events should be deleted, {@code false} else.
-     */
-    boolean isDeleteOldEvents();
-
-    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code SnapshotConfig}.
      */
@@ -66,22 +52,12 @@ public interface SnapshotConfig {
         /**
          * The threshold after how many changes to an entity to do a snapshot.
          */
-        THRESHOLD("threshold", 500L),
-
-        /**
-         * Determines whether to delete old snapshot when taking a snapshot.
-         */
-        DELETE_OLD_SNAPSHOT("delete-old-snapshot", false),
-
-        /**
-         * Determines whether to delete old events when taking a snapshot.
-         */
-        DELETE_OLD_EVENTS("delete-old-events", false);
+        THRESHOLD("threshold", 500L);
 
         private final String path;
         private final Object defaultValue;
 
-        private SnapshotConfigValue(final String thePath, final Object theDefaultValue) {
+        SnapshotConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }
@@ -96,6 +72,6 @@ public interface SnapshotConfig {
             return path;
         }
 
-    }
+        }
 
 }

@@ -130,6 +130,9 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
      */
     private static final String RESTART_AFTER = "restartAfter";
 
+    private static final JsonFieldDefinition<Boolean> ENABLED =
+            JsonFactory.newBooleanFieldDefinition("enabled");
+
     private static final JsonFieldDefinition<JsonArray> CREDIT_DECISIONS =
             JsonFactory.newJsonArrayFieldDefinition("credit-decisions");
 
@@ -166,7 +169,10 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
         this.shardRegions = shardRegions;
 
         materializer = ActorMaterializer.create(getContext());
-        scheduleWakeUp();
+
+        if (config.isEnabled()) {
+            scheduleWakeUp();
+        }
 
         creditDecisions = new ArrayDeque<>(config.getKeptCreditDecisions() + 1);
         actions = new ArrayDeque<>(config.getKeptActions() + 1);
@@ -199,6 +205,7 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
 
     @Override
     public Config setConfig(final Config config) {
+        final PersistenceCleanupConfig previousConfig = this.config;
         // TODO: replace ConfigWithFallback - it breaks AbstractConfigValue.withFallback!
         // Workaround: re-parse my config
         final Config fallback = ConfigFactory.parseString(getConfig().root().render(ConfigRenderOptions.concise()));
@@ -207,12 +214,15 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
         } catch (final DittoConfigError | ConfigException e) {
             log.error(e, "Failed to set config");
         }
+        if (!previousConfig.isEnabled() && this.config.isEnabled()) {
+            scheduleWakeUp();
+        }
         return this.config.getConfig();
     }
 
     private Receive sleeping() {
         return ReceiveBuilder.create()
-                .matchEquals(WokeUp.WOKE_UP, this::wokeUp)
+                .match(WokeUp.class, this::wokeUp)
                 .match(RetrieveHealth.class, this::retrieveHealth)
                 .match(Shutdown.class, this::shutdownStream)
                 .build()
@@ -242,38 +252,51 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
         enqueue(events, streamTerminated, config.getKeptEvents());
         getContext().become(sleeping());
 
-        final ShutdownReason shutdownReason = shutdown.getReason();
-        Duration wakeUpDelay;
-        String message;
-        if (RESTART_AFTER.equals(shutdownReason.getType().toString()) && shutdownReason.getDetails().isPresent()) {
-            try {
-                wakeUpDelay = Duration.parse(shutdownReason.getDetailsOrThrow());
-                message = "Restarting stream in " + wakeUpDelay;
-            } catch (final DateTimeParseException e) {
+        if (config.isEnabled()) {
+            final ShutdownReason shutdownReason = shutdown.getReason();
+            Duration wakeUpDelay;
+            String message;
+            if (RESTART_AFTER.equals(shutdownReason.getType().toString()) && shutdownReason.getDetails().isPresent()) {
+                try {
+                    wakeUpDelay = Duration.parse(shutdownReason.getDetailsOrThrow());
+                    message = "Restarting stream in " + wakeUpDelay;
+                } catch (final DateTimeParseException e) {
+                    wakeUpDelay = config.getQuietPeriod();
+                    message = String.format("Unable to parse <%s> to duration; restarting in <%s>.",
+                            shutdownReason.getDetailsOrThrow(), wakeUpDelay);
+                }
+            } else {
                 wakeUpDelay = config.getQuietPeriod();
-                message = String.format("Unable to parse <%s> to duration; restarting in <%s>.",
-                        shutdownReason.getDetailsOrThrow(), wakeUpDelay);
+                message = String.format("There is no reason:{type=<%s>,details=<timestamp>}; restarting in <%s>.",
+                        RESTART_AFTER, wakeUpDelay);
             }
+            scheduleWakeUp(wakeUpDelay);
+            getSender().tell(ShutdownResponse.of(message, shutdown.getDittoHeaders()), getSelf());
         } else {
-            wakeUpDelay = config.getQuietPeriod();
-            message = String.format("There is no reason:{type=<%s>,details=<timestamp>}; restarting in <%s>.",
-                    RESTART_AFTER, wakeUpDelay);
+            final String message = "Not restarting stream because background cleanup is disabled.";
+            getSender().tell(ShutdownResponse.of(message, shutdown.getDittoHeaders()), getSelf());
         }
-        scheduleWakeUp(wakeUpDelay);
-        getSender().tell(ShutdownResponse.of(message, shutdown.getDittoHeaders()), getSelf());
     }
 
-    private void wokeUp(final Event wokeUp) {
+    private void wokeUp(final WokeUp wokeUp) {
         log.info("Woke up.");
-        enqueue(events, wokeUp, config.getKeptEvents());
-        restartStream();
-        getContext().become(streaming());
+        enqueue(events, wokeUp.enable(config.isEnabled()), config.getKeptEvents());
+        if (config.isEnabled()) {
+            restartStream();
+            getContext().become(streaming());
+        } else {
+            log.warning("Not waking up because disabled.");
+        }
     }
 
     private void streamTerminated(final Event streamTerminated) {
-        log.info("Stream terminated. will restart after quiet period.");
         enqueue(events, streamTerminated, config.getKeptEvents());
-        scheduleWakeUp();
+        if (config.isEnabled()) {
+            log.info("Stream terminated. Will restart after quiet period.");
+            scheduleWakeUp();
+        } else {
+            log.warning("Stream terminated while disabled.");
+        }
         getContext().become(sleeping());
     }
 
@@ -316,7 +339,7 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
     }
 
     private void scheduleWakeUp(final Duration when) {
-        getTimers().startSingleTimer(WokeUp.WOKE_UP, WokeUp.WOKE_UP, when);
+        getTimers().startSingleTimer(WokeUp.class, WokeUp.ENABLED, when);
     }
 
     private Source<EntityIdWithRevision, NotUsed> assembleSource() {
@@ -401,6 +424,7 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
 
     private JsonObject render() {
         return JsonObject.newBuilder()
+                .set(ENABLED, config.isEnabled())
                 .set(EVENTS, events.stream()
                         .map(EventSnapshotCleanupCoordinator::renderEvent)
                         .collect(JsonCollectors.valuesToArray()))
@@ -455,8 +479,24 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
         String name();
     }
 
-    private enum WokeUp implements Event {
-        WOKE_UP
+    private static final class WokeUp implements Event {
+
+        private static final WokeUp ENABLED = new WokeUp(true);
+
+        private final boolean enabled;
+
+        private WokeUp(final boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        private WokeUp enable(final boolean isEnabled) {
+            return new WokeUp(isEnabled);
+        }
+
+        @Override
+        public String name() {
+            return enabled ? "WOKE_UP" : "Not waking up: background cleanup is disabled.";
+        }
     }
 
     private final class StreamTerminated implements Event {
