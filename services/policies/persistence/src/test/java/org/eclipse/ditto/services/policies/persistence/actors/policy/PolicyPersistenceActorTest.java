@@ -716,13 +716,18 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 DittoPolicyAssertions.assertThat(createPolicy1Response.getPolicyCreated().get())
                         .isEqualEqualToButModified(policy);
 
+                // restart
                 final ActorRef policyPersistenceActorRecovered = createPersistenceActorFor(policy);
                 final RetrievePolicy retrievePolicy =
                         RetrievePolicy.of(policy.getId().orElse(null), dittoHeadersV2);
 
-                policyPersistenceActorRecovered.tell(retrievePolicy, getRef());
+                final RetrievePolicyResponse expectedResponse =
+                        retrievePolicyResponse(incrementRevision(policy, 1), dittoHeadersV2);
 
-                expectMsgEquals(retrievePolicyResponse(incrementRevision(policy, 1), dittoHeadersV2));
+                Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
+                    policyPersistenceActorRecovered.tell(retrievePolicy, getRef());
+                    expectMsgEquals(expectedResponse);
+                });
 
                 assertThat(getLastSender()).isEqualTo(policyPersistenceActorRecovered);
             }
@@ -913,12 +918,18 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                         .remove(ANOTHER_POLICY_LABEL) //
                         .setRevision(versionExpected) //
                         .build();
-                final ActorRef policyPersistenceActorRecovered = createPersistenceActorFor(policy);
-                final RetrievePolicy retrievePolicy =
-                        RetrievePolicy.of(policy.getId().orElse(null), dittoHeadersV2);
-                policyPersistenceActorRecovered.tell(retrievePolicy, getRef());
 
-                expectMsgEquals(retrievePolicyResponse(policyExpected, retrievePolicy.getDittoHeaders()));
+                // restart
+                final ActorRef policyPersistenceActorRecovered = createPersistenceActorFor(policy);
+                final RetrievePolicy retrievePolicy = RetrievePolicy.of(policy.getId().orElse(null), dittoHeadersV2);
+
+                final RetrievePolicyResponse expectedResponse =
+                        retrievePolicyResponse(policyExpected, retrievePolicy.getDittoHeaders())
+
+                Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
+                    policyPersistenceActorRecovered.tell(retrievePolicy, getRef());
+                    expectMsgEquals(expectedResponse);
+                });
 
                 assertThat(getLastSender()).isEqualTo(policyPersistenceActorRecovered);
             }
