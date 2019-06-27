@@ -924,7 +924,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final RetrievePolicy retrievePolicy = RetrievePolicy.of(policy.getId().orElse(null), dittoHeadersV2);
 
                 final RetrievePolicyResponse expectedResponse =
-                        retrievePolicyResponse(policyExpected, retrievePolicy.getDittoHeaders())
+                        retrievePolicyResponse(policyExpected, retrievePolicy.getDittoHeaders());
 
                 Awaitility.await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
                     policyPersistenceActorRecovered.tell(retrievePolicy, getRef());
@@ -937,7 +937,6 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     }
 
     @Test
-    @Ignore
     public void checkForActivityOfNonexistentPolicy() {
         new TestKit(actorSystem) {
             {
