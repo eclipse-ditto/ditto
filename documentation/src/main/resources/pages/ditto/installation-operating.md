@@ -207,7 +207,7 @@ instances of gateway-service to `DEBUG`:
 ### Dynamically retrieve configurations
 
 Runtime configurations of services are available for the Ditto operator at
-`/devopps/config/` with optional restrictions by service name, instance ID and configuration path.
+`/devops/config/` with optional restrictions by service name, instance ID and configuration path.
 The entire runtime configuration of a service may be dozens of kilobytes big. If it exceeds the cluster message size
 of 250 kB, then it can only be read piece by piece via the `path` query parameter.
 
