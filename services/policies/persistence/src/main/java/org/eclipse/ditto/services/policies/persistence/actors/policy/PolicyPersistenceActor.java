@@ -127,7 +127,6 @@ import org.eclipse.ditto.signals.events.policies.SubjectsModified;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Cancellable;
-import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ClusterSharding;
@@ -246,10 +245,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
                 // # Policy Entry Deletion Recovery
                 .match(PolicyEntryDeleted.class, ped -> null != policy, ped -> policy = policy.toBuilder()
-                            .remove(ped.getLabel())
-                            .setRevision(lastSequenceNr())
-                            .setModified(ped.getTimestamp().orElse(null))
-                            .build())
+                        .remove(ped.getLabel())
+                        .setRevision(lastSequenceNr())
+                        .setModified(ped.getTimestamp().orElse(null))
+                        .build())
 
                 // # Subjects Modification Recovery
                 .match(SubjectsModified.class, sm -> null != policy, sm -> policy.getEntryFor(sm.getLabel())
@@ -2188,10 +2187,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             }
         }
 
-        private void shutdown(final String shutdownLogTemplate, final String thingId) {
-            log.debug(shutdownLogTemplate, thingId);
+        private void shutdown(final String shutdownLogTemplate, final String policyId) {
+            log.debug(shutdownLogTemplate, policyId);
             // stop the supervisor (otherwise it'd restart this actor) which causes this actor to stop, too.
-            getContext().getParent().tell(PoisonPill.getInstance(), getSelf());
+            getContext().getParent().tell(PolicySupervisorActor.Control.PASSIVATE, getSelf());
         }
 
     }
