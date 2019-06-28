@@ -103,21 +103,21 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
-        receiveBuilder.match(StatusReport.class, this::handleConnectionStatusReport);
+        receiveBuilder.match(ProducerClosedStatusReport.class, this::handleConnectionStatusReport);
     }
-    
-    private void handleConnectionStatusReport(final StatusReport report) {
-      report.getClosedProducer().ifPresent(producer -> {  
-              log.debug("Try to remove JMS producer '{}' from cache.", producer);
-              Optional<Map.Entry<Destination, MessageProducer>> remove = producerMap.entrySet().stream().
-                    filter(e -> e.getValue().equals(producer)).findAny();
-              
-              remove.ifPresent(toRemove -> {
-                  producerMap.remove(toRemove.getKey());
-                  log.info("Removed JMS producer '{}' for destination '{}' from cache.", toRemove.getValue(), toRemove.getKey());
-              });            
-      });
-  }
+
+    private void handleConnectionStatusReport(final ProducerClosedStatusReport report) {
+        final MessageProducer producer = report.getMessageProducer();
+        log.debug("Try to remove JMS producer '{}' from cache.", producer);
+        Optional<Map.Entry<Destination, MessageProducer>> remove = producerMap.entrySet().stream().
+                filter(e -> e.getValue().equals(producer)).findAny();
+
+        remove.ifPresent(toRemove -> {
+            producerMap.remove(toRemove.getKey());
+            log.info("Removed JMS producer '{}' for destination '{}' from cache.", toRemove.getValue(),
+                    toRemove.getKey());
+        });
+    }
 
     @Override
     protected void postEnhancement(final ReceiveBuilder receiveBuilder) {
@@ -243,7 +243,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
     @Override
     public void postStop() throws Exception {
-        super.postStop();       
+        super.postStop();
         producerMap.forEach((target, producer) -> {
             try {
                 log.debug("Closing AMQP Producer for '{}'", target);
@@ -262,10 +262,10 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
     private static String jmsExceptionToString(final JMSException jmsException) {
         if (jmsException.getCause() != null) {
-            return String.format("[%s] %s (cause: %s - %s)", jmsException.getErrorCode(), jmsException.getMessage(), 
+            return String.format("[%s] %s (cause: %s - %s)", jmsException.getErrorCode(), jmsException.getMessage(),
                     jmsException.getCause().getClass().getSimpleName(), jmsException.getCause().getMessage());
         }
-        
+
         return String.format("[%s] %s", jmsException.getErrorCode(), jmsException.getMessage());
     }
 }

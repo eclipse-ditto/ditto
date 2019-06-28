@@ -102,7 +102,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             // producer is cache so created only once
             verify(session, timeout(1_000)).createProducer(ArgumentMatchers.any(Destination.class));
             
-            publisherActor.tell(StatusReport.producerClosed(messageProducer), getRef());
+            publisherActor.tell(ProducerClosedStatusReport.get(messageProducer), getRef());
             
             publisherActor.tell(mappedOutboundSignal, getRef());
             // second producer created as first one was removed from cache
