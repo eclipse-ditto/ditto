@@ -82,7 +82,7 @@ public final class BaseClientActorTest {
         new TestKit(actorSystem) {{
             final String randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
-                    TestConstants.createConnection(randomConnectionId, actorSystem, new Target[0]);
+                    TestConstants.createConnection(randomConnectionId, new Target[0]);
             final Props props = DummyClientActor.props(connection, getRef(), delegate);
 
             final ActorRef dummyClientActor = actorSystem.actorOf(props);
@@ -103,7 +103,7 @@ public final class BaseClientActorTest {
         new TestKit(actorSystem) {{
             final String randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
-                    TestConstants.createConnection(randomConnectionId, actorSystem, new Target[0]);
+                    TestConstants.createConnection(randomConnectionId, new Target[0]);
             final Props props = DummyClientActor.props(connection, getRef(), delegate);
 
             final ActorRef dummyClientActor = actorSystem.actorOf(props);
@@ -125,7 +125,7 @@ public final class BaseClientActorTest {
         new TestKit(actorSystem) {{
             final String randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
-                    TestConstants.createConnection(randomConnectionId, actorSystem, new Target[0]);
+                    TestConstants.createConnection(randomConnectionId, new Target[0]);
             final Props props = DummyClientActor.props(connection, getRef(), delegate);
 
             final ActorRef dummyClientActor = actorSystem.actorOf(props);
@@ -147,7 +147,7 @@ public final class BaseClientActorTest {
         new TestKit(actorSystem) {{
             final String randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
-                    TestConstants.createConnection(randomConnectionId, actorSystem, new Target[0])
+                    TestConstants.createConnection(randomConnectionId, new Target[0])
                             .toBuilder()
                             .uri("amqps://username:password@127.0.0.1:65536") // port 65536 does not even exist ;)
                             .build();
@@ -173,7 +173,7 @@ public final class BaseClientActorTest {
         new TestKit(actorSystem) {{
             final String randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
-                    TestConstants.createConnection(randomConnectionId, actorSystem, new Target[0]);
+                    TestConstants.createConnection(randomConnectionId,new Target[0]);
             final Props props = DummyClientActor.props(connection, getRef(), delegate);
 
             final ActorRef dummyClientActor = actorSystem.actorOf(props);
