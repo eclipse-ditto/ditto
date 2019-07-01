@@ -41,22 +41,23 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.actor.FSM;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Unit test for basic {@link org.eclipse.ditto.services.connectivity.messaging.BaseClientActor} funcionality.
+ * Unit test for basic {@link org.eclipse.ditto.services.connectivity.messaging.BaseClientActor} functionality.
  */
 @RunWith(MockitoJUnitRunner.class)
 public final class BaseClientActorTest {
 
-    private static final Object STATE_TIMEOUT = FSM.StateTimeout$.MODULE$;
     private static ActorSystem actorSystem;
     private static DittoConnectivityConfig connectivityConfig;
 
@@ -64,18 +65,20 @@ public final class BaseClientActorTest {
     private BaseClientActor delegate;
 
     @BeforeClass
-    public static void setUp() {
+    public static void beforeClass() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
         connectivityConfig = DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
     }
 
     @AfterClass
     public static void tearDown() {
-        TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS), false);
+        if (null != actorSystem) {
+            TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS), false);
+        }
     }
 
     @Test
-    public void shouldReconnectIfSocketIsClosed() {
+    public void reconnectsInConnectingStateIfFailureResponseReceived() {
         new TestKit(actorSystem) {{
             final String randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
@@ -119,12 +122,71 @@ public final class BaseClientActorTest {
 
     @Test
     public void reconnectsInConnectingStateIfNoResponseReceived() {
-        // TODO
+        new TestKit(actorSystem) {{
+            final String randomConnectionId = TestConstants.createRandomConnectionId();
+            final Connection connection =
+                    TestConstants.createConnection(randomConnectionId, actorSystem, new Target[0]);
+            final Props props = DummyClientActor.props(connection, getRef(), delegate);
+
+            final ActorRef dummyClientActor = actorSystem.actorOf(props);
+            watch(dummyClientActor);
+
+            whenOpeningConnection(dummyClientActor, OpenConnection.of(randomConnectionId, DittoHeaders.empty()), getRef());
+            thenExpectConnectClientCalled();
+
+            andNoResponseSent();
+
+            expectMsgClass(Status.Failure.class);
+
+            thenExpectConnectClientCalledAfterTimeout(connectivityConfig.getClientConfig().getConnectingTimeout());
+        }};
     }
 
     @Test
-    public void reconnectsInConnectingStateIfFailureResponseReceived() {
-        // TODO
+    public void shouldReconnectIfSocketIsClosed() {
+        new TestKit(actorSystem) {{
+            final String randomConnectionId = TestConstants.createRandomConnectionId();
+            final Connection connection =
+                    TestConstants.createConnection(randomConnectionId, actorSystem, new Target[0])
+                            .toBuilder()
+                            .uri("amqps://username:password@127.0.0.1:65536") // port 65536 does not even exist ;)
+                            .build();
+            final Props props = DummyClientActor.props(connection, getRef(), delegate);
+
+            final ActorRef dummyClientActor = actorSystem.actorOf(props);
+            watch(dummyClientActor);
+
+            whenOpeningConnection(dummyClientActor, OpenConnection.of(randomConnectionId, DittoHeaders.empty()), getRef());
+
+            expectMsgClass(Status.Failure.class);
+
+            thenExpectCleanupResourcesCalled();
+            Mockito.clearInvocations(delegate);
+            thenExpectCleanupResourcesCalledAfterTimeout(connectivityConfig.getClientConfig().getConnectingTimeout());
+            thenExpectNoConnectClientCalled();
+        }};
+
+    }
+
+    @Test
+    public void doesNotReconnectIfConnectionSuccessful() {
+        new TestKit(actorSystem) {{
+            final String randomConnectionId = TestConstants.createRandomConnectionId();
+            final Connection connection =
+                    TestConstants.createConnection(randomConnectionId, actorSystem, new Target[0]);
+            final Props props = DummyClientActor.props(connection, getRef(), delegate);
+
+            final ActorRef dummyClientActor = actorSystem.actorOf(props);
+            watch(dummyClientActor);
+
+            whenOpeningConnection(dummyClientActor, OpenConnection.of(randomConnectionId, DittoHeaders.empty()), getRef());
+            thenExpectConnectClientCalled();
+            Mockito.clearInvocations(delegate);
+            andConnectionSuccessful(dummyClientActor, getRef());
+
+            expectMsgClass(Status.Success.class);
+            thenExpectNoConnectClientCalledAfterTimeout(connectivityConfig.getClientConfig().getConnectingTimeout());
+        }};
     }
 
     private void thenExpectConnectClientCalled() {
@@ -139,8 +201,20 @@ public final class BaseClientActorTest {
         verify(delegate, timeout(connectingTimeout.toMillis() + 100)).doConnectClient(any(Connection.class), nullable(ActorRef.class));
     }
 
+    private void thenExpectNoConnectClientCalled() {
+        thenExpectNoConnectClientCalledAfterTimeout(Duration.ZERO);
+    }
+
     private void thenExpectNoConnectClientCalledAfterTimeout(final Duration connectingTimeout) {
         verify(delegate, timeout(connectingTimeout.toMillis() + 100).times(0)).doConnectClient(any(Connection.class), nullable(ActorRef.class));
+    }
+
+    private void thenExpectCleanupResourcesCalled() {
+        thenExpectCleanupResourcesCalledAfterTimeout(Duration.ZERO);
+    }
+
+    private void thenExpectCleanupResourcesCalledAfterTimeout(final Duration connectingTimeout) {
+        verify(delegate, timeout(connectingTimeout.toMillis() + 100)).cleanupResourcesForConnection();
     }
 
     private void whenOpeningConnection(final ActorRef clientActor, final OpenConnection openConnection, final ActorRef sender) {
@@ -163,11 +237,17 @@ public final class BaseClientActorTest {
                 clientActor);
     }
 
-    private void andConnectionTimedOut(final ActorRef clientActor) {
-        clientActor.tell(STATE_TIMEOUT, clientActor);
+    private void andNoResponseSent() {
+        try {
+            TimeUnit.SECONDS.sleep(connectivityConfig.getClientConfig().getConnectingTimeout().getSeconds());
+        } catch (InterruptedException e) {
+            System.out.println("Unexpected interruption while waiting until the connecting timeout takes place...");
+            e.printStackTrace();
+        }
     }
 
     private static final class DummyClientActor extends BaseClientActor {
+        private static final Logger LOGGER = LoggerFactory.getLogger(DummyClientActor.class);
 
         private final BaseClientActor delegate;
 
@@ -186,38 +266,43 @@ public final class BaseClientActorTest {
          */
         public static Props props(final Connection connection, final ActorRef conciergeForwarder,
                 final BaseClientActor delegate) {
-
             return Props.create(DummyClientActor.class, connection, connection.getConnectionStatus(),
                     conciergeForwarder, delegate);
         }
 
         @Override
         protected CompletionStage<Status.Status> doTestConnection(final Connection connection) {
+            LOGGER.info("doTestConnection");
             return delegate.doTestConnection(connection);
         }
 
         @Override
         protected void allocateResourcesOnConnection(final ClientConnected clientConnected) {
+            LOGGER.info("allocateResourcesOnConnection");
             delegate.allocateResourcesOnConnection(clientConnected);
         }
 
         @Override
         protected void cleanupResourcesForConnection() {
+            LOGGER.info("cleanupResourcesForConnection");
             delegate.cleanupResourcesForConnection();
         }
 
         @Override
         protected ActorRef getPublisherActor() {
+            LOGGER.info("getPublisherActor");
             return delegate.getPublisherActor();
         }
 
         @Override
         protected void doConnectClient(final Connection connection, @Nullable final ActorRef origin) {
+            LOGGER.info("doConnectClient");
             delegate.doConnectClient(connection, origin);
         }
 
         @Override
         protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin) {
+            LOGGER.info("doDisconnectClient");
             delegate.doDisconnectClient(connection, origin);
         }
 

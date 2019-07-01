@@ -169,7 +169,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
     @Override
     protected CompletionStage<Status.Status> doTestConnection(final Connection connection) {
-        // should be smaller than the global testing timeout to be able to send
+        // should be smaller than the global testing timeout to be able to send a response
         final Duration createChannelTimeout = clientConfig.getTestingTimeout().dividedBy(10L).multipliedBy(8L);
         final Duration internalReconnectTimeout = clientConfig.getTestingTimeout();
         // does explicitly not test the consumer so we won't consume any messages by accident.
