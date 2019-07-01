@@ -29,6 +29,8 @@ import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbC
 import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultTagsConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.TagsConfig;
+import org.eclipse.ditto.services.utils.persistence.operations.DefaultPersistenceOperationsConfig;
+import org.eclipse.ditto.services.utils.persistence.operations.PersistenceOperationsConfig;
 
 /**
  * This class implements the config of the Ditto Policies service.
@@ -39,16 +41,17 @@ public final class DittoPoliciesConfig implements PoliciesConfig {
     private static final String CONFIG_PATH = "policies";
 
     private final DittoServiceConfig serviceSpecificConfig;
-    private final DefaultMongoDbConfig mongoDbConfig;
-    private final DefaultHealthCheckConfig healthCheckConfig;
-    private final DefaultPolicyConfig policyConfig;
-    private final DefaultTagsConfig tagsConfig;
+    private final PersistenceOperationsConfig persistenceOperationsConfig;
+    private final MongoDbConfig mongoDbConfig;
+    private final HealthCheckConfig healthCheckConfig;
+    private final PolicyConfig policyConfig;
+    private final TagsConfig tagsConfig;
 
     private DittoPoliciesConfig(final ScopedConfig dittoScopedConfig) {
         serviceSpecificConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
+        persistenceOperationsConfig = DefaultPersistenceOperationsConfig.of(dittoScopedConfig);
         mongoDbConfig = DefaultMongoDbConfig.of(dittoScopedConfig);
         healthCheckConfig = DefaultHealthCheckConfig.of(dittoScopedConfig);
-
         policyConfig = DefaultPolicyConfig.of(serviceSpecificConfig);
         tagsConfig = DefaultTagsConfig.of(serviceSpecificConfig);
     }
@@ -86,6 +89,11 @@ public final class DittoPoliciesConfig implements PoliciesConfig {
     }
 
     @Override
+    public PersistenceOperationsConfig getPersistenceOperationsConfig() {
+        return persistenceOperationsConfig;
+    }
+
+    @Override
     public MongoDbConfig getMongoDbConfig() {
         return mongoDbConfig;
     }
@@ -115,6 +123,7 @@ public final class DittoPoliciesConfig implements PoliciesConfig {
         }
         final DittoPoliciesConfig that = (DittoPoliciesConfig) o;
         return Objects.equals(serviceSpecificConfig, that.serviceSpecificConfig) &&
+                Objects.equals(persistenceOperationsConfig, that.persistenceOperationsConfig) &&
                 Objects.equals(mongoDbConfig, that.mongoDbConfig) &&
                 Objects.equals(healthCheckConfig, that.healthCheckConfig) &&
                 Objects.equals(policyConfig, that.policyConfig) &&
@@ -123,13 +132,15 @@ public final class DittoPoliciesConfig implements PoliciesConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(serviceSpecificConfig, mongoDbConfig, healthCheckConfig, policyConfig, tagsConfig);
+        return Objects.hash(serviceSpecificConfig, persistenceOperationsConfig, mongoDbConfig, healthCheckConfig,
+                policyConfig, tagsConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "serviceSpecificConfig=" + serviceSpecificConfig +
+                ", persistenceOperationsConfig=" + persistenceOperationsConfig +
                 ", mongoDbConfig=" + mongoDbConfig +
                 ", healthCheckConfig=" + healthCheckConfig +
                 ", policyConfig=" + policyConfig +

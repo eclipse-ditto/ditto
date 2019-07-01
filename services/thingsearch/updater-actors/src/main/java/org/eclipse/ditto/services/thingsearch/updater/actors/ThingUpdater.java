@@ -19,7 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.Objects;
 
-import org.eclipse.ditto.services.base.actors.ShutdownNamespaceBehavior;
+import org.eclipse.ditto.services.base.actors.ShutdownBehaviour;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.streaming.IdentifiableStreamingMessage;
@@ -47,7 +47,7 @@ final class ThingUpdater extends AbstractActor {
     private final DiagnosticLoggingAdapter log = Logging.apply(this);
 
     private final String thingId;
-    private final ShutdownNamespaceBehavior shutdownNamespaceBehavior;
+    private final ShutdownBehaviour shutdownBehaviour;
     private final ActorRef changeQueueActor;
 
     // state of Thing and Policy
@@ -63,7 +63,7 @@ final class ThingUpdater extends AbstractActor {
         );
 
         thingId = tryToGetThingId();
-        shutdownNamespaceBehavior = ShutdownNamespaceBehavior.fromId(thingId, pubSubMediator, getSelf());
+        shutdownBehaviour = ShutdownBehaviour.fromId(thingId, pubSubMediator, getSelf());
         this.changeQueueActor = changeQueueActor;
 
         getContext().setReceiveTimeout(dittoSearchConfig.getUpdaterConfig().getMaxIdleTime());
@@ -83,7 +83,7 @@ final class ThingUpdater extends AbstractActor {
 
     @Override
     public Receive createReceive() {
-        return shutdownNamespaceBehavior.createReceive()
+        return shutdownBehaviour.createReceive()
                 .match(ThingEvent.class, this::processThingEvent)
                 .match(ThingTag.class, this::processThingTag)
                 .match(PolicyReferenceTag.class, this::processPolicyReferenceTag)
@@ -187,4 +187,5 @@ final class ThingUpdater extends AbstractActor {
             getSender().tell(StreamAck.success(message.asIdentifierString()), getSelf());
         }
     }
+
 }

@@ -26,7 +26,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.services.base.actors.ShutdownNamespaceBehavior;
+import org.eclipse.ditto.services.base.actors.ShutdownBehaviour;
 import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.services.policies.common.config.DittoPoliciesConfig;
 import org.eclipse.ditto.services.policies.persistence.actors.AbstractReceiveStrategy;
@@ -63,7 +63,7 @@ public final class PolicySupervisorActor extends AbstractActor {
     private final Props persistenceActorProps;
     private final String policyId;
     private final ExponentialBackOffConfig exponentialBackOffConfig;
-    private final ShutdownNamespaceBehavior shutdownNamespaceBehavior;
+    private final ShutdownBehaviour shutdownBehaviour;
 
     @Nullable private ActorRef child;
     private long restartCount;
@@ -87,7 +87,7 @@ public final class PolicySupervisorActor extends AbstractActor {
         }
         persistenceActorProps = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator);
         exponentialBackOffConfig = policiesConfig.getPolicyConfig().getSupervisorConfig().getExponentialBackOffConfig();
-        shutdownNamespaceBehavior = ShutdownNamespaceBehavior.fromId(policyId, pubSubMediator, getSelf());
+        shutdownBehaviour = ShutdownBehaviour.fromId(policyId, pubSubMediator, getSelf());
 
         child = null;
         restartCount = 0L;
@@ -136,7 +136,7 @@ public final class PolicySupervisorActor extends AbstractActor {
         receiveStrategies.forEach(strategyAwareReceiveBuilder::match);
         strategyAwareReceiveBuilder.matchAny(new MatchAnyStrategy());
 
-        return shutdownNamespaceBehavior.createReceive().build().orElse(strategyAwareReceiveBuilder.build());
+        return shutdownBehaviour.createReceive().build().orElse(strategyAwareReceiveBuilder.build());
     }
 
     private void startChild() {

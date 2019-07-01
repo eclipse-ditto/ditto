@@ -123,12 +123,22 @@ import scala.concurrent.duration.FiniteDuration;
  */
 public final class ConnectionActor extends AbstractPersistentActor {
 
+    /**
+     * The prefix of the persistenceId.
+     */
+    public static final String PERSISTENCE_ID_PREFIX = "connection:";
+
+    /**
+     * The ID of the journal plugin this persistence actor uses.
+     */
+    public static final String JOURNAL_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-journal";
+    /**
+     * The ID of the snapshot plugin this persistence actor uses.
+     */
+    public static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-snapshots";
+
     private static final FiniteDuration DELETED_ACTOR_LIFETIME = Duration.create(10L, TimeUnit.SECONDS);
     private static final long DEFAULT_RETRIEVE_STATUS_TIMEOUT = 500L;
-    static final String PERSISTENCE_ID_PREFIX = "connection:";
-
-    private static final String JOURNAL_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-journal";
-    private static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-snapshots";
 
     private static final String PUB_SUB_GROUP_PREFIX = "connection:";
 

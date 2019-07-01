@@ -12,12 +12,9 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors;
 
-import java.util.Collections;
-import java.util.List;
-
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.utils.persistence.mongo.namespace.EventSourceNamespaceOpsActorTestCases;
+import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
@@ -25,19 +22,29 @@ import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
+import org.junit.Test;
 
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 
 /**
- * Tests {@link org.eclipse.ditto.services.things.persistence.actors.ThingNamespaceOpsActor} against a local MongoDB.
+ * Tests {@link ThingPersistenceOperationsActor} against a local MongoDB.
  */
 @AllValuesAreNonnullByDefault
-public final class ThingNamespaceOpsActorIT extends EventSourceNamespaceOpsActorTestCases {
+public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITAssertions {
+
+    @Test
+    public void purgeNamespaceWithoutSuffix() {
+        assertPurgeNamespaceWithoutSuffix();
+    }
+
+    @Test
+    public void purgeNamespaceWithSuffix() {
+        assertPurgeNamespaceWithSuffix();
+    }
 
     @Override
     protected String getServiceName() {
@@ -45,18 +52,8 @@ public final class ThingNamespaceOpsActorIT extends EventSourceNamespaceOpsActor
     }
 
     @Override
-    protected Config getExtraConfig() {
-        return ConfigFactory.load("thing-test");
-    }
-
-    @Override
     protected String getResourceType() {
         return ThingCommand.RESOURCE_TYPE;
-    }
-
-    @Override
-    protected List<String> getSupportedPrefixes() {
-        return Collections.singletonList(ThingCommand.RESOURCE_TYPE);
     }
 
     @Override
@@ -88,8 +85,9 @@ public final class ThingNamespaceOpsActorIT extends EventSourceNamespaceOpsActor
     protected ActorRef startActorUnderTest(final ActorSystem actorSystem, final ActorRef pubSubMediator,
             final Config config) {
 
-        final Props namespaceOpsActorProps = ThingNamespaceOpsActor.props(pubSubMediator);
-        return actorSystem.actorOf(namespaceOpsActorProps, ThingNamespaceOpsActor.ACTOR_NAME);
+        final Props opsActorProps = ThingPersistenceOperationsActor.props(pubSubMediator, mongoDbConfig, config,
+                persistenceOperationsConfig);
+        return actorSystem.actorOf(opsActorProps, ThingPersistenceOperationsActor.ACTOR_NAME);
     }
 
     @Override

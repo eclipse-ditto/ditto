@@ -14,12 +14,10 @@ package org.eclipse.ditto.signals.commands.common;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.Optional;
+import java.util.List;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 
 /**
@@ -39,49 +37,28 @@ public final class ShutdownReasonFactory {
      * @return the parsed reason.
      * @throws NullPointerException if {@code reasonJsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain
-     * {@link org.eclipse.ditto.signals.commands.common.GenericReason.JsonFields#TYPE} or further required fields.
+     * {@link ShutdownReason.JsonFields#TYPE} or further required fields.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
     public static ShutdownReason fromJson(final JsonObject jsonObject) {
         checkNotNull(jsonObject, "reason JSON object");
+
         final ShutdownReasonType type = getType(jsonObject.getValueOrThrow(ShutdownReason.JsonFields.TYPE));
-        final Optional<String> detailsOptional = jsonObject.getValue(ShutdownReason.JsonFields.DETAILS);
 
         if (ShutdownReasonType.Known.PURGE_NAMESPACE.equals(type)) {
-            return getPurgeNamespaceReason(detailsOptional.orElseThrow(
-                    () -> new JsonMissingFieldException(ShutdownReason.JsonFields.DETAILS)));
+            return PurgeNamespaceReason.fromJson(jsonObject);
+        } else if (ShutdownReasonType.Known.PURGE_ENTITIES.equals(type)) {
+            return PurgeEntitiesReason.fromJson(jsonObject);
         }
-        return GenericReason.getInstance(type, detailsOptional.orElse(null));
+
+        throw new IllegalArgumentException(String.format("Unknown shutdown reason type: <%s>.", type.toString()));
     }
 
     private static ShutdownReasonType getType(final CharSequence typeName) {
         return ShutdownReasonType.Known.forTypeName(typeName).orElseGet(() -> ShutdownReasonType.Unknown.of(typeName));
     }
 
-    /**
-     * Returns an instance of {@code ShutdownReasonType} for an arbitrary type without details.
-     *
-     * @param type the type of the returned reason.
-     * @return the instance.
-     * @throws NullPointerException if {@code type} is {@code null}.
-     * @throws IllegalArgumentException if {@code details} is empty.
-     */
-    public static ShutdownReason getShutdownReason(final ShutdownReasonType type) {
-        return getShutdownReason(type, null);
-    }
-
-    /**
-     * Returns an instance of {@code ShutdownReasonType} for an arbitrary type.
-     *
-     * @param type the type of the returned reason.
-     * @param details the details of the returned reason or {@code null}.
-     * @return the instance.
-     * @throws NullPointerException if {@code type} is {@code null}.
-     */
-    public static ShutdownReason getShutdownReason(final ShutdownReasonType type, @Nullable final String details) {
-        return GenericReason.getInstance(type, details);
-    }
 
     /**
      * Returns an instance of {@code ShutdownReason} for indicating the purging of a namespace.
@@ -93,6 +70,18 @@ public final class ShutdownReasonFactory {
      */
     public static ShutdownReason getPurgeNamespaceReason(final CharSequence namespace) {
         return PurgeNamespaceReason.of(namespace);
+    }
+
+    /**
+     * Returns an instance of {@code ShutdownReason} for indicating the purging of entities.
+     *
+     * @param entityIds the entities to be purged.
+     * @return the instance.
+     * @throws NullPointerException if {@code entityIds} is {@code null}.
+     * @throws IllegalArgumentException if {@code entityIds} is empty.
+     */
+    public static ShutdownReason getPurgeEntitiesReason(final List<String> entityIds) {
+        return PurgeEntitiesReason.of(entityIds);
     }
 
 }

@@ -16,7 +16,7 @@ import java.util.Map;
 
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
-import org.eclipse.ditto.services.utils.persistence.mongo.namespace.NamespaceOps;
+import org.eclipse.ditto.services.utils.persistence.operations.NamespacePersistenceOperations;
 
 import akka.NotUsed;
 import akka.stream.javadsl.Source;
@@ -24,7 +24,7 @@ import akka.stream.javadsl.Source;
 /**
  * The persistence for the search updater service.
  */
-public interface ThingsSearchUpdaterPersistence extends NamespaceOps<String> {
+public interface ThingsSearchUpdaterPersistence extends NamespacePersistenceOperations {
 
     /**
      * Retrieves modifiable unsorted list of policy reference tags that match the given policy IDs.

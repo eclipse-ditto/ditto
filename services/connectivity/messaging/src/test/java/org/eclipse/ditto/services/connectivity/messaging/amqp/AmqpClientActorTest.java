@@ -138,7 +138,7 @@ public final class AmqpClientActorTest extends WithMockServers {
     @BeforeClass
     public static void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
-        connection = TestConstants.createConnection(CONNECTION_ID, actorSystem);
+        connection = TestConstants.createConnection(CONNECTION_ID);
     }
 
     @AfterClass
@@ -188,8 +188,7 @@ public final class AmqpClientActorTest extends WithMockServers {
                 .build();
 
         final ThrowableAssert.ThrowingCallable props1 =
-                () -> AmqpClientActor.propsForTests(connection, connectionStatus,
-                        null, null);
+                () -> AmqpClientActor.propsForTests(connection, connectionStatus, null, null);
         final ThrowableAssert.ThrowingCallable props2 =
                 () -> AmqpClientActor.propsForTests(connection, connectionStatus, null,
                         jmsConnectionFactory);
@@ -435,7 +434,7 @@ public final class AmqpClientActorTest extends WithMockServers {
     @Test
     public void testConsumeMessageForSourcesWithSameAddress() throws JMSException {
         final Connection connection =
-                TestConstants.createConnection(CONNECTION_ID, actorSystem,
+                TestConstants.createConnection(CONNECTION_ID,
                         TestConstants.Sources.SOURCES_WITH_SAME_ADDRESS);
 
         final AtomicBoolean messageReceivedForGlobalContext = new AtomicBoolean(false);
@@ -461,7 +460,7 @@ public final class AmqpClientActorTest extends WithMockServers {
     @Test
     public void testConsumeMessageAndExpectForwardToConciergeForwarderWithCorrectAuthContext() throws JMSException {
         final Connection connection =
-                TestConstants.createConnection(CONNECTION_ID, actorSystem,
+                TestConstants.createConnection(CONNECTION_ID,
                         TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT);
         testConsumeMessageAndExpectForwardToConciergeForwarder(connection, 1,
                 c -> assertThat(c.getDittoHeaders().getAuthorizationContext()).isEqualTo(
@@ -578,7 +577,7 @@ public final class AmqpClientActorTest extends WithMockServers {
     @Test
     public void testTargetAddressPlaceholderReplacement() throws JMSException {
         final Connection connection =
-                TestConstants.createConnection(CONNECTION_ID, actorSystem,
+                TestConstants.createConnection(CONNECTION_ID,
                         TestConstants.Targets.TARGET_WITH_PLACEHOLDER);
 
         // target Placeholder: target:{{ thing:namespace }}/{{thing:name}}@{{ topic:channel }}
@@ -670,7 +669,7 @@ public final class AmqpClientActorTest extends WithMockServers {
 
                 final String connectionId = createRandomConnectionId();
                 final Connection connectionWithSpecialCharacters =
-                        TestConstants.createConnection(connectionId, actorSystem, singletonList(source));
+                        TestConstants.createConnection(connectionId, singletonList(source));
 
                 testConsumeMessageAndExpectForwardToConciergeForwarder(connectionWithSpecialCharacters, 1, cmd -> {
                     // nothing to do here
@@ -717,7 +716,7 @@ public final class AmqpClientActorTest extends WithMockServers {
 
             final String connectionId = createRandomConnectionId();
             final Connection connectionWithSpecialCharacters =
-                    TestConstants.createConnection(connectionId, actorSystem, singletonList(source));
+                    TestConstants.createConnection(connectionId, singletonList(source));
 
             testConsumeMessageAndExpectForwardToConciergeForwarder(connectionWithSpecialCharacters, 1, cmd -> {
                 // nothing to do here

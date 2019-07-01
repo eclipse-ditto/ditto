@@ -421,6 +421,8 @@
                                 <exclude>org.eclipse.ditto.signals.base.DittoJsonRegistry</exclude>
                                 <exclude>org.eclipse.ditto.signals.base.GlobalErrorRegistry</exclude>
                                 <exclude>org.eclipse.ditto.signals.base.AbstractErrorRegistry</exclude>
+                                <exclude>org.eclipse.ditto.signals.commands.common.ShutdownReason</exclude>
+                                <exclude>org.eclipse.ditto.signals.commands.common.ShutdownReasonFactory</exclude>
                             </excludes>
                         </parameter>
                     </configuration>
