@@ -135,7 +135,7 @@ public final class LastSuccessfulStreamCheckingActorTest {
     @Test
     public void triggerHealthRetrievalWithExceptionWhenAskingForLastSyncTime() {
         // disable logging to suppress stack trace. comment out to debug test.
-        actorSystem.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
+        actorSystem.eventStream().setLogLevel(akka.stream.Attributes.logLevelOff());
 
         underTest = actorSystem.actorOf(LastSuccessfulStreamCheckingActor.props(syncConfig, searchSyncPersistence));
         final IllegalStateException mockedEx = new IllegalStateException("Something happened");

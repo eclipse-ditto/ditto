@@ -136,7 +136,7 @@ public final class TestConstants {
      * Disable logging for 1 test to hide stacktrace or other logs on level ERROR. Comment out to debug the test.
      */
     public static void disableLogging(final ActorSystem system) {
-        system.eventStream().setLogLevel(Logging.levelFor("off").map(Logging.LogLevel::asInt).get());
+        system.eventStream().setLogLevel(akka.stream.Attributes.logLevelOff());
     }
 
     public static final HeaderMapping HEADER_MAPPING;

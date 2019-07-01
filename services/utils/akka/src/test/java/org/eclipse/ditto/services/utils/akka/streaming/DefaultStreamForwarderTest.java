@@ -183,6 +183,6 @@ public class DefaultStreamForwarderTest {
      * Disable logging for 1 test to hide stacktrace or other logs on level ERROR. Comment out to debug the test.
      */
     private void disableLogging() {
-        actorSystem.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
+        actorSystem.eventStream().setLogLevel(akka.stream.Attributes.logLevelOff());
     }
 }

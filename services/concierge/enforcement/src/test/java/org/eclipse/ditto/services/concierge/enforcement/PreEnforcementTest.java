@@ -204,6 +204,6 @@ public final class PreEnforcementTest {
      * Disable logging for 1 test to hide stacktrace or other logs on level ERROR. Comment out to debug the test.
      */
     private void disableLogging() {
-        system.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
+        system.eventStream().setLogLevel(akka.stream.Attributes.logLevelOff());
     }
 }
