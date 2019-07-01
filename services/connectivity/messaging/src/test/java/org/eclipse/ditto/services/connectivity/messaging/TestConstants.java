@@ -62,6 +62,7 @@ import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaders;
+import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
@@ -500,8 +501,12 @@ public final class TestConstants {
     }
 
     public static ThingModifiedEvent thingModified(final Collection<String> readSubjects) {
+        return thingModified(readSubjects, Attributes.newBuilder().build());
+    }
+
+    public static ThingModifiedEvent thingModified(final Collection<String> readSubjects, final Attributes attributes) {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().readSubjects(readSubjects).build();
-        return ThingModified.of(Things.THING, 1, dittoHeaders);
+        return ThingModified.of(Things.THING.toBuilder().setAttributes(attributes).build(), 1, dittoHeaders);
     }
 
     public static MessageCommand sendThingMessage(final Collection<String> readSubjects) {

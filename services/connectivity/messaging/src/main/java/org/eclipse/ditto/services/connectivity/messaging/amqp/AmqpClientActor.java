@@ -168,7 +168,14 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     @Override
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectedState() {
         return super.inConnectedState()
+                .event(ConnectionFailure.class, this::handleConnectionFailureWhenConnected)
                 .event(JmsSessionRecovered.class, this::handleSessionRecovered);
+    }
+
+    private State<BaseClientState, BaseClientData> handleConnectionFailureWhenConnected(final ConnectionFailure failure, final BaseClientData data) {
+        return goTo(BaseClientState.UNKNOWN)
+                .using(data.setConnectionStatus(ConnectivityStatus.FAILED)
+                                .setConnectionStatusDetails(failure.getFailureDescription()));
     }
 
     @Override
@@ -493,9 +500,9 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private FSM.State<BaseClientState, BaseClientData> handleSessionRecovered(
             final JmsSessionRecovered sessionRecovered,
             final BaseClientData currentData) {
-        jmsSession = sessionRecovered.session;
+        jmsSession = sessionRecovered.getSession();
         consumers.clear();
-        consumers.addAll(sessionRecovered.consumerList);
+        consumers.addAll(sessionRecovered.getConsumerList());
         // note: start order is important (publisher -> mapping -> consumer actor)
         startAmqpPublisherActor();
         startMessageMappingProcessor(connection().getMappingContext().orElse(null));
@@ -597,6 +604,14 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             super(origin);
             this.session = session;
             this.consumerList = consumerList;
+        }
+
+        Session getSession() {
+            return session;
+        }
+
+        List<ConsumerData> getConsumerList() {
+            return consumerList;
         }
     }
 

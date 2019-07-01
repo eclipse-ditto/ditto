@@ -138,7 +138,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
         if (recoverSession.getConnection().isPresent()) {
             final JmsConnection jmsConnection = recoverSession.getConnection().map(c -> (JmsConnection)c).get();
             try {
-                final JmsSession session = createSession(jmsConnection);
+                final Session session = createSession(jmsConnection);
                 final List<ConsumerData> consumers = createConsumers(session);
                 final AmqpClientActor.JmsSessionRecovered r = new AmqpClientActor.JmsSessionRecovered(origin, session, consumers);
                 sender.tell(r, self);
@@ -151,7 +151,9 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
                 log.error("Unexpected error: {}", e.getMessage());
             }
         } else {
-            // TODO do what??
+            log.info("Recovering session failed, no connection available.");
+            sender.tell(new ImmutableConnectionFailure(origin,null,
+                            "Session recovery failed, no connection available."), self);
         }
     }
 
@@ -203,12 +205,12 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
         });
     }
 
-    private JmsSession createSession(final JmsConnection jmsConnection) {
+    private Session createSession(final JmsConnection jmsConnection) {
         return safelyExecuteJmsOperation(jmsConnection, "create session",
-                () -> ((JmsSession) jmsConnection.createSession(Session.CLIENT_ACKNOWLEDGE)));
+                () -> (jmsConnection.createSession(Session.CLIENT_ACKNOWLEDGE)));
     }
 
-    private <T> T safelyExecuteJmsOperation(final JmsConnection jmsConnection,
+    private <T> T safelyExecuteJmsOperation(@Nullable final JmsConnection jmsConnection,
             final String task, final ThrowingSupplier<T> jmsOperation) {
         try {
             return jmsOperation.get();
@@ -291,18 +293,20 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
                 .build();
     }
 
-    private void terminateConnection(final javax.jms.Connection jmsConnection) {
-        try {
-            jmsConnection.stop();
-        } catch (final JMSException e) {
-            log.debug("Stopping connection <{}> failed, probably it was already stopped: {}",
-                    this.connection.getId(), e.getMessage());
-        }
-        try {
-            jmsConnection.close();
-        } catch (final JMSException e) {
-            log.debug("Closing connection <{}> failed, probably it was already closed: {}",
-                    this.connection.getId(), e.getMessage());
+    private void terminateConnection(@Nullable final javax.jms.Connection jmsConnection) {
+        if (jmsConnection != null) {
+            try {
+                jmsConnection.stop();
+            } catch (final JMSException e) {
+                log.debug("Stopping connection <{}> failed, probably it was already stopped: {}",
+                        this.connection.getId(), e.getMessage());
+            }
+            try {
+                jmsConnection.close();
+            } catch (final JMSException e) {
+                log.debug("Closing connection <{}> failed, probably it was already closed: {}",
+                        this.connection.getId(), e.getMessage());
+            }
         }
     }
 
