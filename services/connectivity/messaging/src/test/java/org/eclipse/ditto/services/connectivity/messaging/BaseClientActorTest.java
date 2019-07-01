@@ -214,7 +214,7 @@ public final class BaseClientActorTest {
     }
 
     private void thenExpectCleanupResourcesCalledAfterTimeout(final Duration connectingTimeout) {
-        verify(delegate, timeout(connectingTimeout.toMillis() + 100)).cleanupResourcesForConnection();
+        verify(delegate, timeout(connectingTimeout.toMillis() + 100).atLeastOnce()).cleanupResourcesForConnection();
     }
 
     private void whenOpeningConnection(final ActorRef clientActor, final OpenConnection openConnection, final ActorRef sender) {
