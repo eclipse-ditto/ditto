@@ -10,11 +10,14 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging.amqp;
+package org.eclipse.ditto.services.connectivity.messaging.amqp.status;
 
 import javax.jms.MessageConsumer;
 
-class ConsumerClosedStatusReport {
+/**
+ * Report about closed consumer.
+ */
+public final class ConsumerClosedStatusReport {
 
     private final MessageConsumer messageConsumer;
 
@@ -22,11 +25,11 @@ class ConsumerClosedStatusReport {
         this.messageConsumer = messageConsumer;
     }
 
-    static ConsumerClosedStatusReport get(final MessageConsumer messageConsumer) {
+    public static ConsumerClosedStatusReport get(final MessageConsumer messageConsumer) {
         return new ConsumerClosedStatusReport(messageConsumer);
     }
 
-    MessageConsumer getMessageConsumer() {
+    public MessageConsumer getMessageConsumer() {
         return messageConsumer;
     }
 }

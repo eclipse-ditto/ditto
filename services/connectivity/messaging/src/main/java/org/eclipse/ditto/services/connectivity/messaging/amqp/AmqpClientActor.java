@@ -44,6 +44,11 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
+import org.eclipse.ditto.services.connectivity.messaging.amqp.status.ConnectionFailureStatusReport;
+import org.eclipse.ditto.services.connectivity.messaging.amqp.status.ConnectionRestoredStatusReport;
+import org.eclipse.ditto.services.connectivity.messaging.amqp.status.ConsumerClosedStatusReport;
+import org.eclipse.ditto.services.connectivity.messaging.amqp.status.ProducerClosedStatusReport;
+import org.eclipse.ditto.services.connectivity.messaging.amqp.status.SessionClosedStatusReport;
 import org.eclipse.ditto.services.connectivity.messaging.internal.AbstractWithOrigin;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
@@ -488,6 +493,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     private void recoverSession(@Nullable final Session session) {
+        log.debug("Closing all child actors before recovering closed JMS session.");
         // first stop all child actors, they relied on the closed/corrupt session
         stopCommandConsumers();
         stopMessageMappingProcessorActor();

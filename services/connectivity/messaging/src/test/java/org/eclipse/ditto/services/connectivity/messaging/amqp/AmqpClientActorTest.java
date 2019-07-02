@@ -442,22 +442,20 @@ public final class AmqpClientActorTest extends WithMockServers {
 
 
     @Test
-    public void testCloseSessionWhenConnectedExpectRecreateSession() throws JMSException, InterruptedException {
+    public void testCloseSessionWhenConnectedExpectRecreateSession() throws JMSException {
         final String expectedAddress = "target";
         final Target target = ConnectivityModelFactory.newTarget(expectedAddress, Authorization.AUTHORIZATION_CONTEXT,
                 null, null, Topic.TWIN_EVENTS);
+        final MessageProducer recoveredProducer = Mockito.mock(MessageProducer.class);
+        final MessageConsumer recoveredConsumer = Mockito.mock(MessageConsumer.class);
+        final Session newSession = Mockito.mock(Session.class, withSettings().name("recoveredSession"));
+        when(mockConnection.createSession(Session.CLIENT_ACKNOWLEDGE))
+                .thenReturn(mockSession) // initial session
+                .thenReturn(newSession); // recovered session
+        when(newSession.createConsumer(any(JmsQueue.class))).thenReturn(recoveredConsumer);
+        prepareCreateProducer(newSession, recoveredProducer);
+
         new TestKit(actorSystem) {{
-            final Session newSession = Mockito.mock(Session.class, withSettings().name("recoveredSession"));
-            final MessageProducer recoveredProducer = Mockito.mock(MessageProducer.class);
-            final MessageConsumer recoveredConsumer = Mockito.mock(MessageConsumer.class);
-
-            when(mockConnection.createSession(Session.CLIENT_ACKNOWLEDGE))
-                    .thenReturn(mockSession)
-                    .thenReturn(newSession);
-
-            when(newSession.createConsumer(any(JmsQueue.class))).thenReturn(recoveredConsumer);
-            prepareCreateProducer(newSession, recoveredProducer);
-
             final Props props =
                     AmqpClientActor.propsForTests(connection, connectionStatus, getRef(), (ac, el) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
@@ -487,6 +485,7 @@ public final class AmqpClientActorTest extends WithMockServers {
             // verify publishing an event works with new session/producer
             sendThingEventAndExpectPublish(amqpClientActor, target, recoveredProducer);
 
+            // verify message is consumed with newly created consumer
             consumeMockMessage(recoveredConsumer);
             expectMsgClass(Command.class);
         }};

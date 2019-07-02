@@ -10,11 +10,14 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging.amqp;
+package org.eclipse.ditto.services.connectivity.messaging.amqp.status;
 
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 
-class ConnectionFailureStatusReport {
+/**
+ * Reports a connections failure.
+ */
+public final class ConnectionFailureStatusReport {
 
     private final ConnectionFailure failure;
 
@@ -22,7 +25,7 @@ class ConnectionFailureStatusReport {
         this.failure = failure;
     }
 
-    static ConnectionFailureStatusReport get(final ConnectionFailure failure) {
+    public static ConnectionFailureStatusReport get(final ConnectionFailure failure) {
         return new ConnectionFailureStatusReport(failure);
     }
 

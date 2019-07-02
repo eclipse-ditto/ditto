@@ -10,13 +10,16 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging.amqp;
+package org.eclipse.ditto.services.connectivity.messaging.amqp.status;
 
 import javax.jms.Session;
 
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 
-class SessionClosedStatusReport {
+/**
+ * Reports a closed amqp session.
+ */
+public final class SessionClosedStatusReport {
 
     private final Session session;
     private final ConnectionFailure failure;
@@ -28,15 +31,15 @@ class SessionClosedStatusReport {
         this.session = session;
     }
 
-    static SessionClosedStatusReport get(final ConnectionFailure failure, final Session session) {
+    public static SessionClosedStatusReport get(final ConnectionFailure failure, final Session session) {
         return new SessionClosedStatusReport(failure, session);
     }
 
-    ConnectionFailure getFailure() {
+    public ConnectionFailure getFailure() {
         return failure;
     }
 
-    Session getSession() {
+    public Session getSession() {
         return session;
     }
 }

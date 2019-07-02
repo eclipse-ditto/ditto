@@ -10,14 +10,17 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging.amqp;
+package org.eclipse.ditto.services.connectivity.messaging.amqp.status;
 
-class ConnectionRestoredStatusReport {
+/**
+ * Report about restored connection.
+ */
+public final class ConnectionRestoredStatusReport {
 
     private ConnectionRestoredStatusReport() {
     }
 
-    static ConnectionRestoredStatusReport get() {
+    public static ConnectionRestoredStatusReport get() {
         return new ConnectionRestoredStatusReport();
     }
 }

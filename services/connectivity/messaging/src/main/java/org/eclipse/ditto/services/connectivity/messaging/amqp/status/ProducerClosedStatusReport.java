@@ -10,11 +10,14 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging.amqp;
+package org.eclipse.ditto.services.connectivity.messaging.amqp.status;
 
 import javax.jms.MessageProducer;
 
-class ProducerClosedStatusReport {
+/**
+ * Report about closed producer.
+ */
+public final class ProducerClosedStatusReport {
 
     private final MessageProducer messageProducer;
 
@@ -22,11 +25,11 @@ class ProducerClosedStatusReport {
         this.messageProducer = messageProducer;
     }
 
-    static ProducerClosedStatusReport get(final MessageProducer messageProducer) {
+    public static ProducerClosedStatusReport get(final MessageProducer messageProducer) {
         return new ProducerClosedStatusReport(messageProducer);
     }
 
-    MessageProducer getMessageProducer() {
+    public MessageProducer getMessageProducer() {
         return messageProducer;
     }
 }

@@ -122,6 +122,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
 
     private void handleRecoverSession(final AmqpClientActor.JmsRecoverSession recoverSession) {
 
+        log.debug("Processing JmsRecoverSession message.");
         final ActorRef sender = getSender();
         final ActorRef origin = recoverSession.getOrigin().orElse(null);
         final ActorRef self = getSelf();
@@ -138,7 +139,9 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
         if (recoverSession.getConnection().isPresent()) {
             final JmsConnection jmsConnection = recoverSession.getConnection().map(c -> (JmsConnection)c).get();
             try {
+                log.debug("Creating new JMS session.");
                 final Session session = createSession(jmsConnection);
+                log.debug("Creating consumers for new session.");
                 final List<ConsumerData> consumers = createConsumers(session);
                 final AmqpClientActor.JmsSessionRecovered r = new AmqpClientActor.JmsSessionRecovered(origin, session, consumers);
                 sender.tell(r, self);
@@ -220,9 +223,6 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
                     .message("Failed to " + task + ":" + e.getMessage())
                     .cause(e)
                     .build();
-        } catch (final ConnectionFailedException e) {
-            terminateConnection(jmsConnection);
-            throw e;
         }
     }
 
