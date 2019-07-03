@@ -187,7 +187,7 @@ public final class MqttClientActor extends BaseClientActor {
 
         // start message mapping processor actor early so that consumer streams can be run.
         // note that it has to be started after the publisher since the publisher actor is needed inside the mapping processor
-        final Either<DittoRuntimeException, ActorRef> messageMappingProcessor = startMessageMappingProcessor();
+        final Either<DittoRuntimeException, ActorRef> messageMappingProcessor = startMessageMappingProcessorActor();
 
         // start consumers
         if (isConsuming()) {

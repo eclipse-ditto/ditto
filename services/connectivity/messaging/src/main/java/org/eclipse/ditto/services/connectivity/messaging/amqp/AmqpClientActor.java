@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.net.URI;
 import java.text.MessageFormat;
 import java.time.Duration;
@@ -256,9 +258,9 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             consumers.clear();
             consumers.addAll(c.consumerList);
             // note: start order is important (publisher -> mapping -> consumer actor)
-            startAmqpPublisherActor();
-            startMessageMappingProcessor(connection().getMappingContext().orElse(null));
-            startCommandConsumers(consumers);
+            startCommandProducer();
+            startMessageMappingProcessorActor();
+            startCommandConsumers();
         } else {
             log.info("ClientConnected was not JmsConnected as expected, ignoring as this probably was a reconnection");
         }
@@ -323,7 +325,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         }
     }
 
-    private void startCommandConsumers(final Iterable<ConsumerData> consumers) {
+    private void startCommandConsumers() {
         final Optional<ActorRef> messageMappingProcessor = getMessageMappingProcessorActor();
         if (messageMappingProcessor.isPresent()) {
             if (isConsuming()) {
@@ -348,7 +350,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         consumerByNamePrefix.put(namePrefix, child);
     }
 
-    private void startAmqpPublisherActor() {
+    private void startCommandProducer() {
         stopCommandProducer();
         final String namePrefix = AmqpPublisherActor.ACTOR_NAME;
         if (jmsSession != null) {
@@ -510,9 +512,9 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         consumers.clear();
         consumers.addAll(sessionRecovered.getConsumerList());
         // note: start order is important (publisher -> mapping -> consumer actor)
-        startAmqpPublisherActor();
-        startMessageMappingProcessor(connection().getMappingContext().orElse(null));
-        startCommandConsumers(consumers);
+        startCommandProducer();
+        startMessageMappingProcessorActor();
+        startCommandConsumers();
 
         return stay().using(currentData);
     }
