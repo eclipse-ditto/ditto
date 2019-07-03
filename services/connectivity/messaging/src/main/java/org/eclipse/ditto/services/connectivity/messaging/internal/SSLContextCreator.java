@@ -93,6 +93,7 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
     /**
      * Create an SSL context creator with a preconfigured trust manager.
      *
+     * @param trustManager the trust manager.
      * @param dittoHeaders headers to write in Ditto runtime exceptions; {@code null} to write empty headers.
      * @return the SSL context creator.
      */

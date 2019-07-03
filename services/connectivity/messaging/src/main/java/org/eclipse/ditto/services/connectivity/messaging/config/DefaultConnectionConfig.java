@@ -33,11 +33,11 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
 
     private final Duration flushPendingResponsesTimeout;
     private final Duration clientActorAskTimeout;
-    private final DefaultSupervisorConfig supervisorConfig;
-    private final DefaultSnapshotConfig snapshotConfig;
-    private final DefaultAmqp10Config amqp10Config;
-    private final DefaultMqttConfig mqttConfig;
-    private final DefaultKafkaConfig kafkaConfig;
+    private final SupervisorConfig supervisorConfig;
+    private final SnapshotConfig snapshotConfig;
+    private final Amqp10Config amqp10Config;
+    private final MqttConfig mqttConfig;
+    private final KafkaConfig kafkaConfig;
 
     private DefaultConnectionConfig(final ConfigWithFallback config) {
         flushPendingResponsesTimeout =
@@ -83,7 +83,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     }
 
     @Override
-    public DefaultAmqp10Config getAmqp10Config() {
+    public Amqp10Config getAmqp10Config() {
         return amqp10Config;
     }
 

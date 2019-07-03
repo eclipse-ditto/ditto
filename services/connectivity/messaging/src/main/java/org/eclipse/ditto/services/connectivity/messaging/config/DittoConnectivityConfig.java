@@ -51,6 +51,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
     private final ReconnectConfig reconnectConfig;
     private final ClientConfig clientConfig;
     private final ProtocolConfig protocolConfig;
+    private final MonitoringConfig monitoringConfig;
 
     private DittoConnectivityConfig(final ScopedConfig dittoScopedConfig) {
         serviceSpecificConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
@@ -62,6 +63,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
         mappingConfig = DefaultMappingConfig.of(serviceSpecificConfig);
         reconnectConfig = DefaultReconnectConfig.of(serviceSpecificConfig);
         clientConfig = DefaultClientConfig.of(serviceSpecificConfig);
+        monitoringConfig = DefaultMonitoringConfig.of(serviceSpecificConfig);
     }
 
     /**
@@ -136,6 +138,11 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
         return protocolConfig;
     }
 
+    @Override
+    public MonitoringConfig getMonitoringConfig() {
+        return monitoringConfig;
+    }
+
     @SuppressWarnings("OverlyComplexMethod")
     @Override
     public boolean equals(@Nullable final Object o) {
@@ -154,13 +161,14 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
                 Objects.equals(mappingConfig, that.mappingConfig) &&
                 Objects.equals(reconnectConfig, that.reconnectConfig) &&
                 Objects.equals(clientConfig, that.clientConfig) &&
-                Objects.equals(protocolConfig, that.protocolConfig);
+                Objects.equals(protocolConfig, that.protocolConfig) &&
+                Objects.equals(monitoringConfig, that.monitoringConfig);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(serviceSpecificConfig, persistenceOperationsConfig, mongoDbConfig, healthCheckConfig,
-                connectionConfig, mappingConfig, reconnectConfig, clientConfig, protocolConfig);
+                connectionConfig, mappingConfig, reconnectConfig, clientConfig, protocolConfig, monitoringConfig);
     }
 
     @Override
@@ -175,6 +183,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
                 ", reconnectConfig=" + reconnectConfig +
                 ", clientConfig=" + clientConfig +
                 ", protocolConfig=" + protocolConfig +
+                ", monitoringConfig=" + monitoringConfig +
                 "]";
     }
 

@@ -16,6 +16,8 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget;
 import static org.eclipse.ditto.services.connectivity.messaging.MockClientActor.mockClientActorPropsFactory;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,7 +28,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.AbstractMap;
 import java.util.AbstractQueue;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -52,6 +56,10 @@ import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
+import org.eclipse.ditto.model.connectivity.LogCategory;
+import org.eclipse.ditto.model.connectivity.LogEntry;
+import org.eclipse.ditto.model.connectivity.LogLevel;
+import org.eclipse.ditto.model.connectivity.LogType;
 import org.eclipse.ditto.model.connectivity.Measurement;
 import org.eclipse.ditto.model.connectivity.MetricType;
 import org.eclipse.ditto.model.connectivity.Source;
@@ -73,8 +81,11 @@ import org.eclipse.ditto.services.connectivity.messaging.config.ClientConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ReconnectConfig;
-import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.ConnectivityCounterRegistry;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
@@ -86,6 +97,7 @@ import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
+import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -113,6 +125,7 @@ public final class TestConstants {
     public static final ClientConfig CLIENT_CONFIG;
     public static final ReconnectConfig RECONNECT_CONFIG;
     public static final ProtocolConfig PROTOCOL_CONFIG;
+    public static final MonitoringConfig MONITORING_CONFIG;
 
     static {
         final DefaultScopedConfig dittoScopedConfig = DefaultScopedConfig.dittoScoped(CONFIG);
@@ -123,6 +136,7 @@ public final class TestConstants {
         CLIENT_CONFIG = CONNECTIVITY_CONFIG.getClientConfig();
         RECONNECT_CONFIG = CONNECTIVITY_CONFIG.getReconnectConfig();
         PROTOCOL_CONFIG = CONNECTIVITY_CONFIG.getProtocolConfig();
+        MONITORING_CONFIG = CONNECTIVITY_CONFIG.getMonitoringConfig();
     }
 
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
@@ -173,6 +187,7 @@ public final class TestConstants {
                 AuthorizationSubject.newInstance(SOURCE_SUBJECT_ID));
         private static final AuthorizationContext UNAUTHORIZED_AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
                 AuthorizationSubject.newInstance(UNAUTHORIZED_SUBJECT_ID));
+
     }
 
     public static final class Sources {
@@ -197,6 +212,7 @@ public final class TestConstants {
                                 .consumerCount(1)
                                 .index(1)
                                 .build());
+
     }
 
     public static final class Targets {
@@ -216,6 +232,7 @@ public final class TestConstants {
         private static final Target LIVE_TARGET =
                 newTarget("live/key", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING, null, Topic.LIVE_EVENTS);
         private static final List<Target> TARGETS = asList(TWIN_TARGET, TWIN_TARGET_UNAUTHORIZED, LIVE_TARGET);
+
     }
 
     public static final class Certificates {
@@ -261,11 +278,59 @@ public final class TestConstants {
 
     }
 
+    public static class Monitoring {
+
+        public static ConnectionMonitorRegistry
+                MONITOR_REGISTRY_MOCK =
+                Mockito.mock(ConnectionMonitorRegistry.class, Mockito.withSettings().stubOnly());
+        private static ConnectionMonitor
+                CONNECTION_MONITOR_MOCK = Mockito.mock(ConnectionMonitor.class, Mockito.withSettings().stubOnly());
+        public static LogEntry LOG_ENTRY = ConnectivityModelFactory.newLogEntryBuilder("foo",
+                Instant.now(),
+                LogCategory.TARGET,
+                LogType.MAPPED,
+                LogLevel.SUCCESS,
+                "mapping worked.").build();
+        public static LogEntry LOG_ENTRY_2 = ConnectivityModelFactory.newLogEntryBuilder("bar",
+                Instant.now(),
+                LogCategory.TARGET,
+                LogType.PUBLISHED,
+                LogLevel.SUCCESS,
+                "publishing worked.").build();
+        public static Collection<LogEntry> LOG_ENTRIES =
+                Collections.unmodifiableList(Arrays.asList(LOG_ENTRY, LOG_ENTRY_2));
+
+
+        static {
+            when(MONITOR_REGISTRY_MOCK.forInboundConsumed(anyString(), anyString())).thenReturn(
+                    CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forInboundDropped(anyString(), anyString())).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forInboundEnforced(anyString(), anyString())).thenReturn(
+                    CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forInboundMapped(anyString(), anyString())).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forOutboundDispatched(anyString(), anyString())).thenReturn(
+                    CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forOutboundFiltered(anyString(), anyString())).thenReturn(
+                    CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forOutboundPublished(anyString(), anyString())).thenReturn(
+                    CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forResponseDispatched(anyString())).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forResponseDropped(anyString())).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forResponseMapped(anyString())).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forResponsePublished(anyString())).thenReturn(CONNECTION_MONITOR_MOCK);
+        }
+
+    }
+
     public static final class Metrics {
 
         private static final Instant LAST_MESSAGE_AT = Instant.now();
 
+        private static final ConnectivityCounterRegistry COUNTER_REGISTRY =
+                ConnectivityCounterRegistry.fromConfig(MONITORING_CONFIG.counter());
+
         public static final String ID = "myConnectionId";
+
 
         public static final Duration ONE_MINUTE = Duration.ofMinutes(1);
         public static final Duration ONE_HOUR = Duration.ofHours(1);
@@ -304,7 +369,7 @@ public final class TestConstants {
                 asMap(entry("source1", INBOUND_METRIC), entry("source2", INBOUND_METRIC)));
         public static final TargetMetrics TARGET_METRICS1 = ConnectivityModelFactory.newTargetMetrics(
                 asMap(entry("target1", OUTBOUND_METRIC), entry("target2", OUTBOUND_METRIC)));
-        public static final ConnectionMetrics CONNECTION_METRICS1 = ConnectivityCounterRegistry
+        public static final ConnectionMetrics CONNECTION_METRICS1 = COUNTER_REGISTRY
                 .aggregateConnectionMetrics(SOURCE_METRICS1, TARGET_METRICS1);
 
         public static final RetrieveConnectionMetricsResponse METRICS_RESPONSE1 = RetrieveConnectionMetricsResponse
@@ -314,7 +379,7 @@ public final class TestConstants {
                 asMap(entry("source2", INBOUND_METRIC), entry("source3", INBOUND_METRIC)));
         public static final TargetMetrics TARGET_METRICS2 = ConnectivityModelFactory.newTargetMetrics(
                 asMap(entry("target2", OUTBOUND_METRIC), entry("target3", OUTBOUND_METRIC)));
-        public static final ConnectionMetrics CONNECTION_METRICS2 = ConnectivityCounterRegistry
+        public static final ConnectionMetrics CONNECTION_METRICS2 = COUNTER_REGISTRY
                 .aggregateConnectionMetrics(SOURCE_METRICS2, TARGET_METRICS2);
 
         public static final RetrieveConnectionMetricsResponse METRICS_RESPONSE2 = RetrieveConnectionMetricsResponse
@@ -338,6 +403,7 @@ public final class TestConstants {
             }
             return ConnectivityModelFactory.newMeasurement(type, success, result, Metrics.LAST_MESSAGE_AT);
         }
+
     }
 
     private static <K, V> Map.Entry<K, V> entry(final K interval, final V count) {
@@ -354,8 +420,8 @@ public final class TestConstants {
     }
 
     /**
-     * Mock a listener on the server socket to fool connection client actors
-     * into not failing the connections immediately. Close the server socket to stop the mock server.
+     * Mock a listener on the server socket to fool connection client actors into not failing the connections
+     * immediately. Close the server socket to stop the mock server.
      *
      * @return server socket of the mock server.
      */
@@ -392,8 +458,8 @@ public final class TestConstants {
     }
 
     /**
-     * Create a mock connection URI and start a mock server on the same port.
-     * Stop the mock servers by calling {@code stopMockServers()}.
+     * Create a mock connection URI and start a mock server on the same port. Stop the mock servers by calling {@code
+     * stopMockServers()}.
      */
     public static String getUriOfNewMockServer() {
         final ServerSocket serverSocket = newMockServer();
@@ -497,6 +563,7 @@ public final class TestConstants {
                     .matchAny(m -> child.forward(m, getContext()))
                     .build();
         }
+
     }
 
     public static ThingModifiedEvent thingModified(final Collection<String> readSubjects) {

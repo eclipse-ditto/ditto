@@ -56,4 +56,11 @@ public interface ConnectivityConfig extends ServiceSpecificConfig, WithHealthChe
      */
     ClientConfig getClientConfig();
 
+    /**
+     * Returns the config for the Connectivity service's monitoring features (connection logs and metrics).
+     *
+     * @return the config.
+     */
+    MonitoringConfig getMonitoringConfig();
+
 }

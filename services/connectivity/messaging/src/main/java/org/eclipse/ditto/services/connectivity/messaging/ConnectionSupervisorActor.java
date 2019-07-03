@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
@@ -134,7 +135,7 @@ public final class ConnectionSupervisorActor extends AbstractActor {
                 .match(StartChild.class, startChild -> startChild())
                 .match(ManualReset.class, manualReset -> restartCount = 0)
                 .match(Terminated.class, terminated -> {
-                    LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
+                    ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
                     log.info("Persistence actor for Connection with ID '{}' terminated abnormally", connectionId);
                     child = null;
                     final Duration restartDelay = calculateRestartDelay();
@@ -146,7 +147,7 @@ public final class ConnectionSupervisorActor extends AbstractActor {
                 })
                 .match(ShardRegion.Passivate.class, passivate -> getContext().getParent().tell(passivate, getSelf()))
                 .matchAny(message -> {
-                    LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
+                    ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
                     if (child != null) {
                         if (child.equals(getSender())) {
                             log.warning("Received unhandled message from child actor <{}>: {}", connectionId, message);
@@ -171,7 +172,7 @@ public final class ConnectionSupervisorActor extends AbstractActor {
     }
 
     private void startChild() {
-        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
+        ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
         if (child == null) {
             log.debug("Starting persistence actor for Connection with ID <{}>.", connectionId);
             final ActorRef childRef = getContext().actorOf(persistenceActorProps, "pa");

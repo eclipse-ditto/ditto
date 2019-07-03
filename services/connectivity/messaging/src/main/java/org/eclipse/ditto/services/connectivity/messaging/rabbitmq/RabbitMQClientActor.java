@@ -41,7 +41,7 @@ import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 
@@ -49,6 +49,7 @@ import com.newmotion.akka.rabbitmq.ChannelActor;
 import com.newmotion.akka.rabbitmq.ChannelCreated;
 import com.newmotion.akka.rabbitmq.CreateChannel;
 import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.AlreadyClosedException;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DefaultConsumer;
@@ -367,6 +368,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                                 log.debug("Consuming queue <{}>, consumer tag is <{}>.", addressWithIndex, consumerTag);
                                 consumedTagsToAddresses.put(consumerTag, addressWithIndex);
                             } catch (final IOException e) {
+                                connectionLogger.failure("Failed to consume queue {0}: {1}", addressWithIndex, e.getMessage());
                                 log.warning("Failed to consume queue <{}>: <{}>", addressWithIndex, e.getMessage());
                             }
                         }
@@ -386,12 +388,24 @@ public final class RabbitMQClientActor extends BaseClientActor {
                     } catch (final IOException e) {
                         missingQueues.add(address);
                         log.warning("The queue <{}> does not exist.", address);
+                    } catch (final AlreadyClosedException e) {
+                        if (!missingQueues.isEmpty()) {
+                            // Our client will automatically close the connection if a queue does not exists. This will
+                            // cause an AlreadyClosedException for the following queue (e.g. ['existing1', 'notExisting', -->'existing2'])
+                            // That's why we will ignore this error if the missingQueues list isn't empty.
+                            log.warning("Received exception of type {} when trying to declare queue {}. This happens when a previous " +
+                                    "queue was missing and thus the connection got closed.", e.getClass().getName(), address);
+                        } else {
+                            log.error("Exception while declaring queue {}", address, e);
+                            throw e;
+                        }
                     }
                 })
         );
         if (!missingQueues.isEmpty()) {
             log.warning("Stopping RMQ client actor for connection <{}> as queues to connect to are missing: <{}>",
                     connectionId(), missingQueues);
+            connectionLogger.failure("Can not connect to RabbitMQ as queues are missing: {0}", missingQueues);
             throw ConnectionFailedException.newBuilder(connectionId())
                     .description("The queues " + missingQueues + " to connect to are missing.")
                     .build();
@@ -491,15 +505,17 @@ public final class RabbitMQClientActor extends BaseClientActor {
         public void handleDelivery(final String consumerTag, final Envelope envelope,
                 final AMQP.BasicProperties properties, final byte[] body) {
 
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
             try {
                 consumerActor.tell(new Delivery(envelope, properties, body), RabbitMQClientActor.this.getSelf());
             } catch (final Exception e) {
+                connectionLogger.failure("Failed to process delivery {0}: {1}", envelope.getDeliveryTag(), e.getMessage());
                 log.info("Failed to process delivery <{}>: {}", envelope.getDeliveryTag(), e.getMessage());
             } finally {
                 try {
                     getChannel().basicAck(envelope.getDeliveryTag(), false);
                 } catch (final IOException e) {
+                    connectionLogger.failure("Failed to ack delivery {0}: {1}", envelope.getDeliveryTag(), e.getMessage());
                     log.info("Failed to ack delivery <{}>: {}", envelope.getDeliveryTag(), e.getMessage());
                 }
             }
@@ -508,10 +524,11 @@ public final class RabbitMQClientActor extends BaseClientActor {
         @Override
         public void handleConsumeOk(final String consumerTag) {
             super.handleConsumeOk(consumerTag);
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
 
             final String consumingQueueByTag = consumedTagsToAddresses.get(consumerTag);
             if (null != consumingQueueByTag) {
+                connectionLogger.success("Consume OK for consumer queue {0}", consumingQueueByTag);
                 log.info("Consume OK for consumer queue <{}> on connection <{}>.", consumingQueueByTag, connectionId());
             }
 
@@ -521,10 +538,12 @@ public final class RabbitMQClientActor extends BaseClientActor {
         @Override
         public void handleCancel(final String consumerTag) throws IOException {
             super.handleCancel(consumerTag);
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
 
             final String consumingQueueByTag = consumedTagsToAddresses.get(consumerTag);
             if (null != consumingQueueByTag) {
+                connectionLogger.failure("Consumer with queue {0} was cancelled. This can happen for example " +
+                        "when the queue was deleted.", consumingQueueByTag);
                 log.warning("Consumer with queue <{}> was cancelled on connection <{}>. This can happen for " +
                         "example when the queue was deleted.", consumingQueueByTag, connectionId());
             }
@@ -535,10 +554,12 @@ public final class RabbitMQClientActor extends BaseClientActor {
         @Override
         public void handleShutdownSignal(final String consumerTag, final ShutdownSignalException sig) {
             super.handleShutdownSignal(consumerTag, sig);
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
 
             final String consumingQueueByTag = consumedTagsToAddresses.get(consumerTag);
             if (null != consumingQueueByTag) {
+                connectionLogger.failure("Consumer with queue <{}> shutdown as the channel or the underlying connection has " +
+                        "been shut down.", consumingQueueByTag);
                 log.warning("Consumer with queue <{}> shutdown as the channel or the underlying connection has " +
                         "been shut down on connection <{}>.", consumingQueueByTag, connectionId());
             }
@@ -550,9 +571,9 @@ public final class RabbitMQClientActor extends BaseClientActor {
         @Override
         public void handleRecoverOk(final String consumerTag) {
             super.handleRecoverOk(consumerTag);
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
 
-            log.info("recovered OK for consumer with tag <{}> " + "on connection <{}>", consumerTag, connectionId());
+            log.info("Recovered OK for consumer with tag <{}> on connection <{}>", consumerTag, connectionId());
 
             getSelf().tell((ClientConnected) Optional::empty, getSelf());
         }
