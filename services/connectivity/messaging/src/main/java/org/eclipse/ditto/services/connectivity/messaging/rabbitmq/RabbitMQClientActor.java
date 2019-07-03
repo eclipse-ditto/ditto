@@ -212,8 +212,8 @@ public final class RabbitMQClientActor extends BaseClientActor {
     }
 
     @Override
-    protected ActorRef getPublisherActor() {
-        return rmqPublisherActor;
+    protected Optional<ActorRef> getPublisherActor() {
+        return Optional.ofNullable(rmqPublisherActor);
     }
 
     private static Optional<ConnectionFactory> tryToCreateConnectionFactory(

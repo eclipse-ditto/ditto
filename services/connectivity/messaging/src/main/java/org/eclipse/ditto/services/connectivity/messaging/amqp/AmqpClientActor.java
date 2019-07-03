@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-
 import java.net.URI;
 import java.text.MessageFormat;
 import java.time.Duration;
@@ -307,8 +305,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     @Override
-    protected ActorRef getPublisherActor() {
-        return amqpPublisherActor;
+    protected Optional<ActorRef> getPublisherActor() {
+        return Optional.ofNullable(amqpPublisherActor);
     }
 
     @Override

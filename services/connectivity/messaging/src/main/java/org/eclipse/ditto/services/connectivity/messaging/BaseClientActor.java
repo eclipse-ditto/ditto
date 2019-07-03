@@ -200,7 +200,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     /**
      * @return the Actor to use for publishing commandResponses/events.
      */
-    protected abstract ActorRef getPublisherActor();
+    protected abstract Optional<ActorRef> getPublisherActor();
 
     /**
      * Invoked when this {@code Client} should connect.
@@ -873,8 +873,10 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
             log.debug("Starting MessageMappingProcessorActor with pool size of <{}>.",
                     connection.getProcessorPoolSize());
+            final ActorRef publisherActor = getPublisherActor().orElseThrow(
+                    () -> new NullPointerException("publisher actor must not be null."));
             final Props props =
-                    MessageMappingProcessorActor.props(getPublisherActor(), conciergeForwarder, processor,
+                    MessageMappingProcessorActor.props(publisherActor, conciergeForwarder, processor,
                             connectionId());
 
             /*

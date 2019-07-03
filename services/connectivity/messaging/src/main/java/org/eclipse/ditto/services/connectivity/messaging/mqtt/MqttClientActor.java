@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -66,6 +67,8 @@ import scala.util.Either;
 public final class MqttClientActor extends BaseClientActor {
 
     private SharedKillSwitch consumerKillSwitch;
+
+    @Nullable
     private ActorRef mqttPublisherActor;
 
     private final Map<String, ActorRef> consumerByActorNameWithIndex;
@@ -157,8 +160,8 @@ public final class MqttClientActor extends BaseClientActor {
     }
 
     @Override
-    protected ActorRef getPublisherActor() {
-        return mqttPublisherActor;
+    protected Optional<ActorRef> getPublisherActor() {
+        return Optional.ofNullable(mqttPublisherActor);
     }
 
     @Override

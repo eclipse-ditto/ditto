@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -43,6 +44,8 @@ import akka.japi.pf.FSMStateFunctionBuilder;
 public final class KafkaClientActor extends BaseClientActor {
 
     private final KafkaPublisherActorFactory publisherActorFactory;
+
+    @Nullable
     private ActorRef kafkaPublisherActor;
 
     private final Set<ActorRef> pendingStatusReportsFromStreams;
@@ -125,8 +128,8 @@ public final class KafkaClientActor extends BaseClientActor {
     }
 
     @Override
-    protected ActorRef getPublisherActor() {
-        return kafkaPublisherActor;
+    protected Optional<ActorRef> getPublisherActor() {
+        return Optional.ofNullable(kafkaPublisherActor);
     }
 
     @Override
