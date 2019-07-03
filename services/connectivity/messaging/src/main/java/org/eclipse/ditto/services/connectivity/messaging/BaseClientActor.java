@@ -27,17 +27,13 @@ import java.net.Socket;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
-import java.util.function.IntFunction;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -290,7 +286,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * @param props the Props
      * @return the created ActorRef
      */
-    protected final ActorRef startChildActor(final String name, final Props props) {
+    private ActorRef startChildActor(final String name, final Props props) {
         log.debug("Starting child actor <{}>.", name);
         final String nameEscaped = escapeActorName(name);
         return getContext().actorOf(props, nameEscaped);
@@ -818,23 +814,13 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return CompletableFuture.completedFuture(new Status.Success("mapping"));
     }
 
+
     /**
      * Starts the {@link MessageMappingProcessorActor} responsible for payload transformation/mapping as child actor
      * behind a (cluster node local) RoundRobin pool and a dynamic resizer from the current mapping context.
      */
     protected Either<DittoRuntimeException, ActorRef> startMessageMappingProcessorActor() {
         final MappingContext mappingContext = stateData().getConnection().getMappingContext().orElse(null);
-        return startMessageMappingProcessorActor(mappingContext);
-    }
-
-    /**
-     * Starts the {@link MessageMappingProcessorActor} responsible for payload transformation/mapping as child actor
-     * behind a (cluster node local) RoundRobin pool and a dynamic resizer.
-     *
-     * @param mappingContext the MappingContext containing information about how to map external messages
-     */
-    protected Either<DittoRuntimeException, ActorRef> startMessageMappingProcessorActor(
-            @Nullable final MappingContext mappingContext) {
 
         if (!getMessageMappingProcessorActor().isPresent()) {
             final Connection connection = connection();
