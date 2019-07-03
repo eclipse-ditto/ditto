@@ -188,7 +188,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     @Override
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inAnyState() {
         return super.inAnyState()
-                .event(ConnectionRestoredStatusReport.class, this::handleConnectionRestored)
+                .event(ConnectionRestoredStatusReport.class,
+                        (report, currentData) -> this.handleConnectionRestored(currentData))
                 .event(ConnectionFailureStatusReport.class, this::handleConnectionFailure)
                 .event(ConsumerClosedStatusReport.class, this::handleConsumerClosed)
                 .event(ProducerClosedStatusReport.class, this::handleProducerClosed)
@@ -435,9 +436,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         }
     }
 
-    private FSM.State<BaseClientState, BaseClientData> handleConnectionRestored(
-            final ConnectionRestoredStatusReport statusReport,
-            final BaseClientData currentData) {
+    private FSM.State<BaseClientState, BaseClientData> handleConnectionRestored(final BaseClientData currentData) {
         if (jmsSession == null || ((JmsSession) jmsSession).isClosed()) {
             log.info("Restored connection has closed session, trying to recover...");
             recoverSession(jmsSession);
