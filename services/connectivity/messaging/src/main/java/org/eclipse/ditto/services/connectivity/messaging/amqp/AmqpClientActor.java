@@ -448,9 +448,11 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private FSM.State<BaseClientState, BaseClientData> handleConnectionFailure(
             final ConnectionFailureStatusReport statusReport,
             final BaseClientData currentData) {
+
         final ConnectionFailure failure = statusReport.getFailure();
         final String message = MessageFormat.format("Failure: {0}, Description: {1}",
                 failure.getFailure().cause(), failure.getFailureDescription());
+        connectionLogger.failure(message);
         return stay().using(currentData.setConnectionStatus(ConnectivityStatus.FAILED)
                 .setConnectionStatusDetails(message));
     }
@@ -489,6 +491,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private FSM.State<BaseClientState, BaseClientData> handleSessionClosed(
             final SessionClosedStatusReport statusReport,
             final BaseClientData currentData) {
+
+        connectionLogger.failure("Session has been closed. Trying to recover the session.");
         recoverSession(statusReport.getSession());
         return stay().using(currentData);
     }
@@ -507,6 +511,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private FSM.State<BaseClientState, BaseClientData> handleSessionRecovered(
             final JmsSessionRecovered sessionRecovered,
             final BaseClientData currentData) {
+
         jmsSession = sessionRecovered.getSession();
         consumers.clear();
         consumers.addAll(sessionRecovered.getConsumerList());
@@ -514,6 +519,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         startCommandProducer();
         startMessageMappingProcessorActor();
         startCommandConsumers();
+
+        connectionLogger.success("Session has been recovered successfully.");
 
         return stay().using(currentData);
     }
