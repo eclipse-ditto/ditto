@@ -265,6 +265,7 @@ public final class MqttClientActor extends BaseClientActor {
         subscriptionInitialized.handle((done, error) -> {
             final Collection<String> sourceAddresses = source.getAddresses();
             if (error == null) {
+                connectionLogger.success("Subscriptions {0} initialized successfully.", sourceAddresses);
                 log.info("Subscriptions {} initialized successfully", sourceAddresses);
                 self.tell(new Status.Success(done), firstConsumer);
             } else {

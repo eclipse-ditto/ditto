@@ -76,10 +76,10 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization;
-import org.eclipse.ditto.services.connectivity.messaging.WithMockServers;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -117,7 +117,7 @@ import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 @RunWith(MockitoJUnitRunner.class)
-public final class AmqpClientActorTest extends WithMockServers {
+public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AmqpClientActorTest.class);
     private static final Status.Success CONNECTED_SUCCESS = new Status.Success(BaseClientState.CONNECTED);
@@ -153,6 +153,11 @@ public final class AmqpClientActorTest extends WithMockServers {
     public static void tearDown() {
         TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS),
                 false);
+    }
+
+    @AfterClass
+    public static void stopMockServers() {
+        TestConstants.stopMockServers();
     }
 
     @Before
@@ -828,6 +833,21 @@ public final class AmqpClientActorTest extends WithMockServers {
             e.printStackTrace();
         }
         return result;
+    }
+
+    @Override
+    protected Connection getConnection() {
+        return connection;
+    }
+
+    @Override
+    protected Props createClientActor(final ActorRef conciergeForwarder) {
+        return AmqpClientActor.propsForTests(connection, connectionStatus, conciergeForwarder, (ac, el) -> mockConnection);
+    }
+
+    @Override
+    protected ActorSystem getActorSystem() {
+        return actorSystem;
     }
 
     private void consumeMockMessage(final MessageConsumer mockConsumer) throws JMSException {

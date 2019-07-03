@@ -52,7 +52,7 @@ public abstract class AbstractCommandResponse<T extends AbstractCommandResponse>
     protected AbstractCommandResponse(final String responseType, final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders) {
         this.responseType = requireNonNull(responseType, "The response type must not be null!");
-        this.statusCode = Objects.requireNonNull(statusCode, "The status code must not be null!");
+        this.statusCode = requireNonNull(statusCode, "The status code must not be null!");
         this.dittoHeaders = requireNonNull(dittoHeaders, "The command headers must not be null!");
     }
 

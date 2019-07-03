@@ -29,7 +29,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
-import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectionMetricsCollector;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
@@ -147,7 +147,8 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
 
     @Override
     protected void publishMessage(@Nullable final Target target, final RabbitMQTarget publishTarget,
-            final ExternalMessage message, ConnectionMetricsCollector publishedCounter) {
+            final ExternalMessage message,
+            ConnectionMonitor publishedMonitor) {
         if (channelActor == null) {
             log.info("No channel available, dropping response.");
             return;
@@ -189,10 +190,10 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
                         publishTarget.getRoutingKey(), basicProperties);
                 channel.basicPublish(publishTarget.getExchange(), publishTarget.getRoutingKey(), basicProperties,
                         body);
-                publishedCounter.recordSuccess();
+                publishedMonitor.success(message);
             } catch (final Exception e) {
                 log.warning("Failed to publish message to RabbitMQ: {}", e.getMessage());
-                publishedCounter.recordFailure();
+                publishedMonitor.exception(message, e);
             }
             return null;
         }, false);

@@ -57,7 +57,8 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFail
 import org.eclipse.ditto.services.connectivity.messaging.internal.DisconnectClient;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RecoverSession;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 
@@ -101,7 +102,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
         super(connection, connectionStatus, conciergeForwarder);
         this.jmsConnectionFactory = jmsConnectionFactory;
-        connectionListener = new StatusReportingListener(getSelf(), connection.getId(), log);
+        connectionListener = new StatusReportingListener(getSelf(), connection.getId(), log, connectionLogger);
         consumers = new LinkedList<>();
         consumerByNamePrefix = new HashMap<>();
     }
@@ -330,6 +331,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             if (isConsuming()) {
                 stopCommandConsumers();
                 consumers.forEach(consumer -> startCommandConsumer(consumer, messageMappingProcessor.get()));
+                connectionLogger.success("Subscriptions {0} initialized successfully.", consumers);
                 log.info("Subscribed Connection <{}> to sources: {}", connectionId(), consumers);
             } else {
                 log.debug("Not starting consumers, no sources were configured");
@@ -518,6 +520,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
     @Override
     public void onException(final JMSException exception) {
+        connectionLogger.exception("Exception occured: {0}", exception.getMessage());
         log.warning("{} occurred: {}", exception.getClass().getName(), exception.getMessage());
     }
 
@@ -639,13 +642,15 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         private final ActorRef self;
         private final DiagnosticLoggingAdapter log;
         private final String connectionId;
+        private final ConnectionLogger connectionLogger;
 
         private StatusReportingListener(final ActorRef self, final String connectionId,
-                final DiagnosticLoggingAdapter log) {
+                final DiagnosticLoggingAdapter log, final ConnectionLogger connectionLogger) {
 
             this.self = self;
             this.connectionId = connectionId;
             this.log = log;
+            this.connectionLogger = connectionLogger;
         }
 
         @Override
@@ -655,7 +660,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
         @Override
         public void onConnectionFailure(final Throwable error) {
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
+            connectionLogger.failure("Connection failure: {0}", error.getMessage());
             log.warning("Connection Failure: {}", error.getMessage());
             final ConnectionFailure failure =
                     new ImmutableConnectionFailure(ActorRef.noSender(), error, null);
@@ -664,7 +670,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
         @Override
         public void onConnectionInterrupted(final URI remoteURI) {
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
+            connectionLogger.failure("Connection was interrupted.");
             log.warning("Connection interrupted: {}", remoteURI);
             final ConnectionFailure failure =
                     new ImmutableConnectionFailure(ActorRef.noSender(), null, "JMS Interrupted");
@@ -673,20 +680,22 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
         @Override
         public void onConnectionRestored(final URI remoteURI) {
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
+            connectionLogger.success("Connection was restored.");
             log.info("Connection restored: {}", remoteURI);
             self.tell(ConnectionRestoredStatusReport.get(), ActorRef.noSender());
         }
 
         @Override
         public void onInboundMessage(final JmsInboundMessageDispatch envelope) {
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
             log.debug("Inbound message: {}", envelope);
         }
 
         @Override
         public void onSessionClosed(final Session session, final Throwable cause) {
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
+            connectionLogger.failure("Session was closed: {0}", cause.getMessage());
             log.warning("Session closed: {} - {}", session, cause.getMessage());
             final ConnectionFailure failure =
                     new ImmutableConnectionFailure(ActorRef.noSender(), cause, "JMS Session closed");
@@ -695,7 +704,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
         @Override
         public void onConsumerClosed(final MessageConsumer consumer, final Throwable cause) {
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
+            connectionLogger.failure("Consumer {0} was closed: {1}", consumer.toString(), cause.getMessage());
             log.warning("Consumer <{}> closed due to {}: {}", consumer.toString(),
                     cause.getClass().getSimpleName(), cause.getMessage());
             self.tell(ConsumerClosedStatusReport.get(consumer), ActorRef.noSender());
@@ -703,7 +713,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
         @Override
         public void onProducerClosed(final MessageProducer producer, final Throwable cause) {
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
+            connectionLogger.failure("Producer {0} was closed: {1}", producer.toString(), cause.getMessage());
             log.warning("Producer <{}> closed due to {}: {}", producer, cause.getClass().getSimpleName(),
                     cause.getMessage());
             self.tell(ProducerClosedStatusReport.get(producer), ActorRef.noSender());
