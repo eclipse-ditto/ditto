@@ -70,6 +70,7 @@ import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaders;
+import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
@@ -149,7 +150,7 @@ public final class TestConstants {
      * Disable logging for 1 test to hide stacktrace or other logs on level ERROR. Comment out to debug the test.
      */
     public static void disableLogging(final ActorSystem system) {
-        system.eventStream().setLogLevel(Logging.levelFor("off").map(Logging.LogLevel::asInt).get());
+        system.eventStream().setLogLevel(akka.stream.Attributes.logLevelOff());
     }
 
     public static final HeaderMapping HEADER_MAPPING;
@@ -567,8 +568,12 @@ public final class TestConstants {
     }
 
     public static ThingModifiedEvent thingModified(final Collection<String> readSubjects) {
+        return thingModified(readSubjects, Attributes.newBuilder().build());
+    }
+
+    public static ThingModifiedEvent thingModified(final Collection<String> readSubjects, final Attributes attributes) {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().readSubjects(readSubjects).build();
-        return ThingModified.of(Things.THING, 1, dittoHeaders);
+        return ThingModified.of(Things.THING.toBuilder().setAttributes(attributes).build(), 1, dittoHeaders);
     }
 
     public static MessageCommand sendThingMessage(final Collection<String> readSubjects) {

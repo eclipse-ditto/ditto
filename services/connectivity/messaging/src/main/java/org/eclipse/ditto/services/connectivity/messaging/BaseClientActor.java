@@ -210,7 +210,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     /**
      * @return the Actor to use for publishing commandResponses/events.
      */
-    protected abstract ActorRef getPublisherActor();
+    protected abstract Optional<ActorRef> getPublisherActor();
 
     /**
      * Invoked when this {@code Client} should connect.
@@ -307,7 +307,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * @param props the Props
      * @return the created ActorRef
      */
-    protected final ActorRef startChildActor(final String name, final Props props) {
+    private ActorRef startChildActor(final String name, final Props props) {
         log.debug("Starting child actor <{}>.", name);
         final String nameEscaped = escapeActorName(name);
         return getContext().actorOf(props, nameEscaped);
@@ -355,13 +355,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      */
     protected final boolean isConsuming() {
         return !connection().getSources().isEmpty();
-    }
-
-    /**
-     * @return whether this client is publishing at all
-     */
-    protected final boolean isPublishing() {
-        return !connection().getTargets().isEmpty();
     }
 
     /**
@@ -908,6 +901,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return CompletableFuture.completedFuture(new Status.Success("mapping"));
     }
 
+
     /**
      * Starts the {@link MessageMappingProcessorActor} responsible for payload transformation/mapping as child actor
      * behind a (cluster node local) RoundRobin pool and a dynamic resizer from the current mapping context.
@@ -916,22 +910,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * which will also cause an sideeffect that stores the mapping actor in the local variable {@code
      * messageMappingProcessorActor}.
      */
-    protected Either<DittoRuntimeException, ActorRef> startMessageMappingProcessor() {
+    protected Either<DittoRuntimeException, ActorRef> startMessageMappingProcessorActor() {
         final MappingContext mappingContext = stateData().getConnection().getMappingContext().orElse(null);
-        return startMessageMappingProcessor(mappingContext);
-    }
-
-    /**
-     * Starts the {@link MessageMappingProcessorActor} responsible for payload transformation/mapping as child actor
-     * behind a (cluster node local) RoundRobin pool and a dynamic resizer.
-     *
-     * @param mappingContext the MappingContext containing information about how to map external messages
-     * @return {@link org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessorActor} or exception,
-     * which will also cause an sideeffect that stores the mapping actor in the local variable {@code
-     * messageMappingProcessorActor}.
-     */
-    protected Either<DittoRuntimeException, ActorRef> startMessageMappingProcessor(
-            @Nullable final MappingContext mappingContext) {
 
         if (!getMessageMappingProcessorActor().isPresent()) {
             final Connection connection = connection();
@@ -954,8 +934,10 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
             log.debug("Starting MessageMappingProcessorActor with pool size of <{}>.",
                     connection.getProcessorPoolSize());
+            final ActorRef publisherActor = getPublisherActor().orElseThrow(
+                    () -> new NullPointerException("publisher actor must not be null."));
             final Props props =
-                    MessageMappingProcessorActor.props(getPublisherActor(), conciergeForwarder, processor,
+                    MessageMappingProcessorActor.props(publisherActor, conciergeForwarder, processor,
                             connectionId());
 
             /*

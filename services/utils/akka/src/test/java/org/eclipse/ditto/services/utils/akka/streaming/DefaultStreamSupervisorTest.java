@@ -48,8 +48,8 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.event.Logging;
 import akka.stream.ActorMaterializer;
+import akka.stream.Attributes;
 import akka.stream.javadsl.Source;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
@@ -187,7 +187,7 @@ public final class DefaultStreamSupervisorTest {
     public void supervisorRestartsIfStreamItDoesNotStartOrStopStreamForTooLong() {
         actorSystem.log().info("Logging disabled for this test because many stack traces are expected.");
         actorSystem.log().info("Re-enable logging should the test fail.");
-        actorSystem.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
+        actorSystem.eventStream().setLogLevel(Attributes.logLevelOff());
 
         new TestKit(actorSystem) {{
 
@@ -315,7 +315,7 @@ public final class DefaultStreamSupervisorTest {
      * Disable logging for 1 test to hide stacktrace or other logs on level ERROR. Comment out to debug the test.
      */
     private void disableLogging() {
-        actorSystem.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
+        actorSystem.eventStream().setLogLevel(akka.stream.Attributes.logLevelOff());
     }
 
 }

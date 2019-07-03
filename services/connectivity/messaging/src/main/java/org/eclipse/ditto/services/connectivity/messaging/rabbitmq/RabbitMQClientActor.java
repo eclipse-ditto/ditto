@@ -190,7 +190,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     protected void allocateResourcesOnConnection(final ClientConnected clientConnected) {
         log.debug("Received ClientConnected");
         if (clientConnected instanceof RmqConsumerChannelCreated) {
-            startMessageMappingProcessor();
+            startMessageMappingProcessorActor();
             final RmqConsumerChannelCreated rmqConsumerChannelCreated = (RmqConsumerChannelCreated) clientConnected;
             startCommandConsumers(rmqConsumerChannelCreated.getChannel());
         }
@@ -213,8 +213,8 @@ public final class RabbitMQClientActor extends BaseClientActor {
     }
 
     @Override
-    protected ActorRef getPublisherActor() {
-        return rmqPublisherActor;
+    protected Optional<ActorRef> getPublisherActor() {
+        return Optional.ofNullable(rmqPublisherActor);
     }
 
     private static Optional<ConnectionFactory> tryToCreateConnectionFactory(
