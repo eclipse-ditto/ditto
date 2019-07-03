@@ -111,7 +111,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     private void handleConnectionStatusReport(final ProducerClosedStatusReport report) {
         final MessageProducer producer = report.getMessageProducer();
         log.debug("Try to remove JMS producer '{}' from cache.", producer);
-        Optional<Map.Entry<Destination, MessageProducer>> remove = producerMap.entrySet().stream().
+        final Optional<Map.Entry<Destination, MessageProducer>> remove = producerMap.entrySet().stream().
                 filter(e -> e.getValue().equals(producer)).findAny();
 
         remove.ifPresent(toRemove -> {

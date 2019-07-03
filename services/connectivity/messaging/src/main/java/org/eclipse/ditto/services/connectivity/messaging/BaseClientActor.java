@@ -358,13 +358,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     /**
-     * @return whether this client is publishing at all
-     */
-    protected final boolean isPublishing() {
-        return !connection().getTargets().isEmpty();
-    }
-
-    /**
      * @return the currently managed Connection
      */
     protected final Connection connection() {
