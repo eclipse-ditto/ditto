@@ -284,23 +284,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     /**
-     * Transforms a List of CompletableFutures to a CompletableFuture of a List.
-     *
-     * @param futures the stream of futures
-     * @param <T> the type of the CompletableFuture and the List elements
-     * @return the CompletableFuture of a List
-     */
-    protected static <T> CompletableFuture<List<T>> collectAsList(final Stream<CompletionStage<T>> futures) {
-        final CompletableFuture<T>[] futureArray = futures.map(CompletionStage::toCompletableFuture)
-                .toArray((IntFunction<CompletableFuture<T>[]>) CompletableFuture[]::new);
-
-        return CompletableFuture.allOf(futureArray).thenApply(aVoid ->
-                Arrays.stream(futureArray)
-                        .map(CompletableFuture::join)
-                        .collect(Collectors.toList()));
-    }
-
-    /**
      * Starts a child actor.
      *
      * @param name the Actor's name
