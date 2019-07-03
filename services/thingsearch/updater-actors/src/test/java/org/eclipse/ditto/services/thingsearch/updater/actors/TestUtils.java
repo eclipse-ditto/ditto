@@ -28,8 +28,8 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.event.Logging;
 import akka.japi.pf.ReceiveBuilder;
+import akka.stream.Attributes;
 
 /**
  * Test constants.
@@ -118,7 +118,7 @@ public final class TestUtils {
      * @param actorSystem the actor system.
      */
     static void disableLogging(final ActorSystem actorSystem) {
-        actorSystem.eventStream().setLogLevel(akka.stream.Attributes.logLevelOff());
+        actorSystem.eventStream().setLogLevel(Attributes.logLevelOff());
     }
 
     /**

@@ -34,7 +34,7 @@ import com.typesafe.config.ConfigFactory;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.event.Logging;
+import akka.stream.Attributes;
 import akka.stream.javadsl.Source;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
@@ -183,6 +183,6 @@ public class DefaultStreamForwarderTest {
      * Disable logging for 1 test to hide stacktrace or other logs on level ERROR. Comment out to debug the test.
      */
     private void disableLogging() {
-        actorSystem.eventStream().setLogLevel(akka.stream.Attributes.logLevelOff());
+        actorSystem.eventStream().setLogLevel(Attributes.logLevelOff());
     }
 }

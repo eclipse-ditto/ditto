@@ -50,7 +50,7 @@ import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.event.Logging;
+import akka.stream.Attributes;
 import akka.testkit.TestActorRef;
 import akka.testkit.javadsl.TestKit;
 
@@ -204,6 +204,6 @@ public final class PreEnforcementTest {
      * Disable logging for 1 test to hide stacktrace or other logs on level ERROR. Comment out to debug the test.
      */
     private void disableLogging() {
-        system.eventStream().setLogLevel(akka.stream.Attributes.logLevelOff());
+        system.eventStream().setLogLevel(Attributes.logLevelOff());
     }
 }

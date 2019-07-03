@@ -91,7 +91,7 @@ public final class ManualUpdaterIT {
 
     @Test
     public void recoverFromMongoDowntime() {
-        actorSystem.eventStream().setLogLevel(akka.stream.Attributes.logLevelOff());
+        actorSystem.eventStream().setLogLevel(Attributes.logLevelOff());
         new TestKit(actorSystem) {{
             actorSystem.actorOf(manualUpdaterProps(mongoClient, getRef()));
             insertDocuments(doc("x:4", 4L));
