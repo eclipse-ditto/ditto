@@ -39,7 +39,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.event.Logging;
+import akka.stream.Attributes;
 import akka.stream.javadsl.Source;
 import akka.testkit.javadsl.TestKit;
 
@@ -135,7 +135,7 @@ public final class LastSuccessfulStreamCheckingActorTest {
     @Test
     public void triggerHealthRetrievalWithExceptionWhenAskingForLastSyncTime() {
         // disable logging to suppress stack trace. comment out to debug test.
-        actorSystem.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
+        actorSystem.eventStream().setLogLevel(Attributes.logLevelOff());
 
         underTest = actorSystem.actorOf(LastSuccessfulStreamCheckingActor.props(syncConfig, searchSyncPersistence));
         final IllegalStateException mockedEx = new IllegalStateException("Something happened");

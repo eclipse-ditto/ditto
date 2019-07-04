@@ -92,6 +92,7 @@ public final class DefaultClientActorPropsFactoryTest extends WithMockServers {
      * may be created on a different connectivity service instance using a local connection object.
      */
     @Test
+    @SuppressWarnings("squid:S2699")
     public void kafkaActorPropsIsSerializable() {
         actorPropsIsSerializable(KAFKA);
     }

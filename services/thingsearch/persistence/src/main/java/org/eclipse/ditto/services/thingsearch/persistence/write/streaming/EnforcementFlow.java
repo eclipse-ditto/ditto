@@ -60,6 +60,8 @@ import akka.stream.javadsl.Source;
  */
 final class EnforcementFlow {
 
+    private static final Source<Entry<Enforcer>, NotUsed> ENFORCER_NONEXISTENT = Source.single(Entry.nonexistent());
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final ActorRef thingsShardRegion;
     private final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache;
@@ -180,9 +182,17 @@ final class EnforcementFlow {
                     : Source.empty(); // TODO: refactor config.
         } else {
             final JsonObject thing = sudoRetrieveThingResponse.getEntity().asObject();
-            return getEnforcer(metadata, thing).map(entry ->
-                    EnforcedThingMapper.toWriteModel(thing, entry.getValueOrThrow(), entry.getRevision(),
-                            maxArraySize));
+
+            return getEnforcer(metadata, thing)
+                    .map(entry -> {
+                        if (entry.exists()) {
+                            return EnforcedThingMapper.toWriteModel(thing, entry.getValueOrThrow(), entry.getRevision(),
+                                    maxArraySize);
+                        } else {
+                            // no enforcer; delete thing from search index
+                            return ThingDeleteModel.of(metadata);
+                        }
+                    });
         }
     }
 
@@ -200,7 +210,7 @@ final class EnforcementFlow {
         } else {
             return thing.getValue(Thing.JsonFields.POLICY_ID)
                     .map(policyId -> readCachedEnforcer(metadata, getPolicyEntityId(policyId), 0))
-                    .orElseGet(Source::empty);
+                    .orElse(ENFORCER_NONEXISTENT);
         }
     }
 
@@ -216,14 +226,13 @@ final class EnforcementFlow {
                             return readCachedEnforcer(metadata, policyId, iteration + 1)
                                     .initialDelay(cacheRetryDelay);
                         } else {
-                            return optionalEnforcerEntry.filter(Entry::exists)
-                                    .map(Source::single)
-                                    .orElseGet(Source::empty);
+                            return optionalEnforcerEntry.map(Source::single)
+                                    .orElse(ENFORCER_NONEXISTENT);
                         }
                     })
                     .exceptionally(error -> {
                         log.error("Failed to read policyEnforcerCache", error);
-                        return Source.empty();
+                        return ENFORCER_NONEXISTENT;
                     });
 
             return Source.fromSourceCompletionStage(enforcerFuture);

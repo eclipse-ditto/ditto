@@ -50,6 +50,13 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
             final R authenticationResult = tryToAuthenticate(requestContext, correlationId);
             timer.tag(AUTH_SUCCESS_TAG, authenticationResult.isSuccess());
             return authenticationResult;
+        } catch (final DittoRuntimeException e) {
+            timer.tag(AUTH_SUCCESS_TAG, false);
+            if (e.getStatusCode().isInternalError()) {
+                LOGGER.warn("An unexpected error occurred during authentication of type <{}>.", getType(), e);
+                timer.tag(AUTH_ERROR_TAG, true);
+            }
+            return toFailedAuthenticationResult(e, correlationId);
         } catch (final Exception e) {
             timer.tag(AUTH_SUCCESS_TAG, false).tag(AUTH_ERROR_TAG, true);
             return toFailedAuthenticationResult(e, correlationId);

@@ -31,6 +31,7 @@ interface KafkaConnectionFactory {
     /**
      * Create an Akka stream flow of Kafka messages.
      *
+     * @param <T> type of the pass through object.
      * @return Akka stream flow that publishes Kafka messages to the broker.
      */
     <T> Flow<ProducerMessage.Envelope<String, String, T>, ProducerMessage.Results<String, String, T>, NotUsed> newFlow();
