@@ -17,15 +17,14 @@ package org.eclipse.ditto.services.utils.config.raw;
  */
 enum HostingEnvironment {
 
-    CLOUD_NATIVE("-cloud"),
+    // BIC...
+    CLOUD("-cloud"),
 
     DOCKER("-docker"),
 
-    FILE_BASED_CONFIGURED(""),
+    DEVELOPMENT("-dev"),
 
-    FILE_BASED_SERVICE_NAME(""),
-
-    DEVELOPMENT("-dev");
+    FILE_BASED("");
 
     public static final String CONFIG_PATH = "hosting.environment";
 
