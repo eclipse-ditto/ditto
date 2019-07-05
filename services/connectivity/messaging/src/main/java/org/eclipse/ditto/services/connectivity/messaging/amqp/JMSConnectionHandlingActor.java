@@ -116,8 +116,22 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
         return receiveBuilder()
                 .match(AmqpClientActor.JmsConnect.class, this::handleConnect)
                 .match(AmqpClientActor.JmsRecoverSession.class, this::handleRecoverSession)
+                .match(AmqpClientActor.JmsCloseSession.class, this::handleCloseSession)
                 .match(AmqpClientActor.JmsDisconnect.class, this::handleDisconnect)
                 .build();
+    }
+
+    private void handleCloseSession(final AmqpClientActor.JmsCloseSession closeSession) {
+        log.debug("Processing JmsCloseSession message.");
+        final Session session = closeSession.getSession();
+        try {
+            safelyExecuteJmsOperation(null, "close session", () -> {
+                session.close();
+                return null;
+            });
+        } catch (final Exception e) {
+            log.debug("Closing session failed: {}", e.getMessage());
+        }
     }
 
     private void handleRecoverSession(final AmqpClientActor.JmsRecoverSession recoverSession) {
