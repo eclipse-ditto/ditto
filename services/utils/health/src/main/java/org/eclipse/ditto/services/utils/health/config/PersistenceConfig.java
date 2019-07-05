@@ -46,7 +46,7 @@ public interface PersistenceConfig {
         /**
          * Determines whether the persistence health check should be enabled.
          */
-        ENABLED("enabled", false),
+        ENABLED("enabled", true),
 
         /**
          * The timeout of the health check for persistence.
