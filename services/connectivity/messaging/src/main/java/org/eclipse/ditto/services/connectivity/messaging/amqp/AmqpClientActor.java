@@ -93,8 +93,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     @Nullable private ActorRef disconnectConnectionHandler;
 
     private final Map<String, ActorRef> consumerByNamePrefix;
-    private final Boolean recoverSessionOnSessionClosed;
-    private final Boolean recoverSessionOnConnectionRestored;
+    private final boolean recoverSessionOnSessionClosed;
+    private final boolean recoverSessionOnConnectionRestored;
 
     /*
      * This constructor is called via reflection by the static method propsForTest.
@@ -502,6 +502,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         connectionLogger.failure("Session has been closed.");
         if (recoverSessionOnSessionClosed) {
             recoverSession(statusReport.getSession());
+        } else {
+            log.debug("Not recovering session after session was closed.");
         }
         return stay().using(currentData);
     }
@@ -540,13 +542,13 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         return stay().using(currentData);
     }
 
-    private Boolean isRecoverSessionOnSessionClosedEnabled() {
+    private boolean isRecoverSessionOnSessionClosedEnabled() {
         final String recoverOnSessionClosed =
                 connection().getSpecificConfig().getOrDefault(SPEC_CONFIG_RECOVER_ON_SESSION_CLOSED, "false");
         return Boolean.valueOf(recoverOnSessionClosed);
     }
 
-    private Boolean isRecoverSessionOnConnectionRestoredEnabled() {
+    private boolean isRecoverSessionOnConnectionRestoredEnabled() {
         final String recoverOnConnectionRestored = connection().getSpecificConfig().getOrDefault(SPEC_CONFIG_RECOVER_ON_CONNECTION_RESTORED, "true");
         return Boolean.valueOf(recoverOnConnectionRestored);
     }
