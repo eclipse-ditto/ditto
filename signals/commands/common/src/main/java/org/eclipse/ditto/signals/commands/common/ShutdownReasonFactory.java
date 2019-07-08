@@ -44,21 +44,21 @@ public final class ShutdownReasonFactory {
     public static ShutdownReason fromJson(final JsonObject jsonObject) {
         checkNotNull(jsonObject, "reason JSON object");
 
-        final ShutdownReasonType type = getType(jsonObject.getValueOrThrow(ShutdownReason.JsonFields.TYPE));
+        final ShutdownReasonType type = getReasonType(jsonObject);
 
         if (ShutdownReasonType.Known.PURGE_NAMESPACE.equals(type)) {
             return PurgeNamespaceReason.fromJson(jsonObject);
         } else if (ShutdownReasonType.Known.PURGE_ENTITIES.equals(type)) {
             return PurgeEntitiesReason.fromJson(jsonObject);
+        } else {
+            return NoReason.INSTANCE;
         }
-
-        throw new IllegalArgumentException(String.format("Unknown shutdown reason type: <%s>.", type.toString()));
     }
 
-    private static ShutdownReasonType getType(final CharSequence typeName) {
+    private static ShutdownReasonType getReasonType(final JsonObject shutdownReasonJson) {
+        final String typeName = shutdownReasonJson.getValue(ShutdownReason.JsonFields.TYPE).orElse("");
         return ShutdownReasonType.Known.forTypeName(typeName).orElseGet(() -> ShutdownReasonType.Unknown.of(typeName));
     }
-
 
     /**
      * Returns an instance of {@code ShutdownReason} for indicating the purging of a namespace.

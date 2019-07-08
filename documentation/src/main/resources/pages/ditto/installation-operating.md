@@ -504,10 +504,8 @@ piggyback command contains any error, then an error is logged and the actor's co
 
 ##### Modify background cleanup coordinator configuration
 
-Send a piggyback command of type `common.commands:shutdown` to stop the background cleanup process. If a shutdown-reason
-with `restartAfter` as type and an ISO-8601 duration (`P<date>T<time>`) as details, then the next background cleanup
-process is scheduled after that duration. Otherwise the next process is scheduled after the `quiet-period` duration in
-the coordinator's configuration. 
+Send a piggyback command of type `common.commands:shutdown` to stop the background cleanup process.
+The next process is scheduled after the `quiet-period` duration in the coordinator's configuration.
 
 `POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10000`
 
@@ -518,11 +516,7 @@ the coordinator's configuration.
     "aggregate": false
   },
   "piggybackCommand": {
-    "type": "common.commands:shutdown",
-    "reason": {
-       "type": "restartAfter",
-        "details": "P240dT1h30m5s"
-    }
+    "type": "common.commands:shutdown"
   }
 }
 ```
@@ -535,7 +529,7 @@ Response example:
     "?": {
       "type": "common.responses:shutdown",
       "status": 200,
-      "message": "Restarting stream in PT5760H30M5S"
+      "message": "Restarting stream in <PT5760H30M5S>."
     }
   }
 }

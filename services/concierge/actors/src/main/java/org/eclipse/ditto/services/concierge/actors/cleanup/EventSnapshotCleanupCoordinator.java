@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.concierge.actors.cleanup;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
@@ -51,7 +50,6 @@ import org.eclipse.ditto.services.utils.health.StatusInfo;
 import org.eclipse.ditto.signals.commands.cleanup.Cleanup;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupResponse;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
-import org.eclipse.ditto.signals.commands.common.ShutdownReason;
 import org.eclipse.ditto.signals.commands.common.ShutdownResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
@@ -253,23 +251,8 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
         getContext().become(sleeping());
 
         if (config.isEnabled()) {
-            final ShutdownReason shutdownReason = shutdown.getReason();
-            Duration wakeUpDelay;
-            String message;
-            if (RESTART_AFTER.equals(shutdownReason.getType().toString()) && shutdownReason.getDetails().isPresent()) {
-                try {
-                    wakeUpDelay = Duration.parse(shutdownReason.getDetailsOrThrow());
-                    message = "Restarting stream in " + wakeUpDelay;
-                } catch (final DateTimeParseException e) {
-                    wakeUpDelay = config.getQuietPeriod();
-                    message = String.format("Unable to parse <%s> to duration; restarting in <%s>.",
-                            shutdownReason.getDetailsOrThrow(), wakeUpDelay);
-                }
-            } else {
-                wakeUpDelay = config.getQuietPeriod();
-                message = String.format("There is no reason:{type=<%s>,details=<timestamp>}; restarting in <%s>.",
-                        RESTART_AFTER, wakeUpDelay);
-            }
+            final Duration wakeUpDelay = config.getQuietPeriod();
+            final String message = String.format("Restarting in <%s>.", wakeUpDelay);
             scheduleWakeUp(wakeUpDelay);
             getSender().tell(ShutdownResponse.of(message, shutdown.getDittoHeaders()), getSelf());
         } else {

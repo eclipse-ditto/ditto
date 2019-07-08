@@ -116,8 +116,28 @@ public final class ShutdownTest {
     }
 
     @Test
+    public void fromJsonWithoutReason() {
+        final JsonObject knownJsonWithoutReason = knownJsonRepresentation.toBuilder()
+                .remove(Shutdown.JsonFields.REASON)
+                .build();
+
+        final Shutdown shutdown = Shutdown.fromJson(knownJsonWithoutReason, dittoHeaders);
+        assertThat(shutdown.getReason()).isEqualTo(NoReason.INSTANCE);
+    }
+
+    @Test
     public void toJsonWithoutSchemaVersionAndPredicateReturnsExpected() {
         assertThat(underTest.toJson()).isEqualTo(knownJsonRepresentation);
+    }
+
+    @Test
+    public void toJsonWithoutReason() {
+        final Shutdown shutdown = Shutdown.getInstance(NoReason.INSTANCE, dittoHeaders);
+        final JsonObject expectedJson = knownJsonRepresentation.toBuilder()
+                .remove(Shutdown.JsonFields.REASON)
+                .build();
+
+        assertThat(shutdown.toJson()).isEqualTo(expectedJson);
     }
 
     @Test
