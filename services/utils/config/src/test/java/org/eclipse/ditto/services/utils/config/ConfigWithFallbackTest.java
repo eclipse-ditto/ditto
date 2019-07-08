@@ -140,6 +140,29 @@ public final class ConfigWithFallbackTest {
     }
 
     @Test
+    public void ignoreFallBackValuesIfSetInOriginalConfig() {
+        final Map<String, Object> configValueMap = new HashMap<>();
+        configValueMap.put("foo", "bar");
+        configValueMap.put("baz", true);
+        configValueMap.put("bar", 2);
+        final Config config = ConfigFactory.parseMap(Collections.singletonMap(KNOWN_CONFIG_PATH, configValueMap));
+
+        final KnownConfigValue barFallbackValue = Mockito.mock(KnownConfigValue.class);
+        Mockito.when(barFallbackValue.getConfigPath()).thenReturn("bar");
+        Mockito.when(barFallbackValue.getDefaultValue()).thenReturn(1);
+
+        final ConfigWithFallback underTest =
+                ConfigWithFallback.newInstance(config, KNOWN_CONFIG_PATH, new KnownConfigValue[]{barFallbackValue});
+
+        assertThat(underTest.root()).satisfies(configObject -> {
+            assertThat(configObject).hasSize(3);
+        });
+        assertThat(underTest.getString("foo")).isEqualTo("bar");
+        assertThat(underTest.getInt("bar")).isEqualTo(2);
+        assertThat(underTest.getBoolean("baz")).isEqualTo(true);
+    }
+
+    @Test
     public void getConfigPathReturnsRelativePathIfConfigWithFallbackIsBuiltFromPlainConfig() {
         final ConfigWithFallback underTest =
                 ConfigWithFallback.newInstance(testConfig, "ditto", new KnownConfigValue[0]);
