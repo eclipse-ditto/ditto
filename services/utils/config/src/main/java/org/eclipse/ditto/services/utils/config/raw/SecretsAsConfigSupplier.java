@@ -50,7 +50,7 @@ final class SecretsAsConfigSupplier implements Supplier<Config> {
 
     private SecretsAsConfigSupplier(final Path theSecretsDirPath, final Config theSecretsConfig) {
         secretsDirPath = theSecretsDirPath;
-        secretsConfig = theSecretsConfig;
+        secretsConfig = theSecretsConfig.resolve();
     }
 
     /**
