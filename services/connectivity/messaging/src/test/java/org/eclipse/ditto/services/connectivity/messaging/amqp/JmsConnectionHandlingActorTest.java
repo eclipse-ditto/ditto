@@ -25,6 +25,7 @@ import javax.jms.JMSException;
 import javax.jms.Session;
 
 import org.apache.qpid.jms.JmsConnection;
+import org.apache.qpid.jms.JmsSession;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.WithMockServers;
@@ -64,7 +65,7 @@ public class JmsConnectionHandlingActorTest extends WithMockServers {
     @BeforeClass
     public static void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
-        connection = TestConstants.createConnection(connectionId, actorSystem);
+        connection = TestConstants.createConnection(connectionId);
     }
 
     @AfterClass
@@ -137,6 +138,52 @@ public class JmsConnectionHandlingActorTest extends WithMockServers {
                     .stream()
                     .mapToInt(s -> s.getAddresses().size() * s.getConsumerCount())
                     .sum())).createConsumer(any());
+        }};
+    }
+
+
+    @Test
+    public void handleRecoverSession() throws JMSException {
+        new TestKit(actorSystem) {{
+
+            final Props props = JMSConnectionHandlingActor.props(connection, e -> {}, jmsConnectionFactory);
+            final ActorRef connectionHandlingActor = watch(actorSystem.actorOf(props));
+
+            final TestProbe origin = TestProbe.apply(actorSystem);
+
+            final JmsSession existingSession = Mockito.mock(JmsSession.class);
+            connectionHandlingActor.tell(new AmqpClientActor.JmsRecoverSession(origin.ref(), mockConnection, existingSession),
+                    getRef());
+
+            final AmqpClientActor.JmsSessionRecovered recovered = expectMsgClass(AmqpClientActor.JmsSessionRecovered.class);
+            assertThat(recovered.getOrigin()).contains(origin.ref());
+            assertThat(recovered.getSession()).isSameAs(mockSession);
+
+            verify(existingSession).close();
+            verify(mockConnection).createSession(Session.CLIENT_ACKNOWLEDGE);
+            verify(mockSession, times(connection.getSources()
+                    .stream()
+                    .mapToInt(s -> s.getAddresses().size() * s.getConsumerCount())
+                    .sum())).createConsumer(any());
+        }};
+    }
+
+
+    @Test
+    public void handleRecoverSessionFails() throws JMSException {
+        new TestKit(actorSystem) {{
+
+            final JmsConnection failsToCreateSession = Mockito.mock(JmsConnection.class);
+            when(failsToCreateSession.createSession(Session.CLIENT_ACKNOWLEDGE)).thenThrow(new JMSException("failed to create session"));
+
+            final Props props = JMSConnectionHandlingActor.props(connection, e -> {}, jmsConnectionFactory);
+            final ActorRef connectionHandlingActor = watch(actorSystem.actorOf(props));
+            connectionHandlingActor.tell(new AmqpClientActor.JmsRecoverSession(getRef(), failsToCreateSession, mockSession),
+                    getRef());
+
+            expectMsgClass(ConnectionFailure.class);
+            verify(mockSession).close();
+            verify(failsToCreateSession).createSession(Session.CLIENT_ACKNOWLEDGE);
         }};
     }
 

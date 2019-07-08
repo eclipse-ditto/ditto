@@ -18,6 +18,7 @@ import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoRetrieveN
 import org.eclipse.ditto.services.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.services.utils.test.GlobalCommandResponseRegistryTestCases;
 import org.eclipse.ditto.signals.commands.common.RetrieveConfigResponse;
+import org.eclipse.ditto.signals.commands.common.purge.PurgeEntitiesResponse;
 import org.eclipse.ditto.signals.commands.devops.RetrieveLoggerConfigResponse;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessageResponse;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespaceResponse;
@@ -49,7 +50,9 @@ public final class ThingsSearchServiceGlobalCommandResponseRegistryTest extends 
                 RetrieveLoggerConfigResponse.class,
                 SudoRetrieveNamespaceReportResponse.class,
                 RetrieveConfigResponse.class,
-                RetrieveHealthResponse.class
+                RetrieveHealthResponse.class,
+                PurgeEntitiesResponse.class,
+                SudoRetrieveNamespaceReportResponse.class
         );
     }
 

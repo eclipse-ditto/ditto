@@ -128,7 +128,6 @@ import org.eclipse.ditto.signals.events.policies.SubjectsModified;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ClusterSharding;
@@ -1977,10 +1976,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
             }
         }
 
-        private void shutdown(final String shutdownLogTemplate, final String thingId) {
-            log.debug(shutdownLogTemplate, thingId);
+        private void shutdown(final String shutdownLogTemplate, final String policyId) {
+            log.debug(shutdownLogTemplate, policyId);
             // stop the supervisor (otherwise it'd restart this actor) which causes this actor to stop, too.
-            getContext().getParent().tell(PoisonPill.getInstance(), getSelf());
+            getContext().getParent().tell(PolicySupervisorActor.Control.PASSIVATE, getSelf());
         }
 
     }

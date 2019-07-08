@@ -12,14 +12,13 @@
  */
 package org.eclipse.ditto.signals.commands.common;
 
-import java.util.Optional;
-
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -31,6 +30,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
  * <p>
  * <em>Note: Implementations of this interface are required to be immutable.</em>
  * </p>
+ *
  */
 @Immutable
 public interface ShutdownReason extends Jsonifiable.WithPredicate<JsonObject, JsonField> {
@@ -43,21 +43,13 @@ public interface ShutdownReason extends Jsonifiable.WithPredicate<JsonObject, Js
     ShutdownReasonType getType();
 
     /**
-     * Returns the details of this reason.
+     * Checks whether this shutdown reason is relevant for the given details.
      *
-     * @return an Optional containing the details of the reason or an empty Optional if the reason does not provide
-     * details.
-     */
-    Optional<String> getDetails();
-
-    /**
-     * Returns the details of this reason if any.
-     * If this reason does not provide details an exception is thrown.
+     * @param value the value to check for relevance.
      *
-     * @return the reason details.
-     * @throws java.util.NoSuchElementException if this reason does not provide details.
+     * @return True if this shut down reason should lead to a shutdown. False if not.
      */
-    String getDetailsOrThrow();
+    boolean isRelevantFor(String value);
 
     /**
      * This class contains definitions for all specific fields of a {@code ShutdownReason}'s JSON representation.
@@ -75,8 +67,9 @@ public interface ShutdownReason extends Jsonifiable.WithPredicate<JsonObject, Js
          * JSON field containing the <em>optional</em> details of the reason, type: {@code String},
          * name: {@code "details"}.
          */
-        public static final JsonFieldDefinition<String> DETAILS = JsonFactory.newStringFieldDefinition("details",
-                FieldType.REGULAR, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<JsonValue> DETAILS =
+                JsonFactory.newJsonValueFieldDefinition("details", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

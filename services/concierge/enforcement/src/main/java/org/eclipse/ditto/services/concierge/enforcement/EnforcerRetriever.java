@@ -86,10 +86,9 @@ public final class EnforcerRetriever {
             final BiFunction<Entry<EntityId>, Entry<Enforcer>, CompletionStage<Contextual<WithDittoHeaders>>> handler) {
         return idCache.get(entityKey).thenCompose(enforcerKeyEntryOptional -> {
             if (!enforcerKeyEntryOptional.isPresent()) {
-                // must not happen
-                LOGGER.error("Did not get id-cache value for entityKey <{}>.", entityKey);
-                throw GatewayInternalErrorException.newBuilder()
-                        .build();
+                // may happen due to namespace blocking
+                LOGGER.info("Did not get id-cache value for entityKey <{}>.", entityKey);
+                return handler.apply(Entry.nonexistent(), Entry.nonexistent());
             } else {
                 final Entry<EntityId> enforcerKeyEntry = enforcerKeyEntryOptional.get();
                 if (enforcerKeyEntry.exists()) {
@@ -127,10 +126,9 @@ public final class EnforcerRetriever {
         return enforcerCache.get(enforcerKey)
                 .thenCompose(enforcerEntryOptional -> {
                     if (!enforcerEntryOptional.isPresent()) {
-                        // must not happen
-                        LOGGER.error("Did not get enforcer-cache value for entityKey <{}>.", enforcerKey);
-                        throw GatewayInternalErrorException.newBuilder()
-                                .build();
+                        // may happen due to namespace blocking
+                        LOGGER.info("Did not get enforcer-cache value for entityKey <{}>.", enforcerKey);
+                        return handler.apply(Entry.nonexistent());
                     } else {
                         final Entry<Enforcer> enforcerEntry = enforcerEntryOptional.get();
                         return handler.apply(enforcerEntry);

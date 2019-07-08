@@ -31,6 +31,8 @@ import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultIndexIni
 import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.IndexInitializationConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
+import org.eclipse.ditto.services.utils.persistence.operations.DefaultPersistenceOperationsConfig;
+import org.eclipse.ditto.services.utils.persistence.operations.PersistenceOperationsConfig;
 
 /**
  * This class is the default implementation of {@link SearchConfig}.
@@ -40,19 +42,20 @@ public final class DittoSearchConfig implements SearchConfig {
 
     private static final String CONFIG_PATH = "things-search";
 
-    @Nullable private final String mongoHintsByNamespace;
-    private final DefaultDeleteConfig deleteConfig;
-    private final DefaultDeletionConfig deletionConfig;
-    private final DefaultUpdaterConfig updaterConfig;
     private final DittoServiceConfig dittoServiceConfig;
-    private final DefaultHealthCheckConfig healthCheckConfig;
-    private final DefaultIndexInitializationConfig indexInitializationConfig;
-    private final DefaultMongoDbConfig mongoDbConfig;
-    private final DefaultStreamConfig streamConfig;
+    @Nullable private final String mongoHintsByNamespace;
+    private final DeleteConfig deleteConfig;
+    private final DeletionConfig deletionConfig;
+    private final UpdaterConfig updaterConfig;
+    private final HealthCheckConfig healthCheckConfig;
+    private final IndexInitializationConfig indexInitializationConfig;
+    private final PersistenceOperationsConfig persistenceOperationsConfig;
+    private final MongoDbConfig mongoDbConfig;
+    private final StreamConfig streamConfig;
 
     private DittoSearchConfig(final ScopedConfig dittoScopedConfig) {
-
         dittoServiceConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
+        persistenceOperationsConfig = DefaultPersistenceOperationsConfig.of(dittoScopedConfig);
         mongoDbConfig = DefaultMongoDbConfig.of(dittoScopedConfig);
         healthCheckConfig = DefaultHealthCheckConfig.of(dittoScopedConfig);
 
@@ -62,7 +65,6 @@ public final class DittoSearchConfig implements SearchConfig {
         deleteConfig = DefaultDeleteConfig.of(configWithFallback);
         deletionConfig = DefaultDeletionConfig.of(configWithFallback);
         updaterConfig = DefaultUpdaterConfig.of(configWithFallback);
-
         indexInitializationConfig = DefaultIndexInitializationConfig.of(configWithFallback);
         streamConfig = DefaultStreamConfig.of(configWithFallback);
     }
@@ -135,6 +137,11 @@ public final class DittoSearchConfig implements SearchConfig {
     }
 
     @Override
+    public PersistenceOperationsConfig getPersistenceOperationsConfig() {
+        return persistenceOperationsConfig;
+    }
+
+    @Override
     public MongoDbConfig getMongoDbConfig() {
         return mongoDbConfig;
     }
@@ -156,6 +163,7 @@ public final class DittoSearchConfig implements SearchConfig {
                 Objects.equals(dittoServiceConfig, that.dittoServiceConfig) &&
                 Objects.equals(healthCheckConfig, that.healthCheckConfig) &&
                 Objects.equals(indexInitializationConfig, that.indexInitializationConfig) &&
+                Objects.equals(persistenceOperationsConfig, that.persistenceOperationsConfig) &&
                 Objects.equals(mongoDbConfig, that.mongoDbConfig) &&
                 Objects.equals(streamConfig, that.streamConfig);
     }
@@ -163,7 +171,7 @@ public final class DittoSearchConfig implements SearchConfig {
     @Override
     public int hashCode() {
         return Objects.hash(mongoHintsByNamespace, deleteConfig, deletionConfig, updaterConfig, dittoServiceConfig,
-                healthCheckConfig, indexInitializationConfig, mongoDbConfig, streamConfig);
+                healthCheckConfig, indexInitializationConfig, persistenceOperationsConfig, mongoDbConfig, streamConfig);
     }
 
     @Override
@@ -176,6 +184,7 @@ public final class DittoSearchConfig implements SearchConfig {
                 ", dittoServiceConfig=" + dittoServiceConfig +
                 ", healthCheckConfig=" + healthCheckConfig +
                 ", indexInitializationConfig=" + indexInitializationConfig +
+                ", persistenceOperationsConfig=" + persistenceOperationsConfig +
                 ", mongoDbConfig=" + mongoDbConfig +
                 ", streamConfig=" + streamConfig +
                 "]";

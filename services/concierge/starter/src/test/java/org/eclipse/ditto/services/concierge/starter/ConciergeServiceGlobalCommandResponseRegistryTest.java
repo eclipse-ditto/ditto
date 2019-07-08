@@ -20,6 +20,7 @@ import org.eclipse.ditto.services.utils.test.GlobalCommandResponseRegistryTestCa
 import org.eclipse.ditto.signals.commands.batch.ExecuteBatchResponse;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupResponse;
 import org.eclipse.ditto.signals.commands.common.RetrieveConfigResponse;
+import org.eclipse.ditto.signals.commands.common.purge.PurgeEntitiesResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionResponse;
@@ -58,7 +59,8 @@ public final class ConciergeServiceGlobalCommandResponseRegistryTest extends Glo
                 SudoRetrieveNamespaceReportResponse.class,
                 CleanupResponse.class,
                 RetrieveConfigResponse.class,
-                RetrieveHealthResponse.class
+                RetrieveHealthResponse.class,
+                PurgeEntitiesResponse.class
         );
     }
 

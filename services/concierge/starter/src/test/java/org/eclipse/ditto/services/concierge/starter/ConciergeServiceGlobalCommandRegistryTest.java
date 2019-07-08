@@ -21,6 +21,7 @@ import org.eclipse.ditto.services.utils.test.GlobalCommandRegistryTestCases;
 import org.eclipse.ditto.signals.commands.batch.ExecuteBatch;
 import org.eclipse.ditto.signals.commands.cleanup.Cleanup;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
+import org.eclipse.ditto.signals.commands.common.purge.PurgeEntities;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnection;
 import org.eclipse.ditto.signals.commands.devops.ExecutePiggybackCommand;
@@ -52,7 +53,8 @@ public final class ConciergeServiceGlobalCommandRegistryTest extends GlobalComma
                 RetrieveResource.class,
                 DeleteSubject.class,
                 Cleanup.class,
-                RetrieveHealth.class
+                RetrieveHealth.class,
+                PurgeEntities.class
         );
     }
 

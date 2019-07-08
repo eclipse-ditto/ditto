@@ -415,12 +415,33 @@ public enum HttpStatusCode {
     }
 
     /**
-     * Returns whether this status code is a success status code (2XX).
+     * Indicates whether this status code is a success status code (2XX).
      *
-     * @return true if status code is 2XX false if not.
+     * @return true if status code is 2XX false otherwise.
      */
     public boolean isSuccess() {
         return statusCodeValue >= OK.statusCodeValue && statusCodeValue < MULTIPLE_CHOICES.statusCodeValue;
     }
+
+    /**
+     * Indicates whether this status code is a client error status code (4xx).
+     *
+     * @return true if status code is 4xx false otherwise.
+     */
+    public boolean isClientError() {
+        return statusCodeValue >= BAD_REQUEST.statusCodeValue &&
+                statusCodeValue < INTERNAL_SERVER_ERROR.statusCodeValue;
+    }
+
+    /**
+     * Indicates whether this status code is an internal error status code (5xx).
+     *
+     * @return true if status code is 5xx false otherwise.
+     */
+    public boolean isInternalError() {
+        return statusCodeValue >= INTERNAL_SERVER_ERROR.statusCodeValue &&
+                statusCodeValue <= NETWORK_CONNECT_TIMEOUT.statusCodeValue;
+    }
+
 
 }

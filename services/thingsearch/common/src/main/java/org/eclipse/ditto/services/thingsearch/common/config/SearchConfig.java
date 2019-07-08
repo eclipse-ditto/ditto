@@ -21,13 +21,14 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 import org.eclipse.ditto.services.utils.health.config.WithHealthCheckConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.WithIndexInitializationConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.WithMongoDbConfig;
+import org.eclipse.ditto.services.utils.persistence.operations.WithPersistenceOperationsConfig;
 
 /**
  * Provides the configuration settings of the Search service.
  */
 @Immutable
-public interface SearchConfig
-        extends ServiceSpecificConfig, WithHealthCheckConfig, WithMongoDbConfig, WithIndexInitializationConfig {
+public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConfig, WithPersistenceOperationsConfig,
+        WithMongoDbConfig, WithIndexInitializationConfig {
 
     Optional<String> getMongoHintsByNamespace();
 

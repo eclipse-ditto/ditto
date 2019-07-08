@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.utils.config.raw;
 
 import java.util.function.Supplier;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.slf4j.Logger;
@@ -29,10 +28,9 @@ import com.typesafe.config.ConfigValueFactory;
  * Supplier for Typesafe {@link Config} based on the environment the service runs in.
  * Distinguishes between:
  * <ul>
- * <li>{@link HostingEnvironment#CLOUD_NATIVE}</li>
+ * <li>{@link HostingEnvironment#CLOUD}</li>
  * <li>{@link HostingEnvironment#DOCKER}</li>
- * <li>{@link HostingEnvironment#FILE_BASED_CONFIGURED}</li>
- * <li>{@link HostingEnvironment#FILE_BASED_SERVICE_NAME}</li>
+ * <li>{@link HostingEnvironment#FILE_BASED}</li>
  * <li>{@link HostingEnvironment#DEVELOPMENT}</li>
  * </ul>
  */
@@ -53,15 +51,11 @@ final class ServiceSpecificEnvironmentConfigSupplier implements Supplier<Config>
     private static final Logger LOGGER = LoggerFactory.getLogger(ServiceSpecificEnvironmentConfigSupplier.class);
 
     private final String serviceName;
-    @Nullable private final String systemHostingEnvironment;
-    @Nullable private final String systemVcapServices;
+    private final String systemHostingEnvironment;
 
-    private ServiceSpecificEnvironmentConfigSupplier(final String theServiceName,
-            @Nullable final String theSystemHostingEnvironment, @Nullable final String theSystemVcapServices) {
-
-        serviceName = theServiceName;
-        systemHostingEnvironment = theSystemHostingEnvironment;
-        systemVcapServices = theSystemVcapServices;
+    private ServiceSpecificEnvironmentConfigSupplier(final String serviceName, final String systemHostingEnvironment) {
+        this.serviceName = serviceName;
+        this.systemHostingEnvironment = systemHostingEnvironment;
     }
 
     /**
@@ -71,87 +65,58 @@ final class ServiceSpecificEnvironmentConfigSupplier implements Supplier<Config>
      * @return the instance.
      */
     static ServiceSpecificEnvironmentConfigSupplier of(final String serviceName) {
-        return new ServiceSpecificEnvironmentConfigSupplier(serviceName, getSystemHostingEnvironmentOrNull(),
-                getSystemVcapServicesOrNull());
+        return new ServiceSpecificEnvironmentConfigSupplier(serviceName, getSystemHostingEnvironmentOrEmpty());
     }
 
-    @Nullable
-    private static String getSystemHostingEnvironmentOrNull() {
-        return System.getenv(HOSTING_ENVIRONMENT_ENV_VARIABLE_NAME);
-    }
-
-    @Nullable
-    private static String getSystemVcapServicesOrNull() {
-        return System.getenv(CF_VCAP_SERVICES_ENV_VARIABLE_NAME);
+    private static String getSystemHostingEnvironmentOrEmpty() {
+        final String hostingEnvironment = System.getenv(HOSTING_ENVIRONMENT_ENV_VARIABLE_NAME);
+        return hostingEnvironment == null ? "" : hostingEnvironment;
     }
 
     @Override
     public Config get() {
-        final Config result;
+        final HostingEnvironment hostingEnvironment = determineHostingEnvironment();
+        LOGGER.info("Running in <{}> environment.", hostingEnvironment);
 
-        switch (determineHostingEnvironment()) {
-            case CLOUD_NATIVE:
-                result = getCloudNativeConfig();
-                break;
+        switch (hostingEnvironment) {
+            case CLOUD:
+                return getCloudConfig();
             case DOCKER:
-                result = getDockerConfig();
-                break;
-            case FILE_BASED_CONFIGURED:
-                result = getConfiguredFileBasedConfig();
-                break;
-            case FILE_BASED_SERVICE_NAME:
-                result = getServiceNameBasedFileBasedConfig();
-                break;
+                return getDockerConfig();
+            case FILE_BASED:
+                return getFileBasedConfig();
             case DEVELOPMENT:
-                result = getDevelopmentConfig();
-                break;
+                return getDevelopmentConfig();
             default:
-                result = ConfigFactory.empty();
-                break;
+                return ConfigFactory.empty();
         }
-
-        return result;
     }
 
     private HostingEnvironment determineHostingEnvironment() {
-        if (null != systemVcapServices) {
-            LOGGER.info("Running with 'CloudFoundry' config.");
-            return HostingEnvironment.CLOUD_NATIVE;
+        switch (systemHostingEnvironment.toLowerCase()) {
+            case "docker":
+                return HostingEnvironment.DOCKER;
+            case "cloud":
+                return HostingEnvironment.CLOUD;
+            case "filebased":
+                return HostingEnvironment.FILE_BASED;
+            default:
+                return HostingEnvironment.DEVELOPMENT;
         }
-
-        final HostingEnvironment result;
-        if ("docker".equalsIgnoreCase(systemHostingEnvironment)) {
-            LOGGER.info("Running with 'Docker' config.");
-            result = HostingEnvironment.DOCKER;
-        } else if ("filebased".equalsIgnoreCase(systemHostingEnvironment)) {
-            result = HostingEnvironment.FILE_BASED_CONFIGURED;
-        } else if (null != systemHostingEnvironment && !systemHostingEnvironment.isEmpty()) {
-            result = HostingEnvironment.FILE_BASED_SERVICE_NAME;
-        } else {
-            LOGGER.info("Docker environment was not detected. Assuming running in 'Development' environment.");
-            result = HostingEnvironment.DEVELOPMENT;
-        }
-
-        return result;
-    }
-
-    private Config getCloudNativeConfig() {
-        final VcapServicesStringToConfig vcapServicesStringToConfig = VcapServicesStringToConfig.getInstance();
-        return withHostingEnvironmentValue(getConfigFromResource(HostingEnvironment.CLOUD_NATIVE))
-                .withFallback(vcapServicesStringToConfig.apply(systemVcapServices));
     }
 
     private Config getDockerConfig() {
         return withHostingEnvironmentValue(getConfigFromResource(HostingEnvironment.DOCKER));
     }
 
-    private Config getConfiguredFileBasedConfig() {
-        final Supplier<Config> configSupplier = FileBasedConfigSupplier.forConfiguredConfigFile();
+    private Config getCloudConfig() {
+        final String resourceBasename = getResourceBasename(HostingEnvironment.CLOUD);
+        final Supplier<Config> configSupplier = FileBasedConfigSupplier.fromResource(resourceBasename);
         return withHostingEnvironmentValue(configSupplier.get());
     }
 
-    private Config getServiceNameBasedFileBasedConfig() {
-        final Supplier<Config> configSupplier = FileBasedConfigSupplier.forServiceNameBasedConfigFile(serviceName);
+    private Config getFileBasedConfig() {
+        final Supplier<Config> configSupplier = FileBasedConfigSupplier.forConfiguredConfigFile();
         return withHostingEnvironmentValue(configSupplier.get());
     }
 
@@ -172,7 +137,7 @@ final class ServiceSpecificEnvironmentConfigSupplier implements Supplier<Config>
     }
 
     private ConfigValue getHostingEnvironmentConfig() {
-        return ConfigValueFactory.fromAnyRef(systemHostingEnvironment);
+        return ConfigValueFactory.fromAnyRef(systemHostingEnvironment.isEmpty() ? null : systemHostingEnvironment);
     }
 
 }

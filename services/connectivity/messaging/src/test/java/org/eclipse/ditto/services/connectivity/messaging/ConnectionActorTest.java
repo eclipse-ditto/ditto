@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.connectivity.messaging.MockClientActor.mockClientActorPropsFactory;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.INSTANT;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -42,12 +43,18 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnectionResponse;
+import org.eclipse.ditto.signals.commands.connectivity.modify.EnableConnectionLogs;
+import org.eclipse.ditto.signals.commands.connectivity.modify.EnableConnectionLogsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
+import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionLogs;
+import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionLogsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionMetrics;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnection;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionLogs;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionLogsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionResponse;
@@ -74,7 +81,6 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Unit test for {@link ConnectionActor}.
  */
-@SuppressWarnings("NullableProblems")
 public final class ConnectionActorTest extends WithMockServers {
 
     private static ActorSystem actorSystem;
@@ -115,9 +121,9 @@ public final class ConnectionActorTest extends WithMockServers {
     @Before
     public void init() {
         connectionId = TestConstants.createRandomConnectionId();
-        final Connection connection = TestConstants.createConnection(connectionId, actorSystem);
+        final Connection connection = TestConstants.createConnection(connectionId);
         final Connection closedConnection =
-                TestConstants.createConnection(connectionId, actorSystem, ConnectivityStatus.CLOSED,
+                TestConstants.createConnection(connectionId, ConnectivityStatus.CLOSED,
                         TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT);
         createConnection = CreateConnection.of(connection, DittoHeaders.empty());
         createClosedConnection = CreateConnection.of(closedConnection, DittoHeaders.empty());
@@ -140,12 +146,16 @@ public final class ConnectionActorTest extends WithMockServers {
         retrieveConnectionStatusOpenResponse =
                 RetrieveConnectionStatusResponse.of(connectionId, ConnectivityStatus.OPEN, ConnectivityStatus.OPEN,
                         INSTANT,
-                        asList(ConnectivityModelFactory.newClientStatus("client1", ConnectivityStatus.OPEN, "connection is open", INSTANT)),
+                        asList(ConnectivityModelFactory.newClientStatus("client1", ConnectivityStatus.OPEN,
+                                "connection is open", INSTANT)),
                         asList(
-                            ConnectivityModelFactory.newSourceStatus("client1",  ConnectivityStatus.OPEN, "source1", "consumer started"),
-                            ConnectivityModelFactory.newSourceStatus("client1", ConnectivityStatus.OPEN, "source2", "consumer started")
+                                ConnectivityModelFactory.newSourceStatus("client1", ConnectivityStatus.OPEN, "source1",
+                                        "consumer started"),
+                                ConnectivityModelFactory.newSourceStatus("client1", ConnectivityStatus.OPEN, "source2",
+                                        "consumer started")
                         ),
-                        asList(ConnectivityModelFactory.newTargetStatus("client1",  ConnectivityStatus.OPEN, "target1","publisher started")),
+                        asList(ConnectivityModelFactory.newTargetStatus("client1", ConnectivityStatus.OPEN, "target1",
+                                "publisher started")),
                         DittoHeaders.empty());
         connectionNotAccessibleException = ConnectionNotAccessibleException.newBuilder(connectionId).build();
     }
@@ -399,7 +409,8 @@ public final class ConnectionActorTest extends WithMockServers {
             assertThat(response.getSourceStatus()).isEmpty();
             assertThat(response.getTargetStatus()).isEmpty();
             assertThat(response.getClientStatus()).hasSize(1);
-            assertThat((CharSequence) response.getClientStatus().get(0).getStatus()).isEqualTo(ConnectivityStatus.CLOSED);
+            assertThat((CharSequence) response.getClientStatus().get(0).getStatus()).isEqualTo(
+                    ConnectivityStatus.CLOSED);
             assertThat(response.getClientStatus().get(0).getStatusDetails())
                     .contains(String.format("[%s] connection is closed", BaseClientState.DISCONNECTED));
         }};
@@ -504,7 +515,7 @@ public final class ConnectionActorTest extends WithMockServers {
 
     @Test
     public void testThingEventIsForwardedToFilteredTarget() {
-        final Connection connection = TestConstants.createConnection(connectionId, actorSystem,
+        final Connection connection = TestConstants.createConnection(connectionId,
                 TestConstants.Targets.TARGET_WITH_PLACEHOLDER);
 
         // expect that address is still with placeholders (as replacement was moved to MessageMappingProcessorActor
@@ -546,13 +557,99 @@ public final class ConnectionActorTest extends WithMockServers {
             underTest.tell(resetConnectionMetrics, getRef());
             probe.expectMsg(resetConnectionMetrics);
 
-            final ResetConnectionMetricsResponse resetResponse = ResetConnectionMetricsResponse.of(connectionId, DittoHeaders.empty());
+            final ResetConnectionMetricsResponse resetResponse =
+                    ResetConnectionMetricsResponse.of(connectionId, DittoHeaders.empty());
             expectMsg(resetResponse);
         }};
     }
 
     @Test
     public void testConnectionActorRespondsToCleanupCommand() {
+        new TestKit(actorSystem) {{
+
+            final TestProbe probe = TestProbe.apply(actorSystem);
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+            watch(underTest);
+
+            // create connection
+            underTest.tell(createConnection, getRef());
+            probe.expectMsg(openConnection);
+            expectMsg(createConnectionResponse);
+
+            // send cleanup command
+            underTest.tell(Cleanup.of(ConnectionActor.PERSISTENCE_ID_PREFIX + connectionId, DittoHeaders.empty()),
+                    getRef());
+            expectMsg(CleanupResponse.success(ConnectionActor.PERSISTENCE_ID_PREFIX + connectionId,
+                    DittoHeaders.empty()));
+        }};
+    }
+
+    @Test
+    public void enableConnectionLogs() {
+        final EnableConnectionLogs enableConnectionLogs = EnableConnectionLogs.of(connectionId, DittoHeaders.empty());
+        final EnableConnectionLogsResponse enableConnectionLogsResponse =
+                EnableConnectionLogsResponse.of(connectionId, enableConnectionLogs.getDittoHeaders());
+        new TestKit(actorSystem) {{
+
+            final TestProbe probe = TestProbe.apply(actorSystem);
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+            watch(underTest);
+
+            // create connection
+            underTest.tell(createConnection, getRef());
+            probe.expectMsg(openConnection);
+            expectMsg(createConnectionResponse);
+
+            // enable connection logs
+            underTest.tell(enableConnectionLogs, getRef());
+            probe.expectMsg(enableConnectionLogs);
+
+            expectMsg(enableConnectionLogsResponse);
+
+        }};
+    }
+
+    @Test
+    public void retrieveLogsInClosedStateDoesNotStartClientActor() {
+        new TestKit(actorSystem) {{
+            final TestProbe probe = TestProbe.apply(actorSystem);
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+            watch(underTest);
+
+            // create connection
+            underTest.tell(createClosedConnection, getRef());
+            expectMsg(createClosedConnectionResponse);
+            probe.expectNoMessage();
+
+            // retrieve logs
+            underTest.tell(RetrieveConnectionLogs.of(connectionId, DittoHeaders.empty()), getRef());
+            probe.expectNoMessage();
+
+            final RetrieveConnectionLogsResponse logsResponse =
+                    RetrieveConnectionLogsResponse.of(connectionId,
+                            Collections.emptyList(),
+                            null,
+                            null,
+                            DittoHeaders.empty());
+            expectMsg(logsResponse);
+        }};
+    }
+
+    @Test
+    public void retrieveLogsIsAggregated() {
+        final Instant now = Instant.now();
+        final RetrieveConnectionLogsResponse innerResponse = RetrieveConnectionLogsResponse.of(connectionId,
+                TestConstants.Monitoring.LOG_ENTRIES,
+                now.minusSeconds(312),
+                now.plusSeconds(123),
+                DittoHeaders.empty());
+
         new TestKit(actorSystem) {{
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
@@ -565,10 +662,103 @@ public final class ConnectionActorTest extends WithMockServers {
             probe.expectMsg(openConnection);
             expectMsg(createConnectionResponse);
 
-            underTest.tell(Cleanup.of(ConnectionActor.PERSISTENCE_ID_PREFIX + connectionId, DittoHeaders.empty()),
-                    getRef());
-            expectMsg(CleanupResponse.success(ConnectionActor.PERSISTENCE_ID_PREFIX + connectionId,
-                    DittoHeaders.empty()));
+            // retrieve logs
+            final RetrieveConnectionLogs retrieveConnectionLogs =
+                    RetrieveConnectionLogs.of(connectionId, DittoHeaders.empty());
+            underTest.tell(retrieveConnectionLogs, getRef());
+            probe.expectMsg(retrieveConnectionLogs);
+
+            // send answer to aggregator actor
+            final ActorRef aggregatorActor = probe.sender();
+            probe.send(aggregatorActor, innerResponse);
+
+            expectMsg(innerResponse);
+        }};
+    }
+
+    @Test
+    public void resetConnectionLogs() {
+        final ResetConnectionLogs resetConnectionLogs = ResetConnectionLogs.of(connectionId, DittoHeaders.empty());
+        final ResetConnectionLogsResponse expectedResponse =
+                ResetConnectionLogsResponse.of(connectionId, resetConnectionLogs.getDittoHeaders());
+
+        new TestKit(actorSystem) {{
+            final TestProbe probe = TestProbe.apply(actorSystem);
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+            watch(underTest);
+
+            // create connection
+            underTest.tell(createConnection, getRef());
+            probe.expectMsg(openConnection);
+            expectMsg(createConnectionResponse);
+
+            // reset logs
+            underTest.tell(resetConnectionLogs, getRef());
+            probe.expectMsg(resetConnectionLogs);
+
+            expectMsg(expectedResponse);
+        }};
+    }
+
+    @Test
+    public void enabledConnectionLogsAreEnabledAgainAfterModify() {
+        final EnableConnectionLogs enableConnectionLogs = EnableConnectionLogs.of(connectionId, DittoHeaders.empty());
+        final EnableConnectionLogsResponse enableConnectionLogsResponse =
+                EnableConnectionLogsResponse.of(connectionId, enableConnectionLogs.getDittoHeaders());
+        new TestKit(actorSystem) {{
+
+            final TestProbe probe = TestProbe.apply(actorSystem);
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+            watch(underTest);
+
+            // create connection
+            underTest.tell(createConnection, getRef());
+            probe.expectMsg(openConnection);
+            expectMsg(createConnectionResponse);
+
+            // enable connection logs
+            underTest.tell(enableConnectionLogs, getRef());
+            probe.expectMsg(enableConnectionLogs);
+
+            expectMsg(enableConnectionLogsResponse);
+
+            // modify connection
+            underTest.tell(modifyConnection, getRef());
+            probe.expectMsg(closeConnection);
+            probe.expectMsg(openConnection);
+            expectMsg(modifyConnectionResponse);
+
+            // expect the message twice, once for each client
+            probe.expectMsg(enableConnectionLogs);
+        }};
+    }
+
+    @Test
+    public void disabledConnectionLogsAreNotEnabledAfterModify() {
+        new TestKit(actorSystem) {{
+
+            final TestProbe probe = TestProbe.apply(actorSystem);
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+            watch(underTest);
+
+            // create connection
+            underTest.tell(createConnection, getRef());
+            probe.expectMsg(openConnection);
+            expectMsg(createConnectionResponse);
+
+            // modify connection
+            underTest.tell(modifyConnection, getRef());
+            probe.expectMsg(closeConnection);
+            probe.expectMsg(openConnection);
+            expectMsg(modifyConnectionResponse);
+
+            probe.expectNoMsg();
         }};
     }
 

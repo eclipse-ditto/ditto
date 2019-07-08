@@ -175,7 +175,7 @@
                         <configuration>
                             <includes>
                                 <include>org/eclipse/ditto/services/utils/persistence/mongo/assertions/*</include>
-                                <include>org/eclipse/ditto/services/utils/persistence/mongo/namespace/*</include>
+                                <include>org/eclipse/ditto/services/utils/persistence/mongo/ops/eventsource/*</include>
                             </includes>
                         </configuration>
                     </execution>

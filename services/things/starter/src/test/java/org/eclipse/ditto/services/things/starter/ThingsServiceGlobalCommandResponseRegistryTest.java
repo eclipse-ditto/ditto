@@ -17,6 +17,7 @@ import org.eclipse.ditto.services.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.services.utils.test.GlobalCommandResponseRegistryTestCases;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupResponse;
 import org.eclipse.ditto.signals.commands.common.RetrieveConfigResponse;
+import org.eclipse.ditto.signals.commands.common.purge.PurgeEntitiesResponse;
 import org.eclipse.ditto.signals.commands.devops.RetrieveLoggerConfigResponse;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessageResponse;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespaceResponse;
@@ -43,7 +44,8 @@ public final class ThingsServiceGlobalCommandResponseRegistryTest extends Global
                 RetrieveLoggerConfigResponse.class,
                 CleanupResponse.class,
                 RetrieveConfigResponse.class,
-                RetrieveHealthResponse.class
+                RetrieveHealthResponse.class,
+                PurgeEntitiesResponse.class
         );
     }
 

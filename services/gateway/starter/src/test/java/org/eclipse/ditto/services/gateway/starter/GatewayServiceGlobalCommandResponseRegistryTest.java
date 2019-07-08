@@ -20,6 +20,7 @@ import org.eclipse.ditto.services.utils.test.GlobalCommandResponseRegistryTestCa
 import org.eclipse.ditto.signals.commands.batch.ExecuteBatchResponse;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupResponse;
 import org.eclipse.ditto.signals.commands.common.RetrieveConfigResponse;
+import org.eclipse.ditto.signals.commands.common.purge.PurgeEntitiesResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionResponse;
@@ -59,7 +60,8 @@ public final class GatewayServiceGlobalCommandResponseRegistryTest extends Globa
                 SudoRetrieveNamespaceReportResponse.class,
                 RetrieveConfigResponse.class,
                 RetrieveHealthResponse.class,
-                CleanupResponse.class
+                CleanupResponse.class,
+                PurgeEntitiesResponse.class
         );
     }
 

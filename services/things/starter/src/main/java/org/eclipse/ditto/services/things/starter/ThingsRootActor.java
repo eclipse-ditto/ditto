@@ -26,12 +26,11 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.things.common.config.ThingsConfig;
-import org.eclipse.ditto.services.things.persistence.actors.ThingNamespaceOpsActor;
+import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceOperationsActor;
 import org.eclipse.ditto.services.things.persistence.actors.ThingSupervisorActor;
 import org.eclipse.ditto.services.things.persistence.actors.ThingsPersistenceStreamingActorCreator;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
-import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
@@ -157,9 +156,9 @@ public final class ThingsRootActor extends AbstractActor {
                         ClusterShardingSettings.create(actorSystem).withRole(CLUSTER_ROLE),
                         ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem));
 
-        // start cluster singleton for namespace ops
-        ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, ThingNamespaceOpsActor.ACTOR_NAME,
-                ThingNamespaceOpsActor.props(pubSubMediator));
+        startChildActor(ThingPersistenceOperationsActor.ACTOR_NAME,
+                ThingPersistenceOperationsActor.props(pubSubMediator, thingsConfig.getMongoDbConfig(),
+                        actorSystem.settings().config(), thingsConfig.getPersistenceOperationsConfig()));
 
         retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(thingsShardRegion,
                 ThingsMessagingConstants.SHARD_REGION, log);

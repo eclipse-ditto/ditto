@@ -252,7 +252,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
                 .match(RecoveryCompleted.class, rc -> {
                     if (thing != null) {
                         thing = enhanceThingWithLifecycle(thing);
-                        log.debug("Thing <{}> was recovered.", thingId);
+                        log.info("Thing <{}> was recovered.", thingId);
 
                         if (isThingActive()) {
                             becomeThingCreatedHandler();

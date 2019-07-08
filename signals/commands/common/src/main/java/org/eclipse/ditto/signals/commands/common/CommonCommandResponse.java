@@ -18,16 +18,22 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 
 /**
- * Super class of common command responses.
+ * Abstract base implementation for responses to {@link CommonCommand}s.
  *
- * @param <T> concrete class of the command.
+ * @param <T> the type of the implementing class.
  */
-public abstract class CommonCommandResponse<T extends CommonCommandResponse> extends AbstractCommandResponse<T> {
+public abstract class CommonCommandResponse<T extends AbstractCommandResponse> extends AbstractCommandResponse<T> {
 
     /**
-     * Type prefix of common command responses.
+     * Type prefix.
      */
-    public static final String TYPE_PREFIX = "common." + TYPE_QUALIFIER + ":";
+    protected static final String TYPE_PREFIX = "common." + TYPE_QUALIFIER + ":";
+
+    /**
+     * Resource type.
+     */
+    protected static final String RESOURCE_TYPE = "common";
+
 
     /**
      * Constructs a new {@code AbstractCommandResponse} object.
@@ -55,6 +61,6 @@ public abstract class CommonCommandResponse<T extends CommonCommandResponse> ext
 
     @Override
     public String getResourceType() {
-        return CommonCommand.RESOURCE_TYPE;
+        return RESOURCE_TYPE;
     }
 }
