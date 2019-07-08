@@ -648,6 +648,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
                         final PerformTask performTask = new PerformTask("open connection",
                                 subscribeForEventsAndScheduleResponse(commandResponse, origin));
                         self.tell(performTask, ActorRef.noSender());
+                        this.checkLoggingEnabled();
                     },
                     error -> handleException("open-connection", origin, error)
             );
