@@ -2,6 +2,20 @@
     "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
+        "cosmosDB": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "CosmosDB deployment enabled."
+            }
+        },
+        "aks": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "AKS deployment enabled."
+            }
+        },
         "uniqueSolutionPrefix": {
             "type": "string",
             "metadata": {
@@ -30,40 +44,67 @@
 
     },
     "variables": {
-        "clusterName": "[concat(parameters('uniqueSolutionPrefix'), 'dittoaks')]"
+        "clusterName": "[concat(parameters('uniqueSolutionPrefix'), 'dittoaks')]",
+        "accountName": "[concat(toLower(parameters('uniqueSolutionPrefix')), 'dittocosmos')]"
     },
     "resources": [{
-        "name": "dittoKubernetesDeployment",
-        "type": "Microsoft.Resources/deployments",
-        "apiVersion": "2018-05-01",
-        "properties": {
-            "mode": "Incremental",
-            "templateLink": {
-                "uri": "https://raw.githubusercontent.com/kaizimmerm/hawkbit-extensions/azure-arm-template/hawkbit-extended-runtimes/hawkbit-update-server-azure/arm/templates/kubernetesDeploy.json"
-            },
-            "parameters": {
-                "clusterName": {
-                    "value": "[variables('clusterName')]"
+            "condition": "[parameters('aks')]",
+            "name": "dittoKubernetesDeployment",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2018-05-01",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "https://raw.githubusercontent.com/eclipse/ditto/master/deployment/azure/arm/templates/kubernetesDeploy.json"
                 },
-                "location": {
-                    "value": "[parameters('location')]"
+                "parameters": {
+                    "clusterName": {
+                        "value": "[variables('clusterName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "dnsPrefix": {
+                        "value": "[parameters('uniqueSolutionPrefix')]"
+                    },
+                    "servicePrincipalClientId": {
+                        "value": "[parameters('servicePrincipalClientId')]"
+                    },
+                    "servicePrincipalClientSecret": {
+                        "value": "[parameters('servicePrincipalClientSecret')]"
+                    }
+                }
+            }
+        },
+        {
+            "condition": "[parameters('cosmosDB')]",
+            "name": "dittoCosmosDBDeployment",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2018-05-01",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "https://raw.githubusercontent.com/eclipse/ditto/master/deployment/azure/arm/templates/cosmosDBDeploy.json"
                 },
-                "dnsPrefix": {
-                    "value": "[parameters('uniqueSolutionPrefix')]"
-                },
-                "servicePrincipalClientId": {
-                    "value": "[parameters('servicePrincipalClientId')]"
-                },
-                "servicePrincipalClientSecret": {
-                    "value": "[parameters('servicePrincipalClientSecret')]"
+                "parameters": {
+                    "accountName": {
+                        "value": "[variables('accountName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    }
                 }
             }
         }
-    }],
+    ],
     "outputs": {
         "aksClusterName": {
             "type": "string",
             "value": "[variables('clusterName')]"
+        },
+        "cosmosAccountName": {
+            "type": "string",
+            "value": "[variables('accountName')]"
         }
     }
 }
