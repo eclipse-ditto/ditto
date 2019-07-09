@@ -648,7 +648,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
                         final PerformTask performTask = new PerformTask("open connection",
                                 subscribeForEventsAndScheduleResponse(commandResponse, origin));
                         self.tell(performTask, ActorRef.noSender());
-                        this.checkLoggingEnabled();
+                        this.startEnabledLoggingChecker(Duration.ofMillis(1));
                     },
                     error -> handleException("open-connection", origin, error)
             );
@@ -685,6 +685,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
                                             origin.tell(closeConnectionResponse, getSelf());
                                         });
                         self.tell(performTask, ActorRef.noSender());
+                        this.cancelEnabledLoggingChecker();
                     },
                     error -> handleException("disconnect", origin, error),
                     () -> {
@@ -763,10 +764,11 @@ public final class ConnectionActor extends AbstractPersistentActor {
         }
     }
 
-    private void startEnabledLoggingChecker() {
+    private void startEnabledLoggingChecker(Duration... initialDelay) {
         this.cancelEnabledLoggingChecker();
+        final Duration delay = initialDelay.length >= 1 ? initialDelay[0] : this.checkLoggingActiveInterval;
         this.enabledLoggingChecker = getContext().getSystem().scheduler().schedule(
-                this.checkLoggingActiveInterval,
+                delay,
                 this.checkLoggingActiveInterval,
                 getSelf(),
                 CheckLoggingActive.INSTANCE,
