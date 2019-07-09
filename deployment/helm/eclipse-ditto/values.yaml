@@ -5,8 +5,12 @@
 service:
   type: NodePort
   port: 8080
+  loadBalancerIP:
+    enabled: false
+    address: 0.0.0.0
 
 akka:
+  actorSystemName: ditto-cluster
   remoting:
     port: 2551
   mgmthttp:
@@ -19,6 +23,8 @@ concierge:
   enabled: true
   name: concierge
   replicaCount: 1
+  networkPolicy:
+    enabled: true
   image:
     repository: docker.io/eclipse/ditto-concierge
     imagePullPolicy: IfNotPresent
@@ -27,6 +33,8 @@ connectivity:
   enabled: true
   name: connectivity
   replicaCount: 1
+  networkPolicy:
+    enabled: true
   image:
     repository: docker.io/eclipse/ditto-connectivity
     imagePullPolicy: IfNotPresent
@@ -35,6 +43,8 @@ things:
   enabled: true
   name: things
   replicaCount: 1
+  networkPolicy:
+    enabled: true
   image:
     repository: docker.io/eclipse/ditto-things
     imagePullPolicy: IfNotPresent
@@ -43,6 +53,8 @@ search:
   enabled: true
   name: things-search
   replicaCount: 1
+  networkPolicy:
+    enabled: true
   image:
     repository: docker.io/eclipse/ditto-things-search
     imagePullPolicy: IfNotPresent
@@ -51,6 +63,8 @@ policies:
   enabled: true
   name: policies
   replicaCount: 1
+  networkPolicy:
+    enabled: true
   image:
     repository: docker.io/eclipse/ditto-policies
     imagePullPolicy: IfNotPresent
@@ -59,6 +73,8 @@ gateway:
   enabled: true
   name: gateway
   replicaCount: 1
+  networkPolicy:
+    enabled: true
   image:
     repository: docker.io/eclipse/ditto-gateway
     imagePullPolicy: IfNotPresent
@@ -66,10 +82,15 @@ gateway:
 
 nginx:
   replicaCount: 1
+  name: nginx
   version: 1.15
 swagger:
+  enabled: true
+  name: swagger-ui
   replicaCount: 1
   version: 3.17.4
+  networkPolicy:
+    enabled: true
 
 
 ##

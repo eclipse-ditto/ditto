@@ -18,6 +18,7 @@ As described [here](https://docs.microsoft.com/en-gb/azure/aks/kubernetes-servic
 service_principal=`az ad sp create-for-rbac --name http://dittoServicePrincipal --skip-assignment --output tsv`
 app_id_principal=`echo $service_principal|cut -f1 -d ' '`
 password_principal=`echo $service_principal|cut -f4 -d ' '`
+object_id_principal=`az ad sp show --id $app_id_principal --query objectId --output tsv`
 ```
 
 Note: it might take a few seconds until the principal is available to the cluster in the later steps. So maybe time to get up and stretch a bit.
@@ -29,12 +30,24 @@ az group create --name $resourcegroup_name --location "westeurope"
 
 With the next command we will use the provided [Azure Resource Manager (ARM)](https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-group-overview) templates to setup the AKS cluster. This might take a while. So maybe time to try out this meditation thing :smile:
 
+Note: Add `cosmosDB=true` to the `az group deployment create` call in case you want to opt for the Azure Cosmos DB persistence (see below).
+
 ```bash
 unique_solution_prefix=myprefix
-az group deployment create --name DittoBasicInfrastructure --resource-group $resourcegroup_name --template-file arm/dittoInfrastructureDeployment.json --parameters uniqueSolutionPrefix=$unique_solution_prefix servicePrincipalClientId=$app_id_principal servicePrincipalClientSecret=$password_principal
+az group deployment create --name DittoBasicInfrastructure --resource-group $resourcegroup_name --template-file arm/dittoInfrastructureDeployment.json --parameters uniqueSolutionPrefix=$unique_solution_prefix servicePrincipalObjectId=$object_id_principal servicePrincipalClientId=$app_id_principal servicePrincipalClientSecret=$password_principal
 ```
 
-The output of the command will provide you with the name of your AKS cluster which should be `YOUR_PREFIXdittoaks`.
+The output of the command will provide you with the name of your AKS cluster as well as the created Vnet which should be `YOUR_PREFIXdittoaks` and `YOUR_PREFIXdittovnet`.
+
+Note: AKS cluster name, IP address name for the load balancer as well as virtual network name can be provided as parameter to the template as well.
+
+Optional: retrieve created static public IP address for the load balancer:
+
+```bash
+ip_address_name=$unique_solution_prefix
+ip_address_name+="dittopip"
+ip_address=`az network public-ip show --resource-group $resourcegroup_name --name $ip_address_name --query ipAddress --output tsv`
+```
 
 Now you can set your cluster in `kubectl`.
 
@@ -61,7 +74,6 @@ Next we prepare the k8s environment and our chart for deployment.
 
 ```bash
 k8s_namespace=dittons
-
 kubectl create namespace $k8s_namespace
 ```
 
@@ -78,7 +90,7 @@ Now install Ditto with helm either with MongoDB as part of the deployment or [Az
 ...either with persistent storage as part of the helm release (will be deleted with helm delete):
 
 ```bash
-helm upgrade ditto ../helm/eclipse-ditto/ --namespace $k8s_namespace --set service.type=LoadBalancer,mongodb.persistence.enabled=true,mongodb.persistence.storageClass=managed-premium-retain --wait --install
+helm upgrade ditto ../helm/eclipse-ditto/ --namespace $k8s_namespace --set service.type=LoadBalancer,service.loadBalancerIP.enabled=true,service.loadBalancerIP.address=$ip_address,service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-resource-group"=$resourcegroup_name,mongodb.persistence.enabled=true,mongodb.persistence.storageClass=managed-premium-retain --wait --install
 ```
 
 ...or with a custom K8s [PersistentVolumeClaim](https://kubernetes.io/docs/concepts/storage/persistent-volumes/) independent of the Helm release to ensure the data survives a helm delete:
@@ -86,41 +98,33 @@ helm upgrade ditto ../helm/eclipse-ditto/ --namespace $k8s_namespace --set servi
 ```bash
 echo "  storageClassName: managed-premium-retain" >> ../helm/ditto-mongodb-pvc.yaml
 kubectl apply -f ../helm/ditto-mongodb-pvc.yaml --namespace $k8s_namespace
-helm upgrade ditto ../helm/eclipse-ditto/ --namespace $k8s_namespace --set service.type=LoadBalancer,mongodb.persistence.enabled=true,mongodb.persistence.existingClaim=ditto-mongodb-pvc --wait --install
+helm upgrade ditto ../helm/eclipse-ditto/ --namespace $k8s_namespace --set service.type=LoadBalancer,service.loadBalancerIP.enabled=true,service.loadBalancerIP.address=$ip_address,service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-resource-group"=$resourcegroup_name,mongodb.persistence.enabled=true,mongodb.persistence.existingClaim=ditto-mongodb-pvc --wait --install
 ```
 
 ...or without persistence for the MongoDB at all:
 
 ```bash
-helm upgrade ditto ../helm/eclipse-ditto/ --namespace $k8s_namespace --set service.type=LoadBalancer --wait --install
+helm upgrade ditto ../helm/eclipse-ditto/ --namespace $k8s_namespace --set service.type=LoadBalancer,service.loadBalancerIP.enabled=true,service.loadBalancerIP.address=$ip_address,service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-resource-group"=$resourcegroup_name --wait --install
 ```
 
 ### Option 2: Azure Cosmos DB's API for MongoDB
 
 Disclaimer: as of now Cosmos DB's API for MongoDB is supported by Ditto only for persistence cases. Ditto's search feature/service does not!
 
-First we have to provision the Cosmos DB. We will use the [Azure Resource Manager (ARM)](https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-group-overview) template from above to update our installation.
-
-Note: the provided template will create individual database per service. By default the template provides 400 [Request Units (RU)](https://docs.microsoft.com/en-us/azure/cosmos-db/request-units) for all collections of `Policies`, `Concierge`, `Things` and `Connectivity` and 800 for the Things journal collection. You can override by parameter as well as update RUs later at runtime.
-
-```bash
-az group deployment create --name DittoBasicInfrastructure --resource-group $resourcegroup_name --template-file arm/dittoInfrastructureDeployment.json --parameters uniqueSolutionPrefix=$unique_solution_prefix servicePrincipalClientId=$app_id_principal servicePrincipalClientSecret=$password_principal cosmosDB=true
-```
-
-The output of the command will provide you with the name of your Cosmos DB account which should be `YOUR_PREFIXdittocosmos`.
+Note: the provided template did create an individual database per service (if you added `cosmosDB=true`). By default the template provides 400 [Request Units (RU)](https://docs.microsoft.com/en-us/azure/cosmos-db/request-units) for all collections of `Policies`, `Concierge`, `Things` and `Connectivity` and 800 for the Things journal collection. You can override by parameter as well as update RUs later at runtime.
 
 Next we can retrieve the CosmosDB credentials:
 
 ```bash
 cosmos_account_name=$unique_solution_prefix
 cosmos_account_name+="dittocosmos"
-cosmos_mongodb_primary_master_key=`az cosmosdb list-keys --name $cosmos_account_name --resource-group $resourcegroup_name --output tsv|cut  -f1|head -1`
+cosmos_mongodb_primary_master_key=`az cosmosdb keys list --name $cosmos_account_name --resource-group $resourcegroup_name --output tsv|cut  -f1|head -1`
 ```
 
 Now install Ditto with Cosmos DB as persistence and Ditto search disabled.
 
 ```bash
-helm upgrade ditto ../helm/eclipse-ditto/ --namespace $k8s_namespace --set search.enabled=false,mongodb.embedded.enabled=false,mongodb.apps.concierge.uri=mongodb://$cosmos_account_name:$cosmos_mongodb_primary_master_key@$cosmos_account_name.documents.azure.com:10255/concierge\?ssl=true\&replicaSet=globaldb\&maxIdleTimeMS=120000,mongodb.apps.concierge.ssl=true,mongodb.apps.connectivity.uri=mongodb://$cosmos_account_name:$cosmos_mongodb_primary_master_key@$cosmos_account_name.documents.azure.com:10255/connectivity\?ssl=true\&replicaSet=globaldb\&maxIdleTimeMS=120000,mongodb.apps.connectivity.ssl=true,mongodb.apps.things.uri=mongodb://$cosmos_account_name:$cosmos_mongodb_primary_master_key@$cosmos_account_name.documents.azure.com:10255/things\?ssl=true\&replicaSet=globaldb\&maxIdleTimeMS=120000,mongodb.apps.things.ssl=true,mongodb.apps.policies.uri=mongodb://$cosmos_account_name:$cosmos_mongodb_primary_master_key@$cosmos_account_name.documents.azure.com:10255/policies\?ssl=true\&replicaSet=globaldb\&maxIdleTimeMS=120000,mongodb.apps.policies.ssl=true,service.type=LoadBalancer --wait --install
+helm upgrade ditto ../helm/eclipse-ditto/ --namespace $k8s_namespace --set search.enabled=false,mongodb.embedded.enabled=false,mongodb.apps.concierge.uri=mongodb://$cosmos_account_name:$cosmos_mongodb_primary_master_key@$cosmos_account_name.documents.azure.com:10255/concierge\?ssl=true\&replicaSet=globaldb\&maxIdleTimeMS=120000,mongodb.apps.concierge.ssl=true,mongodb.apps.connectivity.uri=mongodb://$cosmos_account_name:$cosmos_mongodb_primary_master_key@$cosmos_account_name.documents.azure.com:10255/connectivity\?ssl=true\&replicaSet=globaldb\&maxIdleTimeMS=120000,mongodb.apps.connectivity.ssl=true,mongodb.apps.things.uri=mongodb://$cosmos_account_name:$cosmos_mongodb_primary_master_key@$cosmos_account_name.documents.azure.com:10255/things\?ssl=true\&replicaSet=globaldb\&maxIdleTimeMS=120000,mongodb.apps.things.ssl=true,mongodb.apps.policies.uri=mongodb://$cosmos_account_name:$cosmos_mongodb_primary_master_key@$cosmos_account_name.documents.azure.com:10255/policies\?ssl=true\&replicaSet=globaldb\&maxIdleTimeMS=120000,mongodb.apps.policies.ssl=true,service.type=LoadBalancer,service.loadBalancerIP.enabled=true,service.loadBalancerIP.address=$ip_address,service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-resource-group"=$resourcegroup_name --wait --install --timeout 600
 ```
 
 Have fun with Eclipse Ditto on Microsoft Azure!

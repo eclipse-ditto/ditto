@@ -21,7 +21,7 @@ spec:
     metadata:
       labels:
         app: {{ .Values.search.name }}
-        actorSystemName: ditto-cluster
+        actorSystemName: {{ .Values.akka.actorSystemName }}
     spec:
       containers:
         - name: {{ .Values.search.name }}
@@ -66,13 +66,49 @@ spec:
             - name: TZ
               value: "{{ .Values.global.timezone }}"
             - name: IBM_JAVA_OPTIONS
-              value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError{{ if .Values.mongodb.apps.concierge.ssl }} -Dorg.mongodb.async.type=netty{{ end }}"
+              value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError{{ if .Values.mongodb.apps.searchDB.ssl }} -Dorg.mongodb.async.type=netty{{ end }}"
             - name: MONGO_DB_SSL_ENABLED
-              value: "{{ if .Values.mongodb.apps.concierge.ssl }}true{{ else }}false{{ end }}"
+              value: "{{ if .Values.mongodb.apps.searchDB.ssl }}true{{ else }}false{{ end }}"
             - name: MONGO_DB_URI
               valueFrom:
                 secretKeyRef:
                   name: mongodb
                   key: searchDB-uri
-
+{{- if .Values.search.networkPolicy.enabled }}
+---
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: {{ .Values.search.name }}-policy
+  namespace: {{.Release.Namespace}}
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ .Values.search.name }}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+# Allow access from concierge
+  - from:
+    - podSelector:
+        matchLabels:
+          app: {{ .Values.concierge.name }}
+    ports:
+    - protocol: TCP
+      port: 8080
+# Allow inner cluster communication
+  - from:
+    - podSelector:
+        matchLabels:
+          actorSystemName: {{ .Values.akka.actorSystemName }}
+    ports:
+    - protocol: TCP
+      port: {{ .Values.akka.remoting.port }}
+    - protocol: TCP
+      port: {{ .Values.akka.mgmthttp.port }}
+# Open all egress
+  egress:
+  - {}
+{{- end }}
 {{- end }}
