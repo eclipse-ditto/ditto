@@ -123,11 +123,6 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
      */
     public static final String ACTOR_NAME = "eventSnapshotCleanupCoordinator";
 
-    /**
-     * Shutdown-reason type to restart stream after non-default time.
-     */
-    private static final String RESTART_AFTER = "restartAfter";
-
     private static final JsonFieldDefinition<Boolean> ENABLED =
             JsonFactory.newBooleanFieldDefinition("enabled");
 
@@ -204,7 +199,7 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
     @Override
     public Config setConfig(final Config config) {
         final PersistenceCleanupConfig previousConfig = this.config;
-        // TODO: replace ConfigWithFallback - it breaks AbstractConfigValue.withFallback!
+        // TODO Ditto issue #439: replace ConfigWithFallback - it breaks AbstractConfigValue.withFallback!
         // Workaround: re-parse my config
         final Config fallback = ConfigFactory.parseString(getConfig().root().render(ConfigRenderOptions.concise()));
         try {
