@@ -11,7 +11,7 @@ The [search aspect](basic-search.html) of Ditto can be accessed via an HTTP API.
     [Search resources](http-api-doc.html?urls.primaryName=api2#/Search)." %}
 
 The concepts of the [RQL expression](basic-rql.html#rql-filter), [RQL sorting](basic-rql.html#rql-sorting) and 
-[RQL paging](basic-search.html#rql-paging) are mapped to HTTP as query parameters which are added to `GET` requests
+[RQL paging](basic-search.html#rql-paging-deprecated) are mapped to HTTP as query parameters which are added to `GET` requests
 to the search endpoint:
 
 ```

@@ -91,6 +91,8 @@
                     <instructions>
                         <Import-Package>
                             !org.eclipse.ditto.utils.jsr305.annotations,
+                            akka*,
+                            scala*,
                             org.eclipse.ditto.*
                         </Import-Package>
                         <Export-Package>
