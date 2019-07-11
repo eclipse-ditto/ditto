@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -66,6 +67,8 @@ import scala.util.Either;
 public final class MqttClientActor extends BaseClientActor {
 
     private SharedKillSwitch consumerKillSwitch;
+
+    @Nullable
     private ActorRef mqttPublisherActor;
 
     private final Map<String, ActorRef> consumerByActorNameWithIndex;
@@ -157,8 +160,8 @@ public final class MqttClientActor extends BaseClientActor {
     }
 
     @Override
-    protected ActorRef getPublisherActor() {
-        return mqttPublisherActor;
+    protected Optional<ActorRef> getPublisherActor() {
+        return Optional.ofNullable(mqttPublisherActor);
     }
 
     @Override
@@ -187,7 +190,7 @@ public final class MqttClientActor extends BaseClientActor {
 
         // start message mapping processor actor early so that consumer streams can be run.
         // note that it has to be started after the publisher since the publisher actor is needed inside the mapping processor
-        final Either<DittoRuntimeException, ActorRef> messageMappingProcessor = startMessageMappingProcessor();
+        final Either<DittoRuntimeException, ActorRef> messageMappingProcessor = startMessageMappingProcessorActor();
 
         // start consumers
         if (isConsuming()) {
@@ -262,6 +265,7 @@ public final class MqttClientActor extends BaseClientActor {
         subscriptionInitialized.handle((done, error) -> {
             final Collection<String> sourceAddresses = source.getAddresses();
             if (error == null) {
+                connectionLogger.success("Subscriptions {0} initialized successfully.", sourceAddresses);
                 log.info("Subscriptions {} initialized successfully", sourceAddresses);
                 self.tell(new Status.Success(done), firstConsumer);
             } else {

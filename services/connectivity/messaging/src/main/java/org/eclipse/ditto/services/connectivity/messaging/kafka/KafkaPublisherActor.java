@@ -13,12 +13,14 @@
 package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
 import java.nio.charset.StandardCharsets;
+import java.text.MessageFormat;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.AuthenticationException;
@@ -27,10 +29,10 @@ import org.apache.kafka.common.errors.TimeoutException;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
-import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectionMetricsCollector;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
@@ -101,11 +103,14 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         return Props.create(KafkaPublisherActor.class, connectionId, targets, factory, kafkaClientActor, dryRun);
     }
 
-    private static Sink<ProducerMessage.Results<String, String, ConnectionMetricsCollector>, CompletionStage<Done>> publishSuccessSink() {
+    private static Sink<ProducerMessage.Results<String, String, PassThrough>, CompletionStage<Done>> publishSuccessSink() {
 
         // basically, we don't know if the 'publish' will succeed or fail. We would need to write our own
         // GraphStage actor for Kafka and MQTT, since alpakka doesn't provide this useful information for us.
-        return Sink.foreach(results -> results.passThrough().recordSuccess());
+        return Sink.foreach(results -> {
+            final ConnectionMonitor connectionMonitor = results.passThrough().connectionMonitor;
+            connectionMonitor.success(results.passThrough().externalMessage);
+        });
     }
 
     @Override
@@ -134,16 +139,16 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     protected void publishMessage(@Nullable final Target target,
             final KafkaPublishTarget publishTarget,
             final ExternalMessage message,
-            final ConnectionMetricsCollector publishedCounter) {
+            final ConnectionMonitor publishedMonitor) {
 
-        publishMessage(publishTarget, message, publishedCounter);
+        publishMessage(publishTarget, message, new PassThrough(publishedMonitor, message));
     }
 
     private void publishMessage(final KafkaPublishTarget publishTarget, final ExternalMessage message,
-            final ConnectionMetricsCollector publishedCounter) {
+            final PassThrough passThrough) {
 
-        final ProducerMessage.Envelope<String, String, ConnectionMetricsCollector> kafkaMessage =
-                mapExternalMessageToKafkaMessage(publishTarget, message, publishedCounter);
+        final ProducerMessage.Envelope<String, String, PassThrough> kafkaMessage =
+                mapExternalMessageToKafkaMessage(publishTarget, message, passThrough);
         sourceActor.tell(kafkaMessage, getSelf());
     }
 
@@ -151,9 +156,9 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         return dryRun;
     }
 
-    private static ProducerMessage.Envelope<String, String, ConnectionMetricsCollector> mapExternalMessageToKafkaMessage(
+    private static ProducerMessage.Envelope<String, String, PassThrough> mapExternalMessageToKafkaMessage(
             final KafkaPublishTarget publishTarget, final ExternalMessage externalMessage,
-            final ConnectionMetricsCollector metricsCollector) {
+            final PassThrough passThrough) {
 
         final String payload = mapExternalMessagePayload(externalMessage);
         final Iterable<Header> headers = mapExternalMessageHeaders(externalMessage);
@@ -163,7 +168,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                         publishTarget.getPartition().orElse(null),
                         publishTarget.getKey().orElse(null),
                         payload, headers);
-        return ProducerMessage.single(record, metricsCollector);
+        return ProducerMessage.single(record, passThrough);
     }
 
     private static Iterable<Header> mapExternalMessageHeaders(final ExternalMessage externalMessage) {
@@ -201,18 +206,30 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                     throwable.getMessage());
 
         } else if (throwable instanceof AuthorizationException || throwable instanceof AuthenticationException) {
-            logWithConnectionId().info("Ran into authentication or authorization problems against Kafka broker: {}",
-                    throwable.getMessage());
+            final String message =
+                    MessageFormat.format("Ran into authentication or authorization problems against Kafka broker: {0}",
+                            throwable.getMessage());
+
+            // use response published monitor since we don't know if this comes from publishing to a target or from a response.
+            // we should fix this with #418
+            responsePublishedMonitor.exception(message);
+            logWithConnectionId().info(message);
             restartInternalKafkaProducer();
 
         } else if (throwable instanceof TimeoutException) {
-            logWithConnectionId().info(
-                    "Ran into a timeout when accessing Kafka with message: <{}>. This might have several reasons, " +
-                            "e.g. the Kafka broker not being accessible, the topic or the partition not being existing, a wrong port etc. ",
+            final String message = MessageFormat.format("Ran into a timeout when accessing Kafka with message: <{0}>. "
+                            + "This might have several reasons, e.g. the Kafka broker not being accessible, the topic or the "
+                            + "partition not being existing, a wrong port etc. ",
                     throwable.getMessage());
+
+            // use response published monitor since we don't know if this comes from publishing to a target or from a response.
+            // we should fix this with #418
+            responsePublishedMonitor.exception(message);
+            logWithConnectionId().info(message);
             restartInternalKafkaProducer();
 
         } else {
+            connectionLogger.exception("An unexpected error happened: {0}", throwable.getMessage());
             logWithConnectionId().error(throwable,
                     "An unexpected error happened in the internal Kafka publisher and we can't recover from it.");
             restartInternalKafkaProducer();
@@ -236,7 +253,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             final BiFunction<Done, Throwable, Done> completionOrFailureHandler) {
 
         final Pair<ActorRef, CompletionStage<Done>> materializedFlowedValues =
-                Source.<ProducerMessage.Envelope<String, String, ConnectionMetricsCollector>>actorRef(100,
+                Source.<ProducerMessage.Envelope<String, String, PassThrough>>actorRef(100,
                         OverflowStrategy.dropHead())
                         .via(factory.newFlow())
                         .toMat(KafkaPublisherActor.publishSuccessSink(), Keep.both())
@@ -259,12 +276,12 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
     @Override
     protected DiagnosticLoggingAdapter log() {
-        return log;
+        return logWithConnectionId();
     }
 
     private DiagnosticLoggingAdapter logWithConnectionId() {
-        LogUtil.enhanceLogWithCustomField(log(), BaseClientData.MDC_CONNECTION_ID, connectionId);
-        return log();
+        ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
+        return log;
     }
 
     private void stopGracefully() {
@@ -283,6 +300,22 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
         private GracefulStop() {
             // intentionally empty
+        }
+
+    }
+
+    /**
+     * Class that is used as a <em>pass through</em> object when sending messages via alpakka to Kafka.
+     */
+    @Immutable
+    private static class PassThrough {
+
+        private final ConnectionMonitor connectionMonitor;
+        private final ExternalMessage externalMessage;
+
+        private PassThrough(final ConnectionMonitor connectionMonitor, final ExternalMessage message) {
+            this.connectionMonitor = connectionMonitor;
+            this.externalMessage = message;
         }
 
     }

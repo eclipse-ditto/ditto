@@ -24,7 +24,7 @@ import com.typesafe.config.ConfigFactory;
 import akka.actor.ActorSystem;
 import akka.cluster.ddata.ORSet;
 import akka.cluster.ddata.Replicator;
-import akka.event.Logging;
+import akka.stream.Attributes;
 import akka.testkit.javadsl.TestKit;
 
 /**
@@ -68,7 +68,7 @@ public final class BlockedNamespacesTest {
     @Test
     public void startWithWrongRole() {
         // logging disabled to not print expected stacktrace; re-enable logging to debug.
-        actorSystem.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
+        actorSystem.eventStream().setLogLevel(Attributes.logLevelOff());
         new TestKit(actorSystem) {{
             final BlockedNamespaces underTest = BlockedNamespaces.of(DistributedDataConfigReader.of(actorSystem,
                     "replicator", "wrong-role"), actorSystem);

@@ -39,14 +39,21 @@ import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.model.placeholders.ThingPlaceholder;
 import org.eclipse.ditto.model.placeholders.TopicPathPlaceholder;
+import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
-import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectionMetricsCollector;
-import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLoggerRegistry;
+import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.signals.base.Signal;
 
@@ -69,8 +76,10 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     protected final List<Target> targets;
     protected final Map<Target, ResourceStatus> resourceStatusMap;
 
-    private final ConnectionMetricsCollector responseDroppedCounter;
-    private final ConnectionMetricsCollector responsePublishedCounter;
+    protected final ConnectionLogger connectionLogger;
+    protected final ConnectionMonitor responsePublishedMonitor;
+    private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
+    private final ConnectionMonitor responseDroppedMonitor;
 
     protected BasePublisherActor(final String connectionId, final List<Target> targets) {
         this.connectionId = checkNotNull(connectionId, "connectionId");
@@ -81,8 +90,15 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 resourceStatusMap.put(target,
                         ConnectivityModelFactory.newTargetStatus(getInstanceIdentifier(), ConnectivityStatus.OPEN,
                                 target.getAddress(), "Started at " + now)));
-        responseDroppedCounter = ConnectivityCounterRegistry.getResponseDroppedCounter(this.connectionId);
-        responsePublishedCounter = ConnectivityCounterRegistry.getResponsePublishedCounter(connectionId);
+
+        final MonitoringConfig monitoringConfig = DittoConnectivityConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        ).getMonitoringConfig();
+        connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
+        responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(this.connectionId);
+        responsePublishedMonitor = connectionMonitorRegistry.forResponsePublished(this.connectionId);
+        connectionLogger =
+                ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger()).forConnection(this.connectionId);
     }
 
     private static String getInstanceIdentifier() {
@@ -98,8 +114,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 .match(OutboundSignal.WithExternalMessage.class, BasePublisherActor::isResponseOrError, outbound -> {
                     final ExternalMessage response = outbound.getExternalMessage();
                     final String correlationId = response.getHeaders().get(CORRELATION_ID.getKey());
-                    LogUtil.enhanceLogWithCorrelationId(log(), correlationId);
-                    LogUtil.enhanceLogWithCustomField(log(), BaseClientData.MDC_CONNECTION_ID, connectionId);
+                    ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log(), correlationId, connectionId);
 
                     final String replyToFromHeader = response.getHeaders().get(ExternalMessage.REPLY_TO_HEADER);
                     if (replyToFromHeader != null) {
@@ -108,17 +123,17 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                                 outbound.getSource().getType(), replyTarget);
                         log().debug("Publishing mapped response/error message of type <{}> to reply target <{}>: {}",
                                 outbound.getSource().getType(), replyTarget, response);
-                        publishMessage(null, replyTarget, response, responsePublishedCounter);
+                        publishMessage(null, replyTarget, response, responsePublishedMonitor);
                     } else {
                         log().info("Response dropped, missing replyTo address: {}", response);
-                        responseDroppedCounter.recordFailure();
+                        responseDroppedMonitor.failure(outbound.getSource(),
+                                "Response dropped since it was missing a replyTo address.");
                     }
                 })
                 .match(OutboundSignal.WithExternalMessage.class, outbound -> {
                     final ExternalMessage message = outbound.getExternalMessage();
                     final String correlationId = message.getHeaders().get(CORRELATION_ID.getKey());
-                    LogUtil.enhanceLogWithCorrelationId(log(), correlationId);
-                    LogUtil.enhanceLogWithCustomField(log(), BaseClientData.MDC_CONNECTION_ID, connectionId);
+                    ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log(), correlationId, connectionId);
 
                     final Signal<?> outboundSource = outbound.getSource();
                     log().debug("Publishing mapped message of type <{}> to targets <{}>: {}",
@@ -126,16 +141,20 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     outbound.getTargets().forEach(target -> {
                         log().info("Publishing mapped message of type <{}> to target address <{}>",
                                 outboundSource.getType(), target.getAddress());
-                        final ConnectionMetricsCollector publishedCounter =
-                                ConnectivityCounterRegistry.getOutboundPublishedCounter(connectionId,
+
+                        final ConnectionMonitor publishedMonitor =
+                                connectionMonitorRegistry.forOutboundPublished(connectionId,
                                         target.getOriginalAddress());
                         try {
                             final T publishTarget = toPublishTarget(target.getAddress());
                             final ExternalMessage messageWithMappedHeaders =
                                     applyHeaderMapping(outbound, target, log());
-                            publishMessage(target, publishTarget, messageWithMappedHeaders, publishedCounter);
+                            publishMessage(target, publishTarget, messageWithMappedHeaders, publishedMonitor);
                         } catch (final DittoRuntimeException e) {
-                            publishedCounter.recordFailure();
+                            // TODO: might there be private information in the exception message so we shouldn't be allowed to see them?
+                            publishedMonitor.failure(outboundSource,
+                                    "Ran into a failure when applying header mapping: {0}",
+                                    e.getMessage());
                             log().warning("Got unexpected DittoRuntimeException when applying header mapping - " +
                                             "thus NOT publishing the message: {} {}",
                                     e.getClass().getSimpleName(), e.getMessage());
@@ -197,10 +216,11 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      *
      * @param target the nullable Target for getting even more information about the configured Target to publish to.
      * @param publishTarget the {@link PublishTarget} to publish to.
-     * @param message the {@link ExternalMessage} to publish.
+     * @param message the {@link org.eclipse.ditto.services.models.connectivity.ExternalMessage} to publish.
+     * @param publishedMonitor the monitor that can be used for monitoring purposes.
      */
     protected abstract void publishMessage(@Nullable final Target target, final T publishTarget,
-            final ExternalMessage message, final ConnectionMetricsCollector publishedConnector);
+            final ExternalMessage message, final ConnectionMonitor publishedMonitor);
 
     /**
      * @return the logger to use.
@@ -257,7 +277,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             final ExpressionResolver expressionResolver = PlaceholderFactory.newExpressionResolver(
                     PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, originalHeaders),
                     PlaceholderFactory.newPlaceholderResolver(THING_PLACEHOLDER, sourceSignal.getId()),
-                    PlaceholderFactory.newPlaceholderResolver(TOPIC_PLACEHOLDER, originalMessage.getTopicPath().orElse(null))
+                    PlaceholderFactory.newPlaceholderResolver(TOPIC_PLACEHOLDER,
+                            originalMessage.getTopicPath().orElse(null))
             );
 
             final Map<String, String> mappedHeaders = mapping.getMapping().entrySet().stream()
