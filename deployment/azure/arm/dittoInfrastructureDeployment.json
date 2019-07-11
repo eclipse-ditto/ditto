@@ -110,7 +110,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "https://raw.githubusercontent.com/kaizimmerm/ditto/aksvnet/deployment/azure/arm/templates/kubernetesDeploy.json"
+                    "uri": "https://raw.githubusercontent.com/eclipse/ditto/master/deployment/azure/arm/templates/kubernetesDeploy.json"
                 },
                 "parameters": {
                     "clusterName": {
@@ -160,7 +160,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "https://raw.githubusercontent.com/kaizimmerm/ditto/aksvnet/deployment/azure/arm/templates/cosmosDBDeploy.json"
+                    "uri": "https://raw.githubusercontent.com/eclipse/ditto/master/deployment/azure/arm/templates/cosmosDBDeploy.json"
                 },
                 "parameters": {
                     "accountName": {
@@ -188,7 +188,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "https://raw.githubusercontent.com/kaizimmerm/ditto/aksvnet/deployment/azure/arm/templates/vnetDeploy.json"
+                    "uri": "https://raw.githubusercontent.com/eclipse/ditto/master/deployment/azure/arm/templates/vnetDeploy.json"
                 },
                 "parameters": {
                     "vnetName": {
