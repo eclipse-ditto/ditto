@@ -37,6 +37,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -256,6 +257,11 @@ public final class RetrieveConnectionLogsResponse
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
         appendPayload(jsonObjectBuilder, schemaVersion, field -> true);
         return jsonObjectBuilder.build();
+    }
+
+    @Override
+    public JsonPointer getResourcePath() {
+        return JsonPointer.of("/logs");
     }
 
     @Override
