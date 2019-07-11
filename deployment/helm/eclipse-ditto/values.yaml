@@ -28,7 +28,7 @@ concierge:
   image:
     repository: docker.io/eclipse/ditto-concierge
     imagePullPolicy: IfNotPresent
-    tag: 0.9.0-M2
+    tag: 0.9.0
 connectivity:
   enabled: true
   name: connectivity
@@ -38,7 +38,7 @@ connectivity:
   image:
     repository: docker.io/eclipse/ditto-connectivity
     imagePullPolicy: IfNotPresent
-    tag: 0.9.0-M2
+    tag: 0.9.0
 things:
   enabled: true
   name: things
@@ -48,7 +48,7 @@ things:
   image:
     repository: docker.io/eclipse/ditto-things
     imagePullPolicy: IfNotPresent
-    tag: 0.9.0-M2
+    tag: 0.9.0
 search:
   enabled: true
   name: things-search
@@ -58,7 +58,7 @@ search:
   image:
     repository: docker.io/eclipse/ditto-things-search
     imagePullPolicy: IfNotPresent
-    tag: 0.9.0-M2
+    tag: 0.9.0
 policies:
   enabled: true
   name: policies
@@ -68,7 +68,7 @@ policies:
   image:
     repository: docker.io/eclipse/ditto-policies
     imagePullPolicy: IfNotPresent
-    tag: 0.9.0-M2
+    tag: 0.9.0
 gateway:
   enabled: true
   name: gateway
@@ -78,7 +78,7 @@ gateway:
   image:
     repository: docker.io/eclipse/ditto-gateway
     imagePullPolicy: IfNotPresent
-    tag: 0.9.0-M2
+    tag: 0.9.0
 
 nginx:
   replicaCount: 1
