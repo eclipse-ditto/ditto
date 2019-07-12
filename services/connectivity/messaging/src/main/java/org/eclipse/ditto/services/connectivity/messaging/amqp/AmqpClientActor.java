@@ -33,6 +33,7 @@ import javax.jms.Session;
 
 import org.apache.qpid.jms.JmsConnection;
 import org.apache.qpid.jms.JmsConnectionListener;
+import org.apache.qpid.jms.JmsSession;
 import org.apache.qpid.jms.message.JmsInboundMessageDispatch;
 import org.apache.qpid.jms.provider.ProviderFactory;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -42,14 +43,22 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
+import org.eclipse.ditto.services.connectivity.messaging.amqp.status.ConnectionFailureStatusReport;
+import org.eclipse.ditto.services.connectivity.messaging.amqp.status.ConnectionRestoredStatusReport;
+import org.eclipse.ditto.services.connectivity.messaging.amqp.status.ConsumerClosedStatusReport;
+import org.eclipse.ditto.services.connectivity.messaging.amqp.status.ProducerClosedStatusReport;
+import org.eclipse.ditto.services.connectivity.messaging.amqp.status.SessionClosedStatusReport;
 import org.eclipse.ditto.services.connectivity.messaging.internal.AbstractWithOrigin;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
+import org.eclipse.ditto.services.connectivity.messaging.internal.CloseSession;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectClient;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.DisconnectClient;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.connectivity.messaging.internal.RecoverSession;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 
@@ -68,6 +77,8 @@ import akka.pattern.Patterns;
  */
 public final class AmqpClientActor extends BaseClientActor implements ExceptionListener {
 
+    private static final String SPEC_CONFIG_RECOVER_ON_SESSION_CLOSED = "recover.on-session-closed";
+    private static final String SPEC_CONFIG_RECOVER_ON_CONNECTION_RESTORED = "recover.on-connection-restored";
     private final JmsConnectionFactory jmsConnectionFactory;
     private final StatusReportingListener connectionListener;
     private final List<ConsumerData> consumers;
@@ -81,6 +92,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     @Nullable private ActorRef disconnectConnectionHandler;
 
     private final Map<String, ActorRef> consumerByNamePrefix;
+    private final boolean recoverSessionOnSessionClosed;
+    private final boolean recoverSessionOnConnectionRestored;
 
     /*
      * This constructor is called via reflection by the static method propsForTest.
@@ -93,9 +106,11 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
         super(connection, connectionStatus, conciergeForwarder);
         this.jmsConnectionFactory = jmsConnectionFactory;
-        connectionListener = new StatusReportingListener(getSelf(), connection.getId(), log);
+        connectionListener = new StatusReportingListener(getSelf(), connection.getId(), log, connectionLogger);
         consumers = new LinkedList<>();
         consumerByNamePrefix = new HashMap<>();
+        recoverSessionOnSessionClosed = isRecoverSessionOnSessionClosedEnabled();
+        recoverSessionOnConnectionRestored = isRecoverSessionOnConnectionRestoredEnabled();
     }
 
     /*
@@ -163,9 +178,28 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     @Override
+    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectedState() {
+        return super.inConnectedState()
+                .event(ConnectionFailure.class, this::handleConnectionFailureWhenConnected)
+                .event(JmsSessionRecovered.class, this::handleSessionRecovered);
+    }
+
+    private State<BaseClientState, BaseClientData> handleConnectionFailureWhenConnected(final ConnectionFailure failure,
+            final BaseClientData data) {
+        return goTo(BaseClientState.UNKNOWN)
+                .using(data.setConnectionStatus(ConnectivityStatus.FAILED)
+                        .setConnectionStatusDetails(failure.getFailureDescription()));
+    }
+
+    @Override
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inAnyState() {
         return super.inAnyState()
-                .event(StatusReport.class, this::handleStatusReport);
+                .event(ConnectionRestoredStatusReport.class,
+                        (report, currentData) -> this.handleConnectionRestored(currentData))
+                .event(ConnectionFailureStatusReport.class, this::handleConnectionFailure)
+                .event(ConsumerClosedStatusReport.class, this::handleConsumerClosed)
+                .event(ProducerClosedStatusReport.class, this::handleProducerClosed)
+                .event(SessionClosedStatusReport.class, this::handleSessionClosed);
     }
 
     @Override
@@ -231,9 +265,9 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             consumers.clear();
             consumers.addAll(c.consumerList);
             // note: start order is important (publisher -> mapping -> consumer actor)
-            startAmqpPublisherActor();
-            startMessageMappingProcessor(connection().getMappingContext().orElse(null));
-            startCommandConsumers(consumers);
+            startCommandProducer();
+            startMessageMappingProcessorActor();
+            startCommandConsumers();
         } else {
             log.info("ClientConnected was not JmsConnected as expected, ignoring as this probably was a reconnection");
         }
@@ -241,7 +275,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
     @Override
     protected void cleanupResourcesForConnection() {
-        log.debug("cleaning up");
+        log.debug("cleaning up resources for connection '{}'", connectionId());
         stopCommandConsumers();
         stopMessageMappingProcessorActor();
         stopCommandProducer();
@@ -279,8 +313,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     @Override
-    protected ActorRef getPublisherActor() {
-        return amqpPublisherActor;
+    protected Optional<ActorRef> getPublisherActor() {
+        return Optional.ofNullable(amqpPublisherActor);
     }
 
     @Override
@@ -298,12 +332,13 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         }
     }
 
-    private void startCommandConsumers(final Iterable<ConsumerData> consumers) {
+    private void startCommandConsumers() {
         final Optional<ActorRef> messageMappingProcessor = getMessageMappingProcessorActor();
         if (messageMappingProcessor.isPresent()) {
             if (isConsuming()) {
                 stopCommandConsumers();
                 consumers.forEach(consumer -> startCommandConsumer(consumer, messageMappingProcessor.get()));
+                connectionLogger.success("Subscriptions {0} initialized successfully.", consumers);
                 log.info("Subscribed Connection <{}> to sources: {}", connectionId(), consumers);
             } else {
                 log.debug("Not starting consumers, no sources were configured");
@@ -323,7 +358,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         consumerByNamePrefix.put(namePrefix, child);
     }
 
-    private void startAmqpPublisherActor() {
+    private void startCommandProducer() {
         stopCommandProducer();
         final String namePrefix = AmqpPublisherActor.ACTOR_NAME;
         if (jmsSession != null) {
@@ -408,58 +443,118 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         }
     }
 
-    /**
-     * Set metrics for self and children when the status report listener sends a report.
-     *
-     * @param statusReport status report from status report listener.
-     * @param currentData known data of the connection.
-     * @return same FSM state with possibly updated connection status and status detail.
-     */
-    private FSM.State<BaseClientState, BaseClientData> handleStatusReport(final StatusReport statusReport,
+    private FSM.State<BaseClientState, BaseClientData> handleConnectionRestored(final BaseClientData currentData) {
+        if (recoverSessionOnConnectionRestored && (jmsSession == null || ((JmsSession) jmsSession).isClosed())) {
+            log.info("Restored connection has closed session, trying to recover...");
+            recoverSession(jmsSession);
+        }
+        return stay().using(currentData.setConnectionStatus(ConnectivityStatus.OPEN)
+                .setConnectionStatusDetails("Connection restored"));
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> handleConnectionFailure(
+            final ConnectionFailureStatusReport statusReport,
             final BaseClientData currentData) {
 
-        BaseClientData data = currentData;
-        if (statusReport.isConnectionRestored()) {
-            data = data.setConnectionStatus(ConnectivityStatus.OPEN)
-                    .setConnectionStatusDetails("Connection restored");
+        final ConnectionFailure failure = statusReport.getFailure();
+        final String message = MessageFormat.format("Failure: {0}, Description: {1}",
+                failure.getFailure().cause(), failure.getFailureDescription());
+        connectionLogger.failure(message);
+        return stay().using(currentData.setConnectionStatus(ConnectivityStatus.FAILED)
+                .setConnectionStatusDetails(message));
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> handleConsumerClosed(
+            final ConsumerClosedStatusReport statusReport,
+            final BaseClientData currentData) {
+        final MessageConsumer consumer = statusReport.getMessageConsumer();
+
+        consumers.stream()
+                .filter(c -> c.getMessageConsumer().equals(consumer))
+                .findFirst()
+                .ifPresent(c -> {
+                    final ActorRef consumerActor = consumerByNamePrefix.get(c.getActorNamePrefix());
+                    if (consumerActor != null) {
+                        final Object message = ConnectivityModelFactory.newStatusUpdate(
+                                InstanceIdentifierSupplier.getInstance().get(),
+                                ConnectivityStatus.FAILED,
+                                c.getAddress(),
+                                "Consumer closed", Instant.now());
+                        consumerActor.tell(message, ActorRef.noSender());
+                    }
+                });
+        return stay().using(currentData);
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> handleProducerClosed(
+            final ProducerClosedStatusReport statusReport,
+            final BaseClientData currentData) {
+        if (amqpPublisherActor != null) {
+            amqpPublisherActor.tell(statusReport, ActorRef.noSender());
+        }
+        return stay().using(currentData);
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> handleSessionClosed(
+            final SessionClosedStatusReport statusReport,
+            final BaseClientData currentData) {
+        connectionLogger.failure("Session has been closed.");
+        if (recoverSessionOnSessionClosed) {
+            recoverSession(statusReport.getSession());
+        } else {
+            log.debug("Not recovering session after session was closed.");
+        }
+        return stay().using(currentData);
+    }
+
+    private void recoverSession(@Nullable final Session session) {
+        connectionLogger.failure("Trying to recover the session.");
+        log.info("Recovering closed JMS session.");
+        // first stop all child actors, they relied on the closed/corrupt session
+        stopCommandConsumers();
+        stopMessageMappingProcessorActor();
+        stopCommandProducer();
+        // create a new session, result will be delivered with JmsSessionRecovered event
+        getConnectConnectionHandler(connection()).tell(new JmsRecoverSession(getSender(), jmsConnection, session),
+                getSelf());
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> handleSessionRecovered(
+            final JmsSessionRecovered sessionRecovered,
+            final BaseClientData currentData) {
+
+        // make sure that we close any previous session
+        if (jmsSession != null) {
+            getConnectConnectionHandler(connection()).tell(new JmsCloseSession(getSender(), jmsSession), getSelf());
         }
 
-        final Optional<ConnectionFailure> possibleFailure = statusReport.getFailure();
-        final Optional<MessageConsumer> possibleClosedConsumer = statusReport.getClosedConsumer();
+        jmsSession = sessionRecovered.getSession();
+        consumers.clear();
+        consumers.addAll(sessionRecovered.getConsumerList());
+        // note: start order is important (publisher -> mapping -> consumer actor)
+        startCommandProducer();
+        startMessageMappingProcessorActor();
+        startCommandConsumers();
 
-        if (possibleFailure.isPresent()) {
-            final ConnectionFailure failure = possibleFailure.get();
-            final String message = MessageFormat.format("Failure: {0}, Description: {1}",
-                    failure.getFailure().cause(), failure.getFailureDescription());
-            data = data.setConnectionStatus(ConnectivityStatus.FAILED)
-                    .setConnectionStatusDetails(message);
-        }
-        if (possibleClosedConsumer.isPresent()) {
-            final MessageConsumer consumer = possibleClosedConsumer.get();
+        connectionLogger.success("Session has been recovered successfully.");
 
-            consumers.stream()
-                    .filter(c -> c.getMessageConsumer().equals(consumer))
-                    .findFirst()
-                    .ifPresent(c -> {
-                        final ActorRef consumerActor = consumerByNamePrefix.get(c.getActorNamePrefix());
-                        if (consumerActor != null) {
-                            final Object message = ConnectivityModelFactory.newStatusUpdate(
-                                    InstanceIdentifierSupplier.getInstance().get(),
-                                    ConnectivityStatus.FAILED,
-                                    c.getAddress(),
-                                    "Consumer closed", Instant.now());
-                            consumerActor.tell(message, ActorRef.noSender());
-                        }
-                    });
-        }
+        return stay().using(currentData);
+    }
 
-        statusReport.getClosedProducer().ifPresent(p -> amqpPublisherActor.tell(statusReport, ActorRef.noSender()));
+    private boolean isRecoverSessionOnSessionClosedEnabled() {
+        final String recoverOnSessionClosed =
+                connection().getSpecificConfig().getOrDefault(SPEC_CONFIG_RECOVER_ON_SESSION_CLOSED, "false");
+        return Boolean.valueOf(recoverOnSessionClosed);
+    }
 
-        return stay().using(data);
+    private boolean isRecoverSessionOnConnectionRestoredEnabled() {
+        final String recoverOnConnectionRestored = connection().getSpecificConfig().getOrDefault(SPEC_CONFIG_RECOVER_ON_CONNECTION_RESTORED, "true");
+        return Boolean.valueOf(recoverOnConnectionRestored);
     }
 
     @Override
     public void onException(final JMSException exception) {
+        connectionLogger.exception("Exception occured: {0}", exception.getMessage());
         log.warning("{} occurred: {}", exception.getClass().getName(), exception.getMessage());
     }
 
@@ -472,6 +567,47 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             super(origin);
         }
 
+    }
+
+    /**
+     * {@code RecoverSession} message for internal communication with {@link JMSConnectionHandlingActor}.
+     */
+    static final class JmsRecoverSession extends AbstractWithOrigin implements RecoverSession {
+
+        private final javax.jms.Connection connection;
+        @Nullable private final Session session;
+
+        JmsRecoverSession(@Nullable final ActorRef origin, @Nullable final javax.jms.Connection connection,
+                @Nullable final Session session) {
+            super(origin);
+            this.connection = connection;
+            this.session = session;
+        }
+
+        Optional<javax.jms.Connection> getConnection() {
+            return Optional.ofNullable(connection);
+        }
+
+        Optional<javax.jms.Session> getSession() {
+            return Optional.ofNullable(session);
+        }
+    }
+
+    /**
+     * {@code CloseSession} message for internal communication with {@link JMSConnectionHandlingActor}.
+     */
+    static final class JmsCloseSession extends AbstractWithOrigin implements CloseSession {
+
+        private final Session session;
+
+        JmsCloseSession(@Nullable final ActorRef origin, final Session session) {
+            super(origin);
+            this.session = session;
+        }
+
+        javax.jms.Session getSession() {
+            return session;
+        }
     }
 
     /**
@@ -489,7 +625,6 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         Optional<javax.jms.Connection> getConnection() {
             return Optional.ofNullable(connection);
         }
-
     }
 
     /**
@@ -514,6 +649,32 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     /**
+     * Response to {@code RecoverSession} message from {@link JMSConnectionHandlingActor}.
+     */
+    static final class JmsSessionRecovered extends AbstractWithOrigin {
+
+        private final Session session;
+        private final List<ConsumerData> consumerList;
+
+        JmsSessionRecovered(@Nullable final ActorRef origin,
+                final Session session,
+                final List<ConsumerData> consumerList) {
+
+            super(origin);
+            this.session = session;
+            this.consumerList = consumerList;
+        }
+
+        Session getSession() {
+            return session;
+        }
+
+        List<ConsumerData> getConsumerList() {
+            return consumerList;
+        }
+    }
+
+    /**
      * Response to {@code Disconnect} message from {@link JMSConnectionHandlingActor}.
      */
     static class JmsDisconnected extends AbstractWithOrigin implements ClientDisconnected {
@@ -532,13 +693,15 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         private final ActorRef self;
         private final DiagnosticLoggingAdapter log;
         private final String connectionId;
+        private final ConnectionLogger connectionLogger;
 
         private StatusReportingListener(final ActorRef self, final String connectionId,
-                final DiagnosticLoggingAdapter log) {
+                final DiagnosticLoggingAdapter log, final ConnectionLogger connectionLogger) {
 
             this.self = self;
             this.connectionId = connectionId;
             this.log = log;
+            this.connectionLogger = connectionLogger;
         }
 
         @Override
@@ -548,59 +711,64 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
         @Override
         public void onConnectionFailure(final Throwable error) {
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
+            connectionLogger.failure("Connection failure: {0}", error.getMessage());
             log.warning("Connection Failure: {}", error.getMessage());
             final ConnectionFailure failure =
                     new ImmutableConnectionFailure(ActorRef.noSender(), error, null);
-            self.tell(StatusReport.failure(failure), ActorRef.noSender());
+            self.tell(ConnectionFailureStatusReport.get(failure), ActorRef.noSender());
         }
 
         @Override
         public void onConnectionInterrupted(final URI remoteURI) {
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
+            connectionLogger.failure("Connection was interrupted.");
             log.warning("Connection interrupted: {}", remoteURI);
             final ConnectionFailure failure =
                     new ImmutableConnectionFailure(ActorRef.noSender(), null, "JMS Interrupted");
-            self.tell(StatusReport.failure(failure), ActorRef.noSender());
+            self.tell(ConnectionFailureStatusReport.get(failure), ActorRef.noSender());
         }
 
         @Override
         public void onConnectionRestored(final URI remoteURI) {
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
+            connectionLogger.success("Connection was restored.");
             log.info("Connection restored: {}", remoteURI);
-            self.tell(StatusReport.connectionRestored(), ActorRef.noSender());
+            self.tell(ConnectionRestoredStatusReport.get(), ActorRef.noSender());
         }
 
         @Override
         public void onInboundMessage(final JmsInboundMessageDispatch envelope) {
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
             log.debug("Inbound message: {}", envelope);
-            self.tell(StatusReport.consumedMessage(), ActorRef.noSender());
         }
 
         @Override
         public void onSessionClosed(final Session session, final Throwable cause) {
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
+            connectionLogger.failure("Session was closed: {0}", cause.getMessage());
             log.warning("Session closed: {} - {}", session, cause.getMessage());
             final ConnectionFailure failure =
                     new ImmutableConnectionFailure(ActorRef.noSender(), cause, "JMS Session closed");
-            self.tell(StatusReport.failure(failure), ActorRef.noSender());
+            self.tell(SessionClosedStatusReport.get(failure, session), ActorRef.noSender());
         }
 
         @Override
         public void onConsumerClosed(final MessageConsumer consumer, final Throwable cause) {
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
+            connectionLogger.failure("Consumer {0} was closed: {1}", consumer.toString(), cause.getMessage());
             log.warning("Consumer <{}> closed due to {}: {}", consumer.toString(),
                     cause.getClass().getSimpleName(), cause.getMessage());
-            self.tell(StatusReport.consumerClosed(consumer), ActorRef.noSender());
+            self.tell(ConsumerClosedStatusReport.get(consumer), ActorRef.noSender());
         }
 
         @Override
         public void onProducerClosed(final MessageProducer producer, final Throwable cause) {
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
+            connectionLogger.failure("Producer {0} was closed: {1}", producer.toString(), cause.getMessage());
             log.warning("Producer <{}> closed due to {}: {}", producer, cause.getClass().getSimpleName(),
                     cause.getMessage());
-            self.tell(StatusReport.producerClosed(producer), ActorRef.noSender());
+            self.tell(ProducerClosedStatusReport.get(producer), ActorRef.noSender());
         }
 
     }

@@ -36,6 +36,7 @@ import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.junit.Test;
 
@@ -49,6 +50,8 @@ public class SignalFilterWithFilterTest {
     private static final AuthorizationSubject AUTHORIZED = newAuthSubject("authorized");
     private static final AuthorizationSubject UNAUTHORIZED = newAuthSubject("unauthorized");
     private static final HeaderMapping HEADER_MAPPING = null;
+
+    private final ConnectionMonitorRegistry connectionMonitorRegistry = TestConstants.Monitoring.MONITOR_REGISTRY_MOCK;
 
     @Test
     public void applySignalFilterWithNamespaces() {
@@ -81,7 +84,7 @@ public class SignalFilterWithFilterTest {
                 .build();
         final ThingModified thingModified = ThingModified.of(thing, 3L, headers);
 
-        final SignalFilter signalFilter = new SignalFilter(connection);
+        final SignalFilter signalFilter = new SignalFilter(connection, connectionMonitorRegistry);
         final List<Target> filteredTargets = signalFilter.filter(thingModified);
         Assertions
                 .assertThat(filteredTargets)
@@ -122,7 +125,7 @@ public class SignalFilterWithFilterTest {
                 .build();
         final ThingModified thingModified = ThingModified.of(thing, 3L, headers);
 
-        final SignalFilter signalFilter = new SignalFilter(connection);
+        final SignalFilter signalFilter = new SignalFilter(connection, connectionMonitorRegistry);
         final List<Target> filteredTargets = signalFilter.filter(thingModified);
         Assertions
                 .assertThat(filteredTargets)
@@ -169,7 +172,7 @@ public class SignalFilterWithFilterTest {
                 .build();
         final ThingModified thingModified = ThingModified.of(thing, 3L, headers);
 
-        final SignalFilter signalFilter = new SignalFilter(connection);
+        final SignalFilter signalFilter = new SignalFilter(connection, connectionMonitorRegistry);
         final List<Target> filteredTargets = signalFilter.filter(thingModified);
         Assertions
                 .assertThat(filteredTargets)

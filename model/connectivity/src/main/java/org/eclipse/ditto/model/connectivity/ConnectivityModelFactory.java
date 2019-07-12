@@ -676,4 +676,31 @@ public final class ConnectivityModelFactory {
         return new ImmutableHeaderMapping(mapping);
     }
 
+    /**
+     * Creates a new {@link org.eclipse.ditto.model.connectivity.LogEntry} object from the specified JSON object.
+     *
+     * @param jsonObject a JSON object which provides the data for the LogEntry to be created.
+     * @return a new LogEntry which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
+     */
+    public static LogEntry logEntryFromJson(final JsonObject jsonObject) {
+        return ImmutableLogEntry.fromJson(jsonObject);
+    }
+
+    /**
+     * Creates a new {@link org.eclipse.ditto.model.connectivity.LogEntryBuilder} with the given parameters.
+     * @param correlationId the correlation ID.
+     * @param timestamp the timestamp of the log entry.
+     * @param logCategory the category.
+     * @param logType the type.
+     * @param logLevel the level.
+     * @param message the message.
+     * @return a new builder.
+     */
+    public static LogEntryBuilder newLogEntryBuilder(final String correlationId, final Instant timestamp, final LogCategory logCategory,
+            final LogType logType, final LogLevel logLevel, final String message) {
+        return ImmutableLogEntry.getBuilder(correlationId, timestamp, logCategory, logType, logLevel, message);
+    }
+
 }

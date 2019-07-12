@@ -45,6 +45,7 @@ import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
@@ -131,6 +132,8 @@ public class SignalFilterTest {
     @Parameterized.Parameter(3)
     public List<Target> expectedTargets;
 
+    private final ConnectionMonitorRegistry connectionMonitorRegistry = TestConstants.Monitoring.MONITOR_REGISTRY_MOCK;
+
     @Test
     public void test() {
         final Connection connection =
@@ -139,7 +142,7 @@ public class SignalFilterTest {
                         ConnectivityStatus.OPEN,
                         URI).targets(targets).build();
 
-        final SignalFilter signalFilter = new SignalFilter(connection);
+        final SignalFilter signalFilter = new SignalFilter(connection, connectionMonitorRegistry);
         final List<Target> filteredTargets = signalFilter.filter(signal(signalTopic, readSubjects));
         Assertions
                 .assertThat(filteredTargets)
@@ -210,4 +213,5 @@ public class SignalFilterTest {
                 throw new UnsupportedOperationException(topic + " not supported");
         }
     }
+
 }

@@ -26,6 +26,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -53,11 +54,16 @@ import org.eclipse.ditto.model.connectivity.TargetMetrics;
 import org.eclipse.ditto.services.connectivity.messaging.config.ClientConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
-import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLoggerRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.InfoProviderFactory;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.ConnectivityCounterRegistry;
+import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
@@ -68,11 +74,17 @@ import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
+import org.eclipse.ditto.signals.commands.connectivity.modify.CheckConnectionLogsActive;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
+import org.eclipse.ditto.signals.commands.connectivity.modify.EnableConnectionLogs;
+import org.eclipse.ditto.signals.commands.connectivity.modify.LoggingExpired;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
+import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionLogs;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionMetrics;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionLogs;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionLogsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
@@ -105,12 +117,17 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private static final String RECONNECT_TIMER_NAME = "reconnectTimer";
 
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    protected final ConnectionLogger connectionLogger;
+
 
     protected final ConnectivityConfig connectivityConfig;
     protected final ClientConfig clientConfig;
     private final ProtocolAdapterProvider protocolAdapterProvider;
     private final ActorRef conciergeForwarder;
     private final Gauge clientGauge;
+    private final ConnectionLoggerRegistry connectionLoggerRegistry;
+    private final ConnectivityCounterRegistry connectionCounterRegistry;
+
 
     @Nullable private ActorRef messageMappingProcessorActor;
 
@@ -123,7 +140,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         checkNotNull(connection, "connection");
 
-        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connection.getId());
+        ConnectionLogUtil.enhanceLogWithConnectionId(log, connection.getId());
 
         this.connectivityConfig = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
@@ -158,7 +175,14 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         whenUnhandled(inAnyState().anyEvent(this::onUnknownEvent));
 
-        ConnectivityCounterRegistry.initCountersForConnection(connection);
+        final MonitoringConfig monitoringConfig = this.connectivityConfig.getMonitoringConfig();
+        this.connectionCounterRegistry = ConnectivityCounterRegistry.fromConfig(monitoringConfig.counter());
+        this.connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
+
+        this.connectionLoggerRegistry.initForConnection(connection);
+        this.connectionCounterRegistry.initForConnection(connection);
+
+        this.connectionLogger = this.connectionLoggerRegistry.forConnection(connection.getId());
 
         initialize();
     }
@@ -187,7 +211,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     /**
      * @return the Actor to use for publishing commandResponses/events.
      */
-    protected abstract ActorRef getPublisherActor();
+    protected abstract Optional<ActorRef> getPublisherActor();
 
     /**
      * Invoked when this {@code Client} should connect.
@@ -237,9 +261,17 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * @return an FSM function builder
      */
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inAnyState() {
-        return matchEvent(RetrieveConnectionMetrics.class, BaseClientData.class, this::retrieveConnectionMetrics)
+        return matchEvent(RetrieveConnectionMetrics.class, BaseClientData.class,
+                (command, data) -> this.retrieveConnectionMetrics(command))
                 .event(RetrieveConnectionStatus.class, BaseClientData.class, this::retrieveConnectionStatus)
                 .event(ResetConnectionMetrics.class, BaseClientData.class, this::resetConnectionMetrics)
+                .event(EnableConnectionLogs.class, BaseClientData.class,
+                        (command, data) -> this.enableConnectionLogs(command))
+                .event(RetrieveConnectionLogs.class, BaseClientData.class,
+                        (command, data) -> this.retrieveConnectionLogs(command))
+                .event(ResetConnectionLogs.class, BaseClientData.class, this::resetConnectionLogs)
+                .event(CheckConnectionLogsActive.class, BaseClientData.class,
+                        (command, data) -> this.checkLoggingActive(command))
                 .event(OutboundSignal.class, BaseClientData.class, (signal, data) -> {
                     handleOutboundSignal(signal);
                     return stay();
@@ -276,7 +308,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * @param props the Props
      * @return the created ActorRef
      */
-    protected final ActorRef startChildActor(final String name, final Props props) {
+    private ActorRef startChildActor(final String name, final Props props) {
         log.debug("Starting child actor <{}>.", name);
         final String nameEscaped = escapeActorName(name);
         return getContext().actorOf(props, nameEscaped);
@@ -327,13 +359,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     /**
-     * @return whether this client is publishing at all
-     */
-    protected final boolean isPublishing() {
-        return !connection().getTargets().isEmpty();
-    }
-
-    /**
      * @return the currently managed Connection
      */
     protected final Connection connection() {
@@ -371,7 +396,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * @param to the next State
      */
     private void onTransition(final BaseClientState from, final BaseClientState to) {
-        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+        ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
         log.debug("Transition: {} -> {}", from, to);
         if (to == CONNECTED) {
             clientGauge.increment();
@@ -419,7 +444,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * @return an FSM function builder
      */
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectingState() {
-        return matchEventEquals(StateTimeout(), BaseClientData.class, this::connectionTimedOut)
+        return matchEventEquals(StateTimeout(), BaseClientData.class, (event, data) -> this.connectionTimedOut(data))
                 .event(ConnectionFailure.class, BaseClientData.class, this::connectionFailure)
                 .event(ClientConnected.class, BaseClientData.class, this::clientConnected)
                 .event(CloseConnection.class, BaseClientData.class, this::closeConnection);
@@ -440,7 +465,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * @return an FSM function builder
      */
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inDisconnectingState() {
-        return matchEventEquals(StateTimeout(), BaseClientData.class, this::connectionTimedOut)
+        return matchEventEquals(StateTimeout(), BaseClientData.class, (event, data) -> this.connectionTimedOut(data))
                 .event(ConnectionFailure.class, BaseClientData.class, this::connectionFailure)
                 .event(ClientDisconnected.class, BaseClientData.class, this::clientDisconnected);
     }
@@ -536,8 +561,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     private void reconnect(final BaseClientData data) {
-        // TODO: add monitoring log after monitoring branch is connected and also add connection ids to logs.
         log.debug("Trying to reconnect.");
+        connectionLogger.success("Trying to reconnect.");
         final ActorRef sender = data.getSessionSender().orElse(null);
         final Connection connection = data.getConnection();
         if (canConnectViaSocket(connection)) {
@@ -601,8 +626,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                         .setConnectionStatusDetails("Testing connection since " + Instant.now()));
     }
 
-    private FSM.State<BaseClientState, BaseClientData> connectionTimedOut(final Object event,
-            final BaseClientData data) {
+    private FSM.State<BaseClientState, BaseClientData> connectionTimedOut(final BaseClientData data) {
 
         data.getSessionSender().ifPresent(sender -> {
             final DittoRuntimeException error = ConnectionFailedException.newBuilder(connectionId())
@@ -617,9 +641,10 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         if (ConnectivityStatus.OPEN.equals(data.getDesiredConnectionStatus())) {
             reconnect(data);
             nextState = CONNECTING;
-
+            connectionLogger.failure("Connection timed out. Will try to reconnect.");
         } else {
             nextState = UNKNOWN;
+            connectionLogger.failure("Connection timed out.");
         }
         return goTo(nextState).using(data.resetSession()
                 .setConnectionStatus(ConnectivityStatus.FAILED)
@@ -630,7 +655,9 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             final BaseClientData data) {
 
         return ifEventUpToDate(clientConnected, () -> {
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
+            connectionLogger.success("Connection successful.");
+
             allocateResourcesOnConnection(clientConnected);
             data.getSessionSender().ifPresent(origin -> origin.tell(new Status.Success(CONNECTED), getSelf()));
             cancelScheduledReconnect();
@@ -644,7 +671,9 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             final BaseClientData data) {
 
         return ifEventUpToDate(event, () -> {
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
+            connectionLogger.success("Disconnected successfully.");
+
             cleanupResourcesForConnection();
             data.getSessionSender().ifPresent(sender -> sender.tell(new Status.Success(DISCONNECTED), getSelf()));
             return goTo(DISCONNECTED).using(data.resetSession()
@@ -656,16 +685,20 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private State<BaseClientState, BaseClientData> connectionFailure(final ConnectionFailure event,
             final BaseClientData data) {
         return ifEventUpToDate(event, () -> {
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
+            final Status.Status statusToReport = getStatusToReport(event.getFailure());
+
             cleanupResourcesForConnection();
-            data.getSessionSender().ifPresent(sender -> sender.tell(getStatusToReport(event.getFailure()), getSelf()));
+            data.getSessionSender().ifPresent(sender -> sender.tell(statusToReport, getSelf()));
 
             final BaseClientState nextState;
             if (ConnectivityStatus.OPEN.equals(data.getDesiredConnectionStatus())) {
                 scheduleReconnect();
                 nextState = CONNECTING;
+                connectionLogger.failure("Connection failed due to: {0}. Will try to reconnect.", event.getFailureDescription());
             } else {
                 nextState = UNKNOWN;
+                connectionLogger.failure("Connection failed due to: {0}.", event.getFailureDescription());
             }
             return goTo(nextState).using(data.resetSession()
                     .setConnectionStatus(ConnectivityStatus.FAILED)
@@ -690,7 +723,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private FSM.State<BaseClientState, BaseClientData> retrieveConnectionStatus(final RetrieveConnectionStatus command,
             final BaseClientData data) {
 
-        LogUtil.enhanceLogWithCorrelationId(log, command);
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionId());
         log.debug("Received RetrieveConnectionStatus message from {}, forwarding to consumers and publishers.",
                 getSender());
 
@@ -717,19 +750,19 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     private FSM.State<BaseClientState, BaseClientData> retrieveConnectionMetrics(
-            final RetrieveConnectionMetrics command, final BaseClientData data) {
+            final RetrieveConnectionMetrics command) {
 
-        LogUtil.enhanceLogWithCorrelationId(log, command);
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionId());
         log.debug("Received RetrieveConnectionMetrics message, gathering metrics.");
         final DittoHeaders dittoHeaders = command.getDittoHeaders().toBuilder()
                 .source(getInstanceIdentifier())
                 .build();
 
-        final SourceMetrics sourceMetrics = ConnectivityCounterRegistry.aggregateSourceMetrics(connectionId());
-        final TargetMetrics targetMetrics = ConnectivityCounterRegistry.aggregateTargetMetrics(connectionId());
+        final SourceMetrics sourceMetrics = connectionCounterRegistry.aggregateSourceMetrics(connectionId());
+        final TargetMetrics targetMetrics = connectionCounterRegistry.aggregateTargetMetrics(connectionId());
 
         final ConnectionMetrics connectionMetrics =
-                ConnectivityCounterRegistry.aggregateConnectionMetrics(sourceMetrics, targetMetrics);
+                connectionCounterRegistry.aggregateConnectionMetrics(sourceMetrics, targetMetrics);
 
         getSender().tell(
                 RetrieveConnectionMetricsResponse.of(connectionId(), connectionMetrics, sourceMetrics, targetMetrics,
@@ -741,10 +774,75 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private FSM.State<BaseClientState, BaseClientData> resetConnectionMetrics(final ResetConnectionMetrics command,
             final BaseClientData data) {
 
-        LogUtil.enhanceLogWithCorrelationId(log, command);
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionId());
         log.debug("Received ResetConnectionMetrics message, resetting metrics.");
-        ConnectivityCounterRegistry.resetCountersForConnection(data.getConnection());
-        ConnectivityCounterRegistry.initCountersForConnection(data.getConnection());
+        //  TODO: think about just clearing the counters instead of completely rebuilding them
+        connectionCounterRegistry.resetForConnection(data.getConnection());
+        connectionCounterRegistry.initForConnection(data.getConnection());
+
+        return stay();
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> enableConnectionLogs(
+            final EnableConnectionLogs command) {
+
+        final String connectionId = command.getConnectionId();
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, connectionId);
+        log.debug("Received EnableConnectionLogs message, enabling logs.");
+
+        this.connectionLoggerRegistry.unmuteForConnection(connectionId);
+
+        return stay();
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> checkLoggingActive(
+            final CheckConnectionLogsActive command) {
+
+        final String connectionId = command.getConnectionId();
+        final Instant timestamp = command.getTimestamp();
+        ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
+        log.debug("Received checkLoggingActive message, check if Logging for connection <{}> is expired.",
+                connectionId);
+
+        if (this.connectionLoggerRegistry.isLoggingExpired(connectionId, timestamp)) {
+            this.connectionLoggerRegistry.muteForConnection(connectionId);
+            getSender().tell(LoggingExpired.of(connectionId), ActorRef.noSender());
+        }
+
+        return stay();
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> retrieveConnectionLogs(final RetrieveConnectionLogs command) {
+
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionId());
+        log.debug("Received RetrieveConnectionLogs message, gathering metrics.");
+        final DittoHeaders dittoHeaders = command.getDittoHeaders().toBuilder()
+                .source(getInstanceIdentifier())
+                .build();
+
+        final ConnectionLoggerRegistry.ConnectionLogs connectionLogs =
+                connectionLoggerRegistry.aggregateLogs(connectionId());
+
+        getSender().tell(
+                RetrieveConnectionLogsResponse.of(connectionId(), connectionLogs.getLogs(),
+                        connectionLogs.getEnabledSince(),
+                        connectionLogs.getEnabledUntil(), dittoHeaders),
+                getSelf());
+
+        return stay();
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> resetConnectionLogs(
+            final ResetConnectionLogs command,
+            final BaseClientData data) {
+
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, command, command.getConnectionId());
+        log.debug("Received ResetConnectionLogs message, resetting logs.");
+
+        this.connectionLoggerRegistry.resetForConnection(data.getConnection());
+
+        this.connectionLoggerRegistry.forConnection(data.getConnectionId())
+                .success(InfoProviderFactory.forSignal(command), "Successfully reset the logs.");
 
         return stay();
     }
@@ -794,7 +892,10 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             socket.connect(new InetSocketAddress(host, port), SOCKET_CHECK_TIMEOUT_MS);
             return true;
         } catch (final IOException | IllegalArgumentException ex) {
-            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
+            connectionLogger.failure("Socket could not be opened for {0}:{1,number,#} due to {2}", host, port,
+                    ex.getMessage());
+
             log.warning("Socket could not be opened for <{}:{}> due to <{}:{}>", host, port,
                     ex.getClass().getCanonicalName(), ex.getMessage());
         }
@@ -814,8 +915,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     private void enhanceLogUtil(final WithDittoHeaders<?> signal) {
-        LogUtil.enhanceLogWithCorrelationId(log, signal);
-        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, signal, connectionId());
     }
 
     private Instant getInConnectionStatusSince() {
@@ -826,8 +926,11 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         try {
             return tryToConfigureMessageMappingProcessor(mappingContext);
         } catch (final DittoRuntimeException dre) {
-            log.info("Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
+            final String logMessage = MessageFormat.format(
+                    "Got DittoRuntimeException during initialization of MessageMappingProcessor: {0} {1} - desc: {2}",
                     dre.getClass().getSimpleName(), dre.getMessage(), dre.getDescription().orElse(""));
+            connectionLogger.failure(logMessage);
+            log.info(logMessage);
             getSender().tell(dre, getSelf());
             return CompletableFuture.completedFuture(new Status.Failure(dre));
         }
@@ -844,23 +947,17 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return CompletableFuture.completedFuture(new Status.Success("mapping"));
     }
 
-    /**
-     * Starts the {@link MessageMappingProcessorActor} responsible for payload transformation/mapping as child actor
-     * behind a (cluster node local) RoundRobin pool and a dynamic resizer from the current mapping context.
-     */
-    protected Either<DittoRuntimeException, ActorRef> startMessageMappingProcessor() {
-        final MappingContext mappingContext = stateData().getConnection().getMappingContext().orElse(null);
-        return startMessageMappingProcessor(mappingContext);
-    }
 
     /**
      * Starts the {@link MessageMappingProcessorActor} responsible for payload transformation/mapping as child actor
-     * behind a (cluster node local) RoundRobin pool and a dynamic resizer.
+     * behind a (cluster node local) RoundRobin pool and a dynamic resizer from the current mapping context.
      *
-     * @param mappingContext the MappingContext containing information about how to map external messages
+     * @return {@link org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessorActor} or exception,
+     * which will also cause an sideeffect that stores the mapping actor in the local variable {@code
+     * messageMappingProcessorActor}.
      */
-    protected Either<DittoRuntimeException, ActorRef> startMessageMappingProcessor(
-            @Nullable final MappingContext mappingContext) {
+    protected Either<DittoRuntimeException, ActorRef> startMessageMappingProcessorActor() {
+        final MappingContext mappingContext = stateData().getConnection().getMappingContext().orElse(null);
 
         if (!getMessageMappingProcessorActor().isPresent()) {
             final Connection connection = connection();
@@ -871,6 +968,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 processor = MessageMappingProcessor.of(connectionId(), mappingContext, getContext().getSystem(),
                         connectivityConfig, protocolAdapterProvider, log);
             } catch (final DittoRuntimeException dre) {
+                connectionLogger.failure("Failed to start message mapping processor due to: {}.", dre.getMessage());
                 log.info(
                         "Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
                         dre.getClass().getSimpleName(), dre.getMessage(), dre.getDescription().orElse(""));
@@ -882,8 +980,10 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
             log.debug("Starting MessageMappingProcessorActor with pool size of <{}>.",
                     connection.getProcessorPoolSize());
+            final ActorRef publisherActor = getPublisherActor().orElseThrow(
+                    () -> new NullPointerException("publisher actor must not be null."));
             final Props props =
-                    MessageMappingProcessorActor.props(getPublisherActor(), conciergeForwarder, processor,
+                    MessageMappingProcessorActor.props(publisherActor, conciergeForwarder, processor,
                             connectionId());
 
             /*

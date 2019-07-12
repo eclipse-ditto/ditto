@@ -23,11 +23,14 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
-import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectionMetricsCollector;
-import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 
-import akka.actor.AbstractActor;
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
 
@@ -40,22 +43,29 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     protected final ActorRef messageMappingProcessor;
     protected final AuthorizationContext authorizationContext;
     @Nullable protected final HeaderMapping headerMapping;
-    protected final ConnectionMetricsCollector inboundCounter;
+    protected final ConnectionMonitor inboundMonitor;
+    private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
+    protected final String connectionId;
 
     @Nullable protected ResourceStatus resourceStatus;
 
     protected BaseConsumerActor(final String connectionId, final String sourceAddress,
             final ActorRef messageMappingProcessor, final AuthorizationContext authorizationContext,
             @Nullable final HeaderMapping headerMapping) {
-        checkNotNull(connectionId, "connectionId");
+        this.connectionId = checkNotNull(connectionId, "connectionId");
         this.sourceAddress = checkNotNull(sourceAddress, "sourceAddress");
         this.messageMappingProcessor = checkNotNull(messageMappingProcessor, "messageMappingProcessor");
         this.authorizationContext = checkNotNull(authorizationContext, "authorizationContext");
         this.headerMapping = headerMapping;
         resourceStatus = ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
-                ConnectivityStatus.OPEN, sourceAddress,"Started at " + Instant.now());
+                ConnectivityStatus.OPEN, sourceAddress, "Started at " + Instant.now());
 
-        inboundCounter = ConnectivityCounterRegistry.getInboundConsumedCounter(connectionId, sourceAddress);
+        final MonitoringConfig monitoringConfig = DittoConnectivityConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        ).getMonitoringConfig();
+
+        this.connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
+        inboundMonitor = connectionMonitorRegistry.forInboundConsumed(connectionId, sourceAddress);
     }
 
     protected ResourceStatus getCurrentSourceStatus() {

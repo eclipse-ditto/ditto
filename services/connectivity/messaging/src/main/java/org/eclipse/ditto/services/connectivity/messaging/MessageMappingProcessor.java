@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELATION_ID;
 
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -33,11 +34,11 @@ import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.InboundExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
@@ -83,6 +84,7 @@ public final class MessageMappingProcessor {
      * Initializes a new command processor with mappers defined in mapping mappingContext.
      * The dynamic access is needed to instantiate message mappers for an actor system.
      *
+     * @param connectionId the connection that the processor works for.
      * @param mappingContext the mapping Context.
      * @param actorSystem the dynamic access used for message mapper instantiation.
      * @param connectivityConfig the configuration settings of the Connectivity service.
@@ -215,8 +217,7 @@ public final class MessageMappingProcessor {
     }
 
     private MessageMapper getMapper(final ExternalMessage message) {
-        LogUtil.enhanceLogWithCorrelationId(log, message.getHeaders().get("correlation-id"));
-        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, message.getHeaders().get(CORRELATION_ID.getKey()), connectionId);
 
         final Optional<String> contentTypeOpt = message.findContentType();
         if (contentTypeOpt.isPresent()) {
@@ -246,9 +247,7 @@ public final class MessageMappingProcessor {
     }
 
     private void enhanceLogFromAdaptable(final Adaptable adaptable) {
-        adaptable.getHeaders().flatMap(DittoHeaders::getCorrelationId)
-                .ifPresent(s -> LogUtil.enhanceLogWithCorrelationId(log, s));
-        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
+        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, adaptable, connectionId);
     }
 
     private static <T> T withTimer(final StartedTimer timer, final Supplier<T> supplier) {

@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.kafka;
 
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -43,6 +44,8 @@ import akka.japi.pf.FSMStateFunctionBuilder;
 public final class KafkaClientActor extends BaseClientActor {
 
     private final KafkaPublisherActorFactory publisherActorFactory;
+
+    @Nullable
     private ActorRef kafkaPublisherActor;
 
     private final Set<ActorRef> pendingStatusReportsFromStreams;
@@ -69,6 +72,7 @@ public final class KafkaClientActor extends BaseClientActor {
      *
      * @param connection the connection.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
+     * @param factory factory for creating a kafka publisher actor.
      * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection,
@@ -125,8 +129,8 @@ public final class KafkaClientActor extends BaseClientActor {
     }
 
     @Override
-    protected ActorRef getPublisherActor() {
-        return kafkaPublisherActor;
+    protected Optional<ActorRef> getPublisherActor() {
+        return Optional.ofNullable(kafkaPublisherActor);
     }
 
     @Override
@@ -147,7 +151,7 @@ public final class KafkaClientActor extends BaseClientActor {
     private void connectClient(final boolean dryRun) {
         // start publisher
         startKafkaPublisher(dryRun);
-        startMessageMappingProcessor();
+        startMessageMappingProcessorActor();
         // no command consumers as we don't support consuming from sources yet
     }
 

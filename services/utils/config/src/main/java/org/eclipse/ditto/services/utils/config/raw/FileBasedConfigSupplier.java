@@ -13,9 +13,9 @@
 package org.eclipse.ditto.services.utils.config.raw;
 
 import java.io.File;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.MessageFormat;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import javax.annotation.concurrent.Immutable;
@@ -32,7 +32,7 @@ import com.typesafe.config.ConfigFactory;
 final class FileBasedConfigSupplier implements Supplier<Config> {
 
     /**
-     * Name of the system environment variable for setting the location of the VCAP services config file.
+     * Name of the system environment variable for setting the location of config file.
      */
     static final String HOSTING_ENV_FILE_LOCATION_ENV_VARIABLE_NAME = "HOSTING_ENVIRONMENT_FILE_LOCATION";
 
@@ -52,7 +52,7 @@ final class FileBasedConfigSupplier implements Supplier<Config> {
      * file.
      */
     static FileBasedConfigSupplier forConfiguredConfigFile() {
-        final Config initialConfig = ConfigFactory.parseFileAnySyntax(tryToGetConfigFile(getConfigFileLocation()));
+        final Config initialConfig = ConfigFactory.parseFileAnySyntax(getConfigFile(getConfigFileLocation()));
         return new FileBasedConfigSupplier(initialConfig);
     }
 
@@ -65,39 +65,18 @@ final class FileBasedConfigSupplier implements Supplier<Config> {
         return result;
     }
 
-    private static File tryToGetConfigFile(final String configFileLocation) {
-        try {
-            return getConfigFile(configFileLocation);
-        } catch (final IllegalArgumentException e) {
-            final String msgPattern = "Failed to get config file at <{0}>!";
-            throw new DittoConfigError(MessageFormat.format(msgPattern, configFileLocation), e);
-        }
-    }
-
     private static File getConfigFile(final String configFileLocation) {
-        final Path configFilePath = Paths.get(configFileLocation);
-        final File result = configFilePath.toFile();
-        if (!result.exists()) {
-            throw new IllegalArgumentException(MessageFormat.format("<{0}> does not exist!", configFilePath));
-        }
-        if (!result.isFile()) {
-            throw new IllegalArgumentException(MessageFormat.format("<{0}> is not a file!", configFilePath));
-        }
-        if (!result.canRead()) {
-            throw new IllegalArgumentException(MessageFormat.format("<{0}> is not readable!", configFilePath));
-        }
-        return result;
+        return Paths.get(configFileLocation).toFile();
     }
 
     /**
      * Returns an instance of {@code FileBasedConfigSupplier}.
-     * The name of the config file resource is derived from the given service name.
      *
-     * @param serviceName the name of the service.
+     * @param resourceBaseName the name of the resource.
      * @return the instance.
      */
-    static FileBasedConfigSupplier forServiceNameBasedConfigFile(final String serviceName) {
-        final Config initialConfig = ConfigFactory.parseResourcesAnySyntax(serviceName);
+    static FileBasedConfigSupplier fromResource(final String resourceBaseName) {
+        final Config initialConfig = ConfigFactory.parseResourcesAnySyntax(resourceBaseName);
         return new FileBasedConfigSupplier(initialConfig);
     }
 
@@ -108,11 +87,14 @@ final class FileBasedConfigSupplier implements Supplier<Config> {
 
     private Config getFileBasedConfig() {
         final VcapServicesStringSupplier vcapServicesStringSupplier = VcapServicesStringSupplier.getInstance();
-        return vcapServicesStringSupplier.get()
-                .map(VcapServicesStringToConfig.getInstance())
-                .map(initialConfig::withFallback)
-                .map(config -> config.withFallback(getSecretsAsConfig()))
-                .orElseGet(() -> initialConfig.withFallback(getSecretsAsConfig()));
+        final Optional<String> vcapJsonContentOptional = vcapServicesStringSupplier.get();
+
+        if (vcapJsonContentOptional.isPresent()) {
+            final Config vcapConfig = VcapServicesStringToConfig.getInstance().apply(vcapJsonContentOptional.get());
+            return initialConfig.withFallback(vcapConfig).withFallback(getSecretsAsConfig());
+        } else {
+            return initialConfig.withFallback(getSecretsAsConfig());
+        }
     }
 
     private Config getSecretsAsConfig() {

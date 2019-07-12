@@ -36,7 +36,7 @@ Following are some specifics for AMQP 1.0 connections:
 ### Source format
 
 Any `source` item defines an `addresses` array of source identifiers (e.g. Eclipse Hono's 
-[Telemetry API](https://www.eclipse.org/hono/api/telemetry-api)) to consume messages from
+Telemetry API) to consume messages from
 and `authorizationContext` array that contains the authorization subjects in whose context
 inbound messages are processed. These subjects may contain placeholders, see 
 [placeholders](basic-connections.html#placeholder-for-source-authorization-subjects) section for more information.

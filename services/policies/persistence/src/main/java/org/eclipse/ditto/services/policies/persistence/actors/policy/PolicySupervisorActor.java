@@ -27,7 +27,6 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.services.base.actors.ShutdownBehaviour;
-import org.eclipse.ditto.services.base.config.DittoServiceConfig;
 import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.services.policies.common.config.DittoPoliciesConfig;
 import org.eclipse.ditto.services.policies.persistence.actors.AbstractReceiveStrategy;
@@ -42,9 +41,11 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
 import akka.actor.OneForOneStrategy;
+import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
+import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.DeciderBuilder;
 import scala.concurrent.duration.FiniteDuration;
@@ -69,7 +70,7 @@ public final class PolicySupervisorActor extends AbstractActor {
     @Nullable private ActorRef child;
     private long restartCount;
 
-    private final SupervisorStrategy supervisorStrategy =  new OneForOneStrategy(true, DeciderBuilder
+    private final SupervisorStrategy supervisorStrategy = new OneForOneStrategy(true, DeciderBuilder
             .match(NullPointerException.class, e -> SupervisorStrategy.restart())
             .match(ActorKilledException.class, e -> SupervisorStrategy.stop())
             .matchAny(e -> SupervisorStrategy.escalate())
@@ -137,7 +138,10 @@ public final class PolicySupervisorActor extends AbstractActor {
         receiveStrategies.forEach(strategyAwareReceiveBuilder::match);
         strategyAwareReceiveBuilder.matchAny(new MatchAnyStrategy());
 
-        return shutdownBehaviour.createReceive().build().orElse(strategyAwareReceiveBuilder.build());
+        return shutdownBehaviour.createReceive()
+                .matchEquals(Control.PASSIVATE, this::passivate)
+                .build()
+                .orElse(strategyAwareReceiveBuilder.build());
     }
 
     private void startChild() {
@@ -146,6 +150,10 @@ public final class PolicySupervisorActor extends AbstractActor {
             final ActorRef childRef = getContext().actorOf(persistenceActorProps, "pa");
             child = getContext().watch(childRef);
         }
+    }
+
+    private void passivate(final Control passivationTrigger) {
+        getContext().getParent().tell(new ShardRegion.Passivate(PoisonPill.getInstance()), getSelf());
     }
 
     /**
@@ -267,6 +275,10 @@ public final class PolicySupervisorActor extends AbstractActor {
             }
         }
 
+    }
+
+    enum Control {
+        PASSIVATE
     }
 
 }

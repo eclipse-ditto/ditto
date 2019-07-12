@@ -223,7 +223,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                     .withEnforcement(headerEnforcementFilterFactory.getFilter(headers)).withHeaderMapping(headerMapping)
                     .withSourceAddress(sourceAddress)
                     .build();
-            inboundCounter.recordSuccess();
+            inboundMonitor.success(externalMessage);
 
             LogUtil.enhanceLogWithCorrelationId(log,
                     externalMessage.findHeader(DittoHeaderDefinition.CORRELATION_ID.getKey()));
@@ -234,17 +234,24 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
             final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(externalMessage, hashKey);
             messageMappingProcessor.forward(msg, getContext());
         } catch (final DittoRuntimeException e) {
-            inboundCounter.recordFailure();
             log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());
             if (headers != null) {
                 // forwarding to messageMappingProcessor only make sense if we were able to extract the headers,
                 // because we need a reply-to address to send the error response
+                inboundMonitor.failure(headers, e);
                 final Object msg = new ConsistentHashingRouter.ConsistentHashableEnvelope(
                         e.setDittoHeaders(DittoHeaders.of(headers)), hashKey);
                 messageMappingProcessor.forward(msg, getContext());
+            } else {
+                inboundMonitor.failure(e);
             }
         } catch (final Exception e) {
-            inboundCounter.recordFailure();
+            if (null != headers) {
+                inboundMonitor.exception(headers, e);
+            } else {
+                inboundMonitor.exception(e);
+            }
+
             log.error(e, "Unexpected {}: {}", e.getClass().getName(), e.getMessage());
         } finally {
             try {
