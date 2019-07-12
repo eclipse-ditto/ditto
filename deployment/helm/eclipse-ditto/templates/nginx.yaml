@@ -8,22 +8,29 @@ metadata:
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
+{{- if .Values.service.loadBalancerIP.enabled }}
+  loadBalancerIP: {{ .Values.service.loadBalancerIP.address }}
+{{- end }}
   ports:
     - port: {{ .Values.service.port }}
       targetPort: 80
       protocol: TCP
   type: {{ .Values.service.type }}
   selector:
-    app: nginx
+    app: {{ .Values.nginx.name }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nginx
+  name: {{ .Values.nginx.name }}
   labels:
-    app: nginx
-    app.kubernetes.io/name: nginx
+    app: {{ .Values.nginx.name }}
+    app.kubernetes.io/name: {{ .Values.nginx.name }}
     app.kubernetes.io/part-of: {{ .Chart.Name }}
     app.kubernetes.io/version: "{{ .Values.nginx.version }}"
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
@@ -32,15 +39,15 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: nginx
+      app: {{ .Values.nginx.name }}
   replicas: {{ .Values.nginx.replicaCount }}
   template:
     metadata:
       labels:
-        app: nginx
+        app: {{ .Values.nginx.name }}
     spec:
       containers:
-        - name: nginx
+        - name: {{ .Values.nginx.name }}
           image: docker.io/nginx:{{ .Values.nginx.version }}-alpine
           volumeMounts:
             - name: nginx-conf
