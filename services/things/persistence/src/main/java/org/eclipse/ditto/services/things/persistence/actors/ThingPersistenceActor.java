@@ -410,10 +410,10 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
 
             lastSnapshotRevision = revision;
         } else if (lastSnapshotRevision == revision) {
-            log.info("Not taking duplicate snapshot for thing <{}> with revision <{}> even if {}.", thing, revision,
+            log.debug("Not taking duplicate snapshot for thing <{}> with revision <{}> even if {}.", thing, revision,
                     reason);
         } else {
-            log.info("Not taking snapshot for nonexistent thing <{}> even if {}.", thingId, reason);
+            log.debug("Not taking snapshot for nonexistent thing <{}> even if {}.", thingId, reason);
         }
     }
 
