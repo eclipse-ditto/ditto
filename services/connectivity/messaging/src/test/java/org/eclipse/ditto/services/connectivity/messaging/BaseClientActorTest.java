@@ -289,7 +289,7 @@ public final class BaseClientActorTest {
         }
 
         @Override
-        protected ActorRef getPublisherActor() {
+        protected Optional<ActorRef> getPublisherActor() {
             LOGGER.info("getPublisherActor");
             return delegate.getPublisherActor();
         }
