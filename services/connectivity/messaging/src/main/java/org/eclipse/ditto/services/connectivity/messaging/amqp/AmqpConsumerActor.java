@@ -185,6 +185,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
             return new ThrottleState(interval, nextMessages);
         });
         if (state.currentMessagePerInterval >= throttlingLimit) {
+            // TODO: add monitoring logs after merge
             log.info("Stopping message consumer, message limit of {}/{} exceeded.", throttlingLimit,
                     throttlingInterval);
             ((JmsMessageConsumer) messageConsumer).stop();

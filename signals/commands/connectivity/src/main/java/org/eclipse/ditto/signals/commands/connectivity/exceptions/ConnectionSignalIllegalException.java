@@ -14,6 +14,7 @@ package org.eclipse.ditto.signals.commands.connectivity.exceptions;
 
 import java.net.URI;
 import java.text.MessageFormat;
+import java.time.Duration;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -127,14 +128,25 @@ public final class ConnectionSignalIllegalException extends DittoRuntimeExceptio
         /**
          * Set description to after how many seconds the user should attempt the command again.
          *
+         * @param timeoutInSeconds timeout of the current connection operation in seconds.
+         * @return this builder.
+         */
+        public Builder timeout(final long timeoutInSeconds) {
+            final String timeoutUnit = timeoutInSeconds == 1 ? "second" : "seconds";
+            description(MessageFormat.format(OPERATING_DESCRIPTION_TEMPLATE, timeoutInSeconds, timeoutUnit));
+            return this;
+        }
+
+        /**
+         * Set description to after how many seconds the user should attempt the command again.
+         *
          * @param timeout timeout of the current connection operation in seconds.
          * @return this builder.
          */
-        public Builder timeout(final int timeout) {
-            final String timeoutUnit = timeout == 1 ? "second" : "seconds";
-            description(MessageFormat.format(OPERATING_DESCRIPTION_TEMPLATE, timeout, timeoutUnit));
-            return this;
+        public Builder timeout(final Duration timeout) {
+            return timeout(timeout.getSeconds());
         }
+
 
         /**
          * Set message to about a signal arriving when the connection state does not handle it.
