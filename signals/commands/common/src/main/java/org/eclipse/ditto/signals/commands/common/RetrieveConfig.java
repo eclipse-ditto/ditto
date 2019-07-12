@@ -45,7 +45,7 @@ public final class RetrieveConfig extends CommonCommand<RetrieveConfig> {
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private static final JsonFieldDefinition<String> PATH = JsonFactory.newStringFieldDefinition("path");
+    private static final JsonFieldDefinition<String> JSON_PATH = JsonFactory.newStringFieldDefinition("path");
 
     @Nullable
     private final String path;
@@ -89,7 +89,7 @@ public final class RetrieveConfig extends CommonCommand<RetrieveConfig> {
             final Predicate<JsonField> predicate) {
 
         if (path != null) {
-            jsonObjectBuilder.set(PATH, path);
+            jsonObjectBuilder.set(JSON_PATH, path);
         }
     }
 
@@ -107,7 +107,7 @@ public final class RetrieveConfig extends CommonCommand<RetrieveConfig> {
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      */
     public static RetrieveConfig fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        final String path = jsonObject.getValue(PATH).orElse(null);
+        final String path = jsonObject.getValue(JSON_PATH).orElse(null);
         return new RetrieveConfig(path, dittoHeaders);
     }
 
@@ -128,6 +128,8 @@ public final class RetrieveConfig extends CommonCommand<RetrieveConfig> {
 
     @Override
     public String toString() {
-        return "RetrieveConfig[path=" + path + "," + super.toString() + "]";
+        return getClass().getSimpleName() + " [" + super.toString() +
+                ", path=" + path +
+                "]";
     }
 }

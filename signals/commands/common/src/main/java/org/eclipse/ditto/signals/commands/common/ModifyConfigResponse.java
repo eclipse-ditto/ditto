@@ -36,7 +36,8 @@ public final class ModifyConfigResponse extends CommonCommandResponse<ModifyConf
      */
     public static final String TYPE = TYPE_PREFIX + ModifyConfig.NAME;
 
-    private static final JsonFieldDefinition<JsonObject> CONFIG = JsonFactory.newJsonObjectFieldDefinition("config");
+    private static final JsonFieldDefinition<JsonObject> JSON_CONFIG =
+            JsonFactory.newJsonObjectFieldDefinition("config");
 
     private final JsonObject config;
 
@@ -66,14 +67,14 @@ public final class ModifyConfigResponse extends CommonCommandResponse<ModifyConf
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the JSON object does not contain the field "config".
      */
     public static ModifyConfigResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new ModifyConfigResponse(jsonObject.getValueOrThrow(CONFIG), dittoHeaders);
+        return new ModifyConfigResponse(jsonObject.getValueOrThrow(JSON_CONFIG), dittoHeaders);
     }
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicate) {
 
-        jsonObjectBuilder.set(CONFIG, config);
+        jsonObjectBuilder.set(JSON_CONFIG, config);
     }
 
     @Override
@@ -94,5 +95,12 @@ public final class ModifyConfigResponse extends CommonCommandResponse<ModifyConf
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), config);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" + super.toString() +
+                ", config=" + config +
+                "]";
     }
 }

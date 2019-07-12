@@ -51,7 +51,7 @@ public final class ShutdownReasonFactory {
         } else if (ShutdownReasonType.Known.PURGE_ENTITIES.equals(type)) {
             return PurgeEntitiesReason.fromJson(jsonObject);
         } else {
-            return NoReason.INSTANCE;
+            return ShutdownNoReason.INSTANCE;
         }
     }
 

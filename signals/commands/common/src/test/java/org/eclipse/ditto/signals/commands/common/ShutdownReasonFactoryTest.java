@@ -74,7 +74,7 @@ public final class ShutdownReasonFactoryTest {
                 .build();
 
 
-        assertThat(ShutdownReasonFactory.fromJson(jsonObject)).isEqualTo(NoReason.INSTANCE);
+        assertThat(ShutdownReasonFactory.fromJson(jsonObject)).isEqualTo(ShutdownNoReason.INSTANCE);
     }
 
     @Test
@@ -83,7 +83,7 @@ public final class ShutdownReasonFactoryTest {
                 .set(ShutdownReason.JsonFields.TYPE, "fooBar")
                 .build();
 
-        assertThat(ShutdownReasonFactory.fromJson(shutdownReasonWithUnknownType)).isEqualTo(NoReason.INSTANCE);
+        assertThat(ShutdownReasonFactory.fromJson(shutdownReasonWithUnknownType)).isEqualTo(ShutdownNoReason.INSTANCE);
     }
 
 }

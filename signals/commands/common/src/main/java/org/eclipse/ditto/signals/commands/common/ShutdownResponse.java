@@ -37,7 +37,8 @@ public final class ShutdownResponse extends CommonCommandResponse<ShutdownRespon
      */
     public static final String TYPE = TYPE_PREFIX + Shutdown.NAME;
 
-    private static final JsonFieldDefinition<JsonValue> MESSAGE = JsonFactory.newJsonValueFieldDefinition("message");
+    private static final JsonFieldDefinition<JsonValue> JSON_MESSAGE =
+            JsonFactory.newJsonValueFieldDefinition("message");
 
     private final JsonValue message;
 
@@ -67,14 +68,14 @@ public final class ShutdownResponse extends CommonCommandResponse<ShutdownRespon
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the JSON object does not contain the field "config".
      */
     public static ShutdownResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new ShutdownResponse(jsonObject.getValueOrThrow(MESSAGE), dittoHeaders);
+        return new ShutdownResponse(jsonObject.getValueOrThrow(JSON_MESSAGE), dittoHeaders);
     }
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicate) {
 
-        jsonObjectBuilder.set(MESSAGE, message);
+        jsonObjectBuilder.set(JSON_MESSAGE, message);
     }
 
     @Override
@@ -99,6 +100,9 @@ public final class ShutdownResponse extends CommonCommandResponse<ShutdownRespon
 
     @Override
     public String toString() {
-        return "ShutdownResponse[message=" + message + "," + super.toString() + "]";
+        return getClass().getSimpleName() + " [" +
+                super.toString() +
+                ", message=" + message +
+                "]";
     }
 }

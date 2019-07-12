@@ -37,7 +37,7 @@ public final class RetrieveConfigResponse extends CommonCommandResponse<Retrieve
      */
     public static final String TYPE = TYPE_PREFIX + RetrieveConfig.NAME;
 
-    private static final JsonFieldDefinition<JsonValue> CONFIG = JsonFactory.newJsonValueFieldDefinition("config");
+    private static final JsonFieldDefinition<JsonValue> JSON_CONFIG = JsonFactory.newJsonValueFieldDefinition("config");
 
     private final JsonValue config;
 
@@ -67,14 +67,14 @@ public final class RetrieveConfigResponse extends CommonCommandResponse<Retrieve
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the JSON object does not contain the field "config".
      */
     public static RetrieveConfigResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new RetrieveConfigResponse(jsonObject.getValueOrThrow(CONFIG), dittoHeaders);
+        return new RetrieveConfigResponse(jsonObject.getValueOrThrow(JSON_CONFIG), dittoHeaders);
     }
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicate) {
 
-        jsonObjectBuilder.set(CONFIG, config);
+        jsonObjectBuilder.set(JSON_CONFIG, config);
     }
 
     @Override
@@ -99,6 +99,8 @@ public final class RetrieveConfigResponse extends CommonCommandResponse<Retrieve
 
     @Override
     public String toString() {
-        return "RetrieveConfigResponse[config=" + config + "," + super.toString() + "]";
+        return getClass().getSimpleName() + " [" + super.toString() +
+                ", config=" + config +
+                "]";
     }
 }

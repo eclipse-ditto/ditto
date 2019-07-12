@@ -141,6 +141,14 @@ public final class Shutdown extends CommonCommand<Shutdown> {
         return Objects.hash(super.hashCode(), reason);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                super.toString() +
+                ", reason=" + reason +
+                "]";
+    }
+
     /**
      * This class contains definitions for all specific fields of a {@code ShutdownCommand}'s JSON representation.
      */
@@ -154,14 +162,6 @@ public final class Shutdown extends CommonCommand<Shutdown> {
             throw new AssertionError();
         }
 
-    }
-
-    @Override
-    public String toString() {
-        return getClass().getSimpleName() + " [" +
-                super.toString() +
-                ", reason=" + reason +
-                "]";
     }
 
 }

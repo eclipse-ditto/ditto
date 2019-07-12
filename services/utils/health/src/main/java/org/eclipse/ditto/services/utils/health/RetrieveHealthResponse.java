@@ -39,7 +39,7 @@ public final class RetrieveHealthResponse extends AbstractCommandResponse<Retrie
     /**
      * Type of this response.
      */
-    public static final String TYPE = "status.responses:" + RetrieveHealth.NAME;
+    public static final String TYPE = "status." + TYPE_QUALIFIER + ":" + RetrieveHealth.NAME;
 
     /**
      * Json field of the StatusInfo-payload.
@@ -130,7 +130,7 @@ public final class RetrieveHealthResponse extends AbstractCommandResponse<Retrie
 
     @Override
     public String toString() {
-        return "RetrieveHealthResponse[statusInfo=" + statusInfo + ", dittoHeaders=" + getDittoHeaders() + "]";
+        return getClass().getSimpleName() + " [" + super.toString() + ", statusInfo=" + statusInfo + "]";
     }
 
     private static HttpStatusCode toHttpStatusCode(final StatusInfo.Status status) {

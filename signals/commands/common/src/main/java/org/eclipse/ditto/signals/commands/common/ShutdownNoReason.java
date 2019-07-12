@@ -25,14 +25,14 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  * Placeholder class for the lack of any shutdown reason.
  */
 @Immutable
-final class NoReason implements ShutdownReason {
+final class ShutdownNoReason implements ShutdownReason {
 
     /**
      * The unique instance of this class.
      */
-    static final NoReason INSTANCE = new NoReason();
+    static final ShutdownNoReason INSTANCE = new ShutdownNoReason();
 
-    private NoReason() {}
+    private ShutdownNoReason() {}
 
     @Override
     public ShutdownReasonType getType() {

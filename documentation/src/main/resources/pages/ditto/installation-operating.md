@@ -539,7 +539,7 @@ Response example:
 
 Send a cleanup command by piggyback to the entity's service and shard region to trigger removal of stale events and
 snapshots manually. Here is an example for things. Change the service name and shard region name accordingly for
-policies and connections. Typically `INSTANCE_INDEX=1`.
+policies and connections. Typically in a docker based environment, use `INSTANCE_INDEX=1`.
 
 
 `POST /devops/piggygack/things/<INSTANCE_INDEX>?timeout=10000`
@@ -551,7 +551,7 @@ policies and connections. Typically `INSTANCE_INDEX=1`.
     "aggregate": false
   },
   "piggybackCommand": {
-    "type": "cleanup.commands:cleanup",
+    "type": "cleanup.commands:cleanupPersistence",
     "entityId": "ditto:thing1"
   }
 }
@@ -563,7 +563,7 @@ Response example:
 {
   "?": {
     "?": {
-      "type": "cleanup.responses:cleanup",
+      "type": "cleanup.responses:cleanupPersistence",
       "status": 200,
       "entityId": "thing:ditto:thing1"
     }

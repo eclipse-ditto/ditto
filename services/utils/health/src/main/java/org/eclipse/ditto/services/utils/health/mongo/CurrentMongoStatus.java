@@ -12,39 +12,37 @@
  */
 package org.eclipse.ditto.services.utils.health.mongo;
 
-import java.io.Serializable;
 import java.util.Objects;
 import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
 /**
- * Response to the {@link RetrieveMongoStatus} command.
+ * Reflects the currently determined MongoDB health status.
+ * Whether {@code alive} or not including a description.
  */
 @Immutable
-public final class RetrieveMongoStatusResponse implements Serializable {
-
-    private static final long serialVersionUID = 1L;
+public final class CurrentMongoStatus {
 
     private final boolean alive;
     private final String description;
 
     /**
-     * Constructs a new {@code RetrieveMongoStatusResponse} object.
+     * Constructs a new {@code CurrentMongoStatus} object.
      *
      * @param alive indicates whether the Persistence is alive.
      */
-    public RetrieveMongoStatusResponse(final boolean alive) {
+    public CurrentMongoStatus(final boolean alive) {
         this(alive, null);
     }
 
     /**
-     * Constructs a new {@code RetrieveMongoStatusResponse} object.
+     * Constructs a new {@code CurrentMongoStatus} object.
      *
      * @param alive indicates whether the Persistence is alive.
      * @param description an optional description why it is alive/not alive.
      */
-    public RetrieveMongoStatusResponse(final boolean alive, final String description) {
+    public CurrentMongoStatus(final boolean alive, final String description) {
         this.alive = alive;
         this.description = description;
     }
@@ -75,7 +73,7 @@ public final class RetrieveMongoStatusResponse implements Serializable {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final RetrieveMongoStatusResponse that = (RetrieveMongoStatusResponse) o;
+        final CurrentMongoStatus that = (CurrentMongoStatus) o;
         return alive == that.alive && Objects.equals(description, that.description);
     }
 

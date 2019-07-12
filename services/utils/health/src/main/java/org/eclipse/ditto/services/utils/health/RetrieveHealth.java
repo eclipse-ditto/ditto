@@ -35,7 +35,7 @@ public final class RetrieveHealth extends AbstractCommand<RetrieveHealth> {
     /**
      * Type prefix of this command.
      */
-    public static final String TYPE_PREFIX = "status.commands:";
+    public static final String TYPE_PREFIX = "status." + TYPE_QUALIFIER + ":";
 
     /**
      * Name of this command.
@@ -110,4 +110,10 @@ public final class RetrieveHealth extends AbstractCommand<RetrieveHealth> {
         // no resource type
         return "";
     }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" + super.toString() + "]";
+    }
+
 }
