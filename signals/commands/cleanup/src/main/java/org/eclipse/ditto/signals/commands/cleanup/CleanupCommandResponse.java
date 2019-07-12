@@ -20,10 +20,15 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
+/**
+ * Aggregates all possible responses relating to a given {@link CleanupCommand}.
+ *
+ * @param <T> the type of the implementing class.
+ */
 public interface CleanupCommandResponse<T extends CleanupCommandResponse> extends CommandResponse<T> {
 
     /**
-     * Type Prefix of Thing commands.
+     * Type Prefix of Cleanup command responses.
      */
     String TYPE_PREFIX = "cleanup." + TYPE_QUALIFIER + ":";
 
@@ -47,6 +52,9 @@ public interface CleanupCommandResponse<T extends CleanupCommandResponse> extend
         return JsonPointer.empty();
     }
 
+    /**
+     * @return the entity ID for which snapshots and journal entries for in the database were cleaned up.
+     */
     String getEntityId();
 
     /**

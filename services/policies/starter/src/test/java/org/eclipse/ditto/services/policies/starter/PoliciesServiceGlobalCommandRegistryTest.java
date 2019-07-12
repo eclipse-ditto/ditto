@@ -17,7 +17,7 @@ import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.utils.health.RetrieveHealth;
 import org.eclipse.ditto.services.utils.test.GlobalCommandRegistryTestCases;
-import org.eclipse.ditto.signals.commands.cleanup.Cleanup;
+import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
 import org.eclipse.ditto.signals.commands.common.purge.PurgeEntities;
 import org.eclipse.ditto.signals.commands.devops.ExecutePiggybackCommand;
@@ -43,7 +43,7 @@ public class PoliciesServiceGlobalCommandRegistryTest extends GlobalCommandRegis
                 PurgeNamespace.class,
                 RetrieveResource.class,
                 DeleteSubject.class,
-                Cleanup.class,
+                CleanupPersistence.class,
                 RetrieveHealth.class,
                 PurgeEntities.class
         );

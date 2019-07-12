@@ -23,8 +23,8 @@ import java.util.stream.IntStream;
 
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.signals.commands.cleanup.Cleanup;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupCommandResponse;
+import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -40,6 +40,9 @@ import akka.japi.Creator;
 import akka.persistence.SaveSnapshotSuccess;
 import akka.testkit.javadsl.TestKit;
 
+/**
+ * Tests {@link AbstractPersistentActorWithTimersAndCleanup}.
+ */
 @SuppressWarnings("NullableProblems")
 public class AbstractPersistentActorWithTimersAndCleanupTest {
 
@@ -69,7 +72,7 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
             modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 10);
 
             // WHEN: cleanup is sent
-            persistenceActor.tell(Cleanup.of(persistenceId(), DittoHeaders.empty()), getRef());
+            persistenceActor.tell(CleanupPersistence.of(persistenceId(), DittoHeaders.empty()), getRef());
 
             // THEN: command is successful and plugin is called
             final CleanupCommandResponse cleanupCommandResponse = expectMsgClass(CleanupCommandResponse.class);
@@ -86,7 +89,7 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
             modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 10);
 
             // WHEN: cleanup is sent
-            persistenceActor.tell(Cleanup.of(persistenceId(), DittoHeaders.empty()), getRef());
+            persistenceActor.tell(CleanupPersistence.of(persistenceId(), DittoHeaders.empty()), getRef());
 
             // THEN: command is successful and plugin is called
             final CleanupCommandResponse cleanupCommandResponse = expectMsgClass(CleanupCommandResponse.class);
@@ -103,7 +106,7 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
 
             modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 8);
 
-            persistenceActor.tell(Cleanup.of(FAIL_DELETE_MESSAGE, DittoHeaders.empty()), getRef());
+            persistenceActor.tell(CleanupPersistence.of(FAIL_DELETE_MESSAGE, DittoHeaders.empty()), getRef());
             final CleanupCommandResponse cleanupCommandResponse = expectMsgClass(CleanupCommandResponse.class);
 
             assertThat(cleanupCommandResponse.getStatusCode()).isEqualTo(HttpStatusCode.INTERNAL_SERVER_ERROR);
@@ -120,7 +123,7 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
             modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 5);
 
             // WHEN: cleanup is sent
-            persistenceActor.tell(Cleanup.of(FAIL_DELETE_SNAPSHOT, DittoHeaders.empty()), getRef());
+            persistenceActor.tell(CleanupPersistence.of(FAIL_DELETE_SNAPSHOT, DittoHeaders.empty()), getRef());
 
             // THEN: expect success response with correct status and persistence plugin is called
             final CleanupCommandResponse cleanupCommandResponse = expectMsgClass(CleanupCommandResponse.class);
@@ -137,12 +140,12 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
             modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 20);
 
             // WHEN: cleanup is sent
-            persistenceActor.tell(Cleanup.of(persistenceId(), DittoHeaders.empty()), getRef());
+            persistenceActor.tell(CleanupPersistence.of(persistenceId(), DittoHeaders.empty()), getRef());
             final CleanupCommandResponse response1 = expectMsgClass(CleanupCommandResponse.class);
             assertThat(response1.getStatusCode()).isEqualTo(HttpStatusCode.OK);
 
             // and entity is not changed in the meantime
-            persistenceActor.tell(Cleanup.of(persistenceId(), DittoHeaders.empty()), getRef());
+            persistenceActor.tell(CleanupPersistence.of(persistenceId(), DittoHeaders.empty()), getRef());
             final CleanupCommandResponse response2 = expectMsgClass(CleanupCommandResponse.class);
             assertThat(response2.getStatusCode()).isEqualTo(HttpStatusCode.OK);
 
@@ -159,8 +162,8 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
             modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 10);
 
             // WHEN: concurrent cleanup is sent
-            persistenceActor.tell(Cleanup.of(SLOW_DELETE, DittoHeaders.empty()), getRef());
-            persistenceActor.tell(Cleanup.of(SLOW_DELETE, DittoHeaders.empty()), getRef());
+            persistenceActor.tell(CleanupPersistence.of(SLOW_DELETE, DittoHeaders.empty()), getRef());
+            persistenceActor.tell(CleanupPersistence.of(SLOW_DELETE, DittoHeaders.empty()), getRef());
             final CleanupCommandResponse cleanupFailed =
                     expectMsgClass(Duration.ofSeconds(10), CleanupCommandResponse.class);
 
@@ -178,7 +181,7 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
             modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 10);
 
             // WHEN: cleanup command is sent
-            persistenceActor.tell(Cleanup.of(persistenceId(), DittoHeaders.empty()), getRef());
+            persistenceActor.tell(CleanupPersistence.of(persistenceId(), DittoHeaders.empty()), getRef());
 
             // THEN: command is successful
             final CleanupCommandResponse cleanupCommandResponse1 = expectMsgClass(CleanupCommandResponse.class);
@@ -186,7 +189,7 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
 
             // WHEN: more updates occur and another cleanup command is sent
             modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 10);
-            persistenceActor.tell(Cleanup.of(persistenceId(), DittoHeaders.empty()), getRef());
+            persistenceActor.tell(CleanupPersistence.of(persistenceId(), DittoHeaders.empty()), getRef());
 
             // THEN: command is successful and deletes are executed with correct seq number
             final CleanupCommandResponse cleanupCommandResponse2 = expectMsgClass(CleanupCommandResponse.class);

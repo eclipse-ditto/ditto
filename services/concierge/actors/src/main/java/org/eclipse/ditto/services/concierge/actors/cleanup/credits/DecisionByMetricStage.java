@@ -16,12 +16,11 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
-import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.services.concierge.actors.cleanup.messages.CreditDecision;
 import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
-import org.eclipse.ditto.services.utils.persistence.mongo.MongoMetricsReporter;
+import org.eclipse.ditto.services.utils.persistence.mongo.MongoMetrics;
 
 import akka.NotUsed;
 import akka.stream.FanOutShape2;
@@ -50,6 +49,26 @@ import scala.util.Right;
  */
 final class DecisionByMetricStage {
 
+    private DecisionByMetricStage() {
+        throw new AssertionError();
+    }
+
+    /**
+     * Creates the decision by metric stage - whenever a message (as a list of {@link StatusInfo}) triggers the stage,
+     * <ul>
+     * <li>the max time is determined from the {@code maxTimerNanos} from {@link StatusInfo} is determined</li>
+     * <li>based in that max time a {@link CreditDecision} is made based on the passed {@code timerThreshold}</li>
+     * <li>if the extracted max time from {@link StatusInfo} is lesser than the passed in {@code timerThreshold},
+     * a positive {@link CreditDecision} is emitted to the outlet with the passed in {@code creditPerBatch}</li>
+     * <li>if the extracted max time from {@link StatusInfo} is greater than the passed {@code timerThreshold},
+     * a negative {@link CreditDecision} is emitted to the outlet</li>
+     * </ul>
+     *
+     * @param timerThreshold the duration defining the threshold below which a positive {@link CreditDecision} is
+     * emitted by this stage.
+     * @param creditPerBatch the batch credit which will be included in a positive {@link CreditDecision}.
+     * @return the created decision by metric stage.
+     */
     static Graph<FlowShape<List<StatusInfo>, CreditDecision>, NotUsed> create(final Duration timerThreshold,
             final int creditPerBatch) {
 
@@ -102,17 +121,15 @@ final class DecisionByMetricStage {
         if (!detail.isObject()) {
             return left("StatusDetailMessage is not an object: " + statusInfo);
         }
-        final Optional<JsonArray> maxTimerNanos = detail.asObject().getValue(MongoMetricsReporter.MAX_TIMER_NANOS);
-        if (!maxTimerNanos.isPresent()) {
-            return left("Field maxTimerNanos not found in status detail: " + statusInfo);
+
+        final List<Long> maxTimerNanos = MongoMetrics.fromJson(detail.asObject()).getMaxTimerNanos();
+
+        // extract max long value
+        final Optional<Long> max = maxTimerNanos.stream().max(Long::compareTo);
+        if (!max.isPresent()) {
+            return left("Field maxTimerNanos not found or empty in status detail: " + statusInfo);
         }
-        // extract long value from array. Array is empty if the metrics reporter never recorded any timer.
-        final JsonValue maxTimerNanosValue = maxTimerNanos.get().get(0).orElse(JsonValue.of(0L));
-        if (!maxTimerNanosValue.isLong()) {
-            return left("First value of maxTimerNanos is not a Long: " + statusInfo);
-        } else {
-            return new Right<>(maxTimerNanosValue.asLong());
-        }
+        return new Right<>(max.get());
     }
 
     private static Either<CreditDecision, Long> left(final String explanation) {

@@ -130,7 +130,7 @@ public final class RetrieveHealthResponse extends AbstractCommandResponse<Retrie
 
     @Override
     public String toString() {
-        return "RetrieveHealthResponse[statusInfo=" + statusInfo + ",dittoHeaders=" + getDittoHeaders() + "]";
+        return "RetrieveHealthResponse[statusInfo=" + statusInfo + ", dittoHeaders=" + getDittoHeaders() + "]";
     }
 
     private static HttpStatusCode toHttpStatusCode(final StatusInfo.Status status) {

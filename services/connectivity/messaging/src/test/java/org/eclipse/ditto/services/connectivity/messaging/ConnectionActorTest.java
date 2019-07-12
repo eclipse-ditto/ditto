@@ -33,8 +33,8 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.cleanup.Cleanup;
-import org.eclipse.ditto.signals.commands.cleanup.CleanupResponse;
+import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
+import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistenceResponse;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnavailableException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
@@ -579,9 +579,9 @@ public final class ConnectionActorTest extends WithMockServers {
             expectMsg(createConnectionResponse);
 
             // send cleanup command
-            underTest.tell(Cleanup.of(ConnectionActor.PERSISTENCE_ID_PREFIX + connectionId, DittoHeaders.empty()),
+            underTest.tell(CleanupPersistence.of(ConnectionActor.PERSISTENCE_ID_PREFIX + connectionId, DittoHeaders.empty()),
                     getRef());
-            expectMsg(CleanupResponse.success(ConnectionActor.PERSISTENCE_ID_PREFIX + connectionId,
+            expectMsg(CleanupPersistenceResponse.success(ConnectionActor.PERSISTENCE_ID_PREFIX + connectionId,
                     DittoHeaders.empty()));
         }};
     }

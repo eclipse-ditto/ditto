@@ -31,35 +31,45 @@ import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
 /**
- * Response to a {@link Cleanup} command.
+ * Response to a {@link CleanupPersistence} command.
  */
 @Immutable
-@JsonParsableCommandResponse(type = CleanupResponse.TYPE)
-public class CleanupResponse extends AbstractCommandResponse<CleanupResponse> implements CleanupCommandResponse<CleanupResponse> {
+@JsonParsableCommandResponse(type = CleanupPersistenceResponse.TYPE)
+public final class CleanupPersistenceResponse
+        extends AbstractCommandResponse<CleanupPersistenceResponse> implements CleanupCommandResponse<CleanupPersistenceResponse> {
 
     /**
-     * Type prefix of NamespaceCommand responses.
+     * The type of the {@code CleanupCommandResponse}.
      */
-    protected static final String TYPE_PREFIX = "cleanup." + TYPE_QUALIFIER + ":";
-
-    /**
-     * The type of the {@code Cleanup} command.
-     */
-    public static final String TYPE = TYPE_PREFIX + Cleanup.NAME;
+    public static final String TYPE = TYPE_PREFIX + CleanupPersistence.NAME;
 
     private final String entityId;
 
-    private CleanupResponse(final String entityId, final HttpStatusCode statusCode, final DittoHeaders dittoHeaders) {
+    private CleanupPersistenceResponse(final String entityId, final HttpStatusCode statusCode, final DittoHeaders dittoHeaders) {
         super(TYPE, statusCode, dittoHeaders);
         this.entityId = ConditionChecker.checkNotNull(entityId, "entityId");
     }
 
-    public static CleanupResponse success(final String entityId, final DittoHeaders dittoHeaders) {
-        return new CleanupResponse(entityId, HttpStatusCode.OK, dittoHeaders);
+    /**
+     * Returns a CleanupPersistenceResponse for a successfully cleanup {@code entityId}.
+     *
+     * @param entityId the entity's ID which should be cleaned up.
+     * @param dittoHeaders the headers of the response.
+     * @return a command response for cleanupPersistence.
+     */
+    public static CleanupPersistenceResponse success(final String entityId, final DittoHeaders dittoHeaders) {
+        return new CleanupPersistenceResponse(entityId, HttpStatusCode.OK, dittoHeaders);
     }
 
-    public static CleanupResponse failure(final String entityId, final DittoHeaders dittoHeaders) {
-        return new CleanupResponse(entityId, HttpStatusCode.INTERNAL_SERVER_ERROR, dittoHeaders);
+    /**
+     * Returns a CleanupPersistenceResponse for a failed cleanup {@code entityId}.
+     *
+     * @param entityId the entity's ID which should be cleaned up.
+     * @param dittoHeaders the headers of the response.
+     * @return a command response for cleanupPersistence.
+     */
+    public static CleanupPersistenceResponse failure(final String entityId, final DittoHeaders dittoHeaders) {
+        return new CleanupPersistenceResponse(entityId, HttpStatusCode.INTERNAL_SERVER_ERROR, dittoHeaders);
     }
 
     @Override
@@ -68,8 +78,8 @@ public class CleanupResponse extends AbstractCommandResponse<CleanupResponse> im
     }
 
     @Override
-    public CleanupResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new CleanupResponse(this.getId(), this.getStatusCode(), dittoHeaders);
+    public CleanupPersistenceResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new CleanupPersistenceResponse(this.getId(), this.getStatusCode(), dittoHeaders);
     }
 
     @Override
@@ -84,9 +94,9 @@ public class CleanupResponse extends AbstractCommandResponse<CleanupResponse> im
     }
 
     /**
-     * Creates a new {@code CleanupResponse} from the given JSON object.
+     * Creates a new {@code CleanupPersistenceResponse} from the given JSON object.
      *
-     * @param jsonObject the JSON object of which the CleanupResponse is to be created.
+     * @param jsonObject the JSON object of which the CleanupPersistenceResponse is to be created.
      * @param dittoHeaders the headers.
      * @return the command.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
@@ -95,19 +105,26 @@ public class CleanupResponse extends AbstractCommandResponse<CleanupResponse> im
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static CleanupResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<CleanupResponse>(TYPE, jsonObject).deserialize(
-                (statusCode) -> new CleanupResponse(jsonObject.getValueOrThrow(CleanupCommandResponse.JsonFields.ENTITY_ID),
+    public static CleanupPersistenceResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandResponseJsonDeserializer<CleanupPersistenceResponse>(TYPE, jsonObject).deserialize(statusCode ->
+                new CleanupPersistenceResponse(jsonObject.getValueOrThrow(CleanupCommandResponse.JsonFields.ENTITY_ID),
                         statusCode,
-                        dittoHeaders));
+                        dittoHeaders)
+        );
     }
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
-        final CleanupResponse that = (CleanupResponse) o;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
+        final CleanupPersistenceResponse that = (CleanupPersistenceResponse) o;
         return entityId.equals(that.entityId);
     }
 
@@ -118,7 +135,7 @@ public class CleanupResponse extends AbstractCommandResponse<CleanupResponse> im
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return other instanceof CleanupResponse;
+        return other instanceof CleanupPersistenceResponse;
     }
 
     @Override

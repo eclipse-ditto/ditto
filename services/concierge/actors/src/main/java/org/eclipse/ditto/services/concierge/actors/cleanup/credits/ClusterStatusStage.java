@@ -49,12 +49,29 @@ final class ClusterStatusStage {
 
     private static final List<String> EXPECTED_ROLES = Arrays.asList("connectivity", "policies", "things");
 
+    private ClusterStatusStage() {
+        throw new AssertionError();
+    }
+
+    /**
+     * Creates the cluster status stage - whenever a message (tick) triggers the stage,
+     * <ul>
+     * <li>the ClusterStatus is determined</li>
+     * <li>it is checked that all members are reachable and all {@link #EXPECTED_ROLES} are present</li>
+     * <li>when everything is healthy, in outlet 0 the number of instances of the expected roles will be emitted</li>
+     * <li>when anything is not health, in outlet 1 a {@link CreditDecision} with rejection is emitted</li>
+     * </ul>
+     *
+     * @param actorSystem the ActorSystem to determine the cluster from
+     * @param <T> the type of the tick messages
+     * @return the created cluster status stage.
+     */
     static <T> Graph<FanOutShape2<T, Integer, CreditDecision>, NotUsed> create(
             final ActorSystem actorSystem) {
         return create(new ClusterStatusSupplier(Cluster.get(actorSystem)));
     }
 
-    static <T> Graph<FanOutShape2<T, Integer, CreditDecision>, NotUsed> create(
+    private static <T> Graph<FanOutShape2<T, Integer, CreditDecision>, NotUsed> create(
             final ClusterStatusSupplier clusterStatusSupplier) {
 
         return GraphDSL.create(builder -> {

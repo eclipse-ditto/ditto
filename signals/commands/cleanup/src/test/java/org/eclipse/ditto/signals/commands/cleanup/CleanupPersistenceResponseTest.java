@@ -26,13 +26,13 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link CleanupResponse}.
+ * Unit test for {@link CleanupPersistenceResponse}.
  */
-public class CleanupResponseTest {
+public class CleanupPersistenceResponseTest {
 
     private static final String ID = "thing:eclipse:ditto";
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
-            .set(CommandResponse.JsonFields.TYPE, CleanupResponse.TYPE)
+            .set(CommandResponse.JsonFields.TYPE, CleanupPersistenceResponse.TYPE)
             .set(CleanupCommandResponse.JsonFields.ENTITY_ID, ID)
             .set(CommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
             .build();
@@ -40,12 +40,12 @@ public class CleanupResponseTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(CleanupResponse.class, areImmutable());
+        assertInstancesOf(CleanupPersistenceResponse.class, areImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(CleanupResponse.class)
+        EqualsVerifier.forClass(CleanupPersistenceResponse.class)
                 .usingGetClass()
                 .withRedefinedSuperclass()
                 .verify();
@@ -53,14 +53,14 @@ public class CleanupResponseTest {
 
     @Test
     public void toJsonReturnsExpected() {
-        final JsonObject jsonObject = CleanupResponse.success(ID, DittoHeaders.empty()).toJson();
+        final JsonObject jsonObject = CleanupPersistenceResponse.success(ID, DittoHeaders.empty()).toJson();
         assertThat(jsonObject).isEqualTo(KNOWN_JSON);
     }
 
     @Test
     public void fromJsonReturnsExpected() {
-        final CleanupResponse commandFromJson = CleanupResponse.fromJson(KNOWN_JSON, HEADERS);
-        final CleanupResponse expectedCommand = CleanupResponse.success(ID, HEADERS);
+        final CleanupPersistenceResponse commandFromJson = CleanupPersistenceResponse.fromJson(KNOWN_JSON, HEADERS);
+        final CleanupPersistenceResponse expectedCommand = CleanupPersistenceResponse.success(ID, HEADERS);
         assertThat(commandFromJson).isEqualTo(expectedCommand);
     }
 

@@ -17,11 +17,6 @@ import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonCollectors;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.services.utils.health.AbstractHealthCheckingActor;
 import org.eclipse.ditto.services.utils.health.StatusDetailMessage;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
@@ -42,30 +37,13 @@ public final class MongoMetricsReporter extends AbstractHealthCheckingActor {
      */
     public static final String PUBSUB_TOPIC = MongoMetricsReporter.class.getSimpleName();
 
-    /**
-     * JSON field of the reporter value.
-     */
-    public static final JsonFieldDefinition<String> REPORTER =
-            JsonFactory.newStringFieldDefinition("reporter");
-
-    /**
-     * JSON field of the resolution value.
-     */
-    public static final JsonFieldDefinition<String> RESOLUTION =
-            JsonFactory.newStringFieldDefinition("resolution");
-
-    /**
-     * JSON field of the max-timer-nanos array.
-     */
-    public static final JsonFieldDefinition<JsonArray> MAX_TIMER_NANOS =
-            JsonFactory.newJsonArrayFieldDefinition("maxTimerNanos");
-
     private static final Tick TICK = new Tick();
 
     private final Duration resolution;
     private final int history;
     private final Deque<Long> maxTimerNanos;
 
+    @SuppressWarnings("unused")
     private MongoMetricsReporter(final Duration resolution, final int history, final ActorRef pubSubMediator) {
         this.resolution = resolution;
         this.history = Math.max(1, history);
@@ -79,13 +57,13 @@ public final class MongoMetricsReporter extends AbstractHealthCheckingActor {
     /**
      * Create Props for Mongo metrics reporter.
      *
-     * @param resolution How far apart each measurement is.
-     * @param history How many historical items to keep.
+     * @param resolution how far apart each measurement is.
+     * @param history how many historical items to keep.
+     * @param pubSubMediator the distributed pub/sub mediator reference to use for subscribing to {@link #PUBSUB_TOPIC}.
      * @return Props for creating healthMongo metrics reporters.
      */
     public static Props props(final Duration resolution, final int history, final ActorRef pubSubMediator) {
-        return Props.create(MongoMetricsReporter.class,
-                () -> new MongoMetricsReporter(resolution, history, pubSubMediator));
+        return Props.create(MongoMetricsReporter.class, resolution, history, pubSubMediator);
     }
 
     @Override
@@ -106,17 +84,11 @@ public final class MongoMetricsReporter extends AbstractHealthCheckingActor {
     }
 
     private StatusDetailMessage renderStatusDetailMessage() {
-        return StatusDetailMessage.of(StatusDetailMessage.Level.INFO, render());
+        return StatusDetailMessage.of(StatusDetailMessage.Level.INFO, getMetrics().toJson());
     }
 
-    private JsonObject render() {
-        final JsonArray maxTimeNanosJsonArray =
-                maxTimerNanos.stream().map(JsonFactory::newValue).collect(JsonCollectors.valuesToArray());
-        return JsonFactory.newObjectBuilder()
-                .set(REPORTER, getSelf().path().toStringWithoutAddress())
-                .set(RESOLUTION, resolution.toString())
-                .set(MAX_TIMER_NANOS, maxTimeNanosJsonArray)
-                .build();
+    private MongoMetrics getMetrics() {
+        return MongoMetrics.of(getSelf().path().toStringWithoutAddress(), resolution, maxTimerNanos);
     }
 
     private void tick(final Tick trigger) {

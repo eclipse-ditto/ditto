@@ -18,8 +18,8 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.signals.commands.cleanup.Cleanup;
-import org.eclipse.ditto.signals.commands.cleanup.CleanupResponse;
+import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
+import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistenceResponse;
 
 import akka.actor.ActorRef;
 import akka.event.DiagnosticLoggingAdapter;
@@ -34,10 +34,12 @@ import akka.persistence.SnapshotProtocol;
 import akka.persistence.SnapshotSelectionCriteria;
 
 /**
- * Extends {@code AbstractPersistentActorWithTimers} to provide functionality to handle the {@link Cleanup} command by
+ * Extends {@code AbstractPersistentActorWithTimers} to provide functionality to handle the {@link CleanupPersistence} command by
  * deleting all persisted snapshots and events up to the latest snapshot sequence number.
  */
 public abstract class AbstractPersistentActorWithTimersAndCleanup extends AbstractPersistentActorWithTimers {
+
+    private static final int STALE_EVENTS_KEPT_AFTER_CLEANUP = 0;
 
     protected final DiagnosticLoggingAdapter log;
 
@@ -53,7 +55,7 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
     @Override
     public Receive createReceive() {
         return receiveBuilder()
-                .match(Cleanup.class, this::handleCleanupCommand)
+                .match(CleanupPersistence.class, this::handleCleanupCommand)
                 .match(DeleteSnapshotsSuccess.class, this::handleDeleteSnapshotsResponse)
                 .match(DeleteSnapshotsFailure.class, this::handleDeleteSnapshotsResponse)
                 .match(DeleteMessagesSuccess.class, this::handleDeleteMessagesResponse)
@@ -62,18 +64,18 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
     }
 
     /**
-     * Return the number of events to keep after an cleanup action.
+     * Return the number of events to keep after a cleanup action.
      * If this number is positive, the PID will not be removed from
      * the set of current PIDs known to the persistence plugin.
      *
      * @return number of stale events to keep.
      */
     protected long staleEventsKeptAfterCleanup() {
-        return 0;
+        return STALE_EVENTS_KEPT_AFTER_CLEANUP;
     }
 
-    private void handleCleanupCommand(final Cleanup cleanup) {
-        log.debug("Received Cleanup command: {}", cleanup);
+    private void handleCleanupCommand(final CleanupPersistence cleanupPersistence) {
+        log.debug("Received Cleanup command: {}", cleanupPersistence);
         if (origin == null) {
             // check if there is at least one snapshot to delete
             final long latestSnapshotSequenceNumber = getLatestSnapshotSequenceNumber();
@@ -81,11 +83,11 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
                 startCleanup(latestSnapshotSequenceNumber);
             } else {
                 log.debug("Snapshot revision did not change since last cleanup, nothing to delete.");
-                getSender().tell(CleanupResponse.success(persistenceId(), DittoHeaders.empty()), getSelf());
+                getSender().tell(CleanupPersistenceResponse.success(persistenceId(), DittoHeaders.empty()), getSelf());
             }
         } else {
             log.info("Another cleanup is already running, rejecting the new cleanup request.");
-            origin.tell(CleanupResponse.failure(persistenceId(), DittoHeaders.empty()), getSelf());
+            origin.tell(CleanupPersistenceResponse.failure(persistenceId(), DittoHeaders.empty()), getSelf());
         }
     }
 
@@ -107,12 +109,12 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
         if (deleteSnapshotsResponse != null && deleteMessagesResponse != null) {
             if (isCleanupCompletedSuccessfully()) {
                 log.info("Cleanup for '{}' completed.", persistenceId());
-                Optional.ofNullable(origin).ifPresent(o -> o.tell(CleanupResponse.success(persistenceId(),
+                Optional.ofNullable(origin).ifPresent(o -> o.tell(CleanupPersistenceResponse.success(persistenceId(),
                         DittoHeaders.empty()), getSelf()));
             } else {
                 log.info("Cleanup for '{}' failed. Snapshots: {}. Messages: {}.", persistenceId(),
                         getResponseStatus(deleteSnapshotsResponse), getResponseStatus(deleteMessagesResponse));
-                Optional.ofNullable(origin).ifPresent(o -> o.tell(CleanupResponse.failure(persistenceId(),
+                Optional.ofNullable(origin).ifPresent(o -> o.tell(CleanupPersistenceResponse.failure(persistenceId(),
                         DittoHeaders.empty()), getSelf()));
             }
             finishCleanup();

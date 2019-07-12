@@ -350,7 +350,7 @@ Concierge instance, typically `INSTANCE_INDEX=1` in a docker-based installation:
     "aggregate": false
   },
   "piggybackCommand": {
-    "type": "status.commands:retrieveHealth",
+    "type": "status.commands:retrieveHealth"
   }
 }
 ```
@@ -378,7 +378,7 @@ The response has the following details:
                 { "2019-06-24T13:42:19.474Z": "WOKE_UP" }
               ],
               "credit-decisions": [
-                { "2019-06-24T13:42:29.609Z": "100: maxTimeNanos=0 is below threshold=20000000" }
+                { "2019-06-24T13:42:29.609Z": "100: maxTimeNanos=0 is below threshold=20000000" },
                 { "2019-06-24T13:42:25.232Z": "0: maxTimeNanos=47358000 is above threshold=20000000" }
               ],
               "actions": [

@@ -53,7 +53,7 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
 
     private static final Integer DEFAULT_BURST = 1;
 
-    private static final Long DEFAULT_TIMIEOUT_MILLIS = 60_000L;
+    private static final Long DEFAULT_TIMEOUT_MILLIS = 60_000L;
 
     static final String NAME = "org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities";
 
@@ -93,7 +93,7 @@ public final class SudoStreamModifiedEntities extends AbstractCommand<SudoStream
         this.start = checkNotNull(start, "start");
         this.end = checkNotNull(end, "end");
         this.burst = Optional.ofNullable(burst).orElse(DEFAULT_BURST);
-        this.timeoutMillis = Optional.ofNullable(timeoutMillis).orElse(DEFAULT_TIMIEOUT_MILLIS);
+        this.timeoutMillis = Optional.ofNullable(timeoutMillis).orElse(DEFAULT_TIMEOUT_MILLIS);
     }
 
     /**

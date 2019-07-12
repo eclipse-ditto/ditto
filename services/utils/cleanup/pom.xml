@@ -32,16 +32,17 @@
         </dependency>
 
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>ditto-services-utils-akka</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-actor_${scala.version}</artifactId>
         </dependency>
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-persistence_${scala.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>ditto-services-utils-akka</artifactId>
         </dependency>
 
         <!-- tests -->
@@ -58,7 +59,7 @@
         </dependency>
         <dependency>
             <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-slf4j_2.12</artifactId>
+            <artifactId>akka-slf4j_${scala.version}</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

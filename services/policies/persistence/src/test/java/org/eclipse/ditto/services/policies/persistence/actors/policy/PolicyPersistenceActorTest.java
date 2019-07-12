@@ -52,8 +52,8 @@ import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePoli
 import org.eclipse.ditto.services.policies.persistence.TestConstants;
 import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
-import org.eclipse.ditto.signals.commands.cleanup.Cleanup;
-import org.eclipse.ditto.signals.commands.cleanup.CleanupResponse;
+import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
+import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistenceResponse;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyEntryModificationInvalidException;
@@ -964,8 +964,8 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
             final String entityId = PolicyPersistenceActor.PERSISTENCE_ID_PREFIX +
                     policy.getId().orElseThrow(IllegalStateException::new);
-            policyPersistenceActor.tell(Cleanup.of(entityId, DittoHeaders.empty()), getRef());
-            expectMsg(CleanupResponse.success(entityId, DittoHeaders.empty()));
+            policyPersistenceActor.tell(CleanupPersistence.of(entityId, DittoHeaders.empty()), getRef());
+            expectMsg(CleanupPersistenceResponse.success(entityId, DittoHeaders.empty()));
         }};
     }
 
@@ -989,8 +989,8 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
             final String entityId = PolicyPersistenceActor.PERSISTENCE_ID_PREFIX +
                     policy.getId().orElseThrow(IllegalStateException::new);
-            policyPersistenceActor.tell(Cleanup.of(entityId, DittoHeaders.empty()), getRef());
-            expectMsg(CleanupResponse.success(entityId, DittoHeaders.empty()));
+            policyPersistenceActor.tell(CleanupPersistence.of(entityId, DittoHeaders.empty()), getRef());
+            expectMsg(CleanupPersistenceResponse.success(entityId, DittoHeaders.empty()));
         }};
     }
 

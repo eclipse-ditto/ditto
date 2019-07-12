@@ -29,31 +29,40 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
 /**
- * Command for starting the cleanup of persistence actors.
+ * Command for starting the cleanup (deleting stale journal-entries + snapshots) of persistence actors.
  */
 @Immutable
-@JsonParsableCommand(typePrefix = Cleanup.TYPE_PREFIX, name = Cleanup.NAME)
-public class Cleanup extends AbstractCommand<Cleanup> implements CleanupCommand<Cleanup> {
+@JsonParsableCommand(typePrefix = CleanupPersistence.TYPE_PREFIX, name = CleanupPersistence.NAME)
+public final class CleanupPersistence
+        extends AbstractCommand<CleanupPersistence> implements CleanupCommand<CleanupPersistence> {
 
     /**
-     * The name of the {@code Cleanup} command.
+     * The name of the {@code CleanupCommand}.
      */
-    static final String NAME = "cleanup";
+    static final String NAME = "cleanupPersistence";
 
     /**
-     * The type of the {@code Cleanup} command.
+     * The type of the {@code CleanupCommand}.
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     private final String entityId;
 
-    private Cleanup(final String entityId, final DittoHeaders dittoHeaders) {
+    private CleanupPersistence(final String entityId, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.entityId = ConditionChecker.checkNotNull(entityId, "entityId");
     }
 
-    public static Cleanup of(final String entityId, final DittoHeaders dittoHeaders) {
-        return new Cleanup(entityId, dittoHeaders);
+    /**
+     * Creates a new CleanupPersistence command for starting cleanup in persistence actor of the passed
+     * {@code entityId}.
+     *
+     * @param entityId the entity ID to cleanup snapshots and journal entries for in the database.
+     * @param dittoHeaders the headers of the command.
+     * @return a command for cleaning up persistence.
+     */
+    public static CleanupPersistence of(final String entityId, final DittoHeaders dittoHeaders) {
+        return new CleanupPersistence(entityId, dittoHeaders);
     }
 
     @Override
@@ -62,8 +71,8 @@ public class Cleanup extends AbstractCommand<Cleanup> implements CleanupCommand<
     }
 
     @Override
-    public Cleanup setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new Cleanup(entityId, dittoHeaders);
+    public CleanupPersistence setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new CleanupPersistence(entityId, dittoHeaders);
     }
 
     @Override
@@ -73,9 +82,9 @@ public class Cleanup extends AbstractCommand<Cleanup> implements CleanupCommand<
     }
 
     /**
-     * Creates a new {@code Cleanup} command from the given JSON object.
+     * Creates a new {@code CleanupPersistence} command from the given JSON object.
      *
-     * @param jsonObject the JSON object of which the Cleanup is to be created.
+     * @param jsonObject the JSON object of which the CleanupPersistence is to be created.
      * @param dittoHeaders the headers.
      * @return the command.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
@@ -84,23 +93,29 @@ public class Cleanup extends AbstractCommand<Cleanup> implements CleanupCommand<
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static Cleanup fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<Cleanup>(TYPE, jsonObject).deserialize(
+    public static CleanupPersistence fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandJsonDeserializer<CleanupPersistence>(TYPE, jsonObject).deserialize(
                 () -> of(jsonObject.getValueOrThrow(CleanupCommand.JsonFields.ENTITY_ID), dittoHeaders));
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return other instanceof Cleanup;
+        return other instanceof CleanupPersistence;
     }
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
-        final Cleanup cleanup = (Cleanup) o;
-        return entityId.equals(cleanup.entityId);
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
+        final CleanupPersistence cleanupPersistence = (CleanupPersistence) o;
+        return entityId.equals(cleanupPersistence.entityId);
     }
 
     @Override

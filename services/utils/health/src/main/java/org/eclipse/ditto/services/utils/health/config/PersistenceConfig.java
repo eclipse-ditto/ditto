@@ -38,6 +38,13 @@ public interface PersistenceConfig {
     Duration getTimeout();
 
     /**
+     * Returns the configuration settings of the metrics reporter.
+     *
+     * @return the config.
+     */
+    MetricsReporterConfig getMetricsReporterConfig();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code PersistenceConfig}.
      */

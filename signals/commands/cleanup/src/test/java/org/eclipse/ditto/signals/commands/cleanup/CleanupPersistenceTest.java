@@ -24,25 +24,25 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link Cleanup} command.
+ * Unit test for {@link CleanupPersistence} command.
  */
-public class CleanupTest {
+public class CleanupPersistenceTest {
 
     private static final String ID = "thing:eclipse:ditto";
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
-            .set(Command.JsonFields.TYPE, Cleanup.TYPE)
+            .set(Command.JsonFields.TYPE, CleanupPersistence.TYPE)
             .set(CleanupCommand.JsonFields.ENTITY_ID, ID)
             .build();
     private static final DittoHeaders HEADERS = DittoHeaders.newBuilder().correlationId("123").build();
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(Cleanup.class, areImmutable());
+        assertInstancesOf(CleanupPersistence.class, areImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(Cleanup.class)
+        EqualsVerifier.forClass(CleanupPersistence.class)
                 .usingGetClass()
                 .withRedefinedSuperclass()
                 .verify();
@@ -50,14 +50,14 @@ public class CleanupTest {
 
     @Test
     public void toJsonReturnsExpected() {
-        final JsonObject jsonObject = Cleanup.of(ID, DittoHeaders.empty()).toJson();
+        final JsonObject jsonObject = CleanupPersistence.of(ID, DittoHeaders.empty()).toJson();
         assertThat(jsonObject).isEqualTo(KNOWN_JSON);
     }
 
     @Test
     public void fromJsonReturnsExpected() {
-        final Cleanup commandFromJson = Cleanup.fromJson(KNOWN_JSON, HEADERS);
-        final Cleanup expectedCommand = Cleanup.of(ID, HEADERS);
+        final CleanupPersistence commandFromJson = CleanupPersistence.fromJson(KNOWN_JSON, HEADERS);
+        final CleanupPersistence expectedCommand = CleanupPersistence.of(ID, HEADERS);
         assertThat(commandFromJson).isEqualTo(expectedCommand);
     }
 }

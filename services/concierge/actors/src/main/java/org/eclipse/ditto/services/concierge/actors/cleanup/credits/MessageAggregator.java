@@ -37,6 +37,7 @@ import akka.pattern.AskTimeoutException;
  * <p>
  * This actor will never survive beyond the given timeout duration.
  * </ol>
+ * @param <T> the type of the messages this aggregator aggregates
  */
 final class MessageAggregator<T> extends AbstractActorWithTimers {
 
@@ -55,6 +56,7 @@ final class MessageAggregator<T> extends AbstractActorWithTimers {
     private ActorRef sender = null;
     private List<T> messages = new ArrayList<>();
 
+    @SuppressWarnings("unused")
     private MessageAggregator(
             final ActorRef initialReceiver,
             final Class<T> messageClass,
@@ -71,12 +73,15 @@ final class MessageAggregator<T> extends AbstractActorWithTimers {
      * Create Props of a message aggregator.
      *
      * @param initialReceiver destination of the first message to forward.
+     * @param messageClass the type of the messages this aggregator shall aggregate.
+     * @param expectedMessages the expected amount of messages to aggregate.
+     * @param timeout the timeout after which aggregation failed if not all {@code expectedMessages} were received.
+     * @return the Props for this actor.
      */
     public static <T> Props props(final ActorRef initialReceiver, final Class<T> messageClass,
             final int expectedMessages, final Duration timeout) {
 
-        return Props.create(MessageAggregator.class, () -> new MessageAggregator<>(initialReceiver, messageClass,
-                expectedMessages, timeout));
+        return Props.create(MessageAggregator.class, initialReceiver, messageClass, expectedMessages, timeout);
     }
 
     @Override

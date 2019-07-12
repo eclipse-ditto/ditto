@@ -67,6 +67,10 @@ import akka.stream.javadsl.Source;
  */
 public final class CreditDecisionSource {
 
+    private CreditDecisionSource() {
+        throw new AssertionError();
+    }
+
     /**
      * Create an infinite source of credit decisions.
      *

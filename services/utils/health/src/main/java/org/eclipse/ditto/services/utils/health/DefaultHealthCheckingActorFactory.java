@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.utils.health;
 
-import java.util.Collections;
 import java.util.LinkedHashMap;
 
 import akka.actor.Props;
@@ -51,17 +50,6 @@ public final class DefaultHealthCheckingActorFactory {
             childActorProps.put(props.actorClass().getSimpleName(), props);
         }
         return CompositeCachingHealthCheckingActor.props(childActorProps, options.getInterval(),
-                options.isHealthCheckEnabled());
-    }
-
-    /**
-     * Creates Akka configuration object Props for a health checking actor that does not check the persistence.
-     *
-     * @param options the options to configure this actor.
-     * @return the Akka configuration Props object
-     */
-    public static Props propsWithoutPersistence(final HealthCheckingActorOptions options) {
-        return CompositeCachingHealthCheckingActor.props(Collections.emptyMap(), options.getInterval(),
                 options.isHealthCheckEnabled());
     }
 

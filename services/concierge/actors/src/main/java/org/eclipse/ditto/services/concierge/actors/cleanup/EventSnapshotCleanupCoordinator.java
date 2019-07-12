@@ -47,8 +47,8 @@ import org.eclipse.ditto.services.utils.health.RetrieveHealth;
 import org.eclipse.ditto.services.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.services.utils.health.StatusDetailMessage;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
-import org.eclipse.ditto.signals.commands.cleanup.Cleanup;
-import org.eclipse.ditto.signals.commands.cleanup.CleanupResponse;
+import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
+import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistenceResponse;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
 import org.eclipse.ditto.signals.commands.common.ShutdownResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
@@ -123,16 +123,16 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
      */
     public static final String ACTOR_NAME = "eventSnapshotCleanupCoordinator";
 
-    private static final JsonFieldDefinition<Boolean> ENABLED =
+    private static final JsonFieldDefinition<Boolean> JSON_ENABLED =
             JsonFactory.newBooleanFieldDefinition("enabled");
 
-    private static final JsonFieldDefinition<JsonArray> CREDIT_DECISIONS =
+    private static final JsonFieldDefinition<JsonArray> JSON_CREDIT_DECISIONS =
             JsonFactory.newJsonArrayFieldDefinition("credit-decisions");
 
-    private static final JsonFieldDefinition<JsonArray> ACTIONS =
+    private static final JsonFieldDefinition<JsonArray> JSON_ACTIONS =
             JsonFactory.newJsonArrayFieldDefinition("actions");
 
-    private static final JsonFieldDefinition<JsonArray> EVENTS =
+    private static final JsonFieldDefinition<JsonArray> JSON_EVENTS =
             JsonFactory.newJsonArrayFieldDefinition("events");
 
     private static final String START = "start";
@@ -148,12 +148,13 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
 
     // logs for status reporting
     private final Deque<Pair<Instant, CreditDecision>> creditDecisions;
-    private final Deque<Pair<Instant, CleanupResponse>> actions;
+    private final Deque<Pair<Instant, CleanupPersistenceResponse>> actions;
     private final Deque<Pair<Instant, Event>> events;
 
     @Nullable
     private KillSwitch killSwitch;
 
+    @SuppressWarnings("unused")
     private EventSnapshotCleanupCoordinator(final PersistenceCleanupConfig config, final ActorRef pubSubMediator,
             final ShardRegions shardRegions) {
 
@@ -227,7 +228,7 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
         return ReceiveBuilder.create()
                 .match(CreditDecision.class, creditDecision ->
                         enqueue(creditDecisions, creditDecision, config.getKeptCreditDecisions()))
-                .match(CleanupResponse.class, cleanupResponse ->
+                .match(CleanupPersistenceResponse.class, cleanupResponse ->
                         enqueue(actions, cleanupResponse, config.getKeptActions()))
                 .match(StreamTerminated.class, this::streamTerminated)
                 .match(RetrieveHealth.class, this::retrieveHealth)
@@ -295,9 +296,9 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
     private void restartStream() {
         shutdownKillSwitch();
 
-        Pair<UniqueKillSwitch, CompletionStage<Done>> materializedValues =
+        final Pair<UniqueKillSwitch, CompletionStage<Done>> materializedValues =
                 assembleSource().viaMat(KillSwitches.single(), Keep.right())
-                        .toMat(forwarderSink(), Keep.both())
+                        .toMat(cleanupForwarderSink(), Keep.both())
                         .run(materializer);
 
         killSwitch = materializedValues.first();
@@ -347,46 +348,47 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
         return PersistenceIdSource.create(config.getPersistenceIdsConfig(), pubSubMediator);
     }
 
-    // include self-reporting for acknowledged
-    private Sink<EntityIdWithRevision, CompletionStage<Done>> forwarderSink() {
 
-        final PartialFunction<EntityIdWithRevision, CompletionStage<CleanupResponse>> askShardRegionByTagType =
-                new PFBuilder<EntityIdWithRevision, CompletionStage<CleanupResponse>>()
+    private Sink<EntityIdWithRevision, CompletionStage<Done>> cleanupForwarderSink() {
+
+        final PartialFunction<EntityIdWithRevision, CompletionStage<CleanupPersistenceResponse>> askShardRegionForCleanupByTagType =
+                new PFBuilder<EntityIdWithRevision, CompletionStage<CleanupPersistenceResponse>>()
                         .match(ThingTag.class, thingTag ->
-                                askShardRegion(shardRegions.things(), ThingCommand.RESOURCE_TYPE, thingTag))
+                                askShardRegionForCleanup(shardRegions.things(), ThingCommand.RESOURCE_TYPE, thingTag))
                         .match(PolicyTag.class, policyTag ->
-                                askShardRegion(shardRegions.policies(), PolicyCommand.RESOURCE_TYPE, policyTag))
+                                askShardRegionForCleanup(shardRegions.policies(), PolicyCommand.RESOURCE_TYPE, policyTag))
                         .match(ConnectionTag.class, connTag ->
-                                askShardRegion(shardRegions.connections(), ConnectivityCommand.RESOURCE_TYPE, connTag))
+                                askShardRegionForCleanup(shardRegions.connections(), ConnectivityCommand.RESOURCE_TYPE, connTag))
                         .matchAny(e -> {
-                            final CleanupResponse error =
-                                    CleanupResponse.failure("Unexpected entity ID type: ", DittoHeaders.empty());
+                            final CleanupPersistenceResponse error =
+                                    CleanupPersistenceResponse.failure("Unexpected entity ID type: ", DittoHeaders.empty());
                             return CompletableFuture.completedFuture(error);
                         })
                         .build();
 
         return Flow.<EntityIdWithRevision>create()
-                .mapAsync(config.getParallelism(), askShardRegionByTagType::apply)
-                .via(reportToSelf())
+                .mapAsync(config.getParallelism(), askShardRegionForCleanupByTagType::apply)
+                .via(reportToSelf()) // include self-reporting for acknowledged
                 .log(EventSnapshotCleanupCoordinator.class.getSimpleName(), log)
                 .toMat(Sink.ignore(), Keep.right());
     }
 
-    private CompletionStage<CleanupResponse> askShardRegion(final ActorRef shardRegion, final String resourceType,
-            final EntityIdWithRevision tag) {
+    private CompletionStage<CleanupPersistenceResponse> askShardRegionForCleanup(final ActorRef shardRegion,
+            final String resourceType, final EntityIdWithRevision tag) {
+
         final String id = tag.getId();
-        final Cleanup command = getCommand(id);
-        return Patterns.ask(shardRegion, command, config.getCleanupTimeout())
+        final CleanupPersistence cleanupPersistence = getCleanupCommand(id);
+        return Patterns.ask(shardRegion, cleanupPersistence, config.getCleanupTimeout())
                 .handle((result, error) -> {
-                    if (result instanceof CleanupResponse) {
-                        final CleanupResponse response = ((CleanupResponse) result);
+                    if (result instanceof CleanupPersistenceResponse) {
+                        final CleanupPersistenceResponse response = ((CleanupPersistenceResponse) result);
                         final DittoHeaders headers =
-                                command.getDittoHeaders().toBuilder().putHeaders(response.getDittoHeaders()).build();
+                                cleanupPersistence.getDittoHeaders().toBuilder().putHeaders(response.getDittoHeaders()).build();
                         return response.setDittoHeaders(headers);
                     } else {
                         final String msg = String.format("Unexpected response from shard <%s>: result=<%s> error=<%s>",
                                 resourceType, Objects.toString(result), Objects.toString(error));
-                        return CleanupResponse.failure(msg, command.getDittoHeaders());
+                        return CleanupPersistenceResponse.failure(msg, cleanupPersistence.getDittoHeaders());
                     }
                 });
     }
@@ -402,14 +404,14 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
 
     private JsonObject render() {
         return JsonObject.newBuilder()
-                .set(ENABLED, config.isEnabled())
-                .set(EVENTS, events.stream()
+                .set(JSON_ENABLED, config.isEnabled())
+                .set(JSON_EVENTS, events.stream()
                         .map(EventSnapshotCleanupCoordinator::renderEvent)
                         .collect(JsonCollectors.valuesToArray()))
-                .set(CREDIT_DECISIONS, creditDecisions.stream()
+                .set(JSON_CREDIT_DECISIONS, creditDecisions.stream()
                         .map(EventSnapshotCleanupCoordinator::renderCreditDecision)
                         .collect(JsonCollectors.valuesToArray()))
-                .set(ACTIONS, actions.stream()
+                .set(JSON_ACTIONS, actions.stream()
                         .map(EventSnapshotCleanupCoordinator::renderAction)
                         .collect(JsonCollectors.valuesToArray()))
                 .build();
@@ -427,8 +429,8 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
                 .build();
     }
 
-    private static JsonObject renderAction(final Pair<Instant, CleanupResponse> element) {
-        final CleanupResponse response = element.second();
+    private static JsonObject renderAction(final Pair<Instant, CleanupPersistenceResponse> element) {
+        final CleanupPersistenceResponse response = element.second();
         final DittoHeaders headers = response.getDittoHeaders();
         final int status = response.getStatusCodeValue();
         final String start = headers.getOrDefault(START, "unknown");
@@ -438,11 +440,11 @@ public final class EventSnapshotCleanupCoordinator extends AbstractActorWithTime
                 .build();
     }
 
-    private static Cleanup getCommand(final String id) {
+    private static CleanupPersistence getCleanupCommand(final String id) {
         final DittoHeaders headers = DittoHeaders.newBuilder()
                 .putHeader(START, Instant.now().toString())
                 .build();
-        return Cleanup.of(id, headers);
+        return CleanupPersistence.of(id, headers);
     }
 
     private static <T> void enqueue(final Deque<Pair<Instant, T>> queue, final T element, final int maxQueueSize) {

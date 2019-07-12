@@ -63,7 +63,9 @@ public final class Transistor<T> extends GraphStage<FanInShape2<T, Integer, T>> 
     private final Outlet<T> emitter = Outlet.create("emitter");
     private final FanInShape2<T, Integer, T> shape = new FanInShape2<>(collector, base, emitter);
 
-    private Transistor() {}
+    private Transistor() {
+        // no-op
+    }
 
     /**
      * Get a transistor component.

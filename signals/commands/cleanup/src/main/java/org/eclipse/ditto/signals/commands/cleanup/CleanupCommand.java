@@ -19,6 +19,11 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.Command;
 
+/**
+ * Aggregates all {@link Command}s which are related to cleaning up (e.g. journal entries) in the database.
+ *
+ * @param <T> the type of the implementing class.
+ */
 public interface CleanupCommand<T extends CleanupCommand> extends Command<T> {
 
     /**
@@ -56,6 +61,9 @@ public interface CleanupCommand<T extends CleanupCommand> extends Command<T> {
         return Category.MODIFY;
     }
 
+    /**
+     * @return the entity ID to cleanup snapshots and journal entries for in the database.
+     */
     String getEntityId();
 
     /**
