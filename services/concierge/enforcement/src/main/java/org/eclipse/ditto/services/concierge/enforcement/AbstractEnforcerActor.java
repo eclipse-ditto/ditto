@@ -159,11 +159,6 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     }
 
     @Override
-    protected int getMaxNamespacesSubstreams() {
-        return enforcementConfig.getMaxNamespacesSubstreams();
-    }
-
-    @Override
     protected Contextual<WithDittoHeaders> mapMessage(final WithDittoHeaders message) {
         return contextual.withReceivedMessage(message, getSender());
     }

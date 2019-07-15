@@ -109,11 +109,6 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
     }
 
     @Override
-    protected int getMaxNamespacesSubstreams() {
-        return enforcementConfig.getMaxNamespacesSubstreams();
-    }
-
-    @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
         // no-op
     }
