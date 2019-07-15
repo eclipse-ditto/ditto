@@ -127,24 +127,34 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
                 );
         final ActorMaterializer materializer = ActorMaterializer.create(materializerSettings, getContext());
 
-        final SourceQueueWithComplete<T> sourceQueue =
-                Source.<T>queue(getBufferSize(), OverflowStrategy.backpressure())
-                        // first: create substreams by namespace of the messages
-                        .groupBy(getMaxNamespacesSubstreams(), msg -> {
-                            if (msg instanceof WithId) {
-                                final String id = ((WithId) msg).getId();
-                                final int firstColon = id.indexOf(':');
-                                if (firstColon >= 0) {
-                                    return id.substring(0, firstColon);
-                                }
+        final int maxNamespacesSubstreams = getMaxNamespacesSubstreams();
+        final SourceQueueWithComplete<T> sourceQueue;
+        if (maxNamespacesSubstreams > 0) {
+            sourceQueue = Source.<T>queue(getBufferSize(), OverflowStrategy.backpressure())
+                    // first: create substreams by namespace of the messages
+                    .groupBy(maxNamespacesSubstreams, msg -> {
+                        if (msg instanceof WithId) {
+                            final String id = ((WithId) msg).getId();
+                            final int firstColon = id.indexOf(':');
+                            if (firstColon >= 0) {
+                                return id.substring(0, firstColon);
                             }
-                            return "";
-                        })
-                        .via(Flow.fromFunction(this::beforeProcessMessage))
-                        // second: partition by the message's ID in order to maintain order per ID
-                        .via(partitionById(processMessageFlow(), getParallelism()))
-                        .to(processedMessageSink())
-                        .run(materializer);
+                        }
+                        return "";
+                    })
+                    .via(Flow.fromFunction(this::beforeProcessMessage))
+                    // second: partition by the message's ID in order to maintain order per ID
+                    .via(partitionById(processMessageFlow(), getParallelism()))
+                    .to(processedMessageSink())
+                    .run(materializer);
+        } else {
+            sourceQueue = Source.<T>queue(getBufferSize(), OverflowStrategy.backpressure())
+                    .via(Flow.fromFunction(this::beforeProcessMessage))
+                    // partition by the message's ID in order to maintain order per ID
+                    .via(partitionById(processMessageFlow(), getParallelism()))
+                    .to(processedMessageSink())
+                    .run(materializer);
+        }
 
         final ReceiveBuilder receiveBuilder = ReceiveBuilder.create();
         preEnhancement(receiveBuilder);
