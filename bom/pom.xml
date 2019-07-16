@@ -38,7 +38,7 @@
         <ssl-config-core.version>0.3.7</ssl-config-core.version>
         <akka.version>2.5.23</akka.version>
         <akka-http.version>10.1.8</akka-http.version>
-        <akka-persistence-mongo.version>2.2.4</akka-persistence-mongo.version>
+        <akka-persistence-mongo.version>2.2.9</akka-persistence-mongo.version>
         <akka-management.version>1.0.0</akka-management.version>
         <simple-akka-downing.version>0.9.2</simple-akka-downing.version>
         <alpakka-mqtt.version>1.0.0</alpakka-mqtt.version>
