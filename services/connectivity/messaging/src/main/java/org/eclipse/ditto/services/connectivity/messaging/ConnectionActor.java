@@ -304,7 +304,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
                 // # Snapshot handling
                 .match(SnapshotOffer.class, ss -> {
                     final Connection fromSnapshotStore = snapshotAdapter.fromSnapshotStore(ss);
-                    log.info("Received SnapshotOffer containing connection: <{}>", fromSnapshotStore);
+                    log.info("Received SnapshotOffer ({}) containing connection: <{}>", ss, fromSnapshotStore);
                     if (fromSnapshotStore != null) {
                         restoreConnection(fromSnapshotStore);
                     }
