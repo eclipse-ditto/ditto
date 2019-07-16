@@ -14,18 +14,18 @@
 package org.eclipse.ditto.services.connectivity.messaging.monitoring.logs;
 
 import java.util.AbstractQueue;
-import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 /**
  * Default implementation of {@link org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.EvictingQueue}.
- * This implementation does not care about synchronization, as we don't care if there might be an element too much
- * or too little in the queue. We care about speed of the queue.
+ * This implementation does not care about synchronization, as we don't care if there might be an element too much or
+ * too little in the queue. We care about speed of the queue.
  *
  * @param <E> type of elements in the queue.
  */
@@ -37,7 +37,7 @@ final class DefaultEvictingQueue<E> extends AbstractQueue<E> implements Evicting
 
     private DefaultEvictingQueue(final int capacity) {
         this.capacity = capacity;
-        this.elements = new ArrayDeque<>(capacity);
+        this.elements = new ConcurrentLinkedQueue<>();
     }
 
     /**
