@@ -162,6 +162,28 @@
                 <role>Committer</role>
             </roles>
         </developer>
+        <developer>
+            <id>smaute</id>
+            <name>Stefan Maute</name>
+            <email>stefan.maute@bosch-si.com</email>
+            <url>https://github.com/stmaute</url>
+            <organization>Bosch Software Innovations GmbH</organization>
+            <organizationUrl>http://www.bosch-si.com</organizationUrl>
+            <roles>
+                <role>Committer</role>
+            </roles>
+        </developer>
+        <developer>
+            <id>yklem</id>
+            <name>Yannic Klem</name>
+            <email>yannic.klem@bosch-si.com</email>
+            <url>https://github.com/Yannic92</url>
+            <organization>Bosch Software Innovations GmbH</organization>
+            <organizationUrl>http://www.bosch-si.com</organizationUrl>
+            <roles>
+                <role>Committer</role>
+            </roles>
+        </developer>
     </developers>
 
     <modules>
@@ -198,7 +220,7 @@
         <!-- globally set version for checking binary compatibility against -->
         <!-- whoever changes this to ${revision} or ${project.version} is responsible for API breakage caused by this! -->
         <!-- in other words: never do that here! exclude the 'breakages' locally in the japicmp maven plugin if you intentionally break something -->
-        <binary-compatibility-check.version>0.9.0-M2</binary-compatibility-check.version>
+        <binary-compatibility-check.version>0.9.0</binary-compatibility-check.version>
 
         <maven.skins.fluido.version>1.7</maven.skins.fluido.version>
         <doxia.markdown.version>1.8</doxia.markdown.version>
@@ -396,11 +418,7 @@
                             <skipPomModules>true</skipPomModules>
                             <htmlTitle>${project.name} :: Binary Compatibility Report</htmlTitle>
                             <excludes>
-                                <exclude>org.eclipse.ditto.signals.base.DittoJsonRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.base.GlobalErrorRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.base.AbstractErrorRegistry</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.common.ShutdownReason</exclude>
-                                <exclude>org.eclipse.ditto.signals.commands.common.ShutdownReasonFactory</exclude>
+                                <!--<exclude></exclude>-->
                             </excludes>
                         </parameter>
                     </configuration>
