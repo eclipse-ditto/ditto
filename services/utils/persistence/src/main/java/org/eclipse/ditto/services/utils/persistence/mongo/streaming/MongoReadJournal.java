@@ -113,15 +113,13 @@ public class MongoReadJournal {
     private final Pattern journalCollectionPrefix;
     private final Pattern snapsCollectionPrefix;
     private final DittoMongoClient mongoClient;
-    private final String autoStartJournalConfigKey;
     private final Logger log;
 
     private MongoReadJournal(final Pattern journalCollectionPrefix, final Pattern snapsCollectionPrefix,
-            final DittoMongoClient mongoClient, final String autoStartJournalConfigKey) {
+            final DittoMongoClient mongoClient) {
         this.journalCollectionPrefix = journalCollectionPrefix;
         this.snapsCollectionPrefix = snapsCollectionPrefix;
         this.mongoClient = mongoClient;
-        this.autoStartJournalConfigKey = autoStartJournalConfigKey;
         log = LoggerFactory.getLogger(MongoTimestampPersistence.class);
     }
 
@@ -152,7 +150,7 @@ public class MongoReadJournal {
                 getOverrideCollectionNamePattern(config.getConfig(autoStartJournalKey), JOURNAL_COLLECTION_NAME_KEY);
         final Pattern snapsCollectionPrefix =
                 getOverrideCollectionNamePattern(config.getConfig(autoStartSnapsKey), SNAPS_COLLECTION_NAME_KEY);
-        return new MongoReadJournal(journalCollectionPrefix, snapsCollectionPrefix, mongoClient, autoStartJournalKey);
+        return new MongoReadJournal(journalCollectionPrefix, snapsCollectionPrefix, mongoClient);
     }
 
     /**
