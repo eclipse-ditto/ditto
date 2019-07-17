@@ -208,7 +208,7 @@ public class MongoReadJournal {
     private Source<String, NotUsed> listJournalPidsAbove(final MongoCollection<Document> journal, final String start,
             final int batchSize, final Duration maxDuration) {
 
-        final List<Bson> pipeline = new ArrayList<>(4);
+        final List<Bson> pipeline = new ArrayList<>(5);
         // optional match stage
         if (!start.isEmpty()) {
             pipeline.add(Aggregates.match(Filters.gt(PROCESSOR_ID, start)));
@@ -222,6 +222,9 @@ public class MongoReadJournal {
 
         // group stage
         pipeline.add(Aggregates.group("$" + PROCESSOR_ID));
+
+        // sort stage 2 -- order after group stage is not defined
+        pipeline.add(Aggregates.sort(Sorts.ascending(ID)));
 
         final Duration minBackOff = Duration.ofSeconds(1L);
         final Duration maxBackOff = Duration.ofSeconds(128L);
