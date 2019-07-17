@@ -36,7 +36,6 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import com.typesafe.config.Config;
 
 import akka.NotUsed;
-import akka.contrib.persistence.mongodb.JavaDslMongoReadJournal;
 import akka.stream.javadsl.Source;
 
 /**
@@ -55,7 +54,6 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
 
     private final DittoMongoClient mongoClient;
     private final MongoReadJournal readJournal;
-    private final JavaDslMongoReadJournal javaDslMongoReadJournal;
 
     /**
      * Constructor.
@@ -74,7 +72,6 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
                 DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(config));
         mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
         readJournal = MongoReadJournal.newInstance(config, mongoClient);
-        javaDslMongoReadJournal = readJournal.toJavaDslMongoReadJournal(getContext().getSystem());
     }
 
     /**
@@ -95,7 +92,6 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
                 DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(config));
         mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
         this.readJournal = readJournal;
-        javaDslMongoReadJournal = readJournal.toJavaDslMongoReadJournal(getContext().getSystem());
     }
 
     @Override
@@ -160,7 +156,10 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
 
     @Override
     public Source<T, NotUsed> visit(final SudoStreamPids command) {
-        return javaDslMongoReadJournal.persistenceIds()
+        final Duration maxIdleTime = Duration.ofMillis(command.getTimeoutMillis());
+        final int batchSize = command.getBurst() * 5;
+
+        return readJournal.getJournalPids(batchSize, maxIdleTime, materializer)
                 .map(pid -> mapEntity(new PidWithSeqNr(pid, 0L)))
                 .log("pid-streaming", log);
     }

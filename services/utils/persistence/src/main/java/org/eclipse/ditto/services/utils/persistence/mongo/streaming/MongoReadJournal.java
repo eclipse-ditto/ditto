@@ -12,12 +12,15 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.streaming;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -37,20 +40,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mongodb.QueryOperators;
+import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Sorts;
 import com.mongodb.reactivestreams.client.ListCollectionsPublisher;
+import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigValueFactory;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
-import akka.contrib.persistence.mongodb.JavaDslMongoReadJournal;
-import akka.contrib.persistence.mongodb.JournallingFieldNames;
 import akka.contrib.persistence.mongodb.JournallingFieldNames$;
-import akka.contrib.persistence.mongodb.SnapshottingFieldNames;
 import akka.contrib.persistence.mongodb.SnapshottingFieldNames$;
-import akka.persistence.query.PersistenceQuery;
+import akka.japi.Pair;
+import akka.stream.ActorMaterializer;
+import akka.stream.Attributes;
+import akka.stream.javadsl.RestartSource;
+import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 
 /**
@@ -70,6 +76,9 @@ import akka.stream.javadsl.Source;
 @AllValuesAreNonnullByDefault
 public class MongoReadJournal {
     // not a final class to test with Mockito
+
+    // pattern that matches nothing
+    private static final Pattern MATCH_NOTHING = Pattern.compile(".\\A");
 
     // group name of collection name suffix
     private static final String SUFFIX = "suffix";
@@ -147,20 +156,6 @@ public class MongoReadJournal {
     }
 
     /**
-     * Create a {@code JavaDslMongoReadJournal} for the event journal known to this object.
-     *
-     * @return source of the content of the entire metadata collection.
-     */
-    public JavaDslMongoReadJournal toJavaDslMongoReadJournal(final ActorSystem actorSystem) {
-        final String pluginId = autoStartJournalConfigKey.replaceAll("journal$", "") + "readjournal";
-        final Config config = actorSystem.settings().config().getConfig(autoStartJournalConfigKey)
-                .withValue("class", ConfigValueFactory.fromAnyRef("akka.contrib.persistence.mongodb.MongoReadJournal"))
-                .atKey(pluginId);
-        return PersistenceQuery.get(actorSystem)
-                .getReadJournalFor(JavaDslMongoReadJournal.class, pluginId, config);
-    }
-
-    /**
      * Retrieve sequence numbers for persistence IDs modified within the time interval as a source of {@code
      * PidWithSeqNr}. A persistence ID may appear multiple times with various sequence numbers.
      *
@@ -176,6 +171,77 @@ public class MongoReadJournal {
 
         return listJournalsAndSnapshotStores()
                 .flatMapConcat(journalAndSnaps -> listPidWithSeqNr(journalAndSnaps, db, idFilter));
+    }
+
+    /**
+     * Retrieve all unique PIDs in journals. Does its best not to create long-living cursors on the database by reading
+     * {@code batchSize} events per query.
+     *
+     * @param batchSize how many events to read in one query.
+     * @param maxIdleTime how long the stream is allowed to idle without sending any element. Bounds the number of
+     * retries with exponential back-off.
+     * @param mat the actor materializer to run the query streams.
+     * @return Source of all persistence IDs such that each element contains the persistence IDs in {@code batchSize}
+     * events that do not occur in prior buckets.
+     */
+    public Source<String, NotUsed> getJournalPids(final int batchSize, final Duration maxIdleTime,
+            final ActorMaterializer mat) {
+
+        return listJournals().withAttributes(Attributes.inputBuffer(1, 1))
+                .flatMapConcat(journal -> listPidsInJournal(journal, batchSize, mat, maxIdleTime))
+                .mapConcat(pids -> pids);
+    }
+
+    private Source<List<String>, NotUsed> listPidsInJournal(final MongoCollection<Document> journal,
+            final int batchSize, final ActorMaterializer mat, final Duration maxIdleTime) {
+
+        return Source.unfoldAsync("", start ->
+                listJournalPidsAbove(journal, start, batchSize, maxIdleTime).runWith(Sink.seq(), mat)
+                        .thenApply(list -> {
+                            if (list.isEmpty()) {
+                                return Optional.empty();
+                            } else {
+                                return Optional.of(Pair.create(list.get(list.size() - 1), list));
+                            }
+                        })
+        ).withAttributes(Attributes.inputBuffer(1, 1));
+    }
+
+    private Source<String, NotUsed> listJournalPidsAbove(final MongoCollection<Document> journal, final String start,
+            final int batchSize, final Duration maxDuration) {
+
+        final List<Bson> pipeline = new ArrayList<>(4);
+        // optional match stage
+        if (!start.isEmpty()) {
+            pipeline.add(Aggregates.match(Filters.gt(PROCESSOR_ID, start)));
+        }
+
+        // sort stage
+        pipeline.add(Aggregates.sort(Sorts.ascending(PROCESSOR_ID)));
+
+        // limit stage. It should come before group stage or MongoDB would scan the entire journal collection.
+        pipeline.add(Aggregates.limit(batchSize));
+
+        // group stage
+        pipeline.add(Aggregates.group("$" + PROCESSOR_ID));
+
+        final Duration minBackOff = Duration.ofSeconds(1L);
+        final Duration maxBackOff = Duration.ofSeconds(128L);
+        final double randomFactor = 0.1;
+
+        final int maxRestarts;
+        if (maxBackOff.minus(maxDuration).isNegative()) {
+            // maxBackOff < maxDuration: backOff at least 7 times (1+2+4+8+16+32+64=127s)
+            maxRestarts = Math.max(7, 6 + (int) (maxDuration.toMillis() / maxBackOff.toMillis()));
+        } else {
+            // maxBackOff >= maxDuration: maxRestarts = log2 of maxDuration in seconds
+            final int log2MaxDuration = 63 - Long.numberOfLeadingZeros(maxDuration.getSeconds());
+            maxRestarts = Math.max(0, log2MaxDuration);
+        }
+
+        return RestartSource.onFailuresWithBackoff(minBackOff, maxBackOff, randomFactor, maxRestarts,
+                () -> Source.fromPublisher(journal.aggregate(pipeline)).map(document ->
+                        document.getString(ID)));
     }
 
     private Source<PidWithSeqNr, NotUsed> listPidWithSeqNr(final JournalAndSnaps journalAndSnaps,
@@ -215,6 +281,12 @@ public class MongoReadJournal {
                 .groupBy(Integer.MAX_VALUE, JournalAndSnaps::getSuffix)
                 .fold(new JournalAndSnaps(), JournalAndSnaps::merge)
                 .mergeSubstreams();
+    }
+
+    private Source<MongoCollection<Document>, NotUsed> listJournals() {
+        final MongoDatabase database = mongoClient.getDefaultDatabase();
+        return resolveCollectionNames(journalCollectionPrefix, MATCH_NOTHING, database, log)
+                .map(database::getCollection);
     }
 
     private JournalAndSnaps toJournalAndSnaps(final String collectionName) {
@@ -325,7 +397,7 @@ public class MongoReadJournal {
         // starts with "journalCollectionPrefix":
         final ListCollectionsPublisher<Document> documentListCollectionsPublisher = database.listCollections();
         final Bson filter = Filters.or(Filters.regex(COLLECTION_NAME_FIELD, journalCollectionPrefix),
-                                Filters.regex(COLLECTION_NAME_FIELD, snapsCollectionPrefix));
+                Filters.regex(COLLECTION_NAME_FIELD, snapsCollectionPrefix));
         final Publisher<Document> publisher = documentListCollectionsPublisher.filter(filter);
         return Source.fromPublisher(publisher)
                 .map(document -> document.getString(COLLECTION_NAME_FIELD))

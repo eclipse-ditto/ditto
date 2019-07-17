@@ -21,6 +21,7 @@ import java.net.ConnectException;
 import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 import javax.annotation.Nullable;
@@ -58,6 +59,7 @@ import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 
 import akka.Done;
+import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
@@ -82,6 +84,7 @@ import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
 import akka.stream.ActorMaterializer;
+import akka.stream.javadsl.Source;
 
 /**
  * Parent Actor which takes care of supervision of all other Actors in our system.
@@ -160,9 +163,6 @@ public final class ConnectivityRootActor extends AbstractActor {
         final ClusterConfig clusterConfig = connectivityConfig.getClusterConfig();
         final ActorSystem actorSystem = getContext().system();
 
-        final JavaDslMongoReadJournal mongoReadJournal =
-                MongoReadJournal.newInstance(actorSystem).toJavaDslMongoReadJournal(actorSystem);
-
         final ActorRef conciergeForwarder =
                 getConciergeForwarder(clusterConfig, pubSubMediator, conciergeForwarderSignalTransformer);
         final Props connectionSupervisorProps =
@@ -176,7 +176,7 @@ public final class ConnectivityRootActor extends AbstractActor {
 
         startClusterSingletonActor(
                 ReconnectActor.props(getConnectionShardRegion(actorSystem, connectionSupervisorProps, clusterConfig),
-                        mongoReadJournal::currentPersistenceIds));
+                        MongoReadJournal.newInstance(actorSystem)));
 
         startChildActor(ConnectionPersistenceOperationsActor.ACTOR_NAME,
                 ConnectionPersistenceOperationsActor.props(pubSubMediator, connectivityConfig.getMongoDbConfig(),

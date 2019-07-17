@@ -34,7 +34,6 @@ import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorSystem;
-import akka.contrib.persistence.mongodb.JavaDslMongoReadJournal;
 import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -144,15 +143,16 @@ public final class MongoReadJournalIT {
     }
 
     @Test
-    public void javaDslReadJournalKnowsEventsAndNoSnapshots() {
+    public void extractJournalPidsFromEventsAndNotSnapshots() {
         insert("test_journal", new Document().append("pid", "pid1").append("to", 1L));
         insert("test_journal@ns2", new Document().append("pid", "pid2").append("to", 2L));
         insert("test_snaps", new Document().append("pid", "pid3").append("sn", 3L));
         insert("test_snaps@ns2", new Document().append("pid", "pid4").append("sn", 4L));
 
-        final JavaDslMongoReadJournal underTest = readJournal.toJavaDslMongoReadJournal(actorSystem);
         final List<String> pids =
-                underTest.currentPersistenceIds().runWith(Sink.seq(), materializer).toCompletableFuture().join();
+                readJournal.getJournalPids(1, Duration.ZERO, materializer)
+                        .runWith(Sink.seq(), materializer)
+                        .toCompletableFuture().join();
 
         assertThat(pids).containsExactlyInAnyOrder("pid1", "pid2");
     }
