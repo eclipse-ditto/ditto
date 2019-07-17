@@ -20,7 +20,7 @@ spec:
     metadata:
       labels:
         app: {{ .Values.concierge.name }}
-        actorSystemName: ditto-cluster
+        actorSystemName: {{ .Values.akka.actorSystemName }}
     spec:
       restartPolicy: Always
       containers:
@@ -74,4 +74,41 @@ spec:
                 secretKeyRef:
                   name: mongodb
                   key: concierge-uri
+{{- if .Values.concierge.networkPolicy.enabled }}
+---
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: {{ .Values.concierge.name }}-policy
+  namespace: {{.Release.Namespace}}
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ .Values.concierge.name }}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+# Allow access from gateway
+  - from:
+    - podSelector:
+        matchLabels:
+          app: {{ .Values.gateway.name }}
+    ports:
+    - protocol: TCP
+      port: 8080
+# Allow inner cluster communication
+  - from:
+    - podSelector:
+        matchLabels:
+          actorSystemName: {{ .Values.akka.actorSystemName }}
+    ports:
+    - protocol: TCP
+      port: {{ .Values.akka.remoting.port }}
+    - protocol: TCP
+      port: {{ .Values.akka.mgmthttp.port }}
+# Open all egress
+  egress:
+  - {}
+{{- end }}
 {{- end }}

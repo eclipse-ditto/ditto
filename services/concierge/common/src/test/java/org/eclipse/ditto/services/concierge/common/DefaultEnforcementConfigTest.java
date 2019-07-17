@@ -68,9 +68,6 @@ public final class DefaultEnforcementConfigTest {
         softly.assertThat(underTest.getParallelism())
                 .as(EnforcementConfig.EnforcementConfigValue.PARALLELISM.getConfigPath())
                 .isEqualTo(EnforcementConfig.EnforcementConfigValue.PARALLELISM.getDefaultValue());
-        softly.assertThat(underTest.getMaxNamespacesSubstreams())
-                .as(EnforcementConfig.EnforcementConfigValue.MAX_NAMESPACES_SUBSTREAMS.getConfigPath())
-                .isEqualTo(EnforcementConfig.EnforcementConfigValue.MAX_NAMESPACES_SUBSTREAMS.getDefaultValue());
     }
 
     @Test
@@ -86,9 +83,6 @@ public final class DefaultEnforcementConfigTest {
         softly.assertThat(underTest.getParallelism())
                 .as(EnforcementConfig.EnforcementConfigValue.PARALLELISM.getConfigPath())
                 .isEqualTo(73);
-        softly.assertThat(underTest.getMaxNamespacesSubstreams())
-                .as(EnforcementConfig.EnforcementConfigValue.MAX_NAMESPACES_SUBSTREAMS.getConfigPath())
-                .isEqualTo(42);
     }
 
 }

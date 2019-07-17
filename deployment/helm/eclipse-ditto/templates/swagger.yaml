@@ -1,7 +1,8 @@
+{{- if .Values.swagger.enabled -}}
 apiVersion: v1
 kind: Service
 metadata:
-  name: swagger-ui
+  name: {{ .Values.swagger.name }}
   labels:
     app.kubernetes.io/part-of: {{ .Chart.Name }}
     app.kubernetes.io/version: "{{ .Values.nginx.version }}"
@@ -14,15 +15,15 @@ spec:
     targetPort: 8080
     protocol: TCP
   selector:
-    app: swagger-ui
+    app: {{ .Values.swagger.name }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: swagger-ui
+  name: {{ .Values.swagger.name }}
   labels:
-    app: swagger-ui
-    app.kubernetes.io/name: swagger-ui
+    app: {{ .Values.swagger.name }}
+    app.kubernetes.io/name: {{ .Values.swagger.name }}
     app.kubernetes.io/part-of: {{ .Chart.Name }}
     app.kubernetes.io/version: "{{ .Values.nginx.version }}"
     helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
@@ -31,15 +32,15 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: swagger-ui
+      app: {{ .Values.swagger.name }}
   replicas: {{ .Values.swagger.replicaCount }}
   template:
     metadata:
       labels:
-        app: swagger-ui
+        app: {{ .Values.swagger.name }}
     spec:
       containers:
-      - name: swagger-ui
+      - name: {{ .Values.swagger.name }}
         image: docker.io/swaggerapi/swagger-ui:{{ .Values.swagger.version }}
         volumeMounts:
         - name: swagger-ui-api
@@ -48,3 +49,27 @@ spec:
       - name: swagger-ui-api
         configMap:
           name: swagger-ui-api
+{{- if .Values.swagger.networkPolicy.enabled }}
+---
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: {{ .Values.swagger.name }}-policy
+  namespace: {{.Release.Namespace}}
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ .Values.swagger.name }}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: {{ .Values.nginx.name }}
+    ports:
+    - protocol: TCP
+      port: 8080
+{{- end }}
+{{- end }}
