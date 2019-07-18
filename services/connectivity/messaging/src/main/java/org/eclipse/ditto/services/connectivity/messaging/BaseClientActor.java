@@ -125,6 +125,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private final ProtocolAdapterProvider protocolAdapterProvider;
     private final ActorRef conciergeForwarder;
     private final Gauge clientGauge;
+    private final Gauge clientConnectingGauge;
     private final ConnectionLoggerRegistry connectionLoggerRegistry;
     private final ConnectivityCounterRegistry connectionCounterRegistry;
 
@@ -155,6 +156,9 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
 
         clientGauge = DittoMetrics.gauge("connection_client")
+                .tag("id", connection.getId())
+                .tag("type", connection.getConnectionType().getName());
+        clientConnectingGauge = DittoMetrics.gauge("connecting_client")
                 .tag("id", connection.getId())
                 .tag("type", connection.getConnectionType().getName());
 
@@ -403,6 +407,11 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         }
         if (to == DISCONNECTED) {
             clientGauge.decrement();
+        }
+        if (to == CONNECTING) {
+            clientConnectingGauge.increment();
+        } else if (from == CONNECTING) {
+            clientConnectingGauge.decrement();
         }
     }
 
