@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2017 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.eclipse.ditto</groupId>
+        <artifactId>ditto-signals-commands</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>ditto-signals-commands-cleanup</artifactId>
+    <packaging>bundle</packaging>
+    <name>Eclipse Ditto :: Signals :: Commands :: Cleanup</name>
+
+    <dependencies>
+        <!-- ### Compile ### -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-signals-commands-base</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <extensions>true</extensions>
+                <configuration>
+                    <instructions>
+                        <Import-Package>
+                            !org.eclipse.ditto.utils.jsr305.annotations,
+                            org.eclipse.ditto.*
+                        </Import-Package>
+                        <Export-Package>
+                            org.eclipse.ditto.signals.commands.cleanup.*
+                        </Export-Package>
+                    </instructions>
+                </configuration>
+            </plugin>
+
+<!--            <plugin>-->
+<!--                <groupId>com.github.siom79.japicmp</groupId>-->
+<!--                <artifactId>japicmp-maven-plugin</artifactId>-->
+<!--                <configuration>-->
+<!--                    <parameter>-->
+<!--                        <excludes>-->
+<!--                            &lt;!&ndash; skip for now, it is a new module&ndash;&gt;-->
+<!--                            <skip>true</skip>-->
+<!--                        </excludes>-->
+<!--                    </parameter>-->
+<!--                </configuration>-->
+<!--            </plugin>-->
+        </plugins>
+    </build>
+
+</project>

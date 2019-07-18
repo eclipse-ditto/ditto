@@ -23,6 +23,7 @@ import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivit
 import org.eclipse.ditto.services.connectivity.messaging.config.ReconnectConfig;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
@@ -30,7 +31,6 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionS
 import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.Cancellable;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
@@ -68,13 +68,31 @@ public final class ReconnectActor extends AbstractActor {
 
         this.connectionShardRegion = connectionShardRegion;
         this.currentPersistenceIdsSourceSupplier = currentPersistenceIdsSourceSupplier;
+        reconnectConfig = getReconnectConfig(getContext());
+        materializer = ActorMaterializer.create(getContext());
+    }
 
-        final ActorSystem system = getContext().getSystem();
-        
-        reconnectConfig = DittoConnectivityConfig.of(
-                DefaultScopedConfig.dittoScoped(system.settings().config())
-        ).getReconnectConfig();
-        materializer = ActorMaterializer.create(system);
+    @SuppressWarnings("unused")
+    private ReconnectActor(final ActorRef connectionShardRegion, final MongoReadJournal readJournal) {
+        this.connectionShardRegion = connectionShardRegion;
+        reconnectConfig = getReconnectConfig(getContext());
+        materializer = ActorMaterializer.create(getContext());
+
+        currentPersistenceIdsSourceSupplier =
+                () -> readJournal.getJournalPids(reconnectConfig.getReadJournalBatchSize(),
+                        reconnectConfig.getInterval(), materializer);
+    }
+
+    /**
+     * Creates Akka configuration object Props for this Actor.
+     *
+     * @param connectionShardRegion the shard region of connections.
+     * @param readJournal readJournal to extract current PIDs from.
+     * @return the Akka configuration Props object.
+     */
+    public static Props props(final ActorRef connectionShardRegion, final MongoReadJournal readJournal) {
+
+        return Props.create(ReconnectActor.class, connectionShardRegion, readJournal);
     }
 
     /**
@@ -84,7 +102,7 @@ public final class ReconnectActor extends AbstractActor {
      * @param currentPersistenceIdsSourceSupplier supplier of persistence id sources
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ActorRef connectionShardRegion,
+    static Props props(final ActorRef connectionShardRegion,
             final Supplier<Source<String, NotUsed>> currentPersistenceIdsSourceSupplier) {
 
         return Props.create(ReconnectActor.class, connectionShardRegion, currentPersistenceIdsSourceSupplier);
@@ -206,6 +224,11 @@ public final class ReconnectActor extends AbstractActor {
         return correlationId.startsWith(CORRELATION_ID_PREFIX)
                 ? Optional.of(correlationId.replace(CORRELATION_ID_PREFIX, ""))
                 : Optional.empty();
+    }
+
+    private static ReconnectConfig getReconnectConfig(final ActorContext context) {
+        return DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(context.system().settings().config()))
+                .getReconnectConfig();
     }
 
     enum ReconnectMessages {

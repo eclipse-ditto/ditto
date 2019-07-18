@@ -198,7 +198,8 @@ public final class BaseClientActorTest {
     }
 
     private void thenExpectConnectClientCalledAfterTimeout(final Duration connectingTimeout) {
-        verify(delegate, timeout(connectingTimeout.toMillis() + 100)).doConnectClient(any(Connection.class), nullable(ActorRef.class));
+        verify(delegate, timeout(connectingTimeout.toMillis() + 100).atLeastOnce())
+                .doConnectClient(any(Connection.class), nullable(ActorRef.class));
     }
 
     private void thenExpectNoConnectClientCalled() {

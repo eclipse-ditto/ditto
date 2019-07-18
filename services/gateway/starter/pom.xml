@@ -94,6 +94,12 @@
             <artifactId>ditto-services-utils-persistence</artifactId>
         </dependency>
 
+        <!-- For sending Cleanup commands by piggyback -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-signals-commands-cleanup</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>

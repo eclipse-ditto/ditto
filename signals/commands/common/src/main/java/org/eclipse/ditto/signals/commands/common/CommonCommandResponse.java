@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -23,6 +23,7 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
  * @param <T> the type of the implementing class.
  */
 public abstract class CommonCommandResponse<T extends AbstractCommandResponse> extends AbstractCommandResponse<T> {
+
     /**
      * Type prefix.
      */
@@ -33,6 +34,15 @@ public abstract class CommonCommandResponse<T extends AbstractCommandResponse> e
      */
     protected static final String RESOURCE_TYPE = "common";
 
+
+    /**
+     * Constructs a new {@code AbstractCommandResponse} object.
+     *
+     * @param responseType the type of this response.
+     * @param statusCode the HTTP statusCode of this response.
+     * @param dittoHeaders the headers of the CommandType which caused this CommandResponseType.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
     protected CommonCommandResponse(final String responseType,
             final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders) {

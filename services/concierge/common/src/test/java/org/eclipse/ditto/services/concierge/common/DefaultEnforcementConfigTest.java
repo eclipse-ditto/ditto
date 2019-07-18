@@ -45,9 +45,7 @@ public final class DefaultEnforcementConfigTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DefaultEnforcementConfig.class,
-                areImmutable(),
-                provided(EnforcementConfig.class).isAlsoImmutable());
+        assertInstancesOf(DefaultEnforcementConfig.class, areImmutable());
     }
 
     @Test

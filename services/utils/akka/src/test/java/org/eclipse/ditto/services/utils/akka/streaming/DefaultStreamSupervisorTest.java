@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.utils.akka.streaming;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_STARTED;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -23,11 +22,16 @@ import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.services.models.streaming.AbstractEntityIdWithRevision;
+import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
+import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.junit.After;
 import org.junit.Assert;
@@ -43,18 +47,16 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import akka.NotUsed;
-import akka.actor.ActorNotFound;
 import akka.actor.ActorRef;
-import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.pattern.Patterns;
 import akka.stream.ActorMaterializer;
 import akka.stream.Attributes;
 import akka.stream.javadsl.Source;
+import akka.stream.javadsl.StreamRefs;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
-import scala.concurrent.Await;
-import scala.concurrent.Future;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -62,6 +64,10 @@ import scala.concurrent.duration.FiniteDuration;
  */
 @RunWith(MockitoJUnitRunner.class)
 public final class DefaultStreamSupervisorTest {
+
+    private static final EntityIdWithRevision TAG_1 = new AbstractEntityIdWithRevision("element1", 1L) {};
+    private static final EntityIdWithRevision TAG_2 = new AbstractEntityIdWithRevision("element2", 2L) {};
+    private static final EntityIdWithRevision TAG_3 = new AbstractEntityIdWithRevision("element3", 3L) {};
 
     private static final Duration START_OFFSET = Duration.ofMinutes(2);
 
@@ -106,13 +112,13 @@ public final class DefaultStreamSupervisorTest {
     }
 
     /**
-     * This Test verifies the behavior of the first sync after the Actor has been started.
-     * The StreamSupervisor will send itself a CheckForActivity message after STREAM_INTERVAL which triggers
-     * synchronization.
-     * Afterwards it will persist a successful sync timestamp if it receives a Status.Success message.
+     * This Test verifies the behavior of the first sync after the Actor has been started. The StreamSupervisor will
+     * send itself a CheckForActivity message after STREAM_INTERVAL which triggers synchronization. Afterwards it will
+     * persist a successful sync timestamp if it receives a SourceRef that completes successfully.
      */
     @Test
-    public void successfulSync() throws Exception {
+    public void successfulSync() {
+        disableLogging();
         new TestKit(actorSystem) {{
             final ActorRef streamSupervisor = createStreamSupervisor();
             final Instant expectedQueryEnd = KNOWN_LAST_SYNC.plus(STREAM_INTERVAL);
@@ -123,8 +129,23 @@ public final class DefaultStreamSupervisorTest {
             // verify that last query end has been retrieved from persistence
             verify(searchSyncPersistence).getTimestampAsync();
 
-            getForwarderActor(streamSupervisor).tell(STREAM_STARTED, ActorRef.noSender());
-            sendMessageToForwarderAndExpectTerminated(this, streamSupervisor);
+            final BatchedEntityIdWithRevisions<?> batch1 =
+                    BatchedEntityIdWithRevisions.of(EntityIdWithRevision.class, Arrays.asList(TAG_1, TAG_2));
+            final BatchedEntityIdWithRevisions<?> batch2 =
+                    BatchedEntityIdWithRevisions.of(EntityIdWithRevision.class, Collections.singletonList(TAG_3));
+            final BatchedEntityIdWithRevisions<?> batch3 =
+                    BatchedEntityIdWithRevisions.of(EntityIdWithRevision.class, Collections.emptyList());
+            final Source<Object, NotUsed> source = Source.from(Arrays.asList(batch1, batch2, batch3));
+            Patterns.pipe(source.runWith(StreamRefs.sourceRef(), materializer), actorSystem.dispatcher())
+                    .to(streamSupervisor);
+
+            // verify elements arrived at destination
+            forwardTo.expectMsg(TAG_1);
+            forwardTo.reply(StreamAck.success(TAG_1.getId()));
+            forwardTo.expectMsg(TAG_2);
+            forwardTo.reply(StreamAck.success(TAG_2.getId()));
+            forwardTo.expectMsg(TAG_3);
+            forwardTo.reply(StreamAck.success(TAG_3.getId()));
 
             // verify the db has been updated with the queryEnd of the completed stream
             verify(searchSyncPersistence, SHORT_MOCKITO_TIMEOUT).setTimestamp(eq(expectedQueryEnd));
@@ -135,7 +156,7 @@ public final class DefaultStreamSupervisorTest {
      * This test verifies the Stream Supervisor isn't shutdown if an error occurs on saving the end timestamp.
      */
     @Test
-    public void errorWhenUpdatingLastSuccessfulStreamEnd() throws Exception {
+    public void errorWhenUpdatingLastSuccessfulStreamEnd() {
         disableLogging();
         new TestKit(actorSystem) {{
             final ActorRef streamSupervisor = createStreamSupervisor();
@@ -151,8 +172,8 @@ public final class DefaultStreamSupervisorTest {
             when(searchSyncPersistence.setTimestamp(any(Instant.class)))
                     .thenReturn(Source.failed(new IllegalStateException("mocked stream-metadata-persistence error")));
 
-            getForwarderActor(streamSupervisor).tell(STREAM_STARTED, ActorRef.noSender());
-            sendMessageToForwarderAndExpectTerminated(this, streamSupervisor);
+            Patterns.pipe(Source.empty().runWith(StreamRefs.sourceRef(), materializer), actorSystem.dispatcher())
+                    .to(streamSupervisor);
 
             // verify the db has been updated with the queryEnd of the completed stream
             verify(searchSyncPersistence, SHORT_MOCKITO_TIMEOUT).setTimestamp(eq(expectedQueryEnd));
@@ -162,20 +183,25 @@ public final class DefaultStreamSupervisorTest {
     }
 
     @Test
-    public void streamIsReTriggeredOnTimeout() throws Exception {
+    public void streamIsRetriggeredOnTimeout() {
         disableLogging();
         new TestKit(actorSystem) {{
             final Duration smallMaxIdleTime = Duration.ofMillis(10);
-            final ActorRef streamSupervisor = createStreamSupervisor(smallMaxIdleTime);
+            final ActorRef supervisor = createStreamSupervisor(smallMaxIdleTime);
             final Instant expectedQueryEnd = KNOWN_LAST_SYNC.plus(STREAM_INTERVAL);
 
-            // wait for the actor to start streaming the first time by expecting the corresponding send-message
+            // stream is triggered repeatedly
+            final BatchedEntityIdWithRevisions<?> msg =
+                    BatchedEntityIdWithRevisions.of(EntityIdWithRevision.class, Collections.singletonList(TAG_1));
+
             expectStreamTriggerMsg(expectedQueryEnd);
+            Patterns.pipe(Source.single(msg).runWith(StreamRefs.sourceRef(), materializer), actorSystem.dispatcher())
+                    .to(supervisor);
 
-            // signal timeout to the supervisor
-            expectForwarderTerminated(this, streamSupervisor, smallMaxIdleTime.plus(SHORT_TIMEOUT));
+            expectStreamTriggerMsg(expectedQueryEnd);
+            Patterns.pipe(Source.single(msg).runWith(StreamRefs.sourceRef(), materializer), actorSystem.dispatcher())
+                    .to(supervisor);
 
-            // wait for the actor to re-start streaming
             expectStreamTriggerMsg(expectedQueryEnd);
 
             // verify the db has NOT been updated with the queryEnd, cause we never got a success-message
@@ -187,7 +213,7 @@ public final class DefaultStreamSupervisorTest {
     public void supervisorRestartsIfStreamItDoesNotStartOrStopStreamForTooLong() {
         actorSystem.log().info("Logging disabled for this test because many stack traces are expected.");
         actorSystem.log().info("Re-enable logging should the test fail.");
-        actorSystem.eventStream().setLogLevel(Attributes.logLevelOff());
+        disableLogging();
 
         new TestKit(actorSystem) {{
 
@@ -201,7 +227,6 @@ public final class DefaultStreamSupervisorTest {
             when(syncConfig.getStartOffset()).thenReturn(START_OFFSET);
             when(syncConfig.getStreamInterval()).thenReturn(oneMs);
             when(syncConfig.getInitialStartOffset()).thenReturn(INITIAL_START_OFFSET);
-            when(syncConfig.getMaxIdleTime()).thenReturn(oneDay);
             when(syncConfig.getStreamingActorTimeout()).thenReturn(oneDay);
             when(syncConfig.getElementsStreamedPerBatch()).thenReturn(ELEMENTS_STREAMED_PER_BATCH);
             when(syncConfig.getOutdatedWarningOffset()).thenReturn(oneMs);
@@ -243,14 +268,10 @@ public final class DefaultStreamSupervisorTest {
     }
 
     private ActorRef createStreamSupervisor(final Duration maxIdleTime) {
-        return actorSystem.actorOf(DefaultStreamSupervisor.props(forwardTo.ref(),
-                provider.ref(),
-                String.class,
-                Source::single,
-                Function.identity(),
-                searchSyncPersistence,
-                materializer,
-                getStreamConsumerSettings(maxIdleTime)));
+        final SyncConfig syncConfig = getStreamConsumerSettings(maxIdleTime);
+        return actorSystem.actorOf(DefaultStreamSupervisor.props(forwardTo.ref(), provider.ref(),
+                EntityIdWithRevision.class, Source::single,
+                Function.identity(), searchSyncPersistence, materializer, syncConfig));
     }
 
     private static SyncConfig getStreamConsumerSettings(final Duration maxIdleTime) {
@@ -266,38 +287,7 @@ public final class DefaultStreamSupervisorTest {
         return result;
     }
 
-    private void sendMessageToForwarderAndExpectTerminated(final TestKit testKit, final ActorRef superVisorActorRef)
-            throws Exception {
-
-        final ActorRef forwarderActor = getForwarderActor(superVisorActorRef);
-
-        testKit.watch(forwarderActor);
-        forwarderActor.tell(StreamConstants.STREAM_COMPLETED, testKit.getRef());
-        testKit.expectTerminated(forwarderActor);
-    }
-
-    private void expectForwarderTerminated(final TestKit testKit, final ActorRef superVisorActorRef,
-            final Duration timeout) throws Exception {
-
-        try {
-            final ActorRef forwarderActor = getForwarderActor(superVisorActorRef);
-            expectTerminated(testKit, forwarderActor, timeout);
-        } catch (final ActorNotFound actorNotFound) {
-            // if forwarder actor died too early then it won't be found, which is fine
-        }
-    }
-
-    private ActorRef getForwarderActor(final ActorRef superVisorActorRef) throws Exception {
-        final String forwarderPath =
-                superVisorActorRef.path() + "/" + DefaultStreamSupervisor.STREAM_FORWARDER_ACTOR_NAME;
-        final ActorSelection forwarderActorSelection = actorSystem.actorSelection(forwarderPath);
-        final Future<ActorRef> forwarderActorFuture =
-                forwarderActorSelection.resolveOne(scala.concurrent.duration.Duration.create(5, TimeUnit.SECONDS));
-        Await.result(forwarderActorFuture, scala.concurrent.duration.Duration.create(6, TimeUnit.SECONDS));
-        return forwarderActorFuture.value().get().get();
-    }
-
-    private static void expectNotTerminated(final TestKit testKit, final ActorRef actor, final Duration timeout) {
+    private void expectNotTerminated(final TestKit testKit, final ActorRef actor, final Duration timeout) {
         try {
             expectTerminated(testKit, actor, timeout);
             Assert.fail("the actor should not be terminated");
@@ -315,7 +305,7 @@ public final class DefaultStreamSupervisorTest {
      * Disable logging for 1 test to hide stacktrace or other logs on level ERROR. Comment out to debug the test.
      */
     private void disableLogging() {
-        actorSystem.eventStream().setLogLevel(akka.stream.Attributes.logLevelOff());
+        actorSystem.eventStream().setLogLevel(Attributes.logLevelOff());
     }
 
 }

@@ -32,10 +32,12 @@ public final class DefaultPersistenceConfig implements PersistenceConfig {
 
     private final boolean enabled;
     private final Duration timeout;
+    private final MetricsReporterConfig metricsReporterConfig;
 
     private DefaultPersistenceConfig(final ScopedConfig scopedConfig) {
         enabled = scopedConfig.getBoolean(PersistenceConfigValue.ENABLED.getConfigPath());
         timeout = scopedConfig.getDuration(PersistenceConfigValue.TIMEOUT.getConfigPath());
+        metricsReporterConfig = DefaultMetricsReporterConfig.of(scopedConfig);
     }
 
     /**
@@ -61,28 +63,36 @@ public final class DefaultPersistenceConfig implements PersistenceConfig {
     }
 
     @Override
+    public MetricsReporterConfig getMetricsReporterConfig() {
+        return metricsReporterConfig;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+        if (!(o instanceof DefaultPersistenceConfig)) {
             return false;
         }
         final DefaultPersistenceConfig that = (DefaultPersistenceConfig) o;
-        return enabled == that.enabled && Objects.equals(timeout, that.timeout);
+        return enabled == that.enabled &&
+                Objects.equals(timeout, that.timeout) &&
+                Objects.equals(metricsReporterConfig, that.metricsReporterConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(enabled, timeout);
+        return Objects.hash(enabled, timeout, metricsReporterConfig);
     }
+
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "enabled=" + enabled +
                 ", timeout=" + timeout +
+                ", metricsReporterConfig=" + metricsReporterConfig +
                 "]";
     }
-
 }

@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes;
 
-import static akka.http.javadsl.server.Directives.completeWithFuture;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.io.InputStream;
@@ -45,6 +44,7 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpResponse;
+import akka.http.javadsl.server.AllDirectives;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 import akka.japi.function.Function;
@@ -59,7 +59,7 @@ import akka.util.ByteString;
 /**
  * Base class for Akka HTTP routes.
  */
-public abstract class AbstractRoute {
+public abstract class AbstractRoute extends AllDirectives {
 
     /**
      * Don't configure URL decoding as JsonParseOptions because Akka-Http already decodes the fields-param and we would

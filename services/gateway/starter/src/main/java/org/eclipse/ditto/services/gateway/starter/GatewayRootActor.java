@@ -177,9 +177,11 @@ final class GatewayRootActor extends AbstractActor {
                 .startProxy(ThingsSearchConstants.SHARD_REGION, Optional.of(ThingsSearchConstants.CLUSTER_ROLE),
                         ShardRegionExtractor.of(numberOfShards, actorSystem));
 
-        final ActorRef devOpsCommandsActor = startChildActor(DevOpsCommandsActor.ACTOR_NAME,
+        log.info("Starting /user/{}", DevOpsCommandsActor.ACTOR_NAME);
+        final ActorRef devOpsCommandsActor = actorSystem.actorOf(
                 DevOpsCommandsActor.props(LogbackLoggingFacade.newInstance(), GatewayService.SERVICE_NAME,
-                        InstanceIdentifierSupplier.getInstance().get()));
+                        InstanceIdentifierSupplier.getInstance().get()),
+                DevOpsCommandsActor.ACTOR_NAME);
 
         final ActorRef conciergeEnforcerRouter =
                 ConciergeEnforcerClusterRouterFactory.createConciergeEnforcerClusterRouter(getContext(),

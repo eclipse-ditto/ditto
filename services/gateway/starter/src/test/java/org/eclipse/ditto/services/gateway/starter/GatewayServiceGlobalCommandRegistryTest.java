@@ -16,8 +16,10 @@ import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePoli
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
+import org.eclipse.ditto.services.utils.health.RetrieveHealth;
 import org.eclipse.ditto.services.utils.test.GlobalCommandRegistryTestCases;
 import org.eclipse.ditto.signals.commands.batch.ExecuteBatch;
+import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
 import org.eclipse.ditto.signals.commands.common.purge.PurgeEntities;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
@@ -33,7 +35,7 @@ import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 
 public final class GatewayServiceGlobalCommandRegistryTest extends GlobalCommandRegistryTestCases {
 
-    public GatewayServiceGlobalCommandRegistryTest () {
+    public GatewayServiceGlobalCommandRegistryTest() {
         super(SudoStreamModifiedEntities.class,
                 SudoRetrieveThing.class,
                 SudoRetrievePolicy.class,
@@ -50,7 +52,10 @@ public final class GatewayServiceGlobalCommandRegistryTest extends GlobalCommand
                 PurgeNamespace.class,
                 RetrieveResource.class,
                 DeleteSubject.class,
-                PurgeEntities.class);
+                RetrieveHealth.class,
+                CleanupPersistence.class,
+                PurgeEntities.class
+        );
     }
 
 }

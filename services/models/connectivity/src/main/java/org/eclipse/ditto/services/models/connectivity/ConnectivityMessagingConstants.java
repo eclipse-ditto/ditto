@@ -30,6 +30,11 @@ public final class ConnectivityMessagingConstants {
      */
     public static final String CLUSTER_ROLE = "connectivity";
 
+    /**
+     * Path of the connectivity-stream-provider actor.
+     */
+    public static final String STREAM_PROVIDER_ACTOR_PATH = "/user/connectivityRoot/persistenceStreamingActor";
+
     /*
      * Inhibit instantiation of this utility class.
      */

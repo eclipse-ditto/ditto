@@ -25,6 +25,7 @@
     <name>Eclipse Ditto :: Services :: Connectivity :: Messaging</name>
 
     <dependencies>
+        <!-- ### COMPILE ### -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-base</artifactId>
@@ -76,6 +77,10 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-persistence</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-utils-cleanup</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -96,6 +101,10 @@
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-events-connectivity</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-signals-commands-cleanup</artifactId>
         </dependency>
 
         <dependency>
@@ -155,6 +164,7 @@
             <artifactId>akka-stream-kafka_${scala.version}</artifactId>
         </dependency>
 
+        <!-- ### TESTING ### -->
         <dependency>
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>

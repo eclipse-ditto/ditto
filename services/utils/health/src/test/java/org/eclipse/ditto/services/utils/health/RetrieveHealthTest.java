@@ -17,12 +17,21 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 
+import nl.jqno.equalsverifier.EqualsVerifier;
 
-public class RetrieveHealthTest {
-
+public final class RetrieveHealthTest {
 
     @Test
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(RetrieveHealth.class, areImmutable());
     }
+
+    @Test
+    public void testHashCodeAndEquals() {
+        EqualsVerifier.forClass(RetrieveHealth.class)
+                .usingGetClass()
+                .withRedefinedSuperclass()
+                .verify();
+    }
+
 }

@@ -12,26 +12,21 @@
  */
 package org.eclipse.ditto.services.utils.akka.streaming;
 
-import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_COMPLETED;
-import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_FAILED;
-import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_STARTED;
-
+import java.time.Duration;
 import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.NotUsed;
 import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.PatternsCS;
+import akka.pattern.Patterns;
 import akka.stream.ActorMaterializer;
-import akka.stream.javadsl.Sink;
+import akka.stream.SourceRef;
 import akka.stream.javadsl.Source;
+import akka.stream.javadsl.StreamRefs;
 
 /**
  * Abstract actor that responds to each command by streaming elements from a source to the sender of the command.
@@ -58,14 +53,35 @@ public abstract class AbstractStreamingActor<C, E> extends AbstractActor {
 
     /**
      * Extract batch size from a command. The rate specifies the number of elements to be sent per message.
-     * Default to 1.
      *
      * @param command The command to start a stream.
      * @return The number of elements to be streamed per second.
      */
-    protected Optional<Integer> getBurst(final C command) {
-        return Optional.of(1);
-    }
+    protected abstract int getBurst(final C command);
+
+    /**
+     * Extract initial timeout.
+     *
+     * @param command The command to start a stream.
+     * @return The initial timeout.
+     */
+    protected abstract Duration getInitialTimeout(final C command);
+
+    /**
+     * Extract idle timeout.
+     *
+     * @param command The command to start a stream.
+     * @return The idle timeout.
+     */
+    protected abstract Duration getIdleTimeout(final C command);
+
+    /**
+     * Starts a source of elements according to the command.
+     *
+     * @param command The command to start a stream.
+     * @return A source of elements to stream to the recipient.
+     */
+    protected abstract Source<E, NotUsed> createSource(final C command);
 
     /**
      * Batch elements together into 1 message. Default to the first element of the list if it is a singleton and the
@@ -80,22 +96,6 @@ public abstract class AbstractStreamingActor<C, E> extends AbstractActor {
                 : elements;
     }
 
-    /**
-     * Extract timeout in milliseconds.
-     *
-     * @param command The command to start a stream.
-     * @return Timeout in milliseconds.
-     */
-    protected abstract Optional<Long> getTimeoutMillis(final C command);
-
-    /**
-     * Starts a source of elements according to the command.
-     *
-     * @param command The command to start a stream.
-     * @return A source of elements to stream to the recipient.
-     */
-    protected abstract Source<E, NotUsed> createSource(final C command);
-
     @Override
     public final Receive createReceive() {
         return ReceiveBuilder.create()
@@ -106,44 +106,18 @@ public abstract class AbstractStreamingActor<C, E> extends AbstractActor {
 
     private void startStreaming(final C command) {
         log.debug("Starting streaming due to command: {}", command);
-        final ActorRef recipient = getSender();
-        final int burst = getBurst(command).orElse(1);
-        final long timeoutMillis = getTimeoutMillis(command).orElse(60_000L);
+        final int burst = getBurst(command);
+        final Duration initialTimeout = getInitialTimeout(command);
+        final Duration idleTimeout = getIdleTimeout(command);
 
-        // The stream below has the behavior of Sink.actorRefWithAck:
-        // - STREAM_STARTED is sent as first message expecting acknowledgement,
-        // - each batched stream message is sent expecting acknowledgement,
-        // - STREAM_COMPLETED is sent when upstream completes successfully,
-        // - STREAM_FAILURE is sent when upstream fails.
-        //
-        // DO NOT replace the stream below by Sink.actorRefWithAck from Akka 2.5.8,
-        // because it sends STREAM_COMPLETED without waiting for the acknowledgement
-        // of the final stream element, complicating the state transition of
-        // AbstractStreamForwarder.
-        //
-        // See:
-        // https://github.com/akka/akka/issues/21015
-        createSource(command)
-                .grouped(burst)
-                .map(this::batchMessages)
-                .prepend(Source.single(STREAM_STARTED))
-                .concat(Source.single(STREAM_COMPLETED))
-                .mapAsync(1, message -> {
-                    if (STREAM_COMPLETED.equals(message)) {
-                        recipient.tell(message, ActorRef.noSender());
-                        return CompletableFuture.completedFuture(message);
-                    } else {
-                        return PatternsCS.ask(recipient, message, timeoutMillis);
-                    }
-                })
-                .recoverWithRetries(1,
-                        new PFBuilder<Throwable, Source<Object, NotUsed>>()
-                                .matchAny(error -> {
-                                    recipient.tell(STREAM_FAILED, ActorRef.noSender());
-                                    return Source.single(STREAM_FAILED);
-                                })
-                                .build())
-                .log("future completed", log)
-                .runWith(Sink.ignore(), materializer);
+        final CompletionStage<SourceRef<Object>> sourceRef =
+                createSource(command)
+                        .grouped(burst)
+                        .map(this::batchMessages)
+                        .initialTimeout(initialTimeout)
+                        .idleTimeout(idleTimeout)
+                        .runWith(StreamRefs.sourceRef(), materializer);
+
+        Patterns.pipe(sourceRef, getContext().getDispatcher()).to(getSender());
     }
 }

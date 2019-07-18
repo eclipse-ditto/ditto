@@ -23,6 +23,8 @@ import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
 import akka.cluster.singleton.ClusterSingletonManager;
 import akka.cluster.singleton.ClusterSingletonManagerSettings;
+import akka.cluster.singleton.ClusterSingletonProxy;
+import akka.cluster.singleton.ClusterSingletonProxySettings;
 
 /**
  * Convenience methods to operate an Akka cluster.
@@ -32,6 +34,24 @@ public final class ClusterUtil {
 
     private ClusterUtil() {
         throw new AssertionError();
+    }
+
+    /**
+     * Start a proxy to a singleton actor.
+     *
+     * @param context context to create the proxy actor in.
+     * @param role role of the singleton actor.
+     * @param singleton actor reference of the singleton manager.
+     * @return actor reference of the proxy to the singleton actor.
+     */
+    public static ActorRef startSingletonProxy(final ActorContext context, final String role,
+            final ActorRef singleton) {
+
+        final ClusterSingletonProxySettings settings =
+                ClusterSingletonProxySettings.create(context.system()).withRole(role);
+
+        final Props proxyProps = ClusterSingletonProxy.props(singleton.path().toStringWithoutAddress(), settings);
+        return context.actorOf(proxyProps, singleton.path().name() + "Proxy");
     }
 
     /**

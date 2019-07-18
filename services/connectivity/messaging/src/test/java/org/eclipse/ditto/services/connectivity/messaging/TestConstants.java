@@ -111,7 +111,6 @@ import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.event.Logging;
 
 public final class TestConstants {
 
