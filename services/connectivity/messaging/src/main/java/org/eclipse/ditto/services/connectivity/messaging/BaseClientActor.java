@@ -410,7 +410,9 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         }
         if (to == CONNECTING) {
             clientConnectingGauge.increment();
-        } else if (from == CONNECTING) {
+        }
+        // dont use else if since we might use goTo(CONNECTING) if in CONNECTING state. This will cause another onTransition.
+        if (from == CONNECTING) {
             clientConnectingGauge.decrement();
         }
     }
