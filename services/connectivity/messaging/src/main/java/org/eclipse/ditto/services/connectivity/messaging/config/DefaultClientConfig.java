@@ -32,12 +32,14 @@ public final class DefaultClientConfig implements ClientConfig {
     private static final String CONFIG_PATH = "client";
 
     private final Duration initTimeout;
-    private final Duration connectingTimeout;
+    private final Duration connectingMinTimeout;
+    private final Duration connectingMaxTimeout;
     private final Duration testingTimeout;
 
     private DefaultClientConfig(final ScopedConfig config) {
         initTimeout = config.getDuration(ClientConfigValue.INIT_TIMEOUT.getConfigPath());
-        connectingTimeout = config.getDuration(ClientConfigValue.CONNECTING_TIMEOUT.getConfigPath());
+        connectingMinTimeout = config.getDuration(ClientConfigValue.CONNECTING_MIN_TIMEOUT.getConfigPath());
+        connectingMaxTimeout = config.getDuration(ClientConfigValue.CONNECTING_MAX_TIMEOUT.getConfigPath());
         testingTimeout = config.getDuration(ClientConfigValue.TESTING_TIMEOUT.getConfigPath());
     }
 
@@ -58,8 +60,13 @@ public final class DefaultClientConfig implements ClientConfig {
     }
 
     @Override
-    public Duration getConnectingTimeout() {
-        return connectingTimeout;
+    public Duration getConnectingMinTimeout() {
+        return connectingMinTimeout;
+    }
+
+    @Override
+    public Duration getConnectingMaxTimeout() {
+        return connectingMaxTimeout;
     }
 
     @Override
@@ -77,20 +84,22 @@ public final class DefaultClientConfig implements ClientConfig {
         }
         final DefaultClientConfig that = (DefaultClientConfig) o;
         return Objects.equals(initTimeout, that.initTimeout) &&
-                Objects.equals(connectingTimeout, that.connectingTimeout) &&
+                Objects.equals(connectingMinTimeout, that.connectingMinTimeout) &&
+                Objects.equals(connectingMaxTimeout, that.connectingMaxTimeout) &&
                 Objects.equals(testingTimeout, that.testingTimeout);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(initTimeout, connectingTimeout, testingTimeout);
+        return Objects.hash(initTimeout, connectingMinTimeout, connectingMaxTimeout, testingTimeout);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 ", initTimeout=" + initTimeout +
-                ", connectingTimeout=" + connectingTimeout +
+                ", connectingMinTimeout=" + connectingMinTimeout +
+                ", connectingMaxTimeout=" + connectingMaxTimeout +
                 ", testingTimeout=" + testingTimeout +
                 "]";
     }

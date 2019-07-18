@@ -94,7 +94,7 @@ public final class BaseClientActorTest {
             expectMsgClass(Status.Failure.class);
 
             thenExpectConnectClientCalled();
-            thenExpectConnectClientCalledAfterTimeout(connectivityConfig.getClientConfig().getConnectingTimeout());
+            thenExpectConnectClientCalledAfterTimeout(connectivityConfig.getClientConfig().getConnectingMinTimeout());
         }};
     }
 
@@ -138,7 +138,7 @@ public final class BaseClientActorTest {
 
             expectMsgClass(Status.Failure.class);
 
-            thenExpectConnectClientCalledAfterTimeout(connectivityConfig.getClientConfig().getConnectingTimeout());
+            thenExpectConnectClientCalledAfterTimeout(connectivityConfig.getClientConfig().getConnectingMinTimeout());
         }};
     }
 
@@ -162,7 +162,7 @@ public final class BaseClientActorTest {
 
             thenExpectCleanupResourcesCalled();
             Mockito.clearInvocations(delegate);
-            thenExpectCleanupResourcesCalledAfterTimeout(connectivityConfig.getClientConfig().getConnectingTimeout());
+            thenExpectCleanupResourcesCalledAfterTimeout(connectivityConfig.getClientConfig().getConnectingMinTimeout());
             thenExpectNoConnectClientCalled();
         }};
 
@@ -185,7 +185,7 @@ public final class BaseClientActorTest {
             andConnectionSuccessful(dummyClientActor, getRef());
 
             expectMsgClass(Status.Success.class);
-            thenExpectNoConnectClientCalledAfterTimeout(connectivityConfig.getClientConfig().getConnectingTimeout());
+            thenExpectNoConnectClientCalledAfterTimeout(connectivityConfig.getClientConfig().getConnectingMinTimeout());
         }};
     }
 
@@ -239,7 +239,7 @@ public final class BaseClientActorTest {
 
     private void andNoResponseSent() {
         try {
-            TimeUnit.SECONDS.sleep(connectivityConfig.getClientConfig().getConnectingTimeout().getSeconds());
+            TimeUnit.SECONDS.sleep(connectivityConfig.getClientConfig().getConnectingMinTimeout().getSeconds());
         } catch (InterruptedException e) {
             System.out.println("Unexpected interruption while waiting until the connecting timeout takes place...");
             e.printStackTrace();

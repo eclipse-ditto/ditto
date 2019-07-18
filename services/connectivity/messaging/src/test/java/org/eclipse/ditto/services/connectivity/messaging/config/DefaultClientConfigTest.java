@@ -64,9 +64,12 @@ public final class DefaultClientConfigTest {
         softly.assertThat(underTest.getInitTimeout())
                 .as(ClientConfig.ClientConfigValue.INIT_TIMEOUT.getConfigPath())
                 .isEqualTo(ClientConfig.ClientConfigValue.INIT_TIMEOUT.getDefaultValue());
-        softly.assertThat(underTest.getConnectingTimeout())
-                .as(ClientConfig.ClientConfigValue.CONNECTING_TIMEOUT.getConfigPath())
-                .isEqualTo(ClientConfig.ClientConfigValue.CONNECTING_TIMEOUT.getDefaultValue());
+        softly.assertThat(underTest.getConnectingMinTimeout())
+                .as(ClientConfig.ClientConfigValue.CONNECTING_MIN_TIMEOUT.getConfigPath())
+                .isEqualTo(ClientConfig.ClientConfigValue.CONNECTING_MIN_TIMEOUT.getDefaultValue());
+        softly.assertThat(underTest.getConnectingMaxTimeout())
+                .as(ClientConfig.ClientConfigValue.CONNECTING_MAX_TIMEOUT.getConfigPath())
+                .isEqualTo(ClientConfig.ClientConfigValue.CONNECTING_MAX_TIMEOUT.getDefaultValue());
         softly.assertThat(underTest.getTestingTimeout())
                 .as(ClientConfig.ClientConfigValue.TESTING_TIMEOUT.getConfigPath())
                 .isEqualTo(ClientConfig.ClientConfigValue.TESTING_TIMEOUT.getDefaultValue());
@@ -79,9 +82,12 @@ public final class DefaultClientConfigTest {
         softly.assertThat(underTest.getInitTimeout())
                 .as(ClientConfig.ClientConfigValue.INIT_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(1L));
-        softly.assertThat(underTest.getConnectingTimeout())
-                .as(ClientConfig.ClientConfigValue.CONNECTING_TIMEOUT.getConfigPath())
+        softly.assertThat(underTest.getConnectingMinTimeout())
+                .as(ClientConfig.ClientConfigValue.CONNECTING_MIN_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(30L));
+        softly.assertThat(underTest.getConnectingMaxTimeout())
+                .as(ClientConfig.ClientConfigValue.CONNECTING_MAX_TIMEOUT.getConfigPath())
+                .isEqualTo(Duration.ofSeconds(120L));
         softly.assertThat(underTest.getTestingTimeout())
                 .as(ClientConfig.ClientConfigValue.TESTING_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(5L));
