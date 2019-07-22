@@ -66,6 +66,7 @@ import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.cleanup.AbstractPersistentActorWithTimersAndCleanup;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
@@ -126,7 +127,6 @@ import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
-import akka.persistence.AbstractPersistentActor;
 import akka.persistence.RecoveryCompleted;
 import akka.persistence.SaveSnapshotSuccess;
 import akka.persistence.SnapshotOffer;
@@ -138,10 +138,10 @@ import scala.concurrent.ExecutionContextExecutor;
  * Handles {@code *Connection} commands and manages the persistence of connection. The actual connection handling to the
  * remote server is delegated to a child actor that uses a specific client (AMQP 1.0 or 0.9.1).
  */
-public final class ConnectionActor extends AbstractPersistentActor {
+public final class ConnectionActor extends AbstractPersistentActorWithTimersAndCleanup {
 
     /**
-     * The prefix of the persistenceId.
+     * Prefix to prepend to the connection ID to construct the persistence ID.
      */
     public static final String PERSISTENCE_ID_PREFIX = "connection:";
 
@@ -191,7 +191,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
     @Nullable private SignalFilter signalFilter = null;
 
     private long lastSnapshotSequenceNr = -1L;
-    private boolean snapshotInProgress = false;
+    private long confirmedSnapshotSequenceNr = -1L;
 
     private Set<Topic> uniqueTopics = Collections.emptySet();
 
@@ -308,7 +308,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
                     if (fromSnapshotStore != null) {
                         restoreConnection(fromSnapshotStore);
                     }
-                    lastSnapshotSequenceNr = ss.metadata().sequenceNr();
+                    lastSnapshotSequenceNr = confirmedSnapshotSequenceNr = ss.metadata().sequenceNr();
                 })
                 .match(ConnectionCreated.class, event -> restoreConnection(event.getConnection()))
                 .match(ConnectionModified.class, event -> restoreConnection(event.getConnection()))
@@ -353,6 +353,20 @@ public final class ConnectionActor extends AbstractPersistentActor {
                 .build();
     }
 
+    /**
+     * Keep 1 stale event for cleanup if the connection's desired state is open so that this actor's pid stays
+     * in the set of current persistence IDs known to the persistence plugin and will be woken up by the reconnect
+     * actor after service restart.
+     *
+     * @return number of stale events to keep after cleanup.
+     */
+    @Override
+    protected long staleEventsKeptAfterCleanup() {
+        final boolean isDesiredStateOpen =
+                connection != null && connection.getConnectionStatus() == ConnectivityStatus.OPEN;
+        return isDesiredStateOpen ? 1 : 0;
+    }
+
     private void restoreConnection(@Nullable final Connection theConnection) {
         connection = theConnection;
         if (theConnection != null) {
@@ -378,8 +392,13 @@ public final class ConnectionActor extends AbstractPersistentActor {
                 .build();
     }
 
+    @Override
+    protected long getLatestSnapshotSequenceNumber() {
+        return confirmedSnapshotSequenceNr;
+    }
+
     private Receive createConnectionCreatedBehaviour() {
-        return ReceiveBuilder.create()
+        return super.createReceive().orElse(ReceiveBuilder.create()
                 .match(TestConnection.class, testConnection ->
                         getSender().tell(TestConnectionResponse.alreadyCreated(testConnection.getConnectionId(),
                                 testConnection.getDittoHeaders()), getSelf()))
@@ -420,7 +439,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
-                }).build();
+                }).build());
     }
 
     private void enhanceLogUtil(final WithDittoHeaders<?> createConnection) {
@@ -1017,21 +1036,19 @@ public final class ConnectionActor extends AbstractPersistentActor {
             pubSubMediator.tell(new DistributedPubSubMediator.Publish(event.getType(), event, true), getSelf());
 
             // save a snapshot if there were too many changes since the last snapshot
-            if ((lastSequenceNr() - lastSnapshotSequenceNr) > snapshotThreshold) {
+            if ((lastSequenceNr() - lastSnapshotSequenceNr) >= snapshotThreshold) {
                 doSaveSnapshot();
             }
         });
     }
 
     private void doSaveSnapshot() {
-        if (snapshotInProgress) {
-            log.debug("Already requested taking a Snapshot - not doing it again");
-        } else if (connection != null) {
-            snapshotInProgress = true;
+        if (connection != null) {
             log.info("Attempting to save Snapshot for Connection: <{}> ...", connection);
             // save a snapshot
             final Object snapshotToStore = snapshotAdapter.toSnapshotStore(connection);
             saveSnapshot(snapshotToStore);
+            lastSnapshotSequenceNr = lastSequenceNr();
         } else {
             log.warning("Connection and MappingContext must not be null when taking snapshot.");
         }
@@ -1105,6 +1122,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
     private void handleSnapshotSuccess(final SaveSnapshotSuccess sss) {
         log.debug("Snapshot was saved successfully: {}", sss);
+        confirmedSnapshotSequenceNr = Math.max(confirmedSnapshotSequenceNr, sss.metadata().sequenceNr());
     }
 
     private void schedulePendingResponse(final ConnectivityCommandResponse response, final ActorRef sender) {

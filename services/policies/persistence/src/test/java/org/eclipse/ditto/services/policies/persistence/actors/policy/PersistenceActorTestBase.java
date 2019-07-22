@@ -40,9 +40,9 @@ import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.services.models.policies.Permission;
+import org.eclipse.ditto.services.policies.common.config.DefaultPolicyConfig;
+import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.policies.persistence.TestConstants;
-import org.eclipse.ditto.services.policies.persistence.config.DefaultPolicyConfig;
-import org.eclipse.ditto.services.policies.persistence.config.PolicyConfig;
 import org.junit.After;
 import org.junit.BeforeClass;
 
@@ -85,7 +85,7 @@ public abstract class PersistenceActorTestBase {
 
     private static final PolicyEntry POLICY_ENTRY =
             PoliciesModelFactory.newPolicyEntry(POLICY_LABEL, POLICY_SUBJECTS, POLICY_RESOURCES_ALL);
-    private static final PolicyEntry ANOTHER_POLICY_ENTRY =
+    protected static final PolicyEntry ANOTHER_POLICY_ENTRY =
             PoliciesModelFactory.newPolicyEntry(ANOTHER_POLICY_LABEL, POLICY_SUBJECTS, POLICY_RESOURCES_READ);
     private static final long POLICY_REVISION = 0;
 

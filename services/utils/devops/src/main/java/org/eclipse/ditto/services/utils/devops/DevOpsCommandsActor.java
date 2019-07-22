@@ -36,6 +36,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.devops.LoggerConfig;
 import org.eclipse.ditto.model.devops.LoggingFacade;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.actors.RetrieveConfigBehavior;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
@@ -52,6 +53,8 @@ import org.eclipse.ditto.signals.commands.devops.ExecutePiggybackCommand;
 import org.eclipse.ditto.signals.commands.devops.RetrieveLoggerConfig;
 import org.eclipse.ditto.signals.commands.devops.RetrieveLoggerConfigResponse;
 
+import com.typesafe.config.Config;
+
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -63,12 +66,18 @@ import akka.japi.pf.ReceiveBuilder;
 /**
  * An actor to consume {@link org.eclipse.ditto.signals.commands.devops.DevOpsCommand}s and reply appropriately.
  */
-public final class DevOpsCommandsActor extends AbstractActor {
+public final class DevOpsCommandsActor extends AbstractActor implements RetrieveConfigBehavior {
 
     /**
      * The name of this Actor in the ActorSystem.
      */
     public static final String ACTOR_NAME = "devOpsCommandsActor";
+
+    /**
+     * Ditto header to turn aggregation on and off.
+     */
+    public static final String AGGREGATE_HEADER = "aggregate";
+
     private static final String UNKNOWN_MESSAGE_TEMPLATE = "Unknown message: {}";
     private static final String TOPIC_HEADER = "topic";
     private static final String IS_GROUP_TOPIC_HEADER = "is-group-topic";
@@ -117,10 +126,22 @@ public final class DevOpsCommandsActor extends AbstractActor {
         return ReceiveBuilder.create()
                 .match(DevOpsCommand.class, this::handleInitialDevOpsCommand)
                 .match(DevOpsCommandViaPubSub.class, this::handleDevOpsCommandViaPubSub)
+                .build()
+                .orElse(retrieveConfigBehavior())
+                .orElse(matchAnyUnhandled());
+    }
+
+    private Receive matchAnyUnhandled() {
+        return ReceiveBuilder.create()
                 .matchAny(m -> {
                     log.warning(UNKNOWN_MESSAGE_TEMPLATE, m);
                     unhandled(m);
                 }).build();
+    }
+
+    @Override
+    public Config getConfig() {
+        return getContext().getSystem().settings().config();
     }
 
     /**
@@ -389,7 +410,6 @@ public final class DevOpsCommandsActor extends AbstractActor {
     private static final class DevOpsCommandResponseCorrelationActor extends AbstractActor {
 
         private static final String TIMEOUT_HEADER = "timeout";
-        private static final String AGGREGATE_HEADER = "aggregate";
 
         private static final Duration DEFAULT_RECEIVE_TIMEOUT = Duration.ofMillis(5000);
         private static final boolean DEFAULT_AGGREGATE = true;

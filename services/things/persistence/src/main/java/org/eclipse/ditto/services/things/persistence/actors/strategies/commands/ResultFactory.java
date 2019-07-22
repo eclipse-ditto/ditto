@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
 import java.util.Optional;
-import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -69,11 +68,6 @@ final class ResultFactory {
     static CommandStrategy.Result emptyResult() {
         return EmptyResult.INSTANCE;
     }
-
-    static CommandStrategy.Result newFutureResult(final CompletionStage<WithDittoHeaders> futureResponse) {
-        return new FutureInfoResult(futureResponse);
-    }
-
 
     private static <C extends Command, E> WithDittoHeaders appendETagHeaderIfProvided(final C command,
             final WithDittoHeaders withDittoHeaders, @Nullable final Thing thing,
@@ -229,27 +223,4 @@ final class ResultFactory {
         }
     }
 
-    private static final class FutureInfoResult implements CommandStrategy.Result {
-
-        private final CompletionStage<WithDittoHeaders> futureResponse;
-
-        private FutureInfoResult(final CompletionStage<WithDittoHeaders> futureResponse) {
-            this.futureResponse = futureResponse;
-        }
-
-        @Override
-        public void apply(final CommandStrategy.Context context,
-                final BiConsumer<ThingModifiedEvent, BiConsumer<ThingModifiedEvent, Thing>> persistConsumer,
-                final Consumer<WithDittoHeaders> notifyConsumer) {
-
-            futureResponse.thenAccept(notifyConsumer);
-        }
-
-        @Override
-        public String toString() {
-            return this.getClass().getSimpleName() + " [" +
-                    "futureResponse=" + futureResponse +
-                    ']';
-        }
-    }
 }

@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
@@ -55,6 +56,7 @@ import org.apache.qpid.jms.JmsConnection;
 import org.apache.qpid.jms.JmsConnectionListener;
 import org.apache.qpid.jms.JmsMessageConsumer;
 import org.apache.qpid.jms.JmsQueue;
+import org.apache.qpid.jms.JmsSession;
 import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.message.JmsTextMessage;
 import org.apache.qpid.jms.provider.amqp.AmqpConnection;
@@ -134,7 +136,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     private final JmsConnection mockConnection = Mockito.mock(JmsConnection.class);
     private final JmsConnectionFactory jmsConnectionFactory = (connection1, exceptionListener) -> mockConnection;
     @Mock
-    private final Session mockSession = Mockito.mock(Session.class);
+    private final JmsSession mockSession = Mockito.mock(JmsSession.class);
     @Mock
     private final JmsMessageConsumer mockConsumer = Mockito.mock(JmsMessageConsumer.class);
     private MessageProducer mockProducer;
@@ -445,13 +447,16 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
 
     @Test
-    public void testCloseSessionWhenConnectedExpectRecreateSession() throws JMSException {
+    public void testConnectionRestoredExpectRecreateSession() throws JMSException {
         final String expectedAddress = "target";
         final Target target = ConnectivityModelFactory.newTarget(expectedAddress, Authorization.AUTHORIZATION_CONTEXT,
                 null, null, Topic.TWIN_EVENTS);
         final MessageProducer recoveredProducer = Mockito.mock(MessageProducer.class);
         final MessageConsumer recoveredConsumer = Mockito.mock(MessageConsumer.class);
-        final Session newSession = Mockito.mock(Session.class, withSettings().name("recoveredSession"));
+        final JmsSession newSession = Mockito.mock(JmsSession.class, withSettings().name("recoveredSession"));
+
+        // existing session was closed
+        when(mockSession.isClosed()).thenReturn(true);
         when(mockConnection.createSession(Session.CLIENT_ACKNOWLEDGE))
                 .thenReturn(mockSession) // initial session
                 .thenReturn(newSession); // recovered session
@@ -479,11 +484,11 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             expectMsgClass(Command.class);
 
             // now close session
-            jmsConnectionListener.onSessionClosed(mockSession, new JMSException("Session closed for unknown reason"));
+            jmsConnectionListener.onConnectionRestored(URI.create("amqp://broker:5671"));
             verify(mockConnection, timeout(2000).times(2)).createSession(Session.CLIENT_ACKNOWLEDGE);
 
             // close is called on old session
-            verify(mockSession).close();
+            verify(mockSession, times(2)).close();
 
             // verify publishing an event works with new session/producer
             sendThingEventAndExpectPublish(amqpClientActor, target, recoveredProducer);

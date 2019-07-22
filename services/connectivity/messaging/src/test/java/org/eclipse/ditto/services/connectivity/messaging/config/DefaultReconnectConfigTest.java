@@ -69,6 +69,10 @@ public final class DefaultReconnectConfigTest {
                 .as(ReconnectConfig.ReconnectConfigValue.INTERVAL.getConfigPath())
                 .isEqualTo(ReconnectConfig.ReconnectConfigValue.INTERVAL.getDefaultValue());
 
+        softly.assertThat(underTest.getReadJournalBatchSize())
+                .as(ReconnectConfig.ReconnectConfigValue.READ_JOURNAL_BATCH_SIZE.getConfigPath())
+                .isEqualTo(ReconnectConfig.ReconnectConfigValue.READ_JOURNAL_BATCH_SIZE.getDefaultValue());
+
         softly.assertThat(underTest.getRateConfig())
                 .as("rateConfig")
                 .satisfies(rateConfig -> {
@@ -92,6 +96,10 @@ public final class DefaultReconnectConfigTest {
         softly.assertThat(underTest.getInterval())
                 .as(ReconnectConfig.ReconnectConfigValue.INTERVAL.getConfigPath())
                 .isEqualTo(Duration.ofMinutes(5L));
+
+        softly.assertThat(underTest.getReadJournalBatchSize())
+                .as(ReconnectConfig.ReconnectConfigValue.READ_JOURNAL_BATCH_SIZE.getConfigPath())
+                .isEqualTo(7);
 
         softly.assertThat(underTest.getRateConfig())
                 .as("rateConfig")

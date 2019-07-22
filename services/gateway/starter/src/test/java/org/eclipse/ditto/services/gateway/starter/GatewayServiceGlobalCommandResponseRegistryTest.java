@@ -15,8 +15,11 @@ package org.eclipse.ditto.services.gateway.starter;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoRetrieveNamespaceReportResponse;
+import org.eclipse.ditto.services.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.services.utils.test.GlobalCommandResponseRegistryTestCases;
 import org.eclipse.ditto.signals.commands.batch.ExecuteBatchResponse;
+import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistenceResponse;
+import org.eclipse.ditto.signals.commands.common.RetrieveConfigResponse;
 import org.eclipse.ditto.signals.commands.common.purge.PurgeEntitiesResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnectionResponse;
@@ -36,7 +39,8 @@ import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThingsResponse;
 public final class GatewayServiceGlobalCommandResponseRegistryTest extends GlobalCommandResponseRegistryTestCases {
 
     public GatewayServiceGlobalCommandResponseRegistryTest() {
-        super(SudoRetrieveThingResponse.class,
+        super(
+                SudoRetrieveThingResponse.class,
                 SudoRetrievePolicyResponse.class,
                 QueryThingsResponse.class,
                 RetrieveConnectionResponse.class,
@@ -54,6 +58,9 @@ public final class GatewayServiceGlobalCommandResponseRegistryTest extends Globa
                 RetrieveLoggerConfigResponse.class,
                 ConnectivityErrorResponse.class,
                 SudoRetrieveNamespaceReportResponse.class,
+                RetrieveConfigResponse.class,
+                RetrieveHealthResponse.class,
+                CleanupPersistenceResponse.class,
                 PurgeEntitiesResponse.class
         );
     }

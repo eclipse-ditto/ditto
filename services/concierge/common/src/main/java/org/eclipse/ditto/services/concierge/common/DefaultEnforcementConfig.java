@@ -32,14 +32,11 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
     private final Duration askTimeout;
     private final int bufferSize;
     private final int parallelism;
-    private final int maxNamespacesSubstreams;
 
     private DefaultEnforcementConfig(final ConfigWithFallback configWithFallback) {
         askTimeout = configWithFallback.getDuration(EnforcementConfigValue.ASK_TIMEOUT.getConfigPath());
         bufferSize = configWithFallback.getInt(EnforcementConfigValue.BUFFER_SIZE.getConfigPath());
         parallelism = configWithFallback.getInt(EnforcementConfigValue.PARALLELISM.getConfigPath());
-        maxNamespacesSubstreams = configWithFallback.getInt(
-                EnforcementConfigValue.MAX_NAMESPACES_SUBSTREAMS.getConfigPath());
     }
 
     /**
@@ -69,10 +66,6 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
         return parallelism;
     }
 
-    @Override
-    public int getMaxNamespacesSubstreams() {
-        return maxNamespacesSubstreams;
-    }
 
     @Override
     public boolean equals(final Object o) {
@@ -85,13 +78,12 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
         final DefaultEnforcementConfig that = (DefaultEnforcementConfig) o;
         return bufferSize == that.bufferSize &&
                 parallelism == that.parallelism &&
-                maxNamespacesSubstreams == that.maxNamespacesSubstreams &&
                 askTimeout.equals(that.askTimeout);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(askTimeout, bufferSize, parallelism, maxNamespacesSubstreams);
+        return Objects.hash(askTimeout, bufferSize, parallelism);
     }
 
     @Override
@@ -100,7 +92,6 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
                 "askTimeout=" + askTimeout +
                 ", bufferSize=" + bufferSize +
                 ", parallelism=" + parallelism +
-                ", maxNamespacesSubstreams=" + maxNamespacesSubstreams +
                 "]";
     }
 

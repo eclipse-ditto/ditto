@@ -38,8 +38,8 @@
         <ssl-config-core.version>0.3.7</ssl-config-core.version>
         <akka.version>2.5.23</akka.version>
         <akka-http.version>10.1.8</akka-http.version>
-        <akka-persistence-mongo.version>2.2.4</akka-persistence-mongo.version>
-        <akka-management.version>1.0.0</akka-management.version>
+        <akka-persistence-mongo.version>2.2.9</akka-persistence-mongo.version>
+        <akka-management.version>1.0.1</akka-management.version>
         <simple-akka-downing.version>0.9.2</simple-akka-downing.version>
         <alpakka-mqtt.version>1.0.0</alpakka-mqtt.version>
         <akka-stream-kafka.version>1.0.1</akka-stream-kafka.version>
@@ -66,7 +66,7 @@
 
         <jsr302.version>3.0.1</jsr302.version>
 
-        <rhino.version>1.7.10</rhino.version>
+        <rhino.version>1.7.11</rhino.version>
         <!--
             be aware that connectivity mapping has a direct dependency on files inside this library.
             when updating this version, you should also check if the used paths and files still exist
@@ -81,7 +81,7 @@
         <js.long.version>3.2.0</js.long.version>
         <caffeine.version>2.6.2</caffeine.version>
 
-        <classindex.version>3.6</classindex.version>
+        <classindex.version>3.7</classindex.version>
 
         <!-- ### Testing dependencies versions -->
         <junit.version>4.12</junit.version>
@@ -614,6 +614,11 @@
                 <artifactId>ditto-signals-commands-messages</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-signals-commands-cleanup</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
@@ -737,6 +742,11 @@
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-utils-conditional-headers</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-services-utils-cleanup</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

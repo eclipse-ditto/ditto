@@ -17,7 +17,6 @@ import static java.util.Objects.requireNonNull;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -144,18 +143,6 @@ public abstract class PersistenceActorTestBase {
                 .setRevision(THING_REVISION)
                 .setId("test.ns:" + thingId)
                 .setPermissions(AUTHORIZED_SUBJECT, AccessControlListModelFactory.allPermissions()).build();
-    }
-
-    protected static void waitSecs(final long secs) {
-        waitMillis(secs * 1000);
-    }
-
-    protected static void waitMillis(final long millis) {
-        try {
-            TimeUnit.MILLISECONDS.sleep(millis);
-        } catch (final InterruptedException e) {
-            throw new IllegalStateException(e);
-        }
     }
 
     protected void setup(final Config customConfig) {

@@ -47,7 +47,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-concierge-batch</artifactId>
+            <artifactId>ditto-services-concierge-actors</artifactId>
             <version>${project.version}</version>
         </dependency>
 

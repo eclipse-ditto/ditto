@@ -52,6 +52,8 @@ import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePoli
 import org.eclipse.ditto.services.policies.persistence.TestConstants;
 import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
+import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
+import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistenceResponse;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyEntryModificationInvalidException;
@@ -99,7 +101,6 @@ import akka.testkit.TestActorRef;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 import scala.PartialFunction;
-import scala.concurrent.duration.Duration;
 import scala.runtime.BoxedUnit;
 
 /**
@@ -950,6 +951,50 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     }
 
     @Test
+    public void testPolicyPersistenceActorRespondsToCleanupCommandInCreatedState() {
+        new TestKit(actorSystem) {{
+            final Policy policy = createPolicyWithRandomId();
+            final ActorRef policyPersistenceActor = createPersistenceActorFor(this, policy);
+
+            final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
+            policyPersistenceActor.tell(createPolicyCommand, getRef());
+            final CreatePolicyResponse createPolicy1Response = expectMsgClass(CreatePolicyResponse.class);
+            DittoPolicyAssertions.assertThat(createPolicy1Response.getPolicyCreated().get())
+                    .isEqualEqualToButModified(policy);
+
+            final String entityId = PolicyPersistenceActor.PERSISTENCE_ID_PREFIX +
+                    policy.getId().orElseThrow(IllegalStateException::new);
+            policyPersistenceActor.tell(CleanupPersistence.of(entityId, DittoHeaders.empty()), getRef());
+            expectMsg(CleanupPersistenceResponse.success(entityId, DittoHeaders.empty()));
+        }};
+    }
+
+    @Test
+    public void testPolicyPersistenceActorRespondsToCleanupCommandInDeletedState() {
+        new TestKit(actorSystem) {{
+            final Policy policy = createPolicyWithRandomId();
+            final ActorRef policyPersistenceActor = createPersistenceActorFor(this, policy);
+
+            final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
+            policyPersistenceActor.tell(createPolicyCommand, getRef());
+            final CreatePolicyResponse createPolicy1Response = expectMsgClass(CreatePolicyResponse.class);
+            DittoPolicyAssertions.assertThat(createPolicy1Response.getPolicyCreated().get())
+                    .isEqualEqualToButModified(policy);
+
+            final DeletePolicy deletePolicyCommand =
+                    DeletePolicy.of(policy.getId().orElseThrow(() -> new IllegalStateException("no id")),
+                            dittoHeadersV2);
+            policyPersistenceActor.tell(deletePolicyCommand, getRef());
+            expectMsgClass(DeletePolicyResponse.class);
+
+            final String entityId = PolicyPersistenceActor.PERSISTENCE_ID_PREFIX +
+                    policy.getId().orElseThrow(IllegalStateException::new);
+            policyPersistenceActor.tell(CleanupPersistence.of(entityId, DittoHeaders.empty()), getRef());
+            expectMsg(CleanupPersistenceResponse.success(entityId, DittoHeaders.empty()));
+        }};
+    }
+
+    @Test
     public void checkForActivityOfNonexistentPolicy() {
         new TestKit(actorSystem) {
             {
@@ -1003,7 +1048,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 expectMsg(PolicySupervisorActor.Control.PASSIVATE);
 
                 // THEN: persistence actor should not throw anything.
-                errorsProbe.expectNoMessage(Duration.create(3, TimeUnit.SECONDS));
+                errorsProbe.expectNoMessage(scala.concurrent.duration.Duration.create(3, TimeUnit.SECONDS));
             }
         };
     }

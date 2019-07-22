@@ -23,9 +23,12 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.base.config.http.HttpConfig;
-import org.eclipse.ditto.services.concierge.batch.actors.BatchSupervisorActor;
+import org.eclipse.ditto.services.concierge.actors.ShardRegions;
+import org.eclipse.ditto.services.concierge.actors.batch.BatchSupervisorActor;
+import org.eclipse.ditto.services.concierge.actors.cleanup.CleanupStatusReporter;
+import org.eclipse.ditto.services.concierge.actors.cleanup.EventSnapshotCleanupCoordinator;
 import org.eclipse.ditto.services.concierge.common.ConciergeConfig;
-import org.eclipse.ditto.services.concierge.starter.proxy.AbstractEnforcerActorFactory;
+import org.eclipse.ditto.services.concierge.starter.proxy.EnforcerActorFactory;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -127,21 +130,28 @@ public final class ConciergeRootActor extends AbstractActor {
     @SuppressWarnings("unused")
     private <C extends ConciergeConfig> ConciergeRootActor(final C conciergeConfig,
             final ActorRef pubSubMediator,
-            final AbstractEnforcerActorFactory<C> enforcerActorFactory,
+            final EnforcerActorFactory<C> enforcerActorFactory,
             final ActorMaterializer materializer) {
 
         pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
 
         final ActorContext context = getContext();
+        final ShardRegions shardRegions = ShardRegions.of(getContext().getSystem(), conciergeConfig.getClusterConfig());
 
-        enforcerActorFactory.startEnforcerActor(context, conciergeConfig, pubSubMediator);
+        enforcerActorFactory.startEnforcerActor(context, conciergeConfig, pubSubMediator, shardRegions);
 
         final ActorRef conciergeForwarder = context.findChild(ConciergeForwarderActor.ACTOR_NAME).orElseThrow(() ->
                 new IllegalStateException("ConciergeForwarder could not be found"));
 
-        startClusterSingletonActor(context, BatchSupervisorActor.props(pubSubMediator, conciergeForwarder));
+        startClusterSingletonActor(context, BatchSupervisorActor.ACTOR_NAME,
+                BatchSupervisorActor.props(pubSubMediator, conciergeForwarder));
 
-        final ActorRef healthCheckingActor = startHealthCheckingActor(context, conciergeConfig);
+        final ActorRef cleanupCoordinator = startClusterSingletonActor(context,
+                EventSnapshotCleanupCoordinator.ACTOR_NAME,
+                EventSnapshotCleanupCoordinator.props(conciergeConfig.getPersistenceCleanupConfig(), pubSubMediator,
+                        shardRegions));
+
+        final ActorRef healthCheckingActor = startHealthCheckingActor(context, conciergeConfig, cleanupCoordinator);
 
         bindHttpStatusRoute(healthCheckingActor, conciergeConfig.getHttpConfig(), materializer);
     }
@@ -158,7 +168,7 @@ public final class ConciergeRootActor extends AbstractActor {
      */
     public static <C extends ConciergeConfig> Props props(final C conciergeConfig,
             final ActorRef pubSubMediator,
-            final AbstractEnforcerActorFactory<C> enforcerActorFactory,
+            final EnforcerActorFactory<C> enforcerActorFactory,
             final ActorMaterializer materializer) {
 
         checkNotNull(conciergeConfig, "config of Concierge");
@@ -171,13 +181,14 @@ public final class ConciergeRootActor extends AbstractActor {
     }
 
 
-    private static void startClusterSingletonActor(final akka.actor.ActorContext context, final Props props) {
-        ClusterUtil.startSingleton(context, ConciergeMessagingConstants.CLUSTER_ROLE, BatchSupervisorActor.ACTOR_NAME,
-                props);
+    private static ActorRef startClusterSingletonActor(final ActorContext context, final String actorName,
+            final Props props) {
+
+        return ClusterUtil.startSingleton(context, ConciergeMessagingConstants.CLUSTER_ROLE, actorName, props);
     }
 
-    private static ActorRef startHealthCheckingActor(final ActorRefFactory context,
-            final ConciergeConfig conciergeConfig) {
+    private static ActorRef startHealthCheckingActor(final ActorContext context,
+            final ConciergeConfig conciergeConfig, final ActorRef cleanupCoordinator) {
 
         final HealthCheckConfig healthCheckConfig = conciergeConfig.getHealthCheckConfig();
 
@@ -190,12 +201,16 @@ public final class ConciergeRootActor extends AbstractActor {
         }
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
 
+        final ActorRef cleanupCoordinatorProxy = ClusterUtil.startSingletonProxy(context,
+                ConciergeMessagingConstants.CLUSTER_ROLE, cleanupCoordinator);
+
         return startChildActor(context, DefaultHealthCheckingActorFactory.ACTOR_NAME,
-                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, MongoHealthChecker.props()));
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions,
+                        MongoHealthChecker.props(),
+                        CleanupStatusReporter.props(cleanupCoordinatorProxy)));
     }
 
-    private static ActorRef startChildActor(final ActorRefFactory context, final String actorName,
-            final Props props) {
+    private static ActorRef startChildActor(final ActorRefFactory context, final String actorName, final Props props) {
 
         return context.actorOf(props, actorName);
     }

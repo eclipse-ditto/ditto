@@ -101,13 +101,6 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
      */
     protected abstract int getParallelism();
 
-    /**
-     * @return the maximum of supported namespaces to start substreams for. Choose a high value as if the actual amount
-     * of substreams gets bigger than this maximum value, the whole enforcement stream will fail. But don't set too high
-     * as substreams require memory!
-     */
-    protected abstract int getMaxNamespacesSubstreams();
-
     @Override
     public Receive createReceive() {
 
@@ -127,24 +120,12 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
                 );
         final ActorMaterializer materializer = ActorMaterializer.create(materializerSettings, getContext());
 
-        final SourceQueueWithComplete<T> sourceQueue =
-                Source.<T>queue(getBufferSize(), OverflowStrategy.backpressure())
-                        // first: create substreams by namespace of the messages
-                        .groupBy(getMaxNamespacesSubstreams(), msg -> {
-                            if (msg instanceof WithId) {
-                                final String id = ((WithId) msg).getId();
-                                final int firstColon = id.indexOf(':');
-                                if (firstColon >= 0) {
-                                    return id.substring(0, firstColon);
-                                }
-                            }
-                            return "";
-                        })
-                        .via(Flow.fromFunction(this::beforeProcessMessage))
-                        // second: partition by the message's ID in order to maintain order per ID
-                        .via(partitionById(processMessageFlow(), getParallelism()))
-                        .to(processedMessageSink())
-                        .run(materializer);
+        final SourceQueueWithComplete<T> sourceQueue = Source.<T>queue(getBufferSize(), OverflowStrategy.backpressure())
+                .via(Flow.fromFunction(this::beforeProcessMessage))
+                // partition by the message's ID in order to maintain order per ID
+                .via(partitionById(processMessageFlow(), getParallelism()))
+                .to(processedMessageSink())
+                .run(materializer);
 
         final ReceiveBuilder receiveBuilder = ReceiveBuilder.create();
         preEnhancement(receiveBuilder);

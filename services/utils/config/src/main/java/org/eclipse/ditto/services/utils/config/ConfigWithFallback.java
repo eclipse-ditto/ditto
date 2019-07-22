@@ -42,7 +42,7 @@ import com.typesafe.config.ConfigValue;
  * path and fallback values for not originally configured settings.
  */
 @Immutable
-public final class ConfigWithFallback implements ScopedConfig {
+public final class ConfigWithFallback implements ScopedConfig, ConfigMergeable {
 
     private final Config baseConfig;
     private final String configPath;

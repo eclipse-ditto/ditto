@@ -20,7 +20,7 @@ spec:
     metadata:
       labels:
         app: {{ .Values.gateway.name }}
-        actorSystemName: ditto-cluster
+        actorSystemName: {{ .Values.akka.actorSystemName }}
     spec:
       containers:
         - name: {{ .Values.gateway.name }}
@@ -87,4 +87,41 @@ spec:
       protocol: TCP
   selector:
     app: {{ .Values.gateway.name }}
+{{- if .Values.gateway.networkPolicy.enabled }}
+---
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: {{ .Values.gateway.name }}-policy
+  namespace: {{.Release.Namespace}}
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ .Values.gateway.name }}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+# Allow access from Nginx
+  - from:
+    - podSelector:
+        matchLabels:
+          app: {{ .Values.nginx.name }}
+    ports:
+    - protocol: TCP
+      port: 8080
+# Allow inner cluster communication
+  - from:
+    - podSelector:
+        matchLabels:
+          actorSystemName: {{ .Values.akka.actorSystemName }}
+    ports:
+    - protocol: TCP
+      port: {{ .Values.akka.remoting.port }}
+    - protocol: TCP
+      port: {{ .Values.akka.mgmthttp.port }}
+# Open all egress
+  egress:
+  - {}
+{{- end }}
 {{- end }}

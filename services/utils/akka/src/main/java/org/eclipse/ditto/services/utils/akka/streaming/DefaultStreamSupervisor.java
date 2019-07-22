@@ -13,74 +13,72 @@
 package org.eclipse.ditto.services.utils.akka.streaming;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.FORWARDER_EXCEEDED_MAX_IDLE_TIME_MSG;
-import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_COMPLETED;
-import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_FAILED;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.NotUsed;
-import akka.actor.AbstractActor;
+import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
-import akka.actor.Cancellable;
 import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
-import akka.actor.Terminated;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.PatternsCS;
+import akka.pattern.AskTimeoutException;
+import akka.pattern.Patterns;
 import akka.stream.Materializer;
+import akka.stream.SourceRef;
+import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
-import scala.Option;
-import scala.concurrent.duration.FiniteDuration;
 
 /**
  * An actor that supervises stream forwarders. It maintains the end time of the last successful stream in a
  * {@code StreamMetadataPersistence} and starts streams whenever the timestamp becomes too old. It collaborates
  * with {@code AbstractStreamingActor} and {@code AbstractStreamForwarder} to ensure that the recipient of stream
  * messages eventually receive all messages up until the recent past.
+ * <p>
  * <pre>
  * {@code
- * Streaming                                                                       Supervisor           Stream
- * Actor                                                                              +                 Message
- *    +                                                                               |                 Recipient
- *    |                                                                               |                   +
- *    |                                                                               |                   |
- *    |                                                                         spawns|                   |
- *    |                                          START_STREAMING            <---------+                   |
- *    |  <-----------------------------------------------------+  Stream                                  |
- *    |                                                           Forwarder                               |
- *    |                                                              +                                    |
+ * Streaming                                                      Supervisor                            Stream
+ * Actor                                                             +                                  Message
+ *    +                                                              |                                  Recipient
+ *    |                                                              |                                    +
+ *    |                                                              |                                    |
+ *    |                                                              |                                    |
+ *    |                                          START_STREAMING     |                                    |
+ *    |  <-----------------------------------------------------+     |                                    |
  *    |                                                              |                                    |
  *    |                                                              |                                    |
  *    |                                                              |                                    |
  *    |                                                              |                                    |
  *    |                                                              |                                    |
  *    |                                                              |                                    |
- *    |  spawns          Akka                                        |                                    |
- *    |  +------------>  Stream                                      |                                    |
- *    |                  Source                                      |                                    |
+ *    |                                                              |                                    |
+ *    |                                                              |                                    |
+ *    |  spawns                                                      |                                    |
+ *    |  +------------> Source                                       |                                    |
+ *    |                                                              |                                    |
  *    |                    +                                         |                                    |
  *    |                    |                                         |                                    |
- *    |                    |  STREAM_STARTED(BATCH_SIZE)             |                                    |
+ *    |                    |  SourceRef                              |                                    |
  *    |                    |  +----------------------------------->  |                                    |
  *    |                    |                                         |                                    |
- *    |                    |                                    ACK  |                                    |
- *    |                    |  <-----------------------------------+  |                                    |
+ *    |                    |                                         |                                    |
+ *    |                    |                                         |                                    |
  *    |                    |                                         |                                    |
  *    |                    |                                         |                                    |
  *    |                    |                                         |                                    |
@@ -102,38 +100,36 @@ import scala.concurrent.duration.FiniteDuration;
  *    |                    |                                         |                               ACK  |
  *    |                    |                                         |  <------------------------------+  |
  *    |                    |                                         |                                    |
- *    |                    |                                    ACK  |                                    |
- *    |                    |  <-----------------------------------+  |                                    |
+ *    |                    |                                         |                                    |
+ *    |                    |                                         |                                    |
  *    |                    |                                         |                                    |
  *    |                    |  STREAM_COMPLETED                       |                                    |
  *    |                    |  +----------------------------------->  |                                    |
  *    |                    |                                         |                                    |
  *    |                    +                                         |                                    |
- *    |                   Dead                                       | STREAM_COMPLETED                   |
- *    |                                                              | +--------------+                   |
- *    |                                                              +                |                   |
- *    |                                                             Dead              |                   |
- *    |                                                                               |                   |
- *    |                                                                               |                   |
- *    |                                                                               v                   |
- *    |                                                                            Stream                 |
- *    |                                                                            Supervisor             |
+ *    |                   Dead                                       |                                    |
+ *    |                                                              |                                    |
+ *    |                                                              +                                    |
+ *    |                                                                                                   |
+ *    |                                                                                                   |
+ *    |                                                                                                   |
+ *    |                                                                                                   |
+ *    |                                                                                                   |
+ *    +                                                                                                   +
  * }
  * </pre>
  */
-public final class DefaultStreamSupervisor<E> extends AbstractActor {
+public final class DefaultStreamSupervisor<E> extends AbstractActorWithTimers {
 
     /**
-     * The name of the supervised stream forwarder.
+     * Timeout waiting for SourceRef from the streaming actor.
      */
-    public static final String STREAM_FORWARDER_ACTOR_NAME = "streamForwarder";
+    private static final Duration PROVIDER_TIMEOUT = Duration.ofSeconds(10L);
 
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final SupervisorStrategy supervisorStrategy =
             new OneForOneStrategy(true, DeciderBuilder.matchAny(e -> SupervisorStrategy.stop()).build());
-
-    private Cancellable scheduledStreamStart;
 
     private final ActorRef forwardTo;
     private final ActorRef provider;
@@ -143,18 +139,11 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
     private final TimestampPersistence streamMetadataPersistence;
     private final Materializer materializer;
     private final SyncConfig syncConfig;
-    private @Nullable ActorRef forwarder;
-    private @Nullable StreamTrigger nextStream;
     private @Nullable StreamTrigger activeStream;
     private @Nullable Boolean activeStreamSuccess;
 
     /*
-     * Regular check that this actor is not stuck.
-     */
-    private final Cancellable activityCheck;
-
-    /*
-     * Timestamp of the last instant when a forwarder is started or stopped.
+     * Timestamp of the last instant when a stream is started or stopped.
      */
     private Instant lastStreamStartOrStop;
 
@@ -180,8 +169,9 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
         this.materializer = checkNotNull(materializer, "Materializer");
         this.syncConfig = checkNotNull(syncConfig, "SyncConfig");
 
-        activityCheck = scheduleActivityCheck();
         lastStreamStartOrStop = Instant.now();
+
+        scheduleActivityCheck();
 
         // schedule first stream after delay
         computeAndScheduleNextStreamTrigger(null);
@@ -213,12 +203,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
             final SyncConfig syncConfig) {
 
         return Props.create(DefaultStreamSupervisor.class, forwardTo, provider, elementClass, mapEntityFunction,
-                        streamTriggerMessageMapper, streamMetadataPersistence, materializer, syncConfig);
-    }
-
-    private Props getStreamForwarderProps() {
-        return DefaultStreamForwarder.props(forwardTo, getSelf(), syncConfig.getMaxIdleTime(),
-                elementClass, mapEntityFunction);
+                streamTriggerMessageMapper, streamMetadataPersistence, materializer, syncConfig);
     }
 
     private Object newStartStreamingCommand(final StreamTrigger streamRestrictions) {
@@ -238,64 +223,38 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
     }
 
     @Override
-    public void postStop() throws Exception {
-        if (null != scheduledStreamStart) {
-            scheduledStreamStart.cancel();
-        }
-        if (null != activityCheck) {
-            activityCheck.cancel();
-        }
-        super.postStop();
-    }
-
-    @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(StreamTrigger.class, this::scheduleStream)
-                .matchEquals(TryToStartStream.INSTANCE, tryToStartStream -> {
-                    log.debug("Switching to supervisingBehaviour has been triggered by message: {}",
-                            tryToStartStream);
-                    becomeSupervising();
-                    tryToStartStream();
+                .match(StreamTrigger.class, streamTrigger -> {
+                    log.debug("Triggering stream: {}", streamTrigger);
+                    tryToStartStream(streamTrigger);
                 })
-                .match(Terminated.class, this::terminated)
+                .match(SourceRef.class, this::startStreamForwarding)
+                .match(ScheduleNextStream.class, this::scheduleNextStream)
                 .matchEquals(CheckForActivity.INSTANCE, this::checkForActivity)
                 .build();
     }
 
-    private void becomeSupervising() {
-        log.debug("Become supervising ...");
-        getContext().become(createSupervisingBehavior());
+    private void scheduleNextStream(final ScheduleNextStream message) {
+        if (Objects.equals(activeStream, message.activeStreamTrigger)) {
+            if (message.terminated) {
+                streamTerminated();
+            }
+            if (message.error != null) {
+                log.error("Stream from <{}> failed for <{}> due to <{}>", provider, activeStream, message.error);
+                activeStreamSuccess = false;
+            } else {
+                log.debug("Stream completed without error: <{}>", activeStream);
+                activeStreamSuccess = true;
+            }
+            doScheduleNextStream();
+        } else {
+            log.warning("Got ScheduleNextStream <{}> which does not match the active stream trigger <{}>",
+                    message, activeStream);
+        }
     }
 
-    private Receive createSupervisingBehavior() {
-        return ReceiveBuilder.create()
-                .matchEquals(STREAM_COMPLETED, msg -> streamCompleted())
-                .matchEquals(STREAM_FAILED, msg -> streamFailed())
-                .matchEquals(FORWARDER_EXCEEDED_MAX_IDLE_TIME_MSG, msg -> streamTimedOut())
-                .match(StreamTrigger.class, this::scheduleStream)
-                .matchEquals(TryToStartStream.INSTANCE, msg -> tryToStartStream())
-                .match(Terminated.class, this::terminated)
-                .matchEquals(CheckForActivity.INSTANCE, this::checkForActivity)
-                .build();
-    }
-
-    private void streamCompleted() {
-        log.debug("Stream completed.");
-        activeStreamSuccess = true;
-    }
-
-    private void streamTimedOut() {
-        log.debug("Stream timed out.");
-        activeStreamSuccess = false;
-    }
-
-    private void streamFailed() {
-        log.debug("Stream failed");
-        activeStreamSuccess = false;
-    }
-
-    private void scheduleNextStream() {
+    private void doScheduleNextStream() {
         if (activeStream == null) {
             log.error("Cannot schedule next stream, because active stream is unknown.");
             return;
@@ -315,15 +274,17 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
                                 lastSuccessfulQueryEnd);
                         return null;
                     });
-
             computeAndScheduleNextStreamTrigger(lastSuccessfulQueryEnd);
         } else {
             rescheduleActiveStream();
         }
+
+        // There is no active stream before the next StreamTrigger message arrives.
+        activeStream = null;
     }
 
     private void computeAndScheduleNextStreamTrigger(@Nullable final Instant lastSuccessfulQueryEnd) {
-        PatternsCS.pipe(computeNextStreamTrigger(lastSuccessfulQueryEnd), getContext().dispatcher()).to(getSelf());
+        Patterns.pipe(computeNextStreamTrigger(lastSuccessfulQueryEnd), getContext().dispatcher()).to(getSelf());
     }
 
     private CompletionStage<StreamTrigger> computeNextStreamTrigger(@Nullable final Instant lastSuccessfulQueryEnd) {
@@ -346,32 +307,30 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
                     .map(instant -> instant.orElse(initialStartTsWithoutStandardOffset));
         }
 
-        return queryStartSource.map(queryStart -> {
-            final Duration offsetFromNow = Duration.between(queryStart, now);
-            // check if the queryStart is very long in the past to be able to log a warning
-            final Duration warnOffset = syncConfig.getOutdatedWarningOffset();
-            if (!offsetFromNow.isNegative() && offsetFromNow.compareTo(warnOffset) > 0) {
-                log.debug("The next Query-Start <{}> is older than the configured warn-offset <{}>. " +
-                                "Please verify that this does not happen frequently, " +
-                                "otherwise won't get \"up-to-date\" anymore.",
-                        queryStart, warnOffset);
-            }
+        final Source<StreamTrigger, NotUsed> streamTriggerSource =
+                queryStartSource.map(queryStart -> {
+                    final Duration offsetFromNow = Duration.between(queryStart, now);
+                    // check if the queryStart is very long in the past to be able to log a warning
+                    final Duration warnOffset = syncConfig.getOutdatedWarningOffset();
+                    if (!offsetFromNow.isNegative() && offsetFromNow.compareTo(warnOffset) > 0) {
+                        log.debug("The next Query-Start <{}> is older than the configured warn-offset <{}>. " +
+                                        "Please verify that this does not happen frequently, " +
+                                        "otherwise won't get \"up-to-date\" anymore.",
+                                queryStart, warnOffset);
+                    }
 
-            final Duration startOffset = syncConfig.getStartOffset();
-            final Duration streamInterval = syncConfig.getStreamInterval();
-            final Duration minimalDelayBetweenStreams = syncConfig.getMinimalDelayBetweenStreams();
-            return StreamTrigger.calculateStreamTrigger(now, queryStart, startOffset, streamInterval,
-                    minimalDelayBetweenStreams, lastSuccessfulQueryEnd == null);
-        });
+                    final Duration startOffset = syncConfig.getStartOffset();
+                    final Duration streamInterval = syncConfig.getStreamInterval();
+                    final Duration minimalDelayBetweenStreams = syncConfig.getMinimalDelayBetweenStreams();
+                    return StreamTrigger.calculateStreamTrigger(now, queryStart, startOffset,
+                            streamInterval, minimalDelayBetweenStreams, lastSuccessfulQueryEnd == null);
+                });
+
+        return streamTriggerSource.flatMapConcat(this::delayStreamTrigger);
     }
 
-    private void scheduleStream(final StreamTrigger streamTrigger) {
-        nextStream = streamTrigger;
-
-        scheduleStream(streamTrigger.getPlannedStreamStart());
-    }
-
-    private void scheduleStream(final Instant when) {
+    private Duration computeNextStreamTriggerDelay(final StreamTrigger streamTrigger) {
+        final Instant when = streamTrigger.getPlannedStreamStart();
         final Duration duration;
         final Instant now = Instant.now();
         if (when.isBefore(now)) {
@@ -384,45 +343,41 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
                 duration.minus(syncConfig.getMinimalDelayBetweenStreams()).isNegative()
                         ? syncConfig.getMinimalDelayBetweenStreams()
                         : duration;
-
-        scheduleStream(nextStreamDelay);
+        log.debug("Schedule Stream in: {}", nextStreamDelay);
+        return nextStreamDelay;
     }
 
-    private void scheduleStream(final Duration duration) {
-        log.debug("Schedule Stream in: {}", duration);
-        if (scheduledStreamStart != null) {
-            scheduledStreamStart.cancel();
-        }
-
-        final FiniteDuration finiteDuration = fromDuration(duration);
-        scheduledStreamStart = getContext().system().scheduler()
-                .scheduleOnce(finiteDuration, getSelf(), TryToStartStream.INSTANCE,
-                        getContext().dispatcher(), ActorRef.noSender());
-    }
-
-    private Cancellable scheduleActivityCheck() {
-        final FiniteDuration interval = fromDuration(syncConfig.getStreamInterval());
+    private void scheduleActivityCheck() {
+        final Duration interval = syncConfig.getStreamInterval();
         final CheckForActivity message = CheckForActivity.INSTANCE;
-        final ActorContext actorContext = getContext();
-        return actorContext.getSystem()
-                .scheduler()
-                .schedule(interval, interval, getSelf(), message, actorContext.dispatcher(), ActorRef.noSender());
+        getTimers().startPeriodicTimer("activityCheck", message, interval);
     }
 
-    private void tryToStartStream() {
-        if (forwarder != null) {
-            log.warning("Forwarder is still running: {}. Re-scheduling current stream.", forwarder);
+    private void tryToStartStream(final StreamTrigger streamTrigger) {
+        if (activeStream != null) {
+            log.warning("Stream is still running: {}. Re-scheduling current stream.");
             rescheduleActiveStream();
         } else {
-            final Object startStreamCommand = newStartStreamingCommand(nextStream);
-
-            forwarder = createOrGetForwarder();
-
-            log.debug("Requesting stream from <{}> on behalf of <{}> by <{}>", provider, forwarder,
-                    startStreamCommand);
-            provider.tell(startStreamCommand, forwarder);
-            activeStream = nextStream;
+            final Object startStreamCommand = newStartStreamingCommand(streamTrigger);
+            log.debug("Requesting stream from <{}> by <{}>", provider, startStreamCommand);
+            provider.tell(startStreamCommand, getSelf());
+            activeStream = streamTrigger;
             activeStreamSuccess = null;
+            final CompletionStage<Object> answerFromProvider =
+                    Patterns.ask(provider, startStreamCommand, PROVIDER_TIMEOUT)
+                            .handle((result, error) -> {
+                                if (result instanceof SourceRef) {
+                                    return result;
+                                } else {
+                                    final Throwable e = result instanceof AskTimeoutException
+                                            ? (AskTimeoutException) result
+                                            : error != null
+                                            ? error
+                                            : new IllegalStateException("Unexpected message from provider: " + result);
+                                    return new ScheduleNextStream(activeStream, e, false);
+                                }
+                            });
+            Patterns.pipe(answerFromProvider, getContext().dispatcher()).to(getSelf());
         }
     }
 
@@ -436,44 +391,66 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
         }
 
         final StreamTrigger rescheduledStreamTrigger = activeStream.rescheduleAt(rescheduledPlannedStreamStart);
-        scheduleStream(rescheduledStreamTrigger);
+
+        final CompletionStage<StreamTrigger> delayedStreamTrigger =
+                delayStreamTrigger(rescheduledStreamTrigger).runWith(Sink.head(), materializer);
+
+        Patterns.pipe(delayedStreamTrigger, getContext().getDispatcher()).to(getSelf());
     }
 
-    private ActorRef createOrGetForwarder() {
-        final Option<ActorRef> refOption = getContext().child(STREAM_FORWARDER_ACTOR_NAME);
-        final ActorRef forwarderRef;
-        if (refOption.isDefined()) {
-            forwarderRef = refOption.get();
+    private Source<StreamTrigger, NotUsed> delayStreamTrigger(final StreamTrigger streamTrigger) {
+
+        final Duration nextStreamTriggerDelay = computeNextStreamTriggerDelay(streamTrigger);
+
+        if (nextStreamTriggerDelay.isZero()) {
+            return Source.single(streamTrigger);
         } else {
-            forwarderRef = startStreamForwarder();
-            log.debug("Watching forwarder: {}", forwarderRef);
-            // important: watch the child to get notified when it terminates
-            getContext().watch(forwarderRef);
+            return Source.single(streamTrigger).initialDelay(nextStreamTriggerDelay);
         }
-
-        return forwarderRef;
     }
 
-    private ActorRef startStreamForwarder() {
-        streamForwarderStartedOrStopped();
-        return getContext().actorOf(getStreamForwarderProps(), STREAM_FORWARDER_ACTOR_NAME);
+    private void startStreamForwarding(final SourceRef<?> sourceRef) {
+        streamForwardingStartedOrStopped();
+        final StreamTrigger currentStreamTrigger = activeStream;
+        final CompletionStage<ScheduleNextStream> termination = sourceRef.getSource()
+                .flatMapConcat(this::forwardStreamElement)
+                .log("forwardStreamElement", log)
+                .toMat(Sink.ignore(), Keep.right())
+                .run(materializer)
+                .handle((result, error) -> new ScheduleNextStream(currentStreamTrigger, error, true));
+        Patterns.pipe(termination, getContext().dispatcher()).to(getSelf());
     }
 
-    private void terminated(final Terminated terminated) {
-        streamForwarderStartedOrStopped();
-        final ActorRef terminatedActor = terminated.getActor();
-        log.debug("Received Terminated-Message: {}", terminated);
-
-        if (!Objects.equals(terminatedActor, forwarder)) {
-            log.warning("Received Terminated-Message from actor <{}> which does not match current forwarder <{}>",
-                    terminatedActor, forwarder);
-            return;
+    private Source<Object, NotUsed> forwardStreamElement(final Object streamElement) {
+        if (streamElement instanceof BatchedEntityIdWithRevisions) {
+            final BatchedEntityIdWithRevisions<?> message = (BatchedEntityIdWithRevisions) streamElement;
+            final List<?> elements = message.getElements();
+            final Duration maxIdleTime = syncConfig.getMaxIdleTime();
+            return Source.fromIterator(elements::iterator)
+                    .map(this::typecheckMessageToForward)
+                    .flatMapConcat(mapEntityFunction::apply)
+                    .mapAsync(1, element -> Patterns.ask(forwardTo, element, maxIdleTime));
+        } else {
+            log.warning("Unexpected element from stream: <{}>", streamElement);
+            return Source.empty();
         }
 
-        getContext().unwatch(terminatedActor);
-        forwarder = null;
+    }
 
-        scheduleNextStream();
+    private E typecheckMessageToForward(final Object element) {
+        if (elementClass.isInstance(element)) {
+            return elementClass.cast(element);
+        } else {
+            final String failureMessage =
+                    String.format("Element type mismatch. Expected <%s>, actual <%s>", elementClass, element);
+            // abort stream right away
+            throw new IllegalStateException(failureMessage);
+        }
+    }
+
+    private void streamTerminated() {
+        streamForwardingStartedOrStopped();
+        log.debug("Current stream terminated: <{}>", activeStream);
     }
 
     private void checkForActivity(final CheckForActivity instance) {
@@ -491,24 +468,39 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
         }
     }
 
-    private static FiniteDuration fromDuration(final Duration duration) {
-        return FiniteDuration.create(duration.toMillis(), TimeUnit.MILLISECONDS);
-    }
-
     /**
      * Declare stream forwarder to be started or stopped. Used for self-sanity check.
      * If stream supervisor does not start or stop a forwarder for a long time then something is wrong.
      */
-    private void streamForwarderStartedOrStopped() {
+    private void streamForwardingStartedOrStopped() {
         lastStreamStartOrStop = Instant.now();
-    }
-
-    private enum TryToStartStream {
-        INSTANCE
     }
 
     private enum CheckForActivity {
         INSTANCE
+    }
+
+    private static final class ScheduleNextStream {
+
+        private final StreamTrigger activeStreamTrigger;
+        private final Throwable error;
+        private final boolean terminated;
+
+        private ScheduleNextStream(final StreamTrigger activeStreamTrigger, final Throwable error,
+                final boolean terminated) {
+            this.activeStreamTrigger = activeStreamTrigger;
+            this.error = error;
+            this.terminated = terminated;
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() +
+                    "[activeStreamTrigger=" + activeStreamTrigger +
+                    ",error=" + error +
+                    ",terminated=" + terminated +
+                    "]";
+        }
     }
 
 }

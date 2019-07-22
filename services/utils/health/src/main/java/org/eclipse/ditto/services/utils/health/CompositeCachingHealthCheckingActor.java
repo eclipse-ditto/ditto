@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.concurrent.Immutable;
+
 import akka.actor.ActorRef;
 import akka.actor.Cancellable;
 import akka.actor.Props;
@@ -151,4 +153,22 @@ public final class CompositeCachingHealthCheckingActor extends AbstractHealthChe
                         childActor.tell(RetrieveHealth.newInstance(), getSelf()));
     }
 
+    /**
+     * Internal command to check the health of underlying systems.
+     */
+    @Immutable
+    private static final class CheckHealth {
+
+        private CheckHealth() {
+        }
+
+        /**
+         * Returns a new {@code CheckHealth} instance.
+         *
+         * @return the new CheckHealth instance.
+         */
+        public static CheckHealth newInstance() {
+            return new CheckHealth();
+        }
+    }
 }

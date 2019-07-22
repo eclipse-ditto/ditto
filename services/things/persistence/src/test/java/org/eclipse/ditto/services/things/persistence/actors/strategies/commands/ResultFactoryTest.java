@@ -27,7 +27,6 @@ import java.util.function.BiConsumer;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
@@ -106,22 +105,20 @@ public final class ResultFactoryTest {
 
         result.apply(context, mock::persist, mock::notify);
 
-        @SuppressWarnings("unchecked")
-        final ArgumentCaptor<BiConsumer<ThingModifiedEvent, Thing>> consumer = ArgumentCaptor.forClass(BiConsumer.class);
+        @SuppressWarnings("unchecked") final ArgumentCaptor<BiConsumer<ThingModifiedEvent, Thing>> consumer =
+                ArgumentCaptor.forClass(BiConsumer.class);
         verify(mock).persist(same(thingModifiedEvent), consumer.capture());
         consumer.getValue().accept(thingModifiedEvent, thing);
         verify(mock).notify(response);
-        verify(context.getBecomeCreatedRunnable(), becomeCreated? times(1) : never()).run();
+        verify(context.getBecomeCreatedRunnable(), becomeCreated ? times(1) : never()).run();
         verify(context.getBecomeDeletedRunnable(), becomeDeleted ? times(1) : never()).run();
         verify(mock, never()).notify(exception);
     }
 
     private static CommandStrategy.Context createContext() {
         final DiagnosticLoggingAdapter log = mock(DiagnosticLoggingAdapter.class);
-        final ThingSnapshotter snapshotter = mock(ThingSnapshotter.class);
 
-        return DefaultContext.getInstance("org.example:my-thing", log, snapshotter,
-                mock(Runnable.class), mock(Runnable.class));
+        return DefaultContext.getInstance("org.example:my-thing", log, mock(Runnable.class), mock(Runnable.class));
     }
 
     interface Dummy {

@@ -31,7 +31,6 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.events.EventHandleStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.events.EventStrategy;
-import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
@@ -55,19 +54,16 @@ public abstract class AbstractCommandStrategyTest {
             System.getProperty(ThingCommandSizeValidator.DITTO_LIMITS_THINGS_MAX_SIZE_BYTES, "-1"));
 
     protected static DiagnosticLoggingAdapter logger;
-    protected static ThingSnapshotter thingSnapshotter;
 
     @BeforeClass
     public static void initTestConstants() {
         logger = Mockito.mock(DiagnosticLoggingAdapter.class);
-        thingSnapshotter = Mockito.mock(ThingSnapshotter.class);
     }
 
     protected static CommandStrategy.Context getDefaultContext() {
         final Runnable becomeCreatedRunnable = mock(Runnable.class);
         final Runnable becomeDeletedRunnable = mock(Runnable.class);
-        return DefaultContext.getInstance(THING_ID, logger, thingSnapshotter, becomeCreatedRunnable,
-                becomeDeletedRunnable);
+        return DefaultContext.getInstance(THING_ID, logger, becomeCreatedRunnable, becomeDeletedRunnable);
     }
 
     protected static void assertModificationResult(final CommandStrategy underTest,
@@ -112,17 +108,6 @@ public abstract class AbstractCommandStrategyTest {
         final CommandStrategy.Result result = applyStrategy(underTest, context, thing, command);
 
         assertInfoResult(result, expectedCommandResponse);
-    }
-
-    protected static void assertFutureResult(final CommandStrategy underTest,
-            @Nullable final Thing thing,
-            final Command command,
-            final WithDittoHeaders expectedResponse) {
-
-        final CommandStrategy.Context context = getDefaultContext();
-        final CommandStrategy.Result result = applyStrategy(underTest, context, thing, command);
-
-        assertInfoResult(context, result, expectedResponse, true);
     }
 
     protected static void assertUnhandledResult(final AbstractCommandStrategy underTest,

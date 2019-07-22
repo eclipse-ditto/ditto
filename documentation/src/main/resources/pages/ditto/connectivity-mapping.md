@@ -85,6 +85,8 @@ The Ditto `JavaScript` mapping engine does support the following configuration o
 Rhino does not fully support EcmaScript 6. Check which language constructs are supported before using
 them in a mapping function. See [http://mozilla.github.io/rhino/compat/engines.html](http://mozilla.github.io/rhino/compat/engines.html).
 
+Ditto currently includes Rhino version `1.7.11` and has the `VERSION_ES6` flag enabled.
+
 #### Sandboxing
 
 For sandboxing/security reasons following restrictions apply:

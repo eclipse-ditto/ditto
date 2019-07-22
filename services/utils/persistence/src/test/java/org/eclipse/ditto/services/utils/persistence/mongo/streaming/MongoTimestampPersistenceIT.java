@@ -1,4 +1,3 @@
-package org.eclipse.ditto.services.utils.persistence.mongo.streaming;
 /*
  * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
@@ -11,6 +10,7 @@ package org.eclipse.ditto.services.utils.persistence.mongo.streaming;
  *
  * SPDX-License-Identifier: EPL-2.0
  */
+package org.eclipse.ditto.services.utils.persistence.mongo.streaming;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -60,7 +60,7 @@ public final class MongoTimestampPersistenceIT {
         mongoResource.start();
         mongoClient = MongoClientWrapper.getBuilder()
                 .hostnameAndPort(mongoResource.getBindIp(), mongoResource.getPort())
-                .defaultDatabaseName("testSearchDB")
+                .defaultDatabaseName("mongoTimestampPersistenceIT")
                 .connectionPoolMaxSize(100)
                 .connectionPoolMaxWaitQueueSize(500_000)
                 .connectionPoolMaxWaitTime(Duration.ofSeconds(30))
@@ -85,7 +85,6 @@ public final class MongoTimestampPersistenceIT {
     public void setUp() {
         final Config config = ConfigFactory.load("test");
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
-        actorSystem = ActorSystem.create("actors");
         materializer = ActorMaterializer.create(actorSystem);
         syncPersistence = MongoTimestampPersistence.initializedInstance(KNOWN_COLLECTION, mongoClient, materializer);
     }
