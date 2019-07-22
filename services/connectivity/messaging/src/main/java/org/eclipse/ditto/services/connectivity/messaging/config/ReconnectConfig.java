@@ -39,6 +39,13 @@ public interface ReconnectConfig {
     Duration getInterval();
 
     /**
+     * Returns the number of events to read from the event journal with one query.
+     *
+     * @return the number of events to read with one query.
+     */
+    int getReadJournalBatchSize();
+
+    /**
      * Returns the config for recovery throttling.
      *
      * @return the config.
@@ -59,12 +66,18 @@ public interface ReconnectConfig {
         /**
          * The interval for trying to reconnect all started connections.
          */
-        INTERVAL("interval", Duration.ofMinutes(10L));
+        INTERVAL("interval", Duration.ofMinutes(10L)),
+
+        /**
+         * The number of events to read in one query.
+         */
+        READ_JOURNAL_BATCH_SIZE("read-journal-batch-size", 500);
 
         private final String path;
         private final Object defaultValue;
 
-        private ReconnectConfigValue(final String thePath, final Object theDefaultValue) {
+        // enum constructors are always private.
+        ReconnectConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

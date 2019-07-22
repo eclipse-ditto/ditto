@@ -122,8 +122,8 @@ public final class ThingsSnapshotTestHelper<S> {
         SelectedSnapshot lastSnapshotData = maxSnapshotData;
         while (lastSnapshotData != null) {
             final SelectedSnapshot previousSnapshotData =
-                    getMaxSnapshotData(lastSnapshotData.metadata().persistenceId(),
-                            lastSnapshotData.metadata().timestamp() - 1);
+                    getMaxSnapshotDataBySequenceNumber(lastSnapshotData.metadata().persistenceId(),
+                            lastSnapshotData.metadata().sequenceNr() - 1);
             if (previousSnapshotData != null) {
                 allSnapshotData.add(previousSnapshotData);
             }
@@ -133,10 +133,11 @@ public final class ThingsSnapshotTestHelper<S> {
         return allSnapshotData;
     }
 
-    private SelectedSnapshot getMaxSnapshotData(final String persistenceId, final long maxTimestamp) {
-        final SnapshotProtocol.LoadSnapshot loadSnapshot =
-                new SnapshotProtocol.LoadSnapshot(persistenceId,
-                        SnapshotSelectionCriteria.create(Long.MAX_VALUE, maxTimestamp), Long.MAX_VALUE);
+    private SelectedSnapshot getMaxSnapshotDataBySequenceNumber(final String persistenceId,
+            final long maxSequenceNumber) {
+        final SnapshotSelectionCriteria criteria = SnapshotSelectionCriteria.create(maxSequenceNumber, Long.MAX_VALUE);
+        final SnapshotProtocol.LoadSnapshot loadSnapshot = new SnapshotProtocol.LoadSnapshot(persistenceId, criteria,
+                maxSequenceNumber);
 
         return convertScalaOpt(
                 waitForFuture(
@@ -148,7 +149,7 @@ public final class ThingsSnapshotTestHelper<S> {
     }
 
     private SelectedSnapshot getMaxSnapshotData(final String persistenceId) {
-        return getMaxSnapshotData(persistenceId, Long.MAX_VALUE);
+        return getMaxSnapshotDataBySequenceNumber(persistenceId, Long.MAX_VALUE);
     }
 
     private <T> T convertScalaOpt(final Option<T> opt, final T defaultValue) {

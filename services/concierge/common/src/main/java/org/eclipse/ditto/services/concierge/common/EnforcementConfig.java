@@ -46,15 +46,6 @@ public interface EnforcementConfig {
     int getParallelism();
 
     /**
-     * Returns the maximum of supported namespaces to start substreams for. Choose a high value as if the actual amount
-     * of substreams gets bigger than this maximum value, the whole enforcement stream will fail. But don't set too high
-     * as substreams require memory!
-     *
-     * @return the maximum of supported concurrently handled substreams.
-     */
-    int getMaxNamespacesSubstreams();
-
-    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code EnforcementConfig}.
      */
@@ -73,12 +64,7 @@ public interface EnforcementConfig {
         /**
          * The parallelism used for processing messages in parallel in enforcer actor.
          */
-        PARALLELISM("parallelism", 100),
-
-        /**
-         * The maximum of supported concurrently handled substreams.
-         */
-        MAX_NAMESPACES_SUBSTREAMS("max-namespaces-substreams", 100_000)
+        PARALLELISM("parallelism", 100)
         ;
 
         private final String path;

@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.signals.commands.common;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
-
 import java.util.Objects;
 import java.util.Optional;
 
@@ -39,7 +37,7 @@ public interface ShutdownReasonType extends CharSequence {
         private final String typeName;
 
         private Unknown(final CharSequence theTypeName) {
-            typeName = argumentNotEmpty(theTypeName, "typeName").toString();
+            typeName = theTypeName.toString();
         }
 
         /**
@@ -126,10 +124,9 @@ public interface ShutdownReasonType extends CharSequence {
          * @return an Optional containing the {@code ShutdownReasonType} constant with the requested type name or an empty
          * Optional.
          * @throws NullPointerException if {@code requestedTypeName} is {@code null}.
-         * @throws IllegalArgumentException if {@code requestedTypeName} is empty.
          */
         public static Optional<ShutdownReasonType> forTypeName(final CharSequence requestedTypeName) {
-            final String requestedTypeNameString = argumentNotEmpty(requestedTypeName, "requestedTypeName").toString();
+            final String requestedTypeNameString = requestedTypeName.toString();
             for (final ShutdownReasonType.Known type : values()) {
                 if (requestedTypeNameString.equals(type.typeName)) {
                     return Optional.of(type);

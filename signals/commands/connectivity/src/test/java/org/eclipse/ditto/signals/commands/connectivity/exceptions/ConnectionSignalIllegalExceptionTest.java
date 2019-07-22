@@ -15,6 +15,8 @@ package org.eclipse.ditto.signals.commands.connectivity.exceptions;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.time.Duration;
+
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -36,6 +38,7 @@ public final class ConnectionSignalIllegalExceptionTest {
         final ConnectionSignalIllegalException exception = ConnectionSignalIllegalException.newBuilder("connection-id")
                 .operationName("busy")
                 .timeout(1)
+                .timeout(Duration.ofSeconds(1))
                 .build();
 
         final String jsonString = exception.toJsonString();

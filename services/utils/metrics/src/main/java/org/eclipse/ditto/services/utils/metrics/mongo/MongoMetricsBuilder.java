@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.utils.metrics.mongo;
 
+import java.util.concurrent.atomic.LongAccumulator;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
@@ -28,17 +30,36 @@ import akka.contrib.persistence.mongodb.MongoTimer;
 @Immutable
 public final class MongoMetricsBuilder implements MetricsBuilder {
 
+    private static final LongAccumulator MAX_TIMER_NANOS = createMaxTimerNanos();
+
     @Override
     public MongoTimer timer(final String name) {
         return () -> {
             final StartedTimer startedTimer = DittoMetrics.timer(name).start();
 
-            return () -> startedTimer.stop().getDuration().toNanos();
+            return () -> {
+                final long nanos = startedTimer.stop().getDuration().toNanos();
+                MAX_TIMER_NANOS.accumulate(nanos);
+                return nanos;
+            };
         };
     }
 
     @Override
     public MongoHistogram histogram(final String name) {
         return value -> DittoMetrics.histogram(name).record((long) value);
+    }
+
+    /**
+     * Retrieve the accumulator for maximum Mongo journal interaction time.
+     *
+     * @return maximum Mongo journal interaction time.
+     */
+    public static LongAccumulator maxTimerNanos() {
+        return MAX_TIMER_NANOS;
+    }
+
+    private static LongAccumulator createMaxTimerNanos() {
+        return new LongAccumulator(Math::max, 0L);
     }
 }

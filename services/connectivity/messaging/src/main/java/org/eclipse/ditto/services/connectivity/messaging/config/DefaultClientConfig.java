@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.connectivity.messaging.config;
 import java.time.Duration;
 import java.util.Objects;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
@@ -31,9 +32,13 @@ public final class DefaultClientConfig implements ClientConfig {
     private static final String CONFIG_PATH = "client";
 
     private final Duration initTimeout;
+    private final Duration connectingTimeout;
+    private final Duration testingTimeout;
 
     private DefaultClientConfig(final ScopedConfig config) {
         initTimeout = config.getDuration(ClientConfigValue.INIT_TIMEOUT.getConfigPath());
+        connectingTimeout = config.getDuration(ClientConfigValue.CONNECTING_TIMEOUT.getConfigPath());
+        testingTimeout = config.getDuration(ClientConfigValue.TESTING_TIMEOUT.getConfigPath());
     }
 
     /**
@@ -53,7 +58,17 @@ public final class DefaultClientConfig implements ClientConfig {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public Duration getConnectingTimeout() {
+        return connectingTimeout;
+    }
+
+    @Override
+    public Duration getTestingTimeout() {
+        return testingTimeout;
+    }
+
+    @Override
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
@@ -61,18 +76,22 @@ public final class DefaultClientConfig implements ClientConfig {
             return false;
         }
         final DefaultClientConfig that = (DefaultClientConfig) o;
-        return Objects.equals(initTimeout, that.initTimeout);
+        return Objects.equals(initTimeout, that.initTimeout) &&
+                Objects.equals(connectingTimeout, that.connectingTimeout) &&
+                Objects.equals(testingTimeout, that.testingTimeout);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(initTimeout);
+        return Objects.hash(initTimeout, connectingTimeout, testingTimeout);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "initTimeout=" + initTimeout +
+                ", initTimeout=" + initTimeout +
+                ", connectingTimeout=" + connectingTimeout +
+                ", testingTimeout=" + testingTimeout +
                 "]";
     }
 

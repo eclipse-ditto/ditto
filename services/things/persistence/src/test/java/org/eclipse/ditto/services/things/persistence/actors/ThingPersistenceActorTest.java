@@ -1317,9 +1317,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                         .isNotModifiedAfter(createThingResponseTimestamp);
 
                 // modify thing
-                while (!Instant.now().isAfter(createThingResponseTimestamp)) {
-                    waitMillis(10);
-                }
                 final ModifyThing modifyThing = ModifyThing.of(getIdOrThrow(thing), thing, null, dittoHeadersV1);
                 thingPersistenceActor.tell(modifyThing, getRef());
                 expectMsgClass(ModifyThingResponse.class);

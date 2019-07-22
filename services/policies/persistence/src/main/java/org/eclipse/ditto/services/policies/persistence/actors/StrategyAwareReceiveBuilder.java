@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.policies.persistence.actors;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.function.Consumer;
 
 import javax.annotation.concurrent.NotThreadSafe;
@@ -27,6 +29,7 @@ import scala.PartialFunction;
 public final class StrategyAwareReceiveBuilder {
 
     private final ReceiveBuilder delegationTarget;
+    private AbstractActor.Receive superReceive;
 
     /**
      * Constructs a new {@code StrategyAwareReceiveBuilder} object.
@@ -79,6 +82,12 @@ public final class StrategyAwareReceiveBuilder {
      * @return a PartialFunction from this builder.
      */
     public AbstractActor.Receive build() {
-        return delegationTarget.build();
+        final AbstractActor.Receive receive = delegationTarget.build();
+        return superReceive != null ? superReceive.orElse(receive) : receive;
+    }
+
+    public StrategyAwareReceiveBuilder withReceiveFromSuperClass(final AbstractActor.Receive superReceive) {
+        this.superReceive = checkNotNull(superReceive, "superReceive");
+        return this;
     }
 }

@@ -38,6 +38,13 @@ public interface PersistenceConfig {
     Duration getTimeout();
 
     /**
+     * Returns the configuration settings of the metrics reporter.
+     *
+     * @return the config.
+     */
+    MetricsReporterConfig getMetricsReporterConfig();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code PersistenceConfig}.
      */
@@ -46,7 +53,7 @@ public interface PersistenceConfig {
         /**
          * Determines whether the persistence health check should be enabled.
          */
-        ENABLED("enabled", false),
+        ENABLED("enabled", true),
 
         /**
          * The timeout of the health check for persistence.

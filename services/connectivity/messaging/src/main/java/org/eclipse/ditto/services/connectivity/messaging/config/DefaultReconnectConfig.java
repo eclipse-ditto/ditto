@@ -33,10 +33,12 @@ public final class DefaultReconnectConfig implements ReconnectConfig {
     private final Duration initialDelay;
     private final Duration interval;
     private final RateConfig rateConfig;
+    private final int readJournalBatchSize;
 
     private DefaultReconnectConfig(final ScopedConfig config, final RateConfig theRateConfig) {
         initialDelay = config.getDuration(ReconnectConfigValue.INITIAL_DELAY.getConfigPath());
         interval = config.getDuration(ReconnectConfigValue.INTERVAL.getConfigPath());
+        readJournalBatchSize = config.getInt(ReconnectConfigValue.READ_JOURNAL_BATCH_SIZE.getConfigPath());
         rateConfig = theRateConfig;
     }
 
@@ -65,6 +67,11 @@ public final class DefaultReconnectConfig implements ReconnectConfig {
     }
 
     @Override
+    public int getReadJournalBatchSize() {
+        return readJournalBatchSize;
+    }
+
+    @Override
     public RateConfig getRateConfig() {
         return rateConfig;
     }
@@ -80,12 +87,13 @@ public final class DefaultReconnectConfig implements ReconnectConfig {
         final DefaultReconnectConfig that = (DefaultReconnectConfig) o;
         return Objects.equals(initialDelay, that.initialDelay) &&
                 Objects.equals(interval, that.interval) &&
+                readJournalBatchSize == that.readJournalBatchSize &&
                 Objects.equals(rateConfig, that.rateConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(initialDelay, interval, rateConfig);
+        return Objects.hash(initialDelay, interval, readJournalBatchSize, rateConfig);
     }
 
     @Override
@@ -93,6 +101,7 @@ public final class DefaultReconnectConfig implements ReconnectConfig {
         return getClass().getSimpleName() + " [" +
                 "initialDelay=" + initialDelay +
                 ", interval=" + interval +
+                ", readJournalBatchSize=" + readJournalBatchSize +
                 ", rateConfig=" + rateConfig +
                 "]";
     }

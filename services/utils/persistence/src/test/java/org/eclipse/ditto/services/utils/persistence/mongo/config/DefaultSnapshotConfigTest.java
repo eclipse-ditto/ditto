@@ -65,12 +65,6 @@ public final class DefaultSnapshotConfigTest {
         softly.assertThat(underTest.getThreshold())
                 .as(SnapshotConfig.SnapshotConfigValue.THRESHOLD.getConfigPath())
                 .isEqualTo(SnapshotConfig.SnapshotConfigValue.THRESHOLD.getDefaultValue());
-        softly.assertThat(underTest.isDeleteOldSnapshot())
-                .as(SnapshotConfig.SnapshotConfigValue.DELETE_OLD_SNAPSHOT.getConfigPath())
-                .isEqualTo(SnapshotConfig.SnapshotConfigValue.DELETE_OLD_SNAPSHOT.getDefaultValue());
-        softly.assertThat(underTest.isDeleteOldEvents())
-                .as(SnapshotConfig.SnapshotConfigValue.DELETE_OLD_EVENTS.getConfigPath())
-                .isEqualTo(SnapshotConfig.SnapshotConfigValue.DELETE_OLD_EVENTS.getDefaultValue());
     }
 
     @Test
@@ -83,11 +77,5 @@ public final class DefaultSnapshotConfigTest {
         softly.assertThat(underTest.getThreshold())
                 .as(SnapshotConfig.SnapshotConfigValue.THRESHOLD.getConfigPath())
                 .isEqualTo(2);
-        softly.assertThat(underTest.isDeleteOldSnapshot())
-                .as(SnapshotConfig.SnapshotConfigValue.DELETE_OLD_SNAPSHOT.getConfigPath())
-                .isTrue();
-        softly.assertThat(underTest.isDeleteOldEvents())
-                .as(SnapshotConfig.SnapshotConfigValue.DELETE_OLD_EVENTS.getConfigPath())
-                .isTrue();
     }
 }

@@ -20,7 +20,6 @@ import java.util.function.Function;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceActor;
-import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -32,27 +31,22 @@ import akka.actor.Props;
 final class ThingPersistenceActorPropsFactory implements Function<String, Props> {
 
     private final ActorRef pubSubMediator;
-    private final ThingSnapshotter.Create thingSnapshotterCreate;
 
-    private ThingPersistenceActorPropsFactory(final ActorRef pubSubMediator,
-            final ThingSnapshotter.Create thingSnapshotterCreate) {
+    private ThingPersistenceActorPropsFactory(final ActorRef pubSubMediator) {
 
         this.pubSubMediator = checkNotNull(pubSubMediator);
-        this.thingSnapshotterCreate = checkNotNull(thingSnapshotterCreate);
     }
 
     /**
      * Returns an instance of {@code ThingPersistenceActorPropsFactory}.
      *
      * @param pubSubMediator ActorRef of the distributed pub-sub-mediator.
-     * @param thingSnapshotterCreate functional interface for the constructor of snapshotter classes.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ThingPersistenceActorPropsFactory getInstance(final ActorRef pubSubMediator,
-            final ThingSnapshotter.Create thingSnapshotterCreate) {
+    public static ThingPersistenceActorPropsFactory getInstance(final ActorRef pubSubMediator) {
 
-        return new ThingPersistenceActorPropsFactory(pubSubMediator, thingSnapshotterCreate);
+        return new ThingPersistenceActorPropsFactory(pubSubMediator);
     }
 
     /**
@@ -67,7 +61,7 @@ final class ThingPersistenceActorPropsFactory implements Function<String, Props>
     public Props apply(final String thingId) {
         argumentNotEmpty(thingId, "thing ID");
 
-        return ThingPersistenceActor.props(thingId, pubSubMediator, thingSnapshotterCreate);
+        return ThingPersistenceActor.props(thingId, pubSubMediator);
     }
 
 }

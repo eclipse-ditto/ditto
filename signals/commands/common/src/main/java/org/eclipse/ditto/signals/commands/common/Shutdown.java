@@ -83,7 +83,8 @@ public final class Shutdown extends CommonCommand<Shutdown> {
      */
     public static Shutdown fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<Shutdown>(TYPE, jsonObject).deserialize(
-                () -> getInstance(ShutdownReasonFactory.fromJson(jsonObject.getValueOrThrow(JsonFields.REASON)),
+                () -> getInstance(ShutdownReasonFactory.fromJson(
+                        jsonObject.getValue(JsonFields.REASON).orElseGet(JsonObject::empty)),
                         dittoHeaders));
     }
 
@@ -100,7 +101,11 @@ public final class Shutdown extends CommonCommand<Shutdown> {
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicate) {
 
-        jsonObjectBuilder.set(JsonFields.REASON, reason.toJson(schemaVersion, predicate), schemaVersion.and(predicate));
+        final Predicate<JsonField> isNonEmptyObject =
+                field -> field.getValue().isObject() && !field.getValue().asObject().isEmpty();
+
+        jsonObjectBuilder.set(JsonFields.REASON, reason.toJson(schemaVersion, predicate),
+                schemaVersion.and(predicate).and(predicate).and(isNonEmptyObject));
     }
 
     @Override
@@ -136,6 +141,14 @@ public final class Shutdown extends CommonCommand<Shutdown> {
         return Objects.hash(super.hashCode(), reason);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                super.toString() +
+                ", reason=" + reason +
+                "]";
+    }
+
     /**
      * This class contains definitions for all specific fields of a {@code ShutdownCommand}'s JSON representation.
      */
@@ -149,14 +162,6 @@ public final class Shutdown extends CommonCommand<Shutdown> {
             throw new AssertionError();
         }
 
-    }
-
-    @Override
-    public String toString() {
-        return getClass().getSimpleName() + " [" +
-                super.toString() +
-                ", reason=" + reason +
-                "]";
     }
 
 }

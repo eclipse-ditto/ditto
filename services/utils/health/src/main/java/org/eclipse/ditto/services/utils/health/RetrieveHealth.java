@@ -12,19 +12,43 @@
  */
 package org.eclipse.ditto.services.utils.health;
 
-import java.io.Serializable;
+import java.util.function.Predicate;
 
 import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableCommand;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 
 /**
  * Internal command to retrieve the health of underlying systems.
  */
 @Immutable
-public final class RetrieveHealth implements Serializable {
+@JsonParsableCommand(typePrefix = RetrieveHealth.TYPE_PREFIX, name = RetrieveHealth.NAME)
+public final class RetrieveHealth extends AbstractCommand<RetrieveHealth> {
 
-    private static final long serialVersionUID = 1L;
+    /**
+     * Type prefix of this command.
+     */
+    public static final String TYPE_PREFIX = "status." + TYPE_QUALIFIER + ":";
 
-    private RetrieveHealth() {
+    /**
+     * Name of this command.
+     */
+    public static final String NAME = "retrieveHealth";
+
+    /**
+     * Type of this command.
+     */
+    public static final String TYPE = TYPE_PREFIX + NAME;
+
+    private RetrieveHealth(final DittoHeaders headers) {
+        super(TYPE, headers);
     }
 
     /**
@@ -33,6 +57,63 @@ public final class RetrieveHealth implements Serializable {
      * @return the new RetrieveHealth instance.
      */
     public static RetrieveHealth newInstance() {
-        return new RetrieveHealth();
+        return new RetrieveHealth(DittoHeaders.empty());
     }
+
+    /**
+     * Creates a new {@code RetrieveHealth} command from the given JSON object.
+     *
+     * @param jsonObject the JSON object of which the Cleanup is to be created.
+     * @param dittoHeaders the headers.
+     * @return the command.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     */
+    public static RetrieveHealth fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        // Json object is ignored -- this command has no payload.
+        return new RetrieveHealth(dittoHeaders);
+    }
+
+    @Override
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+            final Predicate<JsonField> predicate) {
+        // there is no payload.
+    }
+
+    @Override
+    public String getTypePrefix() {
+        return TYPE_PREFIX;
+    }
+
+    @Override
+    public Category getCategory() {
+        return Category.QUERY;
+    }
+
+    @Override
+    public RetrieveHealth setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new RetrieveHealth(dittoHeaders);
+    }
+
+    @Override
+    public String getId() {
+        // no ID
+        return "";
+    }
+
+    @Override
+    public JsonPointer getResourcePath() {
+        return JsonPointer.empty();
+    }
+
+    @Override
+    public String getResourceType() {
+        // no resource type
+        return "";
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" + super.toString() + "]";
+    }
+
 }

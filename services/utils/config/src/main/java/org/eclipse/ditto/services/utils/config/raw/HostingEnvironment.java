@@ -17,15 +17,29 @@ package org.eclipse.ditto.services.utils.config.raw;
  */
 enum HostingEnvironment {
 
-    CLOUD_NATIVE("-cloud"),
+    /**
+     * Used when hosting environment is set to "cloud".
+     * This will use the config file $servicename-cloud.conf
+     */
+    CLOUD("-cloud"),
 
+    /**
+     * Used when hosting environment is set to "docker".
+     * This will use the config file $servicename-docker.conf
+     */
     DOCKER("-docker"),
 
-    FILE_BASED_CONFIGURED(""),
+    /**
+     * Used when no (known) hosting environment is specified.
+     * This will use the config file $servicename-dev.conf
+     */
+    DEVELOPMENT("-dev"),
 
-    FILE_BASED_SERVICE_NAME(""),
-
-    DEVELOPMENT("-dev");
+    /**
+     * Used when hosting environment is set to "filebased".
+     * This will use the config file specified by the environment variable: HOSTING_ENVIRONMENT_FILE_LOCATION.
+     */
+    FILE_BASED("");
 
     public static final String CONFIG_PATH = "hosting.environment";
 

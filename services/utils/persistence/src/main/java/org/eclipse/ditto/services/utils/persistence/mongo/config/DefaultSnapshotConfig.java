@@ -34,14 +34,10 @@ public final class DefaultSnapshotConfig implements SnapshotConfig {
 
     private final Duration interval;
     private final long threshold;
-    private final boolean deleteOldSnapshot;
-    private final boolean deleteOldEvents;
 
     private DefaultSnapshotConfig(final ScopedConfig config) {
         interval = config.getDuration(SnapshotConfigValue.INTERVAL.getConfigPath());
         threshold = getThreshold(config);
-        deleteOldSnapshot = config.getBoolean(SnapshotConfigValue.DELETE_OLD_SNAPSHOT.getConfigPath());
-        deleteOldEvents = config.getBoolean(SnapshotConfigValue.DELETE_OLD_EVENTS.getConfigPath());
     }
 
     private static long getThreshold(final ScopedConfig config) {
@@ -76,16 +72,6 @@ public final class DefaultSnapshotConfig implements SnapshotConfig {
     }
 
     @Override
-    public boolean isDeleteOldSnapshot() {
-        return deleteOldSnapshot;
-    }
-
-    @Override
-    public boolean isDeleteOldEvents() {
-        return deleteOldEvents;
-    }
-
-    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -94,15 +80,12 @@ public final class DefaultSnapshotConfig implements SnapshotConfig {
             return false;
         }
         final DefaultSnapshotConfig that = (DefaultSnapshotConfig) o;
-        return threshold == that.threshold &&
-                deleteOldSnapshot == that.deleteOldSnapshot &&
-                deleteOldEvents == that.deleteOldEvents &&
-                Objects.equals(interval, that.interval);
+        return threshold == that.threshold && Objects.equals(interval, that.interval);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(interval, threshold, deleteOldSnapshot, deleteOldEvents);
+        return Objects.hash(interval, threshold);
     }
 
     @Override
@@ -110,8 +93,6 @@ public final class DefaultSnapshotConfig implements SnapshotConfig {
         return getClass().getSimpleName() + " [" +
                 "interval=" + interval +
                 ", threshold=" + threshold +
-                ", deleteOldSnapshot=" + deleteOldSnapshot +
-                ", deleteOldEvents=" + deleteOldEvents +
                 "]";
     }
 

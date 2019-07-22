@@ -38,6 +38,7 @@
         <module>policies</module>
         <module>things</module>
         <module>thingsearch</module>
+        <module>cleanup</module>
     </modules>
 
     <dependencies>

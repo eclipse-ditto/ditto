@@ -51,6 +51,7 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
+import org.eclipse.ditto.services.connectivity.messaging.config.ClientConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
@@ -112,16 +113,15 @@ import scala.util.Right;
  */
 public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseClientData> {
 
-    protected static final int CONNECTING_TIMEOUT = 10;
-    protected static final int TEST_CONNECTION_TIMEOUT = 10;
-
     private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
+    private static final String RECONNECT_TIMER_NAME = "reconnectTimer";
 
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     protected final ConnectionLogger connectionLogger;
 
 
     protected final ConnectivityConfig connectivityConfig;
+    protected final ClientConfig clientConfig;
     private final ProtocolAdapterProvider protocolAdapterProvider;
     private final ActorRef conciergeForwarder;
     private final Gauge clientGauge;
@@ -145,6 +145,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         this.connectivityConfig = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         );
+        this.clientConfig = this.connectivityConfig.getClientConfig();
         this.conciergeForwarder = conciergeForwarder;
         protocolAdapterProvider =
                 ProtocolAdapterProvider.load(connectivityConfig.getProtocolConfig(), getContext().getSystem());
@@ -156,7 +157,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 .tag("id", connection.getId())
                 .tag("type", connection.getConnectionType().getName());
 
-        startWith(UNKNOWN, startingData, connectivityConfig.getClientConfig().getInitTimeout());
+        startWith(UNKNOWN, startingData, clientConfig.getInitTimeout());
 
         // stable states
         when(UNKNOWN, inUnknownState());
@@ -164,10 +165,10 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         when(DISCONNECTED, inDisconnectedState());
 
         // volatile states that time out
-        final Duration connectingTimeout = Duration.ofSeconds(CONNECTING_TIMEOUT);
+        final Duration connectingTimeout = clientConfig.getConnectingTimeout();
         when(CONNECTING, connectingTimeout, inConnectingState());
         when(DISCONNECTING, connectingTimeout, inDisconnectingState());
-        when(TESTING, connectingTimeout, inTestingState());
+        when(TESTING, clientConfig.getTestingTimeout(), inTestingState());
 
         onTransition(this::onTransition);
 
@@ -444,7 +445,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectingState() {
         return matchEventEquals(StateTimeout(), BaseClientData.class, (event, data) -> this.connectionTimedOut(data))
                 .event(ConnectionFailure.class, BaseClientData.class, this::connectionFailure)
-                .event(ClientConnected.class, BaseClientData.class, this::clientConnected);
+                .event(ClientConnected.class, BaseClientData.class, this::clientConnected)
+                .event(CloseConnection.class, BaseClientData.class, this::closeConnection);
     }
 
     /**
@@ -484,7 +486,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                     data.getSessionSender().ifPresent(sender -> {
                         final DittoRuntimeException error = ConnectionFailedException.newBuilder(connectionId())
                                 .description(String.format("Failed to open requested connection within <%d> seconds!",
-                                        TEST_CONNECTION_TIMEOUT))
+                                        clientConfig.getTestingTimeout().getSeconds()))
                                 .dittoHeaders(data.getSessionHeaders())
                                 .build();
                         sender.tell(new Status.Failure(error), getSelf());
@@ -530,6 +532,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             final BaseClientData data) {
         final ActorRef sender = getSender();
         doDisconnectClient(data.getConnection(), sender);
+        cancelScheduledReconnect();
         return goTo(DISCONNECTING).using(setSession(data, sender, closeConnection.getDittoHeaders())
                 .setDesiredConnectionStatus(ConnectivityStatus.CLOSED)
                 .setConnectionStatusDetails("closing or deleting connection at " + Instant.now()));
@@ -548,11 +551,37 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             cleanupResourcesForConnection();
             final DittoRuntimeException error = newConnectionFailedException(data.getConnection(), dittoHeaders);
             sender.tell(new Status.Failure(error), getSelf());
-            return goTo(UNKNOWN)
+            scheduleReconnect();
+            return goTo(CONNECTING)
                     .using(data.setConnectionStatus(ConnectivityStatus.FAILED)
                             .setConnectionStatusDetails(error.getMessage())
                             .resetSession());
         }
+    }
+
+    private void reconnect(final BaseClientData data) {
+        log.debug("Trying to reconnect.");
+        connectionLogger.success("Trying to reconnect.");
+        final ActorRef sender = data.getSessionSender().orElse(null);
+        final Connection connection = data.getConnection();
+        if (canConnectViaSocket(connection)) {
+            doConnectClient(connection, sender);
+        } else {
+            log.info("Socket is closed, scheduling a reconnect.");
+            cleanupResourcesForConnection();
+            scheduleReconnect();
+        }
+    }
+
+    private void scheduleReconnect() {
+        final Duration connectingTimeout = clientConfig.getConnectingTimeout();
+        log.debug("Schedule reconnect in <{}>.", connectingTimeout);
+        setTimer(RECONNECT_TIMER_NAME, StateTimeout(), connectingTimeout, false);
+    }
+
+    private void cancelScheduledReconnect() {
+        log.debug("Stop scheduled reconnect.");
+        cancelTimer(RECONNECT_TIMER_NAME);
     }
 
     private FSM.State<BaseClientState, BaseClientData> testConnection(final TestConnection testConnection,
@@ -607,8 +636,16 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         cleanupResourcesForConnection();
         cleanupFurtherResourcesOnConnectionTimeout(stateName());
 
-        connectionLogger.failure("Connection timed out.");
-        return goTo(UNKNOWN).using(data.resetSession()
+        final BaseClientState nextState;
+        if (ConnectivityStatus.OPEN.equals(data.getDesiredConnectionStatus())) {
+            reconnect(data);
+            nextState = CONNECTING;
+            connectionLogger.failure("Connection timed out. Will try to reconnect.");
+        } else {
+            nextState = UNKNOWN;
+            connectionLogger.failure("Connection timed out.");
+        }
+        return goTo(nextState).using(data.resetSession()
                 .setConnectionStatus(ConnectivityStatus.FAILED)
                 .setConnectionStatusDetails("Connection timed out at " + Instant.now() + " while " + stateName()));
     }
@@ -622,6 +659,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
             allocateResourcesOnConnection(clientConnected);
             data.getSessionSender().ifPresent(origin -> origin.tell(new Status.Success(CONNECTED), getSelf()));
+            cancelScheduledReconnect();
             return goTo(CONNECTED).using(data.resetSession()
                     .setConnectionStatus(ConnectivityStatus.OPEN)
                     .setConnectionStatusDetails("Connected at " + Instant.now()));
@@ -648,14 +686,22 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return ifEventUpToDate(event, () -> {
             ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
             final Status.Status statusToReport = getStatusToReport(event.getFailure());
-            connectionLogger.failure("Connection failed due to: {0}.", event.getFailureDescription());
 
             cleanupResourcesForConnection();
             data.getSessionSender().ifPresent(sender -> sender.tell(statusToReport, getSelf()));
-            return goTo(UNKNOWN).using(data.resetSession()
+
+            final BaseClientState nextState;
+            if (ConnectivityStatus.OPEN.equals(data.getDesiredConnectionStatus())) {
+                scheduleReconnect();
+                nextState = CONNECTING;
+                connectionLogger.failure("Connection failed due to: {0}. Will try to reconnect.", event.getFailureDescription());
+            } else {
+                nextState = UNKNOWN;
+                connectionLogger.failure("Connection failed due to: {0}.", event.getFailureDescription());
+            }
+            return goTo(nextState).using(data.resetSession()
                     .setConnectionStatus(ConnectivityStatus.FAILED)
                     .setConnectionStatusDetails(event.getFailureDescription())
-                    .setSessionSender(getSender())
             );
         });
     }
@@ -826,7 +872,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             case DISCONNECTING:
                 return ConnectionSignalIllegalException.newBuilder(connectionId())
                         .operationName(state.name().toLowerCase())
-                        .timeout(CONNECTING_TIMEOUT)
+                        .timeout(clientConfig.getConnectingTimeout())
                         .dittoHeaders(headers)
                         .build();
             default:
@@ -978,7 +1024,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return prefix + ++childActorCount;
     }
 
-    private BaseClientData setSession(final BaseClientData data, final ActorRef sender, final DittoHeaders headers) {
+    private BaseClientData setSession(final BaseClientData data, @Nullable final ActorRef sender,
+            @Nullable final DittoHeaders headers) {
         if (!Objects.equals(sender, getSelf()) && !Objects.equals(sender, getContext().system().deadLetters())) {
             return data.setSessionSender(sender)
                     .setSessionHeaders(headers);
@@ -1013,7 +1060,10 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return answerToPublish;
     }
 
-    private static String describeEventualCause(final Throwable throwable) {
+    private static String describeEventualCause(@Nullable final Throwable throwable) {
+        if (null == throwable) {
+            return "Unkown cause.";
+        }
         final Throwable cause = throwable.getCause();
         if (cause == null || cause == throwable) {
             return "Cause: " + throwable.getMessage();

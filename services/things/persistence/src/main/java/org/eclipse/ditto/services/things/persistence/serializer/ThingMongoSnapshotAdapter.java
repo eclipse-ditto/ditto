@@ -26,12 +26,7 @@ import org.slf4j.LoggerFactory;
  * {@link org.eclipse.ditto.model.things.Thing}.
  */
 @ThreadSafe
-public final class ThingMongoSnapshotAdapter extends AbstractMongoSnapshotAdapter<ThingWithSnapshotTag> {
-
-    /**
-     * JSON key for the snapshot tag.
-     */
-    public static final String TAG_JSON_KEY = "__snapshotTag";
+public final class ThingMongoSnapshotAdapter extends AbstractMongoSnapshotAdapter<Thing> {
 
     /**
      * Constructs a new {@code ThingMongoSnapshotAdapter}.
@@ -41,21 +36,13 @@ public final class ThingMongoSnapshotAdapter extends AbstractMongoSnapshotAdapte
     }
 
     @Override
-    protected JsonObject convertToJson(final ThingWithSnapshotTag snapshotEntity) {
-        final JsonObject jsonObject = super.convertToJson(snapshotEntity);
-        final SnapshotTag snapshotTag = snapshotEntity.getSnapshotTag();
-        return jsonObject.setValue(TAG_JSON_KEY, snapshotTag.name());
+    protected JsonObject convertToJson(final Thing thing) {
+        return super.convertToJson(thing);
     }
 
     @Override
-    protected ThingWithSnapshotTag createJsonifiableFrom(final JsonObject jsonObject) {
-        final Thing thing = ThingsModelFactory.newThing(jsonObject);
-        final SnapshotTag snapshotTag = jsonObject.getValue(TAG_JSON_KEY)
-                .filter(JsonValue::isString)
-                .map(JsonValue::asString)
-                .flatMap(SnapshotTag::getValueFor)
-                .orElse(SnapshotTag.UNPROTECTED);
-        return ThingWithSnapshotTag.newInstance(thing, snapshotTag);
+    protected Thing createJsonifiableFrom(final JsonObject jsonObject) {
+        return ThingsModelFactory.newThing(jsonObject);
     }
 
 }

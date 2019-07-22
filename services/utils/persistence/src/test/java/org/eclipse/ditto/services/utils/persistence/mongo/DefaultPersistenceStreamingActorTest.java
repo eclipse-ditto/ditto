@@ -41,7 +41,10 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.stream.ActorMaterializer;
+import akka.stream.SourceRef;
 import akka.stream.javadsl.Source;
+import akka.stream.testkit.javadsl.TestSink;
 import akka.testkit.javadsl.TestKit;
 
 /**
@@ -73,14 +76,18 @@ public final class DefaultPersistenceStreamingActorTest {
             final Command<?> command = createStreamingRequest();
 
             sendCommand(this, underTest, command);
-            expectMsg(STREAM_STARTED);
-            reply(STREAM_ACK_MSG);
 
-            expectMsg(STREAM_COMPLETED);
+            final SourceRef<?> sourceRef = expectMsgClass(SourceRef.class);
+
+            sourceRef.getSource()
+                    .runWith(TestSink.probe(actorSystem), materializer())
+                    .request(1000L)
+                    .expectComplete();
         }};
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void retrieveNonEmptyStream() {
         new TestKit(actorSystem) {{
             final Source<PidWithSeqNr, NotUsed> mockedSource = Source.single(new PidWithSeqNr(ID, REVISION));
@@ -88,17 +95,23 @@ public final class DefaultPersistenceStreamingActorTest {
             final Command<?> command = createStreamingRequest();
 
             sendCommand(this, underTest, command);
-            expectMsg(STREAM_STARTED);
-            reply(STREAM_ACK_MSG);
 
-            final BatchedEntityIdWithRevisions<?> expectedMessage =
+            final SourceRef<Object> sourceRef = expectMsgClass(SourceRef.class);
+
+            final Object expectedMessage =
                     BatchedEntityIdWithRevisions.of(SimpleEntityIdWithRevision.class,
                             Collections.singletonList(new SimpleEntityIdWithRevision(ID, REVISION)));
-            expectMsg(expectedMessage);
-            reply(STREAM_ACK_MSG);
 
-            expectMsg(STREAM_COMPLETED);
+            sourceRef.getSource()
+                    .runWith(TestSink.probe(actorSystem), materializer())
+                    .request(1000L)
+                    .expectNext(expectedMessage)
+                    .expectComplete();
         }};
+    }
+
+    private ActorMaterializer materializer() {
+        return ActorMaterializer.create(actorSystem);
     }
 
     private static Command<?> createStreamingRequest() {
@@ -128,6 +141,7 @@ public final class DefaultPersistenceStreamingActorTest {
     }
 
     private static final class SimpleEntityIdWithRevision extends AbstractEntityIdWithRevision {
+
         private SimpleEntityIdWithRevision(final String id, final long revision) {
             super(id, revision);
         }

@@ -122,14 +122,14 @@ public final class ThingSearchRoute extends AbstractRoute {
                         dittoHeaders))));
     }
 
-    private static Route thingSearchParameterOptional(
+    private Route thingSearchParameterOptional(
             final Function<EnumMap<ThingSearchParameter, Optional<String>>, Route> inner) {
 
         return thingSearchParameterOptionalImpl(ThingSearchParameter.values(),
                 new EnumMap<>(ThingSearchParameter.class), inner);
     }
 
-    private static Route thingSearchParameterOptionalImpl(final ThingSearchParameter[] values,
+    private Route thingSearchParameterOptionalImpl(final ThingSearchParameter[] values,
             final EnumMap<ThingSearchParameter, Optional<String>> accumulator,
             final Function<EnumMap<ThingSearchParameter, Optional<String>>, Route> inner) {
 

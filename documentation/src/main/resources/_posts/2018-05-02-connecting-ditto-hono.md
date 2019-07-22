@@ -15,7 +15,7 @@ to AMQP 1.0 endpoints can now be established in a durable and stable way (includ
 
 That means Ditto now is ready to be connected to [Eclipse Hono's](https://www.eclipse.org/hono/) "northbound" API which
 is provided via AMQP 1.0.<br />
-By doing so it is for example possible to receive [Hono telemetry](https://www.eclipse.org/hono/api/telemetry-api/) 
+By doing so it is for example possible to receive Hono telemetry 
 messages (see heading "Northbound Operations") which a device `demo-device` connected to the "southbound" of Hono sends 
 via HTTP or MQTT (the currently available protocol adapters of Hono) in Ditto.<br />
 When received, the payload can be translated into a format Ditto understands in order to update the 

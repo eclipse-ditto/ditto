@@ -21,6 +21,7 @@ import java.net.ConnectException;
 import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 import javax.annotation.Nullable;
@@ -35,6 +36,7 @@ import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorProps
 import org.eclipse.ditto.services.connectivity.messaging.ReconnectActor;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceOperationsActor;
+import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceStreamingActorCreator;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
@@ -47,13 +49,17 @@ import org.eclipse.ditto.services.utils.config.LocalHostAddressSupplier;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
+import org.eclipse.ditto.services.utils.health.config.MetricsReporterConfig;
 import org.eclipse.ditto.services.utils.health.config.PersistenceConfig;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
+import org.eclipse.ditto.services.utils.persistence.mongo.MongoMetricsReporter;
+import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 
 import akka.Done;
+import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
@@ -65,6 +71,7 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.cluster.Cluster;
+import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ClusterShardingSettings;
 import akka.contrib.persistence.mongodb.JavaDslMongoReadJournal;
@@ -76,8 +83,8 @@ import akka.http.javadsl.server.Route;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
-import akka.persistence.query.PersistenceQuery;
 import akka.stream.ActorMaterializer;
+import akka.stream.javadsl.Source;
 
 /**
  * Parent Actor which takes care of supervision of all other Actors in our system.
@@ -90,8 +97,6 @@ public final class ConnectivityRootActor extends AbstractActor {
     public static final String ACTOR_NAME = "connectivityRoot";
 
     private static final String CLUSTER_ROLE = "connectivity";
-    private static final String RECONNECT_READ_JOURNAL_PLUGIN_ID =
-            "akka-contrib-mongodb-persistence-reconnect-readjournal";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -158,18 +163,20 @@ public final class ConnectivityRootActor extends AbstractActor {
         final ClusterConfig clusterConfig = connectivityConfig.getClusterConfig();
         final ActorSystem actorSystem = getContext().system();
 
-        final JavaDslMongoReadJournal mongoReadJournal = PersistenceQuery
-                .get(actorSystem)
-                .getReadJournalFor(JavaDslMongoReadJournal.class, RECONNECT_READ_JOURNAL_PLUGIN_ID);
-
         final ActorRef conciergeForwarder =
                 getConciergeForwarder(clusterConfig, pubSubMediator, conciergeForwarderSignalTransformer);
         final Props connectionSupervisorProps =
                 getConnectionSupervisorProps(pubSubMediator, conciergeForwarder, commandValidator);
 
+        // Create persistence streaming actor (with no cache) and make it known to pubSubMediator.
+        final ActorRef persistenceStreamingActor =
+                startChildActor(ConnectionPersistenceStreamingActorCreator.ACTOR_NAME,
+                        ConnectionPersistenceStreamingActorCreator.props(0));
+        pubSubMediator.tell(new DistributedPubSubMediator.Put(persistenceStreamingActor), getSelf());
+
         startClusterSingletonActor(
                 ReconnectActor.props(getConnectionShardRegion(actorSystem, connectionSupervisorProps, clusterConfig),
-                        mongoReadJournal::currentPersistenceIds));
+                        MongoReadJournal.newInstance(actorSystem)));
 
         startChildActor(ConnectionPersistenceOperationsActor.ACTOR_NAME,
                 ConnectionPersistenceOperationsActor.props(pubSubMediator, connectivityConfig.getMongoDbConfig(),
@@ -177,7 +184,7 @@ public final class ConnectivityRootActor extends AbstractActor {
 
         final CompletionStage<ServerBinding> binding =
                 getHttpBinding(connectivityConfig.getHttpConfig(), actorSystem, materializer,
-                        getHealthCheckingActor(connectivityConfig));
+                        getHealthCheckingActor(connectivityConfig, pubSubMediator));
         binding.thenAccept(theBinding -> CoordinatedShutdown.get(actorSystem).addTask(
                 CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_health_http_endpoint", () -> {
                     log.info("Gracefully shutting down status/health HTTP endpoint ...");
@@ -209,7 +216,7 @@ public final class ConnectivityRootActor extends AbstractActor {
             final ConnectivityCommandInterceptor commandValidator) {
 
         return Props.create(ConnectivityRootActor.class, connectivityConfig, pubSubMediator, materializer,
-                        conciergeForwarderSignalTransformer, commandValidator);
+                conciergeForwarderSignalTransformer, commandValidator);
     }
 
     /**
@@ -228,7 +235,7 @@ public final class ConnectivityRootActor extends AbstractActor {
             final UnaryOperator<Signal<?>> conciergeForwarderSignalTransformer) {
 
         return Props.create(ConnectivityRootActor.class, connectivityConfig, pubSubMediator, materializer,
-                        conciergeForwarderSignalTransformer, null);
+                conciergeForwarderSignalTransformer, null);
     }
 
     @Override
@@ -267,7 +274,8 @@ public final class ConnectivityRootActor extends AbstractActor {
         return logRequest("http-request", () -> logResult("http-response", statusRoute::buildStatusRoute));
     }
 
-    private ActorRef getHealthCheckingActor(final ConnectivityConfig connectivityConfig) {
+    private ActorRef getHealthCheckingActor(final ConnectivityConfig connectivityConfig,
+            final ActorRef pubSubMediator) {
         final HealthCheckConfig healthCheckConfig = connectivityConfig.getHealthCheckConfig();
         final HealthCheckingActorOptions.Builder hcBuilder =
                 HealthCheckingActorOptions.getBuilder(healthCheckConfig.isEnabled(), healthCheckConfig.getInterval());
@@ -277,8 +285,17 @@ public final class ConnectivityRootActor extends AbstractActor {
         }
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
 
+        final MetricsReporterConfig metricsReporterConfig =
+                healthCheckConfig.getPersistenceConfig().getMetricsReporterConfig();
         return startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
-                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, MongoHealthChecker.props()));
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions,
+                        MongoHealthChecker.props(),
+                        MongoMetricsReporter.props(
+                                metricsReporterConfig.getResolution(),
+                                metricsReporterConfig.getHistory(),
+                                pubSubMediator
+                        )
+                ));
     }
 
     private ActorRef getConciergeForwarder(final ClusterConfig clusterConfig, final ActorRef pubSubMediator,
