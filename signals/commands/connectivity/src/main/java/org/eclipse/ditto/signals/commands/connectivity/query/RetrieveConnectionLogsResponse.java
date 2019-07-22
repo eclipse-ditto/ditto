@@ -168,8 +168,7 @@ public final class RetrieveConnectionLogsResponse
         final Instant readEnabledSince = parseInstantOrNull(jsonObject, JsonFields.ENABLED_SINCE);
         final Instant readEnabledUntil = parseInstantOrNull(jsonObject, JsonFields.ENABLED_UNTIL);
 
-        return of(readConnectionId, readConnectionLogs, readEnabledSince, readEnabledUntil,
-                dittoHeaders);
+        return of(readConnectionId, readConnectionLogs, readEnabledSince, readEnabledUntil, dittoHeaders);
     }
 
     /**
@@ -180,8 +179,9 @@ public final class RetrieveConnectionLogsResponse
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} contains a non-null field under {@code
      * fieldDefinition} that is not in ISO-8601 format.
      */
-    private static @Nullable
-    Instant parseInstantOrNull(final JsonObject jsonObject, final JsonFieldDefinition<String> fieldDefinition) {
+    @Nullable
+    private static Instant parseInstantOrNull(final JsonObject jsonObject,
+            final JsonFieldDefinition<String> fieldDefinition) {
         return jsonObject.getValue(fieldDefinition)
                 .map(field -> RetrieveConnectionLogsResponse.tryToParseInstant(field, fieldDefinition))
                 .orElse(null);
@@ -279,7 +279,7 @@ public final class RetrieveConnectionLogsResponse
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof RetrieveConnectionLogsResponse);
+        return other instanceof RetrieveConnectionLogsResponse;
     }
 
     @Override
