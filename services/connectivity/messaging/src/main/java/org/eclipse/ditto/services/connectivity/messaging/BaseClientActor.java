@@ -557,7 +557,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         final ActorRef sender = getSender();
         final Connection connection = data.getConnection();
         final DittoHeaders dittoHeaders = openConnection.getDittoHeaders();
-        reconnectTimeoutStrategy.resetTimeout();
+        reconnectTimeoutStrategy.reset();
         if (canConnectViaSocket(connection)) {
             doConnectClient(connection, sender);
             return goTo(CONNECTING).using(setSession(data, sender, dittoHeaders));
@@ -637,21 +637,34 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         cleanupResourcesForConnection();
         cleanupFurtherResourcesOnConnectionTimeout(stateName());
 
+        final String timeoutMessage = "Connection timed out at " + Instant.now() + " while " + stateName() + ".";
+
         if (ConnectivityStatus.OPEN.equals(data.getDesiredConnectionStatus())) {
-            reconnect(data);
-            connectionLogger.failure("Connection timed out. Will try to reconnect.");
-            reconnectTimeoutStrategy.increaseTimeout();
-            return goTo(CONNECTING).forMax(reconnectTimeoutStrategy.getCurrentTimeout())
-                            .using(data.resetSession()
-                                    .setConnectionStatus(ConnectivityStatus.FAILED)
-                                    .setConnectionStatusDetails(
-                                            "Connection timed out at " + Instant.now() + " while " + stateName()));
+            if (reconnectTimeoutStrategy.canReconnect()) {
+                reconnect(data);
+                connectionLogger.failure("Connection timed out. Will try to reconnect.");
+                return goTo(CONNECTING).forMax(reconnectTimeoutStrategy.getNextTimeout())
+                        .using(data.resetSession()
+                                .setConnectionStatus(ConnectivityStatus.FAILED)
+                                .setConnectionStatusDetails(timeoutMessage + " Will try to reconnect."));
+            } else {
+                connectionLogger.failure(
+                        "Connection timed out. Reached maximum tries and thus will no longer try to reconnect.");
+                log.info(
+                        "Connection <{}> reached maximum retries for reconnecting and thus will no longer try to reconnect.",
+                        connectionId());
+
+                return goTo(UNKNOWN).using(data.resetSession()
+                        .setConnectionStatus(ConnectivityStatus.FAILED)
+                        .setConnectionStatusDetails(timeoutMessage
+                                + " Reached maximum retries and thus will not try to reconnect any longer."));
+            }
         }
 
         connectionLogger.failure("Connection timed out.");
         return goTo(UNKNOWN).using(data.resetSession()
                 .setConnectionStatus(ConnectivityStatus.FAILED)
-                .setConnectionStatusDetails("Connection timed out at " + Instant.now() + " while " + stateName()));
+                .setConnectionStatusDetails(timeoutMessage));
     }
 
     private State<BaseClientState, BaseClientData> clientConnected(final ClientConnected clientConnected,
@@ -694,11 +707,26 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             data.getSessionSender().ifPresent(sender -> sender.tell(statusToReport, getSelf()));
 
             if (ConnectivityStatus.OPEN.equals(data.getDesiredConnectionStatus())) {
-                connectionLogger.failure("Connection failed due to: {0}. Will try to reconnect.", event.getFailureDescription());
-                reconnectTimeoutStrategy.increaseTimeout();
-                return goTo(CONNECTING).forMax(reconnectTimeoutStrategy.getCurrentTimeout()).using(data.resetSession()
-                        .setConnectionStatus(ConnectivityStatus.FAILED)
-                        .setConnectionStatusDetails(event.getFailureDescription()));
+                if (reconnectTimeoutStrategy.canReconnect()) {
+                    connectionLogger.failure("Connection failed due to: {0}. Will try to reconnect.",
+                            event.getFailureDescription());
+                    return goTo(CONNECTING).forMax(reconnectTimeoutStrategy.getNextTimeout()).using(data.resetSession()
+                            .setConnectionStatus(ConnectivityStatus.FAILED)
+                            .setConnectionStatusDetails(event.getFailureDescription()));
+                } else {
+                    connectionLogger.failure(
+                            "Connection failed due to: {0}. Reached maximum tries and thus will no longer try to reconnect.",
+                            event.getFailureDescription());
+                    log.info(
+                            "Connection <{}> reached maximum retries for reconnecting and thus will no longer try to reconnect.",
+                            connectionId());
+
+                    return goTo(UNKNOWN).using(data.resetSession()
+                            .setConnectionStatus(ConnectivityStatus.FAILED)
+                            .setConnectionStatusDetails(event.getFailureDescription()
+                                    + " Reached maximum retries and thus will not try to reconnect any longer."));
+                }
+
             }
 
             connectionLogger.failure("Connection failed due to: {0}.", event.getFailureDescription());
@@ -1074,48 +1102,66 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     /**
      * Reconnect timeout strategy that provides increasing timeouts for reconnecting the client.
      */
-    private interface ReconnectTimeoutStrategy {
-        void increaseTimeout();
-        void resetTimeout();
-        Duration getCurrentTimeout();
+    public interface ReconnectTimeoutStrategy {
+
+        boolean canReconnect();
+
+        void reset();
+
+        Duration getNextTimeout();
+
     }
 
     /**
      * Implements {@code timeout = minTimeout * 2^x} until max timeout is reached.
      */
-    private static class DuplicationReconnectTimeoutStrategy implements ReconnectTimeoutStrategy {
+    public static class DuplicationReconnectTimeoutStrategy implements ReconnectTimeoutStrategy {
+
         private final Duration minTimeout;
         private final Duration maxTimeout;
+        private final int maxTries;
         private Duration currentTimeout;
+        private int currentTries;
 
-        private DuplicationReconnectTimeoutStrategy(final Duration minTimeout, final Duration maxTimeout) {
+        public DuplicationReconnectTimeoutStrategy(final Duration minTimeout, final Duration maxTimeout,
+                final int maxTries) {
             this.minTimeout = minTimeout;
             this.maxTimeout = maxTimeout;
             this.currentTimeout = minTimeout;
+            this.maxTries = maxTries;
+            this.currentTries = 0;
         }
 
         private static DuplicationReconnectTimeoutStrategy fromConfig(final ClientConfig clientConfig) {
-            return new DuplicationReconnectTimeoutStrategy(clientConfig.getConnectingMinTimeout(), clientConfig.getConnectingMaxTimeout());
+            return new DuplicationReconnectTimeoutStrategy(clientConfig.getConnectingMinTimeout(),
+                    clientConfig.getConnectingMaxTimeout(), clientConfig.getConnectingMaxTries());
         }
 
         @Override
-        public void increaseTimeout() {
+        public boolean canReconnect() {
+            return currentTries < maxTries;
+        }
+
+        @Override
+        public void reset() {
+            this.currentTimeout = this.minTimeout;
+            this.currentTries = 0;
+        }
+
+        @Override
+        public Duration getNextTimeout() {
+            this.increase();
+            return this.currentTimeout;
+        }
+
+        private void increase() {
             if (!maxTimeout.equals(currentTimeout)) {
                 this.currentTimeout = this.currentTimeout.multipliedBy(2L);
                 if (maxTimeout.minus(currentTimeout).isNegative()) {
                     this.currentTimeout = maxTimeout;
                 }
             }
-        }
-
-        @Override
-        public void resetTimeout() {
-            this.currentTimeout = this.minTimeout;
-        }
-
-        @Override
-        public Duration getCurrentTimeout() {
-            return this.currentTimeout;
+            ++currentTries;
         }
 
     }

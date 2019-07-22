@@ -39,6 +39,7 @@ public interface ClientConfig {
      * @return the minimum connecting timeout.
      */
     Duration getConnectingMinTimeout();
+
     /**
      * Max timeout (until reconnecting) when connecting to a remote system. See docs on {@link ClientConfig#getConnectingMinTimeout()}
      * for more information on the concept.
@@ -46,6 +47,14 @@ public interface ClientConfig {
      * @see ClientConfig#getConnectingMinTimeout()
      */
     Duration getConnectingMaxTimeout();
+
+    /**
+     * How many times we will try to reconnect when connecting to a remote system.
+     *
+     * The max time is about {@link ClientConfig#getConnectingMaxTimeout()} * this.
+     * @return the maximum retries for connecting.
+     */
+    int getConnectingMaxTries();
 
     /**
      * How long the service will wait for a successful connection when testing a new connection. If no response is
@@ -73,6 +82,11 @@ public interface ClientConfig {
          * See documentation on {@link ClientConfig#getConnectingMaxTimeout()}.
          */
         CONNECTING_MAX_TIMEOUT("connecting-max-timeout", Duration.ofSeconds(60L)),
+
+        /**
+         * See documentation on {@link ClientConfig#getConnectingMaxTries()}.
+         */
+        CONNECTING_MAX_TRIES("connecting-max-tries", 50),
 
         /**
          * See documentation on {@link ClientConfig#getTestingTimeout()}.

@@ -34,12 +34,14 @@ public final class DefaultClientConfig implements ClientConfig {
     private final Duration initTimeout;
     private final Duration connectingMinTimeout;
     private final Duration connectingMaxTimeout;
+    private final int connectingMaxTries;
     private final Duration testingTimeout;
 
     private DefaultClientConfig(final ScopedConfig config) {
         initTimeout = config.getDuration(ClientConfigValue.INIT_TIMEOUT.getConfigPath());
         connectingMinTimeout = config.getDuration(ClientConfigValue.CONNECTING_MIN_TIMEOUT.getConfigPath());
         connectingMaxTimeout = config.getDuration(ClientConfigValue.CONNECTING_MAX_TIMEOUT.getConfigPath());
+        connectingMaxTries = config.getInt(ClientConfigValue.CONNECTING_MAX_TRIES.getConfigPath());
         testingTimeout = config.getDuration(ClientConfigValue.TESTING_TIMEOUT.getConfigPath());
     }
 
@@ -70,6 +72,11 @@ public final class DefaultClientConfig implements ClientConfig {
     }
 
     @Override
+    public int getConnectingMaxTries() {
+        return connectingMaxTries;
+    }
+
+    @Override
     public Duration getTestingTimeout() {
         return testingTimeout;
     }
@@ -86,12 +93,13 @@ public final class DefaultClientConfig implements ClientConfig {
         return Objects.equals(initTimeout, that.initTimeout) &&
                 Objects.equals(connectingMinTimeout, that.connectingMinTimeout) &&
                 Objects.equals(connectingMaxTimeout, that.connectingMaxTimeout) &&
+                Objects.equals(connectingMaxTries, that.connectingMaxTries) &&
                 Objects.equals(testingTimeout, that.testingTimeout);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(initTimeout, connectingMinTimeout, connectingMaxTimeout, testingTimeout);
+        return Objects.hash(initTimeout, connectingMinTimeout, connectingMaxTimeout, connectingMaxTries, testingTimeout);
     }
 
     @Override
@@ -100,6 +108,7 @@ public final class DefaultClientConfig implements ClientConfig {
                 ", initTimeout=" + initTimeout +
                 ", connectingMinTimeout=" + connectingMinTimeout +
                 ", connectingMaxTimeout=" + connectingMaxTimeout +
+                ", connectingMaxTries=" + connectingMaxTries +
                 ", testingTimeout=" + testingTimeout +
                 "]";
     }
