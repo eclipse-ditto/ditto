@@ -157,16 +157,19 @@ public final class RetrieveConnectionLogsResponse
     public static RetrieveConnectionLogsResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveConnectionLogsResponse>(TYPE, jsonObject).deserialize(
-                statusCode -> {
-                    final String readConnectionId =
-                            jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
-                    final List<LogEntry> readConnectionLogs = parseConnectionLogs(jsonObject);
-                    final Instant readEnabledSince = parseInstantOrNull(jsonObject, JsonFields.ENABLED_SINCE);
-                    final Instant readEnabledUntil = parseInstantOrNull(jsonObject, JsonFields.ENABLED_UNTIL);
+                statusCode -> getRetrieveConnectionLogsResponse(jsonObject, dittoHeaders));
+    }
 
-                    return of(readConnectionId, readConnectionLogs, readEnabledSince, readEnabledUntil,
-                            dittoHeaders);
-                });
+    private static RetrieveConnectionLogsResponse getRetrieveConnectionLogsResponse(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
+        final String readConnectionId =
+                jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
+        final List<LogEntry> readConnectionLogs = parseConnectionLogs(jsonObject);
+        final Instant readEnabledSince = parseInstantOrNull(jsonObject, JsonFields.ENABLED_SINCE);
+        final Instant readEnabledUntil = parseInstantOrNull(jsonObject, JsonFields.ENABLED_UNTIL);
+
+        return of(readConnectionId, readConnectionLogs, readEnabledSince, readEnabledUntil,
+                dittoHeaders);
     }
 
     /**
@@ -266,7 +269,7 @@ public final class RetrieveConnectionLogsResponse
 
     @Override
     public RetrieveConnectionLogsResponse setEntity(final JsonValue entity) {
-        return fromJson(entity.asObject(), getDittoHeaders());
+        return getRetrieveConnectionLogsResponse(entity.asObject(), getDittoHeaders());
     }
 
     @Override
