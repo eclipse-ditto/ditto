@@ -51,6 +51,7 @@ public final class DittoEncodingHelper {
         ENCODE_MAP.put(',', "%2C");
         ENCODE_MAP.put(' ', "%20");
         ENCODE_MAP.put('%', "%25");
+        ENCODE_MAP.put('"', "%22");
         ENCODE_MAP.forEach((key, value) -> DECODE_MAP.put(value, key));
     }
 
