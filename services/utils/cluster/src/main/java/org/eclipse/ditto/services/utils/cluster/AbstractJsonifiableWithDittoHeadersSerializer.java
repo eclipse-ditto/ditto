@@ -39,6 +39,8 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,11 +80,16 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
             .withValue(CONFIG_DIRECT_BUFFER_SIZE, ConfigValueFactory.fromAnyRef("64 KiB"))
             .withValue(CONFIG_DIRECT_BUFFER_POOL_LIMIT, ConfigValueFactory.fromAnyRef("500"));
 
+    private static final String METRIC_NAME = "json_serializer_messages";
+    private static final String METRIC_DIRECTION = "direction";
+
     private final int identifier;
     private final MappingStrategies mappingStrategies;
     private final Function<Object, String> manifestProvider;
     private final BufferPool byteBufferPool;
     private final Long defaultBufferSize;
+    private final Counter inCounter;
+    private final Counter outCounter;
 
     /**
      * Constructs a new {@code AbstractJsonifiableWithDittoHeadersSerializer} object.
@@ -100,6 +107,11 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
         defaultBufferSize = config.withFallback(FALLBACK_CONF).getBytes(CONFIG_DIRECT_BUFFER_SIZE);
         final int maxPoolEntries = config.withFallback(FALLBACK_CONF).getInt(CONFIG_DIRECT_BUFFER_POOL_LIMIT);
         byteBufferPool = new DirectByteBufferPool(defaultBufferSize.intValue(), maxPoolEntries);
+
+        inCounter = DittoMetrics.counter(METRIC_NAME)
+                .tag(METRIC_DIRECTION, "in");
+        outCounter = DittoMetrics.counter(METRIC_NAME)
+                .tag(METRIC_DIRECTION, "out");
     }
 
     @Override
@@ -135,6 +147,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
 
             try {
                 buf.put(UTF8_CHARSET.encode(jsonStr));
+                outCounter.increment();
             } catch (final BufferOverflowException e) {
                 LOG.warn("Could not put bytes of JSON string <{}> into ByteBuffer due to BufferOverflow", jsonStr, e);
                 throw e;
@@ -182,7 +195,9 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
     public Object fromBinary(final ByteBuffer buf, final String manifest) {
         final String json = UTF8_CHARSET.decode(buf).toString();
         try {
-            return tryToCreateKnownJsonifiableFrom(manifest, json);
+            final Jsonifiable jsonifiable = tryToCreateKnownJsonifiableFrom(manifest, json);
+            inCounter.increment();
+            return jsonifiable;
         } catch (final NotSerializableException e) {
             return e;
         }
