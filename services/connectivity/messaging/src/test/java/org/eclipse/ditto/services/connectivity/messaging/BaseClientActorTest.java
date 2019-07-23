@@ -252,8 +252,8 @@ public final class BaseClientActorTest {
         private final BaseClientActor delegate;
 
         public DummyClientActor(final Connection connection, final ConnectivityStatus desiredConnectionStatus,
-                final ActorRef congiereForwarder, final BaseClientActor delegate) {
-            super(connection, desiredConnectionStatus, congiereForwarder);
+                final ActorRef conciergeForwarder, final BaseClientActor delegate) {
+            super(connection, desiredConnectionStatus, conciergeForwarder);
             this.delegate = delegate;
         }
 

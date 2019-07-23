@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkArgument;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.CONNECTED;
 import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.CONNECTING;
@@ -34,6 +35,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
@@ -1115,7 +1117,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     /**
      * Implements {@code timeout = minTimeout * 2^x} until max timeout is reached.
      */
-    public static class DuplicationReconnectTimeoutStrategy implements ReconnectTimeoutStrategy {
+    static class DuplicationReconnectTimeoutStrategy implements ReconnectTimeoutStrategy {
 
         private final Duration minTimeout;
         private final Duration maxTimeout;
@@ -1123,12 +1125,14 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         private Duration currentTimeout;
         private int currentTries;
 
-        public DuplicationReconnectTimeoutStrategy(final Duration minTimeout, final Duration maxTimeout,
+        DuplicationReconnectTimeoutStrategy(final Duration minTimeout, final Duration maxTimeout,
                 final int maxTries) {
-            this.minTimeout = minTimeout;
-            this.maxTimeout = maxTimeout;
+            this.minTimeout = checkArgument(minTimeout, isPositiveOrZero().and(isLowerThanOrEqual(maxTimeout)),
+                    () -> "minTimeout must be positive and lower than or equal to maxTimeout");
+            this.maxTimeout = checkArgument(maxTimeout, isPositiveOrZero(),
+                    () -> "maxTimeout must be positive");
             this.currentTimeout = minTimeout;
-            this.maxTries = maxTries;
+            this.maxTries = checkArgument(maxTries, arg -> arg > 0, () -> "maxTries must be positive");
             this.currentTries = 0;
         }
 
@@ -1164,6 +1168,15 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             ++currentTries;
         }
 
-    }
+        private static Predicate<Duration> isLowerThanOrEqual(final Duration otherDuration) {
+            return arg -> {
+                final Duration minus = arg.minus(otherDuration);
+                return minus.isNegative() || minus.isZero();
+            };
+        }
 
+        private static Predicate<Duration> isPositiveOrZero() {
+            return arg -> !arg.isNegative();
+        }
+    }
 }
