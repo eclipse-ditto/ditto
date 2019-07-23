@@ -103,6 +103,8 @@ public final class StatisticsActor extends AbstractActor {
 
         clusterSharding = ClusterSharding.get(getContext().getSystem());
         scheduleInternalRetrieveHotEntities();
+
+        subscribeForStatisticsCommands();
     }
 
     /**
@@ -172,8 +174,22 @@ public final class StatisticsActor extends AbstractActor {
                 })
                 .match(ShardRegion.CurrentShardRegionState.class, this::unhandled) // ignore, the message is too late
                 .match(ShardRegion.ClusterShardingStats.class, this::unhandled) // ignore, the message is too late
+                .match(DistributedPubSubMediator.SubscribeAck.class, this::logSubscribeAck)
                 .matchAny(m -> log.warning("Got unknown message, expected a 'RetrieveStatistics': {}", m))
                 .build();
+    }
+
+    private void subscribeForStatisticsCommands() {
+        final Object subscribeForRetrieveStatistics =
+                new DistributedPubSubMediator.Subscribe(RetrieveStatistics.TYPE, ACTOR_NAME, getSelf());
+        final Object subscribeForRetrieveStatisticsDetails =
+                new DistributedPubSubMediator.Subscribe(RetrieveStatisticsDetails.TYPE, ACTOR_NAME, getSelf());
+        pubSubMediator.tell(subscribeForRetrieveStatistics, getSelf());
+        pubSubMediator.tell(subscribeForRetrieveStatisticsDetails, getSelf());
+    }
+
+    private void logSubscribeAck(final DistributedPubSubMediator.SubscribeAck subscribeAck) {
+        log.info("Got <{}>", subscribeAck);
     }
 
     private void tellShardRegionToSendClusterShardingStats() {
@@ -234,6 +250,7 @@ public final class StatisticsActor extends AbstractActor {
                     statisticsConsumer.accept(currentStatistics);
                     getContext().unbecome();
                 })
+                .match(DistributedPubSubMediator.SubscribeAck.class, this::logSubscribeAck)
                 .matchAny(m -> log.warning("Got unknown message during 'statisticsAwaiting': {}", m))
                 .build()
         );
@@ -282,6 +299,7 @@ public final class StatisticsActor extends AbstractActor {
                     statisticsDetailsConsumer.accept(currentStatisticsDetails);
                     getContext().unbecome();
                 })
+                .match(DistributedPubSubMediator.SubscribeAck.class, this::logSubscribeAck)
                 .matchAny(m -> log.warning("Got unknown message during 'statisticsDetailsAwaiting': {}", m))
                 .build()
         );
