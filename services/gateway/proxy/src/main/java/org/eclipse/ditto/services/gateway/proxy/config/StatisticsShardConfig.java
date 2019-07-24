@@ -14,8 +14,6 @@ package org.eclipse.ditto.services.gateway.proxy.config;
 
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
-import com.typesafe.config.Config;
-
 /**
  * Configuration for statistics of shard regions.
  */

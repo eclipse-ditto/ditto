@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.proxy.config;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 
@@ -29,6 +30,20 @@ import akka.actor.ActorContext;
  */
 @Immutable
 public interface StatisticsConfig {
+
+    /**
+     * Returns the configured timeout when asking other cluster members for information.
+     *
+     * @return the ask-timeout.
+     */
+    Duration getAskTimeout();
+
+    /**
+     * Returns the configured interval for updating the public statistics.
+     *
+     * @return the update-interval.
+     */
+    Duration getUpdateInterval();
 
     /**
      * Returns the configuration settings of shards for which statistics are reported..
@@ -54,6 +69,16 @@ public interface StatisticsConfig {
      * An enumeration of the known config path expressions and their associated default values.
      */
     enum ConfigValues implements KnownConfigValue {
+
+        /**
+         * Configuration for ask timeout.
+         */
+        ASK_TIMEOUT("ask-timeout", Duration.ofSeconds(5L)),
+
+        /**
+         * Configuration for update interval of public endpoint.
+         */
+        UPDATE_INTERVAL("update-interval", Duration.ofSeconds(15L)),
 
         /**
          * Configuration for individual shards.

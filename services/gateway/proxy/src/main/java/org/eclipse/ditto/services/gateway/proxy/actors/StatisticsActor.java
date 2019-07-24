@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.gateway.proxy.actors;
 
 import static io.jsonwebtoken.lang.Strings.capitalize;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -38,13 +37,11 @@ import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.services.gateway.proxy.config.StatisticsConfig;
 import org.eclipse.ditto.services.gateway.proxy.config.StatisticsShardConfig;
-import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
-import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
-import org.eclipse.ditto.services.models.thingsearch.ThingsSearchConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterRoleStatus;
@@ -71,6 +68,7 @@ import scala.concurrent.duration.FiniteDuration;
 /**
  * Actor collecting statistics in the cluster.
  */
+// TODO: create AbstractActorWithStashAndTimers!!!
 public final class StatisticsActor extends AbstractActorWithTimers {
 
     /**
@@ -78,24 +76,7 @@ public final class StatisticsActor extends AbstractActorWithTimers {
      */
     static final String ACTOR_NAME = "statistics";
 
-    private static final String SR_THING = ThingsMessagingConstants.SHARD_REGION;
-    private static final String SR_POLICY = PoliciesMessagingConstants.SHARD_REGION;
-    private static final String SR_SEARCH_UPDATER = ThingsSearchConstants.SHARD_REGION;
-
-    private static final String THINGS_ROOT = ThingsMessagingConstants.ROOT_ACTOR_PATH;
-    private static final String POLICIES_ROOT = PoliciesMessagingConstants.ROOT_ACTOR_PATH;
-    private static final String SEARCH_UPDATER_ROOT = ThingsSearchConstants.UPDATER_ROOT_ACTOR_PATH;
-
     private static final String EMPTY_STRING_TAG = "<empty>";
-
-    /**
-     * The wait time in milliseconds to gather all statistics from the cluster nodes.
-     */
-    private static final int WAIT_TIME_MS = 250;
-    /**
-     * The time in milliseconds to retrieve all Hot Entities from the cluster nodes.
-     */
-    private static final int SCHEDULE_INTERNAL_RETRIEVE_COMMAND = 15000;
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -136,8 +117,7 @@ public final class StatisticsActor extends AbstractActorWithTimers {
         initGauges();
         final InternalRetrieveStatistics internalRetrieveStatistics = InternalRetrieveStatistics.newInstance();
         getTimers().startPeriodicTimer(internalRetrieveStatistics, internalRetrieveStatistics,
-                Duration.ofMillis(SCHEDULE_INTERNAL_RETRIEVE_COMMAND));
-        getSelf().tell(internalRetrieveStatistics, getSelf());
+                statisticsConfig.getUpdateInterval());
     }
 
     private void updateGauges(final Map<String, ShardStatisticsWrapper> shardStatisticsWrapperMap) {
@@ -152,23 +132,11 @@ public final class StatisticsActor extends AbstractActorWithTimers {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(InternalRetrieveStatistics.class, unused -> {
-                    tellShardRegionToSendClusterShardingStats();
-
-                    becomeStatisticsAwaiting(statistics -> {});
+                    tellShardRegionsToSendClusterShardingStats();
+                    becomeStatisticsAwaiting();
                 })
-                .match(RetrieveStatistics.class, retrieveStatistics -> {
-                    tellShardRegionToSendClusterShardingStats();
-
-                    final ActorRef self = getSelf();
-                    final ActorRef sender = getSender();
-                    becomeStatisticsAwaiting(statistics ->
-                            sender.tell(RetrieveStatisticsResponse.of(statistics.toJson(),
-                                    retrieveStatistics.getDittoHeaders()), self)
-                    );
-                })
+                .match(RetrieveStatistics.class, this::respondWithCachedStatistics)
                 .match(RetrieveStatisticsDetails.class, retrieveStatistics -> {
-
-                    final ActorRef self = getSelf();
                     final ActorRef sender = getSender();
                     final List<ClusterRoleStatus> relevantRoles = clusterStatusSupplier.get()
                             .getRoles()
@@ -176,16 +144,36 @@ public final class StatisticsActor extends AbstractActorWithTimers {
                             .filter(this::hasRelevantRole)
                             .collect(Collectors.toList());
                     tellRelevantRootActorsToRetrieveStatistics(relevantRoles, retrieveStatistics);
-                    becomeStatisticsDetailsAwaiting(relevantRoles, statistics ->
-                            sender.tell(RetrieveStatisticsResponse.of(statistics.toJson(),
-                                    retrieveStatistics.getDittoHeaders()), self)
-                    );
+                    becomeStatisticsDetailsAwaiting(relevantRoles, details ->
+                            respondWithStatisticsDetails(retrieveStatistics, details, sender));
                 })
                 .match(ShardRegion.CurrentShardRegionState.class, this::unhandled) // ignore, the message is too late
                 .match(ShardRegion.ClusterShardingStats.class, this::unhandled) // ignore, the message is too late
                 .match(DistributedPubSubMediator.SubscribeAck.class, this::logSubscribeAck)
                 .matchAny(m -> log.warning("Got unknown message, expected a 'RetrieveStatistics': {}", m))
                 .build();
+    }
+
+    private void respondWithStatisticsDetails(final RetrieveStatisticsDetails command,
+            @Nullable final StatisticsDetails details, final ActorRef sender) {
+        // TODO: filter response by shard and/or by namespace
+        final JsonObject statisticsJson = details != null
+                ? details.toJson()
+                : JsonObject.empty();
+        sender.tell(RetrieveStatisticsResponse.of(statisticsJson, command.getDittoHeaders()), getSelf());
+    }
+
+    private void respondWithCachedStatisticsDetails(final RetrieveStatisticsDetails retrieveStatistics) {
+        respondWithStatisticsDetails(retrieveStatistics, currentStatisticsDetails, getSender());
+    }
+
+    private void respondWithCachedStatistics(final RetrieveStatistics retrieveStatistics) {
+        // public query - answer immediately by cached result
+        final JsonObject statisticsJson = currentStatistics != null
+                ? currentStatistics.toJson()
+                : JsonObject.empty();
+        final DittoHeaders headers = retrieveStatistics.getDittoHeaders();
+        getSender().tell(RetrieveStatisticsResponse.of(statisticsJson, headers), getSelf());
     }
 
     private void subscribeForStatisticsCommands() {
@@ -201,10 +189,11 @@ public final class StatisticsActor extends AbstractActorWithTimers {
         log.info("Got <{}>", subscribeAck);
     }
 
-    private void tellShardRegionToSendClusterShardingStats() {
-        tellShardRegionToSendClusterShardingStats(SR_THING);
-        tellShardRegionToSendClusterShardingStats(SR_POLICY);
-        tellShardRegionToSendClusterShardingStats(SR_SEARCH_UPDATER);
+    private void tellShardRegionsToSendClusterShardingStats() {
+        statisticsConfig.getShards()
+                .stream()
+                .map(StatisticsShardConfig::getShard)
+                .forEach(this::tellShardRegionToSendClusterShardingStats);
     }
 
     private void tellRelevantRootActorsToRetrieveStatistics(final Collection<ClusterRoleStatus> relevantRoles,
@@ -233,18 +222,16 @@ public final class StatisticsActor extends AbstractActorWithTimers {
         gauges.forEach(namedShardGauge -> namedShardGauge.gauge.set(0L));
     }
 
-    private void becomeStatisticsAwaiting(final Consumer<Statistics> statisticsConsumer) {
+    private void becomeStatisticsAwaiting() {
 
         final Map<String, ShardStatisticsWrapper> shardStatisticsMap = new HashMap<>();
 
         final AskTimeoutException askTimeoutException = new AskTimeoutException("Timed out");
-        getTimers().startSingleTimer(askTimeoutException, askTimeoutException, Duration.ofMillis(WAIT_TIME_MS));
+        getTimers().startSingleTimer(askTimeoutException, askTimeoutException, statisticsConfig.getAskTimeout());
 
         getContext().become(ReceiveBuilder.create()
-                .match(RetrieveStatistics.class, rs -> currentStatistics != null,
-                        retrieveStatistics -> getSender().tell(RetrieveStatisticsResponse.of(
-                                currentStatistics.toJson(), retrieveStatistics.getDittoHeaders()), getSelf())
-                )
+                .match(RetrieveStatistics.class, this::respondWithCachedStatistics)
+                .match(RetrieveStatisticsDetails.class, this::respondWithCachedStatisticsDetails)
                 .match(ShardRegion.ClusterShardingStats.class, clusterShardingStats -> {
                     final Optional<ShardStatisticsWrapper> shardStatistics =
                             getShardStatistics(shardStatisticsMap, getSender());
@@ -270,7 +257,6 @@ public final class StatisticsActor extends AbstractActorWithTimers {
                 .matchEquals(askTimeoutException, unit -> {
                     updateGauges(shardStatisticsMap);
                     currentStatistics = Statistics.fromGauges(gauges);
-                    statisticsConsumer.accept(currentStatistics);
                     getContext().unbecome();
                 })
                 .match(DistributedPubSubMediator.SubscribeAck.class, this::logSubscribeAck)
@@ -285,8 +271,7 @@ public final class StatisticsActor extends AbstractActorWithTimers {
         final Map<String, ShardStatisticsWrapper> shardStatisticsMap = new HashMap<>();
         final AskTimeoutException askTimeoutException = new AskTimeoutException("Timed out");
 
-        getTimers().startSingleTimer(askTimeoutException, askTimeoutException,
-                Duration.ofMillis(WAIT_TIME_MS).multipliedBy(8L));
+        getTimers().startSingleTimer(askTimeoutException, askTimeoutException, statisticsConfig.getAskTimeout());
 
         final int reachableMembers = relevantRoles.stream()
                 .mapToInt(clusterRoleStatus -> clusterRoleStatus.getReachable().size())
@@ -296,10 +281,8 @@ public final class StatisticsActor extends AbstractActorWithTimers {
         messageCounter.count = 0L;
 
         getContext().become(ReceiveBuilder.create()
-                .match(RetrieveStatisticsDetails.class, rs -> currentStatisticsDetails != null,
-                        retrieveStatistics -> getSender().tell(RetrieveStatisticsResponse.of(
-                                currentStatisticsDetails.toJson(), retrieveStatistics.getDittoHeaders()), getSelf())
-                )
+                .match(RetrieveStatistics.class, this::respondWithCachedStatistics)
+                .match(RetrieveStatisticsDetails.class, this::respondWithCachedStatisticsDetails)
                 .match(RetrieveStatisticsDetailsResponse.class, retrieveStatisticsDetailsResponse -> {
                     final String shardRegion = retrieveStatisticsDetailsResponse.getStatisticsDetails()
                             .stream()

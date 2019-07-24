@@ -34,6 +34,13 @@ final class DefaultStatisticsShardConfig implements StatisticsShardConfig, WithC
     private final String role;
     private final String root;
 
+    // for test
+    DefaultStatisticsShardConfig(final String shard, final String role, final String root) {
+        this.shard = shard;
+        this.role = role;
+        this.root = root;
+    }
+
     private DefaultStatisticsShardConfig(final ScopedConfig scopedConfig) {
         shard = scopedConfig.getString(ConfigValues.SHARD.getConfigPath());
         role = scopedConfig.getString(ConfigValues.ROLE.getConfigPath());

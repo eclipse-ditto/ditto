@@ -12,7 +12,9 @@
  */
 package org.eclipse.ditto.services.gateway.proxy.config;
 
+import java.time.Duration;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
@@ -25,16 +27,19 @@ import com.typesafe.config.Config;
 
 /**
  * The implementation of statistics-config.
- * TODO: TESTS!
  */
 @Immutable
 final class DefaultStatisticsConfig implements StatisticsConfig, WithConfigPath {
 
     private static final String CONFIG_PATH = "statistics";
 
+    private final Duration askTimeout;
+    private final Duration updateInterval;
     private final List<StatisticsShardConfig> shards;
 
     private DefaultStatisticsConfig(final ScopedConfig scopedConfig) {
+        askTimeout = scopedConfig.getDuration(ConfigValues.ASK_TIMEOUT.getConfigPath());
+        updateInterval = scopedConfig.getDuration(ConfigValues.UPDATE_INTERVAL.getConfigPath());
         shards = scopedConfig.getConfigList(ConfigValues.SHARDS.getConfigPath())
                 .stream()
                 .map(DefaultStatisticsShardConfig::of)
@@ -50,6 +55,16 @@ final class DefaultStatisticsConfig implements StatisticsConfig, WithConfigPath 
      */
     static StatisticsConfig of(final Config config) {
         return new DefaultStatisticsConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH, ConfigValues.values()));
+    }
+
+    @Override
+    public Duration getAskTimeout() {
+        return askTimeout;
+    }
+
+    @Override
+    public Duration getUpdateInterval() {
+        return updateInterval;
     }
 
     @Override
@@ -74,18 +89,22 @@ final class DefaultStatisticsConfig implements StatisticsConfig, WithConfigPath 
             return false;
         }
         final DefaultStatisticsConfig that = (DefaultStatisticsConfig) o;
-        return shards.equals(that.shards);
+        return askTimeout.equals(that.askTimeout) &&
+                updateInterval.equals(that.updateInterval) &&
+                shards.equals(that.shards);
     }
 
     @Override
     public int hashCode() {
-        return shards.hashCode();
+        return Objects.hash(askTimeout, updateInterval, shards);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "shards=" + shards +
+                "askTimeout=" + askTimeout +
+                ", updateInterval=" + updateInterval +
+                ", shards=" + shards +
                 "]";
     }
 
