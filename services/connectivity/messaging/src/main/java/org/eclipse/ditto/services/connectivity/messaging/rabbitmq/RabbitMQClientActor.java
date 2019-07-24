@@ -184,8 +184,8 @@ public final class RabbitMQClientActor extends BaseClientActor {
         // #connect() will only create the channel for the the producer, but not the consumer. We need to split the
         // connecting timeout to work for both channels before the global connecting timeout happens.
         // We choose about 45% of the global connecting timeout for this
-        final Duration splittedDuration = clientConfig.getConnectingTimeout().dividedBy(100L).multipliedBy(45L);
-        final Duration internalReconnectTimeout = clientConfig.getConnectingTimeout();
+        final Duration splittedDuration = clientConfig.getConnectingMinTimeout().dividedBy(100L).multipliedBy(45L);
+        final Duration internalReconnectTimeout = clientConfig.getConnectingMinTimeout();
         connect(connection, splittedDuration, internalReconnectTimeout)
                 .thenAccept(status -> createConsumerChannelAndNotifySelf(status, consuming, self, splittedDuration));
     }
