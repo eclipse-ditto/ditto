@@ -35,11 +35,13 @@ final class DefaultStatisticsConfig implements StatisticsConfig, WithConfigPath 
 
     private final Duration askTimeout;
     private final Duration updateInterval;
+    private final Duration detailsExpireAfter;
     private final List<StatisticsShardConfig> shards;
 
     private DefaultStatisticsConfig(final ScopedConfig scopedConfig) {
         askTimeout = scopedConfig.getDuration(ConfigValues.ASK_TIMEOUT.getConfigPath());
         updateInterval = scopedConfig.getDuration(ConfigValues.UPDATE_INTERVAL.getConfigPath());
+        detailsExpireAfter = scopedConfig.getDuration(ConfigValues.DETAILS_EXPIRE_AFTER.getConfigPath());
         shards = scopedConfig.getConfigList(ConfigValues.SHARDS.getConfigPath())
                 .stream()
                 .map(DefaultStatisticsShardConfig::of)
@@ -68,6 +70,11 @@ final class DefaultStatisticsConfig implements StatisticsConfig, WithConfigPath 
     }
 
     @Override
+    public Duration getDetailsExpireAfter() {
+        return detailsExpireAfter;
+    }
+
+    @Override
     public List<StatisticsShardConfig> getShards() {
         return shards;
     }
@@ -91,12 +98,13 @@ final class DefaultStatisticsConfig implements StatisticsConfig, WithConfigPath 
         final DefaultStatisticsConfig that = (DefaultStatisticsConfig) o;
         return askTimeout.equals(that.askTimeout) &&
                 updateInterval.equals(that.updateInterval) &&
+                detailsExpireAfter.equals(that.detailsExpireAfter) &&
                 shards.equals(that.shards);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(askTimeout, updateInterval, shards);
+        return Objects.hash(askTimeout, updateInterval, detailsExpireAfter, shards);
     }
 
     @Override
@@ -104,6 +112,7 @@ final class DefaultStatisticsConfig implements StatisticsConfig, WithConfigPath 
         return getClass().getSimpleName() + " [" +
                 "askTimeout=" + askTimeout +
                 ", updateInterval=" + updateInterval +
+                ", detailsExpireAfter=" + updateInterval +
                 ", shards=" + shards +
                 "]";
     }

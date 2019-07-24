@@ -58,6 +58,10 @@ public final class DefaultStatisticsConfigTest {
                 .as(StatisticsConfig.ConfigValues.UPDATE_INTERVAL.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(15L));
 
+        softly.assertThat(underTest.getDetailsExpireAfter())
+                .as(StatisticsConfig.ConfigValues.DETAILS_EXPIRE_AFTER.getConfigPath())
+                .isEqualTo(Duration.ofSeconds(1L));
+
         softly.assertThat(underTest.getShards())
                 .as(StatisticsConfig.ConfigValues.SHARDS.getConfigPath())
                 .isEmpty();
@@ -74,6 +78,10 @@ public final class DefaultStatisticsConfigTest {
         softly.assertThat(underTest.getUpdateInterval())
                 .as(StatisticsConfig.ConfigValues.UPDATE_INTERVAL.getConfigPath())
                 .isEqualTo(Duration.ofMinutes(5678L));
+
+        softly.assertThat(underTest.getDetailsExpireAfter())
+                .as(StatisticsConfig.ConfigValues.DETAILS_EXPIRE_AFTER.getConfigPath())
+                .isEqualTo(Duration.ofDays(9L));
 
         softly.assertThat(underTest.getShards())
                 .as(StatisticsConfig.ConfigValues.SHARDS.getConfigPath())

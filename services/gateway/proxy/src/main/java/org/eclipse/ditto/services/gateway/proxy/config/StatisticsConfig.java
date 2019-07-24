@@ -46,6 +46,13 @@ public interface StatisticsConfig {
     Duration getUpdateInterval();
 
     /**
+     * Returns the configured lifetime of statistics details.
+     *
+     * @return the lifetime.
+     */
+    Duration getDetailsExpireAfter();
+
+    /**
      * Returns the configuration settings of shards for which statistics are reported..
      *
      * @return the config.
@@ -79,6 +86,11 @@ public interface StatisticsConfig {
          * Configuration for update interval of public endpoint.
          */
         UPDATE_INTERVAL("update-interval", Duration.ofSeconds(15L)),
+
+        /**
+         * Configuration for expiry of statistics details.
+         */
+        DETAILS_EXPIRE_AFTER("details-expire-after", Duration.ofSeconds(1L)),
 
         /**
          * Configuration for individual shards.

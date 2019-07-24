@@ -43,6 +43,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.services.gateway.proxy.config.StatisticsConfig;
 import org.eclipse.ditto.services.gateway.proxy.config.StatisticsShardConfig;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.actors.AbstractActorWithStashWithTimers;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterRoleStatus;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
@@ -52,7 +53,6 @@ import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetailsResponse;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsResponse;
 
-import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
 import akka.actor.Address;
 import akka.actor.Props;
@@ -68,8 +68,7 @@ import scala.concurrent.duration.FiniteDuration;
 /**
  * Actor collecting statistics in the cluster.
  */
-// TODO: create AbstractActorWithStashAndTimers!!!
-public final class StatisticsActor extends AbstractActorWithTimers {
+public final class StatisticsActor extends AbstractActorWithStashWithTimers {
 
     /**
      * The name of this Actor in the ActorSystem.
@@ -115,8 +114,7 @@ public final class StatisticsActor extends AbstractActorWithTimers {
 
     private void scheduleInternalRetrieveHotEntities() {
         initGauges();
-        final InternalRetrieveStatistics internalRetrieveStatistics = InternalRetrieveStatistics.newInstance();
-        getTimers().startPeriodicTimer(internalRetrieveStatistics, internalRetrieveStatistics,
+        getTimers().startPeriodicTimer(InternalRetrieveStatistics.INSTANCE, InternalRetrieveStatistics.INSTANCE,
                 statisticsConfig.getUpdateInterval());
     }
 
@@ -131,12 +129,11 @@ public final class StatisticsActor extends AbstractActorWithTimers {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(InternalRetrieveStatistics.class, unused -> {
-                    tellShardRegionsToSendClusterShardingStats();
-                    becomeStatisticsAwaiting();
-                })
                 .match(RetrieveStatistics.class, this::respondWithCachedStatistics)
+                .match(RetrieveStatisticsDetails.class, this::hasCachedStatisticsDetails,
+                        this::respondWithCachedStatisticsDetails)
                 .match(RetrieveStatisticsDetails.class, retrieveStatistics -> {
+                    // no cached statistics details; retrieve them from cluster members.
                     final ActorRef sender = getSender();
                     final List<ClusterRoleStatus> relevantRoles = clusterStatusSupplier.get()
                             .getRoles()
@@ -147,11 +144,26 @@ public final class StatisticsActor extends AbstractActorWithTimers {
                     becomeStatisticsDetailsAwaiting(relevantRoles, details ->
                             respondWithStatisticsDetails(retrieveStatistics, details, sender));
                 })
+                .matchEquals(InternalRetrieveStatistics.INSTANCE, unit -> {
+                    tellShardRegionsToSendClusterShardingStats();
+                    becomeStatisticsAwaiting();
+                })
+                .matchEquals(InternalResetStatisticsDetails.INSTANCE, this::resetStatisticsDetails)
                 .match(ShardRegion.CurrentShardRegionState.class, this::unhandled) // ignore, the message is too late
                 .match(ShardRegion.ClusterShardingStats.class, this::unhandled) // ignore, the message is too late
+                .match(RetrieveStatisticsDetailsResponse.class, this::unhandled) // ignore, the message is too lage
                 .match(DistributedPubSubMediator.SubscribeAck.class, this::logSubscribeAck)
                 .matchAny(m -> log.warning("Got unknown message, expected a 'RetrieveStatistics': {}", m))
                 .build();
+    }
+
+    private boolean hasCachedStatisticsDetails() {
+        return currentStatisticsDetails != null;
+    }
+
+    private void resetStatisticsDetails(final Object unit) {
+        // cached statistics details expired; retrieve them again at next query.
+        currentStatisticsDetails = null;
     }
 
     private void respondWithStatisticsDetails(final RetrieveStatisticsDetails command,
@@ -198,7 +210,6 @@ public final class StatisticsActor extends AbstractActorWithTimers {
 
     private void tellRelevantRootActorsToRetrieveStatistics(final Collection<ClusterRoleStatus> relevantRoles,
             final RetrieveStatisticsDetails command) {
-
         relevantRoles.forEach(clusterRoleStatus ->
                 statisticsConfig.getShards()
                         .stream()
@@ -230,39 +241,50 @@ public final class StatisticsActor extends AbstractActorWithTimers {
         getTimers().startSingleTimer(askTimeoutException, askTimeoutException, statisticsConfig.getAskTimeout());
 
         getContext().become(ReceiveBuilder.create()
-                .match(RetrieveStatistics.class, this::respondWithCachedStatistics)
-                .match(RetrieveStatisticsDetails.class, this::respondWithCachedStatisticsDetails)
-                .match(ShardRegion.ClusterShardingStats.class, clusterShardingStats -> {
-                    final Optional<ShardStatisticsWrapper> shardStatistics =
-                            getShardStatistics(shardStatisticsMap, getSender());
+                        .match(RetrieveStatistics.class, this::respondWithCachedStatistics)
+                        .match(ShardRegion.ClusterShardingStats.class, clusterShardingStats -> {
+                            final Optional<ShardStatisticsWrapper> shardStatistics =
+                                    getShardStatistics(shardStatisticsMap, getSender());
 
-                    if (shardStatistics.isPresent()) {
-                        final Map<Address, ShardRegion.ShardRegionStats> regions = clusterShardingStats.getRegions();
-                        shardStatistics.get().count = regions.isEmpty() ? 0 : regions.values().stream()
-                                .mapToInt(shardRegionStats -> shardRegionStats.getStats().isEmpty() ? 0 :
-                                        shardRegionStats.getStats().values().stream()
-                                                .mapToInt(o -> (Integer) o)
-                                                .sum())
-                                .sum();
-                    } else {
-                        log.warning("Got stats from unknown shard <{}>: <{}>", getSender(), clusterShardingStats);
-                    }
+                            if (shardStatistics.isPresent()) {
+                                final Map<Address, ShardRegion.ShardRegionStats> regions = clusterShardingStats.getRegions();
+                                shardStatistics.get().count = regions.isEmpty() ? 0 : regions.values().stream()
+                                        .mapToInt(shardRegionStats -> shardRegionStats.getStats().isEmpty() ? 0 :
+                                                shardRegionStats.getStats().values().stream()
+                                                        .mapToInt(o -> (Integer) o)
+                                                        .sum())
+                                        .sum();
+                            } else {
+                                log.warning("Got stats from unknown shard <{}>: <{}>", getSender(), clusterShardingStats);
+                            }
 
-                    // all shard statistics are present; no need to wait more.
-                    if (shardStatisticsMap.size() >= statisticsConfig.getShards().size()) {
-                        getTimers().cancel(askTimeoutException);
-                        getSelf().tell(askTimeoutException, getSelf());
-                    }
-                })
-                .matchEquals(askTimeoutException, unit -> {
-                    updateGauges(shardStatisticsMap);
-                    currentStatistics = Statistics.fromGauges(gauges);
-                    getContext().unbecome();
-                })
-                .match(DistributedPubSubMediator.SubscribeAck.class, this::logSubscribeAck)
-                .matchAny(m -> log.warning("Got unknown message during 'statisticsAwaiting': {}", m))
-                .build()
-        );
+                            // all shard statistics are present; no need to wait more.
+                            if (shardStatisticsMap.size() >= statisticsConfig.getShards().size()) {
+                                getTimers().cancel(askTimeoutException);
+                                getSelf().tell(askTimeoutException, getSelf());
+                            }
+                        })
+                        .matchEquals(askTimeoutException, unit -> {
+                            updateGauges(shardStatisticsMap);
+                            currentStatistics = Statistics.fromGauges(gauges);
+                            unbecome();
+                        })
+                        .matchEquals(InternalResetStatisticsDetails.INSTANCE, this::resetStatisticsDetails)
+                        .match(DistributedPubSubMediator.SubscribeAck.class, this::logSubscribeAck)
+                        .matchAny(m -> {
+                            log.info("Stashing message during 'statisticsAwaiting': {}", m);
+                            stash();
+                        })
+                        .build(),
+                false);
+    }
+
+    /**
+     * Resume the starting behavior of the actor.
+     */
+    private void unbecome() {
+        getContext().unbecome();
+        unstashAll();
     }
 
     private void becomeStatisticsDetailsAwaiting(final Collection<ClusterRoleStatus> relevantRoles,
@@ -281,43 +303,52 @@ public final class StatisticsActor extends AbstractActorWithTimers {
         messageCounter.count = 0L;
 
         getContext().become(ReceiveBuilder.create()
-                .match(RetrieveStatistics.class, this::respondWithCachedStatistics)
-                .match(RetrieveStatisticsDetails.class, this::respondWithCachedStatisticsDetails)
-                .match(RetrieveStatisticsDetailsResponse.class, retrieveStatisticsDetailsResponse -> {
-                    final String shardRegion = retrieveStatisticsDetailsResponse.getStatisticsDetails()
-                            .stream()
-                            .findFirst()
-                            .map(JsonField::getKeyName)
-                            .orElse(null);
+                        .match(RetrieveStatistics.class, this::respondWithCachedStatistics)
+                        .match(RetrieveStatisticsDetailsResponse.class, retrieveStatisticsDetailsResponse -> {
+                            final String shardRegion = retrieveStatisticsDetailsResponse.getStatisticsDetails()
+                                    .stream()
+                                    .findFirst()
+                                    .map(JsonField::getKeyName)
+                                    .orElse(null);
 
-                    if (shardRegion != null) {
-                        final ShardStatisticsWrapper shardStatistics =
-                                shardStatisticsMap.computeIfAbsent(shardRegion, s -> new ShardStatisticsWrapper());
+                            if (shardRegion != null) {
+                                final ShardStatisticsWrapper shardStatistics =
+                                        shardStatisticsMap.computeIfAbsent(shardRegion, s -> new ShardStatisticsWrapper());
 
-                        retrieveStatisticsDetailsResponse.getStatisticsDetails().getValue(shardRegion)
-                                .map(JsonValue::asObject)
-                                .map(JsonObject::stream)
-                                .ifPresent(namespaceEntries -> namespaceEntries.forEach(field ->
-                                        shardStatistics.hotnessMap
-                                                .merge(field.getKeyName(), field.getValue().asLong(), Long::sum)
-                                ));
+                                retrieveStatisticsDetailsResponse.getStatisticsDetails().getValue(shardRegion)
+                                        .map(JsonValue::asObject)
+                                        .map(JsonObject::stream)
+                                        .ifPresent(namespaceEntries -> namespaceEntries.forEach(field ->
+                                                shardStatistics.hotnessMap
+                                                        .merge(field.getKeyName(), field.getValue().asLong(), Long::sum)
+                                        ));
 
-                        // all reachable members sent reply; stop waiting.
-                        if (++messageCounter.count >= reachableMembers) {
-                            getTimers().cancel(askTimeoutException);
-                            getSelf().tell(askTimeoutException, getSelf());
-                        }
-                    }
-                })
-                .match(AskTimeoutException.class, askTimeout -> {
-                    currentStatisticsDetails = StatisticsDetails.fromShardStatisticsWrappers(shardStatisticsMap);
-                    statisticsDetailsConsumer.accept(currentStatisticsDetails);
-                    getContext().unbecome();
-                })
-                .match(DistributedPubSubMediator.SubscribeAck.class, this::logSubscribeAck)
-                .matchAny(m -> log.warning("Got unknown message during 'statisticsDetailsAwaiting': {}", m))
-                .build()
-        );
+                                // all reachable members sent reply; stop waiting.
+                                if (++messageCounter.count >= reachableMembers) {
+                                    getTimers().cancel(askTimeoutException);
+                                    getSelf().tell(askTimeoutException, getSelf());
+                                }
+                            }
+                        })
+                        .match(AskTimeoutException.class, askTimeout -> {
+                            currentStatisticsDetails = StatisticsDetails.fromShardStatisticsWrappers(shardStatisticsMap);
+                            statisticsDetailsConsumer.accept(currentStatisticsDetails);
+                            scheduleResetStatisticsDetails();
+                            unbecome();
+                        })
+                        .matchEquals(InternalResetStatisticsDetails.INSTANCE, this::resetStatisticsDetails)
+                        .match(DistributedPubSubMediator.SubscribeAck.class, this::logSubscribeAck)
+                        .matchAny(m -> {
+                            log.info("Stashing message during 'statisticsDetailsAwaiting': {}", m);
+                            stash();
+                        })
+                        .build(),
+                false);
+    }
+
+    private void scheduleResetStatisticsDetails() {
+        getTimers().startSingleTimer(InternalResetStatisticsDetails.INSTANCE, InternalResetStatisticsDetails.INSTANCE,
+                statisticsConfig.getDetailsExpireAfter());
     }
 
     private boolean hasRelevantRole(final ClusterRoleStatus clusterRoleStatus) {
@@ -388,15 +419,12 @@ public final class StatisticsActor extends AbstractActorWithTimers {
         return gauges;
     }
 
-    private static class InternalRetrieveStatistics {
+    private static final class InternalRetrieveStatistics {
+        private static final Object INSTANCE = new InternalRetrieveStatistics();
+    }
 
-        private InternalRetrieveStatistics() {
-            // no-op
-        }
-
-        static InternalRetrieveStatistics newInstance() {
-            return new InternalRetrieveStatistics();
-        }
+    private static final class InternalResetStatisticsDetails {
+        private static final Object INSTANCE = new InternalResetStatisticsDetails();
     }
 
     @Immutable
