@@ -764,11 +764,14 @@ public final class ConnectionActor extends AbstractPersistentActor {
         }
     }
 
-    private void startEnabledLoggingChecker(Duration... initialDelay) {
+    private void startEnabledLoggingChecker() {
+        this.startEnabledLoggingChecker(this.checkLoggingActiveInterval);
+    }
+
+    private void startEnabledLoggingChecker(final Duration initialDelay) {
         this.cancelEnabledLoggingChecker();
-        final Duration delay = initialDelay.length >= 1 ? initialDelay[0] : this.checkLoggingActiveInterval;
         this.enabledLoggingChecker = getContext().getSystem().scheduler().schedule(
-                delay,
+                initialDelay,
                 this.checkLoggingActiveInterval,
                 getSelf(),
                 CheckLoggingActive.INSTANCE,
