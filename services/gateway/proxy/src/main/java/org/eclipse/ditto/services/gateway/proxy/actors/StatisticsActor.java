@@ -222,9 +222,13 @@ public final class StatisticsActor extends AbstractActorWithStashWithTimers {
     }
 
     private void tellShardRegionToSendClusterShardingStats(final String shardRegion) {
-        clusterSharding.shardRegion(shardRegion).tell(
-                new ShardRegion.GetClusterShardingStats(FiniteDuration.apply(10, TimeUnit.SECONDS)),
-                getSelf());
+        try {
+            clusterSharding.shardRegion(shardRegion).tell(
+                    new ShardRegion.GetClusterShardingStats(FiniteDuration.apply(10, TimeUnit.SECONDS)),
+                    getSelf());
+        } catch (final IllegalArgumentException e) {
+            // shard not started; there will not be any sharding stats.
+        }
     }
 
     private void initGauges() {
