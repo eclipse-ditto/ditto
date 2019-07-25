@@ -147,6 +147,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
 
             try {
                 buf.put(UTF8_CHARSET.encode(jsonStr));
+                LOG.trace("toBinary jsonStr about to send 'out': {}", jsonStr);
                 outCounter.increment();
             } catch (final BufferOverflowException e) {
                 LOG.warn("Could not put bytes of JSON string <{}> into ByteBuffer due to BufferOverflow", jsonStr, e);
@@ -196,6 +197,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
         final String json = UTF8_CHARSET.decode(buf).toString();
         try {
             final Jsonifiable jsonifiable = tryToCreateKnownJsonifiableFrom(manifest, json);
+            LOG.trace("fromBinary json which got 'in': {}", json);
             inCounter.increment();
             return jsonifiable;
         } catch (final NotSerializableException e) {
