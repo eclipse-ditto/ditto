@@ -46,6 +46,9 @@ import org.eclipse.ditto.services.gateway.proxy.config.StatisticsShardConfig;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.actors.AbstractActorWithStashWithTimers;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
+import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
+import org.eclipse.ditto.services.utils.cluster.config.DefaultClusterConfig;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterRoleStatus;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
@@ -55,6 +58,7 @@ import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetailsRespon
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsResponse;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Address;
 import akka.actor.Props;
 import akka.cluster.Cluster;
@@ -96,7 +100,9 @@ public final class StatisticsActor extends AbstractActorWithStashWithTimers {
         this.pubSubMediator = pubSubMediator;
         this.gauges = initializeGaugesForHotEntities(statisticsConfig);
 
-        clusterSharding = ClusterSharding.get(getContext().getSystem());
+        final ActorSystem actorSystem = getContext().getSystem();
+        final int numberOfShards = getNumberOfShards(actorSystem);
+        clusterSharding = initClusterSharding(actorSystem, statisticsConfig, numberOfShards);
         clusterStatusSupplier = new ClusterStatusSupplier(Cluster.get(getContext().getSystem()));
         scheduleInternalRetrieveHotEntities();
         subscribeForStatisticsCommands();
@@ -228,6 +234,7 @@ public final class StatisticsActor extends AbstractActorWithStashWithTimers {
                     getSelf());
         } catch (final IllegalArgumentException e) {
             // shard not started; there will not be any sharding stats.
+            log.error(e, "Failed to query shard region <{}>", shardRegion);
         }
     }
 
@@ -359,6 +366,11 @@ public final class StatisticsActor extends AbstractActorWithStashWithTimers {
                 .anyMatch(shardConfig -> haveEqualRole(shardConfig, clusterRoleStatus));
     }
 
+    private static int getNumberOfShards(final ActorSystem actorSystem) {
+        return DefaultClusterConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()))
+                .getNumberOfShards();
+    }
+
     private static boolean haveEqualRole(final StatisticsShardConfig shardConfig,
             final ClusterRoleStatus clusterRoleStatus) {
         return shardConfig.getRole().equals(clusterRoleStatus.getRole());
@@ -377,6 +389,17 @@ public final class StatisticsActor extends AbstractActorWithStashWithTimers {
                 shardStatisticsMap.computeIfAbsent(sc.getRegion(), s -> new ShardStatisticsWrapper())
         );
 
+    }
+
+    private static ClusterSharding initClusterSharding(final ActorSystem actorSystem,
+            final StatisticsConfig statisticsConfig, final int numberOfShards) {
+        // start the cluster sharding proxies for retrieving Statistics via StatisticActor about them.
+        // it is okay to run this on each actor startup because proxy actors are cached and never re-created.
+        final ShardRegionExtractor extractor = ShardRegionExtractor.of(numberOfShards, actorSystem);
+        final ClusterSharding clusterSharding = ClusterSharding.get(actorSystem);
+        statisticsConfig.getShards().forEach(shard ->
+                clusterSharding.startProxy(shard.getRegion(), Optional.of(shard.getRole()), extractor));
+        return clusterSharding;
     }
 
     private static final class ShardStatisticsWrapper {

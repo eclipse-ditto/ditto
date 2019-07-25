@@ -165,18 +165,6 @@ final class GatewayRootActor extends AbstractActor {
         final ClusterConfig clusterConfig = gatewayConfig.getClusterConfig();
         final int numberOfShards = clusterConfig.getNumberOfShards();
 
-        // start the cluster sharding proxies for retrieving Statistics via StatisticActor about them:
-        ClusterSharding.get(actorSystem)
-                .startProxy(PoliciesMessagingConstants.SHARD_REGION,
-                        Optional.of(PoliciesMessagingConstants.CLUSTER_ROLE),
-                        ShardRegionExtractor.of(numberOfShards, actorSystem));
-        ClusterSharding.get(actorSystem)
-                .startProxy(ThingsMessagingConstants.SHARD_REGION, Optional.of(ThingsMessagingConstants.CLUSTER_ROLE),
-                        ShardRegionExtractor.of(numberOfShards, actorSystem));
-        ClusterSharding.get(actorSystem)
-                .startProxy(ThingsSearchConstants.SHARD_REGION, Optional.of(ThingsSearchConstants.CLUSTER_ROLE),
-                        ShardRegionExtractor.of(numberOfShards, actorSystem));
-
         log.info("Starting /user/{}", DevOpsCommandsActor.ACTOR_NAME);
         final ActorRef devOpsCommandsActor = actorSystem.actorOf(
                 DevOpsCommandsActor.props(LogbackLoggingFacade.newInstance(), GatewayService.SERVICE_NAME,
