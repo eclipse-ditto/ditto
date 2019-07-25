@@ -42,7 +42,7 @@ final class DefaultStatisticsShardConfig implements StatisticsShardConfig, WithC
     }
 
     private DefaultStatisticsShardConfig(final ScopedConfig scopedConfig) {
-        shard = scopedConfig.getString(ConfigValues.SHARD.getConfigPath());
+        shard = scopedConfig.getString(ConfigValues.REGION.getConfigPath());
         role = scopedConfig.getString(ConfigValues.ROLE.getConfigPath());
         root = scopedConfig.getString(ConfigValues.ROOT.getConfigPath());
     }
@@ -60,7 +60,7 @@ final class DefaultStatisticsShardConfig implements StatisticsShardConfig, WithC
     }
 
     @Override
-    public String getShard() {
+    public String getRegion() {
         return shard;
     }
 

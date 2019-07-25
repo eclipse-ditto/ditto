@@ -45,8 +45,8 @@ public final class DefaultStatisticsShardConfigTest {
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final StatisticsShardConfig underTest = DefaultStatisticsShardConfig.of(ConfigFactory.empty());
 
-        softly.assertThat(underTest.getShard())
-                .as(StatisticsShardConfig.ConfigValues.SHARD.getConfigPath())
+        softly.assertThat(underTest.getRegion())
+                .as(StatisticsShardConfig.ConfigValues.REGION.getConfigPath())
                 .isEmpty();
 
         softly.assertThat(underTest.getRole())
@@ -63,8 +63,8 @@ public final class DefaultStatisticsShardConfigTest {
         final StatisticsShardConfig underTest =
                 DefaultStatisticsShardConfig.of(ConfigFactory.load("test-statistics-shard.conf"));
 
-        softly.assertThat(underTest.getShard())
-                .as(StatisticsShardConfig.ConfigValues.SHARD.getConfigPath())
+        softly.assertThat(underTest.getRegion())
+                .as(StatisticsShardConfig.ConfigValues.REGION.getConfigPath())
                 .isEqualTo("metal");
 
         softly.assertThat(underTest.getRole())

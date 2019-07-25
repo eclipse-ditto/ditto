@@ -24,7 +24,7 @@ public interface StatisticsShardConfig {
      *
      * @return the shard region name.
      */
-    String getShard();
+    String getRegion();
 
     /**
      * Returns the cluster role where the shard is started.
@@ -48,7 +48,7 @@ public interface StatisticsShardConfig {
         /**
          * The shard region name.
          */
-        SHARD("shard", ""),
+        REGION("region", ""),
 
         /**
          * The cluster role of the shard.

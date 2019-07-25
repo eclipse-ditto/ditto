@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -151,7 +152,7 @@ public final class StatisticsActor extends AbstractActorWithStashWithTimers {
                 .matchEquals(InternalResetStatisticsDetails.INSTANCE, this::resetStatisticsDetails)
                 .match(ShardRegion.CurrentShardRegionState.class, this::unhandled) // ignore, the message is too late
                 .match(ShardRegion.ClusterShardingStats.class, this::unhandled) // ignore, the message is too late
-                .match(RetrieveStatisticsDetailsResponse.class, this::unhandled) // ignore, the message is too lage
+                .match(RetrieveStatisticsDetailsResponse.class, this::unhandled) // ignore, the message is too late
                 .match(DistributedPubSubMediator.SubscribeAck.class, this::logSubscribeAck)
                 .matchAny(m -> log.warning("Got unknown message, expected a 'RetrieveStatistics': {}", m))
                 .build();
@@ -168,11 +169,8 @@ public final class StatisticsActor extends AbstractActorWithStashWithTimers {
 
     private void respondWithStatisticsDetails(final RetrieveStatisticsDetails command,
             @Nullable final StatisticsDetails details, final ActorRef sender) {
-        // TODO: filter response by shard and/or by namespace
-        final JsonObject statisticsJson = details != null
-                ? details.toJson()
-                : JsonObject.empty();
-        sender.tell(RetrieveStatisticsResponse.of(statisticsJson, command.getDittoHeaders()), getSelf());
+        final JsonObject statisticsJson = details != null ? details.toJson() : JsonObject.empty();
+        sender.tell(toStatisticsDetailsResponse(statisticsJson, command), getSelf());
     }
 
     private void respondWithCachedStatisticsDetails(final RetrieveStatisticsDetails retrieveStatistics) {
@@ -204,7 +202,7 @@ public final class StatisticsActor extends AbstractActorWithStashWithTimers {
     private void tellShardRegionsToSendClusterShardingStats() {
         statisticsConfig.getShards()
                 .stream()
-                .map(StatisticsShardConfig::getShard)
+                .map(StatisticsShardConfig::getRegion)
                 .forEach(this::tellShardRegionToSendClusterShardingStats);
     }
 
@@ -369,10 +367,10 @@ public final class StatisticsActor extends AbstractActorWithStashWithTimers {
         final String senderPath = sender.path().toStringWithoutAddress();
         final Optional<StatisticsShardConfig> shardConfig = statisticsConfig.getShards()
                 .stream()
-                .filter(sc -> senderPath.contains(sc.getShard()))
+                .filter(sc -> senderPath.contains(sc.getRegion()))
                 .findFirst();
         return shardConfig.map(sc ->
-                shardStatisticsMap.computeIfAbsent(sc.getShard(), s -> new ShardStatisticsWrapper())
+                shardStatisticsMap.computeIfAbsent(sc.getRegion(), s -> new ShardStatisticsWrapper())
         );
 
     }
@@ -413,17 +411,58 @@ public final class StatisticsActor extends AbstractActorWithStashWithTimers {
     private static List<NamedShardGauge> initializeGaugesForHotEntities(final StatisticsConfig statisticsConfig) {
         final List<NamedShardGauge> gauges = new ArrayList<>(statisticsConfig.getShards().size());
         statisticsConfig.getShards().forEach(shardConfig -> {
-            final String hotStuffs = hotPluralForm(shardConfig.getShard());
-            gauges.add(new NamedShardGauge(hotStuffs, shardConfig.getShard(), DittoMetrics.gauge(hotStuffs)));
+            final String hotStuffs = hotPluralForm(shardConfig.getRegion());
+            gauges.add(new NamedShardGauge(hotStuffs, shardConfig.getRegion(), DittoMetrics.gauge(hotStuffs)));
         });
         return gauges;
     }
 
+    // return type is RetrieveStatisticsResponse instead of RetrieveStatisticsDetailsResponse in keeping with
+    // the previous interface.
+    private static RetrieveStatisticsResponse toStatisticsDetailsResponse(final JsonObject statisticsJson,
+            final RetrieveStatisticsDetails command) {
+        final List<String> shardRegions = command.getShardRegions();
+        final List<String> namespaces = command.getNamespaces();
+        if (shardRegions.isEmpty() && namespaces.isEmpty()) {
+            return RetrieveStatisticsResponse.of(statisticsJson, command.getDittoHeaders());
+        } else {
+            final Stream<JsonField> relevantJsonFields =
+                    shardRegions.isEmpty() ? statisticsJson.stream() :
+                            shardRegions.stream().flatMap(shardRegion ->
+                                    statisticsJson.getField(StatisticsDetails.toNamespacesHotness(shardRegion))
+                                            .map(Stream::of)
+                                            .orElseGet(Stream::empty)
+                            );
+            final JsonObject filteredStatisticsJson =
+                    relevantJsonFields.filter(field -> field.getValue().isObject())
+                            .map(field -> JsonFactory.newField(field.getKey(),
+                                    filterByNamespace(field.getValue().asObject(), namespaces))
+                            )
+                            .collect(JsonCollectors.fieldsToObject());
+            return RetrieveStatisticsResponse.of(filteredStatisticsJson, command.getDittoHeaders());
+        }
+    }
+
+    private static JsonObject filterByNamespace(final JsonObject shardDetails, final List<String> namespaces) {
+        if (namespaces.isEmpty()) {
+            return shardDetails;
+        } else {
+            return namespaces.stream()
+                    .map(namespace -> shardDetails.getField(namespace)
+                            .orElseGet(
+                                    () -> JsonFactory.newField(JsonFactory.newKey(namespace), JsonFactory.newValue(0L)))
+                    )
+                    .collect(JsonCollectors.fieldsToObject());
+        }
+    }
+
     private static final class InternalRetrieveStatistics {
+
         private static final Object INSTANCE = new InternalRetrieveStatistics();
     }
 
     private static final class InternalResetStatisticsDetails {
+
         private static final Object INSTANCE = new InternalResetStatisticsDetails();
     }
 
@@ -525,14 +564,14 @@ public final class StatisticsActor extends AbstractActorWithStashWithTimers {
             return new StatisticsDetails(
                     shardStatisticsWrapperMap.entrySet()
                             .stream()
-                            .map(entry -> {
-                                final String entitiesNamespacesHotness =
-                                        simpleCamelCasePluralForm(entry.getKey(), false) + "NamespacesHotness";
-                                return JsonFactory.newField(JsonKey.of(entitiesNamespacesHotness),
-                                        buildHotnessMapJson(entry.getValue().hotnessMap));
-                            })
+                            .map(entry -> JsonFactory.newField(JsonKey.of(toNamespacesHotness(entry.getKey())),
+                                    buildHotnessMapJson(entry.getValue().hotnessMap)))
                             .collect(JsonCollectors.fieldsToObject())
             );
+        }
+
+        private static String toNamespacesHotness(final String shardRegion) {
+            return simpleCamelCasePluralForm(shardRegion, false) + "NamespacesHotness";
         }
 
         private static JsonObject buildHotnessMapJson(final Map<String, Long> hotnessMap) {
