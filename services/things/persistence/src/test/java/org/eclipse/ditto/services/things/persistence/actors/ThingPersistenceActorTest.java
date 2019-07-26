@@ -1568,7 +1568,11 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     }
 
     private static void assertPublishEvent(final TestKit pubSubMediator, final ThingEvent event) {
+        // TODO TJ first pub/sub w/o group:
         final DistributedPubSubMediator.Publish result =
+                pubSubMediator.expectMsgClass(DistributedPubSubMediator.Publish.class);
+        // second pub/sub with group:
+        final DistributedPubSubMediator.Publish result2 =
                 pubSubMediator.expectMsgClass(DistributedPubSubMediator.Publish.class);
         final ThingEvent msg = (ThingEvent) result.msg();
         Assertions.assertThat(msg.toJson())
