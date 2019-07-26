@@ -45,6 +45,7 @@ import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProt
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttTopic;
 
+import com.hivemq.client.mqtt.datatypes.MqttQos;
 import akka.stream.alpakka.mqtt.MqttQoS;
 
 /**
@@ -142,6 +143,23 @@ public final class MqttValidator extends AbstractProtocolValidator {
                 return MqttQoS.exactlyOnce();
             default:
                 return MqttQoS.atMostOnce();
+        }
+    }
+
+    /**
+     * Retrieve quality of service from a validated specific config with "at-most-once" as default.
+     *
+     * @param qos th configured qos value.
+     * @return quality of service.
+     */
+    public static MqttQos getHiveQoS(final int qos) {
+        switch (qos) {
+            case 1:
+                return MqttQos.AT_LEAST_ONCE;
+            case 2:
+                return MqttQos.EXACTLY_ONCE;
+            default:
+                return MqttQos.AT_MOST_ONCE;
         }
     }
 

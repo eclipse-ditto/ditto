@@ -981,6 +981,11 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 receivingActor.orElseThrow(() -> new NullPointerException("publisher actor must not be null.")));
     }
 
+    // TODO: after the optional actorref problem is fixed, we could start the message mapping actor once and leave it alive
+    //  until the BaseClientActor is stopped. This is possible since the message mapping processor is then only
+    //  dependent on the connection and if the connection is updated, the clientActor is stopped and restarted with a new connection.
+    //  so there is no need to restart the mapper on every close/open. this would also solve the problem with the
+    //  single name of the mapping actor.
     /**
      * Starts the {@link MessageMappingProcessorActor} responsible for payload transformation/mapping as child actor
      * behind a (cluster node local) RoundRobin pool and a dynamic resizer from the current mapping context.
@@ -1031,6 +1036,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
              * This however will also limit throughput as the used hashing key is often connection source address based
              * and does not yet "know" of the Thing ID.
              */
+            // TODO: check if this will work with only one name.
             messageMappingProcessorActor =
                     getContext().actorOf(new ConsistentHashingPool(connection.getProcessorPoolSize())
                             .withDispatcher("message-mapping-processor-dispatcher")
