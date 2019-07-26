@@ -379,7 +379,9 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
     @Override
     protected long staleEventsKeptAfterCleanup() {
         final boolean isDesiredStateOpen =
-                connection != null && connection.getConnectionStatus() == ConnectivityStatus.OPEN;
+                connection != null &&
+                        connection.hasLifecycle(ConnectionLifecycle.ACTIVE) &&
+                        connection.getConnectionStatus() == ConnectivityStatus.OPEN;
         return isDesiredStateOpen ? 1 : 0;
     }
 
