@@ -787,9 +787,16 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final CreatePolicyResponse createPolicy1Response = expectMsgClass(CreatePolicyResponse.class);
                 DittoPolicyAssertions.assertThat(createPolicy1Response.getPolicyCreated().get())
                         .isEqualEqualToButModified(policy);
+
+                // TODO TJ the first w/o group:
                 final DistributedPubSubMediator.Publish policyCreatedPublish =
                         pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
                 assertThat(policyCreatedPublish.msg()).isInstanceOf(PolicyCreated.class);
+
+                // the second with group:
+                final DistributedPubSubMediator.Publish policyCreatedPublishSecond =
+                        pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
+                assertThat(policyCreatedPublishSecond.msg()).isInstanceOf(PolicyCreated.class);
 
                 final Subject newSubject =
                         Subject.newInstance(SubjectIssuer.GOOGLE, "anotherOne");
@@ -806,9 +813,15 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 expectMsgEquals(modifyPolicyEntryResponse(policy.getId().get(), policyEntry,
                         dittoHeadersV2, true));
 
+                // TODO TJ the first w/o group:
                 final DistributedPubSubMediator.Publish policyEntryModifiedPublish =
                         pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
                 assertThat(policyEntryModifiedPublish.msg()).isInstanceOf(PolicyEntryCreated.class);
+
+                // the second with group:
+                final DistributedPubSubMediator.Publish policyEntryModifiedPublishSecond =
+                        pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
+                assertThat(policyEntryModifiedPublishSecond.msg()).isInstanceOf(PolicyEntryCreated.class);
 
                 // restart
                 terminate(this, policyPersistenceActor);
