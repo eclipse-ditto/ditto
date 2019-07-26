@@ -79,7 +79,7 @@ final class PolicyEventForwarder extends AbstractActor {
         interval = DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
                 .getStreamConfig().getWriteInterval();
 
-        final Subscribe subscribe = new Subscribe(PolicyEvent.TYPE_PREFIX, ACTOR_NAME, getSelf());
+        final Subscribe subscribe = new Subscribe(PolicyEvent.TYPE_PREFIX + "grouped", ACTOR_NAME, getSelf());
         pubSubMediator.tell(subscribe, getSelf());
 
         restartPolicyReferenceTagStream();

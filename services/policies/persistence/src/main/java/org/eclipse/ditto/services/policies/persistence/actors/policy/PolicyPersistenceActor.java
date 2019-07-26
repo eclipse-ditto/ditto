@@ -588,7 +588,9 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
     }
 
     private void notifySubscribers(final PolicyEvent event) {
-        pubSubMediator.tell(new DistributedPubSubMediator.Publish(PolicyEvent.TYPE_PREFIX, event, true), getSelf());
+        pubSubMediator.tell(new DistributedPubSubMediator.Publish(PolicyEvent.TYPE_PREFIX, event), getSelf());
+        // TODO TJ doc "grouped"
+        pubSubMediator.tell(new DistributedPubSubMediator.Publish(PolicyEvent.TYPE_PREFIX + "grouped", event, true), getSelf());
     }
 
     private void policyEntryNotFound(final Label label, final DittoHeaders dittoHeaders) {

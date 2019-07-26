@@ -441,7 +441,9 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
         // publish the event in the cluster
         // publish via cluster pubSub (as we cannot expect that Websocket sessions interested in this event
         // are running on the same cluster node):
-        pubSubMediator.tell(new DistributedPubSubMediator.Publish(ThingEvent.TYPE_PREFIX, event, true), getSelf());
+        // TODO TJ for search, use the group - document!
+        pubSubMediator.tell(new DistributedPubSubMediator.Publish(ThingEvent.TYPE_PREFIX + "grouped", event, true), getSelf());
+        pubSubMediator.tell(new DistributedPubSubMediator.Publish(ThingEvent.TYPE_PREFIX, event), getSelf());
     }
 
     private void notifySender(final WithDittoHeaders message) {

@@ -76,7 +76,7 @@ final class ThingsUpdater extends AbstractActor {
                 RetrieveStatisticsDetailsResponseSupplier.of(shardRegion, UPDATER_SHARD_REGION, log);
 
         if (eventProcessingActive) {
-            pubSubMediator.tell(new Subscribe(ThingEvent.TYPE_PREFIX, ACTOR_NAME, self()), self());
+            pubSubMediator.tell(new Subscribe(ThingEvent.TYPE_PREFIX + "grouped", ACTOR_NAME, self()), self());
         }
     }
 

@@ -322,7 +322,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
         log(command).debug("Publish message to pub-sub: <{}>", pubSubTopic);
 
         return withMessageToReceiver(command, pubSubMediator(), obj ->
-                new DistributedPubSubMediator.Publish(pubSubTopic, obj, true));
+                new DistributedPubSubMediator.Publish(pubSubTopic, obj));
     }
 
     private static boolean isAuthorized(final MessageCommand command, final Enforcer enforcer) {

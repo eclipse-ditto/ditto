@@ -995,8 +995,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
 
         forEachPubSubTopicDo(pubSubTopic -> {
             final DistributedPubSubMediator.Subscribe subscribe =
-                    new DistributedPubSubMediator.Subscribe(pubSubTopic, PUB_SUB_GROUP_PREFIX + connectionId,
-                            getSelf());
+                    new DistributedPubSubMediator.Subscribe(pubSubTopic, getSelf());
             log.debug("Subscribing to pub-sub topic <{}> for connection <{}>.", pubSubTopic, connectionId);
             pubSubMediator.tell(subscribe, getSelf());
         });
@@ -1031,7 +1030,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
         persist(event, persistedEvent -> {
             log.debug("Successfully persisted Event <{}>.", persistedEvent.getType());
             consumer.accept(persistedEvent);
-            pubSubMediator.tell(new DistributedPubSubMediator.Publish(event.getType(), event, true), getSelf());
+            pubSubMediator.tell(new DistributedPubSubMediator.Publish(event.getType(), event), getSelf());
 
             // save a snapshot if there were too many changes since the last snapshot
             if ((lastSequenceNr() - lastSnapshotSequenceNr) >= snapshotThreshold) {

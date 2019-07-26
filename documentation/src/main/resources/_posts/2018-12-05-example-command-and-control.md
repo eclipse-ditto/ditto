@@ -59,10 +59,42 @@ $ curl -X POST -i -H 'Content-Type: application/json' -d '{
 }' http://hono.eclipse.org:28080/credentials/org.eclipse.ditto
 ```
 
+#### Create Ditto policy for digital twin
+```bash
+# create policy in Ditto
+$ curl -X PUT -i -u demo5:demo -H 'Content-Type: application/json' -d '{
+   "policyId": "org.eclipse.ditto:teapot-policy",
+   "entries": {
+       "DEMO": {
+           "subjects": {
+              "nginx:demo5": {
+                  "type": "basic auth user and user used in connection's authorizationContext"
+              }
+           },
+           "resources": {
+               "thing:/": {
+                   "grant": ["READ", "WRITE"],
+                   "revoke": []
+               },
+               "policy:/": {
+                   "grant": ["READ", "WRITE"],
+                   "revoke": []
+               },
+               "message:/": {
+                   "grant": ["READ", "WRITE"],
+                   "revoke": []
+               }
+           }
+       }
+   }
+}' https://ditto.eclipse.org/api/2/policies/org.eclipse.ditto:teapot-policy 
+```
+
 #### Create Ditto digital twin
 ```bash
 # create thing in Ditto
 $ curl -X PUT -i -u demo5:demo -H 'Content-Type: application/json' -d '{
+    "policyId": "org.eclipse.ditto:teapot-policy",
     "features": {
       "water": {
         "properties": {
@@ -110,14 +142,10 @@ curl -X POST -i -u devops:devopsPw1! \
                      "status": "{%raw%}{{ header:status }}{%endraw%}",
                      "content-type": "{%raw%}{{ header:content-type }}{%endraw%}"
                    }
-                 },
-                 {
-                   "addresses": ["telemetry/org.eclipse.ditto", "event/org.eclipse.ditto"],
-                   "authorizationContext": ["nginx:demo5"]
                  }
                ],
                "targets": [{
-                   "address": "control/org.eclipse.ditto/{%raw%}{{ thing:id }}{%endraw%}",
+                   "address": "control/org.eclipse.ditto/{%raw%}{{ thing:name }}{%endraw%}",
                    "authorizationContext": [
                      "nginx:demo5"
                    ],

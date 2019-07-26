@@ -43,10 +43,9 @@ public abstract class AbstractPubSubListenerActor extends AbstractActor {
             final String instanceIndex) {
         checkNotNull(eventTopics, "Event Topics");
 
-        final String group = getSelf().path().name() + "-" +instanceIndex;
         eventTopics.forEach(topic ->{
-            log.info("Subscribing for pub/sub topic <{}> with group <{}>", topic, group);
-            pubSubMediator.tell(subscribe(topic, group), getSelf());
+            log.info("Subscribing for pub/sub topic <{}>", topic);
+            pubSubMediator.tell(subscribe(topic), getSelf());
         });
     }
 
@@ -71,8 +70,8 @@ public abstract class AbstractPubSubListenerActor extends AbstractActor {
      */
     protected abstract Receive handleEvents();
 
-    private DistributedPubSubMediator.Subscribe subscribe(final String topic, final String group) {
-        return new DistributedPubSubMediator.Subscribe(topic, group, getSelf());
+    private DistributedPubSubMediator.Subscribe subscribe(final String topic) {
+        return new DistributedPubSubMediator.Subscribe(topic, getSelf());
     }
 
 }
