@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging.mqtt;
+package org.eclipse.ditto.services.connectivity.messaging.mqtt.alpakka;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -39,6 +39,7 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnecte
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttConnectionFactory;
 
 import akka.Done;
 import akka.NotUsed;
@@ -160,11 +161,6 @@ public final class MqttClientActor extends BaseClientActor {
     }
 
     @Override
-    protected Optional<ActorRef> getPublisherActor() {
-        return Optional.ofNullable(mqttPublisherActor);
-    }
-
-    @Override
     protected void doConnectClient(final Connection connection, @Nullable final ActorRef origin) {
         connectClient(connection, false);
     }
@@ -190,7 +186,8 @@ public final class MqttClientActor extends BaseClientActor {
 
         // start message mapping processor actor early so that consumer streams can be run.
         // note that it has to be started after the publisher since the publisher actor is needed inside the mapping processor
-        final Either<DittoRuntimeException, ActorRef> messageMappingProcessor = startMessageMappingProcessorActor();
+        final Either<DittoRuntimeException, ActorRef> messageMappingProcessor =
+                startMessageMappingProcessorActor(Optional.ofNullable(mqttPublisherActor));
 
         // start consumers
         if (isConsuming()) {

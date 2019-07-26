@@ -134,7 +134,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
      * @param qos th configured qos value.
      * @return quality of service.
      */
-    static MqttQoS getQoS(final int qos) {
+    public static MqttQoS getQoS(final int qos) {
         switch (qos) {
             case 1:
                 return MqttQoS.atLeastOnce();

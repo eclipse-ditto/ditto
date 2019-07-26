@@ -217,11 +217,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     protected abstract void cleanupResourcesForConnection();
 
     /**
-     * @return the Actor to use for publishing commandResponses/events.
-     */
-    protected abstract Optional<ActorRef> getPublisherActor();
-
-    /**
      * Invoked when this {@code Client} should connect.
      *
      * @param connection the Connection to use for connecting.
@@ -979,16 +974,23 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return CompletableFuture.completedFuture(new Status.Success("mapping"));
     }
 
+    // TODO: this overloaded method only exists because the ClientActors don't know if their
+    //  publisher-actor already exists. They should find a way to not rely on the existance of the publisher
+    protected Either<DittoRuntimeException, ActorRef> startMessageMappingProcessorActor(final Optional<ActorRef> receivingActor) {
+        return startMessageMappingProcessorActor(
+                receivingActor.orElseThrow(() -> new NullPointerException("publisher actor must not be null.")));
+    }
 
     /**
      * Starts the {@link MessageMappingProcessorActor} responsible for payload transformation/mapping as child actor
      * behind a (cluster node local) RoundRobin pool and a dynamic resizer from the current mapping context.
      *
+     * @param receivingActor Actor that will receive the external messages that were mapped by the message mapping acotr.
      * @return {@link org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessorActor} or exception,
      * which will also cause an sideeffect that stores the mapping actor in the local variable {@code
      * messageMappingProcessorActor}.
      */
-    protected Either<DittoRuntimeException, ActorRef> startMessageMappingProcessorActor() {
+    protected Either<DittoRuntimeException, ActorRef> startMessageMappingProcessorActor(final ActorRef receivingActor) {
         final MappingContext mappingContext = stateData().getConnection().getMappingContext().orElse(null);
 
         if (!getMessageMappingProcessorActor().isPresent()) {
@@ -1012,10 +1014,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
             log.debug("Starting MessageMappingProcessorActor with pool size of <{}>.",
                     connection.getProcessorPoolSize());
-            final ActorRef publisherActor = getPublisherActor().orElseThrow(
-                    () -> new NullPointerException("publisher actor must not be null."));
             final Props props =
-                    MessageMappingProcessorActor.props(publisherActor, conciergeForwarder, processor,
+                    MessageMappingProcessorActor.props(receivingActor, conciergeForwarder, processor,
                             connectionId());
 
             /*

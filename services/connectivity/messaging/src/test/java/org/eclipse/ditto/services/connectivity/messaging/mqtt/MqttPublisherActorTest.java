@@ -24,6 +24,7 @@ import org.awaitility.Awaitility;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.alpakka.MqttPublisherActor;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;

@@ -266,7 +266,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             consumers.addAll(c.consumerList);
             // note: start order is important (publisher -> mapping -> consumer actor)
             startCommandProducer();
-            startMessageMappingProcessorActor();
+            startMessageMappingProcessorActor(Optional.ofNullable(amqpPublisherActor));
             startCommandConsumers();
         } else {
             log.info("ClientConnected was not JmsConnected as expected, ignoring as this probably was a reconnection");
@@ -310,11 +310,6 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                 break;
         }
         super.cleanupFurtherResourcesOnConnectionTimeout(currentState);
-    }
-
-    @Override
-    protected Optional<ActorRef> getPublisherActor() {
-        return Optional.ofNullable(amqpPublisherActor);
     }
 
     @Override
@@ -533,7 +528,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         consumers.addAll(sessionRecovered.getConsumerList());
         // note: start order is important (publisher -> mapping -> consumer actor)
         startCommandProducer();
-        startMessageMappingProcessorActor();
+        startMessageMappingProcessorActor(Optional.ofNullable(amqpPublisherActor));
         startCommandConsumers();
 
         connectionLogger.success("Session has been recovered successfully.");

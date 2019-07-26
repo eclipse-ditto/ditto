@@ -129,11 +129,6 @@ public final class KafkaClientActor extends BaseClientActor {
     }
 
     @Override
-    protected Optional<ActorRef> getPublisherActor() {
-        return Optional.ofNullable(kafkaPublisherActor);
-    }
-
-    @Override
     protected void doConnectClient(final Connection connection, @Nullable final ActorRef origin) {
         connectClient(false);
     }
@@ -151,7 +146,7 @@ public final class KafkaClientActor extends BaseClientActor {
     private void connectClient(final boolean dryRun) {
         // start publisher
         startKafkaPublisher(dryRun);
-        startMessageMappingProcessorActor();
+        startMessageMappingProcessorActor(Optional.ofNullable(kafkaPublisherActor));
         // no command consumers as we don't support consuming from sources yet
     }
 
