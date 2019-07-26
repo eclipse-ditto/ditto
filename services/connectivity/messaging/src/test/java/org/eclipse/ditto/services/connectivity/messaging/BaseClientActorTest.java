@@ -290,12 +290,6 @@ public final class BaseClientActorTest {
         }
 
         @Override
-        protected Optional<ActorRef> getPublisherActor() {
-            LOGGER.info("getPublisherActor");
-            return delegate.getPublisherActor();
-        }
-
-        @Override
         protected void doConnectClient(final Connection connection, @Nullable final ActorRef origin) {
             LOGGER.info("doConnectClient");
             delegate.doConnectClient(connection, origin);
