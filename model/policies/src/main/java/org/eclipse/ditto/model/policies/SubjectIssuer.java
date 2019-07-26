@@ -18,6 +18,18 @@ package org.eclipse.ditto.model.policies;
 public interface SubjectIssuer extends CharSequence {
 
     /**
+     * Returns a new {@link SubjectIssuer} with the specified {@code subjectIssuer}.
+     *
+     * @param subjectIssuer the SubjectIssuer char sequence.
+     * @return the new {@link SubjectIssuer}.
+     * @throws NullPointerException if {@code subjectIssuer} is {@code null}.
+     * @throws IllegalArgumentException if {@code subjectIssuer} is empty.
+     */
+    static SubjectIssuer newInstance(final CharSequence subjectIssuer) {
+        return ImmutableSubjectIssuer.of(subjectIssuer);
+    }
+
+    /**
      * The issuer for authentication subjects provided by google.
      */
     SubjectIssuer GOOGLE = PoliciesModelFactory.newSubjectIssuer("google");

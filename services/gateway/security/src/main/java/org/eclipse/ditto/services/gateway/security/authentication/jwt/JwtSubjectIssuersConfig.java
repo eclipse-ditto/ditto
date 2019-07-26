@@ -43,20 +43,21 @@ public final class JwtSubjectIssuersConfig {
     public JwtSubjectIssuersConfig(final Iterable<JwtSubjectIssuerConfig> configItems) {
         requireNonNull(configItems);
         final Map<String, JwtSubjectIssuerConfig> modifiableSubjectIssuerConfigMap = new HashMap<>();
+
         configItems.forEach(configItem ->
-                modifiableSubjectIssuerConfigMap.put(configItem.getJwtIssuer(), configItem));
+                modifiableSubjectIssuerConfigMap.put(configItem.getIssuer(), configItem));
         subjectIssuerConfigMap = Collections.unmodifiableMap(modifiableSubjectIssuerConfigMap);
     }
 
     /**
      * Gets the configuration item for the given issuer.
      *
-     * @param jwtIssuer the issuer
+     * @param issuer the issuer
      * @return the configuration for the given issuer, or an empty {@link Optional} if no configuration is provided
      * for this issuer
      */
-    public Optional<JwtSubjectIssuerConfig> getConfigItem(final String jwtIssuer) {
-        return Optional.ofNullable(subjectIssuerConfigMap.get(jwtIssuer));
+    public Optional<JwtSubjectIssuerConfig> getConfigItem(final String issuer) {
+        return Optional.ofNullable(subjectIssuerConfigMap.get(issuer));
     }
 
     /**
