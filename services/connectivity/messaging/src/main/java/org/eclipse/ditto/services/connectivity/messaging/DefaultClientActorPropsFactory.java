@@ -19,7 +19,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.kafka.DefaultKafkaPublisherActorFactory;
 import org.eclipse.ditto.services.connectivity.messaging.kafka.KafkaClientActor;
-import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttClientActor;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.alpakka.MqttClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.rabbitmq.RabbitMQClientActor;
 
 import akka.actor.ActorRef;

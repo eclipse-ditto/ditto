@@ -1034,7 +1034,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             messageMappingProcessorActor =
                     getContext().actorOf(new ConsistentHashingPool(connection.getProcessorPoolSize())
                             .withDispatcher("message-mapping-processor-dispatcher")
-                            .props(props), nextChildActorName(MessageMappingProcessorActor.ACTOR_NAME));
+                            .props(props), MessageMappingProcessorActor.ACTOR_NAME);
         } else {
             log.info("MessageMappingProcessor already instantiated: not initializing again.");
         }
