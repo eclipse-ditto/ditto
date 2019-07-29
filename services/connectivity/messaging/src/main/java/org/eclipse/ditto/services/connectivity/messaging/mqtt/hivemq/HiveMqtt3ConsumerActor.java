@@ -59,7 +59,7 @@ import akka.event.DiagnosticLoggingAdapter;
 import akka.routing.ConsistentHashingRouter;
 
 /**
- * TODO: comment & test
+ * TODO: comment and test
  * <p>
  * Actor which receives message from a MQTT broker and forwards them to a {@code MessageMappingProcessorActor}.
  */

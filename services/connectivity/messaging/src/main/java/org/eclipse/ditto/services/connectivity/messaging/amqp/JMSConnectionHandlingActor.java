@@ -346,6 +346,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
          *
          * @return the value.
          * @throws JMSException if the supplier throws a {@link JMSException}.
+         * @throws NamingException if the identifier of connection could not be found in the Context.
          */
         T get() throws JMSException, NamingException;
     }

@@ -24,6 +24,7 @@ public interface MqttConfig {
 
     /**
      * @see MqttConfigValue#EXPERIMENTAL
+     * @return see {@link MqttConfigValue#EXPERIMENTAL}.
      */
     boolean isExperimental();
 
