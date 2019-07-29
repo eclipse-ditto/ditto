@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.config;
 
 import java.util.Objects;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
@@ -29,9 +30,11 @@ public final class DefaultMqttConfig implements MqttConfig {
 
     private static final String CONFIG_PATH = "mqtt";
 
+    private final boolean experimental;
     private final int sourceBufferSize;
 
     private DefaultMqttConfig(final ScopedConfig config) {
+        experimental = config.getBoolean(MqttConfigValue.EXPERIMENTAL.getConfigPath());
         sourceBufferSize = config.getInt(MqttConfigValue.SOURCE_BUFFER_SIZE.getConfigPath());
     }
 
@@ -47,12 +50,17 @@ public final class DefaultMqttConfig implements MqttConfig {
     }
 
     @Override
+    public boolean isExperimental() {
+        return experimental;
+    }
+
+    @Override
     public int getSourceBufferSize() {
         return sourceBufferSize;
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
@@ -60,18 +68,20 @@ public final class DefaultMqttConfig implements MqttConfig {
             return false;
         }
         final DefaultMqttConfig that = (DefaultMqttConfig) o;
-        return Objects.equals(sourceBufferSize, that.sourceBufferSize);
+        return experimental == that.experimental &&
+                sourceBufferSize == that.sourceBufferSize;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(sourceBufferSize);
+        return Objects.hash(experimental, sourceBufferSize);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "sourceBufferSize=" + sourceBufferSize +
+                "experimental=" + experimental +
+                ", sourceBufferSize=" + sourceBufferSize +
                 "]";
     }
 

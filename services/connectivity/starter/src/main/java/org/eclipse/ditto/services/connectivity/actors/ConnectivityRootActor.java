@@ -21,7 +21,6 @@ import java.net.ConnectException;
 import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 import javax.annotation.Nullable;
@@ -34,6 +33,7 @@ import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory
 import org.eclipse.ditto.services.connectivity.messaging.ConnectionSupervisorActor;
 import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ReconnectActor;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceOperationsActor;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceStreamingActorCreator;
@@ -59,7 +59,6 @@ import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 
 import akka.Done;
-import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
@@ -74,7 +73,6 @@ import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ClusterShardingSettings;
-import akka.contrib.persistence.mongodb.JavaDslMongoReadJournal;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
@@ -84,7 +82,6 @@ import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
 import akka.stream.ActorMaterializer;
-import akka.stream.javadsl.Source;
 
 /**
  * Parent Actor which takes care of supervision of all other Actors in our system.
@@ -166,7 +163,7 @@ public final class ConnectivityRootActor extends AbstractActor {
         final ActorRef conciergeForwarder =
                 getConciergeForwarder(clusterConfig, pubSubMediator, conciergeForwarderSignalTransformer);
         final Props connectionSupervisorProps =
-                getConnectionSupervisorProps(pubSubMediator, conciergeForwarder, commandValidator);
+                getConnectionSupervisorProps(pubSubMediator, conciergeForwarder, commandValidator, connectivityConfig.getConnectionConfig());
 
         // Create persistence streaming actor (with no cache) and make it known to pubSubMediator.
         final ActorRef persistenceStreamingActor =
@@ -312,10 +309,11 @@ public final class ConnectivityRootActor extends AbstractActor {
 
     private static Props getConnectionSupervisorProps(final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
-            @Nullable final ConnectivityCommandInterceptor commandValidator) {
+            @Nullable final ConnectivityCommandInterceptor commandValidator,
+            final ConnectionConfig connectionConfig) {
 
         final ClientActorPropsFactory clientActorPropsFactory =
-                DefaultClientActorPropsFactory.getInstance();
+                DefaultClientActorPropsFactory.getInstance(connectionConfig);
 
         return ConnectionSupervisorActor.props(pubSubMediator, conciergeForwarder, clientActorPropsFactory,
                 commandValidator);

@@ -98,9 +98,14 @@ public final class DefaultConnectionConfigTest {
 
         softly.assertThat(underTest.getMqttConfig())
                 .as("mqttConfig")
-                .satisfies(mqttConfig -> softly.assertThat(mqttConfig.getSourceBufferSize())
-                        .as(MqttConfig.MqttConfigValue.SOURCE_BUFFER_SIZE.getConfigPath())
-                        .isEqualTo(7));
+                .satisfies(mqttConfig ->  {
+                    softly.assertThat(mqttConfig.getSourceBufferSize())
+                            .as(MqttConfig.MqttConfigValue.SOURCE_BUFFER_SIZE.getConfigPath())
+                            .isEqualTo(7);
+                    softly.assertThat(mqttConfig.isExperimental())
+                            .as(MqttConfig.MqttConfigValue.EXPERIMENTAL.getConfigPath())
+                            .isEqualTo(true);
+                });
     }
 
 }

@@ -17,9 +17,11 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpClientActor;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.kafka.DefaultKafkaPublisherActorFactory;
 import org.eclipse.ditto.services.connectivity.messaging.kafka.KafkaClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.alpakka.MqttClientActor;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq.HiveMqtt3ClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.rabbitmq.RabbitMQClientActor;
 
 import akka.actor.ActorRef;
@@ -31,18 +33,23 @@ import akka.actor.Props;
 @Immutable
 public final class DefaultClientActorPropsFactory implements ClientActorPropsFactory {
 
+    private final ConnectionConfig connectionConfig;
 
-    private DefaultClientActorPropsFactory() {
+    private DefaultClientActorPropsFactory(
+            final ConnectionConfig connectionConfig) {
+        this.connectionConfig = connectionConfig;
     }
 
     /**
      * Returns an instance of {@code DefaultClientActorPropsFactory}.
      *
+     * @param connectionConfig the connection config used for providing client actors.
      * @return the factory instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static DefaultClientActorPropsFactory getInstance() {
-        return new DefaultClientActorPropsFactory();
+    public static DefaultClientActorPropsFactory getInstance(
+            final ConnectionConfig connectionConfig) {
+        return new DefaultClientActorPropsFactory(connectionConfig);
     }
 
     @Override
@@ -54,6 +61,9 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
             case AMQP_10:
                 return AmqpClientActor.props(connection, conciergeForwarder);
             case MQTT:
+                if (connectionConfig.getMqttConfig().isExperimental()) {
+                    return HiveMqtt3ClientActor.props(connection, conciergeForwarder);
+                }
                 return MqttClientActor.props(connection, conciergeForwarder);
             case KAFKA:
                 return KafkaClientActor.props(connection, conciergeForwarder,
