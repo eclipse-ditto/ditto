@@ -104,7 +104,7 @@ public final class DefaultConnectionConfigTest {
                             .isEqualTo(7);
                     softly.assertThat(mqttConfig.isExperimental())
                             .as(MqttConfig.MqttConfigValue.EXPERIMENTAL.getConfigPath())
-                            .isEqualTo(true);
+                            .isEqualTo(false);
                 });
     }
 

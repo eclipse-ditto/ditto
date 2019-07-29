@@ -315,7 +315,6 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
      * actor. But don't know yet if this is possible (see comment in the ForwarderActor).
      */
 
-
     /**
      * Start MQTT publisher and subscribers, expect "Status.Success" from each of them, then send "ClientConnected" to
      * self.
@@ -348,6 +347,10 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
                 }); // will automatically start subscriptions and publishers in the onconnected and ondisconnected callbacks of the client
     }
 
+    @Override
+    protected String getMessageMappingActorName() {
+        return MessageMappingProcessorActor.ACTOR_NAME;
+    }
 
     @Override
     protected void cleanupResourcesForConnection() {
@@ -398,6 +401,7 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
         }
         return stay();
     }
+
     // TODO: duplicated code in MqttClientActor and KafkaClientActor
     private void completeTestConnectionFuture(final Status.Status testResult, final BaseClientData data) {
         if (testConnectionFuture != null) {

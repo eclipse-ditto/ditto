@@ -1036,15 +1036,19 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
              * This however will also limit throughput as the used hashing key is often connection source address based
              * and does not yet "know" of the Thing ID.
              */
-            // TODO: check if this will work with only one name.
+            // TODO: check if this will work with only one name. -> not yet for e.g. Amqp
             messageMappingProcessorActor =
                     getContext().actorOf(new ConsistentHashingPool(connection.getProcessorPoolSize())
                             .withDispatcher("message-mapping-processor-dispatcher")
-                            .props(props), MessageMappingProcessorActor.ACTOR_NAME);
+                            .props(props), getMessageMappingActorName());
         } else {
             log.info("MessageMappingProcessor already instantiated: not initializing again.");
         }
         return Right.apply(messageMappingProcessorActor);
+    }
+
+    protected String getMessageMappingActorName() {
+        return nextChildActorName(MessageMappingProcessorActor.ACTOR_NAME);
     }
 
     protected void stopMessageMappingProcessorActor() {
