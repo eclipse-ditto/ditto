@@ -171,7 +171,7 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
             log.debug("Subscribing for namespace commands.");
             final ActorRef self = getSelf();
             final DistributedPubSubMediator.Subscribe subscribe =
-                    new DistributedPubSubMediator.Subscribe(PurgeNamespace.TYPE, getSubscribeGroup(), self);
+                    new DistributedPubSubMediator.Subscribe(PurgeNamespace.TYPE + "grouped", getSubscribeGroup(), self);
             pubSubMediator.tell(subscribe, self);
         }
     }
@@ -181,7 +181,7 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
             final ActorRef self = getSelf();
             final String topic = PurgeEntities.getTopic(resourceType);
             final DistributedPubSubMediator.Subscribe subscribe =
-                    new DistributedPubSubMediator.Subscribe(topic, getSubscribeGroup(), self);
+                    new DistributedPubSubMediator.Subscribe(topic + "grouped", getSubscribeGroup(), self);
 
             log.debug("Subscribing for  entities commands on topic <{}>.", topic);
             pubSubMediator.tell(subscribe, self);

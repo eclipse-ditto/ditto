@@ -162,9 +162,9 @@ public final class BatchSupervisorActor extends AbstractPersistentActor {
 
     @Override
     public void preStart() {
-        pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(ExecuteBatch.TYPE, ACTOR_NAME, getSelf()),
+        pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(ExecuteBatch.TYPE + "grouped", ACTOR_NAME, getSelf()),
                 getSelf());
-        pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(BatchExecutionFinished.TYPE, ACTOR_NAME, getSelf()),
+        pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(BatchExecutionFinished.TYPE + "grouped", ACTOR_NAME, getSelf()),
                 getSelf());
     }
 
@@ -178,7 +178,7 @@ public final class BatchSupervisorActor extends AbstractPersistentActor {
     }
 
     private void publishEvent(final Event e) {
-        pubSubMediator.tell(new DistributedPubSubMediator.Publish(e.getType(), e, true), getSelf());
+        pubSubMediator.tell(new DistributedPubSubMediator.Publish(e.getType() + "grouped", e, true), getSelf());
     }
 
     private void forwardCommand(final ExecuteBatch command) {

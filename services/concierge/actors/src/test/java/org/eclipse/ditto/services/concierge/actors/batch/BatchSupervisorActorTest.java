@@ -202,7 +202,7 @@ public final class BatchSupervisorActorTest {
     private static void subscribeToEvents(final JavaTestProbe javaTestProbe, final String... events) {
         final String group = "BatchSupervisorActorTest" + UUID.randomUUID().toString();
         for (final String e : events) {
-            pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(e, group, javaTestProbe.ref()),
+            pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(e + "grouped", group, javaTestProbe.ref()),
                     javaTestProbe.ref());
             javaTestProbe.expectMsgClass(DistributedPubSubMediator.SubscribeAck.class);
         }
