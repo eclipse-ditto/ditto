@@ -157,8 +157,6 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
     private static final Duration DELETED_ACTOR_LIFETIME = Duration.ofSeconds(10);
     private static final long DEFAULT_RETRIEVE_STATUS_TIMEOUT = 500L;
 
-    private static final String PUB_SUB_GROUP_PREFIX = "connection:";
-
     /**
      * Message to self to trigger termination after deletion.
      */
@@ -1005,8 +1003,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
         forEachPubSubTopicDo(pubSubTopic -> {
             log.debug("Unsubscribing from pub-sub topic <{}> for connection <{}>.", pubSubTopic, connectionId);
             final DistributedPubSubMediator.Unsubscribe unsubscribe =
-                    new DistributedPubSubMediator.Unsubscribe(pubSubTopic, PUB_SUB_GROUP_PREFIX + connectionId,
-                            getSelf());
+                    new DistributedPubSubMediator.Unsubscribe(pubSubTopic, getSelf());
             pubSubMediator.tell(unsubscribe, getSelf());
         });
     }

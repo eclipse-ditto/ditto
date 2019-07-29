@@ -173,8 +173,7 @@ final class StreamingSessionActor extends AbstractActor {
 
                     // In Cluster: Unsubscribe
                     pubSubMediator.tell(new DistributedPubSubMediator.Unsubscribe(
-                            stopStreaming.getStreamingType().getDistributedPubSubTopic(),
-                            connectionCorrelationId, getSelf()), getSelf());
+                            stopStreaming.getStreamingType().getDistributedPubSubTopic(), getSelf()), getSelf());
                 })
                 .match(DistributedPubSubMediator.SubscribeAck.class, subscribeAck -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
@@ -222,8 +221,8 @@ final class StreamingSessionActor extends AbstractActor {
                     Arrays.stream(StreamingType.values())
                             .map(StreamingType::getDistributedPubSubTopic)
                             .forEach(topic ->
-                                    pubSubMediator.tell(new DistributedPubSubMediator.Unsubscribe(topic,
-                                            connectionCorrelationId, getSelf()), getSelf()));
+                                    pubSubMediator.tell(new DistributedPubSubMediator.Unsubscribe(topic, getSelf()),
+                                            getSelf()));
 
                     getContext().getSystem()
                             .scheduler()

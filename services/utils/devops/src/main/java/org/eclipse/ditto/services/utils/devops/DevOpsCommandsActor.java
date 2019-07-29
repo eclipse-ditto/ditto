@@ -190,7 +190,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
             }
             final Publish msg;
             if (isGroupTopic(command.getDittoHeaders())) {
-                msg = new Publish(topic, command, true);
+                msg = new Publish(topic + "grouped", command, true);
             } else {
                 msg = new Publish(topic, command);
             }
@@ -224,7 +224,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
                                                 .getValue(Command.JsonFields.TYPE));
                         if (topic.isPresent()) {
                             final boolean isGroupTopic = isGroupTopic(dittoHeaders);
-                            onSuccess.accept(new Publish(topic.get(), jsonifiable, isGroupTopic));
+                            onSuccess.accept(new Publish(topic.get() + "grouped", jsonifiable, isGroupTopic));
                         } else {
                             onError.accept(getErrorResponse(command));
                         }
@@ -370,7 +370,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
 
             pubSubMediator.tell(new Subscribe(topic, getSelf()), getSelf());
             pubSubMediator.tell(new Subscribe(String.join(":", topic, serviceName), getSelf()), getSelf());
-            pubSubMediator.tell(new Subscribe(String.join(":", topic, serviceName), serviceName, getSelf()), getSelf());
+            pubSubMediator.tell(new Subscribe(String.join(":", topic, serviceName) + "grouped", serviceName, getSelf()), getSelf());
             pubSubMediator.tell(new Subscribe(String.join(":", topic, serviceName, instance), getSelf()), getSelf());
         }
 
