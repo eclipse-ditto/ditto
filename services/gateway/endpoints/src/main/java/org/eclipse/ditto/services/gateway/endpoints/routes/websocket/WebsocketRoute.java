@@ -198,8 +198,7 @@ public final class WebsocketRoute {
 
         final Counter inCounter = DittoMetrics.counter("streaming_messages")
                 .tag("type", "ws")
-                .tag("direction", "in")
-                .tag("session", connectionCorrelationId);
+                .tag("direction", "in");
 
         final ProtocolMessageExtractor protocolMessageExtractor = new ProtocolMessageExtractor(connectionAuthContext,
                 connectionCorrelationId);
@@ -258,8 +257,7 @@ public final class WebsocketRoute {
 
         final Counter outCounter = DittoMetrics.counter("streaming_messages")
                 .tag("type", "ws")
-                .tag("direction", "out")
-                .tag("session", connectionCorrelationId);
+                .tag("direction", "out");
 
         final Source<Jsonifiable.WithPredicate<JsonObject, JsonField>, NotUsed> eventAndResponseSource =
                 Source.<Jsonifiable.WithPredicate<JsonObject, JsonField>>actorPublisher(
