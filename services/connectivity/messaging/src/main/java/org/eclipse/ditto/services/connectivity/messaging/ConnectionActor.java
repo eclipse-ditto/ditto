@@ -465,7 +465,8 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                 .match(TestConnection.class, testConnection -> validateAndForward(testConnection, this::testConnection))
                 .match(CreateConnection.class,
                         createConnection -> validateAndForward(createConnection, this::createConnection))
-                .match(Signal.class, this::handleCommandWhenDeleted)
+                .match(ConnectivityCommand.class, this::handleCommandWhenDeleted)
+                .match(Signal.class, this::ignoreBroadcastSignalWhenDeleted)
                 .matchEquals(STOP_SELF_IF_DELETED, msg -> stopSelf())
                 .match(SaveSnapshotSuccess.class, this::handleSnapshotSuccess)
                 .matchAny(m -> {
@@ -475,11 +476,16 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                 .build());
     }
 
-    private void handleCommandWhenDeleted(final Signal command) {
+    private void handleCommandWhenDeleted(final ConnectivityCommand command) {
         log.debug("Received command for deleted connection, rejecting: {}", command.getType());
         getSender().tell(ConnectionNotAccessibleException.newBuilder(command.getId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build(), getSelf());
+    }
+
+    private void ignoreBroadcastSignalWhenDeleted(final Signal signal) {
+        // other connections who wants to handle broadcast signals will get them.
+        log.debug("Ignoring signal <{}> while deleted.", signal);
     }
 
     private void enhanceLogUtil(final WithDittoHeaders<?> createConnection) {
@@ -666,6 +672,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                 connectionActor -> {
                     if (stopClientActor) {
                         log.debug("Connection {} was modified, stopping client actor.", connectionId);
+                        connectionActor.unsubscribeFromEvents();
                         connectionActor.stopClientActor();
                     }
                     connectionActor.handleModifyConnection(command, origin);
@@ -777,6 +784,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
             if (connection != null) {
                 restoreConnection(connection.toBuilder().lifecycle(ConnectionLifecycle.DELETED).build());
             }
+            unsubscribeFromEvents();
             stopClientActor();
             origin.tell(DeleteConnectionResponse.of(connectionId, command.getDittoHeaders()), self);
             getContext().become(connectionDeletedBehaviour);
@@ -1068,6 +1076,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                             getSelf());
             pubSubMediator.tell(unsubscribe, getSelf());
         });
+        uniqueTopics = Collections.emptySet();
     }
 
     private void forEachPubSubTopicDo(final Consumer<String> topicConsumer) {
