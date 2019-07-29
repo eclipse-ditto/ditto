@@ -324,7 +324,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                     log.info("Connection <{}> was recovered: {}", connectionId, connection);
                     if (connection != null) {
 
-                        if (!connection.getLifecycle().isPresent()){
+                        if (!connection.getLifecycle().isPresent()) {
                             // assume active lifecycle for all connection that are not deleted
                             connection = connection.toBuilder().lifecycle(ConnectionLifecycle.ACTIVE).build();
                         }
@@ -380,7 +380,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
     protected long staleEventsKeptAfterCleanup() {
         final boolean isDesiredStateOpen =
                 connection != null &&
-                        connection.hasLifecycle(ConnectionLifecycle.ACTIVE) &&
+                        !connection.hasLifecycle(ConnectionLifecycle.DELETED) &&
                         connection.getConnectionStatus() == ConnectivityStatus.OPEN;
         return isDesiredStateOpen ? 1 : 0;
     }
@@ -571,38 +571,41 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
         final ActorRef self = getSelf();
         final ActorRef parent = getContext().getParent();
 
-        persistEvent(ConnectionCreated.of(setLifecycleActive(command.getConnection()), command.getDittoHeaders()), persistedEvent -> {
-            restoreConnection(persistedEvent.getConnection());
-            getContext().become(connectionCreatedBehaviour);
+        persistEvent(ConnectionCreated.of(setLifecycleActive(command.getConnection()), command.getDittoHeaders()),
+                persistedEvent -> {
+                    restoreConnection(persistedEvent.getConnection());
+                    getContext().become(connectionCreatedBehaviour);
 
-            if (ConnectivityStatus.OPEN.equals(connection.getConnectionStatus())) {
-                log.debug("Connection <{}> has status <{}> and will therefore be opened.",
-                        connection.getId(),
-                        connection.getConnectionStatus().getName());
-                final OpenConnection openConnection = OpenConnection.of(connectionId, command.getDittoHeaders());
-                askClientActor(openConnection,
-                        response -> {
-                            final ConnectivityCommandResponse commandResponse =
-                                    CreateConnectionResponse.of(connection, command.getDittoHeaders());
-                            final PerformTask performTask =
-                                    new PerformTask("subscribe for events and schedule CreateConnectionResponse",
-                                            subscribeForEventsAndScheduleResponse(commandResponse, origin));
-                            parent.tell(ConnectionSupervisorActor.ManualReset.getInstance(), self);
-                            self.tell(performTask, ActorRef.noSender());
-                        },
-                        error -> {
-                            // log error but send response anyway
-                            handleException("connect", origin, error, false);
-                            respondWithCreateConnectionResponse(connection, command, origin);
-                        }
-                );
-            } else {
-                log.debug("Connection <{}> has status <{}> and will therefore stay closed.",
-                        connection.getId(),
-                        connection.getConnectionStatus().getName());
-                respondWithCreateConnectionResponse(connection, command, origin);
-            }
-        });
+                    if (ConnectivityStatus.OPEN.equals(connection.getConnectionStatus())) {
+                        log.debug("Connection <{}> has status <{}> and will therefore be opened.",
+                                connection.getId(),
+                                connection.getConnectionStatus().getName());
+                        final OpenConnection openConnection =
+                                OpenConnection.of(connectionId, command.getDittoHeaders());
+                        askClientActor(openConnection,
+                                response -> {
+                                    final ConnectivityCommandResponse commandResponse =
+                                            CreateConnectionResponse.of(connection, command.getDittoHeaders());
+                                    final PerformTask performTask =
+                                            new PerformTask(
+                                                    "subscribe for events and schedule CreateConnectionResponse",
+                                                    subscribeForEventsAndScheduleResponse(commandResponse, origin));
+                                    parent.tell(ConnectionSupervisorActor.ManualReset.getInstance(), self);
+                                    self.tell(performTask, ActorRef.noSender());
+                                },
+                                error -> {
+                                    // log error but send response anyway
+                                    handleException("connect", origin, error, false);
+                                    respondWithCreateConnectionResponse(connection, command, origin);
+                                }
+                        );
+                    } else {
+                        log.debug("Connection <{}> has status <{}> and will therefore stay closed.",
+                                connection.getId(),
+                                connection.getConnectionStatus().getName());
+                        respondWithCreateConnectionResponse(connection, command, origin);
+                    }
+                });
     }
 
     private Connection setLifecycleActive(final Connection connection) {
@@ -635,7 +638,10 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
             return;
         }
 
-        persistEvent(ConnectionModified.of(command.getConnection(), command.getDittoHeaders()), persistedEvent -> {
+        final Connection connectionToPersist =
+                command.getConnection().toBuilder().lifecycle(ConnectionLifecycle.ACTIVE).build();
+
+        persistEvent(ConnectionModified.of(connectionToPersist, command.getDittoHeaders()), persistedEvent -> {
             restoreConnection(persistedEvent.getConnection());
             getContext().become(connectionCreatedBehaviour);
 
