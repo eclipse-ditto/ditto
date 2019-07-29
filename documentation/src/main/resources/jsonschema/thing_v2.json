@@ -6,7 +6,7 @@
   "properties": {
     "thingId": {
       "type": "string",
-      "description": "Unique identifier representing the Thing - has to:\n * contain the mandatory namespace prefix (java package notation + `:` colon) - periods (`.`) may be used in namespace but not as first or last character\n * conform to [RFC-2396 (URI)](https://www.ietf.org/rfc/rfc2396.txt).\n\nExamples for a valid Thing ID:\n * `org.eclipse.ditto:xdk_53`\n * `foo:xdk_53`\n * `org.eclipse.vorto_42:xdk_thing`"
+      "description": "Unique identifier representing the Thing - has to:\n * contain the mandatory namespace prefix (java package notation + `:` colon) - periods (`.`) may be used in namespace but not as first or last character\n * conform to [RFC-3986 (URI)](https://www.ietf.org/rfc/rfc3986.txt).\n\nExamples for a valid Thing ID:\n * `org.eclipse.ditto:xdk_53`\n * `foo:xdk_53`\n * `org.eclipse.vorto_42:xdk_thing`"
     },
     "policyId": {
       "type": "string",
@@ -20,7 +20,7 @@
     "features": {
       "title": "Features",
       "type": "object",
-      "description": "The Features belonging to this Thing. A Thing can handle any number of Features.\n The key of this object represents the `featureId`. Due to the fact that a Feature ID often needs to be set in the path of a HTTP request, we strongly recommend to use a restricted the set of characters (e.g. those for [Uniform Resource Identifiers (URI)](http://www.ietf.org/rfc/rfc2396.txt)).",
+      "description": "The Features belonging to this Thing. A Thing can handle any number of Features.\n The key of this object represents the `featureId`. Due to the fact that a Feature ID often needs to be set in the path of a HTTP request, we strongly recommend to use a restricted the set of characters (e.g. those for [Uniform Resource Identifiers (URI)](http://www.ietf.org/rfc/rfc3986.txt)).",
       "additionalProperties": {
         "title": "Feature",
         "type": "object",

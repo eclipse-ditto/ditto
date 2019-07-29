@@ -204,7 +204,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
 
             Or one of the defined query parameters was invalid.
           content:
@@ -235,7 +235,7 @@ paths:
         the optional JSON body. The `thingId` has to:
 
           * contain a mandatory namespace prefix (java package notation + `:` colon) - periods (`.`) may be used in namespace but not as first or last character
-          * conform to RFC-2396 (URI)
+          * conform to RFC-3986 (URI)
 
         #### Valid examples
 
@@ -352,7 +352,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
 
             Or the JSON of the Thing to be created/modified was either invalid
             or did contain a `thingId` which did not match the ID in the URL.
@@ -419,7 +419,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
           content:
             application/json:
               schema:
@@ -479,7 +479,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
           content:
             application/json:
               schema:
@@ -540,7 +540,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
           content:
             application/json:
               schema:
@@ -576,7 +576,7 @@ paths:
           resource `/policies/{policyId}`.
 
             * contain the mandatory namespace prefix (java package notation + `:` colon) - periods (`.`) may be used in namespace but not as first or last character
-            * conform to RFC-2396 (URI)
+            * conform to RFC-3986 (URI)
         required: true
   '/things/{thingId}/attributes':
     get:
@@ -611,7 +611,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
           content:
             application/json:
               schema:
@@ -676,7 +676,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
 
             Or the JSON was invalid or was not a JSON object.
           content:
@@ -730,7 +730,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
           content:
             application/json:
               schema:
@@ -791,7 +791,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
           content:
             application/json:
               schema:
@@ -857,7 +857,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
           content:
             application/json:
               schema:
@@ -913,7 +913,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
           content:
             application/json:
               schema:
@@ -991,7 +991,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
 
             Or at least one of the defined query parameters was invalid.
           content:
@@ -1061,7 +1061,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
 
             Or the JSON was invalid or was not a JSON object.
           content:
@@ -1123,7 +1123,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
           content:
             application/json:
               schema:
@@ -1186,7 +1186,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
 
             Or at least one of the defined query parameters was invalid.
           content:
@@ -1254,7 +1254,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
 
             Or the JSON of the Feature to be created was invalid.
           content:
@@ -1317,7 +1317,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
           content:
             application/json:
               schema:
@@ -1379,7 +1379,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
 
             Or at least one of the defined query parameters was invalid.
           content:
@@ -1448,7 +1448,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
 
             Or the JSON was invalid.
           content:
@@ -1513,7 +1513,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
           content:
             application/json:
               schema:
@@ -1577,7 +1577,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
 
             Or at least one of the defined query parameters was invalid.
           content:
@@ -1643,7 +1643,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
 
             Or the JSON was invalid.
           content:
@@ -1708,7 +1708,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
           content:
             application/json:
               schema:
@@ -1771,7 +1771,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
           content:
             application/json:
               schema:
@@ -1836,7 +1836,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
 
             Or the JSON was invalid.
           content:
@@ -1895,7 +1895,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
           content:
             application/json:
               schema:
@@ -1961,7 +1961,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
 
             Or at least one of the defined path parameters was invalid.
           content:
@@ -2019,7 +2019,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
 
             Or at least one of the defined path parameters was invalid.
           content:
@@ -2073,7 +2073,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
 
             Or at least one of the defined path parameters was invalid.
           content:
@@ -2130,7 +2130,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
 
             Or at least one of the defined path parameters was invalid.
           content:
@@ -2185,7 +2185,7 @@ paths:
             The request could not be completed. The `thingId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
 
             Or at least one of the defined path parameters was invalid.
           content:
@@ -2248,7 +2248,7 @@ paths:
             The request could not be completed. The `policyId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
           content:
             application/json:
               schema:
@@ -2276,7 +2276,7 @@ paths:
         Modify the complete Policy identified by the `policyId` path parameter. The `policyId` has to:
 
           * contain a mandatory namespace prefix (java package notation + `:` colon) - periods (`.`) may be used in namespace but not as first or last character
-          * conform to RFC-2396 (URI)
+          * conform to RFC-3986 (URI)
 
         #### Valid examples
 
@@ -2330,7 +2330,7 @@ paths:
             The request could not be completed. The `policyId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
 
             Or the JSON was invalid, or no valid Policy JSON object.
           content:
@@ -2397,7 +2397,7 @@ paths:
             The request could not be completed. The `policyId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
 
             Or the JSON was invalid, or no valid Policy JSON object.
           content:
@@ -2462,7 +2462,7 @@ paths:
             The request could not be completed. The `policyId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
           content:
             application/json:
               schema:
@@ -2510,7 +2510,7 @@ paths:
             The request could not be completed. The `policyId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
 
             Or the JSON was invalid, or no valid Policy entry JSON object.
           content:
@@ -2592,7 +2592,7 @@ paths:
             The request could not be completed. The `policyId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
           content:
             application/json:
               schema:
@@ -2660,7 +2660,7 @@ paths:
             The request could not be completed. The `policyId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
 
             Or the JSON was invalid, or no valid Policy entry JSON object.
           content:
@@ -2726,7 +2726,7 @@ paths:
             The request could not be completed. The `policyId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
           content:
             application/json:
               schema:
@@ -2789,7 +2789,7 @@ paths:
             The request could not be completed. The `policyId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
           content:
             application/json:
               schema:
@@ -2840,7 +2840,7 @@ paths:
             The request could not be completed. The `policyId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
 
             Or the JSON was invalid, or no valid Subjects JSON object.
           content:
@@ -2924,7 +2924,7 @@ paths:
             The request could not be completed. The `policyId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
           content:
             application/json:
               schema:
@@ -2993,7 +2993,7 @@ paths:
             The request could not be completed. The `policyId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
 
             Or the JSON was invalid, or no valid Subject JSON object.
           content:
@@ -3057,7 +3057,7 @@ paths:
             The request could not be completed. The `policyId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
           content:
             application/json:
               schema:
@@ -3121,7 +3121,7 @@ paths:
             The request could not be completed. The `policyId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
           content:
             application/json:
               schema:
@@ -3172,7 +3172,7 @@ paths:
             The request could not be completed. The `policyId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
 
             Or the JSON was invalid, or no valid Resources JSON object.
           content:
@@ -3252,7 +3252,7 @@ paths:
             The request could not be completed. The `policyId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
           content:
             application/json:
               schema:
@@ -3323,7 +3323,7 @@ paths:
             The request could not be completed. The `policyId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
 
             Or the JSON was invalid, or no valid Resource JSON object.
           content:
@@ -3387,7 +3387,7 @@ paths:
             The request could not be completed. The `policyId` either
 
               * does not contain the mandatory namespace prefix (java package notation + `:` colon)
-              * does not conform to RFC-2396 (URI)
+              * does not conform to RFC-3986 (URI)
           content:
             application/json:
               schema:
@@ -4066,7 +4066,7 @@ components:
     featureIdPathPathParam:
       name: featureId
       in: path
-      description: The ID of the Feature - has to conform to RFC-2396 (URI)
+      description: The ID of the Feature - has to conform to RFC-3986 (URI)
       required: true
       schema:
         type: string
@@ -4084,7 +4084,7 @@ components:
         The ID of the Thing - has to:
 
           * contain the mandatory namespace prefix (java package notation + `:` colon)
-          * conform to RFC-2396 (URI)
+          * conform to RFC-3986 (URI)
       required: true
       schema:
         type: string
@@ -4095,7 +4095,7 @@ components:
         The ID of the Policy - has to:
 
           * contain the mandatory namespace prefix (java package notation + `:` colon)
-          * conform to RFC-2396 (URI)
+          * conform to RFC-3986 (URI)
       required: true
       schema:
         type: string
@@ -4105,7 +4105,7 @@ components:
       description: |-
         The ID of the Topology - has to:
          * contain the mandatory namespace prefix (java package notation + `:` colon)
-         * conform to RFC-2396 (URI)
+         * conform to RFC-3986 (URI)
       required: true
       schema:
         type: string
@@ -4198,7 +4198,7 @@ components:
 
           * has to follow the pattern `namespace`:`name`:`version`
           * `namespace` must conform to java package notation
-          * `name` and `version` must conform to RFC-2396 (URI)
+          * `name` and `version` must conform to RFC-3986 (URI)
       required: true
       schema:
         type: string
@@ -4255,7 +4255,7 @@ components:
     messageSubjectPathParam:
       name: messageSubject
       in: path
-      description: The subject of the Message - has to conform to RFC-2396 (URI)
+      description: The subject of the Message - has to conform to RFC-3986 (URI)
       required: true
       schema:
         type: string

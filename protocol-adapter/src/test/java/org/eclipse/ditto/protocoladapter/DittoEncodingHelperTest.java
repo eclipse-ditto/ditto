@@ -29,6 +29,11 @@ public final class DittoEncodingHelperTest {
     }
 
     @Test
+    public void testNameWithQuote() {
+        assertEncodingAndDecoding("\"quote\"", "%22quote%22");
+    }
+
+    @Test
     public void testNameWithSlash() {
         assertEncodingAndDecoding("hello/world", "hello%2Fworld");
     }
