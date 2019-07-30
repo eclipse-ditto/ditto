@@ -261,7 +261,8 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
 
     private List<ActorRef> startHiveMqConsumers(final Mqtt3Client client, final boolean dryRun) {
         if (isConsuming()) {
-            // TODO: try out if consumer count will work or if we'll need diferent names for all consumers
+            // TODO: sometimes the hivemq client will run into an exception here if there are multiple consumers on the
+            //  same topic. try to do a reproducer and post to hivemq issues / questions
             return connection().getSources().stream()
                     .map(source -> startHiveMqConsumer(client, dryRun, source))
                     .flatMap(Collection::stream)
@@ -274,21 +275,20 @@ public final class HiveMqtt3ClientActor extends BaseClientActor {
 
     private List<ActorRef> startHiveMqConsumer(final Mqtt3Client client, final boolean dryRun, final Source source) {
         if (source.getConsumerCount() <= 0) {
-            log.info("source #{} has {} consumer - not starting consumer actor", source.getIndex(), source.getConsumerCount());
+            log.info("source #{} has {} consumer - not starting consumer actor", source.getIndex(),
+                    source.getConsumerCount());
             return Collections.emptyList();
         }
         return Stream.iterate(0, i -> i + 1)
                 .limit(source.getConsumerCount())
-                .map(unused -> getContext().actorOf(HiveMqtt3ConsumerActor.props(
-                        // TODO: just use the source as parameter instead of accessing attributes of it...
-                        connectionId(),
-                        forwarderToMessageMappingActor,
-                        source.getAuthorizationContext(),
-                        source.getEnforcement().orElse(null),
-                        dryRun,
-                        source.getAddresses(),
-                        client
-                )))
+                .map(unused -> startChildActorConflictFree(HiveMqtt3ConsumerActor.NAME,
+                        HiveMqtt3ConsumerActor.props(
+                                connectionId(),
+                                forwarderToMessageMappingActor,
+                                source,
+                                dryRun,
+                                client
+                        )))
                 .collect(Collectors.toList());
     }
 

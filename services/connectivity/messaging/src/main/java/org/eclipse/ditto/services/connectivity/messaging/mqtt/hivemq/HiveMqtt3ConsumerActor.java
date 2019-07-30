@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.ByteBufferUtils;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.Enforcement;
+import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.placeholders.EnforcementFactoryFactory;
 import org.eclipse.ditto.model.placeholders.EnforcementFilter;
 import org.eclipse.ditto.model.placeholders.EnforcementFilterFactory;
@@ -67,29 +68,28 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
 
     private static final String MQTT_TOPIC_HEADER = "mqtt.topic";
     private static final MqttQos DEFAULT_QOS = MqttQos.AT_MOST_ONCE;
+    static final String NAME = "HiveMqtt3ConsumerActor";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final boolean dryRun;
     private final Mqtt3AsyncClient client;
-    private final Iterable<String> topics;
+    private final Collection<String> topics;
     @Nullable private final Mqtt3Subscribe mqtt3Subscribe;
     @Nullable private final EnforcementFilterFactory<String, String> topicEnforcementFilterFactory;
 
     @SuppressWarnings("unused")
     private HiveMqtt3ConsumerActor(final String connectionId, final ActorRef messageMappingProcessor,
-            final AuthorizationContext sourceAuthorizationContext, @Nullable final Enforcement enforcement,
-            final boolean dryRun, final Set<String> topics, final Mqtt3AsyncClient client) {
-        super(connectionId, String.join(";", topics), messageMappingProcessor, sourceAuthorizationContext, null);
+            final Source source, final boolean dryRun, final Mqtt3AsyncClient client) {
+        super(connectionId, String.join(";", source.getAddresses()), messageMappingProcessor,
+                source.getAuthorizationContext(), null);
         this.client = client;
         this.dryRun = dryRun;
-        this.topics = topics;
+        this.topics = source.getAddresses();
 
-        if (enforcement != null) {
-            this.topicEnforcementFilterFactory = EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement,
-                    PlaceholderFactory.newSourceAddressPlaceholder());
-        } else {
-            topicEnforcementFilterFactory = null;
-        }
+        topicEnforcementFilterFactory = source.getEnforcement()
+                .map(enforcement -> EnforcementFactoryFactory
+                        .newEnforcementFilterFactory(enforcement, PlaceholderFactory.newSourceAddressPlaceholder()))
+                .orElse(null);
 
         this.mqtt3Subscribe = prepareSubscriptions(topics);
     }
@@ -99,20 +99,15 @@ public final class HiveMqtt3ConsumerActor extends BaseConsumerActor {
      *
      * @param connectionId ID of the connection this consumer is belongs to
      * @param messageMappingProcessor the ActorRef to the {@code MessageMappingProcessor}
-     * @param sourceAuthorizationContext the {@link AuthorizationContext} of the source
-     * @param enforcement the optional Enforcement to apply
+     * @param source the source from which this consumer is built
      * @param dryRun whether this is a dry-run/connection test or not
-     * @param topics the topics for which this consumer receives messages
      * @return the Akka configuration Props object.
      */
     static Props props(final String connectionId, final ActorRef messageMappingProcessor,
-            final AuthorizationContext sourceAuthorizationContext,
-            @Nullable final Enforcement enforcement,
-            final boolean dryRun, final Set<String> topics, final Mqtt3Client client) {
+            final Source source, final boolean dryRun, final Mqtt3Client client) {
 
         return Props.create(HiveMqtt3ConsumerActor.class, connectionId, messageMappingProcessor,
-                sourceAuthorizationContext,
-                enforcement, dryRun, topics, checkNotNull(client).toAsync());
+                source, dryRun, checkNotNull(client).toAsync());
     }
 
     @Override

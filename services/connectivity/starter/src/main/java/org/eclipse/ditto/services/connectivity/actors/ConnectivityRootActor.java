@@ -173,7 +173,8 @@ public final class ConnectivityRootActor extends AbstractActor {
 
         startClusterSingletonActor(
                 ReconnectActor.props(getConnectionShardRegion(actorSystem, connectionSupervisorProps, clusterConfig),
-                        MongoReadJournal.newInstance(actorSystem)));
+                        MongoReadJournal.newInstance(actorSystem)),
+                ReconnectActor.ACTOR_NAME);
 
         startChildActor(ConnectionPersistenceOperationsActor.ACTOR_NAME,
                 ConnectionPersistenceOperationsActor.props(pubSubMediator, connectivityConfig.getMongoDbConfig(),
@@ -260,8 +261,8 @@ public final class ConnectivityRootActor extends AbstractActor {
         return getContext().actorOf(props, actorName);
     }
 
-    private void startClusterSingletonActor(final Props props) {
-        ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, ReconnectActor.ACTOR_NAME, props);
+    private void startClusterSingletonActor(final Props props, final String name) {
+        ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, name, props);
     }
 
     private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {
