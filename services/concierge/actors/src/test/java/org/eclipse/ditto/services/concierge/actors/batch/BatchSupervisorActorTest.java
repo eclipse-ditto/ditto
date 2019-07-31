@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.models.concierge.ConciergeWrapper;
 import org.eclipse.ditto.services.utils.akka.JavaTestProbe;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.base.JsonParsableRegistry;
 import org.eclipse.ditto.signals.base.Signal;
@@ -202,7 +203,7 @@ public final class BatchSupervisorActorTest {
     private static void subscribeToEvents(final JavaTestProbe javaTestProbe, final String... events) {
         final String group = "BatchSupervisorActorTest" + UUID.randomUUID().toString();
         for (final String e : events) {
-            pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(e + "grouped", group, javaTestProbe.ref()),
+            pubSubMediator.tell(DistPubSubAccess.subscribeViaGroup(e, group, javaTestProbe.ref()),
                     javaTestProbe.ref());
             javaTestProbe.expectMsgClass(DistributedPubSubMediator.SubscribeAck.class);
         }

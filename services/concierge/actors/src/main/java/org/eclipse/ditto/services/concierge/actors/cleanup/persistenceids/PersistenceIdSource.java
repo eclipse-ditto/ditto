@@ -24,6 +24,7 @@ import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.models.streaming.SudoStreamPids;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -77,7 +78,7 @@ public final class PersistenceIdSource {
 
     private static DistributedPubSubMediator.Send requestStreamCommand(final PersistenceIdsConfig config,
             final String path) {
-        return new DistributedPubSubMediator.Send(path, sudoStreamSnapshotRevisions(config), false);
+        return DistPubSubAccess.send(path, sudoStreamSnapshotRevisions(config), false);
     }
 
     private static SudoStreamPids sudoStreamSnapshotRevisions(final PersistenceIdsConfig config) {

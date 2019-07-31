@@ -71,7 +71,7 @@ public abstract class AbstractPubSubListenerActor extends AbstractActor {
     protected abstract Receive handleEvents();
 
     private DistributedPubSubMediator.Subscribe subscribe(final String topic) {
-        return new DistributedPubSubMediator.Subscribe(topic, getSelf());
+        return DistPubSubAccess.subscribe(topic, getSelf());
     }
 
 }

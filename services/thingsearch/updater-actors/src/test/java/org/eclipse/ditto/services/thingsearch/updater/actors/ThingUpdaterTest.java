@@ -25,6 +25,7 @@ import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
 import org.eclipse.ditto.signals.commands.common.ShutdownReasonFactory;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
@@ -258,7 +259,7 @@ public final class ThingUpdaterTest {
                 final ActorRef underTest = watch(createThingUpdaterActor());
 
                 final DistributedPubSubMediator.Subscribe subscribe =
-                        new DistributedPubSubMediator.Subscribe(Shutdown.TYPE, underTest);
+                        DistPubSubAccess.subscribe(Shutdown.TYPE, underTest);
                 pubSubTestProbe.expectMsg(subscribe);
                 pubSubTestProbe.reply(new DistributedPubSubMediator.SubscribeAck(subscribe));
 

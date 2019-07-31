@@ -26,6 +26,7 @@ import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.signals.commands.batch.ExecuteBatch;
@@ -162,9 +163,9 @@ public final class BatchSupervisorActor extends AbstractPersistentActor {
 
     @Override
     public void preStart() {
-        pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(ExecuteBatch.TYPE + "grouped", ACTOR_NAME, getSelf()),
+        pubSubMediator.tell(DistPubSubAccess.subscribeViaGroup(ExecuteBatch.TYPE, ACTOR_NAME, getSelf()),
                 getSelf());
-        pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(BatchExecutionFinished.TYPE + "grouped", ACTOR_NAME, getSelf()),
+        pubSubMediator.tell(DistPubSubAccess.subscribeViaGroup(BatchExecutionFinished.TYPE, ACTOR_NAME, getSelf()),
                 getSelf());
     }
 
@@ -178,7 +179,7 @@ public final class BatchSupervisorActor extends AbstractPersistentActor {
     }
 
     private void publishEvent(final Event e) {
-        pubSubMediator.tell(new DistributedPubSubMediator.Publish(e.getType() + "grouped", e, true), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.publishViaGroup(e.getType(), e), getSelf());
     }
 
     private void forwardCommand(final ExecuteBatch command) {

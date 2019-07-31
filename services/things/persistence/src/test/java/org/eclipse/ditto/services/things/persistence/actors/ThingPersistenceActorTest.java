@@ -65,6 +65,7 @@ import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
 import org.eclipse.ditto.signals.commands.common.ShutdownReasonFactory;
@@ -1531,7 +1532,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             final ActorRef underTest = watch(createSupervisorActorFor(getIdOrThrow(thing)));
 
             final DistributedPubSubMediator.Subscribe subscribe =
-                    new DistributedPubSubMediator.Subscribe(Shutdown.TYPE, underTest);
+                    DistPubSubAccess.subscribe(Shutdown.TYPE, underTest);
             pubSubTestProbe.expectMsg(subscribe);
             pubSubTestProbe.reply(new DistributedPubSubMediator.SubscribeAck(subscribe));
 
@@ -1568,10 +1569,10 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     }
 
     private static void assertPublishEvent(final TestKit pubSubMediator, final ThingEvent event) {
-        // TODO TJ first pub/sub w/o group:
+        // the first pub/sub w/o group:
         final DistributedPubSubMediator.Publish result =
                 pubSubMediator.expectMsgClass(DistributedPubSubMediator.Publish.class);
-        // second pub/sub with group:
+        // the second pub/sub with group:
         final DistributedPubSubMediator.Publish result2 =
                 pubSubMediator.expectMsgClass(DistributedPubSubMediator.Publish.class);
         final ThingEvent msg = (ThingEvent) result.msg();

@@ -38,6 +38,7 @@ import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -160,7 +161,7 @@ final class StreamingSessionActor extends AbstractActor {
 
                     outstandingSubscriptionAcks.add(startStreaming.getStreamingType());
                     // In Cluster: Subscribe
-                    pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(
+                    pubSubMediator.tell(DistPubSubAccess.subscribe(
                             startStreaming.getStreamingType().getDistributedPubSubTopic(), getSelf()), getSelf());
                 })
                 .match(StopStreaming.class, stopStreaming -> {
@@ -172,7 +173,7 @@ final class StreamingSessionActor extends AbstractActor {
                     eventFilterCriteriaForStreamingTypes.remove(stopStreaming.getStreamingType());
 
                     // In Cluster: Unsubscribe
-                    pubSubMediator.tell(new DistributedPubSubMediator.Unsubscribe(
+                    pubSubMediator.tell(DistPubSubAccess.unsubscribe(
                             stopStreaming.getStreamingType().getDistributedPubSubTopic(), getSelf()), getSelf());
                 })
                 .match(DistributedPubSubMediator.SubscribeAck.class, subscribeAck -> {
@@ -221,8 +222,7 @@ final class StreamingSessionActor extends AbstractActor {
                     Arrays.stream(StreamingType.values())
                             .map(StreamingType::getDistributedPubSubTopic)
                             .forEach(topic ->
-                                    pubSubMediator.tell(new DistributedPubSubMediator.Unsubscribe(topic, getSelf()),
-                                            getSelf()));
+                                    pubSubMediator.tell(DistPubSubAccess.unsubscribe(topic, getSelf()), getSelf()));
 
                     getContext().getSystem()
                             .scheduler()

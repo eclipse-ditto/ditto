@@ -41,6 +41,7 @@ import org.eclipse.ditto.services.things.persistence.strategies.AbstractReceiveS
 import org.eclipse.ditto.services.things.persistence.strategies.ReceiveStrategy;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cleanup.AbstractPersistentActorWithTimersAndCleanup;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
@@ -54,7 +55,6 @@ import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.FI;
 import akka.japi.pf.ReceiveBuilder;
@@ -441,9 +441,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActorWithTime
         // publish the event in the cluster
         // publish via cluster pubSub (as we cannot expect that Websocket sessions interested in this event
         // are running on the same cluster node):
-        pubSubMediator.tell(new DistributedPubSubMediator.Publish(ThingEvent.TYPE_PREFIX, event), getSelf());
-        // TODO TJ for search, use the group - document!
-        pubSubMediator.tell(new DistributedPubSubMediator.Publish(ThingEvent.TYPE_PREFIX + "grouped", event, true), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.publish(ThingEvent.TYPE_PREFIX, event), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.publishViaGroup(ThingEvent.TYPE_PREFIX, event), getSelf());
     }
 
     private void notifySender(final WithDittoHeaders message) {

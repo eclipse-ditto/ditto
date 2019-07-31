@@ -36,6 +36,7 @@ import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.models.thingsearch.ThingsSearchConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatistics;
@@ -47,7 +48,6 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Address;
 import akka.actor.Props;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
@@ -184,7 +184,7 @@ public final class StatisticsActor extends AbstractActor {
 
     private void tellRootActorToRetrieveStatistics(final String rootActorPath,
             final RetrieveStatisticsDetails retrieveStatistics) {
-        pubSubMediator.tell(new DistributedPubSubMediator.SendToAll(rootActorPath, retrieveStatistics, false),
+        pubSubMediator.tell(DistPubSubAccess.sendToAll(rootActorPath, retrieveStatistics, false),
                 getSelf());
     }
 
