@@ -67,6 +67,7 @@ import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cleanup.AbstractPersistentActorWithTimersAndCleanup;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
@@ -992,19 +993,15 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                 .collect(Collectors.toSet());
 
         forEachPubSubTopicDo(pubSubTopic -> {
-            final DistributedPubSubMediator.Subscribe subscribe =
-                    new DistributedPubSubMediator.Subscribe(pubSubTopic, getSelf());
             log.debug("Subscribing to pub-sub topic <{}> for connection <{}>.", pubSubTopic, connectionId);
-            pubSubMediator.tell(subscribe, getSelf());
+            pubSubMediator.tell(DistPubSubAccess.subscribe(pubSubTopic, getSelf()), getSelf());
         });
     }
 
     private void unsubscribeFromEvents() {
         forEachPubSubTopicDo(pubSubTopic -> {
             log.debug("Unsubscribing from pub-sub topic <{}> for connection <{}>.", pubSubTopic, connectionId);
-            final DistributedPubSubMediator.Unsubscribe unsubscribe =
-                    new DistributedPubSubMediator.Unsubscribe(pubSubTopic, getSelf());
-            pubSubMediator.tell(unsubscribe, getSelf());
+            pubSubMediator.tell(DistPubSubAccess.unsubscribe(pubSubTopic, getSelf()), getSelf());
         });
     }
 
@@ -1027,7 +1024,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
         persist(event, persistedEvent -> {
             log.debug("Successfully persisted Event <{}>.", persistedEvent.getType());
             consumer.accept(persistedEvent);
-            pubSubMediator.tell(new DistributedPubSubMediator.Publish(event.getType(), event), getSelf());
+            pubSubMediator.tell(DistPubSubAccess.publish(event.getType(), event), getSelf());
 
             // save a snapshot if there were too many changes since the last snapshot
             if ((lastSequenceNr() - lastSnapshotSequenceNr) >= snapshotThreshold) {

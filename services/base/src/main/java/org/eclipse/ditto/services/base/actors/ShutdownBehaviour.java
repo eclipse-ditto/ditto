@@ -16,6 +16,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEm
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import org.eclipse.ditto.model.namespaces.NamespaceReader;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
 import org.eclipse.ditto.signals.commands.common.ShutdownReason;
 import org.slf4j.Logger;
@@ -68,7 +69,7 @@ public final class ShutdownBehaviour {
     }
 
     private void subscribePubSub(final ActorRef pubSubMediator) {
-        pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(Shutdown.TYPE, self), self);
+        pubSubMediator.tell(DistPubSubAccess.subscribe(Shutdown.TYPE, self), self);
     }
 
     /**

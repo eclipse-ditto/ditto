@@ -18,6 +18,7 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.services.models.concierge.ConciergeWrapper;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.base.Signal;
 
 import akka.actor.AbstractActor;
@@ -121,7 +122,7 @@ public class ConciergeForwarderActor extends AbstractActor {
     }
 
     private static DistributedPubSubMediator.Send wrapForPubSub(final Signal<?> signal) {
-        return new DistributedPubSubMediator.Send(DISPATCHER_ACTOR_PATH, signal);
+        return DistPubSubAccess.send(DISPATCHER_ACTOR_PATH, signal);
     }
 
 }
