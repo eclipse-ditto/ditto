@@ -125,7 +125,7 @@ public final class ResumeSourceTest {
             // send some elements followed by failure
             sourceProbe.sendNext(1).sendNext(2);
             sinkProbe.expectNext(1, 2);
-            sourceProbe.sendError(new IllegalStateException("I FAILED"));
+            sourceProbe.sendError(new IllegalStateException("Expected error"));
 
             // expect new seed equal to final element sent
             expectMsg(2);

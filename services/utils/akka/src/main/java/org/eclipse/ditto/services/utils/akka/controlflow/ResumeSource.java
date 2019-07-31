@@ -154,8 +154,8 @@ public final class ResumeSource {
     private static <E> Flow<E, E, NotUsed> backoff(final Duration minBackoff, final Duration maxBackoff,
             final int maxRestarts, final Duration recovery) {
         final Flow<E, E, NotUsed> neverCancelFlowWithErrorLogging = Flow.<E>create()
-                .withAttributes(logLevels(logLevelError(), logLevelDebug(), logLevelError()))
                 .log("resume-source-errors-flow")
+                .withAttributes(logLevels(logLevelError(), logLevelDebug(), logLevelError()))
                 .via(new NeverCancelFlow<>());
 
         final Flow<E, E, NotUsed> upstream = maxRestarts < 0
@@ -358,8 +358,9 @@ public final class ResumeSource {
             return finalElements;
         }
 
-        private Throwable getError() {
-            return error;
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + "[error=" + error + ", finalElements=" + finalElements + "]";
         }
     }
 

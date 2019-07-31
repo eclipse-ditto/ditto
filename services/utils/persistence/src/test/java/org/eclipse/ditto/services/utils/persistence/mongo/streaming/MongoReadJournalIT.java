@@ -159,6 +159,21 @@ public final class MongoReadJournalIT {
         assertThat(pids).containsExactlyInAnyOrder("pid1", "pid2", "pid3", "pid4");
     }
 
+    @Test
+    public void extractJournalPidsAboveALowerBound() {
+        insert("test_journal", new Document().append("pid", "pid1").append("to", 1L));
+        insert("test_journal", new Document().append("pid", "pid2").append("to", 1L));
+        insert("test_journal@ns2", new Document().append("pid", "pid3").append("to", 2L));
+        insert("test_journal@ns2", new Document().append("pid", "pid4").append("to", 2L));
+
+        final List<String> pids =
+                readJournal.getJournalPidsAbove("pid2", 2, Duration.ZERO, materializer)
+                        .runWith(Sink.seq(), materializer)
+                        .toCompletableFuture().join();
+
+        assertThat(pids).containsExactlyInAnyOrder("pid3", "pid4");
+    }
+
     private void insert(final String collection, final Document... documents) {
         Source.fromPublisher(mongoClient.getCollection(collection).insertMany(Arrays.asList(documents)))
                 .runWith(Sink.ignore(), materializer)

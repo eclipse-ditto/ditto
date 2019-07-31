@@ -51,6 +51,7 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
 
     private final int streamingCacheSize;
     private final Function<PidWithSeqNr, T> entityMapper;
+    private final Function<EntityIdWithRevision, PidWithSeqNr> entityUnmapper;
 
     private final DittoMongoClient mongoClient;
     private final MongoReadJournal readJournal;
@@ -59,13 +60,16 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
      * Constructor.
      *
      * @param streamingCacheSize the size of the streaming cache.
-     * @param entityMapper the mapper used to map {@link PidWithSeqNr} to {@code T}. The resulting entity will be
+     * @param entityMapper the mapper used to map {@link org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr} to {@code T}. The resulting entity will be
      * streamed to the recipient actor.
+     * @param entityUnmapper the mapper used to map elements back to PidWithSeqNr for stream resumption.
      */
     protected AbstractPersistenceStreamingActor(final int streamingCacheSize,
-            final Function<PidWithSeqNr, T> entityMapper) {
+            final Function<PidWithSeqNr, T> entityMapper,
+            final Function<EntityIdWithRevision, PidWithSeqNr> entityUnmapper) {
         this.streamingCacheSize = streamingCacheSize;
         this.entityMapper = requireNonNull(entityMapper);
+        this.entityUnmapper = entityUnmapper;
 
         final Config config = getContext().getSystem().settings().config();
         final MongoDbConfig mongoDbConfig =
@@ -78,14 +82,18 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
      * Constructor for tests.
      *
      * @param streamingCacheSize the size of the streaming cache.
-     * @param entityMapper the mapper used to map {@link PidWithSeqNr} to {@code T}. The resulting entity will be
+     * @param entityMapper the mapper used to map {@link org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr} to {@code T}. The resulting entity will be
      * streamed to the recipient actor.
+     * @param entityUnmapper the mapper used to map elements back to PidWithSeqNr for stream resumption.
      * @param readJournal the ReadJournal to use instead of creating one in the non-test constructor.
      */
     protected AbstractPersistenceStreamingActor(final int streamingCacheSize,
-            final Function<PidWithSeqNr, T> entityMapper, final MongoReadJournal readJournal) {
+            final Function<PidWithSeqNr, T> entityMapper,
+            final Function<EntityIdWithRevision, PidWithSeqNr> entityUnmapper,
+            final MongoReadJournal readJournal) {
         this.streamingCacheSize = streamingCacheSize;
         this.entityMapper = requireNonNull(entityMapper);
+        this.entityUnmapper = entityUnmapper;
 
         final Config config = getContext().getSystem().settings().config();
         final MongoDbConfig mongoDbConfig =
@@ -158,10 +166,18 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
     public Source<T, NotUsed> visit(final SudoStreamPids command) {
         final Duration maxIdleTime = Duration.ofMillis(command.getTimeoutMillis());
         final int batchSize = command.getBurst() * 5;
-
-        return readJournal.getJournalPids(batchSize, maxIdleTime, materializer)
-                .map(pid -> mapEntity(new PidWithSeqNr(pid, 0L)))
-                .log("pid-streaming", log);
+        final Source<String, NotUsed> pidSource;
+        if (command.hasNonEmptyLowerBound()) {
+            // resume from lower bound
+            final PidWithSeqNr pidWithSeqNr = entityUnmapper.apply(command.getLowerBound());
+            pidSource =
+                    readJournal.getJournalPidsAbove(pidWithSeqNr.getPersistenceId(), batchSize, maxIdleTime,
+                            materializer);
+        } else {
+            // no lower bound; read from event journals with restart-source
+            pidSource = readJournal.getJournalPids(batchSize, maxIdleTime, materializer);
+        }
+        return pidSource.map(pid -> mapEntity(new PidWithSeqNr(pid, 0L))).log("pid-streaming", log);
     }
 
     private T mapEntity(final PidWithSeqNr pidWithSeqNr) {

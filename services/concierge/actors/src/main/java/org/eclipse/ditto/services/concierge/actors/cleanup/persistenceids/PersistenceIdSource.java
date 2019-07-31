@@ -15,15 +15,18 @@ package org.eclipse.ditto.services.concierge.actors.cleanup.persistenceids;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.concierge.common.PersistenceIdsConfig;
+import org.eclipse.ditto.services.models.connectivity.ConnectionTag;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.models.streaming.SudoStreamPids;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
+import org.eclipse.ditto.services.utils.akka.controlflow.ResumeSource;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -56,12 +59,36 @@ public final class PersistenceIdSource {
             final ActorRef pubSubMediator) {
         return Source.from(PERSISTENCE_STREAMING_ACTOR_PATHS)
                 .buffer(1, OverflowStrategy.backpressure())
-                .map(path -> requestStreamCommand(config, path))
-                .mapAsync(1, command ->
-                        Patterns.ask(pubSubMediator, command, config.getStreamRequestTimeout())
-                                .handle((result, error) -> Tuple3.create(command, result, error)))
-                .flatMapConcat(PersistenceIdSource::checkForErrors)
-                .flatMapConcat(PersistenceIdSource::handleSourceRef);
+                .flatMapConcat(path -> buildResumeSource(config, pubSubMediator, path)
+                        // recover to empty source to cleanup other resource types even on long-term failure
+                        .recoverWithRetries(1, Throwable.class, Source::empty));
+    }
+
+    private static Source<EntityIdWithRevision, NotUsed> buildResumeSource(final PersistenceIdsConfig config,
+            final ActorRef pubSubMediator,
+            final String path) {
+
+        final EntityIdWithRevision emptyLowerBound = ConnectionTag.of("", 0L);
+
+        final Function<EntityIdWithRevision, Source<EntityIdWithRevision, ?>> resumptionFunction =
+                seed -> Source.single(requestStreamCommand(config, path, seed))
+                        .mapAsync(1, command ->
+                                Patterns.ask(pubSubMediator, command, config.getStreamRequestTimeout())
+                                        .handle((result, error) -> Tuple3.create(command, result, error)))
+                        .flatMapConcat(PersistenceIdSource::checkForErrors)
+                        .flatMapConcat(PersistenceIdSource::handleSourceRef);
+
+        final Function<List<EntityIdWithRevision>, EntityIdWithRevision> nextSeedFunction =
+                finalElements -> finalElements.isEmpty()
+                        ? emptyLowerBound
+                        : finalElements.get(finalElements.size() - 1);
+
+        // nextSeedFunction needs the last 1 element only.
+        final int lookBehind = 1;
+
+        return ResumeSource.onFailureWithBackoff(config.getMinBackoff(), config.getMaxBackoff(),
+                config.getMaxRestarts(), config.getRecovery(), emptyLowerBound, resumptionFunction, lookBehind,
+                nextSeedFunction);
     }
 
     private static Source<Object, NotUsed> checkForErrors(
@@ -76,13 +103,14 @@ public final class PersistenceIdSource {
     }
 
     private static DistributedPubSubMediator.Send requestStreamCommand(final PersistenceIdsConfig config,
-            final String path) {
-        return new DistributedPubSubMediator.Send(path, sudoStreamSnapshotRevisions(config), false);
+            final String path, final EntityIdWithRevision seed) {
+        return new DistributedPubSubMediator.Send(path, sudoStreamSnapshotRevisions(config, seed), false);
     }
 
-    private static SudoStreamPids sudoStreamSnapshotRevisions(final PersistenceIdsConfig config) {
-        return SudoStreamPids.of(config.getBurst(), config.getStreamIdleTimeout().toMillis(),
-                DittoHeaders.empty());
+    private static SudoStreamPids sudoStreamSnapshotRevisions(final PersistenceIdsConfig config,
+            final EntityIdWithRevision seed) {
+        return SudoStreamPids.of(config.getBurst(), config.getStreamIdleTimeout().toMillis(), DittoHeaders.empty())
+                .withLowerBound(seed);
     }
 
     private static Source<EntityIdWithRevision, NotUsed> handleSourceRef(final Object reply) {
