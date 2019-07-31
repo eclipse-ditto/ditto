@@ -149,7 +149,7 @@ public final class ConnectionNotAccessibleException extends DittoRuntimeExceptio
          * JSON field containing connection id of the connection that is not accessible.
          */
         public static final JsonFieldDefinition<String> CONNECTION_ID =
-                JsonFactory.newStringFieldDefinition("connectionId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("connectionId", FieldType.HIDDEN, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();
