@@ -31,7 +31,7 @@ public final class DefaultPersistenceStreamingActor<T extends EntityIdWithRevisi
     private final Class<T> elementClass;
 
     @SuppressWarnings("unused")
-    DefaultPersistenceStreamingActor(final Class<T> elementClass,
+    private DefaultPersistenceStreamingActor(final Class<T> elementClass,
             final int streamingCacheSize,
             final Function<PidWithSeqNr, T> entityMapper,
             final Function<EntityIdWithRevision, PidWithSeqNr> entityUnmapper) {
@@ -41,11 +41,11 @@ public final class DefaultPersistenceStreamingActor<T extends EntityIdWithRevisi
     }
 
     @SuppressWarnings("unused")
-    DefaultPersistenceStreamingActor(final Class<T> elementClass,
+    private DefaultPersistenceStreamingActor(final Class<T> elementClass,
             final int streamingCacheSize,
             final Function<PidWithSeqNr, T> entityMapper,
-            final MongoReadJournal readJournal,
-            final Function<EntityIdWithRevision, PidWithSeqNr> entityUnmapper) {
+            final Function<EntityIdWithRevision, PidWithSeqNr> entityUnmapper,
+            final MongoReadJournal readJournal) {
 
         super(streamingCacheSize, entityMapper, entityUnmapper, readJournal);
         this.elementClass = elementClass;
