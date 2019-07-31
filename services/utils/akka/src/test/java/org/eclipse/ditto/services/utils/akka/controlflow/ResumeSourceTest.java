@@ -15,11 +15,9 @@ package org.eclipse.ditto.services.utils.akka.controlflow;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
-import java.util.concurrent.ExecutionException;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import akka.NotUsed;
@@ -29,6 +27,7 @@ import akka.japi.Pair;
 import akka.pattern.Patterns;
 import akka.stream.ActorMaterializer;
 import akka.stream.Attributes;
+import akka.stream.StreamLimitReachedException;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.stream.testkit.TestPublisher;
@@ -142,8 +141,6 @@ public final class ResumeSourceTest {
     }
 
     @Test
-    @Ignore("Isn't working because filter cancellation is eager.")
-    // TODO: build filter that propagates cancellation from one pin but not the next.
     public void testFailureAfterMaxRestarts() {
         // disable logging to suppress expected stacktrace
         system.eventStream().setLogLevel(Attributes.logLevelOff());
@@ -164,9 +161,7 @@ public final class ResumeSourceTest {
             sourceProbe.sendError(error);
 
             // expect stream failed
-            final Throwable actualError = sinkProbe.expectError();
-            assertThat(actualError).isInstanceOf(ExecutionException.class);
-            assertThat(actualError.getCause()).isEqualTo(error);
+            assertThat(sinkProbe.expectError()).isInstanceOf(StreamLimitReachedException.class);
         }};
     }
 

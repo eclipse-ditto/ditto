@@ -22,7 +22,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 
 import akka.NotUsed;
@@ -48,7 +47,8 @@ import scala.util.Left;
 import scala.util.Right;
 
 /**
- * From a resumption function and an initial seed, create a source that resumes on error from the last element.
+ * From a resumption function and an initial seed, create a source that resumes on error from the last elements that
+ * passed through the stream before failure occurred.
  * <pre>
  * {@code
  * seeds<S> +--------------> resumeWithFailuresAppended(resume) +----------> filter +----------------->
@@ -97,13 +97,18 @@ public final class ResumeSource {
             final int lookBehind,
             final Function<List<E>, S> nextSeed) {
 
+        // upstream of seeds is a feedback loop
         final Flow<S, S, NotUsed> seedsFlow = Flow.<S>create().prepend(Source.single(initialSeed));
+        // resume flow from seeds
         final Flow<S, Either<FailureWithLookBehind<E>, E>, NotUsed> resumptionsFlow =
                 resumeWithFailuresAppended(resume, lookBehind);
+        // pass elements downstream and inject errors into feedback loop
         final Graph<FanOutShape2<Either<FailureWithLookBehind<E>, E>, E, FailureWithLookBehind<E>>, NotUsed>
                 filterFanout = Filter.multiplexByEither(Function.identity());
+        // backoff exponentially; recover after fixed duration
         final Flow<FailureWithLookBehind<E>, FailureWithLookBehind<E>, NotUsed> backoffFlow =
-                backoff(minBackoff, maxBackoff, maxRestarts, recovery, FailureWithLookBehind::getError);
+                backoff(minBackoff, maxBackoff, maxRestarts, recovery);
+        // compute new seeds from final elements that passed downstream
         final Flow<FailureWithLookBehind<E>, S, NotUsed> feedbackFlow =
                 Flow.<FailureWithLookBehind<E>, List<E>>fromFunction(FailureWithLookBehind::getFinalElements)
                         .map(nextSeed::apply);
@@ -131,23 +136,33 @@ public final class ResumeSource {
     /**
      * Create a flow that delays its elements with exponential backoff and reset after no element passes through the
      * stream for a fixed period of time. Stream elements represent failures and are logged as errors.
+     * <ul>
+     * <li>Emits when: upstream emits.</li>
+     * <li>Completes when: upstream completes.</li>
+     * <li>Cancels when: never - this is a part of a feedback loop.</li>
+     * <li>Fails when: {@code maxRestarts} elements pass through the stream.</li>
+     * </ul>
      *
      * @param minBackoff Minimum backoff duration.
      * @param maxBackoff Maximum backoff duration.
      * @param maxRestarts Maximum number of tolerated failures. Tolerate no failure if 0. Tolerate arbitrarily many
      * failures if negative.
      * @param recovery The period after which backoff is reset to {@code minBackoff} if no failure occurred.
-     * @param errorExtractor The function to convert a stream element into an error to signal failure.
      * @param <E> Type of stream elements.
      * @return A delayed flow.
      */
     private static <E> Flow<E, E, NotUsed> backoff(final Duration minBackoff, final Duration maxBackoff,
-            final int maxRestarts, final Duration recovery, final Function<E, Throwable> errorExtractor) {
-        return Flow.<E>create()
+            final int maxRestarts, final Duration recovery) {
+        final Flow<E, E, NotUsed> neverCancelFlowWithErrorLogging = Flow.<E>create()
                 .withAttributes(logLevels(logLevelError(), logLevelDebug(), logLevelError()))
-                .statefulMapConcat(() ->
-                        new StatefulBackoffFunction<>(minBackoff, maxBackoff, maxRestarts, recovery, errorExtractor))
-                .log("backoff-flow")
+                .log("resume-source-errors-flow")
+                .via(new NeverCancelFlow<>());
+
+        final Flow<E, E, NotUsed> upstream = maxRestarts < 0
+                ? neverCancelFlowWithErrorLogging
+                : neverCancelFlowWithErrorLogging.limit(maxRestarts);
+
+        return upstream.statefulMapConcat(() -> new StatefulBackoffFunction<>(minBackoff, maxBackoff, recovery))
                 .flatMapConcat(pair ->
                         Source.single(pair.first()).delay(pair.second(), OverflowStrategy.backpressure()));
 
@@ -213,6 +228,18 @@ public final class ResumeSource {
 
     private static final class EndOfStream<E> implements Envelope<E> {}
 
+    /**
+     * A flow that completes downstream and cancels upstream after an EOS-element passes through the stream.
+     * <ul>
+     * <li>Emits when: upstream emits a non-EOS element.</li>
+     * <li>Completes when: upstream completes or emits an EOS element.</li>
+     * <li>Cancels when: downstream cancels or upstream emits an EOS element.</li>
+     * <li>Fails when: upstream fails.</li>
+     * <li>Back-pressures when: downstream back-pressures.</li>
+     * </ul>
+     *
+     * @param <E> Type of elements.
+     */
     private static final class EndStreamOnEOS<E> extends GraphStage<FlowShape<Envelope<E>, Envelope<E>>> {
 
         private final FlowShape<Envelope<E>, Envelope<E>> shape =
@@ -258,6 +285,60 @@ public final class ResumeSource {
     }
 
     /**
+     * A flow that never cancels. It is used to force termination order in a feedback loop.
+     * <ul>
+     * <li>Emits when: upstream emits.</li>
+     * <li>Completes when: upstream completes.</li>
+     * <li>Cancels when: never.</li>
+     * <li>Fails when: upstream fails.</li>
+     * <li>Back-pressures when: downstream back-pressures or anytime after downstream termination.</li>
+     * </ul>
+     *
+     * @param <E> Type of elements.
+     */
+    private static final class NeverCancelFlow<E> extends GraphStage<FlowShape<E, E>> {
+
+        private final FlowShape<E, E> shape =
+                FlowShape.of(Inlet.create("in"), Outlet.create("out"));
+
+        @Override
+        public FlowShape<E, E> shape() {
+            return shape;
+        }
+
+        @Override
+        public GraphStageLogic createLogic(final Attributes inheritedAttributes) {
+            return new Logic();
+        }
+
+        private final class Logic extends GraphStageLogic {
+
+            private Logic() {
+                super(shape);
+
+                setHandler(shape.in(), new AbstractInHandler() {
+                    @Override
+                    public void onPush() {
+                        push(shape.out(), grab(shape.in()));
+                    }
+                });
+
+                setHandler(shape.out(), new AbstractOutHandler() {
+                    @Override
+                    public void onPull() {
+                        pull(shape.in());
+                    }
+
+                    @Override
+                    public void onDownstreamFinish() {
+                        // become a stuck stream that infinitely back-pressures.
+                    }
+                });
+            }
+        }
+    }
+
+    /**
      * Private, non-serializable, local-only message for {@code ResumeSource} containing a look-behind element queue and
      * the error that caused a stream failure.
      *
@@ -292,33 +373,22 @@ public final class ResumeSource {
 
         private final Duration minBackoff;
         private final Duration maxBackoff;
-        private final int maxRestarts;
         private final Duration recovery;
-        private final Function<E, Throwable> errorExtractor;
 
-        private int restarts;
         private Instant lastError;
         private Duration lastBackoff;
 
-        private StatefulBackoffFunction(final Duration minBackoff, final Duration maxBackoff, final int maxRestarts,
-                final Duration recovery, final Function<E, Throwable> errorExtractor) {
+        private StatefulBackoffFunction(final Duration minBackoff, final Duration maxBackoff, final Duration recovery) {
             this.minBackoff = minBackoff;
             this.maxBackoff = maxBackoff;
-            this.maxRestarts = maxRestarts;
             this.recovery = recovery;
-            this.errorExtractor = errorExtractor;
 
-            restarts = 0;
             lastError = Instant.EPOCH;
             lastBackoff = minBackoff;
         }
 
         @Override
-        public Iterable<Pair<E, Duration>> apply(final E element) throws ExecutionException {
-            // aborts when maxRestarts are reached.
-            if (maxRestarts >= 0 && maxRestarts < ++restarts) {
-                throw new ExecutionException(errorExtractor.apply(element));
-            }
+        public Iterable<Pair<E, Duration>> apply(final E element) {
 
             final Instant thisError = Instant.now();
             final Duration thisBackoff;
