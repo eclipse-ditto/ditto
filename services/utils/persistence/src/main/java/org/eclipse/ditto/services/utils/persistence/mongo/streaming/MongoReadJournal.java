@@ -21,6 +21,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -437,7 +439,14 @@ public class MongoReadJournal {
                     log.debug("Collection <{}> with patterns <{}> or <{}> found.", collectionName,
                             journalCollectionPrefix, snapsCollectionPrefix);
                     return collectionName;
-                });
+                })
+                // Each "get current PIDs" query collects all collection names in memory in order to list them in
+                // a fixed order.
+                .<SortedSet<String>>fold(new TreeSet<>(), (collectionNames, collectionName) -> {
+                    collectionNames.add(collectionName);
+                    return collectionNames;
+                })
+                .mapConcat(collectionNames -> collectionNames);
     }
 
     private static final class JournalAndSnaps {
