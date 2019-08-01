@@ -147,6 +147,7 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
 
     @Override
     public Source<T, NotUsed> visit(final SudoStreamModifiedEntities command) {
+        log.info("Starting stream for <{}>", command);
         final String actorName = getSelf().path().name();
         final String unfilteredStreamingLogName = actorName + "unfiltered-streaming";
         final String filteredStreamingLogName = actorName + "filtered-streaming";
@@ -164,6 +165,7 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
 
     @Override
     public Source<T, NotUsed> visit(final SudoStreamPids command) {
+        log.info("Starting stream for <{}>", command);
         final Duration maxIdleTime = Duration.ofMillis(command.getTimeoutMillis());
         final int batchSize = command.getBurst() * 5;
         final Source<String, NotUsed> pidSource;
