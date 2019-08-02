@@ -211,8 +211,7 @@ public class SseThingsRoute extends AbstractRoute {
 
         final Counter messageCounter = DittoMetrics.counter("streaming_messages")
                         .tag("type", "sse")
-                        .tag("direction", "out")
-                        .tag("session", connectionCorrelationId);
+                        .tag("direction", "out");
 
         if (filterString != null) {
             // will throw an InvalidRqlExpressionException if the RQL expression was not valid:

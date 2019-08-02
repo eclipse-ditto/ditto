@@ -39,7 +39,7 @@ public interface Entity<T extends Revision<T>> extends Jsonifiable.WithFieldSele
 
     /**
      * The regex pattern for an Entity Name. Has to be conform to
-     * <a href="http://www.ietf.org/rfc/rfc2396.txt">RFC-2396</a>.
+     * <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC-3986</a>.
      */
     String ENTITY_NAME_REGEX =
             "(?<id>(?:[-\\w:@&=+,.!~*'_;]|%\\p{XDigit}{2})(?:[-\\w:@&=+,.!~*'$_;]|%\\p{XDigit}{2})*+)";

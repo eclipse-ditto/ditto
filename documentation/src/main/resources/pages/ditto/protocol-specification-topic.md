@@ -127,4 +127,4 @@ An entity (e.g. a Thing) or an aspect of an entity was
 ### Messages criterion actions
 
 For the *messages* criterion the *action* segment specifies the message subject and can be freely chosen by the sender 
-provided that it conforms to [RFC-2396](https://tools.ietf.org/html/rfc2396) (URI).
+provided that it conforms to [RFC-3986](https://tools.ietf.org/html/rfc3986) (URI).

@@ -29,7 +29,7 @@ Unique identifier of a Thing. For choosing custom Thing IDs when creating a Thin
 #### Allowed Characters
 
 Due to the fact that a Thing ID often needs to be set in the path of a HTTP request, we have restricted the set of
-allowed characters to those for [Uniform Resource Identifiers (URI)](http://www.ietf.org/rfc/rfc2396.txt).
+allowed characters to those for [Uniform Resource Identifiers (URI)](http://www.ietf.org/rfc/rfc3986.txt).
 
 In order to separate Things from different Solution spaces from each other, they are required to be created in a
 specific *Namespace*.
