@@ -201,6 +201,9 @@ public abstract class AbstractGraphActor<T> extends AbstractActor {
             final QueueOfferResult.Failure failure = (QueueOfferResult.Failure) result;
             log.error(failure.cause(), "enqueue failed");
             enqueueFailureCounter.increment();
+        } else {
+            log.error(error, "enqueue failed without acknowledgement");
+            enqueueFailureCounter.increment();
         }
         return null;
     }
