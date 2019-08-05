@@ -278,10 +278,7 @@ public class MongoReadJournal {
     private Source<JournalAndSnaps, NotUsed> listJournalsAndSnapshotStores() {
         final MongoDatabase database = mongoClient.getDefaultDatabase();
         return resolveCollectionNames(journalCollectionPrefix, snapsCollectionPrefix, database, log)
-                .map(this::toJournalAndSnaps)
-                .groupBy(Integer.MAX_VALUE, JournalAndSnaps::getSuffix)
-                .fold(new JournalAndSnaps(), JournalAndSnaps::merge)
-                .mergeSubstreams();
+                .map(this::toJournalAndSnaps);
     }
 
     private Source<MongoCollection<Document>, NotUsed> listJournals() {
