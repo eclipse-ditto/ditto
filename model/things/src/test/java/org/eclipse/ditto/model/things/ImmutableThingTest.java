@@ -968,4 +968,24 @@ public final class ImmutableThingTest {
         });
 
     }
+
+    @Test
+    public void createThingWithInvalidCharactersInId() {
+        final List<String> invalidCharacters = Arrays.asList(" ", "/", "?",  "#", "%");
+
+        invalidCharacters.forEach(invalidCharacter ->
+            assertThatExceptionOfType(ThingIdInvalidException.class).isThrownBy(() ->
+                    ImmutableThing.of(
+                            "ns:thingIdWithAnd" + invalidCharacter,
+                            ACL,
+                            ATTRIBUTES,
+                            FEATURES,
+                            LIFECYCLE,
+                            REVISION,
+                            MODIFIED).validate(DittoHeaders.empty())
+            )
+        );
+
+    }
+
 }

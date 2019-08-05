@@ -30,7 +30,7 @@ There are three protocol parameters that have special meaning for Messages:
 
 The `topic` definition for Messages needs the *namespace* and *thingId*
 of the Thing you're sending Messages to. The *messageSubject* describes the Message
-and must conform to the *path* as described in [RFC-2396](https://tools.ietf.org/html/rfc2396).
+and must conform to the *path* as described in [RFC-3986](https://tools.ietf.org/html/rfc3986).
 Examples for valid topics are:
 * `org.eclipse.ditto/smartcoffee/things/live/messages/ask/question`
 * `com.example/smarthome/things/live/messages/turnoff`

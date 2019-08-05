@@ -43,7 +43,7 @@ public final class PolicyIdInvalidException extends DittoRuntimeException implem
 
     private static final String DEFAULT_DESCRIPTION =
             "It must contain a namespace prefix (java package notation + a colon ':') + ID and must be a valid URI " +
-                    "path segment according to RFC-2396";
+                    "path segment according to RFC-3986";
 
     private static final long serialVersionUID = 8154256308793903738L;
 

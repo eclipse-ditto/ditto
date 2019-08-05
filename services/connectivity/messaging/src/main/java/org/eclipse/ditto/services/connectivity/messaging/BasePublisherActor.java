@@ -173,11 +173,6 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     }
 
     private Collection<ResourceStatus> getCurrentTargetStatus() {
-        if (resourceStatusMap.isEmpty()) {
-            return Collections.singletonList(
-                    ConnectivityModelFactory.newTargetStatus(getInstanceIdentifier(), ConnectivityStatus.UNKNOWN, null,
-                            null));
-        }
         return resourceStatusMap.values();
     }
 

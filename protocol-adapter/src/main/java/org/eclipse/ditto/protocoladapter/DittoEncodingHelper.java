@@ -23,7 +23,7 @@ import java.util.Map;
  * <li>Attribute keys</li>
  * <li>Feature property keys</li>
  * </ul>
- * The following <strong> 7 characters</strong> are encoded as using them in the above places it would lead to require
+ * The following <strong> 8 characters</strong> are encoded as using them in the above places it would lead to require
  * escaping, e.g. when accessing the HTTP API or using the DittoProtocol:
  * <pre>
  * / (slash)                used in HTTP urls and in DittoProtocol topic to delimit segments
@@ -33,6 +33,7 @@ import java.util.Map;
  * , (comma)                used in Ditto's HTTP API to return several thing ID separated by commas
  *   (single whitespace)    must be escaped in HTTP urls to %20
  * % (percent)              used to define an escaped character itself
+ * " (quotation marks)      often used as the delimiters around URI in text documents and protocol fields
  * </pre>
  */
 public final class DittoEncodingHelper {
@@ -51,6 +52,7 @@ public final class DittoEncodingHelper {
         ENCODE_MAP.put(',', "%2C");
         ENCODE_MAP.put(' ', "%20");
         ENCODE_MAP.put('%', "%25");
+        ENCODE_MAP.put('"', "%22");
         ENCODE_MAP.forEach((key, value) -> DECODE_MAP.put(value, key));
     }
 
