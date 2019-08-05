@@ -30,7 +30,9 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AccessControlListModelFactory;
 import org.eclipse.ditto.model.things.AclEntry;
@@ -253,10 +255,16 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
         final Adaptable adaptable = externalAdaptable.setDittoHeaders(filteredHeaders);
         final JsonifiableMapper<T> jsonifiableMapper = mappingStrategies.get(type);
         if (null == jsonifiableMapper) {
-            throw UnknownTopicPathException.newBuilder(adaptable.getTopicPath()).build();
+            throw UnknownTopicPathException.fromMessage(getUnknownTypeMessage(externalAdaptable), filteredHeaders);
         }
 
         return DittoJsonException.wrapJsonRuntimeException(() -> jsonifiableMapper.map(adaptable));
+    }
+
+    private String getUnknownTypeMessage(final Adaptable adaptable) {
+        final String topic = adaptable.getTopicPath().getPath();
+        final MessagePath path = adaptable.getPayload().getPath();
+        return String.format("The topic '%s' is not supported in combination with the path '%s'", topic, path);
     }
 
     /**
@@ -278,13 +286,16 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
      * @return headers containing extra information from topic path.
      */
     private static DittoHeaders mapTopicPathToHeaders(final TopicPath topicPath) {
-        if (topicPath.getChannel() == TopicPath.Channel.LIVE) {
-            return DittoHeaders.newBuilder()
-                    .channel(TopicPath.Channel.LIVE.getName())
-                    .build();
-        } else {
-            return DittoHeaders.empty();
+        final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder();
+        if (topicPath.getNamespace() != null && topicPath.getId() != null) {
+            // add thing ID for known topic-paths for error reporting.
+            headersBuilder.putHeader(MessageHeaderDefinition.THING_ID.getKey(),
+                    topicPath.getNamespace() + ":" + topicPath.getId());
         }
+        if (topicPath.getChannel() == TopicPath.Channel.LIVE) {
+            headersBuilder.channel(TopicPath.Channel.LIVE.getName());
+        }
+        return headersBuilder.build();
     }
 
     /*

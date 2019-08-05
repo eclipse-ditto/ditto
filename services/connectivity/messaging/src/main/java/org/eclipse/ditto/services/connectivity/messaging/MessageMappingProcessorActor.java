@@ -54,6 +54,7 @@ import org.eclipse.ditto.model.connectivity.LogType;
 import org.eclipse.ditto.model.connectivity.MetricDirection;
 import org.eclipse.ditto.model.connectivity.MetricType;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.model.placeholders.EnforcementFilter;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.HeadersPlaceholder;
@@ -279,7 +280,13 @@ public final class MessageMappingProcessorActor extends AbstractActor {
          * This is necessary because the consumer actor and the publisher actor may not reside in the same connectivity
          * instance due to cluster routing.
          */
-        return ThingErrorResponse.of(exception, mergedDittoHeaders.truncate(limitsConfig.getHeadersMaxSize()));
+        final DittoHeaders truncatedHeaders = mergedDittoHeaders.truncate(limitsConfig.getHeadersMaxSize());
+        return getThingId(exception).map(thingId -> ThingErrorResponse.of(thingId, exception, truncatedHeaders))
+                .orElseGet(() -> ThingErrorResponse.of(exception, truncatedHeaders));
+    }
+
+    private static Optional<String> getThingId(final DittoRuntimeException e) {
+        return Optional.ofNullable(e.getDittoHeaders().get(MessageHeaderDefinition.THING_ID.getKey()));
     }
 
     private static String stackTraceAsString(final DittoRuntimeException exception) {
