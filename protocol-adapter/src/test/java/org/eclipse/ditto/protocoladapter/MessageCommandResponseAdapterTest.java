@@ -48,7 +48,7 @@ import org.junit.runners.Parameterized;
  * Unit test for {@link MessageCommandResponseAdapter}.
  */
 @RunWith(Parameterized.class)
-public final class MessageCommandResponseAdapterTest {
+public final class MessageCommandResponseAdapterTest implements ProtocolAdapterTest {
 
     private MessageCommandResponseAdapter underTest;
 
@@ -140,7 +140,7 @@ public final class MessageCommandResponseAdapterTest {
                 .build();
         final MessageCommandResponse actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     private String subject() {
