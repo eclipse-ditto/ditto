@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.math.BigDecimal;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -146,6 +147,29 @@ public final class JsonValueParserTest {
         final JsonValue actual = underTest.apply("null");
 
         assertThat(actual).isEqualTo(jsonNullLiteral);
+    }
+
+    @Test
+    public void wrapsNumberFormatException() {
+        final String jsonLong = BigDecimal.valueOf(Long.MAX_VALUE).add(BigDecimal.TEN).toPlainString();
+        final Function<String, JsonValue> underTest = JsonValueParser.fromString();
+
+        assertThatExceptionOfType(JsonParseException.class)
+                .isThrownBy(() -> underTest.apply(jsonLong))
+                .withMessage("Failed to parse JSON string '%s'!", jsonLong)
+                .withCauseExactlyInstanceOf(java.lang.NumberFormatException.class);;
+    }
+
+    @Test
+    public void wrapsNullPointerException() {
+        final Function<String, JsonValue> underTest = JsonValueParser.fromString();
+
+        underTest.apply(null);
+        //noinspection ConfusingArgumentToVarargsMethod
+        assertThatExceptionOfType(JsonParseException.class)
+                .isThrownBy(() -> underTest.apply(null))
+                .withMessage("Failed to parse JSON string '%s'!", null)
+                .withCauseExactlyInstanceOf(java.lang.NullPointerException.class);;
     }
 
 }

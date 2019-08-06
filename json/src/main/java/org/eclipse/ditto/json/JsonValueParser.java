@@ -83,7 +83,10 @@ final class JsonValueParser {
 
         try {
             return parseJsonValue(jsonString, dittoJsonHandler);
-        } catch (final ParseException | UnsupportedOperationException | StackOverflowError e) {
+        } catch (final ParseException | UnsupportedOperationException | StackOverflowError | IllegalArgumentException | NullPointerException e) {
+            // "ditto-json" library also throws IllegalArgumentException when for example strings which may not be empty
+            // (e.g. keys) are empty
+            // "ditto-json" library also throws NullPointerException when for example non-nullable objects are null
             throw JsonParseException.newBuilder()
                     .message(MessageFormat.format("Failed to parse JSON string ''{0}''!", jsonString))
                     .cause(e)
@@ -100,7 +103,10 @@ final class JsonValueParser {
     private static JsonValue tryToReadJsonValueFrom(final Reader reader) {
         try {
             return readJsonValueFrom(reader);
-        } catch (final ParseException | IOException | StackOverflowError e) {
+        } catch (final ParseException | IOException | StackOverflowError | IllegalArgumentException | NullPointerException e) {
+            // "ditto-json" library also throws IllegalArgumentException when for example strings which may not be empty
+            // (e.g. keys) are empty
+            // "ditto-json" library also throws NullPointerException when for example non-nullable objects are null
             throw JsonParseException.newBuilder()
                     .message("Failed to parse JSON value from reader!")
                     .cause(e)
