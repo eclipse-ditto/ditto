@@ -36,6 +36,7 @@ import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
+import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.event.Logging;
 
@@ -97,7 +98,7 @@ final class ThingUpdater extends AbstractActor {
 
     private void stopThisActor(final ReceiveTimeout receiveTimeout) {
         log.debug("stopping ThingUpdater <{}> due to <{}>", thingId, receiveTimeout);
-        getSelf().tell(PoisonPill.getInstance(), ActorRef.noSender());
+        getContext().getParent().tell(new ShardRegion.Passivate(PoisonPill.getInstance()), getSelf());
     }
 
     /**
