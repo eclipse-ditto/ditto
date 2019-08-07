@@ -12,18 +12,10 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.things;
 
-import static akka.http.javadsl.server.Directives.delete;
-import static akka.http.javadsl.server.Directives.extractDataBytes;
-import static akka.http.javadsl.server.Directives.extractUnmatchedPath;
-import static akka.http.javadsl.server.Directives.get;
-import static akka.http.javadsl.server.Directives.parameterOptional;
-import static akka.http.javadsl.server.Directives.pathEndOrSingleSlash;
-import static akka.http.javadsl.server.Directives.put;
-import static akka.http.javadsl.server.Directives.rawPathPrefix;
-import static akka.http.javadsl.server.Directives.route;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
@@ -70,8 +62,8 @@ final class FeaturesRoute extends AbstractRoute {
      *
      * @param proxyActor an actor selection of the command delegating actor.
      * @param actorSystem the ActorSystem to use.
-     * @param messageConfig
-     * @param claimMessageConfig
+     * @param messageConfig the MessageConfig.
+     * @param claimMessageConfig the MessageConfig for claim messages.
      * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
      * @param headerTranslator translates headers from external sources or to external sources.
      * @throws NullPointerException if any argument is {@code null}.
@@ -300,8 +292,9 @@ final class FeaturesRoute extends AbstractRoute {
                                                                                 JsonFactory.newPointer(
                                                                                         decodePath(
                                                                                                 propertyJsonPointerStr)),
-                                                                                JsonFactory.readFrom(
-                                                                                        propertyJson),
+                                                                                DittoJsonException.wrapJsonRuntimeException(
+                                                                                        () -> JsonFactory.readFrom(
+                                                                                                propertyJson)),
                                                                                 dittoHeaders))
                                                 )
                                         )

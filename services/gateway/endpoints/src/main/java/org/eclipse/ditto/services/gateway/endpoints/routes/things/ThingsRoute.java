@@ -12,19 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.things;
 
-import static akka.http.javadsl.server.Directives.delete;
-import static akka.http.javadsl.server.Directives.extractDataBytes;
-import static akka.http.javadsl.server.Directives.extractUnmatchedPath;
-import static akka.http.javadsl.server.Directives.get;
-import static akka.http.javadsl.server.Directives.parameter;
-import static akka.http.javadsl.server.Directives.parameterOptional;
-import static akka.http.javadsl.server.Directives.path;
-import static akka.http.javadsl.server.Directives.pathEnd;
-import static akka.http.javadsl.server.Directives.pathEndOrSingleSlash;
-import static akka.http.javadsl.server.Directives.post;
-import static akka.http.javadsl.server.Directives.put;
-import static akka.http.javadsl.server.Directives.rawPathPrefix;
-import static akka.http.javadsl.server.Directives.route;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 
@@ -35,6 +22,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
+import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.things.Thing;
@@ -90,8 +78,8 @@ public final class ThingsRoute extends AbstractRoute {
      *
      * @param proxyActor an actor selection of the command delegating actor.
      * @param actorSystem the ActorSystem to use.
-     * @param messageConfig
-     * @param claimMessageConfig
+     * @param messageConfig the MessageConfig.
+     * @param claimMessageConfig the MessageConfig for claim messages.
      * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
      * @param headerTranslator translates headers from external sources or to external sources.
      * @throws NullPointerException if any argument is {@code null}.
@@ -437,8 +425,9 @@ public final class ThingsRoute extends AbstractRoute {
                                                                                 JsonFactory.newPointer(
                                                                                         decodePath(
                                                                                                 attributePointerStr)),
-                                                                                JsonFactory.readFrom(
-                                                                                        attributeValueJson),
+                                                                                DittoJsonException.wrapJsonRuntimeException(
+                                                                                        () -> JsonFactory.readFrom(
+                                                                                                attributeValueJson)),
                                                                                 dittoHeaders))
                                                 )
                                         )

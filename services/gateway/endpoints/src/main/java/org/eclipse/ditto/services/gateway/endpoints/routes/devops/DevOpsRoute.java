@@ -25,6 +25,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.devops.ImmutableLoggerConfig;
@@ -56,7 +57,7 @@ public final class DevOpsRoute extends AbstractRoute {
     /**
      * Public endpoint of DevOps.
      */
-    public static final String PATH_DEVOPS = "devops";
+    private static final String PATH_DEVOPS = "devops";
 
     private static final String PATH_LOGGING = "logging";
     private static final String PATH_PIGGYBACK = "piggyback";
@@ -225,8 +226,8 @@ public final class DevOpsRoute extends AbstractRoute {
                 extractDataBytes(payloadSource ->
                         handlePerRequest(ctx, dittoHeaders, payloadSource,
                                 piggybackCommandJson -> {
-                                    final JsonObject parsedJson =
-                                            JsonFactory.readFrom(piggybackCommandJson).asObject();
+                                    final JsonObject parsedJson = DittoJsonException.wrapJsonRuntimeException(() ->
+                                            JsonFactory.readFrom(piggybackCommandJson).asObject());
 
                                     final String serviceName1;
                                     final String instance1;
