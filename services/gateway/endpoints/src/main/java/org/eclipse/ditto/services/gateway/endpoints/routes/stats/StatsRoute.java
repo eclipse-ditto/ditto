@@ -12,13 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.stats;
 
-import static akka.http.javadsl.server.Directives.completeWithFuture;
-import static akka.http.javadsl.server.Directives.extractRequestContext;
-import static akka.http.javadsl.server.Directives.get;
-import static akka.http.javadsl.server.Directives.path;
-import static akka.http.javadsl.server.Directives.pathEndOrSingleSlash;
-import static akka.http.javadsl.server.Directives.pathPrefix;
-import static akka.http.javadsl.server.Directives.route;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.DevOpsBasicAuthenticationDirective.REALM_DEVOPS;
 
 import java.util.concurrent.CompletableFuture;
@@ -102,9 +95,9 @@ public final class StatsRoute extends AbstractRoute {
     }
 
     private Route buildSubRoutes(final RequestContext ctx, final CharSequence correlationId) {
-        return route(
+        return concat(
                 pathPrefix(THINGS_PATH, () -> // /stats/things
-                        route(
+                        concat(
                                 path(DETAILS_PATH, () -> {
                                     final DevOpsBasicAuthenticationDirective devOpsBasicAuthenticationDirective =
                                             DevOpsBasicAuthenticationDirective.getInstance(devOpsConfig);

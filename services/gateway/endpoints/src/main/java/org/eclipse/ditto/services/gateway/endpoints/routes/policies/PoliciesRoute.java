@@ -12,13 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.policies;
 
-import static akka.http.javadsl.server.Directives.delete;
-import static akka.http.javadsl.server.Directives.extractDataBytes;
-import static akka.http.javadsl.server.Directives.get;
-import static akka.http.javadsl.server.Directives.pathEndOrSingleSlash;
-import static akka.http.javadsl.server.Directives.put;
-import static akka.http.javadsl.server.Directives.rawPathPrefix;
-import static akka.http.javadsl.server.Directives.route;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 
@@ -38,7 +31,6 @@ import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicy;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.http.javadsl.server.Directives;
 import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
@@ -80,7 +72,7 @@ public final class PoliciesRoute extends AbstractRoute {
     public Route buildPoliciesRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
         return rawPathPrefix(mergeDoubleSlashes().concat(PATH_POLICIES), () ->
                 rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), policyId -> // /policies/<policyId>
-                        route(
+                        concat(
                                 policyEntry(ctx, dittoHeaders, policyId),
                                 policyEntryEntries(ctx, dittoHeaders, policyId)
                         )
@@ -94,7 +86,7 @@ public final class PoliciesRoute extends AbstractRoute {
      */
     private Route policyEntry(final RequestContext ctx, final DittoHeaders dittoHeaders, final String policyId) {
         return pathEndOrSingleSlash(() ->
-                Directives.route(
+                concat(
                         get(() -> // GET /policies/<policyId>
                                 handlePerRequest(ctx, RetrievePolicy.of(policyId, dittoHeaders))
                         ),

@@ -41,7 +41,6 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatures;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.http.javadsl.server.Directives;
 import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
@@ -93,7 +92,7 @@ final class FeaturesRoute extends AbstractRoute {
      */
     public Route buildFeaturesRoute(final RequestContext ctx, final DittoHeaders dittoHeaders, final String thingId) {
         return rawPathPrefix(mergeDoubleSlashes().concat(PATH_PREFIX), () ->
-                Directives.route(
+                concat(
                         features(ctx, dittoHeaders, thingId),
                         featuresEntry(ctx, dittoHeaders, thingId),
                         featuresEntryDefinition(ctx, dittoHeaders, thingId),
@@ -111,7 +110,7 @@ final class FeaturesRoute extends AbstractRoute {
      */
     private Route features(final RequestContext ctx, final DittoHeaders dittoHeaders, final String thingId) {
         return pathEndOrSingleSlash(() ->
-                Directives.route(
+                concat(
                         get(() -> // GET /features?fields=<fieldsString>
                                 parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
                                         handlePerRequest(ctx, RetrieveFeatures
@@ -143,7 +142,7 @@ final class FeaturesRoute extends AbstractRoute {
     private Route featuresEntry(final RequestContext ctx, final DittoHeaders dittoHeaders, final String thingId) {
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), featureId ->
                 pathEndOrSingleSlash(() ->
-                        route(
+                        concat(
                                 get(() -> // GET /features/{featureId}?fields=<fieldsString>
                                         parameterOptional(ThingsParameter.FIELDS.toString(),
                                                 fieldsString ->
@@ -187,7 +186,7 @@ final class FeaturesRoute extends AbstractRoute {
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), featureId ->
                 rawPathPrefix(mergeDoubleSlashes().concat(PATH_DEFINITION), () ->
                         pathEndOrSingleSlash(() ->
-                                route(
+                                concat(
                                         get(() -> // GET /features/{featureId}/definition
                                                 handlePerRequest(ctx,
                                                         RetrieveFeatureDefinition.of(thingId, featureId, dittoHeaders))
@@ -224,7 +223,7 @@ final class FeaturesRoute extends AbstractRoute {
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), featureId ->
                 rawPathPrefix(mergeDoubleSlashes().concat(PATH_PROPERTIES), () ->
                         pathEndOrSingleSlash(() ->
-                                route(
+                                concat(
                                         get(() -> // GET /features/{featureId}/properties?fields=<fieldsString>
                                                 parameterOptional(ThingsParameter.FIELDS.toString(),
                                                         fieldsString ->
@@ -270,7 +269,7 @@ final class FeaturesRoute extends AbstractRoute {
 
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), featureId ->
                 rawPathPrefix(mergeDoubleSlashes().concat(PATH_PROPERTIES), () ->
-                        route(
+                        concat(
                                 get(() -> // GET /features/{featureId}/properties/<propertyJsonPointerStr>
                                         extractUnmatchedPath(propertyJsonPointerStr ->
                                                 handlePerRequest(ctx, RetrieveFeatureProperty

@@ -111,11 +111,11 @@ public final class ThingsRoute extends AbstractRoute {
      */
     public Route buildThingsRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
         return rawPathPrefix(mergeDoubleSlashes().concat(PATH_THINGS), () ->
-                route(
+                concat(
                         things(ctx, dittoHeaders),
                         rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()),
                                 thingId -> // /things/<thingId>
-                                        route(
+                                        concat(
                                                 thingsEntry(ctx, dittoHeaders, thingId),
                                                 thingsEntryPolicyId(ctx, dittoHeaders, thingId),
                                                 thingsEntryAcl(ctx, dittoHeaders, thingId),
@@ -137,7 +137,7 @@ public final class ThingsRoute extends AbstractRoute {
      */
     private Route things(final RequestContext ctx, final DittoHeaders dittoHeaders) {
         return pathEndOrSingleSlash(() ->
-                route( //
+                concat( //
                         get(() -> // GET /things?ids=<idsString>&fields=<fieldsString>
                                 buildRetrieveThingsRoute(ctx, dittoHeaders)
                         ),
@@ -201,7 +201,7 @@ public final class ThingsRoute extends AbstractRoute {
      */
     private Route thingsEntry(final RequestContext ctx, final DittoHeaders dittoHeaders, final String thingId) {
         return pathEndOrSingleSlash(() ->
-                route(
+                concat(
                         get(() -> // GET /things/things/<thingId>?fields=<fieldsString>
                                 parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
                                         handlePerRequest(ctx, RetrieveThing.getBuilder(thingId, dittoHeaders)
@@ -252,7 +252,7 @@ public final class ThingsRoute extends AbstractRoute {
     private Route thingsEntryPolicyId(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final String thingId) {
         return path(PATH_POLICY_ID, () -> // /things/<thingId>/policyId
-                route(
+                concat(
                         get(() -> // GET /things/<thingId>/policyId
                                 handlePerRequest(ctx, RetrievePolicyId.of(thingId, dittoHeaders))
                         ),
@@ -279,7 +279,7 @@ public final class ThingsRoute extends AbstractRoute {
     private Route thingsEntryAcl(final RequestContext ctx, final DittoHeaders dittoHeaders, final String thingId) {
         return rawPathPrefix(mergeDoubleSlashes().concat(PATH_ACL), () -> // /things/<thingId>/acl
                 pathEndOrSingleSlash(() ->
-                        route(
+                        concat(
                                 get(() -> // GET /things/<thingId>/acl
                                         handlePerRequest(ctx, RetrieveAcl.of(thingId, dittoHeaders))
                                 ),
@@ -305,7 +305,7 @@ public final class ThingsRoute extends AbstractRoute {
         return rawPathPrefix(mergeDoubleSlashes().concat(PATH_ACL), () ->
                 rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), subject ->
                         pathEndOrSingleSlash(() ->
-                                route(
+                                concat(
                                         get(() -> // GET
                                                 // /things/<thingId>/acl/<authorizationSubject>?fields=<fieldsString>
                                                 parameterOptional(ThingsParameter.FIELDS.toString(),
@@ -352,7 +352,7 @@ public final class ThingsRoute extends AbstractRoute {
 
         return rawPathPrefix(mergeDoubleSlashes().concat(PATH_ATTRIBUTES), () ->
                 pathEndOrSingleSlash(() ->
-                        route(
+                        concat(
                                 get(() -> // GET /things/<thingId>/attributes?fields=<fieldsString>
                                         parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
                                                 handlePerRequest(ctx, RetrieveAttributes
@@ -395,7 +395,7 @@ public final class ThingsRoute extends AbstractRoute {
             final String thingId) {
 
         return rawPathPrefix(mergeDoubleSlashes().concat(PATH_ATTRIBUTES), () ->
-                route(
+                concat(
                         get(() -> // GET /things/<thingId>/attributes
                                 pathEnd(() -> // GET /things/<thingId>/attributes/
                                         handlePerRequest(ctx, RetrieveAttributes.of(thingId, dittoHeaders))
