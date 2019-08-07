@@ -60,7 +60,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     /**
      * The name prefix of this Actor in the ActorSystem.
      */
-    static final String ACTOR_NAME = "amqpPublisherActor";
+    static final String ACTOR_NAME_PREFIX = "amqpPublisherActor";
 
     private static final Map<String, BiConsumer<Message, String>> JMS_HEADER_MAPPING = new HashMap<>();
 
