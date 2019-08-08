@@ -281,7 +281,8 @@ public final class MessageMappingProcessorActor extends AbstractActor {
          * instance due to cluster routing.
          */
         final DittoHeaders truncatedHeaders = mergedDittoHeaders.truncate(limitsConfig.getHeadersMaxSize());
-        return getThingId(exception).map(thingId -> ThingErrorResponse.of(thingId, exception, truncatedHeaders))
+        return getThingId(exception)
+                .map(thingId -> ThingErrorResponse.of(thingId, exception, truncatedHeaders))
                 .orElseGet(() -> ThingErrorResponse.of(exception, truncatedHeaders));
     }
 

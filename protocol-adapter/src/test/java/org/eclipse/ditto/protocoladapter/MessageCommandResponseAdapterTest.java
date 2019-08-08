@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.protocoladapter.TestConstants.CORRELATION_ID;
 import static org.eclipse.ditto.protocoladapter.TestConstants.FEATURE_ID;
 
@@ -186,7 +185,7 @@ public final class MessageCommandResponseAdapterTest implements ProtocolAdapterT
 
         final Adaptable actual = underTest.toAdaptable(messageCommandResponse);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     private MessageCommandResponse messageCommandResponse(final Message<Object> message, final DittoHeaders headers) {

@@ -252,12 +252,12 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
                 headerTranslator.fromExternalHeaders(externalHeaders),
                 externalAdaptable.getTopicPath());
 
-        final Adaptable adaptable = externalAdaptable.setDittoHeaders(filteredHeaders);
         final JsonifiableMapper<T> jsonifiableMapper = mappingStrategies.get(type);
         if (null == jsonifiableMapper) {
             throw UnknownTopicPathException.fromMessage(getUnknownTypeMessage(externalAdaptable), filteredHeaders);
         }
 
+        final Adaptable adaptable = externalAdaptable.setDittoHeaders(filteredHeaders);
         return DittoJsonException.wrapJsonRuntimeException(() -> jsonifiableMapper.map(adaptable));
     }
 

@@ -63,7 +63,7 @@ final class ImmutableJsonifiableAdaptable implements JsonifiableAdaptable {
                 .map(ProtocolFactory::newHeaders)
                 .orElse(DittoHeaders.empty());
 
-        TopicPath topicPath;
+        final TopicPath topicPath;
 
         try {
             topicPath = jsonObject.getValue(JsonFields.TOPIC)
