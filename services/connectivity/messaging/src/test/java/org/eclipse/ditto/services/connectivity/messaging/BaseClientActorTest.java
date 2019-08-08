@@ -48,6 +48,7 @@ import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.FSM;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.testkit.javadsl.TestKit;
@@ -134,7 +135,7 @@ public final class BaseClientActorTest {
             whenOpeningConnection(dummyClientActor, OpenConnection.of(randomConnectionId, DittoHeaders.empty()), getRef());
             thenExpectConnectClientCalled();
 
-            andNoResponseSent();
+            andStateTimeoutSent(dummyClientActor);
 
             expectMsgClass(Status.Failure.class);
 
@@ -238,13 +239,8 @@ public final class BaseClientActorTest {
                 clientActor);
     }
 
-    private void andNoResponseSent() {
-        try {
-            TimeUnit.SECONDS.sleep(connectivityConfig.getClientConfig().getConnectingMinTimeout().getSeconds());
-        } catch (InterruptedException e) {
-            System.out.println("Unexpected interruption while waiting until the connecting timeout takes place...");
-            e.printStackTrace();
-        }
+    private void andStateTimeoutSent(final ActorRef clientActor) {
+        clientActor.tell(FSM.StateTimeout$.MODULE$, clientActor);
     }
 
     private static final class DummyClientActor extends BaseClientActor {

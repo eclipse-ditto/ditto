@@ -460,7 +460,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      */
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectingState() {
         return matchEventEquals(StateTimeout(), BaseClientData.class, (event, data) -> this.connectionTimedOut(data))
-                .event(ConnectionFailure.class, BaseClientData.class, this::connectionFailure)
+                .event(ConnectionFailure.class, BaseClientData.class, this::connectingConnectionFailed)
                 .event(ClientConnected.class, BaseClientData.class, this::clientConnected)
                 .event(CloseConnection.class, BaseClientData.class, this::closeConnection);
     }
@@ -472,7 +472,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      */
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectedState() {
         return matchEvent(CloseConnection.class, BaseClientData.class, this::closeConnection)
-                .event(OpenConnection.class, BaseClientData.class, this::connectionAlreadyOpen);
+                .event(OpenConnection.class, BaseClientData.class, this::connectionAlreadyOpen)
+                .event(ConnectionFailure.class, BaseClientData.class, this::connectedConnectionFailed);
     }
 
     /**
@@ -482,7 +483,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      */
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inDisconnectingState() {
         return matchEventEquals(StateTimeout(), BaseClientData.class, (event, data) -> this.connectionTimedOut(data))
-                .event(ConnectionFailure.class, BaseClientData.class, this::connectionFailure)
+                .event(ConnectionFailure.class, BaseClientData.class, this::connectingConnectionFailed)
                 .event(ClientDisconnected.class, BaseClientData.class, this::clientDisconnected);
     }
 
@@ -686,6 +687,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
             allocateResourcesOnConnection(clientConnected);
             data.getSessionSender().ifPresent(origin -> origin.tell(new Status.Success(CONNECTED), getSelf()));
+            reconnectTimeoutStrategy.reset();
             return goTo(CONNECTED).using(data.resetSession()
                     .setConnectionStatus(ConnectivityStatus.OPEN)
                     .setConnectionStatusDetails("Connected at " + Instant.now()));
@@ -707,7 +709,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         });
     }
 
-    private State<BaseClientState, BaseClientData> connectionFailure(final ConnectionFailure event,
+    private State<BaseClientState, BaseClientData> connectingConnectionFailed(final ConnectionFailure event,
             final BaseClientData data) {
         return ifEventUpToDate(event, () -> {
             ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
@@ -716,35 +718,61 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             cleanupResourcesForConnection();
             data.getSessionSender().ifPresent(sender -> sender.tell(statusToReport, getSelf()));
 
-            if (ConnectivityStatus.OPEN.equals(data.getDesiredConnectionStatus())) {
-                if (reconnectTimeoutStrategy.canReconnect()) {
-                    connectionLogger.failure("Connection failed due to: {0}. Will try to reconnect.",
-                            event.getFailureDescription());
-                    return goTo(CONNECTING).forMax(reconnectTimeoutStrategy.getNextTimeout()).using(data.resetSession()
-                            .setConnectionStatus(ConnectivityStatus.FAILED)
-                            .setConnectionStatusDetails(event.getFailureDescription()));
-                } else {
-                    connectionLogger.failure(
-                            "Connection failed due to: {0}. Reached maximum tries and thus will no longer try to reconnect.",
-                            event.getFailureDescription());
-                    log.info(
-                            "Connection <{}> reached maximum retries for reconnecting and thus will no longer try to reconnect.",
-                            connectionId());
+            return backoffAfterFailure(event, data);
+        });
+    }
 
-                    return goTo(UNKNOWN).using(data.resetSession()
-                            .setConnectionStatus(ConnectivityStatus.FAILED)
-                            .setConnectionStatusDetails(event.getFailureDescription()
-                                    + " Reached maximum retries and thus will not try to reconnect any longer."));
-                }
+    private State<BaseClientState, BaseClientData> connectedConnectionFailed(final ConnectionFailure event,
+            final BaseClientData data) {
+        return ifEventUpToDate(event, () -> {
+            ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
 
+            // do not bother to disconnect gracefully - the other end of the connection is probably dead
+            cleanupResourcesForConnection();
+            cleanupFurtherResourcesOnConnectionTimeout(stateName());
+
+            return backoffAfterFailure(event, data);
+        });
+    }
+
+    /**
+     * Attempt to reconnect after a failure. Ensure resources were cleaned up before calling it.
+     * Enter state CONNECTING without actually attempting reconnection.
+     * Actual reconnection happens after the state times out.
+     *
+     * @param event the failure event
+     * @param data the current client data
+     */
+    private State<BaseClientState, BaseClientData> backoffAfterFailure(final ConnectionFailure event,
+            final BaseClientData data) {
+        if (ConnectivityStatus.OPEN.equals(data.getDesiredConnectionStatus())) {
+            if (reconnectTimeoutStrategy.canReconnect()) {
+                connectionLogger.failure("Connection failed due to: {0}. Will try to reconnect.",
+                        event.getFailureDescription());
+                return goTo(CONNECTING).forMax(reconnectTimeoutStrategy.getNextBackoff()).using(data.resetSession()
+                        .setConnectionStatus(ConnectivityStatus.FAILED)
+                        .setConnectionStatusDetails(event.getFailureDescription()));
+            } else {
+                connectionLogger.failure(
+                        "Connection failed due to: {0}. Reached maximum tries and thus will no longer try to reconnect.",
+                        event.getFailureDescription());
+                log.info(
+                        "Connection <{}> reached maximum retries for reconnecting and thus will no longer try to reconnect.",
+                        connectionId());
+
+                return goTo(UNKNOWN).using(data.resetSession()
+                        .setConnectionStatus(ConnectivityStatus.FAILED)
+                        .setConnectionStatusDetails(event.getFailureDescription()
+                                + " Reached maximum retries and thus will not try to reconnect any longer."));
             }
 
-            connectionLogger.failure("Connection failed due to: {0}.", event.getFailureDescription());
-            return goTo(UNKNOWN).using(data.resetSession()
-                    .setConnectionStatus(ConnectivityStatus.FAILED)
-                    .setConnectionStatusDetails(event.getFailureDescription())
-            );
-        });
+        }
+
+        connectionLogger.failure("Connection failed due to: {0}.", event.getFailureDescription());
+        return goTo(UNKNOWN).using(data.resetSession()
+                .setConnectionStatus(ConnectivityStatus.FAILED)
+                .setConnectionStatusDetails(event.getFailureDescription())
+        );
     }
 
     private State<BaseClientState, BaseClientData> ifEventUpToDate(final Object event,
@@ -1111,6 +1139,11 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     /**
      * Reconnect timeout strategy that provides increasing timeouts for reconnecting the client.
+     * On timeout, increase the next timeout so that backoff happens when connecting to a drop-all firewall.
+     * On failure, increase backoff-wait so that backoff happens when connecting to a broken broker.
+     * Timeout and backoff are incremented individually in case the remote end refuse or drop packets at random.
+     * Each failure causes a timeout. As a result, failures increment both timeout and backoff. The counter
+     * {@code currentTries} is only incremented on timeout so that it is not incremented twice on failure.
      */
     public interface ReconnectTimeoutStrategy {
 
@@ -1120,6 +1153,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         Duration getNextTimeout();
 
+        Duration getNextBackoff();
     }
 
     /**
@@ -1129,24 +1163,29 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         private final Duration minTimeout;
         private final Duration maxTimeout;
+        private final Duration minBackoff;
+        private final Duration maxBackoff;
         private final int maxTries;
         private Duration currentTimeout;
+        private Duration nextBackoff;
         private int currentTries;
 
         DuplicationReconnectTimeoutStrategy(final Duration minTimeout, final Duration maxTimeout,
-                final int maxTries) {
+                final int maxTries, final Duration minBackoff, final Duration maxBackoff) {
+            this.maxTimeout = checkArgument(maxTimeout, isPositiveOrZero(), () -> "maxTimeout must be positive");
+            this.maxBackoff = checkArgument(maxBackoff, isPositiveOrZero(), () -> "maxBackoff must be positive");
             this.minTimeout = checkArgument(minTimeout, isPositiveOrZero().and(isLowerThanOrEqual(maxTimeout)),
                     () -> "minTimeout must be positive and lower than or equal to maxTimeout");
-            this.maxTimeout = checkArgument(maxTimeout, isPositiveOrZero(),
-                    () -> "maxTimeout must be positive");
-            this.currentTimeout = minTimeout;
+            this.minBackoff = checkArgument(minBackoff, isPositiveOrZero().and(isLowerThanOrEqual(maxBackoff)),
+                    () -> "minBackoff must be positive and lower than or equal to maxTimeout");
             this.maxTries = checkArgument(maxTries, arg -> arg > 0, () -> "maxTries must be positive");
-            this.currentTries = 0;
+            reset();
         }
 
         private static DuplicationReconnectTimeoutStrategy fromConfig(final ClientConfig clientConfig) {
             return new DuplicationReconnectTimeoutStrategy(clientConfig.getConnectingMinTimeout(),
-                    clientConfig.getConnectingMaxTimeout(), clientConfig.getConnectingMaxTries());
+                    clientConfig.getConnectingMaxTimeout(), clientConfig.getConnectingMaxTries(),
+                    clientConfig.getMinBackoff(), clientConfig.getMaxBackoff());
         }
 
         @Override
@@ -1157,6 +1196,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         @Override
         public void reset() {
             this.currentTimeout = this.minTimeout;
+            this.nextBackoff = this.minBackoff;
             this.currentTries = 0;
         }
 
@@ -1166,14 +1206,20 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             return this.currentTimeout;
         }
 
+        @Override
+        public Duration getNextBackoff() {
+            final Duration result = nextBackoff;
+            nextBackoff = minDuration(maxTimeout, nextBackoff.multipliedBy(2L));
+            return result;
+        }
+
         private void increase() {
-            if (!maxTimeout.equals(currentTimeout)) {
-                this.currentTimeout = this.currentTimeout.multipliedBy(2L);
-                if (maxTimeout.minus(currentTimeout).isNegative()) {
-                    this.currentTimeout = maxTimeout;
-                }
-            }
+            currentTimeout = minDuration(maxTimeout, currentTimeout.multipliedBy(2L));
             ++currentTries;
+        }
+
+        private static Duration minDuration(final Duration d1, final Duration d2) {
+            return d2.minus(d1).isNegative() ? d2 : d1;
         }
 
         private static Predicate<Duration> isLowerThanOrEqual(final Duration otherDuration) {

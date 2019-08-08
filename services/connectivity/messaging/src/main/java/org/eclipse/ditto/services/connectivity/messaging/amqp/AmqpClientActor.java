@@ -77,7 +77,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private static final String SPEC_CONFIG_RECOVER_ON_SESSION_CLOSED = "recover.on-session-closed";
     private static final String SPEC_CONFIG_RECOVER_ON_CONNECTION_RESTORED = "recover.on-connection-restored";
     private final JmsConnectionFactory jmsConnectionFactory;
-    private final StatusReportingListener connectionListener;
+    final StatusReportingListener connectionListener;
 
     @Nullable private JmsConnection jmsConnection;
     @Nullable private Session jmsSession;
@@ -284,23 +284,13 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      */
     @Override
     protected void cleanupFurtherResourcesOnConnectionTimeout(final BaseClientState currentState) {
-        switch (currentState) {
-            case CONNECTING:
-                if (connectConnectionHandler != null) {
-                    stopChildActor(connectConnectionHandler);
-                    connectConnectionHandler = null;
-                }
-                break;
-            case DISCONNECTING:
-                if (disconnectConnectionHandler != null) {
-                    stopChildActor(disconnectConnectionHandler);
-                    disconnectConnectionHandler = null;
-                }
-                break;
-            case TESTING:
-            default:
-                // no need to handle TESTING state because this actor stops after test timeout.
-                break;
+        if (connectConnectionHandler != null) {
+            stopChildActor(connectConnectionHandler);
+            connectConnectionHandler = null;
+        }
+        if (disconnectConnectionHandler != null) {
+            stopChildActor(disconnectConnectionHandler);
+            disconnectConnectionHandler = null;
         }
         super.cleanupFurtherResourcesOnConnectionTimeout(currentState);
     }
@@ -676,7 +666,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      * Listener updates connection status for metrics reporting. Do not alter actor state.
      */
     @Immutable
-    private static final class StatusReportingListener implements JmsConnectionListener {
+    static final class StatusReportingListener implements JmsConnectionListener {
 
         private final ActorRef self;
         private final DiagnosticLoggingAdapter log;
@@ -744,9 +734,9 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         @Override
         public void onConsumerClosed(final MessageConsumer consumer, final Throwable cause) {
             ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
-            connectionLogger.failure("Consumer {0} was closed: {1}", consumer.toString(), cause.getMessage());
-            log.warning("Consumer <{}> closed due to {}: {}", consumer.toString(),
-                    cause.getClass().getSimpleName(), cause.getMessage());
+            connectionLogger.failure("Consumer {0} was closed: {1}", consumer, cause.getMessage());
+            log.warning("Consumer <{}> closed due to {}: {}", consumer, cause.getClass().getSimpleName(),
+                    cause.getMessage());
             self.tell(ConsumerClosedStatusReport.get(consumer), ActorRef.noSender());
         }
 

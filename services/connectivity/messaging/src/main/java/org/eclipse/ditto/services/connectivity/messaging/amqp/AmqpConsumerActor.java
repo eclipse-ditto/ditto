@@ -251,6 +251,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
 
     private void messageConsumerCreated(final CreateMessageConsumerResponse response) throws JMSException {
         if (consumerData.equals(response.consumerData)) {
+            log.info("Consumer <{}> created", response.messageConsumer);
             destroyMessageConsumer();
             messageConsumer = response.messageConsumer;
             initMessageConsumer();
