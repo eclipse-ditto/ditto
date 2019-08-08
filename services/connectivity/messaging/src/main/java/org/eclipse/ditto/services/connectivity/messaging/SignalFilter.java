@@ -30,6 +30,7 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.FilteredTopic;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.model.namespaces.NamespaceReader;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
@@ -37,12 +38,12 @@ import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
+import org.eclipse.ditto.model.things.id.WithThingId;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
-import org.eclipse.ditto.signals.base.WithThingId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
@@ -125,8 +126,9 @@ final class SignalFilter {
         return t -> t.getNamespaces().isEmpty() || t.getNamespaces().contains(namespaceFromId(signal));
     }
 
+    @Nullable
     private static String namespaceFromId(final WithId withId) {
-        return withId.getId().split(":", 2)[0];
+        return NamespaceReader.fromEntityId(withId.getEntityId()).orElse(null);
     }
 
     private boolean matchesFilter(final String filter, final Signal<?> signal) {

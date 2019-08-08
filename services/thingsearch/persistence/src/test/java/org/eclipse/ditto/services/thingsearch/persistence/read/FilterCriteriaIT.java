@@ -23,10 +23,10 @@ import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
 import org.eclipse.ditto.model.things.Attributes;
+import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
 import org.junit.Before;
 import org.junit.Test;
-
-import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
 
 /**
  * Tests for search persistence.
@@ -38,19 +38,19 @@ public final class FilterCriteriaIT extends AbstractReadPersistenceITBase {
     private static final String KNOWN_BOOL_ATTR = "boolAttr";
     private static final String KNOWN_REGEX_ATTR = "stringRegex";
 
-    private static final String THING1_ID = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing1");
+    private static final ThingId THING1_ID = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing1");
     private static final String THING1_KNOWN_STR_ATTR_VALUE = "a";
     private static final int THING1_KNOWN_NUM_ATTR_VALUE = 1;
     private static final boolean THING1_KNOWN_BOOL_ATTR_VALUE = true;
-    private static final String THING2_ID = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing2");
+    private static final ThingId THING2_ID = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing2");
     private static final String THING2_KNOWN_STR_ATTR_VALUE = "b";
     private static final int THING2_KNOWN_NUM_ATTR_VALUE = 2;
     private static final boolean THING2_KNOWN_BOOL_ATTR_VALUE = true;
-    private static final String THING3_ID = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing3");
+    private static final ThingId THING3_ID = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing3");
     private static final String THING3_KNOWN_STR_ATTR_VALUE = "c";
     private static final double THING3_KNOWN_NUM_ATTR_VALUE = 3.1;
     private static final boolean THING3_KNOWN_BOOL_ATTR_VALUE = false;
-    private static final String THING4_ID = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing4");
+    private static final ThingId THING4_ID = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing4");
     private static final String THING4_KNOWN_STR_ATTR_VALUE = "d";
     private static final int THING4_KNOWN_NUM_ATTR_VALUE = 4;
     private static final boolean THING4_KNOWN_BOOL_ATTR_VALUE = false;
@@ -76,7 +76,7 @@ public final class FilterCriteriaIT extends AbstractReadPersistenceITBase {
     public void findAllByEqString() {
         final Criteria crit =
                 cf.fieldCriteria(ef.filterByAttribute(KNOWN_STRING_ATTR), cf.eq(THING1_KNOWN_STR_ATTR_VALUE));
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING1_ID);
     }
 
@@ -84,7 +84,7 @@ public final class FilterCriteriaIT extends AbstractReadPersistenceITBase {
     public void findAllByEqNumber() {
         final Criteria crit =
                 cf.fieldCriteria(ef.filterByAttribute(KNOWN_NUMBER_ATTR), cf.eq(THING2_KNOWN_NUM_ATTR_VALUE));
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING2_ID);
     }
 
@@ -92,7 +92,7 @@ public final class FilterCriteriaIT extends AbstractReadPersistenceITBase {
     public void findAllByEqBoolean() {
         final Criteria crit =
                 cf.fieldCriteria(ef.filterByAttribute(KNOWN_BOOL_ATTR), cf.eq(THING3_KNOWN_BOOL_ATTR_VALUE));
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING3_ID, THING4_ID);
     }
 
@@ -100,7 +100,7 @@ public final class FilterCriteriaIT extends AbstractReadPersistenceITBase {
     public void findAllByNeString() {
         final Criteria crit =
                 cf.fieldCriteria(ef.filterByAttribute(KNOWN_STRING_ATTR), cf.ne(THING1_KNOWN_STR_ATTR_VALUE));
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING2_ID, THING3_ID, THING4_ID);
     }
 
@@ -108,7 +108,7 @@ public final class FilterCriteriaIT extends AbstractReadPersistenceITBase {
     public void findAllByNeNumber() {
         final Criteria crit =
                 cf.fieldCriteria(ef.filterByAttribute(KNOWN_NUMBER_ATTR), cf.ne(THING2_KNOWN_NUM_ATTR_VALUE));
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING1_ID, THING3_ID, THING4_ID);
     }
 
@@ -116,7 +116,7 @@ public final class FilterCriteriaIT extends AbstractReadPersistenceITBase {
     public void findAllByNeBoolean() {
         final Criteria crit =
                 cf.fieldCriteria(ef.filterByAttribute(KNOWN_BOOL_ATTR), cf.ne(THING3_KNOWN_BOOL_ATTR_VALUE));
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING1_ID, THING2_ID);
     }
 
@@ -124,12 +124,12 @@ public final class FilterCriteriaIT extends AbstractReadPersistenceITBase {
     public void neIsEqualToNotEq() {
         final Criteria critNe =
                 cf.fieldCriteria(ef.filterByAttribute(KNOWN_STRING_ATTR), cf.ne(THING1_KNOWN_STR_ATTR_VALUE));
-        final Collection<String> resultNe = findForCriteria(critNe);
+        final Collection<ThingId> resultNe = findForCriteria(critNe);
 
         final Criteria critNotEq = cf.nor(
                 Collections.singletonList(
                         cf.fieldCriteria(ef.filterByAttribute(KNOWN_STRING_ATTR), cf.eq(THING1_KNOWN_STR_ATTR_VALUE))));
-        final Collection<String> resultNotEq = findForCriteria(critNotEq);
+        final Collection<ThingId> resultNotEq = findForCriteria(critNotEq);
 
         assertThat(resultNe).isNotEmpty();
         assertThat(resultNe).isEqualTo(resultNotEq);
@@ -139,7 +139,7 @@ public final class FilterCriteriaIT extends AbstractReadPersistenceITBase {
     public void findAllByGtString() {
         final Criteria crit =
                 cf.fieldCriteria(ef.filterByAttribute(KNOWN_STRING_ATTR), cf.gt(THING2_KNOWN_STR_ATTR_VALUE));
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING3_ID, THING4_ID);
     }
 
@@ -147,7 +147,7 @@ public final class FilterCriteriaIT extends AbstractReadPersistenceITBase {
     public void findAllByGtNumber() {
         final Criteria crit =
                 cf.fieldCriteria(ef.filterByAttribute(KNOWN_NUMBER_ATTR), cf.gt(THING3_KNOWN_NUM_ATTR_VALUE));
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING4_ID);
     }
 
@@ -155,7 +155,7 @@ public final class FilterCriteriaIT extends AbstractReadPersistenceITBase {
     public void findAllByGtBoolean() {
         final Criteria crit =
                 cf.fieldCriteria(ef.filterByAttribute(KNOWN_BOOL_ATTR), cf.gt(THING3_KNOWN_BOOL_ATTR_VALUE));
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING1_ID, THING2_ID);
     }
 
@@ -163,7 +163,7 @@ public final class FilterCriteriaIT extends AbstractReadPersistenceITBase {
     public void findAllByGeString() {
         final Criteria crit =
                 cf.fieldCriteria(ef.filterByAttribute(KNOWN_STRING_ATTR), cf.ge(THING2_KNOWN_STR_ATTR_VALUE));
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING2_ID, THING3_ID, THING4_ID);
     }
 
@@ -171,7 +171,7 @@ public final class FilterCriteriaIT extends AbstractReadPersistenceITBase {
     public void findAllByGeNumber() {
         final Criteria crit =
                 cf.fieldCriteria(ef.filterByAttribute(KNOWN_NUMBER_ATTR), cf.ge(THING3_KNOWN_NUM_ATTR_VALUE));
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING3_ID, THING4_ID);
     }
 
@@ -179,7 +179,7 @@ public final class FilterCriteriaIT extends AbstractReadPersistenceITBase {
     public void findAllByGeBoolean() {
         final Criteria crit =
                 cf.fieldCriteria(ef.filterByAttribute(KNOWN_BOOL_ATTR), cf.ge(THING3_KNOWN_BOOL_ATTR_VALUE));
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING1_ID, THING2_ID, THING3_ID, THING4_ID);
     }
 
@@ -187,7 +187,7 @@ public final class FilterCriteriaIT extends AbstractReadPersistenceITBase {
     public void findAllByLtString() {
         final Criteria crit =
                 cf.fieldCriteria(ef.filterByAttribute(KNOWN_STRING_ATTR), cf.lt(THING2_KNOWN_STR_ATTR_VALUE));
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING1_ID);
     }
 
@@ -195,7 +195,7 @@ public final class FilterCriteriaIT extends AbstractReadPersistenceITBase {
     public void findAllByLtNumber() {
         final Criteria crit =
                 cf.fieldCriteria(ef.filterByAttribute(KNOWN_NUMBER_ATTR), cf.lt(THING3_KNOWN_NUM_ATTR_VALUE));
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING1_ID, THING2_ID);
     }
 
@@ -203,7 +203,7 @@ public final class FilterCriteriaIT extends AbstractReadPersistenceITBase {
     public void findAllByLtBoolean() {
         final Criteria crit =
                 cf.fieldCriteria(ef.filterByAttribute(KNOWN_BOOL_ATTR), cf.lt(THING2_KNOWN_BOOL_ATTR_VALUE));
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING3_ID, THING4_ID);
     }
 
@@ -211,7 +211,7 @@ public final class FilterCriteriaIT extends AbstractReadPersistenceITBase {
     public void findAllByLeString() {
         final Criteria crit =
                 cf.fieldCriteria(ef.filterByAttribute(KNOWN_STRING_ATTR), cf.le(THING2_KNOWN_STR_ATTR_VALUE));
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING1_ID, THING2_ID);
     }
 
@@ -219,7 +219,7 @@ public final class FilterCriteriaIT extends AbstractReadPersistenceITBase {
     public void findAllByLeNumber() {
         final Criteria crit =
                 cf.fieldCriteria(ef.filterByAttribute(KNOWN_NUMBER_ATTR), cf.le(THING3_KNOWN_NUM_ATTR_VALUE));
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING1_ID, THING2_ID, THING3_ID);
     }
 
@@ -227,7 +227,7 @@ public final class FilterCriteriaIT extends AbstractReadPersistenceITBase {
     public void findAllByLeBoolean() {
         final Criteria crit =
                 cf.fieldCriteria(ef.filterByAttribute(KNOWN_BOOL_ATTR), cf.le(THING2_KNOWN_BOOL_ATTR_VALUE));
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING1_ID, THING2_ID, THING3_ID, THING4_ID);
     }
 
@@ -238,7 +238,7 @@ public final class FilterCriteriaIT extends AbstractReadPersistenceITBase {
     public void queryByLikeString1() {
         final Criteria crit =
                 cf.fieldCriteria(ef.filterByAttribute(KNOWN_REGEX_ATTR), cf.like(THING1_KNOWN_STR_REGEX_VALUE_TEST));
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING1_ID);
     }
 
@@ -249,7 +249,7 @@ public final class FilterCriteriaIT extends AbstractReadPersistenceITBase {
     public void queryByLikeString2() {
         final Criteria crit =
                 cf.fieldCriteria(ef.filterByAttribute(KNOWN_REGEX_ATTR), cf.like(THING2_KNOWN_STR_REGEX_VALUE_TEST));
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING2_ID);
     }
 
@@ -260,7 +260,7 @@ public final class FilterCriteriaIT extends AbstractReadPersistenceITBase {
     public void queryByLikeString3() {
         final Criteria crit =
                 cf.fieldCriteria(ef.filterByAttribute(KNOWN_REGEX_ATTR), cf.like(THING3_KNOWN_STR_REGEX_VALUE_TEST));
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING3_ID);
     }
 
@@ -271,7 +271,7 @@ public final class FilterCriteriaIT extends AbstractReadPersistenceITBase {
     public void queryByLikeString4() {
         final Criteria crit =
                 cf.fieldCriteria(ef.filterByAttribute(KNOWN_REGEX_ATTR), cf.like(THING4_KNOWN_STR_REGEX_VALUE_TEST));
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING4_ID);
     }
 

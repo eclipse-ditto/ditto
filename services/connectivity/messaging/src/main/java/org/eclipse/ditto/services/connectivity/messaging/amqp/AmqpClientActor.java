@@ -35,6 +35,7 @@ import org.apache.qpid.jms.JmsConnectionListener;
 import org.apache.qpid.jms.JmsSession;
 import org.apache.qpid.jms.message.JmsInboundMessageDispatch;
 import org.apache.qpid.jms.provider.ProviderFactory;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
@@ -670,10 +671,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
         private final ActorRef self;
         private final DiagnosticLoggingAdapter log;
-        private final String connectionId;
+        private final EntityId connectionId;
         private final ConnectionLogger connectionLogger;
 
-        private StatusReportingListener(final ActorRef self, final String connectionId,
+        private StatusReportingListener(final ActorRef self, final EntityId connectionId,
                 final DiagnosticLoggingAdapter log, final ConnectionLogger connectionLogger) {
 
             this.self = self;

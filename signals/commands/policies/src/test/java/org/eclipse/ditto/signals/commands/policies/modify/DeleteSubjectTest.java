@@ -22,8 +22,9 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
-import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.model.policies.SubjectId;
+import org.eclipse.ditto.model.policies.id.PolicyId;
+import org.eclipse.ditto.model.policies.id.PolicyIdInvalidException;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.TestConstants;
 import org.junit.Test;
@@ -37,7 +38,7 @@ public class DeleteSubjectTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyCommand.JsonFields.TYPE, DeleteSubject.TYPE)
-            .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(DeleteSubject.JSON_LABEL, TestConstants.Policy.LABEL.toString())
             .set(DeleteSubject.JSON_SUBJECT_ID, TestConstants.Policy.SUBJECT_ID.toString())
             .build();
@@ -47,7 +48,7 @@ public class DeleteSubjectTest {
     public void assertImmutability() {
         assertInstancesOf(DeleteSubject.class,
                 areImmutable(),
-                provided(Label.class, SubjectId.class, JsonObject.class).areAlsoImmutable());
+                provided(Label.class, SubjectId.class, JsonObject.class, PolicyId.class).areAlsoImmutable());
     }
 
 
@@ -61,7 +62,14 @@ public class DeleteSubjectTest {
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
-        DeleteSubject.of(null, TestConstants.Policy.LABEL,
+        DeleteSubject.of((PolicyId) null, TestConstants.Policy.LABEL,
+                TestConstants.Policy.SUBJECT_ID, TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+
+    @Test(expected = PolicyIdInvalidException.class)
+    public void tryToCreateInstanceWithNullPolicyIdString() {
+        DeleteSubject.of((String) null, TestConstants.Policy.LABEL,
                 TestConstants.Policy.SUBJECT_ID, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
@@ -70,8 +78,7 @@ public class DeleteSubjectTest {
     public void tryToCreateInstanceWithInvalidPolicyId() {
         assertThatExceptionOfType(PolicyIdInvalidException.class)
                 .isThrownBy(() -> DeleteSubject.of("undefined", TestConstants.Policy.LABEL,
-                        TestConstants.Policy.SUBJECT_ID, TestConstants.EMPTY_DITTO_HEADERS))
-                .withNoCause();
+                        TestConstants.Policy.SUBJECT_ID, TestConstants.EMPTY_DITTO_HEADERS));
     }
 
 

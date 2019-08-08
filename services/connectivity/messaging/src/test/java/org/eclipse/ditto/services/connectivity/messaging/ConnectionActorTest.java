@@ -24,6 +24,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.awaitility.Awaitility;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
@@ -86,7 +88,7 @@ public final class ConnectionActorTest extends WithMockServers {
     private static ActorSystem actorSystem;
     private static ActorRef pubSubMediator;
     private static ActorRef conciergeForwarder;
-    private String connectionId;
+    private EntityId connectionId;
     private CreateConnection createConnection;
     private CreateConnection createClosedConnection;
     private ModifyConnection modifyConnection;
@@ -628,9 +630,12 @@ public final class ConnectionActorTest extends WithMockServers {
             expectMsg(createConnectionResponse);
 
             // send cleanup command
-            underTest.tell(CleanupPersistence.of(ConnectionActor.PERSISTENCE_ID_PREFIX + connectionId, DittoHeaders.empty()),
+            underTest.tell(
+                    CleanupPersistence.of(DefaultEntityId.of(ConnectionActor.PERSISTENCE_ID_PREFIX + connectionId),
+                            DittoHeaders.empty()),
                     getRef());
-            expectMsg(CleanupPersistenceResponse.success(ConnectionActor.PERSISTENCE_ID_PREFIX + connectionId,
+            expectMsg(CleanupPersistenceResponse.success(
+                    DefaultEntityId.of(ConnectionActor.PERSISTENCE_ID_PREFIX + connectionId),
                     DittoHeaders.empty()));
         }};
     }

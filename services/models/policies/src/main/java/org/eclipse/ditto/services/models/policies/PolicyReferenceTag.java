@@ -21,7 +21,10 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.services.models.streaming.IdentifiableStreamingMessage;
 
 /**
@@ -35,10 +38,10 @@ public final class PolicyReferenceTag implements IdentifiableStreamingMessage, J
      **/
     private static final String ENTITY_ID_FROM_POLICY_TAG_SEPARATOR = "/";
 
-    private final String entityId;
+    private final EntityId entityId;
     private final PolicyTag policyTag;
 
-    private PolicyReferenceTag(final String entityId, final PolicyTag policyTag) {
+    private PolicyReferenceTag(final EntityId entityId, final PolicyTag policyTag) {
         this.entityId = requireNonNull(entityId);
         this.policyTag = requireNonNull(policyTag);
     }
@@ -50,7 +53,7 @@ public final class PolicyReferenceTag implements IdentifiableStreamingMessage, J
      * @param policyTag the {@link PolicyTag}.
      * @return a new {@link PolicyReferenceTag}.
      */
-    public static PolicyReferenceTag of(final String entityId, final PolicyTag policyTag) {
+    public static PolicyReferenceTag of(final EntityId entityId, final PolicyTag policyTag) {
         return new PolicyReferenceTag(entityId, policyTag);
     }
 
@@ -67,12 +70,14 @@ public final class PolicyReferenceTag implements IdentifiableStreamingMessage, J
      */
     public static PolicyReferenceTag fromJson(final JsonObject jsonObject) {
         final String extractedEntityId = jsonObject.getValueOrThrow(JsonFields.ENTITY_ID);
+        final EntityId entityId = DefaultEntityId.of(extractedEntityId);
         final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+        final PolicyId policyId = PolicyId.of(extractedPolicyId);
         final long extractedPolicyRev = jsonObject.getValueOrThrow(JsonFields.POLICY_REV);
 
-        final PolicyTag extractedPolicyTag = PolicyTag.of(extractedPolicyId, extractedPolicyRev);
+        final PolicyTag extractedPolicyTag = PolicyTag.of(policyId, extractedPolicyRev);
 
-        return new PolicyReferenceTag(extractedEntityId, extractedPolicyTag);
+        return new PolicyReferenceTag(entityId, extractedPolicyTag);
     }
 
     /**
@@ -80,7 +85,7 @@ public final class PolicyReferenceTag implements IdentifiableStreamingMessage, J
      *
      * @return the ID
      */
-    public String getEntityId() {
+    public EntityId getEntityId() {
         return entityId;
     }
 
@@ -96,8 +101,8 @@ public final class PolicyReferenceTag implements IdentifiableStreamingMessage, J
     @Override
     public JsonObject toJson() {
         return JsonFactory.newObjectBuilder()
-                .set(JsonFields.ENTITY_ID, entityId)
-                .set(JsonFields.POLICY_ID, policyTag.getId())
+                .set(JsonFields.ENTITY_ID, String.valueOf(entityId))
+                .set(JsonFields.POLICY_ID, String.valueOf(policyTag.getEntityId()))
                 .set(JsonFields.POLICY_REV, policyTag.getRevision())
                 .build();
     }

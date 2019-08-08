@@ -22,6 +22,8 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -66,7 +68,7 @@ public final class ConnectionSignalIllegalException extends DittoRuntimeExceptio
      * @param connectionId the ID of the connection.
      * @return the builder.
      */
-    public static Builder newBuilder(final String connectionId) {
+    public static Builder newBuilder(final EntityId connectionId) {
         return new Builder().connectionId(connectionId);
     }
 
@@ -96,7 +98,7 @@ public final class ConnectionSignalIllegalException extends DittoRuntimeExceptio
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<ConnectionSignalIllegalException> {
 
-        private String connectionId = "UNKNOWN";
+        private EntityId connectionId = DefaultEntityId.of("UNKNOWN");
 
         private Builder() {
             this.description(DEFAULT_DESCRIPTION);
@@ -108,7 +110,7 @@ public final class ConnectionSignalIllegalException extends DittoRuntimeExceptio
          * @param connectionId the connection ID.
          * @return this builder.
          */
-        public Builder connectionId(final String connectionId) {
+        public Builder connectionId(final EntityId connectionId) {
             this.connectionId = connectionId;
             return this;
         }
@@ -121,7 +123,7 @@ public final class ConnectionSignalIllegalException extends DittoRuntimeExceptio
          * @return this builder.
          */
         public Builder operationName(final String operationName) {
-            message(MessageFormat.format(OPERATING_MESSAGE_TEMPLATE, connectionId, operationName));
+            message(MessageFormat.format(OPERATING_MESSAGE_TEMPLATE, String.valueOf(connectionId), operationName));
             return this;
         }
 

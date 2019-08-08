@@ -22,6 +22,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.id.ThingId;
 
 /**
  * This interface represents headers to be used for {@link Message}s.
@@ -43,7 +44,7 @@ public interface MessageHeaders extends DittoHeaders {
      * @throws SubjectInvalidException if {@code subject} is invalid.
      */
     static MessageHeadersBuilder newBuilder(final MessageDirection direction,
-            final CharSequence thingId, final CharSequence subject) {
+            final ThingId thingId, final CharSequence subject) {
 
         return MessagesModelFactory.newHeadersBuilder(direction, thingId, subject);
     }
@@ -56,7 +57,7 @@ public interface MessageHeaders extends DittoHeaders {
      * @throws NullPointerException if {@code thingId} is {@code null}.
      * @throws IllegalArgumentException if {@code thingId} is empty.
      */
-    static MessageHeadersBuilder newBuilderForClaiming(final CharSequence thingId) {
+    static MessageHeadersBuilder newBuilderForClaiming(final ThingId thingId) {
         return newBuilder(MessageDirection.TO, thingId, KnownMessageSubjects.CLAIM_SUBJECT);
     }
 
@@ -117,8 +118,20 @@ public interface MessageHeaders extends DittoHeaders {
      *
      * @return the thing ID.
      * @throws IllegalStateException if this headers did not contain the thing ID.
+     * @deprecated the thing ID is now typed. Use {@link #getThingEntityId()} instead.
      */
-    String getThingId();
+    @Deprecated
+    default String getThingId() {
+        return getThingEntityId().toString();
+    }
+
+    /**
+     * Returns the ID of the {@code Thing} from/to which this message is sent.
+     *
+     * @return the thing ID.
+     * @throws IllegalStateException if this headers did not contain the thing ID.
+     */
+    ThingId getThingEntityId();
 
     /**
      * Returns the ID of the {@code Feature} from/to which this message is sent (may be empty if the message is not sent

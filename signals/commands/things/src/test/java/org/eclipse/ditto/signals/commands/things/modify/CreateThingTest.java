@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
@@ -79,7 +80,7 @@ public final class CreateThingTest {
         final Thing thing = ThingsModelFactory.newThingBuilder()
                 .setLifecycle(TestConstants.Thing.LIFECYCLE)
                 .setPolicyId(TestConstants.Thing.POLICY_ID)
-                .setId("test.ns:foo-bar")
+                .setId(ThingId.of("test.ns", "foo-bar"))
                 .build();
 
         final CreateThing createThing =
@@ -116,7 +117,7 @@ public final class CreateThingTest {
                 .set("a", sb.toString())
                 .build();
         final Thing thing = Thing.newBuilder()
-                .setId("foo:bar")
+                .setId(ThingId.of("foo", "bar"))
                 .setAttributes(largeAttributes)
                 .build();
 

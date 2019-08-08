@@ -20,6 +20,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributesResponse;
 import org.eclipse.ditto.signals.events.things.AttributesDeleted;
@@ -45,7 +46,7 @@ final class DeleteAttributesStrategy
         return extractAttributes(thing)
                 .map(attributes -> getDeleteAttributesResult(context, nextRevision, command))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.attributesNotFound(context.getThingId(), command.getDittoHeaders())));
+                        ExceptionFactory.attributesNotFound(context.getThingEntityId(), command.getDittoHeaders())));
     }
 
     private Optional<Attributes> extractAttributes(final @Nullable Thing thing) {
@@ -54,7 +55,7 @@ final class DeleteAttributesStrategy
 
     private Result getDeleteAttributesResult(final Context context, final long nextRevision,
             final DeleteAttributes command) {
-        final String thingId = context.getThingId();
+        final ThingId thingId = context.getThingEntityId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return ResultFactory.newMutationResult(command,

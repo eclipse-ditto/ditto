@@ -26,6 +26,8 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -51,10 +53,10 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
             JsonFactory.newStringFieldDefinition("testResult", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final String connectionId;
+    private final EntityId connectionId;
     private final String testResult;
 
-    private TestConnectionResponse(final HttpStatusCode httpStatusCode, final String connectionId,
+    private TestConnectionResponse(final HttpStatusCode httpStatusCode, final EntityId connectionId,
             final String testResult, final DittoHeaders dittoHeaders) {
         super(TYPE, httpStatusCode, dittoHeaders);
         this.connectionId = connectionId;
@@ -70,7 +72,7 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
      * @return a new TestConnectionResponse.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static TestConnectionResponse success(final String connectionId, final String restResult,
+    public static TestConnectionResponse success(final EntityId connectionId, final String restResult,
             final DittoHeaders dittoHeaders) {
         checkNotNull(connectionId, "ConnectionId");
         checkNotNull(restResult, "TestResult");
@@ -85,7 +87,7 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
      * @return a new TestConnectionResponse.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static TestConnectionResponse alreadyCreated(final String connectionId, final DittoHeaders dittoHeaders) {
+    public static TestConnectionResponse alreadyCreated(final EntityId connectionId, final DittoHeaders dittoHeaders) {
         checkNotNull(connectionId, "ConnectionId");
         return new TestConnectionResponse(HttpStatusCode.CONFLICT, connectionId,
                 "Connection was already created - no test possible", dittoHeaders);
@@ -121,8 +123,10 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
                 statusCode -> {
                     final String readConnectionId =
                             jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
+                    final EntityId connectionId = DefaultEntityId.of(readConnectionId);
+
                     final String readConnectionResult = jsonObject.getValueOrThrow(JSON_TEST_RESULT);
-                    return new TestConnectionResponse(statusCode, readConnectionId, readConnectionResult, dittoHeaders);
+                    return new TestConnectionResponse(statusCode, connectionId, readConnectionResult, dittoHeaders);
                 });
     }
 
@@ -139,12 +143,13 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, connectionId, predicate);
+        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId),
+                predicate);
         jsonObjectBuilder.set(JSON_TEST_RESULT, testResult, predicate);
     }
 
     @Override
-    public String getConnectionId() {
+    public EntityId getConnectionEntityId() {
         return connectionId;
     }
 

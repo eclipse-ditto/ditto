@@ -14,6 +14,7 @@ package org.eclipse.ditto.signals.commands.things.modify;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions.assertThat;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -21,7 +22,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.things.ThingPolicyIdInvalidException;
+import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.id.ThingPolicyIdInvalidException;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
@@ -38,14 +40,14 @@ public final class ModifyPolicyIdTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, ModifyPolicyId.TYPE)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ModifyPolicyId.JSON_POLICY_ID, KNOWN_POLICY_ID)
             .build();
 
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ModifyPolicyId.class, areImmutable());
+        assertInstancesOf(ModifyPolicyId.class, areImmutable(), provided(ThingId.class).isAlsoImmutable());
     }
 
 
@@ -82,7 +84,7 @@ public final class ModifyPolicyIdTest {
         final ModifyPolicyId underTest = ModifyPolicyId.fromJson(KNOWN_JSON.toString(), DittoHeaders.empty());
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getPolicyId()).isEqualTo(KNOWN_POLICY_ID);
     }
 

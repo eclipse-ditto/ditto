@@ -15,15 +15,9 @@ package org.eclipse.ditto.model.messages;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
 import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.time.OffsetDateTime;
-import java.util.UUID;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.junit.Test;
 
 /**
@@ -31,18 +25,12 @@ import org.junit.Test;
  */
 public final class ImmutableMessageBuilderTest {
 
-    private final static String KNOWN_THING_ID = "bla:foo-bar";
+    private final static ThingId KNOWN_THING_ID = ThingId.of("bla", "foo-bar");
     private final static String KNOWN_FEATURE_ID = "plop";
     private final static String KNOWN_SUBJECT = "this.is.a.subject";
     private final static String KNOWN_STRING_PAYLOAD = "some string payload;\nirrelevant what!";
-    private final static ByteBuffer KNOWN_RAW_PAYLOAD =
-            ByteBuffer.wrap(KNOWN_STRING_PAYLOAD.getBytes(StandardCharsets.UTF_8));
     private static final String KNOWN_CONTENT_TYPE_TEXT_PLAIN = "text/plain";
     private static final Duration KNOWN_TIMEOUT = Duration.ofMinutes(1);
-    private static final OffsetDateTime KNOWN_TIMESTAMP = OffsetDateTime.now();
-    private static final String KNOWN_CORRELATION_ID = UUID.randomUUID().toString();
-    private static final AuthorizationContext KNOWN_AUTH_CONTEXT = AuthorizationModelFactory.emptyAuthContext();
-    private static final HttpStatusCode KNOWN_STATUS_CODE = HttpStatusCode.OK;
 
     @Test
     public void buildToThingMessageWithEmptyPayload() {
@@ -52,8 +40,7 @@ public final class ImmutableMessageBuilderTest {
         final Message<?> message = ImmutableMessageBuilder.newInstance(messageHeaders).build();
 
         assertThat(message.getDirection()).isEqualTo(MessageDirection.TO);
-        assertThat(message.getThingId()).isNotEmpty();
-        assertThat(message.getThingId()).isEqualTo(KNOWN_THING_ID);
+        assertThat((CharSequence) message.getThingEntityId()).isEqualTo(KNOWN_THING_ID);
         assertThat(message.getSubject()).isEqualTo(KNOWN_SUBJECT);
         assertThat(message.getFeatureId()).isEmpty();
         assertThat(message.getPayload()).isEmpty();
@@ -74,8 +61,7 @@ public final class ImmutableMessageBuilderTest {
                 .build();
 
         assertThat(message.getDirection()).isEqualTo(MessageDirection.FROM);
-        assertThat(message.getThingId()).isNotEmpty();
-        assertThat(message.getThingId()).isEqualTo(KNOWN_THING_ID);
+        assertThat((CharSequence) message.getThingEntityId()).isEqualTo(KNOWN_THING_ID);
         assertThat(message.getSubject()).isEqualTo(KNOWN_SUBJECT);
         assertThat(message.getFeatureId()).hasValue(KNOWN_FEATURE_ID);
         assertThat(message.getPayload()).hasValue(KNOWN_STRING_PAYLOAD);

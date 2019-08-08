@@ -37,13 +37,13 @@ final class ThingConflictStrategy extends AbstractCommandStrategy<CreateThing> {
     @Override
     public boolean isDefined(final Context context, @Nullable final Thing thing,
             final CreateThing command) {
-        return Objects.equals(context.getThingId(), command.getId());
+        return Objects.equals(context.getThingEntityId(), command.getThingEntityId());
     }
 
     @Override
     protected Result doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final CreateThing command) {
-        return ResultFactory.newErrorResult(ThingConflictException.newBuilder(command.getId())
+        return ResultFactory.newErrorResult(ThingConflictException.newBuilder(command.getThingEntityId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build());
     }

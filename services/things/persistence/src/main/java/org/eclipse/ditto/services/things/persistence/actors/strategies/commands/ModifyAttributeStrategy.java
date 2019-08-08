@@ -21,6 +21,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
@@ -63,7 +64,7 @@ final class ModifyAttributeStrategy
 
     private Result getModifyResult(final Context context, final long nextRevision,
             final ModifyAttribute command) {
-        final String thingId = context.getThingId();
+        final ThingId thingId = context.getThingEntityId();
         final JsonPointer attributePointer = command.getAttributePointer();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
@@ -75,7 +76,7 @@ final class ModifyAttributeStrategy
 
     private Result getCreateResult(final Context context, final long nextRevision,
             final ModifyAttribute command) {
-        final String thingId = context.getThingId();
+        final ThingId thingId = context.getThingEntityId();
         final JsonPointer attributePointer = command.getAttributePointer();
         final JsonValue attributeValue = command.getAttributeValue();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();

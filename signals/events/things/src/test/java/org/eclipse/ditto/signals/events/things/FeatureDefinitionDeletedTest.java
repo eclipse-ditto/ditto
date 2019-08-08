@@ -36,7 +36,7 @@ public final class FeatureDefinitionDeletedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, FeatureDefinitionDeleted.TYPE)
             .set(Event.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
-            .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ThingEvent.JsonFields.FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .build();
 
@@ -88,7 +88,7 @@ public final class FeatureDefinitionDeletedTest {
                 FeatureDefinitionDeleted.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
     }
 

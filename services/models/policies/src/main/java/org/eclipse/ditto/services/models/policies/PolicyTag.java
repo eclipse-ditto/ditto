@@ -12,34 +12,33 @@
  */
 package org.eclipse.ditto.services.models.policies;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.services.models.streaming.AbstractEntityIdWithRevision;
 
 /**
  * Represents the ID and revision of a Policy.
  */
 @Immutable
-public final class PolicyTag extends AbstractEntityIdWithRevision {
+public final class PolicyTag extends AbstractEntityIdWithRevision<PolicyId> {
 
-    private PolicyTag(final String id, final long revision) {
-        super(id, revision);
-    }
-
-    private PolicyTag(final JsonObject jsonObject) {
-        super(jsonObject);
+    private PolicyTag(final PolicyId policyId, final long revision) {
+        super(policyId, revision);
     }
 
     /**
      * Returns a new {@link PolicyTag}.
      *
-     * @param id the ID of the modified Policy.
+     * @param policyId the ID of the modified Policy.
      * @param revision the revision of the modified Policy.
      * @return a new {@link PolicyTag}.
      */
-    public static PolicyTag of(final String id, final long revision) {
-        return new PolicyTag(id, revision);
+    public static PolicyTag of(final PolicyId policyId, final long revision) {
+        return new PolicyTag(policyId, revision);
     }
 
     /**
@@ -54,7 +53,11 @@ public final class PolicyTag extends AbstractEntityIdWithRevision {
      * expected format.
      */
     public static PolicyTag fromJson(final JsonObject jsonObject) {
-        return new PolicyTag(jsonObject);
+        checkNotNull(jsonObject, "JSON object");
+        final PolicyId policyId = PolicyId.of(jsonObject.getValueOrThrow(JsonFields.ID));
+        final Long revision = jsonObject.getValueOrThrow(JsonFields.REVISION);
+
+        return new PolicyTag(policyId, revision);
     }
 
 }

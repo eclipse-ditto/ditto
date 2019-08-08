@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -62,12 +63,12 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
             JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final String featureId;
     private final JsonPointer featurePropertyPointer;
     @Nullable private final JsonValue featurePropertyValue;
 
-    private ModifyFeaturePropertyResponse(final String thingId,
+    private ModifyFeaturePropertyResponse(final ThingId thingId,
             final String featureId,
             final JsonPointer featurePropertyPointer,
             @Nullable final JsonValue featurePropertyValue,
@@ -94,7 +95,7 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
      * @return a command response for a created FeatureProperty.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ModifyFeaturePropertyResponse created(final String thingId,
+    public static ModifyFeaturePropertyResponse created(final ThingId thingId,
             final String featureId,
             final JsonPointer featurePropertyPointer,
             final JsonValue featureValue,
@@ -116,7 +117,7 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
      * @return a command response for a modified FeatureProperty.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static ModifyFeaturePropertyResponse modified(final String thingId, final String featureId,
+    public static ModifyFeaturePropertyResponse modified(final ThingId thingId, final String featureId,
             final JsonPointer featurePropertyPointer, final DittoHeaders dittoHeaders) {
 
         return new ModifyFeaturePropertyResponse(thingId, featureId, featurePropertyPointer, null,
@@ -153,8 +154,9 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
             final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyFeaturePropertyResponse>(TYPE, jsonObject)
                 .deserialize((statusCode) -> {
-                    final String thingId =
+                    final String extractedThingId =
                             jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
                     final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
                     final String pointerString = jsonObject.getValueOrThrow(JSON_PROPERTY);
                     final JsonPointer extractedFeaturePropertyPointer = JsonFactory.newPointer(pointerString);
@@ -166,7 +168,7 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -212,7 +214,7 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
         jsonObjectBuilder.set(JSON_PROPERTY, featurePropertyPointer.toString(), predicate);
         if (null != featurePropertyValue) {

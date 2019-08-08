@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -31,7 +32,7 @@ public class ExpressionResolverTest {
 
     private static final String THING_NS = "the.thing";
     private static final String THING_NAME = "the.id:the-rest";
-    private static final String THING_ID = THING_NS + ":" + THING_NAME;
+    private static final ThingId THING_ID = ThingId.of(THING_NS, THING_NAME);
 
     private ExpressionResolver expressionResolver;
 
@@ -85,10 +86,9 @@ public class ExpressionResolverTest {
     @Test
     public void testPlaceholderFunctionSubstringBeforeWithDefaultFallback() {
 
-        assertThat(
-                expressionResolver.resolve("{{ thing:namespace }}:{{thing:name | fn:substring-before('_') | fn:default(thing:name)}}",
-                        true)
-        ).isEqualTo(THING_ID);
+        assertThat(expressionResolver.resolve(
+                "{{ thing:namespace }}:{{thing:name | fn:substring-before('_') | fn:default(thing:name)}}", true)
+        ).isEqualTo(THING_ID.toString());
     }
 
     @Test

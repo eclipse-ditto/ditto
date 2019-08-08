@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AccessControlList;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
@@ -57,7 +58,7 @@ public final class AclModified extends AbstractThingEvent<AclModified> implement
 
     private final AccessControlList accessControlList;
 
-    private AclModified(final String thingId,
+    private AclModified(final ThingId thingId,
             final AccessControlList accessControlList,
             final long revision,
             @Nullable final Instant timestamp,
@@ -78,7 +79,7 @@ public final class AclModified extends AbstractThingEvent<AclModified> implement
      * @return the AclModified created.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static AclModified of(final String thingId,
+    public static AclModified of(final ThingId thingId,
             final AccessControlList accessControlList,
             final long revision,
             final DittoHeaders dittoHeaders) {
@@ -97,7 +98,7 @@ public final class AclModified extends AbstractThingEvent<AclModified> implement
      * @return the AclModified created.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
-    public static AclModified of(final String thingId,
+    public static AclModified of(final ThingId thingId,
             final AccessControlList accessControlList,
             final long revision,
             @Nullable final Instant timestamp,
@@ -133,10 +134,11 @@ public final class AclModified extends AbstractThingEvent<AclModified> implement
     public static AclModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<AclModified>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
             final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
             final JsonObject aclJsonObject = jsonObject.getValueOrThrow(JSON_ACCESS_CONTROL_LIST);
             final AccessControlList extractedAccessControlList = ThingsModelFactory.newAcl(aclJsonObject);
 
-            return of(extractedThingId, extractedAccessControlList, revision, timestamp, dittoHeaders);
+            return of(thingId, extractedAccessControlList, revision, timestamp, dittoHeaders);
         });
     }
 
@@ -161,12 +163,12 @@ public final class AclModified extends AbstractThingEvent<AclModified> implement
 
     @Override
     public AclModified setRevision(final long revision) {
-        return of(getThingId(), accessControlList, revision, getTimestamp().orElse(null), getDittoHeaders());
+        return of(getThingEntityId(), accessControlList, revision, getTimestamp().orElse(null), getDittoHeaders());
     }
 
     @Override
     public AclModified setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingId(), accessControlList, getRevision(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getThingEntityId(), accessControlList, getRevision(), getTimestamp().orElse(null), dittoHeaders);
     }
 
     @Override

@@ -35,6 +35,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -55,10 +56,10 @@ public final class ModifyThingResponse extends AbstractCommandResponse<ModifyThi
             JsonFactory.newJsonValueFieldDefinition("thing", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final String thingId;
+    private final ThingId thingId;
     @Nullable private final Thing thingCreated;
 
-    private ModifyThingResponse(final String thingId,
+    private ModifyThingResponse(final ThingId thingId,
             final HttpStatusCode statusCode,
             @Nullable final Thing thingCreated,
             final DittoHeaders dittoHeaders) {
@@ -78,7 +79,7 @@ public final class ModifyThingResponse extends AbstractCommandResponse<ModifyThi
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyThingResponse created(final Thing thing, final DittoHeaders dittoHeaders) {
-        final String thingId = thing.getId().orElseThrow(() -> new NullPointerException("Thing has no ID!"));
+        final ThingId thingId = thing.getEntityId().orElseThrow(() -> new NullPointerException("Thing has no ID!"));
         return new ModifyThingResponse(thingId, HttpStatusCode.CREATED, thing, dittoHeaders);
     }
 
@@ -91,7 +92,7 @@ public final class ModifyThingResponse extends AbstractCommandResponse<ModifyThi
      * @return a command response for a modified Thing.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static ModifyThingResponse modified(final String thingId, final DittoHeaders dittoHeaders) {
+    public static ModifyThingResponse modified(final ThingId thingId, final DittoHeaders dittoHeaders) {
         return new ModifyThingResponse(thingId, HttpStatusCode.NO_CONTENT, null, dittoHeaders);
     }
 
@@ -123,8 +124,9 @@ public final class ModifyThingResponse extends AbstractCommandResponse<ModifyThi
     public static ModifyThingResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyThingResponse>(TYPE, jsonObject)
                 .deserialize(statusCode -> {
-                    final String thingId =
+                    final String extractedThingId =
                             jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
                     final Thing extractedThingCreated = jsonObject.getValue(JSON_THING)
                             .map(JsonValue::asObject)
                             .map(ThingsModelFactory::newThing)
@@ -135,7 +137,7 @@ public final class ModifyThingResponse extends AbstractCommandResponse<ModifyThi
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -162,7 +164,7 @@ public final class ModifyThingResponse extends AbstractCommandResponse<ModifyThi
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         if (null != thingCreated) {
             jsonObjectBuilder.set(JSON_THING, thingCreated.toJson(schemaVersion, thePredicate), predicate);
         }

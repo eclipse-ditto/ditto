@@ -19,6 +19,7 @@ import java.util.Objects;
 import java.util.function.Function;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -124,7 +125,7 @@ final class ThingsUpdater extends AbstractActor {
         final String elementIdentifier = thingTag.asIdentifierString();
         LogUtil.enhanceLogWithCorrelationId(log, "things-tags-sync-" + elementIdentifier);
         log.debug("Forwarding incoming ThingTag '{}'", elementIdentifier);
-        forwardJsonifiableToShardRegion(thingTag, ThingTag::getId);
+        forwardJsonifiableToShardRegion(thingTag, ThingTag::getEntityId);
     }
 
     private void processPolicyReferenceTag(final PolicyReferenceTag policyReferenceTag) {
@@ -137,12 +138,12 @@ final class ThingsUpdater extends AbstractActor {
 
     private void processThingEvent(final ThingEvent<?> thingEvent) {
         LogUtil.enhanceLogWithCorrelationId(log, thingEvent);
-        log.debug("Forwarding incoming ThingEvent for thingId '{}'", thingEvent.getThingId());
-        forwardEventToShardRegion(thingEvent, ThingEvent::getId);
+        log.debug("Forwarding incoming ThingEvent for thingId '{}'", String.valueOf(thingEvent.getThingEntityId()));
+        forwardEventToShardRegion(thingEvent, ThingEvent::getEntityId);
     }
 
     private <J extends Jsonifiable<?>> void forwardJsonifiableToShardRegion(final J message,
-            final Function<J, String> getId) {
+            final Function<J, EntityId> getId) {
         forwardToShardRegion(
                 message,
                 getId,
@@ -151,7 +152,7 @@ final class ThingsUpdater extends AbstractActor {
                 jsonifiable -> DittoHeaders.empty());
     }
 
-    private <E extends Event<?>> void forwardEventToShardRegion(final E message, final Function<E, String> getId) {
+    private <E extends Event<?>> void forwardEventToShardRegion(final E message, final Function<E, EntityId> getId) {
         forwardToShardRegion(
                 message,
                 getId,
@@ -161,12 +162,12 @@ final class ThingsUpdater extends AbstractActor {
     }
 
     private <M> void forwardToShardRegion(final M message,
-            final Function<M, String> getId,
+            final Function<M, EntityId> getId,
             final Function<M, String> getType,
             final Function<M, JsonObject> toJson,
             final Function<M, DittoHeaders> getDittoHeaders) {
 
-        final String id = getId.apply(message);
+        final EntityId id = getId.apply(message);
         log.debug("Forwarding incoming {} to shard region of {}", message.getClass().getSimpleName(), id);
         final String type = getType.apply(message);
         final JsonObject jsonObject = toJson.apply(message);

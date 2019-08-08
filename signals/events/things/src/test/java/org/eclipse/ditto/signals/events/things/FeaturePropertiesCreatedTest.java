@@ -35,7 +35,7 @@ public final class FeaturePropertiesCreatedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, FeaturePropertiesCreated.TYPE)
             .set(Event.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
-            .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ThingEvent.JsonFields.FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(FeaturePropertiesCreated.JSON_PROPERTIES,
                     TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.toJson(FieldType.regularOrSpecial()))
@@ -100,7 +100,7 @@ public final class FeaturePropertiesCreatedTest {
                 FeaturePropertiesCreated.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
         assertThat(underTest.getProperties()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
     }

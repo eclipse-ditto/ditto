@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.signals.commands.policies.modify;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -32,7 +34,8 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
+import org.eclipse.ditto.model.policies.id.PolicyId;
+import org.eclipse.ditto.model.policies.id.PolicyIdInvalidException;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
@@ -63,7 +66,14 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
 
     private CreatePolicy(final Policy policy, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
-        this.policy = policy;
+        this.policy = checkNotNull(policy, "policy");
+
+        if (!policy.getEntityId().isPresent()) {
+            throw PolicyIdInvalidException.newBuilder("")
+                    .message("Policy ID must be present in 'CreatePolicy' payload")
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
 
         PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> policy.toJsonString().length(), () ->
                 dittoHeaders);
@@ -79,13 +89,6 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
      * @throws PolicyIdInvalidException if the {@link Policy}'s ID is not valid.
      */
     public static CreatePolicy of(final Policy policy, final DittoHeaders dittoHeaders) {
-        Objects.requireNonNull(policy, "The Policy must not be null!");
-        if (!policy.getId().isPresent()) {
-            throw PolicyIdInvalidException.newBuilder("")
-                    .message("Policy ID must be present in 'CreatePolicy' payload")
-                    .dittoHeaders(dittoHeaders)
-                    .build();
-        }
         return new CreatePolicy(policy, dittoHeaders);
     }
 
@@ -132,8 +135,8 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
     }
 
     @Override
-    public String getId() {
-        return policy.getId().orElseThrow(() -> new NullPointerException("The Policy has no ID!"));
+    public PolicyId getEntityId() {
+        return policy.getEntityId().orElseThrow(() -> new NullPointerException("The Policy has no ID!"));
     }
 
     @Override

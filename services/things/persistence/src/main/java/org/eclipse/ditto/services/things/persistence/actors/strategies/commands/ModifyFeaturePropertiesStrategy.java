@@ -21,6 +21,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertiesResponse;
@@ -59,7 +60,7 @@ final class ModifyFeaturePropertiesStrategy
         return extractFeature(command, nonNullThing)
                 .map(feature -> getModifyOrCreateResult(feature, context, nextRevision, command))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featureNotFound(context.getThingId(), featureId, command.getDittoHeaders())));
+                        ExceptionFactory.featureNotFound(context.getThingEntityId(), featureId, command.getDittoHeaders())));
     }
 
     private Optional<Feature> extractFeature(final ModifyFeatureProperties command, final Thing thing) {
@@ -77,19 +78,19 @@ final class ModifyFeaturePropertiesStrategy
 
     private Result getModifyResult(final Context context, final long nextRevision,
             final ModifyFeatureProperties command) {
-        final String thingId = context.getThingId();
+        final ThingId thingId = context.getThingEntityId();
         final String featureId = command.getFeatureId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return ResultFactory.newMutationResult(command,
                 FeaturePropertiesModified.of(thingId, featureId, command.getProperties(), nextRevision,
                         getEventTimestamp(), dittoHeaders),
-                ModifyFeaturePropertiesResponse.modified(context.getThingId(), featureId, dittoHeaders), this);
+                ModifyFeaturePropertiesResponse.modified(context.getThingEntityId(), featureId, dittoHeaders), this);
     }
 
     private Result getCreateResult(final Context context, final long nextRevision,
             final ModifyFeatureProperties command) {
-        final String thingId = context.getThingId();
+        final ThingId thingId = context.getThingEntityId();
         final String featureId = command.getFeatureId();
         final FeatureProperties featureProperties = command.getProperties();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();

@@ -30,6 +30,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -774,7 +775,7 @@ public final class ImmutableThingFromCopyBuilderTest {
         underTestV1.setGeneratedId();
         final Thing thing = underTestV1.build();
 
-        assertThat(thing.getId()).isPresent();
+        assertThat(thing.getEntityId()).isPresent();
     }
 
     @Test
@@ -835,7 +836,7 @@ public final class ImmutableThingFromCopyBuilderTest {
     }
 
     private void assertSetIdWithValidNamespace(final String namespace) {
-        final String thingId = namespace + ":" + "foobar2000";
+        final ThingId thingId = ThingId.of(namespace, "foobar2000");
         underTestV1.setId(thingId);
         final Thing thing = underTestV1.build();
 

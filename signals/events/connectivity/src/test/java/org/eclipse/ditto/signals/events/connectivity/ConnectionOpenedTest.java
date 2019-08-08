@@ -34,7 +34,7 @@ public final class ConnectionOpenedTest {
 
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(Event.JsonFields.TYPE, ConnectionOpened.TYPE)
-            .set(ConnectivityEvent.JsonFields.CONNECTION_ID, TestConstants.ID)
+            .set(ConnectivityEvent.JsonFields.CONNECTION_ID, TestConstants.ID.toString())
             .build();
 
     @Test

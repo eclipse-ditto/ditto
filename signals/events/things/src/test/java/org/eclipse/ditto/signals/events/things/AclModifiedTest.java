@@ -39,7 +39,7 @@ public final class AclModifiedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.ID, AclModified.NAME)
             .set(Event.JsonFields.REVISION, 2L)
-            .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(AclModified.JSON_ACCESS_CONTROL_LIST, TestConstants.Thing.ACL.toJson(FieldType.regularOrSpecial()))
             .build();
 

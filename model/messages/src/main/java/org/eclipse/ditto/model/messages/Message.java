@@ -19,6 +19,7 @@ import java.util.Optional;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.things.id.ThingId;
 
 /**
  * Represents a {@code Message} <em>FROM</em> or <em>TO</em> a {@code Thing} or a {@code Feature}.
@@ -84,8 +85,19 @@ public interface Message<T> {
      * Returns the ID of the {@code Thing} from/to which this message is sent.
      *
      * @return the thing ID.
+     * @deprecated the thing ID is now typed. Use {@link #getThingEntityId()} instead.
      */
-    String getThingId();
+    @Deprecated
+    default String getThingId() {
+        return getThingEntityId().toString();
+    }
+
+    /**
+     * Returns the ID of the {@code Thing} from/to which this message is sent.
+     *
+     * @return the thing ID.
+     */
+    ThingId getThingEntityId();
 
     /**
      * Returns the subject of the message as provided by the message sender.

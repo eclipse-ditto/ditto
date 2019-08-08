@@ -14,10 +14,12 @@
 package org.eclipse.ditto.signals.commands.connectivity.query;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
@@ -33,7 +35,7 @@ public class RetrieveConnectionLogsTest {
 
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(Command.JsonFields.TYPE, RetrieveConnectionLogs.TYPE)
-            .set(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID, TestConstants.ID)
+            .set(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID, TestConstants.ID.toString())
             .build();
 
     @Test
@@ -61,7 +63,9 @@ public class RetrieveConnectionLogsTest {
 
     @Test
     public void testImmutability() {
-        assertInstancesOf(RetrieveConnectionLogs.class, areImmutable());
+        assertInstancesOf(RetrieveConnectionLogs.class,
+                areImmutable(),
+                provided(EntityId.class).isAlsoImmutable());
     }
 
 }

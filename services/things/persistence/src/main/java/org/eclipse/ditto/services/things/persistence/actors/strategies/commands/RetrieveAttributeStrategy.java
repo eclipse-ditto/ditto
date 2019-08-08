@@ -23,6 +23,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse;
 
@@ -45,16 +46,16 @@ final class RetrieveAttributeStrategy
             final long nextRevision, final RetrieveAttribute command) {
 
         return extractAttributes(thing)
-                .map(attributes -> getAttributeValueResult(attributes, context.getThingId(), command, thing))
+                .map(attributes -> getAttributeValueResult(attributes, context.getThingEntityId(), command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.attributesNotFound(context.getThingId(), command.getDittoHeaders())));
+                        ExceptionFactory.attributesNotFound(context.getThingEntityId(), command.getDittoHeaders())));
     }
 
     private Optional<Attributes> extractAttributes(final @Nullable Thing thing) {
         return getThingOrThrow(thing).getAttributes();
     }
 
-    private Result getAttributeValueResult(final JsonObject attributes, final String thingId,
+    private Result getAttributeValueResult(final JsonObject attributes, final ThingId thingId,
             final RetrieveAttribute command, @Nullable final Thing thing) {
 
         final JsonPointer attributePointer = command.getAttributePointer();

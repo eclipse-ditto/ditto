@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.concierge.common.PersistenceIdsConfig;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
@@ -154,10 +156,10 @@ public final class PersistenceIdSource {
 
     }
 
-    private static final class EmptyEntityIdWithRevision extends AbstractEntityIdWithRevision {
+    private static final class EmptyEntityIdWithRevision extends AbstractEntityIdWithRevision<EntityId> {
 
         private EmptyEntityIdWithRevision() {
-            super("", 0L);
+            super(DefaultEntityId.NONE_ID, 0L);
         }
     }
 }

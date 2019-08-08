@@ -35,6 +35,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
@@ -69,7 +70,7 @@ public final class ResourceCreated extends AbstractPolicyEvent<ResourceCreated>
     private final Label label;
     private final Resource resource;
 
-    private ResourceCreated(final String policyId,
+    private ResourceCreated(final PolicyId policyId,
             final Label label,
             final Resource resource,
             final long revision,
@@ -92,7 +93,7 @@ public final class ResourceCreated extends AbstractPolicyEvent<ResourceCreated>
      * @return the created ResourceCreated.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ResourceCreated of(final String policyId,
+    public static ResourceCreated of(final PolicyId policyId,
             final Label label,
             final Resource resource,
             final long revision,
@@ -113,7 +114,7 @@ public final class ResourceCreated extends AbstractPolicyEvent<ResourceCreated>
      * @return the created ResourceCreated.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
-    public static ResourceCreated of(final String policyId,
+    public static ResourceCreated of(final PolicyId policyId,
             final Label label,
             final Resource resource,
             final long revision,
@@ -147,7 +148,8 @@ public final class ResourceCreated extends AbstractPolicyEvent<ResourceCreated>
      */
     public static ResourceCreated fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<ResourceCreated>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
-            final String policyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+            final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+            final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
             final ResourceKey resourceKey = ResourceKey.newInstance(jsonObject.getValueOrThrow(JSON_RESOURCE_KEY));
             final JsonObject resourceJsonObject = jsonObject.getValueOrThrow(JSON_RESOURCE);
@@ -188,12 +190,12 @@ public final class ResourceCreated extends AbstractPolicyEvent<ResourceCreated>
 
     @Override
     public ResourceCreated setRevision(final long revision) {
-        return of(getPolicyId(), label, resource, revision, getTimestamp().orElse(null), getDittoHeaders());
+        return of(getPolicyEntityId(), label, resource, revision, getTimestamp().orElse(null), getDittoHeaders());
     }
 
     @Override
     public ResourceCreated setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getPolicyId(), label, resource, getRevision(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getPolicyEntityId(), label, resource, getRevision(), getTimestamp().orElse(null), dittoHeaders);
     }
 
     @Override

@@ -20,6 +20,7 @@ import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayPlaceholderReferenceNotSupportedException;
 import org.junit.Test;
 
@@ -28,13 +29,15 @@ import org.junit.Test;
  */
 public class ReferencePlaceholderTest {
 
+    private static final ThingId THING_ID = ThingId.of("namespace:myThing");
+
     @Test
     public void fromCharSequence() {
         final Optional<ReferencePlaceholder> referencePlaceholder =
-                ReferencePlaceholder.fromCharSequence("{{ref:things/namespace:thingid/policyId}}");
+                ReferencePlaceholder.fromCharSequence("{{ref:things/" + THING_ID + "/policyId}}");
 
         assertThat(referencePlaceholder).isPresent();
-        assertThat(referencePlaceholder.get().getReferencedEntityId()).isEqualTo("namespace:thingid");
+        assertThat(referencePlaceholder.get().getReferencedEntityId().toString()).isEqualTo(THING_ID.toString());
         DittoJsonAssertions.assertThat(referencePlaceholder.get().getReferencedField())
                 .isEqualTo(                JsonPointer.of("policyId"));
         assertThat(referencePlaceholder.get().getReferencedEntityType()).isEqualTo(
@@ -44,22 +47,22 @@ public class ReferencePlaceholderTest {
     @Test
     public void fromCharSequenceWithSpacesAfterBraces() {
         final Optional<ReferencePlaceholder> referencePlaceholder =
-                ReferencePlaceholder.fromCharSequence("{{ ref:things/namespace:thingid/policyId }}");
+                ReferencePlaceholder.fromCharSequence("{{ ref:things/" + THING_ID + "/policyId }}");
 
         assertThat(referencePlaceholder).isPresent();
-        assertThat(referencePlaceholder.get().getReferencedEntityId()).isEqualTo("namespace:thingid");
+        assertThat(referencePlaceholder.get().getReferencedEntityId().toString()).isEqualTo(THING_ID.toString());
         DittoJsonAssertions.assertThat(referencePlaceholder.get().getReferencedField())
-                .isEqualTo(                JsonPointer.of("policyId"));
+                .isEqualTo(JsonPointer.of("policyId"));
         assertThat(referencePlaceholder.get().getReferencedEntityType()).isEqualTo(
                 ReferencePlaceholder.ReferencedEntityType.THINGS);
     }
 
     @Test
     public void fromCharSequenceWithInvalidPlaceholderIsEmpty() {
-        assertThat(ReferencePlaceholder.fromCharSequence("{{things/namespace:thingid/policyId}}")).isNotPresent();
-        assertThat(ReferencePlaceholder.fromCharSequence("{{ref:thingsnamespace:thingid/policyId}}")).isNotPresent();
-        assertThat(ReferencePlaceholder.fromCharSequence("{{ref:things/ namespace:thingid/policyId}}")).isNotPresent();
-        assertThat(ReferencePlaceholder.fromCharSequence("{{ref:things/namespace:thingid}}")).isNotPresent();
+        assertThat(ReferencePlaceholder.fromCharSequence("{{things/" + THING_ID + "/policyId}}")).isNotPresent();
+        assertThat(ReferencePlaceholder.fromCharSequence("{{ref:things" + THING_ID + "/policyId}}")).isNotPresent();
+        assertThat(ReferencePlaceholder.fromCharSequence("{{ref:things/ " + THING_ID + "/policyId}}")).isNotPresent();
+        assertThat(ReferencePlaceholder.fromCharSequence("{{ref:things/" + THING_ID + "}}")).isNotPresent();
 
         assertThat(ReferencePlaceholder.fromCharSequence(null)).isNotPresent();
     }
@@ -68,10 +71,10 @@ public class ReferencePlaceholderTest {
     public void fromCharSequenceWithDeepPointer() {
         final Optional<ReferencePlaceholder> referencePlaceholder =
                 ReferencePlaceholder.fromCharSequence(
-                        "{{ref:things/namespace:thingid/features/properties/policyFeature/policyId}}");
+                        "{{ref:things/" + THING_ID + "/features/properties/policyFeature/policyId}}");
 
         assertThat(referencePlaceholder).isPresent();
-        assertThat(referencePlaceholder.get().getReferencedEntityId()).isEqualTo("namespace:thingid");
+        assertThat(referencePlaceholder.get().getReferencedEntityId().toString()).isEqualTo(THING_ID.toString());
         DittoJsonAssertions.assertThat(referencePlaceholder.get().getReferencedField()).isEqualTo(
                 JsonPointer.of("features/properties/policyFeature/policyId"));
         assertThat(referencePlaceholder.get().getReferencedEntityType()).isEqualTo(

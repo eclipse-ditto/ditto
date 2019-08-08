@@ -50,7 +50,8 @@ import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyEntryInvalidException;
-import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
+import org.eclipse.ditto.model.policies.id.PolicyId;
+import org.eclipse.ditto.model.policies.id.PolicyIdInvalidException;
 import org.eclipse.ditto.model.policies.PolicyRevision;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
@@ -76,10 +77,11 @@ import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.id.ThingIdInvalidException;
 import org.eclipse.ditto.model.thingsearch.SearchModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchQuery;
 import org.eclipse.ditto.model.thingsearch.SearchResult;
@@ -293,14 +295,10 @@ class JsonExamplesProducer {
     public static final String NAMESPACE = "com.acme";
 
     /*
-     * Snapshot
-     */
-    private static final long SNAPSHOT_ID = 292894502L;
-
-    /*
      * Policy
      */
-    private static final String POLICY_ID = NAMESPACE + ":the_policy_id";
+    private static final PolicyId POLICY_ID = PolicyId.of(NAMESPACE, "the_policy_id");
+    private static final String THING_POLICY_ID = POLICY_ID.toString();
     private static final Label LABEL = PoliciesModelFactory.newLabel("the_label");
     private static final SubjectId SUBJECT_ID =
             PoliciesModelFactory.newSubjectId(SubjectIssuer.GOOGLE, "the_subjectid");
@@ -328,7 +326,7 @@ class JsonExamplesProducer {
     /*
      * Thing
      */
-    private static final String THING_ID = NAMESPACE + ":xdk_53";
+    private static final ThingId THING_ID = ThingId.of(NAMESPACE, "xdk_53");
     private static final ThingLifecycle LIFECYCLE = ThingLifecycle.ACTIVE;
     private static final AuthorizationSubject AUTH_SUBJECT_1 =
             newAuthSubject("the_auth_subject");
@@ -370,7 +368,7 @@ class JsonExamplesProducer {
             .setAttributes(ATTRIBUTES)
             .setFeatures(FEATURES)
             .setLifecycle(LIFECYCLE)
-            .setPolicyId(POLICY_ID)
+            .setPolicyId(THING_POLICY_ID)
             .build();
 
     private static final JsonFieldSelector JSON_FIELD_SELECTOR_ATTRIBUTES_WITH_THING_ID = JsonFactory.newFieldSelector(
@@ -798,8 +796,8 @@ class JsonExamplesProducer {
         writeJson(commandsDir.resolve(Paths.get("retrieveThing-withSnapshotRevision.json")),
                 retrieveThingWithSnapshotRevision);
 
-        final String[] thingIds =
-                {NAMESPACE + ":xdk_53", NAMESPACE + ":xdk_58", NAMESPACE + ":xdk_67"};
+        final ThingId[] thingIds =
+                {ThingId.of(NAMESPACE, "xdk_53"), ThingId.of(NAMESPACE, "xdk_58"), ThingId.of(NAMESPACE, "xdk_67")};
         final RetrieveThings retrieveThings =
                 RetrieveThings.getBuilder(thingIds).dittoHeaders(DITTO_HEADERS).build();
         writeJson(commandsDir.resolve(Paths.get("retrieveThings.json")), retrieveThings);
@@ -886,7 +884,7 @@ class JsonExamplesProducer {
         writeJson(commandsDir.resolve(Paths.get("retrieveAclEntryResponse.json")), retrieveAclEntryResponse,
                 JsonSchemaVersion.V_1);
 
-        final RetrievePolicyIdResponse retrievePolicyIdResponse = RetrievePolicyIdResponse.of(THING_ID, POLICY_ID,
+        final RetrievePolicyIdResponse retrievePolicyIdResponse = RetrievePolicyIdResponse.of(THING_ID, THING_POLICY_ID,
                 DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("retrievePolicyIdResponse.json")), retrievePolicyIdResponse);
 
@@ -937,7 +935,7 @@ class JsonExamplesProducer {
         final DeleteAclEntry deleteAclEntry = DeleteAclEntry.of(THING_ID, AUTH_SUBJECT_1, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("deleteAclEntry.json")), deleteAclEntry, JsonSchemaVersion.V_1);
 
-        final ModifyPolicyId modifyPolicyId = ModifyPolicyId.of(THING_ID, POLICY_ID, DITTO_HEADERS);
+        final ModifyPolicyId modifyPolicyId = ModifyPolicyId.of(THING_ID, THING_POLICY_ID, DITTO_HEADERS);
         writeJson(commandsDir.resolve(Paths.get("modifyPolicyId.json")), modifyPolicyId);
 
         final ModifyAttributes modifyAttributes = ModifyAttributes.of(THING_ID, ATTRIBUTES, DITTO_HEADERS);
@@ -1139,11 +1137,11 @@ class JsonExamplesProducer {
                 DITTO_HEADERS);
         writeJson(eventsDir.resolve(Paths.get("aclEntryDeleted.json")), aclEntryDeleted, JsonSchemaVersion.V_1);
 
-        final PolicyIdCreated policyIdCreated = PolicyIdCreated.of(THING_ID, THING_ID, REVISION_NUMBER,
+        final PolicyIdCreated policyIdCreated = PolicyIdCreated.of(THING_ID, THING_ID.toString(), REVISION_NUMBER,
                 DITTO_HEADERS);
         writeJson(eventsDir.resolve(Paths.get("policyIdCreated.json")), policyIdCreated);
 
-        final PolicyIdModified policyIdModified = PolicyIdModified.of(THING_ID, THING_ID, REVISION_NUMBER,
+        final PolicyIdModified policyIdModified = PolicyIdModified.of(THING_ID, THING_ID.toString(), REVISION_NUMBER,
                 DITTO_HEADERS);
         writeJson(eventsDir.resolve(Paths.get("policyIdModified.json")), policyIdModified);
 
@@ -1354,7 +1352,7 @@ class JsonExamplesProducer {
         writeJson(exceptionsDir.resolve(Paths.get("thingNotAccessibleException.json")), thingNotAccessibleException);
 
         final ThingNotCreatableException thingNotCreatableException =
-                ThingNotCreatableException.newBuilderForPolicyMissing(THING_ID, POLICY_ID)
+                ThingNotCreatableException.newBuilderForPolicyMissing(THING_ID, THING_POLICY_ID)
                         .dittoHeaders(DITTO_HEADERS)
                         .build();
         writeJson(exceptionsDir.resolve(Paths.get("thingNotCreatableException.json")), thingNotCreatableException);
@@ -1436,9 +1434,9 @@ class JsonExamplesProducer {
         final Path modelDir = rootPath.resolve(Paths.get("model"));
         Files.createDirectories(modelDir);
 
-        final Thing thing = ThingsModelFactory.newThingBuilder().setId("default:thing1")
+        final Thing thing = ThingsModelFactory.newThingBuilder().setId(ThingId.of("default", "thing1"))
                 .setAttribute(JsonFactory.newPointer("temperature"), JsonFactory.newValue(35L)).build();
-        final Thing thing2 = ThingsModelFactory.newThingBuilder().setId("default:thing2")
+        final Thing thing2 = ThingsModelFactory.newThingBuilder().setId(ThingId.of("default", "thing2"))
                 .setAttribute(JsonFactory.newPointer("temperature"), JsonFactory.newValue(35L)).build();
         final JsonArray items = JsonFactory.newArrayBuilder().add(thing.toJson(), thing2.toJson()).build();
         writeJson(modelDir.resolve(Paths.get("search-model.json")),
@@ -1477,11 +1475,11 @@ class JsonExamplesProducer {
 
 
         final Thing thing = ThingsModelFactory.newThingBuilder()
-                .setId("default:thing1")
+                .setId(ThingId.of("default", "thing1"))
                 .setAttribute(JsonFactory.newPointer("temperature"), JsonFactory.newValue(35L))
                 .build();
         final Thing thing2 = ThingsModelFactory.newThingBuilder()
-                .setId("default:thing2")
+                .setId(ThingId.of("default", "thing2"))
                 .setAttribute(JsonFactory.newPointer("temperature"), JsonFactory.newValue(35L))
                 .build();
         final JsonArray array = JsonFactory.newArrayBuilder()

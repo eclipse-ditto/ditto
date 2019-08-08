@@ -30,8 +30,10 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectType;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.strategies.SubstitutionStrategyRegistry;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifySubject;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
@@ -70,7 +72,7 @@ public class PlaceholderSubstitutionTest {
 
     @Test
     public void applyWithNonHandledCommandReturnsTheSameCommandInstance() {
-        final ModifyAttribute nonHandledCommand = ModifyAttribute.of("org.eclipse.ditto:my-thing",
+        final ModifyAttribute nonHandledCommand = ModifyAttribute.of(ThingId.of("org.eclipse.ditto:my-thing"),
                 JsonPointer.of("attributePointer"), JsonValue.of("attributeValue"), DITTO_HEADERS);
 
         final WithDittoHeaders response = applyBlocking(nonHandledCommand);
@@ -86,14 +88,14 @@ public class PlaceholderSubstitutionTest {
                         dittoHeaders -> dittoHeaders.get(CUSTOM_HEADER_KEY));
         final PlaceholderSubstitution extendedPlaceholderSubstitution =
                 PlaceholderSubstitution.newExtendedInstance(additionalReplacementDefinitions);
-        final ModifySubject commandWithoutPlaceholders = ModifySubject.of("org.eclipse.ditto:my-policy",
+        final ModifySubject commandWithoutPlaceholders = ModifySubject.of(PolicyId.of("org.eclipse.ditto:my-policy"),
                 Label.of("my-label"), Subject.newInstance("{{ " + customPlaceholderKey + " }}",
                         SubjectType.GENERATED), DITTO_HEADERS);
 
         final WithDittoHeaders response =
                 applyBlocking(commandWithoutPlaceholders, extendedPlaceholderSubstitution);
 
-        final ModifySubject expectedCommandWithPlaceholders = ModifySubject.of(commandWithoutPlaceholders.getId(),
+        final ModifySubject expectedCommandWithPlaceholders = ModifySubject.of(commandWithoutPlaceholders.getEntityId(),
                 commandWithoutPlaceholders.getLabel(), Subject.newInstance(ANOTHER_SUBJECT_ID, SubjectType.GENERATED),
                 DITTO_HEADERS);
         assertThat(response).isEqualTo(expectedCommandWithPlaceholders);
@@ -101,13 +103,13 @@ public class PlaceholderSubstitutionTest {
 
     @Test
     public void applyWithHandledCommandReturnsTheReplacedCommandInstanceWhenLegacyPlaceholderIsSpecified() {
-        final ModifySubject commandWithoutPlaceholders = ModifySubject.of("org.eclipse.ditto:my-policy",
+        final ModifySubject commandWithoutPlaceholders = ModifySubject.of(PolicyId.of("org.eclipse.ditto:my-policy"),
                 Label.of("my-label"), Subject.newInstance("${request.subjectId}", SubjectType.GENERATED),
                 DITTO_HEADERS);
 
         final WithDittoHeaders response = applyBlocking(commandWithoutPlaceholders);
 
-        final ModifySubject expectedCommandWithPlaceholders = ModifySubject.of(commandWithoutPlaceholders.getId(),
+        final ModifySubject expectedCommandWithPlaceholders = ModifySubject.of(commandWithoutPlaceholders.getEntityId(),
                 commandWithoutPlaceholders.getLabel(), Subject.newInstance(SUBJECT_ID, SubjectType.GENERATED),
                 DITTO_HEADERS);
         assertThat(response).isEqualTo(expectedCommandWithPlaceholders);

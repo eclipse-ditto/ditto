@@ -28,6 +28,7 @@ import org.apache.kafka.common.errors.AuthorizationException;
 import org.apache.kafka.common.errors.TimeoutException;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
@@ -69,7 +70,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     private ActorRef sourceActor;
 
     @SuppressWarnings("unused")
-    private KafkaPublisherActor(final String connectionId,
+    private KafkaPublisherActor(final EntityId connectionId,
             final List<Target> targets,
             final KafkaConnectionFactory factory,
             final ActorRef kafkaClientActor,
@@ -94,7 +95,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
      * @param dryRun whether this publisher is only created for a test or not.
      * @return the Akka configuration Props object.
      */
-    static Props props(final String connectionId,
+    static Props props(final EntityId connectionId,
             final List<Target> targets,
             final KafkaConnectionFactory factory,
             final ActorRef kafkaClientActor,

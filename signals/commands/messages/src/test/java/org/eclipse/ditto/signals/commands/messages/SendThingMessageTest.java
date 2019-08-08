@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.messages.MessagesModelFactory;
 import org.eclipse.ditto.model.messages.ThingIdInvalidException;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -48,7 +49,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 @RunWith(MockitoJUnitRunner.class)
 public final class SendThingMessageTest {
 
-    private static final String THING_ID = "test.ns:theThingId";
+    private static final ThingId THING_ID = ThingId.of("test.ns", "theThingId");
     private static final String SUBJECT = "theSubject";
     private static final String CONTENT_TYPE = "application/xml";
     private static final String CORRELATION_ID = UUID.randomUUID().toString();
@@ -83,13 +84,13 @@ public final class SendThingMessageTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Command.JsonFields.TYPE, SendThingMessage.TYPE)
-            .set(MessageCommand.JsonFields.JSON_THING_ID, THING_ID)
+            .set(MessageCommand.JsonFields.JSON_THING_ID, THING_ID.toString())
             .set(MessageCommand.JsonFields.JSON_MESSAGE, KNOWN_MESSAGE_AS_JSON)
             .build();
 
     private static final JsonObject KNOWN_JSON_WITH_EMPTY_PAYLOAD = JsonFactory.newObjectBuilder()
             .set(Command.JsonFields.TYPE, SendThingMessage.TYPE)
-            .set(MessageCommand.JsonFields.JSON_THING_ID, THING_ID)
+            .set(MessageCommand.JsonFields.JSON_THING_ID, THING_ID.toString())
             .set(MessageCommand.JsonFields.JSON_MESSAGE, KNOWN_EMPTY_PAYLOAD_MESSAGE_AS_JSON)
             .build();
 
@@ -123,24 +124,20 @@ public final class SendThingMessageTest {
         SendThingMessage.of(THING_ID, MESSAGE, null);
     }
 
-    @Test(expected = ThingIdInvalidException.class)
-    public void tryCreateWithInvalidThingId() {
-        SendThingMessage.of("foobar", MESSAGE, DITTO_HEADERS);
-    }
-
     @Test
     public void tryToCreateInstanceWithNonMatchingThingId() {
-        final String expectedThingId = THING_ID + "-nomatch";
+        final ThingId expectedThingId = ThingId.of(THING_ID.getNameSpace(), THING_ID.getName() + "-nomatch");
 
         try {
             SendThingMessage.of(expectedThingId, MESSAGE, DITTO_HEADERS);
             fail("Expected a ThingIdInvalidException to be thrown");
         } catch (final ThingIdInvalidException e) {
-            assertThat(e).hasMessageContaining(expectedThingId).hasNoCause();
+            assertThat(e).hasMessageContaining(expectedThingId.toString()).hasNoCause();
 
 
             final String expectedDescription = MessageFormat.format("It does not match the 'thingId' from the Message " +
-                    "the command transports (<{0}>). Please ensure that they are equal.", MESSAGE.getThingId());
+                            "the command transports (<{0}>). Please ensure that they are equal.",
+                    MESSAGE.getThingEntityId().toString());
 
             assertThat(e.getDescription()).hasValue(expectedDescription);
         }
@@ -178,7 +175,7 @@ public final class SendThingMessageTest {
                 SendThingMessage.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getThingId()).isEqualTo(THING_ID);
+        assertThat((CharSequence) underTest.getThingEntityId()).isEqualTo(THING_ID);
         assertThat(underTest.getMessageType()).isEqualTo(SendThingMessage.NAME);
         assertThat(underTest.getMessage()).isEqualTo(MESSAGE);
     }
@@ -189,7 +186,7 @@ public final class SendThingMessageTest {
                 SendThingMessage.fromJson(KNOWN_JSON_WITH_EMPTY_PAYLOAD, TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getThingId()).isEqualTo(THING_ID);
+        assertThat((CharSequence) underTest.getThingEntityId()).isEqualTo(THING_ID);
         assertThat(underTest.getMessageType()).isEqualTo(SendThingMessage.NAME);
         assertThat(underTest.getMessage()).isEqualTo(MESSAGE_EMPTY_PAYLOAD);
         assertThat(underTest.getMessage().getPayload()).isEmpty();
@@ -199,14 +196,15 @@ public final class SendThingMessageTest {
 
     @Test
     public void toJsonWithCustomContentType() {
-        final MessageHeaders headers = MessageHeaders.newBuilder(MessageDirection.TO, "the:thingId", "theSubject")
+        final MessageHeaders headers = MessageHeaders.newBuilder(MessageDirection.TO, ThingId.of("the", "thingId"),
+                "theSubject")
                 .contentType("unknownBinaryContentType")
                 .build();
         final String body = "binary message body";
         final Message<?> message = Message.newBuilder(headers).rawPayload(ByteBuffer.wrap(body.getBytes())).build();
 
         final SendThingMessage<?> underTest =
-                SendThingMessage.of("the:thingId", message, TestConstants.EMPTY_DITTO_HEADERS);
+                SendThingMessage.of(ThingId.of("the", "thingId"), message, TestConstants.EMPTY_DITTO_HEADERS);
 
         final JsonValue serialized = underTest.toJson(FieldType.regularOrSpecial());
         final SendThingMessage<?> deserialized =

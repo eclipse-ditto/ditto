@@ -21,6 +21,8 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -62,7 +64,7 @@ public final class ConnectionNotAccessibleException extends DittoRuntimeExceptio
      * @param connectionId the id of the connection.
      * @return the builder.
      */
-    public static Builder newBuilder(final String connectionId) {
+    public static Builder newBuilder(final EntityId connectionId) {
         return new Builder(connectionId);
     }
 
@@ -97,9 +99,9 @@ public final class ConnectionNotAccessibleException extends DittoRuntimeExceptio
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String connectionId) {
+        private Builder(final EntityId connectionId) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, connectionId));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, String.valueOf(connectionId)));
         }
 
         @Override

@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Subject;
@@ -43,7 +44,7 @@ import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePoli
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
-import org.eclipse.ditto.services.utils.cache.EntityId;
+import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
@@ -86,10 +87,10 @@ public class PolicyCommandEnforcementTest {
     private static final Subject AUTH_SUBJECT = Subject.newInstance(AUTH_SUBJECT_ID);
 
     private static final String NAMESPACE = "my.namespace";
-    private static final String POLICY_ID = NAMESPACE + ":policyId";
+    private static final PolicyId POLICY_ID = PolicyId.of(NAMESPACE, "policyId");
     private static final String CORRELATION_ID = "test-correlation-id";
     private static final String RESOURCE_TYPE = PolicyCommand.RESOURCE_TYPE;
-    private static final EntityId ENTITY_ID = EntityId.of(RESOURCE_TYPE, POLICY_ID);
+    private static final EntityIdWithResourceType ENTITY_ID = EntityIdWithResourceType.of(RESOURCE_TYPE, POLICY_ID);
 
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder()
             .authorizationSubjects(AUTH_SUBJECT_ID)
@@ -122,7 +123,7 @@ public class PolicyCommandEnforcementTest {
 
     private ActorSystem system;
     private TestProbe policiesShardRegionProbe;
-    private Cache<EntityId, Entry<Enforcer>> enforcerCache;
+    private Cache<EntityIdWithResourceType, Entry<Enforcer>> enforcerCache;
     private TestKit testKit;
     private ActorRef enforcer;
 
@@ -407,7 +408,7 @@ public class PolicyCommandEnforcementTest {
     private static void assertRetrievePolicyResponse(final RetrievePolicyResponse actual,
             final RetrievePolicyResponse expected) {
 
-        assertThat(actual.getId()).isEqualTo(expected.getId());
+        assertThat((CharSequence) actual.getEntityId()).isEqualTo(expected.getEntityId());
         DittoJsonAssertions.assertThat(actual.getEntity()).hasJsonString(expected.getEntity().toString());
         assertThat(actual.getDittoHeaders()).isEqualTo(expected.getDittoHeaders());
     }

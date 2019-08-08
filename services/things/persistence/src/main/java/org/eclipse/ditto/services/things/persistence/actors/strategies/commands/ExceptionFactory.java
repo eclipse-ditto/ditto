@@ -21,6 +21,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInvalidException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclNotAccessibleException;
@@ -42,13 +43,13 @@ final class ExceptionFactory {
         throw new AssertionError();
     }
 
-    static DittoRuntimeException attributesNotFound(final String thingId, final DittoHeaders dittoHeaders) {
+    static DittoRuntimeException attributesNotFound(final ThingId thingId, final DittoHeaders dittoHeaders) {
         return AttributesNotAccessibleException.newBuilder(thingId)
                 .dittoHeaders(dittoHeaders)
                 .build();
     }
 
-    static DittoRuntimeException attributeNotFound(final String thingId, final JsonPointer attributeKey,
+    static DittoRuntimeException attributeNotFound(final ThingId thingId, final JsonPointer attributeKey,
             final DittoHeaders dittoHeaders) {
 
         return AttributeNotAccessibleException.newBuilder(thingId, attributeKey)
@@ -56,7 +57,7 @@ final class ExceptionFactory {
                 .build();
     }
 
-    static DittoRuntimeException featureNotFound(final String thingId, final String featureId,
+    static DittoRuntimeException featureNotFound(final ThingId thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
 
         return FeatureNotAccessibleException.newBuilder(thingId, featureId)
@@ -64,14 +65,14 @@ final class ExceptionFactory {
                 .build();
     }
 
-    static DittoRuntimeException featuresNotFound(final String thingId, final DittoHeaders dittoHeaders) {
+    static DittoRuntimeException featuresNotFound(final ThingId thingId, final DittoHeaders dittoHeaders) {
         return FeaturesNotAccessibleException.newBuilder(thingId)
                 .dittoHeaders(dittoHeaders)
                 .build();
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    static DittoRuntimeException aclInvalid(final String thingId, final Optional<String> message,
+    static DittoRuntimeException aclInvalid(final ThingId thingId, final Optional<String> message,
             final DittoHeaders dittoHeaders) {
 
         return AclModificationInvalidException.newBuilder(thingId)
@@ -80,7 +81,7 @@ final class ExceptionFactory {
                 .build();
     }
 
-    static DittoRuntimeException aclEntryNotFound(final String thingId, final AuthorizationSubject authorizationSubject,
+    static DittoRuntimeException aclEntryNotFound(final ThingId thingId, final AuthorizationSubject authorizationSubject,
             final DittoHeaders dittoHeaders) {
 
         return AclNotAccessibleException.newBuilder(thingId, authorizationSubject)
@@ -88,7 +89,7 @@ final class ExceptionFactory {
                 .build();
     }
 
-    static DittoRuntimeException featureDefinitionNotFound(final String thingId, final String featureId,
+    static DittoRuntimeException featureDefinitionNotFound(final ThingId thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
 
         return FeatureDefinitionNotAccessibleException.newBuilder(thingId, featureId)
@@ -96,7 +97,7 @@ final class ExceptionFactory {
                 .build();
     }
 
-    static DittoRuntimeException featurePropertyNotFound(final String thingId,
+    static DittoRuntimeException featurePropertyNotFound(final ThingId thingId,
             final String featureId,
             final JsonPointer jsonPointer,
             final DittoHeaders dittoHeaders) {
@@ -106,7 +107,7 @@ final class ExceptionFactory {
                 .build();
     }
 
-    static DittoRuntimeException featurePropertiesNotFound(final String thingId, final String featureId,
+    static DittoRuntimeException featurePropertiesNotFound(final ThingId thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
 
         return FeaturePropertiesNotAccessibleException.newBuilder(thingId, featureId)
@@ -116,7 +117,7 @@ final class ExceptionFactory {
 
     static IllegalArgumentException unhandled(final WithId command) {
         final String msgPattern = "This Thing Actor did not handle the requested Thing with ID <{0}>!";
-        throw new IllegalArgumentException(MessageFormat.format(msgPattern, command.getId()));
+        throw new IllegalArgumentException(MessageFormat.format(msgPattern, command.getEntityId()));
     }
 
 }

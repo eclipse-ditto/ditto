@@ -20,6 +20,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeature;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureResponse;
 import org.eclipse.ditto.signals.events.things.FeatureDeleted;
@@ -45,7 +46,7 @@ final class DeleteFeatureStrategy extends AbstractConditionalHeadersCheckingComm
         return extractFeature(command, thing)
                 .map(feature -> getDeleteFeatureResult(context, nextRevision, command))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featureNotFound(context.getThingId(), featureId, command.getDittoHeaders())));
+                        ExceptionFactory.featureNotFound(context.getThingEntityId(), featureId, command.getDittoHeaders())));
     }
 
     private Optional<Feature> extractFeature(final DeleteFeature command, @Nullable final Thing thing) {
@@ -57,7 +58,7 @@ final class DeleteFeatureStrategy extends AbstractConditionalHeadersCheckingComm
 
     private Result getDeleteFeatureResult(final Context context, final long nextRevision,
             final DeleteFeature command) {
-        final String thingId = context.getThingId();
+        final ThingId thingId = context.getThingEntityId();
         final String featureId = command.getFeatureId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 

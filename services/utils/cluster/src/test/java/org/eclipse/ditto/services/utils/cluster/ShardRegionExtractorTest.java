@@ -19,6 +19,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
@@ -36,7 +37,7 @@ public final class ShardRegionExtractorTest {
 
     private static final int NUMBER_OF_SHARDS = 10;
 
-    private static final String THING_ID = "org.eclipse.ditto.test:thingId";
+    private static final ThingId THING_ID = ThingId.of("org.eclipse.ditto.test", "thingId");
 
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder()
             .authorizationSubjects("authSubject")
@@ -48,7 +49,7 @@ public final class ShardRegionExtractorTest {
     private ShardRegionExtractor underTest;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         underTest = ShardRegionExtractor.of(NUMBER_OF_SHARDS, new GlobalMappingStrategies());
     }
 
@@ -67,8 +68,7 @@ public final class ShardRegionExtractorTest {
         final Thing thing = Thing.newBuilder().setId(THING_ID).build();
         final CreateThing createThing = CreateThing.of(thing, null, DITTO_HEADERS);
 
-        final JsonObject messageEnvelope = ShardedMessageEnvelope
-                .of(THING_ID, createThing.getType(),
+        final JsonObject messageEnvelope = ShardedMessageEnvelope.of(THING_ID, createThing.getType(),
                         createThing.toJson(JsonSchemaVersion.V_2, FieldType.regularOrSpecial()),
                         createThing.getDittoHeaders()).toJson();
 
@@ -84,7 +84,8 @@ public final class ShardRegionExtractorTest {
         final Thing thing = Thing.newBuilder().setId(THING_ID).build();
         final CreateThingResponse createThingResponse = CreateThingResponse.of(thing, DITTO_HEADERS);
 
-        final JsonObject messageEnvelope = ShardedMessageEnvelope.of(THING_ID, createThingResponse.getType(),
+        final JsonObject messageEnvelope =
+                ShardedMessageEnvelope.of(THING_ID, createThingResponse.getType(),
                 createThingResponse.toJson(JsonSchemaVersion.V_2, FieldType.regularOrSpecial()),
                 createThingResponse.getDittoHeaders()).toJson();
 

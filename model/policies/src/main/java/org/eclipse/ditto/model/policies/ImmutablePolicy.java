@@ -13,6 +13,7 @@
 package org.eclipse.ditto.model.policies;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId.ID_REGEX;
 import static org.eclipse.ditto.model.policies.PoliciesModelFactory.emptyResources;
 import static org.eclipse.ditto.model.policies.PoliciesModelFactory.newPolicyEntry;
 import static org.eclipse.ditto.model.policies.PoliciesModelFactory.newResources;
@@ -47,9 +48,9 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 
 /**
  * Immutable implementation of {@link Policy}.
@@ -59,25 +60,20 @@ final class ImmutablePolicy implements Policy {
 
     private static final Pattern ID_PATTERN = Pattern.compile(ID_REGEX);
 
-    @Nullable private final String policyId;
+    @Nullable private final PolicyId policyId;
     private final Map<Label, PolicyEntry> entries;
     @Nullable private final String namespace;
     @Nullable private final PolicyLifecycle lifecycle;
     @Nullable private final PolicyRevision revision;
     @Nullable private final Instant modified;
 
-    private ImmutablePolicy(@Nullable final CharSequence policyId,
+    private ImmutablePolicy(@Nullable final PolicyId policyId,
             final Map<Label, PolicyEntry> theEntries,
             @Nullable final PolicyLifecycle lifecycle,
             @Nullable final PolicyRevision revision,
             @Nullable final Instant modified) {
 
-        if (null != policyId) {
-            PolicyIdValidator.getInstance().accept(policyId, DittoHeaders.empty());
-            this.policyId = policyId.toString();
-        } else {
-            this.policyId = null;
-        }
+        this.policyId = policyId;
         entries = Collections.unmodifiableMap(new LinkedHashMap<>(theEntries));
         namespace = parseNamespace(policyId);
         this.lifecycle = lifecycle;
@@ -109,9 +105,34 @@ final class ImmutablePolicy implements Policy {
      * @param entries the entries of the Policy to be created.
      * @return a new initialised Policy.
      * @throws NullPointerException if {@code entries} is {@code null}.
-     * @throws PolicyIdInvalidException if {@code policyId} did not comply to {@link Policy#ID_REGEX}.
+     * @throws org.eclipse.ditto.model.policies.id.PolicyIdInvalidException if {@code policyId} did not comply to
+     * {@link org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.id.PolicyId, PolicyLifecycle, PolicyRevision, java.time.Instant, Iterable)}
+     * instead
      */
-    public static Policy of(@Nullable final CharSequence policyId,
+    @Deprecated
+    public static Policy of(@Nullable final String policyId,
+            @Nullable final PolicyLifecycle lifecycle,
+            @Nullable final PolicyRevision revision,
+            @Nullable final Instant modified,
+            final Iterable<PolicyEntry> entries) {
+
+        return of(PolicyId.of(policyId), lifecycle, revision, modified, entries);
+    }
+
+    /**
+     * Returns a new Policy which is initialised with the specified entries.
+     *
+     * @param policyId the ID of the new Policy.
+     * @param lifecycle the lifecycle of the Policy to be created.
+     * @param revision the revision of the Policy to be created.
+     * @param modified the modified timestamp of the Policy to be created.
+     * @param entries the entries of the Policy to be created.
+     * @return a new initialised Policy.
+     * @throws NullPointerException if {@code entries} is {@code null}.
+     */
+    public static Policy of(@Nullable final PolicyId policyId,
             @Nullable final PolicyLifecycle lifecycle,
             @Nullable final PolicyRevision revision,
             @Nullable final Instant modified,
@@ -133,10 +154,11 @@ final class ImmutablePolicy implements Policy {
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws PolicyEntryInvalidException if an Policy entry does not contain any known permission which evaluates to
      * {@code true} or {@code false}.
-     * @throws PolicyIdInvalidException if the parsed policy ID did not comply to {@link Policy#ID_REGEX}.
+     * @throws org.eclipse.ditto.model.policies.id.PolicyIdInvalidException if the parsed policy ID did not comply to
+     * {@link org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static Policy fromJson(final JsonObject jsonObject) {
-        final String readId = jsonObject.getValue(JsonFields.ID).orElse(null);
+        final PolicyId policyId = jsonObject.getValue(JsonFields.ID).map(PolicyId::of).orElse(null);
 
         final PolicyLifecycle readLifecycle = jsonObject.getValue(JsonFields.LIFECYCLE)
                 .flatMap(PolicyLifecycle::forName)
@@ -167,7 +189,7 @@ final class ImmutablePolicy implements Policy {
                 .map(toPolicyEntry)
                 .collect(Collectors.toSet());
 
-        return of(readId, readLifecycle, readRevision, readModified, policyEntries);
+        return of(policyId, readLifecycle, readRevision, readModified, policyEntries);
     }
 
     private static Instant tryToParseModified(final CharSequence dateTime) {
@@ -180,7 +202,7 @@ final class ImmutablePolicy implements Policy {
     }
 
     @Override
-    public Optional<String> getId() {
+    public Optional<PolicyId> getEntityId() {
         return Optional.ofNullable(policyId);
     }
 
@@ -456,7 +478,7 @@ final class ImmutablePolicy implements Policy {
         }
         if (null != policyId) {
             jsonObjectBuilder.set(JsonFields.NAMESPACE, namespace, predicate);
-            jsonObjectBuilder.set(JsonFields.ID, policyId, predicate);
+            jsonObjectBuilder.set(JsonFields.ID, String.valueOf(policyId), predicate);
         }
         jsonObjectBuilder.set(JsonFields.ENTRIES, stream()
                 .map(policyEntry -> JsonFactory.newObjectBuilder()

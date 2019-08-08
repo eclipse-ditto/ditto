@@ -19,10 +19,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.LogEntry;
@@ -124,7 +124,8 @@ public final class RetrieveConnectionLogsAggregatorActorTest {
         new TestKit(actorSystem) {{
             final TestProbe sender = TestProbe.apply(actorSystem);
             final Duration aggregatorTimeout = Duration.ofSeconds(5);
-            final FiniteDuration expectMessageTimeout = FiniteDuration.apply(aggregatorTimeout.getSeconds() + 1, TimeUnit.SECONDS);
+            final FiniteDuration expectMessageTimeout =
+                    FiniteDuration.apply(aggregatorTimeout.getSeconds() + 1, TimeUnit.SECONDS);
 
             // create connection with more clients than responses
             final Connection connection = createConnectionWithClients(2);
@@ -145,15 +146,7 @@ public final class RetrieveConnectionLogsAggregatorActorTest {
         }};
     }
 
-    private Collection<RetrieveConnectionLogsResponse> createRetrieveConnectionLogsResponses(final int amount,
-            final String connectionId, @Nullable final Instant enabledSince, @Nullable final Instant enabledUntil) {
-        return Stream.iterate(0, i -> i + 1)
-                .limit(amount)
-                .map(unused -> createRetrieveConnectionLogsResponse(connectionId, enabledSince, enabledUntil))
-                .collect(Collectors.toList());
-    }
-
-    private RetrieveConnectionLogsResponse createRetrieveConnectionLogsResponse(final String connectionId,
+    private RetrieveConnectionLogsResponse createRetrieveConnectionLogsResponse(final EntityId connectionId,
             @Nullable final Instant enabledSince, @Nullable final Instant enabledUntil) {
         return RetrieveConnectionLogsResponse.of(connectionId,
                 TestConstants.Monitoring.LOG_ENTRIES,
@@ -171,7 +164,7 @@ public final class RetrieveConnectionLogsAggregatorActorTest {
         final RetrieveConnectionLogsResponse firstResponse = clientResponses.stream().findFirst()
                 .orElseThrow(() -> new IllegalStateException("collection should contain at least one response"));
 
-        return RetrieveConnectionLogsResponse.of(firstResponse.getConnectionId(),
+        return RetrieveConnectionLogsResponse.of(firstResponse.getConnectionEntityId(),
                 mergedLogEntries,
                 firstResponse.getEnabledSince().orElse(null),
                 firstResponse.getEnabledUntil().orElse(null),

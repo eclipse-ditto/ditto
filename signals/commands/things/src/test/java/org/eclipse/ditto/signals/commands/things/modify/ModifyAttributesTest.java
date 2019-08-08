@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.AttributesModelFactory;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
@@ -39,19 +40,20 @@ public final class ModifyAttributesTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, ModifyAttributes.TYPE)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ModifyAttributes.JSON_ATTRIBUTES, TestConstants.Thing.ATTRIBUTES)
             .build();
 
     private static final JsonObject JSON_WITH_NULL_ATTRIBUTE = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, ModifyAttributes.TYPE)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ModifyAttributes.JSON_ATTRIBUTES, JsonFactory.nullObject())
             .build();
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ModifyAttributes.class, areImmutable(), provided(Attributes.class).isAlsoImmutable());
+        assertInstancesOf(ModifyAttributes.class, areImmutable(),
+                provided(Attributes.class, ThingId.class).isAlsoImmutable());
     }
 
 
@@ -85,7 +87,7 @@ public final class ModifyAttributesTest {
                 ModifyAttributes.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         Assertions.assertThat(underTest.getAttributes()).isEqualTo(TestConstants.Thing.ATTRIBUTES);
     }
 
@@ -95,7 +97,7 @@ public final class ModifyAttributesTest {
                 ModifyAttributes.fromJson(JSON_WITH_NULL_ATTRIBUTE.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         Assertions.assertThat(underTest.getAttributes()).isEqualTo(AttributesModelFactory.nullAttributes());
     }
 
@@ -110,7 +112,7 @@ public final class ModifyAttributesTest {
                 .set("a", sb.toString())
                 .build();
 
-        assertThatThrownBy(() -> ModifyAttributes.of("foo:bar",
+        assertThatThrownBy(() -> ModifyAttributes.of(ThingId.of("foo", "bar"),
                 Attributes.newBuilder().set("a", largeAttributes).build(), DittoHeaders.empty()))
                 .isInstanceOf(ThingTooLargeException.class);
     }

@@ -40,6 +40,7 @@ import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Permissions;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
@@ -60,15 +61,16 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
         super(actual, ThingAssert.class);
     }
 
-    public ThingAssert hasId(final String expectedIdentifier) {
+    public ThingAssert hasId(final ThingId expectedIdentifier) {
         isNotNull();
 
-        final Optional<String> actualIdOptional = actual.getId();
+        final Optional<ThingId> actualIdOptional = actual.getEntityId();
 
-        assertThat(actualIdOptional.isPresent() && Objects.equals(actualIdOptional.get(), expectedIdentifier))
-                .overridingErrorMessage("Expected Thing identifier to be \n<%s> but was \n<%s>", expectedIdentifier,
-                        actualIdOptional.orElse(null))
-                .isTrue();
+        assertThat(actualIdOptional)
+                .overridingErrorMessage("Expected Thing identifier to be \n<%s> but was \n<%s>",
+                        expectedIdentifier.toString(),
+                        String.valueOf(actualIdOptional.orElse(null)))
+                .contains(expectedIdentifier);
 
         return this;
     }
@@ -76,12 +78,12 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
     public ThingAssert hasNoId() {
         isNotNull();
 
-        final Optional<String> actualIdOptional = actual.getId();
+        final Optional<ThingId> actualIdOptional = actual.getEntityId();
 
-        assertThat(actualIdOptional.isPresent())
+        assertThat(actualIdOptional)
                 .overridingErrorMessage("Expected Thing not have an identifier but it had <%s>",
-                        actualIdOptional.orElse(null))
-                .isFalse();
+                        String.valueOf(actualIdOptional.orElse(null)))
+                .isNotPresent();
 
         return this;
     }
@@ -516,7 +518,7 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
         assertThat(actual).isNotNull();
 
         assertThat(actual.getModified()).isPresent();
-        assertThat(actual.getId()).isEqualTo(expected.getId());
+        assertThat(actual.getEntityId()).isEqualTo(expected.getEntityId());
         assertThat(actual.getAttributes()).isEqualTo(expected.getAttributes());
         assertThat(actual.getFeatures()).isEqualTo(expected.getFeatures());
 

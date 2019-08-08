@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.things;
+package org.eclipse.ditto.model.things.id;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -19,7 +19,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 
 /**
  * Validates the id of a policy.
- * If the ID is invalid a {@link org.eclipse.ditto.model.things.ThingPolicyIdInvalidException} is thrown.
+ * If the ID is invalid a {@link ThingPolicyIdInvalidException} is thrown.
  */
 @Immutable
 public final class ThingPolicyIdValidator extends EntityIdValidator {

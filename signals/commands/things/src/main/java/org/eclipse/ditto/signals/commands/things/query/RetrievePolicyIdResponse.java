@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -51,10 +52,10 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
     static final JsonFieldDefinition<String> JSON_POLICY_ID =
             JsonFactory.newStringFieldDefinition("policyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final String policyId;
 
-    private RetrievePolicyIdResponse(final String thingId, final HttpStatusCode statusCode, final String policyId,
+    private RetrievePolicyIdResponse(final ThingId thingId, final HttpStatusCode statusCode, final String policyId,
             final DittoHeaders dittoHeaders) {
         super(TYPE, statusCode, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thing ID");
@@ -80,7 +81,7 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrievePolicyIdResponse of(final String thingId, final String policyId,
+    public static RetrievePolicyIdResponse of(final ThingId thingId, final String policyId,
             final DittoHeaders dittoHeaders) {
         return new RetrievePolicyIdResponse(thingId, HttpStatusCode.OK, policyId, dittoHeaders);
     }
@@ -113,8 +114,9 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
     public static RetrievePolicyIdResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrievePolicyIdResponse>(TYPE, jsonObject)
                 .deserialize((statusCode) -> {
-                    final String thingId =
+                    final String extractedThingId =
                             jsonObject.getValueOrThrow(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
                     final String retrievePolicyId = jsonObject.getValueOrThrow(JSON_POLICY_ID);
 
                     return of(thingId, retrievePolicyId, dittoHeaders);
@@ -122,7 +124,7 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -160,7 +162,7 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_POLICY_ID, policyId, predicate);
     }
 

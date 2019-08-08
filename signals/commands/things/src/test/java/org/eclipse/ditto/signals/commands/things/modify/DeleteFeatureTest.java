@@ -23,6 +23,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Feature;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
@@ -37,7 +38,7 @@ public final class DeleteFeatureTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, DeleteFeature.TYPE)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(DeleteFeature.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .build();
 
@@ -47,7 +48,8 @@ public final class DeleteFeatureTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DeleteFeature.class, areImmutable(), provided(Feature.class).isAlsoImmutable());
+        assertInstancesOf(DeleteFeature.class, areImmutable(),
+                provided(Feature.class, ThingId.class).isAlsoImmutable());
     }
 
 

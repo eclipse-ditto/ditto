@@ -15,10 +15,12 @@ package org.eclipse.ditto.signals.commands.things;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.signals.base.WithThingId;
+import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.id.WithThingId;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 /**
@@ -44,8 +46,8 @@ public interface ThingCommand<T extends ThingCommand> extends Command<T>, WithTh
     }
 
     @Override
-    default String getId() {
-        return getThingId();
+    default ThingId getEntityId() {
+        return getThingEntityId();
     }
 
     @Override

@@ -30,10 +30,12 @@ import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
@@ -114,9 +116,9 @@ public final class MultiStageCommandTest {
             final ActorRef underTest = newEnforcerActor(getRef());
 
             // GIVEN: Thing and its Policy exist
-            final String thingId = "thing:" + UUID.randomUUID();
-            final String policyId = "policy:" + UUID.randomUUID();
-            final Thing thing = emptyThing(thingId, policyId);
+            final ThingId thingId = ThingId.of("thing", UUID.randomUUID().toString());
+            final PolicyId policyId = PolicyId.of("policy", UUID.randomUUID().toString());
+            final Thing thing = emptyThing(thingId, policyId.toString());
             final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                     SudoRetrieveThingResponse.of(thing.toJson(FieldType.all()), DittoHeaders.empty());
             final Policy policy = defaultPolicy(policyId);
@@ -139,10 +141,10 @@ public final class MultiStageCommandTest {
 
             // THEN: initial requester receives Thing with inline policy
             final RetrieveThingResponse response = fishForMsgClass(this, RetrieveThingResponse.class);
-            assertThat(response.getThingId()).isEqualTo(thingId);
+            assertThat((CharSequence) response.getThingEntityId()).isEqualTo(thingId);
             assertThat(response.getEntity()).isObject();
             assertThat(response.getEntity().asObject().getValue("_policy/policyId"))
-                    .contains(JsonFactory.newValue(policyId));
+                    .contains(JsonFactory.newValue(policyId.toString()));
         }};
     }
 
@@ -152,9 +154,9 @@ public final class MultiStageCommandTest {
             final ActorRef underTest = newEnforcerActor(getRef());
 
             // GIVEN: Thing and its Policy exist but default subject has no permission on the policy
-            final String thingId = "thing:" + UUID.randomUUID();
-            final String policyId = "policy:" + UUID.randomUUID();
-            final Thing thing = emptyThing(thingId, policyId);
+            final ThingId thingId = ThingId.of("thing", UUID.randomUUID().toString());
+            final PolicyId policyId = PolicyId.of("policy", UUID.randomUUID().toString());
+            final Thing thing = emptyThing(thingId, policyId.toString());
             final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                     SudoRetrieveThingResponse.of(thing.toJson(FieldType.all()), DittoHeaders.empty());
             final Policy policy = thingOnlyPolicy(policyId);
@@ -176,7 +178,7 @@ public final class MultiStageCommandTest {
 
             // THEN: initial requester receives Thing with inline policy
             final RetrieveThingResponse response = fishForMsgClass(this, RetrieveThingResponse.class);
-            assertThat(response.getThingId()).isEqualTo(thingId);
+            assertThat((CharSequence) response.getThingEntityId()).isEqualTo(thingId);
             assertThat(response.getEntity()).isObject();
             assertThat(response.getEntity().asObject()).doesNotContain(JsonKey.of("_policy"));
         }};
@@ -188,9 +190,9 @@ public final class MultiStageCommandTest {
             final ActorRef underTest = newEnforcerActor(getRef());
 
             // GIVEN: Thing and its Policy exist in cache but not actually
-            final String thingId = "thing:" + UUID.randomUUID();
-            final String policyId = "policy:" + UUID.randomUUID();
-            final Thing thing = emptyThing(thingId, policyId);
+            final ThingId thingId = ThingId.of("thing", UUID.randomUUID().toString());
+            final PolicyId policyId = PolicyId.of("policy", UUID.randomUUID().toString());
+            final Thing thing = emptyThing(thingId, policyId.toString());
             final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                     SudoRetrieveThingResponse.of(thing.toJson(FieldType.all()), DittoHeaders.empty());
             final Policy policy = thingOnlyPolicy(policyId);
@@ -221,7 +223,7 @@ public final class MultiStageCommandTest {
 
             // THEN: initial requester receives Thing without Policy
             final RetrieveThingResponse response = expectMsgClass(RetrieveThingResponse.class);
-            assertThat(response.getThingId()).isEqualTo(thingId);
+            assertThat((CharSequence) response.getThingEntityId()).isEqualTo(thingId);
             assertThat(response.getEntity()).isObject();
             assertThat(response.getEntity().asObject()).doesNotContain(JsonKey.of("_policy"));
         }};
@@ -233,9 +235,9 @@ public final class MultiStageCommandTest {
             final ActorRef underTest = newEnforcerActor(getRef());
 
             // GIVEN: Thing and its Policy exist in cache
-            final String thingId = "thing:" + UUID.randomUUID();
-            final String policyId = "policy:" + UUID.randomUUID();
-            final Thing thing = emptyThing(thingId, policyId);
+            final ThingId thingId = ThingId.of("thing", UUID.randomUUID().toString());
+            final PolicyId policyId = PolicyId.of("policy", UUID.randomUUID().toString());
+            final Thing thing = emptyThing(thingId, policyId.toString());
             final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                     SudoRetrieveThingResponse.of(thing.toJson(FieldType.all()), DittoHeaders.empty());
             final Policy policy = defaultPolicy(policyId);
@@ -266,7 +268,7 @@ public final class MultiStageCommandTest {
 
             // THEN: initial requester receives Thing without Policy
             final RetrieveThingResponse response = expectMsgClass(RetrieveThingResponse.class);
-            assertThat(response.getThingId()).isEqualTo(thingId);
+            assertThat((CharSequence) response.getThingEntityId()).isEqualTo(thingId);
             assertThat(response.getEntity()).isObject();
             assertThat(response.getEntity().asObject()).doesNotContain(JsonKey.of("_policy"));
         }};
@@ -278,9 +280,9 @@ public final class MultiStageCommandTest {
             final ActorRef underTest = newEnforcerActor(getRef());
 
             // GIVEN: Thing and its Policy exist
-            final String thingId = "thing:" + UUID.randomUUID();
-            final String policyId = "policy:" + UUID.randomUUID();
-            final Thing thing = emptyThing(thingId, policyId);
+            final ThingId thingId = ThingId.of("thing", UUID.randomUUID().toString());
+            final PolicyId policyId = PolicyId.of("policy", UUID.randomUUID().toString());
+            final Thing thing = emptyThing(thingId, policyId.toString());
             final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                     SudoRetrieveThingResponse.of(thing.toJson(FieldType.all()), DittoHeaders.empty());
             final Policy policy = defaultPolicy(policyId);
@@ -308,9 +310,9 @@ public final class MultiStageCommandTest {
             final ActorRef underTest = newEnforcerActor(getRef());
 
             // GIVEN: Thing is nonexistent but its Policy exists
-            final String thingId = "thing:" + UUID.randomUUID();
-            final String policyId = "policy:" + UUID.randomUUID();
-            final Thing thing = emptyThing(thingId, policyId);
+            final ThingId thingId = ThingId.of("thing", UUID.randomUUID().toString());
+            final PolicyId policyId = PolicyId.of("policy", UUID.randomUUID().toString());
+            final Thing thing = emptyThing(thingId, policyId.toString());
             final Policy policy = defaultPolicy(policyId);
             final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
                     SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
@@ -336,15 +338,16 @@ public final class MultiStageCommandTest {
             final ActorRef underTest = newEnforcerActor(getRef());
 
             // GIVEN: Thing and Policy are nonexistent
-            final String thingId = "thing:" + UUID.randomUUID();
+            final ThingId thingId = ThingId.of("thing", UUID.randomUUID().toString());
+            final PolicyId policyId = PolicyId.of(thingId);
             final Thing thing = emptyThing(thingId, null);
-            final Policy policy = defaultPolicy(thingId);
+            final Policy policy = defaultPolicy(policyId);
             mockThingsActor.underlyingActor()
                     .setReply(THING_SUDO, ThingNotAccessibleException.newBuilder(thingId).build())
                     .setReply(CreateThing.TYPE, CreateThingResponse.of(thing, DEFAULT_HEADERS));
             mockPoliciesActor.underlyingActor()
-                    .setReply(POLICY_SUDO, PolicyNotAccessibleException.newBuilder(thingId).build())
-                    .setReply(CreatePolicy.TYPE, CreatePolicyResponse.of(thingId, policy, DEFAULT_HEADERS));
+                    .setReply(POLICY_SUDO, PolicyNotAccessibleException.newBuilder(policyId).build())
+                    .setReply(CreatePolicy.TYPE, CreatePolicyResponse.of(policyId, policy, DEFAULT_HEADERS));
 
 
             // WHEN: received ModifyThing
@@ -363,14 +366,15 @@ public final class MultiStageCommandTest {
             final ActorRef underTest = newEnforcerActor(getRef());
 
             // GIVEN: Thing is nonexistent but Policy exists
-            final String thingId = "thing:" + UUID.randomUUID();
+            final ThingId thingId = ThingId.of("thing", UUID.randomUUID().toString());
+            final PolicyId policyId = PolicyId.of(thingId);
             final Thing thing = emptyThing(thingId, null);
-            final Policy policy = defaultPolicy(thingId);
+            final Policy policy = defaultPolicy(policyId);
             mockThingsActor.underlyingActor()
                     .setReply(THING_SUDO, ThingNotAccessibleException.newBuilder(thingId).build());
             mockPoliciesActor.underlyingActor()
-                    .setReply(POLICY_SUDO, SudoRetrievePolicyResponse.of(thingId, policy, DittoHeaders.empty()))
-                    .setReply(CreatePolicy.TYPE, PolicyConflictException.newBuilder(thingId).build());
+                    .setReply(POLICY_SUDO, SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty()))
+                    .setReply(CreatePolicy.TYPE, PolicyConflictException.newBuilder(policyId).build());
 
 
             // WHEN: received ModifyThing
@@ -390,9 +394,9 @@ public final class MultiStageCommandTest {
             final ActorRef underTest = newEnforcerActor(getRef());
 
             // GIVEN: Thing and Policy do not exist
-            final String thingId = "thing:" + UUID.randomUUID();
-            final String policyId = "policy:" + UUID.randomUUID();
-            final Thing thing = emptyThing(thingId, policyId);
+            final ThingId thingId = ThingId.of("thing", UUID.randomUUID().toString());
+            final PolicyId policyId = PolicyId.of("policy", UUID.randomUUID().toString());
+            final Thing thing = emptyThing(thingId, policyId.toString());
             final Policy policy = defaultPolicy(policyId);
             mockThingsActor.underlyingActor()
                     .setReply(THING_SUDO, ThingNotAccessibleException.newBuilder(thingId).build())
@@ -418,9 +422,9 @@ public final class MultiStageCommandTest {
             final ActorRef underTest = newEnforcerActor(getRef());
 
             // GIVEN: Thing and Policy do not exist
-            final String thingId = "thing:" + UUID.randomUUID();
-            final String policyId = "policy:" + UUID.randomUUID();
-            final Thing thing = emptyThing(thingId, policyId);
+            final ThingId thingId = ThingId.of("thing", UUID.randomUUID().toString());
+            final PolicyId policyId = PolicyId.of("policy", UUID.randomUUID().toString());
+            final Thing thing = emptyThing(thingId, policyId.toString());
             final Policy policy = thingOnlyPolicy(policyId);
             mockThingsActor.underlyingActor()
                     .setReply(THING_SUDO, ThingNotAccessibleException.newBuilder(thingId).build())
@@ -448,7 +452,7 @@ public final class MultiStageCommandTest {
         return new TestActorRef<>(system, MockEntitiesActor.props(), system.guardian(), UUID.randomUUID().toString());
     }
 
-    private static Thing emptyThing(final String thingId, @Nullable final String policyId) {
+    private static Thing emptyThing(final ThingId thingId, @Nullable final String policyId) {
         return ThingsModelFactory.newThingBuilder()
                 .setId(thingId)
                 .setPolicyId(policyId)
@@ -456,7 +460,7 @@ public final class MultiStageCommandTest {
                 .build();
     }
 
-    private static Policy defaultPolicy(final String policyId) {
+    private static Policy defaultPolicy(final PolicyId policyId) {
         final Permissions permissions = Permissions.newInstance(Permission.READ, Permission.WRITE);
         return PoliciesModelFactory.newPolicyBuilder(policyId)
                 .forLabel(POLICY)
@@ -469,7 +473,7 @@ public final class MultiStageCommandTest {
                 .build();
     }
 
-    private static Policy thingOnlyPolicy(final String policyId) {
+    private static Policy thingOnlyPolicy(final PolicyId policyId) {
         final Permissions permissions = Permissions.newInstance(Permission.READ, Permission.WRITE);
         return PoliciesModelFactory.newPolicyBuilder(policyId)
                 .forLabel(POLICY)

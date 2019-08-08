@@ -40,7 +40,7 @@ public final class FeaturePropertyModifiedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, FeaturePropertyModified.TYPE)
             .set(Event.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
-            .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ThingEvent.JsonFields.FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(FeaturePropertyModified.JSON_PROPERTY, PROPERTY_JSON_POINTER.toString())
             .set(FeaturePropertyModified.JSON_VALUE, NEW_PROPERTY_VALUE)
@@ -117,7 +117,7 @@ public final class FeaturePropertyModifiedTest {
                 FeaturePropertyModified.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getThingId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getThingEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
         assertThat(underTest.getPropertyPointer()).isEqualTo(PROPERTY_JSON_POINTER);
         assertThat(underTest.getPropertyValue()).isEqualTo(NEW_PROPERTY_VALUE);

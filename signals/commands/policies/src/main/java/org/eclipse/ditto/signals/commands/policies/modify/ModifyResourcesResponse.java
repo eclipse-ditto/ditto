@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -52,10 +53,10 @@ public final class ModifyResourcesResponse extends AbstractCommandResponse<Modif
     static final JsonFieldDefinition<String> JSON_LABEL =
             JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String policyId;
+    private final PolicyId policyId;
     private final Label label;
 
-    private ModifyResourcesResponse(final String policyId,
+    private ModifyResourcesResponse(final PolicyId policyId,
             final Label label,
             final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders) {
@@ -74,7 +75,7 @@ public final class ModifyResourcesResponse extends AbstractCommandResponse<Modif
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ModifyResourcesResponse of(final String policyId, final Label label,
+    public static ModifyResourcesResponse of(final PolicyId policyId, final Label label,
             final DittoHeaders dittoHeaders) {
 
         return new ModifyResourcesResponse(policyId, label, HttpStatusCode.NO_CONTENT, dittoHeaders);
@@ -108,8 +109,9 @@ public final class ModifyResourcesResponse extends AbstractCommandResponse<Modif
     public static ModifyResourcesResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyResourcesResponse>(TYPE, jsonObject)
                 .deserialize(statusCode -> {
-                    final String policyId =
+                    final String extractedPolicyId =
                             jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
+                    final PolicyId policyId = PolicyId.of(extractedPolicyId);
                     final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
 
                     return new ModifyResourcesResponse(policyId, label, statusCode, dittoHeaders);
@@ -117,7 +119,7 @@ public final class ModifyResourcesResponse extends AbstractCommandResponse<Modif
     }
 
     @Override
-    public String getId() {
+    public PolicyId getEntityId() {
         return policyId;
     }
 
@@ -141,7 +143,8 @@ public final class ModifyResourcesResponse extends AbstractCommandResponse<Modif
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId),
+                predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
     }
 

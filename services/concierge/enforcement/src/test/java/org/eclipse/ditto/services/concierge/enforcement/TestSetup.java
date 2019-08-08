@@ -33,11 +33,12 @@ import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.services.concierge.common.CachesConfig;
 import org.eclipse.ditto.services.concierge.common.DefaultCachesConfig;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
-import org.eclipse.ditto.services.utils.cache.EntityId;
+import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.utils.cacheloaders.AclEnforcerCacheLoader;
 import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcerCacheLoader;
@@ -63,7 +64,7 @@ public final class TestSetup {
     public static final String THING_SUDO = "thing-sudo";
     public static final String POLICY_SUDO = "policy-sudo";
 
-    public static final String THING_ID = "thing:id";
+    public static final ThingId THING_ID = ThingId.of("thing", "id");
     public static final AuthorizationSubject SUBJECT = AuthorizationSubject.newInstance("dummy:subject");
 
     public static final Config RAW_CONFIG = ConfigFactory.load("test");
@@ -100,15 +101,17 @@ public final class TestSetup {
 
         final PolicyEnforcerCacheLoader policyEnforcerCacheLoader =
                 new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegion);
-        final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache = CaffeineCache.of(Caffeine.newBuilder(),
+        final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache =
+                CaffeineCache.of(Caffeine.newBuilder(),
                 policyEnforcerCacheLoader);
         final AclEnforcerCacheLoader aclEnforcerCacheLoader =
                 new AclEnforcerCacheLoader(askTimeout, thingsShardRegion);
-        final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache = CaffeineCache.of(Caffeine.newBuilder(),
+        final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache =
+                CaffeineCache.of(Caffeine.newBuilder(),
                 aclEnforcerCacheLoader);
         final ThingEnforcementIdCacheLoader thingEnforcementIdCacheLoader =
                 new ThingEnforcementIdCacheLoader(askTimeout, thingsShardRegion);
-        final Cache<EntityId, Entry<EntityId>> thingIdCache =
+        final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache =
                 CaffeineCache.of(Caffeine.newBuilder(), thingEnforcementIdCacheLoader);
 
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();

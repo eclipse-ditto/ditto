@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
@@ -62,7 +63,7 @@ public final class ResourceDeleted extends AbstractPolicyEvent<ResourceDeleted>
     private final Label label;
     private final ResourceKey resourceKey;
 
-    private ResourceDeleted(final String policyId,
+    private ResourceDeleted(final PolicyId policyId,
             final Label label,
             final ResourceKey resourceKey,
             final long revision,
@@ -85,7 +86,7 @@ public final class ResourceDeleted extends AbstractPolicyEvent<ResourceDeleted>
      * @return the created ResourceDeleted.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ResourceDeleted of(final String policyId,
+    public static ResourceDeleted of(final PolicyId policyId,
             final Label label,
             final ResourceKey resourceKey,
             final long revision,
@@ -106,7 +107,7 @@ public final class ResourceDeleted extends AbstractPolicyEvent<ResourceDeleted>
      * @return the created ResourceDeleted.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
-    public static ResourceDeleted of(final String policyId,
+    public static ResourceDeleted of(final PolicyId policyId,
             final Label label,
             final ResourceKey resourceKey,
             final long revision,
@@ -140,7 +141,8 @@ public final class ResourceDeleted extends AbstractPolicyEvent<ResourceDeleted>
      */
     public static ResourceDeleted fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<ResourceDeleted>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
-            final String policyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+            final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+            final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
             final String resourceKey = jsonObject.getValueOrThrow(JSON_RESOURCE_KEY);
 
@@ -174,12 +176,12 @@ public final class ResourceDeleted extends AbstractPolicyEvent<ResourceDeleted>
 
     @Override
     public ResourceDeleted setRevision(final long revision) {
-        return of(getPolicyId(), label, resourceKey, revision, getTimestamp().orElse(null), getDittoHeaders());
+        return of(getPolicyEntityId(), label, resourceKey, revision, getTimestamp().orElse(null), getDittoHeaders());
     }
 
     @Override
     public ResourceDeleted setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getPolicyId(), label, resourceKey, getRevision(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getPolicyEntityId(), label, resourceKey, getRevision(), getTimestamp().orElse(null), dittoHeaders);
     }
 
     @Override

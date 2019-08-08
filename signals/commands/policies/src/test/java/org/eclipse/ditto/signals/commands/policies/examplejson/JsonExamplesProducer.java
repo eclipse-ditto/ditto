@@ -32,7 +32,8 @@ import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyEntryInvalidException;
-import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
+import org.eclipse.ditto.model.policies.id.PolicyId;
+import org.eclipse.ditto.model.policies.id.PolicyIdInvalidException;
 import org.eclipse.ditto.model.policies.PolicyRevision;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
@@ -107,7 +108,7 @@ public class JsonExamplesProducer {
     /*
      * Policy
      */
-    private static final String POLICY_ID = NAMESPACE + ":the_policy_id";
+    private static final PolicyId POLICY_ID = PolicyId.of(NAMESPACE, "the_policy_id");
     private static final Label LABEL = PoliciesModelFactory.newLabel("the_label");
     private static final SubjectId SUBJECT_ID =
             PoliciesModelFactory.newSubjectId(SubjectIssuer.GOOGLE, "the_subjectid");

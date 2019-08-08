@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.junit.Test;
@@ -37,7 +38,7 @@ public final class ModifyFeatureResponseTest {
     private static final JsonObject KNOWN_JSON_CREATED = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, ModifyFeatureResponse.TYPE)
             .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.CREATED.toInt())
-            .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ModifyFeatureResponse.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(ModifyFeatureResponse.JSON_FEATURE,
                     TestConstants.Feature.FLUX_CAPACITOR.toJson(FieldType.regularOrSpecial()))
@@ -46,7 +47,7 @@ public final class ModifyFeatureResponseTest {
     private static final JsonObject KNOWN_JSON_UPDATED = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, ModifyFeatureResponse.TYPE)
             .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.NO_CONTENT.toInt())
-            .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ModifyFeatureResponse.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(ModifyFeatureResponse.JSON_FEATURE,
                     ThingsModelFactory.nullFeature(TestConstants.Feature.FLUX_CAPACITOR_ID)
@@ -58,7 +59,7 @@ public final class ModifyFeatureResponseTest {
     public void assertImmutability() {
         assertInstancesOf(ModifyFeatureResponse.class,
                 areImmutable(),
-                provided(Feature.class).isAlsoImmutable());
+                provided(Feature.class, ThingId.class).isAlsoImmutable());
     }
 
 

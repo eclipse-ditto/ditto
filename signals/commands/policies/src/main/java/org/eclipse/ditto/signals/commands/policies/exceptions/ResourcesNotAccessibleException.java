@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.policies.PolicyException;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 
 /**
  * Thrown if {@link org.eclipse.ditto.model.policies.Resources} could not be loaded due to missing authorization.
@@ -62,7 +63,7 @@ public class ResourcesNotAccessibleException extends DittoRuntimeException imple
      * @param label the Label of the PolicyEntry.
      * @return the builder.
      */
-    public static Builder newBuilder(final String policyId, final CharSequence label) {
+    public static Builder newBuilder(final PolicyId policyId, final CharSequence label) {
         return new Builder(policyId, label);
     }
 
@@ -112,9 +113,9 @@ public class ResourcesNotAccessibleException extends DittoRuntimeException imple
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String policyId, final CharSequence label) {
+        private Builder(final PolicyId policyId, final CharSequence label) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, label, policyId));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, label, String.valueOf(policyId)));
         }
 
         @Override

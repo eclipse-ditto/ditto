@@ -34,7 +34,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.ThingIdValidator;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -65,13 +65,13 @@ public final class RetrieveThing extends AbstractCommand<RetrieveThing> implemen
 
     private static final long NULL_SNAPSHOT_REVISION = -1L;
 
-    private final String thingId;
+    private final ThingId thingId;
     @Nullable private final JsonFieldSelector selectedFields;
     private final long snapshotRevision;
 
     private RetrieveThing(final Builder builder) {
         super(TYPE, builder.dittoHeaders);
-        thingId = builder.thingId;
+        thingId = checkNotNull(builder.thingId, "Thing ID");
         selectedFields = builder.selectedFields;
         snapshotRevision = builder.snapshotRevision;
     }
@@ -84,10 +84,8 @@ public final class RetrieveThing extends AbstractCommand<RetrieveThing> implemen
      * @return a Command for retrieving the Thing with the {@code thingId} as its ID which is readable from the passed
      * authorization context.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
-    public static RetrieveThing of(final CharSequence thingId, final DittoHeaders dittoHeaders) {
+    public static RetrieveThing of(final ThingId thingId, final DittoHeaders dittoHeaders) {
         return getBuilder(thingId, dittoHeaders).build();
     }
 
@@ -98,12 +96,9 @@ public final class RetrieveThing extends AbstractCommand<RetrieveThing> implemen
      * @param dittoHeaders the headers of the command.
      * @return the builder.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
-    public static Builder getBuilder(final CharSequence thingId, final DittoHeaders dittoHeaders) {
-        ThingIdValidator.getInstance().accept(thingId, dittoHeaders);
-        return new Builder(thingId.toString(), checkNotNull(dittoHeaders, "command headers"));
+    public static Builder getBuilder(final ThingId thingId, final DittoHeaders dittoHeaders) {
+        return new Builder(thingId, checkNotNull(dittoHeaders, "command headers"));
     }
 
     /**
@@ -133,7 +128,8 @@ public final class RetrieveThing extends AbstractCommand<RetrieveThing> implemen
      */
     public static RetrieveThing fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveThing>(TYPE, jsonObject).deserialize(() -> {
-            final String thingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
             final Builder builder = getBuilder(thingId, dittoHeaders);
 
             jsonObject.getValue(JSON_SELECTED_FIELDS)
@@ -154,7 +150,7 @@ public final class RetrieveThing extends AbstractCommand<RetrieveThing> implemen
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -167,7 +163,7 @@ public final class RetrieveThing extends AbstractCommand<RetrieveThing> implemen
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommand.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingQueryCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         if (null != selectedFields) {
             jsonObjectBuilder.set(JSON_SELECTED_FIELDS, selectedFields.toString(), predicate);
         }
@@ -237,13 +233,13 @@ public final class RetrieveThing extends AbstractCommand<RetrieveThing> implemen
     @NotThreadSafe
     public static final class Builder {
 
-        private final String thingId;
+        private final ThingId thingId;
         private final DittoHeaders dittoHeaders;
         @Nullable private JsonFieldSelector selectedFields;
         private long snapshotRevision;
 
-        private Builder(final String theThingId, final DittoHeaders theDittoHeaders) {
-            thingId = theThingId;
+        private Builder(final ThingId theThingId, final DittoHeaders theDittoHeaders) {
+            thingId = checkNotNull(theThingId, "Thing ID");
             dittoHeaders = theDittoHeaders;
             selectedFields = null;
             snapshotRevision = NULL_SNAPSHOT_REVISION;

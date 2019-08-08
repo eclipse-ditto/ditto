@@ -21,6 +21,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
@@ -1173,7 +1174,7 @@ public final class ThingModifyCommandAdapterTest implements ProtocolAdapterTest 
         public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate predicate) {
             return JsonObject.newBuilder()
                     .set(JsonFields.TYPE, getType())
-                    .set("thingId", getThingId())
+                    .set("thingId", getThingEntityId().toString())
                     .set("policyId", "foo")
                     .build();
         }
@@ -1189,7 +1190,7 @@ public final class ThingModifyCommandAdapterTest implements ProtocolAdapterTest 
         }
 
         @Override
-        public String getThingId() {
+        public ThingId getThingEntityId() {
             return TestConstants.THING_ID;
         }
 

@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingsResponse;
@@ -126,7 +127,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
 
     private void handleRetrieveThings(final RetrieveThings rt, final Object msgToAsk) {
         LogUtil.enhanceLogWithCorrelationId(log, rt.getDittoHeaders().getCorrelationId());
-        final List<String> thingIds = rt.getThingIds();
+        final List<ThingId> thingIds = rt.getThingEntityIds();
         log.info("Got '{}' message. Retrieving requested '{}' Things..",
                 RetrieveThings.class.getSimpleName(), thingIds.size());
 
@@ -136,7 +137,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
 
     private void handleSudoRetrieveThings(final SudoRetrieveThings srt, final Object msgToAsk) {
         LogUtil.enhanceLogWithCorrelationId(log, srt.getDittoHeaders().getCorrelationId());
-        final List<String> thingIds = srt.getThingIds();
+        final List<ThingId> thingIds = srt.getThingIds();
         log.info("Got '{}' message. Retrieving requested '{}' Things..",
                 SudoRetrieveThings.class.getSimpleName(), thingIds.size());
 
@@ -144,7 +145,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
         askTargetActor(srt, thingIds, msgToAsk, sender);
     }
 
-    private void askTargetActor(final Command<?> command, final List<String> thingIds,
+    private void askTargetActor(final Command<?> command, final List<ThingId> thingIds,
             final Object msgToAsk, final ActorRef sender) {
         PatternsCS.ask(targetActor, msgToAsk, Duration.ofSeconds(ASK_TIMEOUT))
                 .thenAccept(response -> {
@@ -165,7 +166,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                 });
     }
 
-    private void handleSourceRef(final SourceRef sourceRef, final List<String> thingIds,
+    private void handleSourceRef(final SourceRef sourceRef, final List<ThingId> thingIds,
             final Command<?> originatingCommand, final ActorRef originatingSender) {
         final Function<Jsonifiable<?>, PlainJson> thingPlainJsonSupplier;
         final Function<List<PlainJson>, CommandResponse<?>> overallResponseSupplier;
@@ -186,7 +187,8 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
 
         final CompletionStage<List<PlainJson>> o =
                 (CompletionStage<List<PlainJson>>) sourceRef.getSource()
-                        .orElse(Source.single(ThingNotAccessibleException.newBuilder("").build()))
+                        .orElse(Source.single(ThingNotAccessibleException.fromMessage("Thing could not be accessed.",
+                                DittoHeaders.empty())))
                         .filterNot(el -> el instanceof DittoRuntimeException)
                         .map(param -> thingPlainJsonSupplier.apply((Jsonifiable<?>) param))
                         .log("retrieve-thing-response", log)
@@ -214,7 +216,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                 final RetrieveThingResponse response = (RetrieveThingResponse) jsonifiable;
                 final String json = response.getEntityPlainString().orElseGet(() ->
                         response.getEntity(response.getImplementedSchemaVersion()).toString());
-                return PlainJson.of(response.getId(), json);
+                return PlainJson.of(response.getEntityId(), json);
             } else {
                 return null;
             }
@@ -227,18 +229,18 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                 final SudoRetrieveThingResponse response = (SudoRetrieveThingResponse) jsonifiable;
                 final String json = response.getEntityPlainString().orElseGet(() ->
                         response.getEntity(response.getImplementedSchemaVersion()).toString());
-                return PlainJson.of(response.getId(), json);
+                return PlainJson.of(response.getEntityId(), json);
             } else {
                 return null;
             }
         };
     }
 
-    private Function<List<PlainJson>, List<PlainJson>> supplyPlainJsonSorter(final List<String> thingIds) {
+    private Function<List<PlainJson>, List<PlainJson>> supplyPlainJsonSorter(final List<ThingId> thingIds) {
         return plainJsonThings -> {
             final Comparator<PlainJson> comparator = (pj1, pj2) -> {
-                final String thingId1 = pj1.getId();
-                final String thingId2 = pj2.getId();
+                final ThingId thingId1 = ThingId.of(pj1.getId());
+                final ThingId thingId2 = ThingId.of(pj2.getId());
                 return Integer.compare(thingIds.indexOf(thingId1), thingIds.indexOf(thingId2));
             };
 
@@ -271,14 +273,12 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
         private final String id;
         private final String json;
 
-        private PlainJson(final String id, final String json) {
-            this.id = id;
-            this.json = json;
+        private PlainJson(final CharSequence id, final String json) {
+            this.id = checkNotNull(id, "ID").toString();
+            this.json = checkNotNull(json, "JSON");
         }
 
-        static PlainJson of(final String id, final String json) {
-            checkNotNull(id, "ID");
-            checkNotNull(json, "JSON");
+        static PlainJson of(final CharSequence id, final String json) {
             return new PlainJson(id, json);
         }
 

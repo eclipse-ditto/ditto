@@ -26,6 +26,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
 /**
@@ -45,7 +46,7 @@ public final class ThingDeleted extends AbstractThingEvent<ThingDeleted> impleme
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private ThingDeleted(final String thingId, final long revision, @Nullable final Instant timestamp,
+    private ThingDeleted(final ThingId thingId, final long revision, @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
         super(TYPE, thingId, revision, timestamp, dittoHeaders);
     }
@@ -59,7 +60,7 @@ public final class ThingDeleted extends AbstractThingEvent<ThingDeleted> impleme
      * @return the ThingDeleted created.
      * @throws NullPointerException if {@code thingId} is {@code null}.
      */
-    public static ThingDeleted of(final String thingId, final long revision, final DittoHeaders dittoHeaders) {
+    public static ThingDeleted of(final ThingId thingId, final long revision, final DittoHeaders dittoHeaders) {
         return of(thingId, revision, null, dittoHeaders);
     }
 
@@ -73,7 +74,7 @@ public final class ThingDeleted extends AbstractThingEvent<ThingDeleted> impleme
      * @return the ThingDeleted created.
      * @throws NullPointerException if {@code thing} is {@code null}.
      */
-    public static ThingDeleted of(final String thingId, final long revision, @Nullable final Instant timestamp,
+    public static ThingDeleted of(final ThingId thingId, final long revision, @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
         return new ThingDeleted(thingId, revision, timestamp, dittoHeaders);
     }
@@ -105,8 +106,9 @@ public final class ThingDeleted extends AbstractThingEvent<ThingDeleted> impleme
     public static ThingDeleted fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<ThingDeleted>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
             final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
 
-            return of(extractedThingId, revision, timestamp, dittoHeaders);
+            return of(thingId, revision, timestamp, dittoHeaders);
         });
     }
 
@@ -117,12 +119,12 @@ public final class ThingDeleted extends AbstractThingEvent<ThingDeleted> impleme
 
     @Override
     public ThingDeleted setRevision(final long revision) {
-        return of(getThingId(), revision, getTimestamp().orElse(null), getDittoHeaders());
+        return of(getThingEntityId(), revision, getTimestamp().orElse(null), getDittoHeaders());
     }
 
     @Override
     public ThingDeleted setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingId(), getRevision(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getThingEntityId(), getRevision(), getTimestamp().orElse(null), dittoHeaders);
     }
 
     @Override

@@ -20,6 +20,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedE
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.AllowedReason;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
@@ -106,19 +107,20 @@ public class ImmutableEnforcementFilterTest {
         final Enforcement enforcement = ConnectivityModelFactory.newEnforcement("{{ header:device_id }}",
                 "{{ thing:name }}", // does not match
                 "{{ thing:id }}");  // matches
-        final EnforcementFilterFactory<Map<String, String>, String> enforcementFilterFactory =
+        final EnforcementFilterFactory<Map<String, String>, CharSequence> enforcementFilterFactory =
                 EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement,
                         PlaceholderFactory.newHeadersPlaceholder());
-        final EnforcementFilter enforcementFilter = enforcementFilterFactory.getFilter(map);
+        final EnforcementFilter<CharSequence> enforcementFilter = enforcementFilterFactory.getFilter(map);
         enforcementFilter.match("eclipse:ditto", DittoHeaders.empty());
+        enforcementFilter.match(ThingId.of("eclipse:ditto"), DittoHeaders.empty());
     }
 
     private void testSimplePlaceholder(final String inputTemplate, final String filterTemplate,
             final String inputValue, final String filterValue) {
         final Enforcement enforcement = ConnectivityModelFactory.newEnforcement(inputTemplate, filterTemplate);
-        final EnforcementFilterFactory<String, String> enforcementFilterFactory =
+        final EnforcementFilterFactory<String, CharSequence> enforcementFilterFactory =
                 EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement, SimplePlaceholder.INSTANCE);
-        final EnforcementFilter enforcementFilter = enforcementFilterFactory.getFilter(inputValue);
+        final EnforcementFilter<CharSequence> enforcementFilter = enforcementFilterFactory.getFilter(inputValue);
         enforcementFilter.match(filterValue, DittoHeaders.empty());
     }
 

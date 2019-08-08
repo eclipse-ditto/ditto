@@ -30,8 +30,8 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
-import org.eclipse.ditto.model.policies.PolicyIdValidator;
 import org.eclipse.ditto.model.policies.ResourceKey;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -60,14 +60,13 @@ public final class DeleteResource extends AbstractCommand<DeleteResource>
     static final JsonFieldDefinition<String> JSON_RESOURCE_KEY =
             JsonFactory.newStringFieldDefinition("resourceKey", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String policyId;
+    private final PolicyId policyId;
     private final Label label;
     private final ResourceKey resourceKey;
 
-    private DeleteResource(final String policyId, final Label label, final ResourceKey resourceKey,
+    private DeleteResource(final PolicyId policyId, final Label label, final ResourceKey resourceKey,
             final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
-        PolicyIdValidator.getInstance().accept(policyId, dittoHeaders);
         this.policyId = policyId;
         this.label = label;
         this.resourceKey = resourceKey;
@@ -82,8 +81,28 @@ public final class DeleteResource extends AbstractCommand<DeleteResource>
      * @param dittoHeaders the headers of the command.
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.id.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.ResourceKey, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static DeleteResource of(final String policyId, final Label label, final ResourceKey resourceKey,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), label, resourceKey, dittoHeaders);
+    }
+
+    /**
+     * Creates a command for deleting a {@code Resource} of a {@code Policy}'s {@code PolicyEntry}.
+     *
+     * @param policyId the identifier of the Policy.
+     * @param label the Label of the PolicyEntry.
+     * @param resourceKey the ResourceKey of the Resource to delete.
+     * @param dittoHeaders the headers of the command.
+     * @return the command.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static DeleteResource of(final PolicyId policyId, final Label label, final ResourceKey resourceKey,
             final DittoHeaders dittoHeaders) {
 
         Objects.requireNonNull(policyId, "The Policy identifier must not be null!");
@@ -119,7 +138,8 @@ public final class DeleteResource extends AbstractCommand<DeleteResource>
      */
     public static DeleteResource fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<DeleteResource>(TYPE, jsonObject).deserialize(() -> {
-            final String policyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+            final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
             final String resourceKey = jsonObject.getValueOrThrow(JSON_RESOURCE_KEY);
 
@@ -151,7 +171,7 @@ public final class DeleteResource extends AbstractCommand<DeleteResource>
      * @return the identifier of the Policy whose PolicyEntry to delete.
      */
     @Override
-    public String getId() {
+    public PolicyId getEntityId() {
         return policyId;
     }
 
@@ -166,7 +186,7 @@ public final class DeleteResource extends AbstractCommand<DeleteResource>
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
         jsonObjectBuilder.set(JSON_RESOURCE_KEY, resourceKey.toString(), predicate);
     }

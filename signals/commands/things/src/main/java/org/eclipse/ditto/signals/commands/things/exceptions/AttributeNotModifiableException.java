@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.things.ThingException;
+import org.eclipse.ditto.model.things.id.ThingId;
 
 /**
  * Exception which indicates that an attribute cannot be modified.
@@ -62,7 +63,7 @@ public final class AttributeNotModifiableException extends DittoRuntimeException
      * @param attributePath the path of the attribute which is not modifiable.
      * @return the builder.
      */
-    public static AttributeNotModifiableException.Builder newBuilder(final String thingId,
+    public static AttributeNotModifiableException.Builder newBuilder(final ThingId thingId,
             final JsonPointer attributePath) {
         return new AttributeNotModifiableException.Builder(thingId, attributePath);
     }
@@ -112,7 +113,7 @@ public final class AttributeNotModifiableException extends DittoRuntimeException
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String thingId, final JsonPointer attributePath) {
+        private Builder(final ThingId thingId, final JsonPointer attributePath) {
             this();
             message(MessageFormat.format(MESSAGE_TEMPLATE, attributePath.toString(), thingId));
         }

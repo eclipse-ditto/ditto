@@ -28,6 +28,8 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -59,17 +61,16 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
             JsonFactory.newStringFieldDefinition("timestamp", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final String connectionId;
+    private final EntityId connectionId;
     private final Instant timestamp;
 
-    private CheckConnectionLogsActive(final String connectionId,
-            final Instant timestamp) {
+    private CheckConnectionLogsActive(final EntityId connectionId, final Instant timestamp) {
         super(TYPE, DittoHeaders.empty());
         this.connectionId = connectionId;
         this.timestamp = timestamp;
     }
 
-    private CheckConnectionLogsActive(final String connectionId,
+    private CheckConnectionLogsActive(final EntityId connectionId,
             final Instant timestamp, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.connectionId = connectionId;
@@ -83,7 +84,7 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
      * @return a new instance of the command.
      * @throws java.lang.NullPointerException if any argument is {@code null}.
      */
-    public static CheckConnectionLogsActive of(final String connectionId,
+    public static CheckConnectionLogsActive of(final EntityId connectionId,
             final Instant timestamp) {
         checkNotNull(connectionId, "Connection ID");
         checkNotNull(timestamp, "timestamp");
@@ -97,7 +98,7 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
      * @return a new instance of the command.
      * @throws java.lang.NullPointerException if any argument is {@code null}.
      */
-    public static CheckConnectionLogsActive of(final String connectionId,
+    public static CheckConnectionLogsActive of(final EntityId connectionId,
             final Instant timestamp, final DittoHeaders dittoHeaders) {
         checkNotNull(connectionId, "Connection ID");
         checkNotNull(dittoHeaders, "dittoHeaders");
@@ -132,10 +133,12 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
         return new CommandJsonDeserializer<CheckConnectionLogsActive>(TYPE, jsonObject).deserialize(() -> {
             final String readConnectionId =
                     jsonObject.getValueOrThrow(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID);
+            final EntityId connectionId = DefaultEntityId.of(readConnectionId);
+
             final Instant readTimeStamp =
                     getTimestampAsInstant(
                             jsonObject.getValueOrThrow(JSON_TIMESTAMP));
-            return of(readConnectionId, readTimeStamp, dittoHeaders);
+            return of(connectionId, readTimeStamp, dittoHeaders);
         });
     }
 
@@ -143,10 +146,12 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
         return new CommandJsonDeserializer<CheckConnectionLogsActive>(TYPE, jsonObject).deserialize(() -> {
             final String readConnectionId =
                     jsonObject.getValueOrThrow(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID);
+            final EntityId connectionId = DefaultEntityId.of(readConnectionId);
+
             final Instant readTimeStamp =
                     getTimestampAsInstant(
                             jsonObject.getValueOrThrow(JSON_TIMESTAMP));
-            return of(readConnectionId, readTimeStamp);
+            return of(connectionId, readTimeStamp);
         });
     }
 
@@ -162,13 +167,14 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID, connectionId, predicate);
+        jsonObjectBuilder.set(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId),
+                predicate);
         jsonObjectBuilder.set(JSON_TIMESTAMP, timestamp.toString(), predicate);
 
     }
 
     @Override
-    public String getConnectionId() {
+    public EntityId getConnectionEntityId() {
         return connectionId;
     }
 

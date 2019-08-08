@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.AclEntryCreated;
 import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
@@ -1192,7 +1193,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
 
     @Test
     public void policyIdCreatedFromAdaptable() {
-        final PolicyIdCreated expected = PolicyIdCreated.of(TestConstants.THING_ID, TestConstants.THING_ID,
+        final PolicyIdCreated expected = PolicyIdCreated.of(TestConstants.THING_ID, TestConstants.THING_ID.toString(),
                 TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
 
         final JsonPointer path = JsonPointer.of("/policyId");
@@ -1211,7 +1212,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
 
     @Test
     public void policyIdModifiedFromAdaptable() {
-        final PolicyIdModified expected = PolicyIdModified.of(TestConstants.THING_ID, TestConstants.THING_ID,
+        final PolicyIdModified expected = PolicyIdModified.of(TestConstants.THING_ID, TestConstants.THING_ID.toString(),
                 TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
 
         final JsonPointer path = JsonPointer.of("/policyId");
@@ -1240,7 +1241,8 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
-        final PolicyIdModified policyIdModified = PolicyIdModified.of(TestConstants.THING_ID, TestConstants.THING_ID,
+        final PolicyIdModified policyIdModified =
+                PolicyIdModified.of(TestConstants.THING_ID, TestConstants.THING_ID.toString(),
                 TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(policyIdModified);
 
@@ -1250,7 +1252,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
     private static final class UnknownThingEvent implements ThingEvent {
 
         @Override
-        public String getThingId() {
+        public ThingId getThingEntityId() {
             return TestConstants.THING_ID;
         }
 
@@ -1284,7 +1286,7 @@ public final class ThingEventAdapterTest implements ProtocolAdapterTest {
             return JsonObject.newBuilder()
                     .set(Event.JsonFields.TYPE, getType())
                     .set(Event.JsonFields.REVISION, getRevision())
-                    .set(JsonFields.THING_ID, getThingId())
+                    .set(JsonFields.THING_ID, getThingEntityId().toString())
                     .build();
         }
 

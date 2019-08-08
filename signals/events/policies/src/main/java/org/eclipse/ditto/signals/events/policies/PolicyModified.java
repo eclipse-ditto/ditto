@@ -64,7 +64,7 @@ public final class PolicyModified extends AbstractPolicyEvent<PolicyModified> im
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, checkNotNull(policy, "Policy").getId().orElse(null), revision, timestamp, dittoHeaders);
+        super(TYPE, checkNotNull(policy, "Policy").getEntityId().orElse(null), revision, timestamp, dittoHeaders);
         this.policy = policy;
     }
 

@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.AclValidator;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntryResponse;
 import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
@@ -49,7 +50,7 @@ final class DeleteAclEntryStrategy extends AbstractConditionalHeadersCheckingCom
 
         return extractAcl(thing, command)
                 .map(acl -> getDeleteAclEntryResult(acl, context, nextRevision, command))
-                .orElseGet(() -> ResultFactory.newErrorResult(ExceptionFactory.aclEntryNotFound(context.getThingId(),
+                .orElseGet(() -> ResultFactory.newErrorResult(ExceptionFactory.aclEntryNotFound(context.getThingEntityId(),
                         authSubject, dittoHeaders)));
     }
 
@@ -63,7 +64,7 @@ final class DeleteAclEntryStrategy extends AbstractConditionalHeadersCheckingCom
     private Result getDeleteAclEntryResult(final AccessControlList acl, final Context context,
             final long nextRevision, final DeleteAclEntry command) {
 
-        final String thingId = context.getThingId();
+        final ThingId thingId = context.getThingEntityId();
         final AuthorizationSubject authSubject = command.getAuthorizationSubject();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 

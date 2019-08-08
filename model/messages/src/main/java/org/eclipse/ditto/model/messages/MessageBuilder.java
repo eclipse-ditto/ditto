@@ -17,6 +17,8 @@ import java.nio.ByteBuffer;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.model.things.id.ThingId;
+
 /**
  * A mutable builder with a fluent API for an immutable {@link Message}.
  *
@@ -35,7 +37,7 @@ public interface MessageBuilder<T> {
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code thingId} or {@code subject} is empty.
      */
-    static MessageHeadersBuilder newHeadersBuilder(final MessageDirection direction, final CharSequence thingId,
+    static MessageHeadersBuilder newHeadersBuilder(final MessageDirection direction, final ThingId thingId,
             final CharSequence subject) {
 
         return MessagesModelFactory.newHeadersBuilder(direction, thingId, subject);

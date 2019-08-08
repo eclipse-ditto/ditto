@@ -15,6 +15,7 @@ package org.eclipse.ditto.signals.commands.things.exceptions;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -24,6 +25,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.things.ThingException;
+import org.eclipse.ditto.model.things.id.ThingId;
 
 /**
  * Thrown if a Thing cannot be modified because it contained a Policy.
@@ -56,7 +58,7 @@ public class PoliciesConflictingException extends DittoRuntimeException implemen
      * @param thingId the ID of the thing.
      * @return the builder.
      */
-    public static Builder newBuilder(final String thingId) {
+    public static Builder newBuilder(@Nullable final ThingId thingId) {
         return new Builder(thingId);
     }
 
@@ -99,9 +101,9 @@ public class PoliciesConflictingException extends DittoRuntimeException implemen
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String thingId) {
+        private Builder(@Nullable final ThingId thingId) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, thingId));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, String.valueOf(thingId)));
         }
 
         @Override

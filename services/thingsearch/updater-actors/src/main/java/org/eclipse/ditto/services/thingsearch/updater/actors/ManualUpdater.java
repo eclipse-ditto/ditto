@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.util.Optional;
 
 import org.bson.Document;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
@@ -139,8 +140,9 @@ final class ManualUpdater extends AbstractActor {
     private Optional<ThingTag> convertToThingTag(final Document document) {
         try {
             final String id = document.getString(ID_FIELD);
+            final ThingId thingId = ThingId.of(id);
             final long revision = document.getLong(REVISION);
-            return Optional.of(ThingTag.of(id, revision));
+            return Optional.of(ThingTag.of(thingId, revision));
         } catch (final ClassCastException | NullPointerException e) {
             log.debug("Failed to convert doc '{}' to ThingTag: [{}] {}",
                     document != null ? document.toString() : "<null>",

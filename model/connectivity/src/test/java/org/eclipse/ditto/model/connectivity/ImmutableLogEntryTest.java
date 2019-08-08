@@ -24,6 +24,7 @@ import java.time.Instant;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -40,7 +41,7 @@ public class ImmutableLogEntryTest {
     private static final String MESSAGE = "Consumed the best transformation message in my life.";
     private static final LogLevel LEVEL = LogLevel.SUCCESS;
     private static final String ADDRESS = "an/address";
-    private static final String THING_ID = "org.eclipse.ditto.poke:138";
+    private static final ThingId THING_ID = ThingId.of("org.eclipse.ditto.poke:138");
 
     private static final LogEntry LOG_ENTRY = ImmutableLogEntry.getBuilder(CORRELATION_ID, TIMESTAMP, CATEGORY, TYPE, LEVEL,
             MESSAGE, ADDRESS, THING_ID)
@@ -178,7 +179,8 @@ public class ImmutableLogEntryTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ImmutableLogEntry.class, areImmutable(), provided(LogType.class).areAlsoImmutable());
+        assertInstancesOf(ImmutableLogEntry.class, areImmutable(),
+                provided(LogType.class, ThingId.class).areAlsoImmutable());
     }
 
     private static JsonObject getLogEntryJson() {
@@ -190,7 +192,7 @@ public class ImmutableLogEntryTest {
                 .set(LogEntry.JsonFields.MESSAGE, MESSAGE)
                 .set(LogEntry.JsonFields.LEVEL, LEVEL.getLevel())
                 .set(LogEntry.JsonFields.ADDRESS, ADDRESS)
-                .set(LogEntry.JsonFields.THING_ID, THING_ID)
+                .set(LogEntry.JsonFields.THING_ID, THING_ID.toString())
                 .build();
     }
 

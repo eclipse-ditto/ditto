@@ -24,6 +24,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -50,9 +52,9 @@ public final class RetrieveConnection extends AbstractCommand<RetrieveConnection
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private final String connectionId;
+    private final EntityId connectionId;
 
-    private RetrieveConnection(final String connectionId, final DittoHeaders dittoHeaders) {
+    private RetrieveConnection(final EntityId connectionId, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.connectionId = connectionId;
     }
@@ -65,7 +67,7 @@ public final class RetrieveConnection extends AbstractCommand<RetrieveConnection
      * @return a new RetrieveConnection command.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveConnection of(final String connectionId, final DittoHeaders dittoHeaders) {
+    public static RetrieveConnection of(final EntityId connectionId, final DittoHeaders dittoHeaders) {
         checkNotNull(connectionId, "Connection ID");
         return new RetrieveConnection(connectionId, dittoHeaders);
     }
@@ -98,8 +100,9 @@ public final class RetrieveConnection extends AbstractCommand<RetrieveConnection
     public static RetrieveConnection fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveConnection>(TYPE, jsonObject).deserialize(() -> {
             final String readConnectionId = jsonObject.getValueOrThrow(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID);
+            final EntityId connectionId = DefaultEntityId.of(readConnectionId);
 
-            return of(readConnectionId, dittoHeaders);
+            return of(connectionId, dittoHeaders);
         });
     }
 
@@ -107,11 +110,12 @@ public final class RetrieveConnection extends AbstractCommand<RetrieveConnection
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID, connectionId, predicate);
+        jsonObjectBuilder.set(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId),
+                predicate);
     }
 
     @Override
-    public String getConnectionId() {
+    public EntityId getConnectionEntityId() {
         return connectionId;
     }
 

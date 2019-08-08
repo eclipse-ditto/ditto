@@ -74,15 +74,16 @@ final class DeleteFeatureDefinitionLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public DeleteFeatureDefinitionResponse deleted() {
-            return DeleteFeatureDefinitionResponse.of(command.getThingId(), command.getFeatureId(),
+            return DeleteFeatureDefinitionResponse.of(command.getThingEntityId(), command.getFeatureId(),
                     command.getDittoHeaders());
         }
 
         @Nonnull
         @Override
         public ThingErrorResponse featureDefinitionNotAccessibleError() {
-            return errorResponse(command.getThingId(),
-                    FeatureDefinitionNotAccessibleException.newBuilder(command.getThingId(), command.getFeatureId())
+            return errorResponse(command.getThingEntityId(),
+                    FeatureDefinitionNotAccessibleException.newBuilder(command.getThingEntityId(),
+                            command.getFeatureId())
                             .dittoHeaders(command.getDittoHeaders())
                             .build());
         }
@@ -90,8 +91,9 @@ final class DeleteFeatureDefinitionLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ThingErrorResponse featureDefinitionNotModifiableError() {
-            return errorResponse(command.getThingId(),
-                    FeatureDefinitionNotModifiableException.newBuilder(command.getThingId(), command.getFeatureId())
+            return errorResponse(command.getThingEntityId(),
+                    FeatureDefinitionNotModifiableException.newBuilder(command.getThingEntityId(),
+                            command.getFeatureId())
                             .dittoHeaders(command.getDittoHeaders())
                             .build());
         }
@@ -103,7 +105,7 @@ final class DeleteFeatureDefinitionLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public FeatureDefinitionDeleted deleted() {
-            return FeatureDefinitionDeleted.of(command.getThingId(), command.getFeatureId(), -1,
+            return FeatureDefinitionDeleted.of(command.getThingEntityId(), command.getFeatureId(), -1,
                     Instant.now(), command.getDittoHeaders());
         }
 

@@ -16,6 +16,7 @@ import static org.eclipse.ditto.services.connectivity.messaging.FaultyClientActo
 
 import java.util.concurrent.TimeUnit;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
@@ -62,7 +63,7 @@ public class ErrorHandlingActorTest extends WithMockServers {
     @Test
     public void tryCreateConnectionExpectSuccessResponseIndependentOfConnectionStatus() {
         new TestKit(actorSystem) {{
-            final String connectionId = TestConstants.createRandomConnectionId();
+            final EntityId connectionId = TestConstants.createRandomConnectionId();
             final Connection connection = TestConstants.createConnection(connectionId);
             final ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
                     pubSubMediator, conciergeForwarder,
@@ -89,7 +90,7 @@ public class ErrorHandlingActorTest extends WithMockServers {
     @Test
     public void tryDeleteConnectionExpectErrorResponse() {
         new TestKit(actorSystem) {{
-            final String connectionId = TestConstants.createRandomConnectionId();
+            final EntityId connectionId = TestConstants.createRandomConnectionId();
             final Connection connection = TestConstants.createConnection(connectionId);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
@@ -112,7 +113,7 @@ public class ErrorHandlingActorTest extends WithMockServers {
 
     private void tryModifyConnectionExpectErrorResponse(final String action) {
         new TestKit(actorSystem) {{
-            final String connectionId = TestConstants.createRandomConnectionId();
+            final EntityId connectionId = TestConstants.createRandomConnectionId();
             final Connection connection = TestConstants.createConnection(connectionId);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,

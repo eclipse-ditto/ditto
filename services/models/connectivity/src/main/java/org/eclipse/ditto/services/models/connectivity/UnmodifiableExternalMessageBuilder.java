@@ -39,7 +39,7 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     @Nullable private ByteBuffer bytePayload;
     @Nullable private AuthorizationContext authorizationContext;
     @Nullable private TopicPath topicPath;
-    @Nullable private EnforcementFilter<String> enforcementFilter;
+    @Nullable private EnforcementFilter<CharSequence> enforcementFilter;
     @Nullable private HeaderMapping headerMapping;
     @Nullable private String sourceAddress;
     private DittoHeaders internalHeaders = DittoHeaders.empty();
@@ -136,7 +136,7 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     }
 
     @Override
-    public <F extends EnforcementFilter<String>> ExternalMessageBuilder withEnforcement(
+    public <F extends EnforcementFilter<CharSequence>> ExternalMessageBuilder withEnforcement(
             @Nullable final F enforcementFilter) {
         this.enforcementFilter = enforcementFilter;
         return this;

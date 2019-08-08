@@ -26,6 +26,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAcl;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntry;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
@@ -129,7 +130,7 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
     }
 
     private static Adaptable handleSingleRetrieve(final ThingQueryCommand<?> command, final TopicPath.Channel channel) {
-        final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(command.getThingId());
+        final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(command.getThingEntityId());
 
         final CommandsTopicPathBuilder commandsTopicPathBuilder;
         commandsTopicPathBuilder = fromTopicPathBuilderWithChannel(topicPathBuilder, channel);
@@ -163,7 +164,7 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
 
         final PayloadBuilder payloadBuilder = Payload.newBuilder(command.getResourcePath());
         command.getSelectedFields().ifPresent(payloadBuilder::withFields);
-        payloadBuilder.withValue(createIdsPayload(command.getThingIds()));
+        payloadBuilder.withValue(createIdsPayload(command.getThingEntityIds()));
 
         return Adaptable.newBuilder(commandsTopicPathBuilder.retrieve().build())
                 .withPayload(payloadBuilder.build())
@@ -171,7 +172,7 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
                 .build();
     }
 
-    private static List<String> thingsIdsFrom(final Adaptable adaptable) {
+    private static List<ThingId> thingsIdsFrom(final Adaptable adaptable) {
         final JsonArray array = adaptable.getPayload()
                 .getValue()
                 .filter(JsonValue::isObject)
@@ -184,11 +185,15 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
 
         return array.stream()
                 .map(JsonValue::asString)
+                .map(ThingId::of)
                 .collect(Collectors.toList());
     }
 
-    private static JsonValue createIdsPayload(final Collection<String> ids) {
-        final JsonArray thingIdsArray = ids.stream().map(JsonFactory::newValue).collect(JsonCollectors.valuesToArray());
+    private static JsonValue createIdsPayload(final Collection<ThingId> ids) {
+        final JsonArray thingIdsArray = ids.stream()
+                .map(String::valueOf)
+                .map(JsonFactory::newValue)
+                .collect(JsonCollectors.valuesToArray());
         return JsonFactory.newObject().setValue(RetrieveThings.JSON_THING_IDS.getPointer(), thingIdsArray);
     }
 

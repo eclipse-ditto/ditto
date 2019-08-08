@@ -25,6 +25,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.bson.BsonDocument;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
@@ -44,7 +45,7 @@ import akka.stream.javadsl.Source;
 public final class PoliciesJournalTestHelper<J> {
 
     private static final int WAIT_TIMEOUT = 3;
-    private final Function<String, String> domainIdToPersistenceId;
+    private final Function<PolicyId, String> domainIdToPersistenceId;
     private final BiFunction<BsonDocument, Long, J> journalEntryToDomainObject;
     private final ActorMaterializer mat;
     private final InMemoryReadJournal readJournal;
@@ -59,7 +60,7 @@ public final class PoliciesJournalTestHelper<J> {
      * persistence ID
      */
     public PoliciesJournalTestHelper(final ActorSystem actorSystem,
-            final BiFunction<BsonDocument, Long, J> journalEntryToDomainObject, final Function<String, String>
+            final BiFunction<BsonDocument, Long, J> journalEntryToDomainObject, final Function<PolicyId, String>
             domainIdToPersistenceId) {
         this.journalEntryToDomainObject = requireNonNull(journalEntryToDomainObject);
         this.domainIdToPersistenceId = requireNonNull(domainIdToPersistenceId);
@@ -75,7 +76,7 @@ public final class PoliciesJournalTestHelper<J> {
      * @param domainId the domain ID
      * @return the events
      */
-    public List<J> getAllEvents(final String domainId) {
+    public List<J> getAllEvents(final PolicyId domainId) {
         final String persistenceId = domainIdToPersistenceId.apply(domainId);
         final List<EventEnvelope> eventEnvelopes = getAllEventEnvelopes(persistenceId);
         return Collections.unmodifiableList(

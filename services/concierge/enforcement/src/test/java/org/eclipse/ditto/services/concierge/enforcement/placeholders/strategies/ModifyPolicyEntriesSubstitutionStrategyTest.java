@@ -68,8 +68,8 @@ public class ModifyPolicyEntriesSubstitutionStrategyTest extends AbstractSubstit
                 Subjects.newInstance(Subject.newInstance(SUBJECT_ID, SubjectType.GENERATED)), RESOURCES);
         final Iterable<PolicyEntry> expectedPolicyEntries =
                 Arrays.asList(expectedPolicyEntryReplaced, anotherPolicyEntry);
-        final ModifyPolicyEntries expectedCommandReplaced = ModifyPolicyEntries.of(commandWithPlaceholders.getId(),
-                expectedPolicyEntries, DITTO_HEADERS);
+        final ModifyPolicyEntries expectedCommandReplaced =
+                ModifyPolicyEntries.of(commandWithPlaceholders.getEntityId(), expectedPolicyEntries, DITTO_HEADERS);
         assertThat(response).isEqualTo(expectedCommandReplaced);
     }
 

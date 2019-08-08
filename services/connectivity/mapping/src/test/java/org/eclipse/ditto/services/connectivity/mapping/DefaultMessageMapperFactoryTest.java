@@ -18,6 +18,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.services.connectivity.mapping.test.MappingContexts;
@@ -71,7 +72,7 @@ public final class DefaultMessageMapperFactoryTest {
 
     @Before
     public void setUp() {
-        underTest = DefaultMessageMapperFactory.of("connectionId", system, mappingConfig, log);
+        underTest = DefaultMessageMapperFactory.of(DefaultEntityId.of("connectionId"), system, mappingConfig, log);
     }
 
     @After

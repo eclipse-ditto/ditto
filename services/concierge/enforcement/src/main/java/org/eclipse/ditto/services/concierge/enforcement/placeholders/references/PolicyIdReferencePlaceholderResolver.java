@@ -26,6 +26,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
@@ -102,11 +103,10 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
         final HashMap<String, String> enhancedMap = new HashMap<>(dittoHeaders);
         enhancedMap.put(AbstractGraphActor.DITTO_INTERNAL_SPECIAL_ENFORCEMENT_LANE, "true");
         final DittoHeaders adjustedHeaders = DittoHeaders.of(enhancedMap);
-
-        final RetrieveThing retrieveThingCommand =
-                RetrieveThing.getBuilder(referencePlaceholder.getReferencedEntityId(), adjustedHeaders)
-                        .withSelectedFields(referencePlaceholder.getReferencedField().toFieldSelector())
-                        .build();
+        final ThingId thingId = ThingId.of(referencePlaceholder.getReferencedEntityId());
+        final RetrieveThing retrieveThingCommand = RetrieveThing.getBuilder(thingId, adjustedHeaders)
+                .withSelectedFields(referencePlaceholder.getReferencedField().toFieldSelector())
+                .build();
 
         return Patterns.ask(conciergeForwarderActor, retrieveThingCommand, retrieveEntityTimeoutDuration)
                 .thenApply(response -> this.handleRetrieveThingResponse(response, referencePlaceholder, dittoHeaders));

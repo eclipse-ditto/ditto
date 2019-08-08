@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
@@ -60,12 +61,12 @@ public final class RetrieveSubjectResponse extends AbstractCommandResponse<Retri
     static final JsonFieldDefinition<JsonObject> JSON_SUBJECT =
             JsonFactory.newJsonObjectFieldDefinition("subject", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String policyId;
+    private final PolicyId policyId;
     private final Label label;
     private final String subjectId;
     private final JsonObject subject;
 
-    private RetrieveSubjectResponse(final String policyId,
+    private RetrieveSubjectResponse(final PolicyId policyId,
             final Label label,
             final String subjectId,
             final JsonObject subject,
@@ -90,7 +91,7 @@ public final class RetrieveSubjectResponse extends AbstractCommandResponse<Retri
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveSubjectResponse of(final String policyId,
+    public static RetrieveSubjectResponse of(final PolicyId policyId,
             final Label label,
             final String subjectId,
             final JsonObject subject,
@@ -109,7 +110,7 @@ public final class RetrieveSubjectResponse extends AbstractCommandResponse<Retri
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveSubjectResponse of(final String policyId,
+    public static RetrieveSubjectResponse of(final PolicyId policyId,
             final Label label,
             final Subject subject,
             final DittoHeaders dittoHeaders) {
@@ -148,8 +149,9 @@ public final class RetrieveSubjectResponse extends AbstractCommandResponse<Retri
     public static RetrieveSubjectResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveSubjectResponse>(TYPE, jsonObject)
                 .deserialize((statusCode) -> {
-                    final String policyId =
-                            jsonObject.getValueOrThrow(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID);
+                    final String extractedPolicyId =
+                            jsonObject.getValueOrThrow(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
+                    final PolicyId policyId = PolicyId.of(extractedPolicyId);
                     final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
                     final String extractedSubjectId = jsonObject.getValueOrThrow(JSON_SUBJECT_ID);
                     final JsonObject extractedSubject = jsonObject.getValueOrThrow(JSON_SUBJECT);
@@ -159,7 +161,7 @@ public final class RetrieveSubjectResponse extends AbstractCommandResponse<Retri
     }
 
     @Override
-    public String getId() {
+    public PolicyId getEntityId() {
         return policyId;
     }
 
@@ -208,7 +210,8 @@ public final class RetrieveSubjectResponse extends AbstractCommandResponse<Retri
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId),
+                predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
         jsonObjectBuilder.set(JSON_SUBJECT_ID, subjectId, predicate);
         jsonObjectBuilder.set(JSON_SUBJECT, subject, predicate);

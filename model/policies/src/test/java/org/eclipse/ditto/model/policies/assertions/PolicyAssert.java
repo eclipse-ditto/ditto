@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyLifecycle;
 import org.eclipse.ditto.model.policies.PolicyRevision;
 import org.eclipse.ditto.model.policies.Resource;
@@ -47,14 +48,14 @@ public final class PolicyAssert extends AbstractAssert<PolicyAssert, Policy> {
         super(actual, PolicyAssert.class);
     }
 
-    public PolicyAssert hasId(final String expectedIdentifier) {
+    public PolicyAssert hasId(final PolicyId expectedIdentifier) {
         isNotNull();
 
-        final String actualId = actual.getId().orElse(null);
+        final PolicyId actualId = actual.getEntityId().orElse(null);
 
-        assertThat(actualId).isEqualTo(expectedIdentifier) //
-                .overridingErrorMessage("Expected Policy identifier to be \n<%s> but was \n<%s>", expectedIdentifier,
-                        actualId);
+        assertThat((CharSequence) actualId).isEqualTo(expectedIdentifier) //
+                .overridingErrorMessage("Expected Policy identifier to be \n<%s> but was \n<%s>",
+                        String.valueOf(expectedIdentifier), String.valueOf(actualId));
 
         return this;
     }
@@ -309,7 +310,7 @@ public final class PolicyAssert extends AbstractAssert<PolicyAssert, Policy> {
         assertThat(actual).isNotNull();
 
         assertThat(actual.getModified()).isPresent();
-        assertThat(actual.getId()).isEqualTo(expected.getId());
+        assertThat(actual.getEntityId()).isEqualTo(expected.getEntityId());
         assertThat(actual.getEntriesSet()).isEqualTo(expected.getEntriesSet());
 
         return this;

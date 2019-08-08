@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.services.models.things.TestConstants.Thing;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
@@ -42,7 +43,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class SudoRetrieveThingsTest {
 
     private static final JsonArray THING_IDS = JsonFactory.newArrayBuilder()
-            .add(Thing.THING_ID, ":otherThingId")
+            .add(Thing.THING_ID.toString(), ThingId.of(Thing.THING_ID.getNameSpace(), "otherThingId").toString())
             .build();
 
     private static final String SELECTED_FIELDS = "field1,field2,field3";
@@ -60,8 +61,8 @@ public final class SudoRetrieveThingsTest {
 
     private static final DittoHeaders EMPTY_DITTO_HEADERS = DittoHeaders.empty();
 
-    private static List<String> getThingIds() {
-        return THING_IDS.stream().map(JsonValue::asString).collect(Collectors.toList());
+    private static List<ThingId> getThingIds() {
+        return THING_IDS.stream().map(JsonValue::asString).map(ThingId::of).collect(Collectors.toList());
     }
 
     private static JsonFieldSelector getJsonFieldSelector() {
@@ -73,7 +74,7 @@ public final class SudoRetrieveThingsTest {
     public void assertImmutability() {
         assertInstancesOf(SudoRetrieveThings.class,
                 areImmutable(),
-                provided(AuthorizationContext.class, JsonFieldSelector.class).isAlsoImmutable());
+                provided(AuthorizationContext.class, JsonFieldSelector.class, ThingId.class).isAlsoImmutable());
     }
 
     @Test

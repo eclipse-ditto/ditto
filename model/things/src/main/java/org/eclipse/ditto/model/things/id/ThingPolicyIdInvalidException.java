@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.things;
+package org.eclipse.ditto.model.things.id;
 
 import java.net.URI;
 import java.text.MessageFormat;
@@ -25,37 +25,40 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.ThingException;
 
 /**
- * Thrown if the Thing's ID is not valid (for example if it does not comply to the Thing ID REGEX).
+ * Thrown if the ID set as policyId of the {@link org.eclipse.ditto.model.things.Thing} is not valid
+ * (for example if it does not comply to the Entity ID REGEX).
  */
 @Immutable
-@JsonParsableException(errorCode = ThingIdInvalidException.ERROR_CODE)
-public final class ThingIdInvalidException extends DittoRuntimeException implements ThingException {
+@JsonParsableException(errorCode = ThingPolicyIdInvalidException.ERROR_CODE)
+public final class ThingPolicyIdInvalidException extends DittoRuntimeException implements ThingException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "id.invalid";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "policy.id.invalid";
 
-    private static final String MESSAGE_TEMPLATE = "Thing ID ''{0}'' is not valid!";
+    private static final String MESSAGE_TEMPLATE = "Policy ID ''{0}'' is not valid!";
 
     private static final String DEFAULT_DESCRIPTION =
             "It must contain a namespace prefix (java package notation + a colon ':') + ID and must be a valid URI " +
                     "path segment according to RFC-3986";
 
-    private static final long serialVersionUID = -2026814719409279158L;
+    private static final long serialVersionUID = 8494286958733203132L;
 
     /**
-     * Constructs a new {@code ThingIdInvalidException} object.
+     * Constructs a new {@code ThingPolicyIdInvalidException} object.
      *
-     * @param thingId the invalid Thing ID.
+     * @param policyId the invalid Policy ID.
      */
-    public ThingIdInvalidException(final String thingId) {
-        this(DittoHeaders.empty(), MessageFormat.format(MESSAGE_TEMPLATE, thingId), DEFAULT_DESCRIPTION, null, null);
+    public ThingPolicyIdInvalidException(@Nullable final String policyId) {
+        this(DittoHeaders.empty(), MessageFormat.format(MESSAGE_TEMPLATE, policyId), DEFAULT_DESCRIPTION, null, null);
     }
 
-    private ThingIdInvalidException(final DittoHeaders dittoHeaders,
+    private ThingPolicyIdInvalidException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
@@ -64,39 +67,42 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
     }
 
     /**
-     * A mutable builder for a {@code ThingIdInvalidException}.
+     * A mutable builder for a {@code ThingPolicyIdInvalidException}.
      *
-     * @param thingId the ID of the thing.
+     * @param policyId the ID of the policy.
      * @return the builder.
      */
-    public static Builder newBuilder(final CharSequence thingId) {
-        return new Builder(thingId);
+    public static Builder newBuilder(@Nullable final CharSequence policyId) {
+        return new Builder(policyId);
     }
 
     /**
-     * Constructs a new {@code ThingIdInvalidException} object with the given exception message.
+     * Constructs a new {@code ThingPolicyIdInvalidException} object with the given exception message.
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new ThingIdInvalidException.
+     * @return the new ThingPolicyIdInvalidException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static ThingIdInvalidException fromMessage(final String message, final DittoHeaders dittoHeaders) {
+    public static ThingPolicyIdInvalidException fromMessage(@Nullable final String message,
+            final DittoHeaders dittoHeaders) {
         return new Builder()
-                .dittoHeaders(dittoHeaders)
                 .message(message)
+                .dittoHeaders(dittoHeaders)
                 .build();
     }
 
     /**
-     * Constructs a new {@code ThingIdInvalidException} object with the exception message extracted from the
+     * Constructs a new {@code ThingPolicyIdInvalidException} object with the exception message extracted from the
      * given JSON object.
      *
      * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new ThingIdInvalidException.
+     * @return the new ThingPolicyIdInvalidException.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link JsonFields#MESSAGE} field.
      */
-    public static ThingIdInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+    public static ThingPolicyIdInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(readMessage(jsonObject))
@@ -105,29 +111,35 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
                 .build();
     }
 
+    @Override
+    public JsonSchemaVersion[] getSupportedSchemaVersions() {
+        return new JsonSchemaVersion[]{JsonSchemaVersion.V_2};
+    }
+
     /**
-     * A mutable builder with a fluent API for a {@link ThingIdInvalidException}.
+     * A mutable builder with a fluent API for a {@link ThingPolicyIdInvalidException}.
      */
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<ThingIdInvalidException> {
+    public static final class Builder extends DittoRuntimeExceptionBuilder<ThingPolicyIdInvalidException> {
 
         private Builder() {
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final CharSequence thingId) {
+        private Builder(@Nullable final CharSequence policyId) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, thingId));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, policyId));
         }
 
         @Override
-        protected ThingIdInvalidException doBuild(final DittoHeaders dittoHeaders,
+        protected ThingPolicyIdInvalidException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-            return new ThingIdInvalidException(dittoHeaders, message, description, cause, href);
+            return new ThingPolicyIdInvalidException(dittoHeaders, message, description, cause, href);
         }
+
     }
 
 }

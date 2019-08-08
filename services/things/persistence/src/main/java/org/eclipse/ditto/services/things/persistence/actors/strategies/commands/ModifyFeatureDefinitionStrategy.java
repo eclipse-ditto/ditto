@@ -21,6 +21,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinition;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinitionResponse;
 import org.eclipse.ditto.signals.events.things.FeatureDefinitionCreated;
@@ -48,7 +49,7 @@ final class ModifyFeatureDefinitionStrategy
         return extractFeature(command, thing)
                 .map(feature -> getModifyOrCreateResult(feature, context, nextRevision, command))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featureNotFound(context.getThingId(), featureId, command.getDittoHeaders())));
+                        ExceptionFactory.featureNotFound(context.getThingEntityId(), featureId, command.getDittoHeaders())));
     }
 
     private Optional<Feature> extractFeature(final ModifyFeatureDefinition command, final @Nullable Thing thing) {
@@ -66,7 +67,7 @@ final class ModifyFeatureDefinitionStrategy
 
     private Result getModifyResult(final Context context, final long nextRevision,
             final ModifyFeatureDefinition command) {
-        final String thingId = context.getThingId();
+        final ThingId thingId = context.getThingEntityId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final String featureId = command.getFeatureId();
 
@@ -78,7 +79,7 @@ final class ModifyFeatureDefinitionStrategy
 
     private Result getCreateResult(final Context context, final long nextRevision,
             final ModifyFeatureDefinition command) {
-        final String thingId = context.getThingId();
+        final ThingId thingId = context.getThingEntityId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final String featureId = command.getFeatureId();
 

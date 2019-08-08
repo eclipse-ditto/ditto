@@ -22,8 +22,9 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
-import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.model.policies.Resources;
+import org.eclipse.ditto.model.policies.id.PolicyId;
+import org.eclipse.ditto.model.policies.id.PolicyIdInvalidException;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.TestConstants;
 import org.junit.Test;
@@ -37,7 +38,7 @@ public class ModifyResourcesTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyCommand.JsonFields.TYPE, ModifyResources.TYPE)
-            .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(ModifyResources.JSON_LABEL, TestConstants.Policy.LABEL.toString())
             .set(ModifyResources.JSON_RESOURCES,
                     TestConstants.Policy.RESOURCES.toJson(FieldType.regularOrSpecial()))
@@ -48,7 +49,7 @@ public class ModifyResourcesTest {
     public void assertImmutability() {
         assertInstancesOf(ModifyResources.class,
                 areImmutable(),
-                provided(Label.class, Resources.class, JsonObject.class).areAlsoImmutable());
+                provided(Label.class, Resources.class, JsonObject.class, PolicyId.class).areAlsoImmutable());
     }
 
 
@@ -62,7 +63,14 @@ public class ModifyResourcesTest {
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
-        ModifyResources.of(null, TestConstants.Policy.LABEL,
+        ModifyResources.of((PolicyId) null, TestConstants.Policy.LABEL,
+                TestConstants.Policy.RESOURCES, TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+
+    @Test(expected = PolicyIdInvalidException.class)
+    public void tryToCreateInstanceWithNullPolicyIdString() {
+        ModifyResources.of((String) null, TestConstants.Policy.LABEL,
                 TestConstants.Policy.RESOURCES, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
@@ -71,8 +79,7 @@ public class ModifyResourcesTest {
     public void tryToCreateInstanceWithInvalidPolicyId() {
         assertThatExceptionOfType(PolicyIdInvalidException.class)
                 .isThrownBy(() -> ModifyResources.of("undefined", TestConstants.Policy.LABEL,
-                        TestConstants.Policy.RESOURCES, TestConstants.EMPTY_DITTO_HEADERS))
-                .withNoCause();
+                        TestConstants.Policy.RESOURCES, TestConstants.EMPTY_DITTO_HEADERS));
     }
 
 

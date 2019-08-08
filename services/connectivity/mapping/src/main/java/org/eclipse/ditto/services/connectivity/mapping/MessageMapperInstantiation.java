@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.mapping;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 
 import akka.actor.ExtendedActorSystem;
@@ -34,6 +35,6 @@ public interface MessageMapperInstantiation {
      * {@code null} otherwise.
      */
     @Nullable
-    MessageMapper apply(String connectionId, MappingContext mappingContext, ExtendedActorSystem actorSystem);
+    MessageMapper apply(EntityId connectionId, MappingContext mappingContext, ExtendedActorSystem actorSystem);
 
 }

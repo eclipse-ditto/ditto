@@ -18,6 +18,7 @@ import java.util.Map;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.junit.Before;
@@ -68,8 +69,8 @@ public final class ConnectionLogUtilTest {
     public void enhanceLogWithCorrelationIdAndConnectionId() {
         final String connectionId = "theConnection";
         final String correlationId = "theCorrelationId";
-        final WithDittoHeaders<?> withDittoHeaders =
-                RetrieveThing.of("any:Thing", DittoHeaders.newBuilder().correlationId(correlationId).build());
+        final WithDittoHeaders<?> withDittoHeaders = RetrieveThing.of(ThingId.of("any", "Thing"),
+                DittoHeaders.newBuilder().correlationId(correlationId).build());
 
         final Map<String, Object> expectedMap = new HashMap<>(DEFAULT_MDC);
 

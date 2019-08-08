@@ -38,6 +38,7 @@ import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyBuilder;
 import org.eclipse.ditto.model.policies.PolicyEntry;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyLifecycle;
 import org.eclipse.ditto.model.policies.PolicyTooLargeException;
 import org.eclipse.ditto.model.policies.Resource;
@@ -161,7 +162,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
     static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-policies-snapshots";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-    private final String policyId;
+    private final PolicyId policyId;
     private final SnapshotAdapter<Policy> snapshotAdapter;
     private final ActorRef pubSubMediator;
     private final PolicyConfig policyConfig;
@@ -172,7 +173,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
     private long lastSnapshotSequenceNr = 0L;
     private long confirmedSnapshotSequenceNr = 0L;
 
-    PolicyPersistenceActor(final String policyId,
+    PolicyPersistenceActor(final PolicyId policyId,
             final SnapshotAdapter<Policy> snapshotAdapter,
             final ActorRef pubSubMediator) {
 
@@ -334,7 +335,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
      * @param pubSubMediator the PubSub mediator actor.
      * @return the Akka configuration Props object
      */
-    public static Props props(final String policyId,
+    public static Props props(final PolicyId policyId,
             final SnapshotAdapter<Policy> snapshotAdapter,
             final ActorRef pubSubMediator) {
 
@@ -741,7 +742,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
 
         @Override
         public FI.TypedPredicate<T> getPredicate() {
-            return command -> Objects.equals(policyId, command.getId());
+            return command -> Objects.equals(policyId, command.getEntityId());
         }
 
     }
@@ -794,7 +795,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
         public FI.UnitApply<CreatePolicy> getUnhandledFunction() {
             return command -> {
                 final String msgTemplate = "This Policy Actor did not handle the requested Policy with ID <{0}>!";
-                throw new IllegalArgumentException(MessageFormat.format(msgTemplate, command.getId()));
+                throw new IllegalArgumentException(MessageFormat.format(msgTemplate, command.getEntityId()));
             };
         }
 
@@ -819,12 +820,12 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
 
         @Override
         public FI.TypedPredicate<CreatePolicy> getPredicate() {
-            return command -> Objects.equals(policyId, command.getId());
+            return command -> Objects.equals(policyId, command.getEntityId());
         }
 
         @Override
         protected void doApply(final CreatePolicy command) {
-            notifySender(PolicyConflictException.newBuilder(command.getId())
+            notifySender(PolicyConflictException.newBuilder(command.getEntityId())
                     .dittoHeaders(command.getDittoHeaders())
                     .build());
         }
@@ -833,7 +834,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
         public FI.UnitApply<CreatePolicy> getUnhandledFunction() {
             return command -> {
                 final String msgTemplate = "This Policy Actor did not handle the requested Policy with ID <{0}>!";
-                throw new IllegalArgumentException(MessageFormat.format(msgTemplate, command.getId()));
+                throw new IllegalArgumentException(MessageFormat.format(msgTemplate, command.getEntityId()));
             };
         }
 
@@ -1977,7 +1978,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActorWithTim
             }
         }
 
-        private void shutdown(final String shutdownLogTemplate, final String policyId) {
+        private void shutdown(final String shutdownLogTemplate, final PolicyId policyId) {
             log.debug(shutdownLogTemplate, policyId);
             // stop the supervisor (otherwise it'd restart this actor) which causes this actor to stop, too.
             getContext().getParent().tell(PolicySupervisorActor.Control.PASSIVATE, getSelf());

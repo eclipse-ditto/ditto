@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.id.ThingId;
 
 /**
  * Abstract base implementation for strategy unit tests.
@@ -33,7 +34,7 @@ abstract class AbstractStrategyTest {
     /**
      * Thing identifier for testing.
      */
-    static final String THING_ID = "org.example:myThing";
+    static final ThingId THING_ID = ThingId.of("org.example", "myThing");
 
     /**
      * A Thing for testing.

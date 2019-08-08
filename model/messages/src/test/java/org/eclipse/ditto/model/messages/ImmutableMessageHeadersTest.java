@@ -35,6 +35,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -45,7 +46,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ImmutableMessageHeadersTest {
 
     private static final MessageDirection DIRECTION = MessageDirection.TO;
-    private static final String THING_ID = "test.ns:theThingId";
+    private static final ThingId THING_ID = ThingId.of("test.ns", "theThingId");
     private static final String SUBJECT = KnownMessageSubjects.CLAIM_SUBJECT;
     private static final Collection<String> AUTH_SUBJECTS = Arrays.asList("JohnOldman", "FrankGrimes");
     private static final String KNOWN_CORRELATION_ID = "knownCorrelationId";
@@ -177,7 +178,7 @@ public final class ImmutableMessageHeadersTest {
     public void getThingIdReturnsExpected() {
         final MessageHeaders underTest = MessageHeadersBuilder.newInstance(DIRECTION, THING_ID, SUBJECT).build();
 
-        assertThat(underTest.getThingId()).isEqualTo(THING_ID);
+        assertThat((CharSequence) underTest.getThingEntityId()).isEqualTo(THING_ID);
     }
 
     @Test
@@ -261,7 +262,7 @@ public final class ImmutableMessageHeadersTest {
         final MessageHeaders underTest = ImmutableMessageHeaders.of(DittoHeaders.empty());
 
         assertThatExceptionOfType(IllegalStateException.class)
-                .isThrownBy(underTest::getThingId)
+                .isThrownBy(underTest::getThingEntityId)
                 .withMessage("MessageHeaders did not contain a value for key <%s>!",
                         MessageHeaderDefinition.THING_ID.getKey())
                 .withNoCause();
@@ -279,7 +280,7 @@ public final class ImmutableMessageHeadersTest {
         result.put(DittoHeaderDefinition.READ_SUBJECTS.getKey(), toJsonArray(KNOWN_READ_SUBJECTS).toString());
         result.put(MessageHeaderDefinition.DIRECTION.getKey(), DIRECTION.toString());
         result.put(MessageHeaderDefinition.SUBJECT.getKey(), SUBJECT);
-        result.put(MessageHeaderDefinition.THING_ID.getKey(), THING_ID);
+        result.put(MessageHeaderDefinition.THING_ID.getKey(), THING_ID.toString());
         result.put(MessageHeaderDefinition.FEATURE_ID.getKey(), FEATURE_ID);
         result.put(MessageHeaderDefinition.TIMEOUT.getKey(), String.valueOf(TIMEOUT.getSeconds()));
         result.put(MessageHeaderDefinition.TIMESTAMP.getKey(), TIMESTAMP);

@@ -43,7 +43,7 @@ final class ModifyAclEntrySubstitutionStrategy extends AbstractTypedSubstitution
         if (existingAclEntry.equals(substitutedAclEntry)) {
             return modifyAclEntry;
         } else {
-            return ModifyAclEntry.of(modifyAclEntry.getThingId(), substitutedAclEntry, dittoHeaders);
+            return ModifyAclEntry.of(modifyAclEntry.getThingEntityId(), substitutedAclEntry, dittoHeaders);
         }
     }
 

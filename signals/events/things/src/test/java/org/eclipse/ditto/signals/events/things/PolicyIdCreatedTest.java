@@ -34,8 +34,8 @@ public class PolicyIdCreatedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, PolicyIdCreated.TYPE)
             .set(Event.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
-            .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID)
-            .set(PolicyIdCreated.JSON_POLICY_ID, TestConstants.Thing.THING_ID)
+            .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
+            .set(PolicyIdCreated.JSON_POLICY_ID, TestConstants.Thing.THING_ID.toString())
             .build();
 
 
@@ -55,7 +55,7 @@ public class PolicyIdCreatedTest {
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        PolicyIdCreated.of(null, TestConstants.Thing.THING_ID, TestConstants.Thing.REVISION_NUMBER,
+        PolicyIdCreated.of(null, TestConstants.Thing.THING_ID.toString(), TestConstants.Thing.REVISION_NUMBER,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
@@ -63,7 +63,7 @@ public class PolicyIdCreatedTest {
     @Test
     public void toJsonReturnsExpected() {
         final PolicyIdCreated underTest =
-                PolicyIdCreated.of(TestConstants.Thing.THING_ID, TestConstants.Thing.THING_ID,
+                PolicyIdCreated.of(TestConstants.Thing.THING_ID, TestConstants.Thing.THING_ID.toString(),
                         TestConstants.Thing.REVISION_NUMBER, TestConstants.TIMESTAMP,
                         TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
@@ -78,7 +78,7 @@ public class PolicyIdCreatedTest {
                 PolicyIdCreated.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         Assertions.assertThat(underTest).isNotNull();
-        Assertions.assertThat(underTest.getPolicyId()).isEqualTo(TestConstants.Thing.THING_ID);
+        Assertions.assertThat(underTest.getPolicyId()).isEqualTo(TestConstants.Thing.THING_ID.toString());
     }
 
 }

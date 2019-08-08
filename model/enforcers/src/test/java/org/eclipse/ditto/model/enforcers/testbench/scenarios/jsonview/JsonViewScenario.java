@@ -20,6 +20,7 @@ import org.eclipse.ditto.model.enforcers.testbench.scenarios.Scenario;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
@@ -42,7 +43,7 @@ public interface JsonViewScenario extends Scenario {
     String SUBJECT_SOME_REVOKED = "sid_some_revoked";
 
     Policy POLICY = PoliciesModelFactory //
-            .newPolicyBuilder("benchmark:" + JsonViewScenario.class.getSimpleName()) //
+            .newPolicyBuilder(PolicyId.of("benchmark", JsonViewScenario.class.getSimpleName())) //
             .forLabel("all") //
             .setSubject(SubjectIssuer.GOOGLE, SUBJECT_ALL_GRANTED) //
             .setSubject(SubjectIssuer.GOOGLE, SUBJECT_ALL_GRANTED_ATTRIBUTES_REVOKED) //

@@ -23,6 +23,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.junit.Test;
@@ -37,7 +38,7 @@ public final class DeleteFeaturePropertyResponseTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, DeleteFeaturePropertyResponse.TYPE)
             .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.NO_CONTENT.toInt())
-            .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(DeleteFeaturePropertyResponse.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(DeleteFeaturePropertyResponse.JSON_PROPERTY,
                     TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_POINTER.toString())
@@ -48,7 +49,7 @@ public final class DeleteFeaturePropertyResponseTest {
     public void assertImmutability() {
         assertInstancesOf(DeleteFeaturePropertyResponse.class,
                 areImmutable(),
-                provided(JsonPointer.class).isAlsoImmutable());
+                provided(JsonPointer.class, ThingId.class).isAlsoImmutable());
     }
 
 

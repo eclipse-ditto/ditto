@@ -19,7 +19,7 @@ import java.util.Map;
 
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.services.utils.cache.Cache;
-import org.eclipse.ditto.services.utils.cache.EntityId;
+import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
@@ -43,14 +43,14 @@ final class PolicyOrAclEnforcerRetrieverFactory {
      * @return the instance.
      */
     public static EnforcerRetriever create(
-            final Cache<EntityId, Entry<EntityId>> idCache,
-            final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
-            final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache) {
+            final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> idCache,
+            final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache,
+            final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache) {
         requireNonNull(idCache);
         requireNonNull(policyEnforcerCache);
         requireNonNull(aclEnforcerCache);
 
-        final Map<String, Cache<EntityId, Entry<Enforcer>>> mapping = new HashMap<>();
+        final Map<String, Cache<EntityIdWithResourceType, Entry<Enforcer>>> mapping = new HashMap<>();
         mapping.put(PolicyCommand.RESOURCE_TYPE, policyEnforcerCache);
         mapping.put(ThingCommand.RESOURCE_TYPE, aclEnforcerCache);
 

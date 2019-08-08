@@ -16,6 +16,8 @@ import java.time.Instant;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.things.id.ThingId;
+
 /**
  * A mutable builder for a {@link org.eclipse.ditto.model.connectivity.LogEntry} with a fluent API.
  */
@@ -67,7 +69,7 @@ public interface LogEntryBuilder {
      * @param thingId  thing ID if the log can be correlated to a known Thing, empty otherwise.
      * @return this builder to allow method chaining.
      */
-    LogEntryBuilder thingId(@Nullable String thingId);
+    LogEntryBuilder thingId(@Nullable ThingId thingId);
 
     /**
      * Builds a new {@link org.eclipse.ditto.model.connectivity.LogEntry}.

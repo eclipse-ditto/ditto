@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.things.ThingException;
+import org.eclipse.ditto.model.things.id.ThingId;
 
 /**
  * Thrown if the Thing was either not present in Ditto at all or if the requester had insufficient permissions to access
@@ -43,7 +44,7 @@ public final class ThingNotAccessibleException extends DittoRuntimeException imp
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "thing.notfound";
 
     private static final String MESSAGE_TEMPLATE =
-            "The Thing with ID ''{0}'' could not be found or requester had " + "insufficient permissions to access it.";
+            "The Thing with ID ''{0}'' could not be found or requester had insufficient permissions to access it.";
 
     private static final String DEFAULT_DESCRIPTION =
             "Check if the ID of your requested Thing was correct and you have sufficient permissions.";
@@ -65,13 +66,13 @@ public final class ThingNotAccessibleException extends DittoRuntimeException imp
      * @param dittoHeaders the headers with which this Exception should be reported back to the user.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public ThingNotAccessibleException(final CharSequence thingId, final DittoHeaders dittoHeaders) {
+    public ThingNotAccessibleException(final ThingId thingId, final DittoHeaders dittoHeaders) {
         this(dittoHeaders, getMessage(thingId), DEFAULT_DESCRIPTION, null, null);
     }
 
-    private static String getMessage(final CharSequence thingId) {
+    private static String getMessage(final ThingId thingId) {
         checkNotNull("ID of the inaccessible Thing");
-        return MessageFormat.format(MESSAGE_TEMPLATE, thingId);
+        return MessageFormat.format(MESSAGE_TEMPLATE, String.valueOf(thingId));
     }
 
     /**
@@ -81,7 +82,7 @@ public final class ThingNotAccessibleException extends DittoRuntimeException imp
      * @return the builder.
      * @throws NullPointerException if {@code thingId} is {@code null}.
      */
-    public static Builder newBuilder(final String thingId) {
+    public static Builder newBuilder(final ThingId thingId) {
         return new Builder(thingId);
     }
 
@@ -128,7 +129,7 @@ public final class ThingNotAccessibleException extends DittoRuntimeException imp
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final CharSequence thingId) {
+        private Builder(final ThingId thingId) {
             this();
             message(getMessage(thingId));
         }

@@ -19,6 +19,7 @@ import org.eclipse.ditto.model.enforcers.testbench.scenarios.Scenario;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 
 
@@ -32,7 +33,7 @@ public interface Scenario3Revoke extends Scenario {
             "sid_feature_foo_all_granted_special_property_revoked";
 
     Policy POLICY = PoliciesModelFactory //
-            .newPolicyBuilder("benchmark:" + Scenario3Revoke.class.getSimpleName()) //
+            .newPolicyBuilder(PolicyId.of("benchmark", Scenario3Revoke.class.getSimpleName())) //
             .forLabel("all") //
             .setSubject(SubjectIssuer.GOOGLE, SUBJECT_ALL_GRANTED_ATTRIBUTES_REVOKED) //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/"), "READ", "WRITE") //

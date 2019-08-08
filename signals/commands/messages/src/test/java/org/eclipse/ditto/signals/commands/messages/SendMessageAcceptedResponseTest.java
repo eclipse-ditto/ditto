@@ -17,6 +17,7 @@ import java.util.UUID;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaders;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 import org.mutabilitydetector.unittesting.MutabilityMatchers;
@@ -28,7 +29,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class SendMessageAcceptedResponseTest {
 
-    private static final String THING_ID = "test.ns:theThingId";
+    private static final ThingId THING_ID = ThingId.of("test.ns","theThingId");
     private static final String SUBJECT = "theSubject";
     private static final MessageDirection DIRECTION = MessageDirection.TO;
     private static final String CORRELATION_ID = UUID.randomUUID().toString();

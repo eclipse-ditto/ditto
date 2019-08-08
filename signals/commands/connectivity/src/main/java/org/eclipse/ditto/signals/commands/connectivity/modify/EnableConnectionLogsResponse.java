@@ -27,6 +27,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -47,9 +49,9 @@ public final class EnableConnectionLogsResponse extends AbstractCommandResponse<
      */
     public static final String TYPE = TYPE_PREFIX + EnableConnectionLogs.NAME;
 
-    private final String connectionId;
+    private final EntityId connectionId;
 
-    private EnableConnectionLogsResponse(final String connectionId, final DittoHeaders dittoHeaders) {
+    private EnableConnectionLogsResponse(final EntityId connectionId, final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatusCode.OK, dittoHeaders);
         this.connectionId = connectionId;
     }
@@ -62,7 +64,7 @@ public final class EnableConnectionLogsResponse extends AbstractCommandResponse<
      * @return a new instance of the command.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static EnableConnectionLogsResponse of(final String connectionId, final DittoHeaders dittoHeaders) {
+    public static EnableConnectionLogsResponse of(final EntityId connectionId, final DittoHeaders dittoHeaders) {
         checkNotNull(connectionId, "Connection ID");
         return new EnableConnectionLogsResponse(connectionId, dittoHeaders);
     }
@@ -93,8 +95,9 @@ public final class EnableConnectionLogsResponse extends AbstractCommandResponse<
     public static EnableConnectionLogsResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<EnableConnectionLogsResponse>(TYPE, jsonObject).deserialize(statusCode -> {
             final String readConnectionId = jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
+            final EntityId connectionId = DefaultEntityId.of(readConnectionId);
 
-            return of(readConnectionId, dittoHeaders);
+            return of(connectionId, dittoHeaders);
         });
     }
 
@@ -102,11 +105,11 @@ public final class EnableConnectionLogsResponse extends AbstractCommandResponse<
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, connectionId, predicate);
+        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId), predicate);
     }
 
     @Override
-    public String getConnectionId() {
+    public EntityId getConnectionEntityId() {
         return connectionId;
     }
 

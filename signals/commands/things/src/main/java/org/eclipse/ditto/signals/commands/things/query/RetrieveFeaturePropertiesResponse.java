@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -58,11 +59,11 @@ public final class RetrieveFeaturePropertiesResponse extends AbstractCommandResp
             JsonFactory.newJsonObjectFieldDefinition("properties", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final String featureId;
     private final FeatureProperties featureProperties;
 
-    private RetrieveFeaturePropertiesResponse(final String thingId, final String featureId,
+    private RetrieveFeaturePropertiesResponse(final ThingId thingId, final String featureId,
             final FeatureProperties featureProperties, final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatusCode.OK, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thing ID");
@@ -80,7 +81,7 @@ public final class RetrieveFeaturePropertiesResponse extends AbstractCommandResp
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveFeaturePropertiesResponse of(final String thingId, final String featureId,
+    public static RetrieveFeaturePropertiesResponse of(final ThingId thingId, final String featureId,
             final FeatureProperties featureProperties, final DittoHeaders dittoHeaders) {
         return new RetrieveFeaturePropertiesResponse(thingId, featureId, featureProperties, dittoHeaders);
     }
@@ -95,7 +96,7 @@ public final class RetrieveFeaturePropertiesResponse extends AbstractCommandResp
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveFeaturePropertiesResponse of(final String thingId, final String featureId,
+    public static RetrieveFeaturePropertiesResponse of(final ThingId thingId, final String featureId,
             @Nullable final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
 
         final FeatureProperties featureProperties;
@@ -139,8 +140,9 @@ public final class RetrieveFeaturePropertiesResponse extends AbstractCommandResp
 
         return new CommandResponseJsonDeserializer<RetrieveFeaturePropertiesResponse>(TYPE, jsonObject)
                 .deserialize((statusCode) -> {
-                    final String thingId =
+                    final String extractedThingId =
                             jsonObject.getValueOrThrow(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
                     final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
                     final JsonObject extractedFeatureProperties = jsonObject.getValueOrThrow(JSON_PROPERTIES);
 
@@ -149,7 +151,7 @@ public final class RetrieveFeaturePropertiesResponse extends AbstractCommandResp
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -197,7 +199,7 @@ public final class RetrieveFeaturePropertiesResponse extends AbstractCommandResp
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
         jsonObjectBuilder.set(JSON_PROPERTIES, featureProperties, predicate);
     }

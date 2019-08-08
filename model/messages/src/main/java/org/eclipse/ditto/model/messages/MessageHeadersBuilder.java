@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.AbstractDittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.id.ThingId;
 
 /**
  * A mutable builder with a fluent API for an immutable {@link MessageHeaders} object.
@@ -59,11 +60,11 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
      * @throws IllegalArgumentException if {@code thingId} or {@code subject} is empty.
      * @throws SubjectInvalidException if {@code subject} is invalid.
      */
-    public static MessageHeadersBuilder newInstance(final MessageDirection direction, final CharSequence thingId,
+    public static MessageHeadersBuilder newInstance(final MessageDirection direction, final ThingId thingId,
             final CharSequence subject) {
 
         checkNotNull(direction, MessageHeaderDefinition.DIRECTION.getKey());
-        argumentNotEmpty(thingId, MessageHeaderDefinition.THING_ID.getKey());
+        checkNotNull(thingId, MessageHeaderDefinition.THING_ID.getKey());
         argumentNotEmpty(subject, MessageHeaderDefinition.SUBJECT.getKey());
 
         final Map<String, String> initialHeaders = new HashMap<>();

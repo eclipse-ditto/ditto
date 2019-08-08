@@ -73,7 +73,7 @@ final class ModifyFeaturePropertyLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ModifyFeaturePropertyResponse created() {
-            return ModifyFeaturePropertyResponse.created(command.getThingId(), command.getFeatureId(),
+            return ModifyFeaturePropertyResponse.created(command.getThingEntityId(), command.getFeatureId(),
                     command.getPropertyPointer(),
                     command.getPropertyValue(), command.getDittoHeaders());
         }
@@ -81,7 +81,7 @@ final class ModifyFeaturePropertyLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ModifyFeaturePropertyResponse modified() {
-            return ModifyFeaturePropertyResponse.modified(command.getThingId(), command.getFeatureId(),
+            return ModifyFeaturePropertyResponse.modified(command.getThingEntityId(), command.getFeatureId(),
                     command.getPropertyPointer(),
                     command.getDittoHeaders());
         }
@@ -89,8 +89,8 @@ final class ModifyFeaturePropertyLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ThingErrorResponse featurePropertyNotAccessibleError() {
-            return errorResponse(command.getThingId(),
-                    FeaturePropertyNotAccessibleException.newBuilder(command.getThingId(),
+            return errorResponse(command.getThingEntityId(),
+                    FeaturePropertyNotAccessibleException.newBuilder(command.getThingEntityId(),
                             command.getFeatureId(),
                             command.getPropertyPointer())
                             .dittoHeaders(command.getDittoHeaders())
@@ -100,8 +100,8 @@ final class ModifyFeaturePropertyLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ThingErrorResponse featurePropertyNotModifiableError() {
-            return errorResponse(command.getThingId(),
-                    FeaturePropertyNotModifiableException.newBuilder(command.getThingId(),
+            return errorResponse(command.getThingEntityId(),
+                    FeaturePropertyNotModifiableException.newBuilder(command.getThingEntityId(),
                             command.getFeatureId(), command.getPropertyPointer())
                             .dittoHeaders(command.getDittoHeaders())
                             .build());
@@ -114,14 +114,15 @@ final class ModifyFeaturePropertyLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public FeaturePropertyCreated created() {
-            return FeaturePropertyCreated.of(command.getThingId(), command.getFeatureId(), command.getPropertyPointer(),
+            return FeaturePropertyCreated.of(command.getThingEntityId(), command.getFeatureId(),
+                    command.getPropertyPointer(),
                     command.getPropertyValue(), -1, Instant.now(), command.getDittoHeaders());
         }
 
         @Nonnull
         @Override
         public FeaturePropertyModified modified() {
-            return FeaturePropertyModified.of(command.getThingId(), command.getFeatureId(),
+            return FeaturePropertyModified.of(command.getThingEntityId(), command.getFeatureId(),
                     command.getPropertyPointer(), command.getPropertyValue(), -1, Instant.now(),
                     command.getDittoHeaders());
         }

@@ -25,6 +25,8 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -49,7 +51,7 @@ public final class ConnectionDeleted extends AbstractConnectivityEvent<Connectio
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private ConnectionDeleted(final String connectionId, @Nullable final Instant timestamp,
+    private ConnectionDeleted(final EntityId connectionId, @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
         super(TYPE, connectionId, timestamp, dittoHeaders);
     }
@@ -62,7 +64,7 @@ public final class ConnectionDeleted extends AbstractConnectivityEvent<Connectio
      * @return the event.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ConnectionDeleted of(final String connectionId, final DittoHeaders dittoHeaders) {
+    public static ConnectionDeleted of(final EntityId connectionId, final DittoHeaders dittoHeaders) {
         return of(connectionId, null, dittoHeaders);
     }
 
@@ -75,7 +77,7 @@ public final class ConnectionDeleted extends AbstractConnectivityEvent<Connectio
      * @return the event.
      * @throws NullPointerException if {@code connectionId} or {@code dittoHeaders} are {@code null}.
      */
-    public static ConnectionDeleted of(final String connectionId, @Nullable final Instant timestamp,
+    public static ConnectionDeleted of(final EntityId connectionId, @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
         checkNotNull(connectionId, "Connection ID");
         return new ConnectionDeleted(connectionId, timestamp, dittoHeaders);
@@ -109,7 +111,8 @@ public final class ConnectionDeleted extends AbstractConnectivityEvent<Connectio
         return new EventJsonDeserializer<ConnectionDeleted>(TYPE, jsonObject)
                 .deserialize((revision, timestamp) -> {
                     final String readConnectionId = jsonObject.getValueOrThrow(JsonFields.CONNECTION_ID);
-                    return of(readConnectionId, timestamp, dittoHeaders);
+                    final EntityId connectionId = DefaultEntityId.of(readConnectionId);
+                    return of(connectionId, timestamp, dittoHeaders);
                 });
     }
 
@@ -120,7 +123,7 @@ public final class ConnectionDeleted extends AbstractConnectivityEvent<Connectio
 
     @Override
     public ConnectionDeleted setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getConnectionId(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getConnectionEntityId(), getTimestamp().orElse(null), dittoHeaders);
     }
 
     @Override

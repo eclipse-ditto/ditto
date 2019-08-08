@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.FeatureIdInvalidException;
 import org.eclipse.ditto.model.messages.Message;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -62,7 +63,7 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
 
     private final String featureId;
 
-    private SendFeatureMessage(final String thingId,
+    private SendFeatureMessage(final ThingId thingId,
             final String featureId,
             final Message<T> message,
             final DittoHeaders dittoHeaders) {
@@ -104,7 +105,7 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
      * @return new instance of {@code SendFeatureMessage}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static <T> SendFeatureMessage<T> of(final String thingId,
+    public static <T> SendFeatureMessage<T> of(final ThingId thingId,
             final String featureId,
             final Message<T> message,
             final DittoHeaders dittoHeaders) {
@@ -153,7 +154,8 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
      */
     public static <T> SendFeatureMessage<T> fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<SendFeatureMessage<T>>(TYPE, jsonObject).deserialize(() -> {
-            final String thingId = jsonObject.getValueOrThrow(MessageCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(MessageCommand.JsonFields.JSON_THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
             final String featureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
             final Message<T> message = deserializeMessageFromJson(jsonObject);
 
@@ -168,7 +170,7 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
 
     @Override
     public SendFeatureMessage setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingId(), featureId, getMessage(), dittoHeaders);
+        return of(getThingEntityId(), featureId, getMessage(), dittoHeaders);
     }
 
     @Override
@@ -180,7 +182,7 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
         jsonObjectBuilder.remove(MessageCommand.JsonFields.JSON_THING_ID);
         final JsonObject superBuild = jsonObjectBuilder.build();
         jsonObjectBuilder.removeAll();
-        jsonObjectBuilder.set(MessageCommand.JsonFields.JSON_THING_ID, getThingId());
+        jsonObjectBuilder.set(MessageCommand.JsonFields.JSON_THING_ID, getThingEntityId().toString());
         jsonObjectBuilder.set(JSON_FEATURE_ID, getFeatureId());
         jsonObjectBuilder.setAll(superBuild);
     }

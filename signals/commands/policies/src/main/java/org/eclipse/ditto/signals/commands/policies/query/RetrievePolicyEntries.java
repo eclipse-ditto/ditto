@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.signals.commands.policies.query;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -26,7 +28,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.policies.PolicyIdValidator;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -48,12 +50,28 @@ public final class RetrievePolicyEntries extends AbstractCommand<RetrievePolicyE
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private final String policyId;
+    private final PolicyId policyId;
 
-    private RetrievePolicyEntries(final String policyId, final DittoHeaders dittoHeaders) {
+    private RetrievePolicyEntries(final PolicyId policyId, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
-        PolicyIdValidator.getInstance().accept(policyId, dittoHeaders);
-        this.policyId = policyId;
+        this.policyId = checkNotNull(policyId, "policy ID");
+    }
+
+    /**
+     * Returns a command for retrieving all Policy entries for the given Policy ID.
+     *
+     * @param policyId the ID of a single Policy whose Policy entries will be retrieved by this command.
+     * @param dittoHeaders the optional command headers of the request.
+     * @return a Command for retrieving one Policy entries with the {@code policyId} which is readable from the passed
+     * authorization context.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy Id is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.id.PolicyId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static RetrievePolicyEntries of(final String policyId, final DittoHeaders dittoHeaders) {
+        return of(PolicyId.of(policyId), dittoHeaders);
     }
 
     /**
@@ -65,7 +83,7 @@ public final class RetrievePolicyEntries extends AbstractCommand<RetrievePolicyE
      * authorization context.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrievePolicyEntries of(final String policyId, final DittoHeaders dittoHeaders) {
+    public static RetrievePolicyEntries of(final PolicyId policyId, final DittoHeaders dittoHeaders) {
         return new RetrievePolicyEntries(policyId, dittoHeaders);
     }
 
@@ -96,7 +114,8 @@ public final class RetrievePolicyEntries extends AbstractCommand<RetrievePolicyE
      */
     public static RetrievePolicyEntries fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrievePolicyEntries>(TYPE, jsonObject).deserialize(() -> {
-            final String policyId = jsonObject.getValueOrThrow(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
+            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
+            final PolicyId policyId = PolicyId.of(extractedPolicyId);
 
             return of(policyId, dittoHeaders);
         });
@@ -108,7 +127,7 @@ public final class RetrievePolicyEntries extends AbstractCommand<RetrievePolicyE
      * @return the identifier of the Policy to retrieve the PolicyEntries from.
      */
     @Override
-    public String getId() {
+    public PolicyId getEntityId() {
         return policyId;
     }
 
@@ -122,7 +141,7 @@ public final class RetrievePolicyEntries extends AbstractCommand<RetrievePolicyE
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyQueryCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(PolicyQueryCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
     }
 
     @Override

@@ -17,6 +17,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 /**
@@ -40,6 +41,9 @@ public interface PolicyCommand<T extends PolicyCommand> extends Command<T> {
     default String getTypePrefix() {
         return TYPE_PREFIX;
     }
+
+    @Override
+    PolicyId getEntityId();
 
     /**
      * PolicyCommands are only available in JsonSchemaVersion V_2.

@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingRevision;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntryResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclResponse;
@@ -63,14 +64,14 @@ public abstract class ETagTestUtils {
     public static RetrieveThingResponse retrieveThingResponse(final Thing expectedThing,
             final JsonObject expectedJsonRepresentation, final DittoHeaders dittoHeaders) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedThing, dittoHeaders);
-        return RetrieveThingResponse.of(expectedThing.getId().get(), expectedJsonRepresentation.toString(),
+        return RetrieveThingResponse.of(expectedThing.getEntityId().get(), expectedJsonRepresentation.toString(),
                 dittoHeadersWithETag);
     }
 
     public static RetrieveThingResponse retrieveThingResponse(final Thing expectedThing,
             final DittoHeaders dittoHeaders) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedThing, dittoHeaders);
-        return RetrieveThingResponse.of(expectedThing.getId().get(),
+        return RetrieveThingResponse.of(expectedThing.getEntityId().get(),
                 expectedThing.toJsonString(dittoHeaders.getSchemaVersion().get()), dittoHeadersWithETag);
     }
 
@@ -83,7 +84,7 @@ public abstract class ETagTestUtils {
                 .build();
         final DittoHeaders dittoHeadersWithETag =
                 appendETagToDittoHeaders(modifiedThingWithUpdatedRevision, dittoHeaders);
-        return ModifyThingResponse.modified(modifiedThing.getId().get(), dittoHeadersWithETag);
+        return ModifyThingResponse.modified(modifiedThing.getEntityId().get(), dittoHeadersWithETag);
     }
 
     public static SudoRetrieveThingResponse sudoRetrieveThingResponse(final Thing expectedThing,
@@ -94,7 +95,7 @@ public abstract class ETagTestUtils {
 
     // Features
 
-    public static ModifyFeaturesResponse modifyFeaturesResponse(final String thingId, final Features modifiedFeatures,
+    public static ModifyFeaturesResponse modifyFeaturesResponse(final ThingId thingId, final Features modifiedFeatures,
             final DittoHeaders dittoHeaders, final boolean created) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(modifiedFeatures, dittoHeaders);
         if (created) {
@@ -104,7 +105,7 @@ public abstract class ETagTestUtils {
         }
     }
 
-    public static RetrieveFeaturesResponse retrieveFeaturesResponse(final String thingId,
+    public static RetrieveFeaturesResponse retrieveFeaturesResponse(final ThingId thingId,
             final Features expectedFeatures,
             final JsonObject expectedJsonRepresentation, final DittoHeaders dittoHeaders) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedFeatures, dittoHeaders);
@@ -113,14 +114,14 @@ public abstract class ETagTestUtils {
 
     // Feature
 
-    public static RetrieveFeatureResponse retrieveFeatureResponse(String thingId, final Feature expectedFeature,
+    public static RetrieveFeatureResponse retrieveFeatureResponse(final ThingId thingId, final Feature expectedFeature,
             final JsonObject expectedJsonRepresentation, final DittoHeaders dittoHeaders) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedFeature, dittoHeaders);
         return RetrieveFeatureResponse.of(thingId, expectedFeature.getId(), expectedJsonRepresentation,
                 dittoHeadersWithETag);
     }
 
-    public static ModifyFeatureResponse modifyFeatureResponse(final String thingId, final Feature feature,
+    public static ModifyFeatureResponse modifyFeatureResponse(final ThingId thingId, final Feature feature,
             final DittoHeaders dittoHeaders, final boolean created) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(feature, dittoHeaders);
         if (created) {
@@ -132,7 +133,7 @@ public abstract class ETagTestUtils {
 
     // FeatureDefinition
 
-    public static ModifyFeatureDefinitionResponse modifyFeatureDefinitionResponse(final String thingId,
+    public static ModifyFeatureDefinitionResponse modifyFeatureDefinitionResponse(final ThingId thingId,
             final String featureId, final FeatureDefinition definition, final DittoHeaders dittoHeaders,
             final boolean created) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(definition, dittoHeaders);
@@ -143,7 +144,7 @@ public abstract class ETagTestUtils {
         }
     }
 
-    public static RetrieveFeatureDefinitionResponse retrieveFeatureDefinitionResponse(final String thingId,
+    public static RetrieveFeatureDefinitionResponse retrieveFeatureDefinitionResponse(final ThingId thingId,
             final String featureId, final FeatureDefinition expectedFeatureDefinition,
             final DittoHeaders dittoHeaders) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedFeatureDefinition, dittoHeaders);
@@ -153,7 +154,7 @@ public abstract class ETagTestUtils {
 
     // FeatureProperties
 
-    public static ModifyFeaturePropertiesResponse modifyFeaturePropertiesResponse(final String thingId,
+    public static ModifyFeaturePropertiesResponse modifyFeaturePropertiesResponse(final ThingId thingId,
             final String featureId, final FeatureProperties properties, final DittoHeaders dittoHeaders,
             final boolean created) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(properties, dittoHeaders);
@@ -164,7 +165,7 @@ public abstract class ETagTestUtils {
         }
     }
 
-    public static RetrieveFeaturePropertiesResponse retrieveFeaturePropertiesResponse(final String thingId,
+    public static RetrieveFeaturePropertiesResponse retrieveFeaturePropertiesResponse(final ThingId thingId,
             final String featureId, final FeatureProperties expectedFeatureProperties,
             final DittoHeaders dittoHeaders) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedFeatureProperties, dittoHeaders);
@@ -174,7 +175,7 @@ public abstract class ETagTestUtils {
 
     // FeatureProperty
 
-    public static ModifyFeaturePropertyResponse modifyFeaturePropertyResponse(final String thingId,
+    public static ModifyFeaturePropertyResponse modifyFeaturePropertyResponse(final ThingId thingId,
             final String featureId, final JsonPointer propertyPointer, final JsonValue propertyValue,
             final DittoHeaders dittoHeaders, final boolean created) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(propertyValue, dittoHeaders);
@@ -186,7 +187,7 @@ public abstract class ETagTestUtils {
         }
     }
 
-    public static RetrieveFeaturePropertyResponse retrieveFeaturePropertyResponse(final String thingId,
+    public static RetrieveFeaturePropertyResponse retrieveFeaturePropertyResponse(final ThingId thingId,
             final String featureId, final JsonPointer propertyPointer, final JsonValue propertyValue,
             final DittoHeaders dittoHeaders) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(propertyValue, dittoHeaders);
@@ -196,7 +197,7 @@ public abstract class ETagTestUtils {
 
     // Attributes
 
-    public static ModifyAttributesResponse modifyAttributesResponse(final String thingId,
+    public static ModifyAttributesResponse modifyAttributesResponse(final ThingId thingId,
             final Attributes modifiedAttributes, final DittoHeaders dittoHeaders, final boolean created) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(modifiedAttributes, dittoHeaders);
         if (created) {
@@ -206,7 +207,7 @@ public abstract class ETagTestUtils {
         }
     }
 
-    public static RetrieveAttributesResponse retrieveAttributesResponse(final String thingId,
+    public static RetrieveAttributesResponse retrieveAttributesResponse(final ThingId thingId,
             final Attributes expectedAttributes, final JsonObject expectedJsonRepresentation,
             final DittoHeaders dittoHeaders) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedAttributes, dittoHeaders);
@@ -215,7 +216,7 @@ public abstract class ETagTestUtils {
 
     // Attribute
 
-    public static ModifyAttributeResponse modifyAttributeResponse(final String thingId,
+    public static ModifyAttributeResponse modifyAttributeResponse(final ThingId thingId,
             final JsonPointer attributePointer, final JsonValue attributeValue, final DittoHeaders dittoHeaders,
             final boolean created) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(attributeValue, dittoHeaders);
@@ -226,7 +227,7 @@ public abstract class ETagTestUtils {
         }
     }
 
-    public static RetrieveAttributeResponse retrieveAttributeResponse(final String thingId,
+    public static RetrieveAttributeResponse retrieveAttributeResponse(final ThingId thingId,
             final JsonPointer attributePointer, final JsonValue attributeValue, final DittoHeaders dittoHeaders) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(attributeValue, dittoHeaders);
         return RetrieveAttributeResponse.of(thingId, attributePointer, attributeValue, dittoHeadersWithETag);
@@ -234,7 +235,7 @@ public abstract class ETagTestUtils {
 
     // Acl
 
-    public static ModifyAclResponse modifyAclResponse(final String thingId, final AccessControlList expectedAcl,
+    public static ModifyAclResponse modifyAclResponse(final ThingId thingId, final AccessControlList expectedAcl,
             final DittoHeaders dittoHeaders, final boolean created) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedAcl, dittoHeaders);
         if (created) {
@@ -244,7 +245,7 @@ public abstract class ETagTestUtils {
         }
     }
 
-    public static RetrieveAclResponse retrieveAclResponse(final String thingId, final AccessControlList expectedAcl,
+    public static RetrieveAclResponse retrieveAclResponse(final ThingId thingId, final AccessControlList expectedAcl,
             final JsonObject expectedAclJsonRepresentation, final DittoHeaders dittoHeaders) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedAcl, dittoHeaders);
         return RetrieveAclResponse.of(thingId, expectedAclJsonRepresentation, dittoHeadersWithETag);
@@ -252,7 +253,7 @@ public abstract class ETagTestUtils {
 
     // AclEntry
 
-    public static ModifyAclEntryResponse modifyAclEntryResponse(final String thingId, final AclEntry expectedAclEntry,
+    public static ModifyAclEntryResponse modifyAclEntryResponse(final ThingId thingId, final AclEntry expectedAclEntry,
             final DittoHeaders dittoHeaders, final boolean created) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedAclEntry, dittoHeaders);
         if (created) {
@@ -262,7 +263,7 @@ public abstract class ETagTestUtils {
         }
     }
 
-    public static RetrieveAclEntryResponse retrieveAclEntryResponse(final String thingId,
+    public static RetrieveAclEntryResponse retrieveAclEntryResponse(final ThingId thingId,
             final AclEntry expectedAclEntry, final DittoHeaders dittoHeaders) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedAclEntry, dittoHeaders);
         return RetrieveAclEntryResponse.of(thingId, expectedAclEntry, dittoHeadersWithETag);
@@ -271,7 +272,7 @@ public abstract class ETagTestUtils {
 
     // PolicyId
 
-    public static ModifyPolicyIdResponse modifyPolicyIdResponse(final String thingId, final String policyId,
+    public static ModifyPolicyIdResponse modifyPolicyIdResponse(final ThingId thingId, final String policyId,
             final DittoHeaders dittoHeaders, final boolean created) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(policyId, dittoHeaders);
         if (created) {
@@ -281,7 +282,7 @@ public abstract class ETagTestUtils {
         }
     }
 
-    public static RetrievePolicyIdResponse retrievePolicyIdResponse(final String thingId,
+    public static RetrievePolicyIdResponse retrievePolicyIdResponse(final ThingId thingId,
             final String expectedPolicyId, final DittoHeaders dittoHeaders) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedPolicyId, dittoHeaders);
         return RetrievePolicyIdResponse.of(thingId, expectedPolicyId, dittoHeadersWithETag);

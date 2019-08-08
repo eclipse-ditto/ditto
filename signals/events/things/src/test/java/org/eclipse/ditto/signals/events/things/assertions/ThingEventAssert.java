@@ -13,6 +13,7 @@
 package org.eclipse.ditto.signals.events.things.assertions;
 
 import org.assertj.core.api.Assertions;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.events.base.assertions.AbstractEventAssert;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
@@ -30,13 +31,13 @@ public final class ThingEventAssert extends AbstractEventAssert<ThingEventAssert
         super(actual, ThingEventAssert.class);
     }
 
-    public ThingEventAssert hasThingId(final CharSequence expectedThingId) {
+    public ThingEventAssert hasThingId(final ThingId expectedThingId) {
         isNotNull();
-        final String actualThingId = actual.getThingId();
-        Assertions.assertThat(actualThingId)
+        final ThingId actualThingId = actual.getThingEntityId();
+        Assertions.assertThat((CharSequence) actualThingId)
                 .overridingErrorMessage("Expected ThingEvent to have Thing ID\n<%s> but it had\n<%s>",
                         expectedThingId, actualThingId)
-                .isEqualTo(expectedThingId.toString());
+                .isEqualTo(expectedThingId);
         return this;
     }
 

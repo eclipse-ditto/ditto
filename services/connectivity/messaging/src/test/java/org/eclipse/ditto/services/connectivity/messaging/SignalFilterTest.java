@@ -31,6 +31,7 @@ import java.util.Set;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
@@ -44,6 +45,7 @@ import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.signals.base.Signal;
@@ -58,7 +60,7 @@ import org.junit.runners.Parameterized;
 public class SignalFilterTest {
 
     private static final String URI = "amqp://user:pass@host:1111/path";
-    private static final String CONNECTION = "id";
+    private static final EntityId CONNECTION = TestConstants.createRandomConnectionId();
     private static final AuthorizationSubject AUTHORIZED = newAuthSubject("authorized");
     private static final AuthorizationSubject UNAUTHORIZED = newAuthSubject("unauthorized");
     private static final AuthorizationSubject DUMMY = newAuthSubject("dummy");
@@ -192,7 +194,8 @@ public class SignalFilterTest {
 
     private static Signal<?> signal(final Topic topic, final Set<String> readSubjects) {
 
-        final Thing thing = ThingsModelFactory.newThingBuilder().setId("org.eclipse.ditto:myThing").build();
+        final ThingId thingId = ThingId.of("org.eclipse.ditto:myThing");
+        final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId).build();
         final ThingModified thingModified =
                 ThingModified.of(thing, 1L, DittoHeaders.newBuilder().readSubjects(readSubjects).build());
 
@@ -204,10 +207,10 @@ public class SignalFilterTest {
             case LIVE_EVENTS:
                 return thingModified.setDittoHeaders(liveHeaders);
             case LIVE_COMMANDS:
-                return ModifyThing.of(thing.getId().orElse("id"), thing, null, liveHeaders);
+                return ModifyThing.of(thingId, thing, null, liveHeaders);
             case LIVE_MESSAGES:
-                return SendThingMessage.of("ns:id",
-                        Message.newBuilder(MessageHeaders.newBuilder(MessageDirection.TO, "ns:id", "ditto").build())
+                return SendThingMessage.of(thingId,
+                        Message.newBuilder(MessageHeaders.newBuilder(MessageDirection.TO, thingId, "ditto").build())
                                 .build(), liveHeaders);
             default:
                 throw new UnsupportedOperationException(topic + " not supported");

@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Feature;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
@@ -62,7 +63,7 @@ public final class FeatureModified extends AbstractThingEvent<FeatureModified>
 
     private final Feature feature;
 
-    private FeatureModified(final String thingId,
+    private FeatureModified(final ThingId thingId,
             final Feature feature,
             final long revision,
             @Nullable final Instant timestamp,
@@ -82,7 +83,7 @@ public final class FeatureModified extends AbstractThingEvent<FeatureModified>
      * @return the FeatureModified created.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static FeatureModified of(final String thingId,
+    public static FeatureModified of(final ThingId thingId,
             final Feature feature,
             final long revision,
             final DittoHeaders dittoHeaders) {
@@ -101,7 +102,7 @@ public final class FeatureModified extends AbstractThingEvent<FeatureModified>
      * @return the FeatureModified created.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
-    public static FeatureModified of(final String thingId,
+    public static FeatureModified of(final ThingId thingId,
             final Feature feature,
             final long revision,
             @Nullable final Instant timestamp,
@@ -139,13 +140,14 @@ public final class FeatureModified extends AbstractThingEvent<FeatureModified>
         return new EventJsonDeserializer<FeatureModified>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
 
             final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
             final String extractedFeatureId = jsonObject.getValueOrThrow(JsonFields.FEATURE_ID);
             final JsonObject extractedFeatureJson = jsonObject.getValueOrThrow(JSON_FEATURE);
             final Feature extractedFeature = ThingsModelFactory.newFeatureBuilder(extractedFeatureJson)
                     .useId(extractedFeatureId)
                     .build();
 
-            return of(extractedThingId, extractedFeature, revision, timestamp, dittoHeaders);
+            return of(thingId, extractedFeature, revision, timestamp, dittoHeaders);
         });
     }
 
@@ -175,12 +177,12 @@ public final class FeatureModified extends AbstractThingEvent<FeatureModified>
 
     @Override
     public FeatureModified setRevision(final long revision) {
-        return of(getThingId(), feature, revision, getTimestamp().orElse(null), getDittoHeaders());
+        return of(getThingEntityId(), feature, revision, getTimestamp().orElse(null), getDittoHeaders());
     }
 
     @Override
     public FeatureModified setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingId(), feature, getRevision(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getThingEntityId(), feature, getRevision(), getTimestamp().orElse(null), dittoHeaders);
     }
 
     @Override

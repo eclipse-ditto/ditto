@@ -23,10 +23,11 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.id.WithThingId;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.base.WithThingId;
 
 /**
  * Factory for creating instances of {@link org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor.InfoProvider}.
@@ -71,7 +72,7 @@ public final class InfoProviderFactory {
     public static ConnectionMonitor.InfoProvider forSignal(final Signal<?> signal) {
         final String correlationId = extractCorrelationId(signal.getDittoHeaders());
         final Instant timestamp = Instant.now();
-        final String thingId = extractThingId(signal);
+        final ThingId thingId = extractThingId(signal);
         final Supplier<String> payloadSupplier = supplyPayloadFromSignal(signal);
 
         return new ImmutableInfoProvider(correlationId, timestamp, thingId, signal.getDittoHeaders(), payloadSupplier);
@@ -100,9 +101,9 @@ public final class InfoProviderFactory {
     }
 
     @Nullable
-    private static String extractThingId(final Signal<?> signal) {
+    private static ThingId extractThingId(final Signal<?> signal) {
         if (signal instanceof WithThingId) {
-            return ((WithThingId) signal).getThingId();
+            return ((WithThingId) signal).getThingEntityId();
         }
         return null;
     }

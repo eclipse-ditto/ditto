@@ -35,6 +35,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyEntry;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
 /**
@@ -63,7 +64,7 @@ public final class PolicyEntryModified extends AbstractPolicyEvent<PolicyEntryMo
 
     private final PolicyEntry policyEntry;
 
-    private PolicyEntryModified(final String policyId,
+    private PolicyEntryModified(final PolicyId policyId,
             final PolicyEntry policyEntry,
             final long revision,
             final Instant timestamp,
@@ -83,7 +84,7 @@ public final class PolicyEntryModified extends AbstractPolicyEvent<PolicyEntryMo
      * @return the created PolicyEntryModified.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static PolicyEntryModified of(final String policyId,
+    public static PolicyEntryModified of(final PolicyId policyId,
             final PolicyEntry policyEntry,
             final long revision,
             final DittoHeaders dittoHeaders) {
@@ -102,7 +103,7 @@ public final class PolicyEntryModified extends AbstractPolicyEvent<PolicyEntryMo
      * @return the created PolicyEntryModified.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
-    public static PolicyEntryModified of(final String policyId,
+    public static PolicyEntryModified of(final PolicyId policyId,
             final PolicyEntry policyEntry,
             final long revision,
             @Nullable final Instant timestamp,
@@ -138,7 +139,8 @@ public final class PolicyEntryModified extends AbstractPolicyEvent<PolicyEntryMo
     public static PolicyEntryModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<PolicyEntryModified>(TYPE, jsonObject)
                 .deserialize((revision, timestamp) -> {
-                    final String policyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+                    final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+                    final PolicyId policyId = PolicyId.of(extractedPolicyId);
                     final String policyEntryLabel = jsonObject.getValueOrThrow(JSON_LABEL);
                     final JsonObject policyEntryJsonObject = jsonObject.getValueOrThrow(JSON_POLICY_ENTRY);
                     final PolicyEntry extractedModifiedPolicyEntry =
@@ -170,12 +172,12 @@ public final class PolicyEntryModified extends AbstractPolicyEvent<PolicyEntryMo
 
     @Override
     public PolicyEntryModified setRevision(final long revision) {
-        return of(getPolicyId(), policyEntry, revision, getTimestamp().orElse(null), getDittoHeaders());
+        return of(getPolicyEntityId(), policyEntry, revision, getTimestamp().orElse(null), getDittoHeaders());
     }
 
     @Override
     public PolicyEntryModified setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getPolicyId(), policyEntry, getRevision(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getPolicyEntityId(), policyEntry, getRevision(), getTimestamp().orElse(null), dittoHeaders);
     }
 
     @Override

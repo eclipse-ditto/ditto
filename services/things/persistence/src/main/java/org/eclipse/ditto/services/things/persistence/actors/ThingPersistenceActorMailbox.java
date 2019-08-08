@@ -112,12 +112,12 @@ public class ThingPersistenceActorMailbox implements MailboxType,
             // instead of blocking return "too many requests" response if numberOfMessages > capacity
             if (numberOfMessages() > capacity) {
                 log.warning("Number of messages ({}) in the Mailbox of thing with ID '{}' exceeded the max capacity of "
-                                + "{} -> rejecting ThingModifyCommand '{}'", numberOfMessages(), command.getId(), capacity,
+                                + "{} -> rejecting ThingModifyCommand '{}'", numberOfMessages(), command.getEntityId(), capacity,
                         command.getType());
 
-                final ThingErrorResponse errorResponse = ThingErrorResponse.of(command.getId(),
+                final ThingErrorResponse errorResponse = ThingErrorResponse.of(command.getThingEntityId(),
                         ThingTooManyModifyingRequestsException //
-                                .newBuilder(command.getId()) //
+                                .newBuilder(command.getThingEntityId()) //
                                 .dittoHeaders(command.getDittoHeaders()) //
                                 .build());
                 sender.tell(errorResponse, null);

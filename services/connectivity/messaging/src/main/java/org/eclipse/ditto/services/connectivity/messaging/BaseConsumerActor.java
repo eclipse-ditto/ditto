@@ -19,6 +19,7 @@ import java.time.Instant;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
@@ -45,11 +46,11 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     @Nullable protected final HeaderMapping headerMapping;
     protected final ConnectionMonitor inboundMonitor;
     private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
-    protected final String connectionId;
+    protected final EntityId connectionId;
 
     @Nullable protected ResourceStatus resourceStatus;
 
-    protected BaseConsumerActor(final String connectionId, final String sourceAddress,
+    protected BaseConsumerActor(final EntityId connectionId, final String sourceAddress,
             final ActorRef messageMappingProcessor, final AuthorizationContext authorizationContext,
             @Nullable final HeaderMapping headerMapping) {
         this.connectionId = checkNotNull(connectionId, "connectionId");

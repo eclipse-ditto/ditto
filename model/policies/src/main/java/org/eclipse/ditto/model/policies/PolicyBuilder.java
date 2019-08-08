@@ -20,6 +20,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 
 /**
  * A mutable builder for a {@link Policy} with a fluent API.
@@ -469,9 +470,20 @@ public interface PolicyBuilder {
      *
      * @param id the Policy ID to set.
      * @return this builder to allow method chaining.
-     * @throws PolicyIdInvalidException if {@code policyId} did not comply to {@link Policy#ID_REGEX}.
+     * @throws org.eclipse.ditto.model.policies.id.PolicyIdInvalidException if {@code policyId} did not comply to
+     * {@link org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
+     * @deprecated policy ID is now typed. Use {@link #setId(PolicyId)} instead.
      */
+    @Deprecated
     PolicyBuilder setId(CharSequence id);
+
+    /**
+     * Sets the Policy ID. The previous ID is overwritten.
+     *
+     * @param id the Policy ID to set.
+     * @return this builder to allow method chaining.
+     */
+    PolicyBuilder setId(PolicyId id);
 
     /**
      * Sets the given lifecycle to this builder.

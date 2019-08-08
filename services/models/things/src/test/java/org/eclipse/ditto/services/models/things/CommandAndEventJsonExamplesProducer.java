@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
@@ -61,30 +62,36 @@ public final class CommandAndEventJsonExamplesProducer {
         final JsonFieldSelector sudoFieldSelector =
                 JsonFactory.newFieldSelector("thingId,_revision,__lifecycle", JSON_PARSE_OPTIONS);
 
+        final String namespace = "org.eclipse.ditto";
+        final ThingId thingId1 = ThingId.of(namespace, "the_thingId_1");
+        final ThingId thingId2 = ThingId.of(namespace, "the_thingId_2");
+        final ThingId thingId3 = ThingId.of(namespace, "the_thingId_3");
+
+
         final SudoRetrieveThing sudoRetrieveThing =
-                SudoRetrieveThing.of("org.eclipse.ditto:the_thingId_1", TestConstants.EMPTY_HEADERS);
+                SudoRetrieveThing.of(thingId1, TestConstants.EMPTY_HEADERS);
         writeJson(sudoCommandsDir.resolve(Paths.get("sudoRetrieveThing.json")), sudoRetrieveThing);
 
         final SudoRetrieveThing sudoRetrieveThingWithFieldSelector =
-                SudoRetrieveThing.of("org.eclipse.ditto:the_thingId_1", sudoFieldSelector, TestConstants.EMPTY_HEADERS);
+                SudoRetrieveThing.of(thingId1, sudoFieldSelector, TestConstants.EMPTY_HEADERS);
         writeJson(sudoCommandsDir.resolve(Paths.get("sudoRetrieveThing-withFieldSelector.json")),
                 sudoRetrieveThingWithFieldSelector);
 
         final SudoRetrieveThings sudoRetrieveThings = SudoRetrieveThings
-                .of(Arrays.asList("org.eclipse.ditto:the_thingId_1", "org.eclipse.ditto:the_thingId_2",
-                        "org.eclipse.ditto:the_thingId_3"),
+                .of(Arrays.asList(thingId1, thingId2,
+                        thingId3),
                         TestConstants.EMPTY_HEADERS);
         writeJson(sudoCommandsDir.resolve(Paths.get("sudoRetrieveThings.json")), sudoRetrieveThings);
 
         final SudoRetrieveThings sudoRetrieveThingsWithFieldSelector = SudoRetrieveThings
-                .of(Arrays.asList("org.eclipse.ditto:the_thingId_1", "org.eclipse.ditto:the_thingId_2",
-                        "org.eclipse.ditto:the_thingId_3"),
+                .of(Arrays.asList(thingId1, thingId2,
+                        thingId3),
                         sudoFieldSelector, TestConstants.EMPTY_HEADERS);
         writeJson(sudoCommandsDir.resolve(Paths.get("sudoRetrieveThings-withFieldSelector.json")),
                 sudoRetrieveThingsWithFieldSelector);
 
-        final Thing exampleThingJson = createExampleThing("org.eclipse.ditto:the_thingId_1");
-        final Thing exampleThing2Json = createExampleThing("org.eclipse.ditto:the_thingId_2");
+        final Thing exampleThingJson = createExampleThing(thingId1);
+        final Thing exampleThing2Json = createExampleThing(thingId2);
 
         final JsonObject exampleThingJsonRestrictedByPredicate = exampleThingJson.toJson(FieldType.notHidden());
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
@@ -109,7 +116,7 @@ public final class CommandAndEventJsonExamplesProducer {
                 sudoRetrieveThingsResponseWithFieldSelector);
     }
 
-    private static Thing createExampleThing(final String thingId) {
+    private static Thing createExampleThing(final ThingId thingId) {
         final AuthorizationSubject authorizationSubject = newAuthSubject("the_acl_subject");
         final AuthorizationSubject anotherAuthorizationSubject = newAuthSubject("another_acl_subject");
 
@@ -121,7 +128,7 @@ public final class CommandAndEventJsonExamplesProducer {
                         org.eclipse.ditto.model.things.Permission.ADMINISTRATE) //
                 .setPermissions(anotherAuthorizationSubject, org.eclipse.ditto.model.things.Permission.READ,
                         org.eclipse.ditto.model.things.Permission.WRITE) //
-                .setId("org.eclipse.ditto.example:" + thingId) //
+                .setId(thingId) //
                 .build();
     }
 

@@ -19,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.Objects;
 
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.services.base.actors.ShutdownBehaviour;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
@@ -47,7 +48,7 @@ final class ThingUpdater extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = Logging.apply(this);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final ShutdownBehaviour shutdownBehaviour;
     private final ActorRef changeQueueActor;
 
@@ -56,8 +57,8 @@ final class ThingUpdater extends AbstractActor {
     private String policyId = "";
     private long policyRevision = -1L;
 
-    private ThingUpdater(final ActorRef pubSubMediator,
-            final ActorRef changeQueueActor) {
+    @SuppressWarnings("unused") //It is used via reflection. See props method.
+    private ThingUpdater(final ActorRef pubSubMediator, final ActorRef changeQueueActor) {
 
         final DittoSearchConfig dittoSearchConfig = DittoSearchConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
@@ -139,8 +140,9 @@ final class ThingUpdater extends AbstractActor {
         }
 
         final PolicyTag policyTag = policyReferenceTag.getPolicyTag();
-        if (!Objects.equals(policyId, policyTag.getId()) || policyRevision < policyTag.getRevision()) {
-            policyId = policyTag.getId();
+        final String policyIdOfTag = String.valueOf(policyTag.getEntityId());
+        if (!Objects.equals(policyId, policyIdOfTag) || policyRevision < policyTag.getRevision()) {
+            this.policyId = policyIdOfTag;
             policyRevision = policyTag.getRevision();
             enqueueMetadata();
         } else {
@@ -168,7 +170,7 @@ final class ThingUpdater extends AbstractActor {
         }
     }
 
-    private String tryToGetThingId() {
+    private ThingId tryToGetThingId() {
         final Charset utf8 = StandardCharsets.UTF_8;
         try {
             return getThingId(utf8);
@@ -177,9 +179,9 @@ final class ThingUpdater extends AbstractActor {
         }
     }
 
-    private String getThingId(final Charset charset) throws UnsupportedEncodingException {
+    private ThingId getThingId(final Charset charset) throws UnsupportedEncodingException {
         final String actorName = self().path().name();
-        return URLDecoder.decode(actorName, charset.name());
+        return ThingId.of(URLDecoder.decode(actorName, charset.name()));
     }
 
     private void acknowledge(final IdentifiableStreamingMessage message) {

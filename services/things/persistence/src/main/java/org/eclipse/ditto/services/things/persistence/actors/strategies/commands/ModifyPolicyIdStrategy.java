@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyId;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyIdResponse;
 import org.eclipse.ditto.signals.events.things.PolicyIdCreated;
@@ -53,7 +54,7 @@ final class ModifyPolicyIdStrategy
 
     private Result getModifyResult(final Context context, final long nextRevision,
             final ModifyPolicyId command) {
-        final String thingId = context.getThingId();
+        final ThingId thingId = context.getThingEntityId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return ResultFactory.newMutationResult(command,
@@ -64,7 +65,7 @@ final class ModifyPolicyIdStrategy
 
     private Result getCreateResult(final Context context, final long nextRevision,
             final ModifyPolicyId command) {
-        final String thingId = context.getThingId();
+        final ThingId thingId = context.getThingEntityId();
         final String policyId = command.getPolicyId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 

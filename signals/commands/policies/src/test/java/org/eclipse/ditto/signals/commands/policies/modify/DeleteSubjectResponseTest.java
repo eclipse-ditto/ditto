@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
 import org.eclipse.ditto.signals.commands.policies.TestConstants;
@@ -37,7 +38,7 @@ public class DeleteSubjectResponseTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyCommandResponse.JsonFields.TYPE, DeleteSubjectResponse.TYPE)
             .set(PolicyCommandResponse.JsonFields.STATUS, HttpStatusCode.NO_CONTENT.toInt())
-            .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(DeleteSubjectResponse.JSON_LABEL, TestConstants.Policy.LABEL.toString())
             .set(DeleteSubjectResponse.JSON_SUBJECT_ID, TestConstants.Policy.SUBJECT_ID.toString())
             .build();
@@ -46,7 +47,7 @@ public class DeleteSubjectResponseTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(DeleteSubjectResponse.class, areImmutable(),
-                provided(Label.class, SubjectId.class).areAlsoImmutable());
+                provided(Label.class, SubjectId.class, PolicyId.class).areAlsoImmutable());
     }
 
 

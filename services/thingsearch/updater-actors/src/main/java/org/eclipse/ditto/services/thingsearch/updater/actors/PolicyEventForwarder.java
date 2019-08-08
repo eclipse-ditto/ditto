@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.thingsearch.common.config.DittoSearchConfig;
@@ -64,7 +65,7 @@ final class PolicyEventForwarder extends AbstractActor {
     private final BlockNamespaceBehavior blockNamespaceBehavior;
     private final Duration interval;
 
-    private Map<String, Long> policyRevisions = new HashMap<>();
+    private Map<PolicyId, Long> policyRevisions = new HashMap<>();
     private KillSwitch killSwitch;
 
     @SuppressWarnings("unused")
@@ -130,13 +131,13 @@ final class PolicyEventForwarder extends AbstractActor {
         blockNamespaceBehavior.block(policyEvent)
                 .whenComplete((result, error) -> {
                     if (error == null) {
-                        self.tell(PolicyTag.of(policyEvent.getPolicyId(), policyEvent.getRevision()), self);
+                        self.tell(PolicyTag.of(policyEvent.getPolicyEntityId(), policyEvent.getRevision()), self);
                     }
                 });
     }
 
     private void updatePolicyRevision(final PolicyTag policyTag) {
-        final String policyId = policyTag.getId();
+        final PolicyId policyId = policyTag.getEntityId();
         final long revision = policyTag.getRevision();
         policyRevisions.merge(policyId, revision, Long::max);
     }
@@ -153,7 +154,7 @@ final class PolicyEventForwarder extends AbstractActor {
 
     @SuppressWarnings("unused")
     private void dumpPolicyRevisions(final Control trigger) {
-        final Map<String, Long> dump = policyRevisions;
+        final Map<PolicyId, Long> dump = policyRevisions;
         policyRevisions = new HashMap<>();
         getSender().tell(dump, getSelf());
     }
@@ -197,7 +198,7 @@ final class PolicyEventForwarder extends AbstractActor {
     @SuppressWarnings("unchecked")
     private Source<PolicyReferenceTag, NotUsed> mapDumpResult(final Object dumpResult) {
         if (dumpResult instanceof Map) {
-            return persistence.getPolicyReferenceTags((Map<String, Long>) dumpResult);
+            return persistence.getPolicyReferenceTags((Map<PolicyId, Long>) dumpResult);
         } else {
             if (dumpResult instanceof Throwable) {
                 log.error((Throwable) dumpResult, "dump failed");

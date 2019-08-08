@@ -20,7 +20,6 @@ import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Au
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -29,6 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
@@ -84,7 +84,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
     private static ActorSystem actorSystem;
     private static ServerSocket mockServer;
 
-    private String connectionId;
+    private EntityId connectionId;
     private Connection connection;
 
     @Mock
@@ -238,7 +238,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
 
     private MockKafkaPublisher provideMockKafkaPublisher(final ActorSystem actorSystem) {
         final MockKafkaPublisher mockKafkaPublisher = new MockKafkaPublisher(actorSystem);
-        when(publisherActorFactory.props(anyString(), anyList(), any(KafkaConnectionFactory.class),
+        when(publisherActorFactory.props(any(EntityId.class), anyList(), any(KafkaConnectionFactory.class),
                 any(ActorRef.class), anyBoolean()))
                 .thenReturn(mockKafkaPublisher.publisherActorProps());
         return mockKafkaPublisher;

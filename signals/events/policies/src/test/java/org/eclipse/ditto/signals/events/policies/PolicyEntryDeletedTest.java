@@ -36,7 +36,7 @@ public final class PolicyEntryDeletedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, PolicyEntryDeleted.TYPE)
             .set(Event.JsonFields.REVISION, TestConstants.Policy.REVISION_NUMBER)
-            .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(PolicyEntryDeleted.JSON_LABEL, TestConstants.Policy.LABEL.toString())
             .build();
 
@@ -86,7 +86,7 @@ public final class PolicyEntryDeletedTest {
                 PolicyEntryDeleted.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         Assertions.assertThat(underTest).isNotNull();
-        assertThat(underTest.getPolicyId()).isEqualTo(TestConstants.Policy.POLICY_ID);
+        assertThat((CharSequence) underTest.getPolicyEntityId()).isEqualTo(TestConstants.Policy.POLICY_ID);
         assertThat(underTest.getLabel()).isEqualTo(TestConstants.Policy.LABEL);
     }
 

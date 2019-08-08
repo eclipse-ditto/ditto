@@ -22,6 +22,7 @@ import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.junit.Before;
@@ -102,7 +103,7 @@ public final class ShutdownTest {
 
     @Test
     public void getIdReturnsEmptyString() {
-        assertThat(underTest.getId()).isEmpty();
+        assertThat((CharSequence) underTest.getEntityId()).isSameAs(DefaultEntityId.NONE_ID);
     }
 
     @Test

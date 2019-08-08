@@ -21,6 +21,8 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
@@ -52,7 +54,7 @@ import scala.concurrent.duration.FiniteDuration;
 public abstract class AbstractConsumerActorTest<M> {
 
     private static final Config CONFIG = ConfigFactory.load("test");
-    private static final String CONNECTION_ID = "connection";
+    private static final EntityId CONNECTION_ID = TestConstants.createRandomConnectionId();
     private static final FiniteDuration ONE_SECOND = FiniteDuration.apply(1, TimeUnit.SECONDS);
     protected static final Map.Entry<String, String> REPLY_TO_HEADER = header("reply-to", "reply-to-address");
     protected static final Enforcement ENFORCEMENT =
@@ -114,8 +116,8 @@ public abstract class AbstractConsumerActorTest<M> {
     public void testInboundMessageWithHeaderMapping() {
         testInboundMessage(header("device_id", TestConstants.Things.THING_ID), true, msg -> {
             assertThat(msg.getDittoHeaders()).containsEntry("eclipse", "ditto");
-            assertThat(msg.getDittoHeaders()).containsEntry("thing_id", TestConstants.Things.THING_ID);
-            assertThat(msg.getDittoHeaders()).containsEntry("device_id", TestConstants.Things.THING_ID);
+            assertThat(msg.getDittoHeaders()).containsEntry("thing_id", TestConstants.Things.THING_ID.toString());
+            assertThat(msg.getDittoHeaders()).containsEntry("device_id", TestConstants.Things.THING_ID.toString());
             assertThat(msg.getDittoHeaders()).containsEntry("prefixed_thing_id",
                     "some.prefix." + TestConstants.Things.THING_ID);
             assertThat(msg.getDittoHeaders()).containsEntry("suffixed_thing_id",
@@ -163,7 +165,7 @@ public abstract class AbstractConsumerActorTest<M> {
             if (isForwardedToConcierge) {
                 publisher.expectNoMessage(ONE_SECOND);
                 final ModifyThing modifyThing = concierge.expectMsgClass(ModifyThing.class);
-                assertThat(modifyThing.getThingId()).isEqualTo(TestConstants.Things.THING_ID);
+                assertThat((CharSequence) modifyThing.getThingEntityId()).isEqualTo(TestConstants.Things.THING_ID);
                 verifySignal.accept(modifyThing);
             } else {
                 concierge.expectNoMessage(ONE_SECOND);

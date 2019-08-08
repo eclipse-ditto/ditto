@@ -20,6 +20,7 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
@@ -61,13 +62,13 @@ public final class MessageMappingProcessor {
     private static final String PROTOCOL_SEGMENT_NAME = "protocol";
     private static final String DIRECTION_TAG_NAME = "direction";
 
-    private final String connectionId;
+    private final EntityId connectionId;
     private final MessageMapperRegistry registry;
     private final DiagnosticLoggingAdapter log;
     private final ProtocolAdapter protocolAdapter;
     private final DittoHeadersSizeChecker dittoHeadersSizeChecker;
 
-    private MessageMappingProcessor(final String connectionId,
+    private MessageMappingProcessor(final EntityId connectionId,
             final MessageMapperRegistry registry,
             final DiagnosticLoggingAdapter log,
             final ProtocolAdapter protocolAdapter,
@@ -96,7 +97,7 @@ public final class MessageMappingProcessor {
      * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException if the configuration of
      * one of the {@code mappingContext} failed for a mapper specific reason.
      */
-    public static MessageMappingProcessor of(final String connectionId,
+    public static MessageMappingProcessor of(final EntityId connectionId,
             @Nullable final MappingContext mappingContext,
             final ActorSystem actorSystem,
             final ConnectivityConfig connectivityConfig,
@@ -266,7 +267,7 @@ public final class MessageMappingProcessor {
     private StartedTimer startNewTimer() {
         return DittoMetrics
                 .expiringTimer(TIMER_NAME)
-                .tag(TracingTags.CONNECTION_ID, connectionId)
+                .tag(TracingTags.CONNECTION_ID, connectionId.toString())
                 .expirationHandling(expiredTimer -> expiredTimer.tag(TracingTags.MAPPING_SUCCESS, false))
                 .build();
     }

@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -54,10 +55,10 @@ public final class RetrieveFeaturesResponse extends AbstractCommandResponse<Retr
             JsonFactory.newJsonObjectFieldDefinition("features", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final Features features;
 
-    private RetrieveFeaturesResponse(final String thingId, final Features features, final DittoHeaders dittoHeaders) {
+    private RetrieveFeaturesResponse(final ThingId thingId, final Features features, final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatusCode.OK, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thing ID");
         this.features = features;
@@ -72,7 +73,7 @@ public final class RetrieveFeaturesResponse extends AbstractCommandResponse<Retr
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveFeaturesResponse of(final String thingId, final Features features,
+    public static RetrieveFeaturesResponse of(final ThingId thingId, final Features features,
             final DittoHeaders dittoHeaders) {
 
         return new RetrieveFeaturesResponse(thingId, checkNotNull(features, "retrieved Features"), dittoHeaders);
@@ -87,7 +88,7 @@ public final class RetrieveFeaturesResponse extends AbstractCommandResponse<Retr
      * @return the response.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static RetrieveFeaturesResponse of(final String thingId, @Nullable final JsonObject jsonObject,
+    public static RetrieveFeaturesResponse of(final ThingId thingId, @Nullable final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
         final Features features = (null != jsonObject)
@@ -125,8 +126,9 @@ public final class RetrieveFeaturesResponse extends AbstractCommandResponse<Retr
     public static RetrieveFeaturesResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveFeaturesResponse>(TYPE, jsonObject)
                 .deserialize((statusCode) -> {
-                    final String thingId =
+                    final String extractedThingId =
                             jsonObject.getValueOrThrow(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
                     final JsonObject featuresJsonObject = jsonObject.getValueOrThrow(JSON_FEATURES);
 
                     final Features features = (null != featuresJsonObject)
@@ -138,7 +140,7 @@ public final class RetrieveFeaturesResponse extends AbstractCommandResponse<Retr
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -177,7 +179,7 @@ public final class RetrieveFeaturesResponse extends AbstractCommandResponse<Retr
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURES, getEntity(schemaVersion), predicate);
     }
 

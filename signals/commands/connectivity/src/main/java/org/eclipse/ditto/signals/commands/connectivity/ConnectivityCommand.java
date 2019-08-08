@@ -15,6 +15,7 @@ package org.eclipse.ditto.signals.commands.connectivity;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -42,12 +43,23 @@ public interface ConnectivityCommand<T extends ConnectivityCommand> extends Comm
      * Returns the identifier of the Connection.
      *
      * @return the identifier of the Connection.
+     * @deprecated entity IDs are now typed. Use {@link #getConnectionEntityId()} instead.
      */
-    String getConnectionId();
+    @Deprecated
+    default String getConnectionId() {
+        return String.valueOf(getConnectionEntityId());
+    }
+
+    /**
+     * Returns the identifier of the Connection.
+     *
+     * @return the identifier of the Connection.
+     */
+    EntityId getConnectionEntityId();
 
     @Override
-    default String getId() {
-        return getConnectionId();
+    default EntityId getEntityId() {
+        return getConnectionEntityId();
     }
 
     @Override

@@ -26,6 +26,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.CharsetDeterminer;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -64,10 +65,10 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final EnforcementFilterFactory<Map<String, String>, String> headerEnforcementFilterFactory;
+    private final EnforcementFilterFactory<Map<String, String>, CharSequence> headerEnforcementFilterFactory;
 
     @SuppressWarnings("unused")
-    private RabbitMQConsumerActor(final String connectionId, final String sourceAddress,
+    private RabbitMQConsumerActor(final EntityId connectionId, final String sourceAddress,
             final ActorRef messageMappingProcessor, final AuthorizationContext authorizationContext,
             @Nullable final Enforcement enforcement, @Nullable final HeaderMapping headerMapping) {
         super(connectionId, sourceAddress, messageMappingProcessor, authorizationContext, headerMapping);
@@ -89,7 +90,7 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
      */
     static Props props(final String source, final ActorRef messageMappingProcessor, final
     AuthorizationContext authorizationContext, @Nullable final Enforcement enforcement,
-            @Nullable final HeaderMapping headerMapping, final String connectionId) {
+            @Nullable final HeaderMapping headerMapping, final EntityId connectionId) {
 
         return Props.create(RabbitMQConsumerActor.class, connectionId, source, messageMappingProcessor,
                                 authorizationContext, enforcement, headerMapping);

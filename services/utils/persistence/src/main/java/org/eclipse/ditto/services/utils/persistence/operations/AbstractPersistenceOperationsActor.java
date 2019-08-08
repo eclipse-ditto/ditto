@@ -24,6 +24,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
@@ -277,7 +278,7 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
         LogUtil.enhanceLogWithCorrelationId(log, purgeEntities);
         log.info("Running <{}>.", purgeEntities);
         final String entityType = purgeEntities.getEntityType();
-        final List<String> entityIds = purgeEntities.getEntityIds();
+        final List<EntityId> entityIds = purgeEntities.getEntityIds();
 
         entitiesOps.purgeEntities(purgeEntities.getEntityIds())
                 .runWith(Sink.head(), materializer)

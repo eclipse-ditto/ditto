@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.model.thingsearch.SearchModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchResult;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
@@ -233,7 +234,7 @@ public final class SearchActor extends AbstractActor {
                                 searchTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
 
                         final List<String> subjectIds = command.getDittoHeaders().getAuthorizationSubjects();
-                        final Source<ResultList<String>, NotUsed> findAllResult =
+                        final Source<ResultList<ThingId>, NotUsed> findAllResult =
                                 searchPersistence.findAll(query, subjectIds, namespaces);
                         return processSearchPersistenceResult(findAllResult, dittoHeaders)
                                 .via(Flow.fromFunction(result -> {
@@ -287,7 +288,7 @@ public final class SearchActor extends AbstractActor {
 
     private QueryThingsResponse toQueryThingsResponse(final QueryThings queryThings,
             @Nullable ThingsSearchCursor cursor,
-            final ResultList<String> thingIds) {
+            final ResultList<ThingId> thingIds) {
 
         final DittoHeaders dittoHeaders = queryThings.getDittoHeaders();
         final Optional<String> correlationIdOpt = dittoHeaders.getCorrelationId();

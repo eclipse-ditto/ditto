@@ -32,6 +32,7 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.LogCategory;
 import org.eclipse.ditto.model.connectivity.LogEntry;
@@ -54,7 +55,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     private static final Logger LOGGER = LoggerFactory.getLogger(ConnectionLoggerRegistry.class);
 
     private static final ConcurrentMap<MapKey, MuteableConnectionLogger> loggers = new ConcurrentHashMap<>();
-    private static final ConcurrentMap<String, LogMetadata> metadata = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<EntityId, LogMetadata> metadata = new ConcurrentHashMap<>();
 
     // artificial internal address for responses
     private static final String RESPONSES_ADDRESS = "_responses";
@@ -89,7 +90,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
      * @param connectionId connection id
      * @return the {@link org.eclipse.ditto.model.connectivity.LogEntry}s.
      */
-    public ConnectionLogs aggregateLogs(final String connectionId) {
+    public ConnectionLogs aggregateLogs(final EntityId connectionId) {
         ConnectionLogUtil.enhanceLogWithConnectionId(connectionId);
         LOGGER.info("Aggregating logs for connection <{}>.", connectionId);
 
@@ -122,7 +123,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
      * @param connectionId the connection to check.
      * @return true if logging is currently enabled for the connection.
      */
-    protected boolean isActiveForConnection(final String connectionId) {
+    protected boolean isActiveForConnection(final EntityId connectionId) {
         final boolean muted = streamLoggers(connectionId)
                 .findFirst()
                 .map(MuteableConnectionLogger::isMuted)
@@ -137,7 +138,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
      * @param timestamp the actual time. If timestamp is after enabledUntil then deactivate logging.
      * @return true if either the logging is not active anyway or the logging is expired.
      */
-    public boolean isLoggingExpired(final String connectionId, final Instant timestamp) {
+    public boolean isLoggingExpired(final EntityId connectionId, final Instant timestamp) {
         final Instant enabledUntil = getMetadata(connectionId).getEnabledUntil();
         if (enabledUntil == null || timestamp.isAfter(enabledUntil)) {
             LOGGER.debug("Logging for connection <{}> expired.", connectionId);
@@ -147,7 +148,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         return false;
     }
 
-    public void muteForConnection(final String connectionId) {
+    public void muteForConnection(final EntityId connectionId) {
         ConnectionLogUtil.enhanceLogWithConnectionId(connectionId);
         LOGGER.info("Muting loggers for connection <{}>.", connectionId);
 
@@ -162,7 +163,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
      *
      * @param connectionId the connection for which the loggers should be enabled.
      */
-    public void unmuteForConnection(final String connectionId) {
+    public void unmuteForConnection(final EntityId connectionId) {
         ConnectionLogUtil.enhanceLogWithConnectionId(connectionId);
         LOGGER.info("Unmuting loggers for connection <{}>.", connectionId);
 
@@ -171,7 +172,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         startMetadata(connectionId);
     }
 
-    private Stream<MuteableConnectionLogger> streamLoggers(final String connectionId) {
+    private Stream<MuteableConnectionLogger> streamLoggers(final EntityId connectionId) {
         return loggers.entrySet()
                 .stream()
                 .filter(e -> e.getKey().connectionId.equals(connectionId))
@@ -185,10 +186,10 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
      */
     @Override
     public void initForConnection(final Connection connection) {
-        ConnectionLogUtil.enhanceLogWithConnectionId(connection.getId());
-        LOGGER.info("Initializing loggers for connection <{}>.", connection.getId());
+        final EntityId connectionId = connection.getId();
+        ConnectionLogUtil.enhanceLogWithConnectionId(connectionId);
+        LOGGER.info("Initializing loggers for connection <{}>.", connectionId);
 
-        final String connectionId = connection.getId();
         connection.getSources().stream()
                 .map(Source::getAddresses)
                 .flatMap(Collection::stream)
@@ -202,11 +203,11 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         initLogger(connectionId, LogCategory.CONNECTION);
     }
 
-    private void initLogger(final String connectionId, final LogCategory logCategory) {
+    private void initLogger(final EntityId connectionId, final LogCategory logCategory) {
         initLogger(connectionId, logCategory, null);
     }
 
-    private void initLogger(final String connectionId, final LogCategory logCategory,
+    private void initLogger(final EntityId connectionId, final LogCategory logCategory,
             @Nullable final String address) {
         Arrays.stream(LogType.values())
                 .filter(logType -> logType.supportsCategory(logCategory))
@@ -218,19 +219,19 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
 
     @Override
     public void resetForConnection(final Connection connection) {
-        final String connectionId = connection.getId();
+        final EntityId connectionId = connection.getId();
         ConnectionLogUtil.enhanceLogWithConnectionId(connectionId);
         LOGGER.info("Resetting loggers for connection <{}>.", connectionId);
 
         resetForConnectionId(connectionId);
     }
 
-    private void resetForConnectionId(final String connectionId) {
+    private void resetForConnectionId(final EntityId connectionId) {
         streamLoggers(connectionId)
                 .forEach(MuteableConnectionLogger::clear);
     }
 
-    private LogMetadata refreshMetadata(final String connectionId) {
+    private LogMetadata refreshMetadata(final EntityId connectionId) {
         return metadata.compute(connectionId, (c, oldTimings) -> {
             final Instant now = Instant.now();
             if (null != oldTimings) {
@@ -240,72 +241,72 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         });
     }
 
-    private void startMetadata(final String connectionId) {
+    private void startMetadata(final EntityId connectionId) {
         final Instant now = Instant.now();
         final LogMetadata timing = new LogMetadata(now, now.plus(loggingDuration));
         metadata.put(connectionId, timing);
     }
 
-    private void stopMetadata(final String connectionId) {
+    private void stopMetadata(final EntityId connectionId) {
         metadata.remove(connectionId);
     }
 
-    private LogMetadata getMetadata(final String connectionId) {
+    private LogMetadata getMetadata(final EntityId connectionId) {
         return metadata.getOrDefault(connectionId, LogMetadata.empty());
     }
 
     @Override
-    public ConnectionLogger forOutboundDispatched(final String connectionId, final String target) {
+    public ConnectionLogger forOutboundDispatched(final EntityId connectionId, final String target) {
         return getLogger(connectionId, LogCategory.TARGET, LogType.DISPATCHED, target);
     }
 
     @Override
-    public ConnectionLogger forOutboundFiltered(final String connectionId, final String target) {
+    public ConnectionLogger forOutboundFiltered(final EntityId connectionId, final String target) {
         return getLogger(connectionId, LogCategory.TARGET, LogType.FILTERED, target);
     }
 
     @Override
-    public ConnectionLogger forOutboundPublished(final String connectionId, final String target) {
+    public ConnectionLogger forOutboundPublished(final EntityId connectionId, final String target) {
         return getLogger(connectionId, LogCategory.TARGET, LogType.PUBLISHED, target);
     }
 
     @Override
-    public ConnectionLogger forInboundConsumed(final String connectionId, final String source) {
+    public ConnectionLogger forInboundConsumed(final EntityId connectionId, final String source) {
         return getLogger(connectionId, LogCategory.SOURCE, LogType.CONSUMED, source);
     }
 
     @Override
-    public ConnectionLogger forInboundMapped(final String connectionId, final String source) {
+    public ConnectionLogger forInboundMapped(final EntityId connectionId, final String source) {
         return getLogger(connectionId, LogCategory.SOURCE, LogType.MAPPED, source);
     }
 
     @Override
-    public ConnectionLogger forInboundEnforced(final String connectionId, final String source) {
+    public ConnectionLogger forInboundEnforced(final EntityId connectionId, final String source) {
         return getLogger(connectionId, LogCategory.SOURCE, LogType.ENFORCED, source);
     }
 
     @Override
-    public ConnectionLogger forInboundDropped(final String connectionId, final String source) {
+    public ConnectionLogger forInboundDropped(final EntityId connectionId, final String source) {
         return getLogger(connectionId, LogCategory.SOURCE, LogType.DROPPED, source);
     }
 
     @Override
-    public ConnectionLogger forResponseDispatched(final String connectionId) {
+    public ConnectionLogger forResponseDispatched(final EntityId connectionId) {
         return getLogger(connectionId, LogCategory.RESPONSE, LogType.DISPATCHED, RESPONSES_ADDRESS);
     }
 
     @Override
-    public ConnectionLogger forResponseDropped(final String connectionId) {
+    public ConnectionLogger forResponseDropped(final EntityId connectionId) {
         return getLogger(connectionId, LogCategory.RESPONSE, LogType.DROPPED, RESPONSES_ADDRESS);
     }
 
     @Override
-    public ConnectionLogger forResponseMapped(final String connectionId) {
+    public ConnectionLogger forResponseMapped(final EntityId connectionId) {
         return getLogger(connectionId, LogCategory.RESPONSE, LogType.MAPPED, RESPONSES_ADDRESS);
     }
 
     @Override
-    public ConnectionLogger forResponsePublished(final String connectionId) {
+    public ConnectionLogger forResponsePublished(final EntityId connectionId) {
         return getLogger(connectionId, LogCategory.RESPONSE, LogType.PUBLISHED, RESPONSES_ADDRESS);
     }
 
@@ -315,7 +316,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
      * @param connectionId the connection.
      * @return a new logger instance.
      */
-    public ConnectionLogger forConnection(final String connectionId) {
+    public ConnectionLogger forConnection(final EntityId connectionId) {
         return getLogger(connectionId, LogCategory.CONNECTION, LogType.OTHER, null);
     }
 
@@ -329,7 +330,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
      * @return the logger.
      */
     public ConnectionLogger getLogger(
-            final String connectionId,
+            final EntityId connectionId,
             final LogCategory logCategory,
             final LogType logType,
             @Nullable final String address) {
@@ -338,7 +339,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         return loggers.computeIfAbsent(key, m -> newMuteableLogger(connectionId, logCategory, logType, address));
     }
 
-    private MuteableConnectionLogger newMuteableLogger(final String connectionId, final LogCategory logCategory,
+    private MuteableConnectionLogger newMuteableLogger(final EntityId connectionId, final LogCategory logCategory,
             final LogType logType,
             @Nullable final String address) {
         final ConnectionLogger logger =
@@ -461,7 +462,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     @Immutable
     private static final class MapKey {
 
-        private final String connectionId;
+        private final EntityId connectionId;
         private final String category;
         private final String type;
         @Nullable private final String address;
@@ -474,7 +475,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
          * @param logType the logType
          * @param address the address
          */
-        MapKey(final String connectionId,
+        MapKey(final EntityId connectionId,
                 final LogCategory logCategory,
                 final LogType logType,
                 @Nullable final String address) {

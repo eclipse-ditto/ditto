@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
 /**
@@ -62,7 +63,7 @@ public final class AttributeModified extends AbstractThingEvent<AttributeModifie
     private final JsonPointer attributePointer;
     private final JsonValue attributeValue;
 
-    private AttributeModified(final String thingId,
+    private AttributeModified(final ThingId thingId,
             final JsonPointer attributePointer,
             final JsonValue attributeValue,
             final long revision,
@@ -86,7 +87,7 @@ public final class AttributeModified extends AbstractThingEvent<AttributeModifie
      * @return the AttributeModified created.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static AttributeModified of(final String thingId,
+    public static AttributeModified of(final ThingId thingId,
             final JsonPointer attributePointer,
             final JsonValue attributeValue,
             final long revision,
@@ -107,7 +108,7 @@ public final class AttributeModified extends AbstractThingEvent<AttributeModifie
      * @return the AttributeModified created.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
-    public static AttributeModified of(final String thingId,
+    public static AttributeModified of(final ThingId thingId,
             final JsonPointer attributePointer,
             final JsonValue attributeValue,
             final long revision,
@@ -144,11 +145,12 @@ public final class AttributeModified extends AbstractThingEvent<AttributeModifie
     public static AttributeModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<AttributeModified>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
             final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
             final String pointerString = jsonObject.getValueOrThrow(JSON_ATTRIBUTE);
             final JsonPointer extractedAttributePointer = JsonFactory.newPointer(pointerString);
             final JsonValue extractedValue = jsonObject.getValueOrThrow(JSON_VALUE);
 
-            return of(extractedThingId, extractedAttributePointer, extractedValue, revision, timestamp,
+            return of(thingId, extractedAttributePointer, extractedValue, revision, timestamp,
                     dittoHeaders);
         });
     }
@@ -184,13 +186,13 @@ public final class AttributeModified extends AbstractThingEvent<AttributeModifie
 
     @Override
     public AttributeModified setRevision(final long revision) {
-        return of(getThingId(), attributePointer, attributeValue, revision, getTimestamp().orElse(null),
+        return of(getThingEntityId(), attributePointer, attributeValue, revision, getTimestamp().orElse(null),
                 getDittoHeaders());
     }
 
     @Override
     public AttributeModified setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingId(), attributePointer, attributeValue, getRevision(), getTimestamp().orElse(null),
+        return of(getThingEntityId(), attributePointer, attributeValue, getRevision(), getTimestamp().orElse(null),
                 dittoHeaders);
     }
 
@@ -208,7 +210,7 @@ public final class AttributeModified extends AbstractThingEvent<AttributeModifie
     public int hashCode() {
         final int prime = 31;
         int result = super.hashCode();
-        result = prime * result + Objects.hashCode(getThingId());
+        result = prime * result + Objects.hashCode(getThingEntityId());
         result = prime * result + Objects.hashCode(attributePointer);
         result = prime * result + Objects.hashCode(attributeValue);
         return result;
@@ -224,7 +226,7 @@ public final class AttributeModified extends AbstractThingEvent<AttributeModifie
             return false;
         }
         final AttributeModified that = (AttributeModified) o;
-        return that.canEqual(this) && Objects.equals(getThingId(), that.getThingId())
+        return that.canEqual(this) && Objects.equals(getThingEntityId(), that.getThingEntityId())
                 && Objects.equals(attributePointer, that.attributePointer)
                 && Objects.equals(attributeValue, that.attributeValue) && super.equals(that);
     }

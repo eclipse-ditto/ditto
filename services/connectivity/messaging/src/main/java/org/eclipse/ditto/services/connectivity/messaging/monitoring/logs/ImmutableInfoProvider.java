@@ -23,6 +23,7 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 
 /**
@@ -33,13 +34,13 @@ public final class ImmutableInfoProvider implements ConnectionMonitor.InfoProvid
 
     private final String correlationId;
     private final Instant timestamp;
-    @Nullable private final String thingId;
+    @Nullable private final ThingId thingId;
     private final Map<String, String> headers;
     // a supplier to postpone getting the payload until it is really needed
     private final Supplier<String> payloadSupplier;
 
     ImmutableInfoProvider(final String correlationId, final Instant timestamp,
-            @Nullable final String thingId, final Map<String, String> headers, final Supplier<String> payloadSupplier) {
+            @Nullable final ThingId thingId, final Map<String, String> headers, final Supplier<String> payloadSupplier) {
         this.correlationId = correlationId;
         this.timestamp = timestamp;
         this.thingId = thingId;
@@ -59,7 +60,7 @@ public final class ImmutableInfoProvider implements ConnectionMonitor.InfoProvid
 
     @Nullable
     @Override
-    public String getThingId() {
+    public ThingId getThingId() {
         return thingId;
     }
 

@@ -20,6 +20,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
@@ -47,7 +48,7 @@ import scala.reflect.ClassTag;
 @Immutable
 public final class DefaultMessageMapperFactory implements MessageMapperFactory {
 
-    private final String connectionId;
+    private final EntityId connectionId;
     private final MappingConfig mappingConfig;
 
     /**
@@ -62,7 +63,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
 
     private final DiagnosticLoggingAdapter log;
 
-    private DefaultMessageMapperFactory(final String connectionId,
+    private DefaultMessageMapperFactory(final EntityId connectionId,
             final MappingConfig mappingConfig,
             final ExtendedActorSystem actorSystem,
             final MessageMapperInstantiation messageMappers,
@@ -85,7 +86,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
      * @return the new instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static DefaultMessageMapperFactory of(final String connectionId,
+    public static DefaultMessageMapperFactory of(final EntityId connectionId,
             final ActorSystem actorSystem,
             final MappingConfig mappingConfig,
             final DiagnosticLoggingAdapter log) {

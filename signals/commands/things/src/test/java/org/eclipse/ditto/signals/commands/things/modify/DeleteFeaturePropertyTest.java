@@ -22,7 +22,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.things.ThingIdInvalidException;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
@@ -38,7 +38,7 @@ public final class DeleteFeaturePropertyTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, DeleteFeatureProperty.TYPE)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(DeleteFeatureProperty.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(DeleteFeatureProperty.JSON_PROPERTY, PROPERTY_JSON_POINTER.toString())
             .build();
@@ -48,7 +48,7 @@ public final class DeleteFeaturePropertyTest {
     public void assertImmutability() {
         assertInstancesOf(DeleteFeatureProperty.class,
                 areImmutable(),
-                provided(JsonPointer.class, JsonValue.class).areAlsoImmutable());
+                provided(JsonPointer.class, JsonValue.class, ThingId.class).areAlsoImmutable());
     }
 
 
@@ -60,7 +60,7 @@ public final class DeleteFeaturePropertyTest {
     }
 
 
-    @Test(expected = ThingIdInvalidException.class)
+    @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
         DeleteFeatureProperty.of(null, TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_JSON_POINTER,
                 TestConstants.EMPTY_DITTO_HEADERS);
@@ -106,7 +106,7 @@ public final class DeleteFeaturePropertyTest {
                 DeleteFeatureProperty.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
         assertThat(underTest.getPropertyPointer()).isEqualTo(PROPERTY_JSON_POINTER);
     }

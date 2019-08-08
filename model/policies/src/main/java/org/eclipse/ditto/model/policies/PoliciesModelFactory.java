@@ -31,6 +31,7 @@ import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 
 /**
  * Factory that new {@link Policy} objects and other objects related to policies.
@@ -446,7 +447,8 @@ public final class PoliciesModelFactory {
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code label} is empty.
      * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code jsonObject} cannot be parsed.
-     * @throws PolicyIdInvalidException if the parsed policy ID did not comply to {@link Policy#ID_REGEX}.
+     * @throws org.eclipse.ditto.model.policies.id.PolicyIdInvalidException if the parsed policy ID did not comply to
+     * {@link org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static PolicyEntry newPolicyEntry(final CharSequence label, final JsonValue jsonValue) {
         final JsonObject jsonObject = wrapJsonRuntimeException(jsonValue::asObject);
@@ -501,9 +503,21 @@ public final class PoliciesModelFactory {
      *
      * @param id the ID of the new Policy.
      * @return the new builder.
-     * @throws PolicyIdInvalidException if {@code id} is invalid.
+     * @throws org.eclipse.ditto.model.policies.id.PolicyIdInvalidException if {@code id} is invalid.
+     * @deprecated policy ID is now typed. Use {@link #newPolicyBuilder(PolicyId)} instead.
      */
+    @Deprecated
     public static PolicyBuilder newPolicyBuilder(final CharSequence id) {
+        return ImmutablePolicyBuilder.of(PolicyId.of(id));
+    }
+
+    /**
+     * Returns a mutable builder with a fluent API for an immutable {@link Policy}.
+     *
+     * @param id the ID of the new Policy.
+     * @return the new builder.
+     */
+    public static PolicyBuilder newPolicyBuilder(final PolicyId id) {
         return ImmutablePolicyBuilder.of(id);
     }
 
@@ -525,9 +539,9 @@ public final class PoliciesModelFactory {
      * @param policyEntries the initial entries of the new builder.
      * @return the new builder.
      * @throws NullPointerException if {@code policyEntries} is {@code null}.
-     * @throws org.eclipse.ditto.model.policies.PolicyIdInvalidException if {@code id} is invalid.
+     * @throws org.eclipse.ditto.model.policies.id.PolicyIdInvalidException if {@code id} is invalid.
      */
-    public static PolicyBuilder newPolicyBuilder(final CharSequence id, final Iterable<PolicyEntry> policyEntries) {
+    public static PolicyBuilder newPolicyBuilder(final PolicyId id, final Iterable<PolicyEntry> policyEntries) {
         return ImmutablePolicyBuilder.of(id, policyEntries);
     }
 
@@ -540,7 +554,7 @@ public final class PoliciesModelFactory {
      * @return the new initialised Policy.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static Policy newPolicy(final CharSequence id, final PolicyEntry entry,
+    public static Policy newPolicy(final PolicyId id, final PolicyEntry entry,
             final PolicyEntry... furtherEntries) {
 
         checkNotNull(entry, "mandatory entry");
@@ -561,7 +575,7 @@ public final class PoliciesModelFactory {
      * @return the new initialised Policy.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static Policy newPolicy(final CharSequence id, final Iterable<PolicyEntry> entries) {
+    public static Policy newPolicy(final PolicyId id, final Iterable<PolicyEntry> entries) {
         return ImmutablePolicy.of(id, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, entries);
     }
 

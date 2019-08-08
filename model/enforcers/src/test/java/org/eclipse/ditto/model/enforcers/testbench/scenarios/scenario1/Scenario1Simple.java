@@ -19,6 +19,7 @@ import org.eclipse.ditto.model.enforcers.testbench.scenarios.Scenario;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 
 
@@ -31,7 +32,7 @@ public interface Scenario1Simple extends Scenario {
     String SUBJECT_WRITE_REVOKED = "sid_write_revoke";
 
     Policy POLICY = PoliciesModelFactory
-            .newPolicyBuilder("benchmark:" + SCENARIO_GROUP_NAME)
+            .newPolicyBuilder(PolicyId.of("benchmark", SCENARIO_GROUP_NAME))
             .forLabel("all")
             .setSubject(SubjectIssuer.GOOGLE, SUBJECT_ALL_GRANTED)
             .setSubject(SubjectIssuer.GOOGLE, SUBJECT_WRITE_REVOKED)

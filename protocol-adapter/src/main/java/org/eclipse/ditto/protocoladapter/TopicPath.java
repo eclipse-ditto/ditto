@@ -16,6 +16,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import org.eclipse.ditto.model.things.id.ThingId;
+
 /**
  * Represents the path of a topic for the Ditto Protocol.
  * <p>
@@ -35,7 +37,7 @@ public interface TopicPath {
      * @return the builder.
      * @throws NullPointerException if {@code thingId} is {@code null}.
      */
-    static TopicPathBuilder newBuilder(final String thingId) {
+    static TopicPathBuilder newBuilder(final ThingId thingId) {
         return ProtocolFactory.newTopicPathBuilder(thingId);
     }
 

@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -60,12 +61,12 @@ public final class RetrieveFeaturePropertyResponse extends AbstractCommandRespon
             JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final String featureId;
     private final JsonPointer propertyPointer;
     private final JsonValue propertyValue;
 
-    private RetrieveFeaturePropertyResponse(final String thingId, final String featureId,
+    private RetrieveFeaturePropertyResponse(final ThingId thingId, final String featureId,
             final JsonPointer propertyPointer, final JsonValue propertyValue, final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders) {
         super(TYPE, statusCode, dittoHeaders);
@@ -86,7 +87,7 @@ public final class RetrieveFeaturePropertyResponse extends AbstractCommandRespon
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveFeaturePropertyResponse of(final String thingId, final String featureId,
+    public static RetrieveFeaturePropertyResponse of(final ThingId thingId, final String featureId,
             final JsonPointer featurePropertyPointer,
             final JsonValue featurePropertyValue, final DittoHeaders dittoHeaders) {
         return new RetrieveFeaturePropertyResponse(thingId, featureId, featurePropertyPointer, featurePropertyValue,
@@ -124,8 +125,9 @@ public final class RetrieveFeaturePropertyResponse extends AbstractCommandRespon
 
         return new CommandResponseJsonDeserializer<RetrieveFeaturePropertyResponse>(TYPE, jsonObject)
                 .deserialize((statusCode) -> {
-                    final String thingId =
+                    final String extractedThingId =
                             jsonObject.getValueOrThrow(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
                     final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
                     final String extractedPointerString = jsonObject.getValueOrThrow(JSON_PROPERTY);
                     final JsonPointer extractedPointer = JsonFactory.newPointer(extractedPointerString);
@@ -136,7 +138,7 @@ public final class RetrieveFeaturePropertyResponse extends AbstractCommandRespon
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -193,7 +195,7 @@ public final class RetrieveFeaturePropertyResponse extends AbstractCommandRespon
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
         jsonObjectBuilder.set(JSON_PROPERTY, propertyPointer.toString(), predicate);
         jsonObjectBuilder.set(JSON_VALUE, propertyValue, predicate);

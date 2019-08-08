@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
@@ -37,7 +38,7 @@ public final class ModifyFeatureTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, ModifyFeature.TYPE)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ModifyFeature.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(ModifyFeature.JSON_FEATURE,
                     TestConstants.Feature.FLUX_CAPACITOR.toJson(FieldType.regularOrSpecial()))
@@ -45,7 +46,8 @@ public final class ModifyFeatureTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ModifyFeature.class, areImmutable(), provided(Feature.class).isAlsoImmutable());
+        assertInstancesOf(ModifyFeature.class, areImmutable(),
+                provided(Feature.class, ThingId.class).isAlsoImmutable());
     }
 
 
@@ -93,7 +95,7 @@ public final class ModifyFeatureTest {
                 .build();
         final Feature feature = Feature.newBuilder().properties(largeAttributes).withId("foo").build();
 
-        assertThatThrownBy(() -> ModifyFeature.of("foo:bar", feature, DittoHeaders.empty()))
+        assertThatThrownBy(() -> ModifyFeature.of(ThingId.of("foo", "bar"), feature, DittoHeaders.empty()))
                 .isInstanceOf(ThingTooLargeException.class);
     }
 }

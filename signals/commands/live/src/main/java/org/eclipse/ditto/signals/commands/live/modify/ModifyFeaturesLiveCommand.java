@@ -15,7 +15,7 @@ package org.eclipse.ditto.signals.commands.live.modify;
 import javax.annotation.Nonnull;
 
 import org.eclipse.ditto.model.things.Features;
-import org.eclipse.ditto.signals.base.WithThingId;
+import org.eclipse.ditto.model.things.id.WithThingId;
 import org.eclipse.ditto.signals.commands.live.base.LiveCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatures;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;

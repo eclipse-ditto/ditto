@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -51,10 +52,10 @@ public final class DeleteFeaturePropertiesResponse extends AbstractCommandRespon
             JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final String featureId;
 
-    private DeleteFeaturePropertiesResponse(final String thingId, final String featureId,
+    private DeleteFeaturePropertiesResponse(final ThingId thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatusCode.NO_CONTENT, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
@@ -70,7 +71,7 @@ public final class DeleteFeaturePropertiesResponse extends AbstractCommandRespon
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static DeleteFeaturePropertiesResponse of(final String thingId, final String featureId,
+    public static DeleteFeaturePropertiesResponse of(final ThingId thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
         return new DeleteFeaturePropertiesResponse(thingId, featureId, dittoHeaders);
     }
@@ -106,8 +107,9 @@ public final class DeleteFeaturePropertiesResponse extends AbstractCommandRespon
             final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<DeleteFeaturePropertiesResponse>(TYPE, jsonObject)
                 .deserialize((statusCode) -> {
-                    final String thingId =
+                    final String extractedThingId =
                             jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
                     final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
 
                     return of(thingId, extractedFeatureId, dittoHeaders);
@@ -115,7 +117,7 @@ public final class DeleteFeaturePropertiesResponse extends AbstractCommandRespon
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -137,7 +139,7 @@ public final class DeleteFeaturePropertiesResponse extends AbstractCommandRespon
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
     }
 

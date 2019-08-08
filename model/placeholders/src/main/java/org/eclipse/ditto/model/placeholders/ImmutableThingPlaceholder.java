@@ -12,18 +12,17 @@
  */
 package org.eclipse.ditto.model.placeholders;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.common.ConditionChecker;
-import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingIdInvalidException;
+import org.eclipse.ditto.model.things.id.ThingId;
 
 /**
  * Placeholder implementation that replaces {@code thing:id}, {@code thing:namespace} and {@code thing:name}. The
@@ -44,8 +43,6 @@ final class ImmutableThingPlaceholder implements ThingPlaceholder {
     private static final List<String> SUPPORTED = Collections.unmodifiableList(
             Arrays.asList(ID_PLACEHOLDER, NAMESPACE_PLACEHOLDER, NAME_PLACEHOLDER));
 
-    private static final Pattern THING_ID_PATTERN = Pattern.compile(Thing.ID_REGEX);
-
     private ImmutableThingPlaceholder() {
     }
 
@@ -65,39 +62,23 @@ final class ImmutableThingPlaceholder implements ThingPlaceholder {
     }
 
     @Override
-    public Optional<String> resolve(final String thingId, final String placeholder) {
-        ConditionChecker.argumentNotEmpty(placeholder, "placeholder");
+    public Optional<String> resolve(final CharSequence thingId, final String placeholder) {
+        argumentNotEmpty(placeholder, "placeholder");
+        checkNotNull(thingId, "Thing ID");
+        return doResolve(ThingId.asThingId(thingId), placeholder);
+    }
+
+    private Optional<String> doResolve(final ThingId thingId, final String placeholder) {
         switch (placeholder) {
             case NAMESPACE_PLACEHOLDER:
-                return Optional.of(extractNamespace(thingId));
+                return Optional.of(thingId.getNameSpace());
             case NAME_PLACEHOLDER:
-                return Optional.of(extractName(thingId));
+                return Optional.of(thingId.getName());
             case ID_PLACEHOLDER:
-                return Optional.of(extractThingId(thingId));
+                return Optional.of(thingId.toString());
             default:
                 return Optional.empty();
         }
-    }
-
-    private String extractNamespace(final String thingId) {
-        return getMatcher(thingId).group("ns");
-    }
-
-    private String extractName(final String thingId) {
-        return getMatcher(thingId).group("id");
-    }
-
-    private String extractThingId(final String thingId) {
-        final Matcher matcher = getMatcher(thingId);
-        return matcher.group("ns") + ":" + matcher.group("id");
-    }
-
-    private Matcher getMatcher(final String thingId) {
-        final Matcher matcher = THING_ID_PATTERN.matcher(thingId);
-        if (!matcher.matches()) {
-            throw ThingIdInvalidException.newBuilder(thingId).build();
-        }
-        return matcher;
     }
 
     @Override

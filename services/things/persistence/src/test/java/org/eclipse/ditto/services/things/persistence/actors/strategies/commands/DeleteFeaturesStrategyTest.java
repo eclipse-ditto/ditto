@@ -44,19 +44,19 @@ public final class DeleteFeaturesStrategyTest extends AbstractCommandStrategyTes
     @Test
     public void successfullyDeleteFeaturesFromThing() {
         final CommandStrategy.Context context = getDefaultContext();
-        final DeleteFeatures command = DeleteFeatures.of(context.getThingId(), DittoHeaders.empty());
+        final DeleteFeatures command = DeleteFeatures.of(context.getThingEntityId(), DittoHeaders.empty());
 
         assertModificationResult(underTest, THING_V2, command,
                 FeaturesDeleted.class,
-                DeleteFeaturesResponse.of(context.getThingId(), command.getDittoHeaders()));
+                DeleteFeaturesResponse.of(context.getThingEntityId(), command.getDittoHeaders()));
     }
 
     @Test
     public void deleteFeaturesFromThingWithoutFeatures() {
         final CommandStrategy.Context context = getDefaultContext();
-        final DeleteFeatures command = DeleteFeatures.of(context.getThingId(), DittoHeaders.empty());
+        final DeleteFeatures command = DeleteFeatures.of(context.getThingEntityId(), DittoHeaders.empty());
         final DittoRuntimeException expectedException =
-                ExceptionFactory.featuresNotFound(context.getThingId(), command.getDittoHeaders());
+                ExceptionFactory.featuresNotFound(context.getThingEntityId(), command.getDittoHeaders());
 
         assertErrorResult(underTest, THING_V2.removeFeatures(), command, expectedException);
     }

@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Features;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,13 +43,13 @@ import org.junit.Test;
  */
 public final class ExistsIT extends AbstractReadPersistenceITBase {
 
-    private static final String THING1_ID = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing1");
+    private static final ThingId THING1_ID = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing1");
     private static final String THING1_KNOWN_ATTR = "attr1/a/b/c";
     private static final String THING1_KNOWN_ATTR_VALUE = "thing1";
     private static final String THING1_KNOWN_FEATURE_ID = "feature1";
     private static final String THING1_KNOWN_PROPERTY = "property/a/b/c";
     private static final long THING1_KNOWN_PROPERTY_VALUE = 1;
-    private static final String THING2_ID = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing2");
+    private static final ThingId THING2_ID = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing2");
     private static final String THING2_KNOWN_ATTR = "attr1/a/b/d";
     private static final String THING2_KNOWN_ATTR_VALUE = "thing2";
     private static final String THING2_KNOWN_FEATURE_ID = "feature2";
@@ -75,7 +76,7 @@ public final class ExistsIT extends AbstractReadPersistenceITBase {
     @Test
     public void existsByKnownFeatureId() {
         final Criteria crit = cf.existsCriteria(ef.existsByFeatureId(THING2_KNOWN_FEATURE_ID));
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING2_ID);
     }
 
@@ -83,40 +84,40 @@ public final class ExistsIT extends AbstractReadPersistenceITBase {
     public void existsByKnownFeatureIdAndProperty() {
         final Criteria crit =
                 cf.existsCriteria(ef.existsByFeatureProperty(THING1_KNOWN_FEATURE_ID, THING1_KNOWN_PROPERTY));
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING1_ID);
     }
 
     @Test
     public void existsByExactAttribute() {
         final Criteria crit = cf.existsCriteria(ef.existsByAttribute(THING2_KNOWN_ATTR));
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING2_ID);
     }
 
     @Test
     public void existsByKnownAttribute() {
         final Criteria crit = cf.existsCriteria(ef.existsByAttribute(THINGS_KNOWN_ATTR));
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING1_ID, THING2_ID);
     }
 
     @Test
     public void existsByUnknownAttribute() {
         final Criteria crit = cf.existsCriteria(ef.existsByAttribute(THINGS_UNKNOWN_ATTR));
-        final Collection<String> result = findForCriteria(crit);
+        final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).isEmpty();
     }
 
     @Test
     public void nullAndEmptyValuesExist() {
-        final List<List<String>> results = Stream.of(TAGS1, TAGS2, TAGS3, TAGS4, TAGS5)
+        final List<List<ThingId>> results = Stream.of(TAGS1, TAGS2, TAGS3, TAGS4, TAGS5)
                 .map(tagName -> cf.existsCriteria(ef.existsByAttribute(tagName)))
                 .map(this::findForCriteria)
                 .map(ArrayList::new)
                 .collect(Collectors.toList());
 
-        final List<List<String>> expected = Stream.generate(() -> THING1_ID)
+        final List<List<ThingId>> expected = Stream.generate(() -> THING1_ID)
                 .limit(5L)
                 .map(Collections::singletonList)
                 .collect(Collectors.toList());

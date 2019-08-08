@@ -18,6 +18,8 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -49,10 +51,10 @@ public final class ReconnectActorTest {
 
     @Test
     public void conversionBetweenCorrelationIdAndConnectionIdIsOneToOne() {
-        final String id1 = "random-connection-ID-jbxlkeimx";
-        final String id2 = "differentConnectionId";
-        final Optional<String> outputId1 = ReconnectActor.toConnectionId(ReconnectActor.toCorrelationId(id1));
-        final Optional<String> outputId2 = ReconnectActor.toConnectionId(ReconnectActor.toCorrelationId(id2));
+        final EntityId id1 = DefaultEntityId.of("random-connection-ID-jbxlkeimx");
+        final EntityId id2 = DefaultEntityId.of("differentConnectionId");
+        final Optional<EntityId> outputId1 = ReconnectActor.toConnectionId(ReconnectActor.toCorrelationId(id1));
+        final Optional<EntityId> outputId2 = ReconnectActor.toConnectionId(ReconnectActor.toCorrelationId(id2));
         assertThat(outputId1).contains(id1);
         assertThat(outputId2).contains(id2);
         assertThat(outputId1).isNotEqualTo(outputId2);
@@ -62,18 +64,21 @@ public final class ReconnectActorTest {
     public void testRecoverConnections() {
         new TestKit(actorSystem) {{
             final TestProbe probe = new TestProbe(actorSystem);
+            final EntityId connectionId1 = DefaultEntityId.of("connection-1");
+            final EntityId connectionId2 = DefaultEntityId.of("connection-2");
+            final EntityId connectionId3 = DefaultEntityId.of("connection-3");
             final Props props = ReconnectActor.props(probe.ref(),
                     () -> Source.from(Arrays.asList(
-                            ConnectionActor.PERSISTENCE_ID_PREFIX + "connection-1",
-                            "invalid:connection-2",
-                            ConnectionActor.PERSISTENCE_ID_PREFIX + "connection-3")));
+                            ConnectionActor.PERSISTENCE_ID_PREFIX + connectionId1,
+                            "invalid:" + connectionId2,
+                            ConnectionActor.PERSISTENCE_ID_PREFIX + connectionId3)));
 
             actorSystem.actorOf(props);
 
             final RetrieveConnectionStatus msg1 = probe.expectMsgClass(RetrieveConnectionStatus.class);
-            assertThat(msg1.getConnectionId()).isEqualTo("connection-1");
+            assertThat((CharSequence) msg1.getConnectionEntityId()).isEqualTo(connectionId1);
             final RetrieveConnectionStatus msg2 = probe.expectMsgClass(RetrieveConnectionStatus.class);
-            assertThat(msg2.getConnectionId()).isEqualTo("connection-3");
+            assertThat((CharSequence) msg2.getConnectionEntityId()).isEqualTo(connectionId3);
         }};
     }
 

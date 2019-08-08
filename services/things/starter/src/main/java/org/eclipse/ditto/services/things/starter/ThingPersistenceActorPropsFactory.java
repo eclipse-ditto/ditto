@@ -19,6 +19,7 @@ import java.util.function.Function;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceActor;
 
 import akka.actor.ActorRef;
@@ -28,7 +29,7 @@ import akka.actor.Props;
  * Factory for creating Props of {@link ThingPersistenceActor}.
  */
 @Immutable
-final class ThingPersistenceActorPropsFactory implements Function<String, Props> {
+final class ThingPersistenceActorPropsFactory implements Function<ThingId, Props> {
 
     private final ActorRef pubSubMediator;
 
@@ -58,7 +59,7 @@ final class ThingPersistenceActorPropsFactory implements Function<String, Props>
      * @throws IllegalArgumentException if {@code thingId} is empty.
      */
     @Override
-    public Props apply(final String thingId) {
+    public Props apply(final ThingId thingId) {
         argumentNotEmpty(thingId, "thing ID");
 
         return ThingPersistenceActor.props(thingId, pubSubMediator);

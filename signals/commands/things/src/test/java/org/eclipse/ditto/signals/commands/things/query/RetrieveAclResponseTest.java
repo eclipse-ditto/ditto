@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AccessControlList;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.junit.Test;
@@ -37,14 +38,15 @@ public class RetrieveAclResponseTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, RetrieveAclResponse.TYPE)
             .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
-            .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(RetrieveAclResponse.JSON_ACL, TestConstants.Thing.ACL.toJson(KNOWN_SCHEMA_VERSION))
             .build();
 
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(RetrieveAclResponse.class, areImmutable(), provided(JsonObject.class).isAlsoImmutable());
+        assertInstancesOf(RetrieveAclResponse.class, areImmutable(),
+                provided(JsonObject.class, ThingId.class).isAlsoImmutable());
     }
 
 

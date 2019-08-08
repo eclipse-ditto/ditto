@@ -35,6 +35,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -54,10 +55,10 @@ public final class ModifyAclResponse extends AbstractCommandResponse<ModifyAclRe
     static final JsonFieldDefinition<JsonObject> JSON_ACL =
             JsonFactory.newJsonObjectFieldDefinition("acl", FieldType.REGULAR, JsonSchemaVersion.V_1);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final AccessControlList modifiedAcl;
 
-    private ModifyAclResponse(final String thingId, final HttpStatusCode statusCode,
+    private ModifyAclResponse(final ThingId thingId, final HttpStatusCode statusCode,
             final AccessControlList modifiedAcl, final DittoHeaders dittoHeaders) {
 
         super(TYPE, statusCode, dittoHeaders);
@@ -75,7 +76,7 @@ public final class ModifyAclResponse extends AbstractCommandResponse<ModifyAclRe
      * @return a command response for a created Thing.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ModifyAclResponse created(final String thingId, final AccessControlList acl,
+    public static ModifyAclResponse created(final ThingId thingId, final AccessControlList acl,
             final DittoHeaders dittoHeaders) {
         return new ModifyAclResponse(thingId, HttpStatusCode.CREATED, checkNotNull(acl, "created ACL"), dittoHeaders);
     }
@@ -90,7 +91,7 @@ public final class ModifyAclResponse extends AbstractCommandResponse<ModifyAclRe
      * @return a command response for a modified Thing.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static ModifyAclResponse modified(final String thingId, final AccessControlList acl,
+    public static ModifyAclResponse modified(final ThingId thingId, final AccessControlList acl,
             final DittoHeaders dittoHeaders) {
         return new ModifyAclResponse(thingId, HttpStatusCode.NO_CONTENT, checkNotNull(acl, "modified ACL"),
                 dittoHeaders);
@@ -124,8 +125,9 @@ public final class ModifyAclResponse extends AbstractCommandResponse<ModifyAclRe
     public static ModifyAclResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyAclResponse>(TYPE, jsonObject)
                 .deserialize((statusCode) -> {
-                    final String thingId =
+                    final String extractedThingId =
                             jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
                     final JsonObject aclJsonObject = jsonObject.getValueOrThrow(JSON_ACL);
                     final AccessControlList extractedAcl = ThingsModelFactory.newAcl(aclJsonObject);
 
@@ -134,7 +136,7 @@ public final class ModifyAclResponse extends AbstractCommandResponse<ModifyAclRe
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -169,7 +171,7 @@ public final class ModifyAclResponse extends AbstractCommandResponse<ModifyAclRe
             final Predicate<JsonField> predicate) {
 
         final Predicate<JsonField> p = schemaVersion.and(predicate);
-        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId, p);
+        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), p);
         jsonObjectBuilder.set(JSON_ACL, modifiedAcl.toJson(schemaVersion, predicate), p);
     }
 

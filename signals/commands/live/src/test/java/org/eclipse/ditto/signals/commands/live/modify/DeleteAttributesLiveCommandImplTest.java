@@ -87,7 +87,7 @@ public final class DeleteAttributesLiveCommandImplTest {
         assertThat(underTest)
                 .withType(twinCommand.getType())
                 .withDittoHeaders(twinCommand.getDittoHeaders())
-                .withId(twinCommand.getThingId())
+                .withId(twinCommand.getThingEntityId())
                 .withManifest(twinCommand.getManifest())
                 .withResourcePath(twinCommand.getResourcePath());
     }

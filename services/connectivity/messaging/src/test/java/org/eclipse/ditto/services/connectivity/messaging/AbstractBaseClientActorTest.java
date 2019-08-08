@@ -13,6 +13,7 @@
 
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
@@ -96,7 +97,7 @@ public abstract class AbstractBaseClientActorTest {
         }};
     }
 
-    protected String getConnectionId() {
+    protected EntityId getConnectionId() {
         return getConnection().getId();
     }
     protected abstract Connection getConnection();

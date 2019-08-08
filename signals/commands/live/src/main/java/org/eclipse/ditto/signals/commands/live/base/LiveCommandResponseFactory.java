@@ -13,6 +13,7 @@
 package org.eclipse.ditto.signals.commands.live.base;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 
@@ -50,7 +51,7 @@ public interface LiveCommandResponseFactory {
      * @return the built ErrorResponse.
      * @throws NullPointerException if {@code dittoRuntimeException} is {@code null}.
      */
-    default ThingErrorResponse errorResponse(final String thingId,
+    default ThingErrorResponse errorResponse(final ThingId thingId,
             final DittoRuntimeException dittoRuntimeException) {
         return ThingErrorResponse.of(thingId, dittoRuntimeException);
     }

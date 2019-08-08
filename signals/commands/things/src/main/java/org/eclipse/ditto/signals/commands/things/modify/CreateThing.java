@@ -34,9 +34,10 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingIdInvalidException;
-import org.eclipse.ditto.model.things.ThingPolicyIdValidator;
+import org.eclipse.ditto.model.things.id.ThingPolicyIdValidator;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.id.ThingIdInvalidException;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
@@ -60,7 +61,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition<JsonObject> JSON_THING =
+    public static final JsonFieldDefinition<JsonObject> JSON_THING =
             JsonFactory.newJsonObjectFieldDefinition("thing", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
@@ -177,7 +178,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
      */
     public static CreateThing of(final Thing newThing, @Nullable final JsonObject initialPolicy,
             @Nullable final String policyIdOrPlaceholder, final DittoHeaders dittoHeaders) {
-        final String thingId = String.valueOf(newThing.getId().orElse(null));
+        final ThingId thingId = newThing.getEntityId().orElse(null);
         ThingModifyCommand.ensurePolicyCopyFromDoesNotConflictWithInlinePolicy(thingId, initialPolicy,
                 policyIdOrPlaceholder, dittoHeaders);
         if (policyIdOrPlaceholder == null) {
@@ -245,8 +246,8 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
     public Optional<String> getPolicyIdOrPlaceholder() { return Optional.ofNullable(policyIdOrPlaceholder);}
 
     @Override
-    public String getThingId() {
-        return thing.getId().orElseThrow(() -> new NullPointerException("Thing has no ID!"));
+    public ThingId getThingEntityId() {
+        return thing.getEntityId().orElseThrow(() -> new NullPointerException("Thing has no ID!"));
     }
 
     @Override

@@ -20,6 +20,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.messages.Message;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
 /**
@@ -41,13 +42,13 @@ public final class SendThingMessage<T> extends AbstractMessageCommand<T, SendThi
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private SendThingMessage(final String thingId, final Message<T> message, final DittoHeaders dittoHeaders) {
+    private SendThingMessage(final ThingId thingId, final Message<T> message, final DittoHeaders dittoHeaders) {
         super(TYPE, thingId, message, dittoHeaders);
     }
 
     @Override
     public SendThingMessage setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingId(), getMessage(), dittoHeaders);
+        return of(getThingEntityId(), getMessage(), dittoHeaders);
     }
 
     /**
@@ -60,7 +61,7 @@ public final class SendThingMessage<T> extends AbstractMessageCommand<T, SendThi
      * @return new instance of {@link SendThingMessage}.
      * @throws NullPointerException if any arguments is {@code null}.
      */
-    public static <T> SendThingMessage<T> of(final String thingId, final Message<T> message,
+    public static <T> SendThingMessage<T> of(final ThingId thingId, final Message<T> message,
             final DittoHeaders dittoHeaders) {
         return new SendThingMessage<>(thingId, message, dittoHeaders);
     }
@@ -94,7 +95,8 @@ public final class SendThingMessage<T> extends AbstractMessageCommand<T, SendThi
      */
     public static <T> SendThingMessage<T> fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<SendThingMessage<T>>(TYPE, jsonObject).deserialize(() -> {
-            final String thingId = jsonObject.getValueOrThrow(MessageCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(MessageCommand.JsonFields.JSON_THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
             final Message<T> message = deserializeMessageFromJson(jsonObject);
 
             return of(thingId, message, dittoHeaders);

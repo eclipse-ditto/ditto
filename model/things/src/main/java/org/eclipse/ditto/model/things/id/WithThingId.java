@@ -10,11 +10,11 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.signals.base;
+package org.eclipse.ditto.model.things.id;
 
 /**
  * Implementations of this interface are associated to a {@code Thing} identified by the value
- * returned from {@link #getThingId()}.
+ * returned from {@link #getThingEntityId()} ()}.
  */
 public interface WithThingId {
 
@@ -22,7 +22,13 @@ public interface WithThingId {
      * Returns the identifier of the associated Thing.
      *
      * @return the identifier of the associated Thing.
+     * @deprecated The thing ID is now typed. Use {@link #getThingEntityId()} instead.
      */
-    String getThingId();
+    @Deprecated
+    default String getThingId() {
+        return String.valueOf(getThingEntityId());
+    }
+
+    ThingId getThingEntityId();
 
 }

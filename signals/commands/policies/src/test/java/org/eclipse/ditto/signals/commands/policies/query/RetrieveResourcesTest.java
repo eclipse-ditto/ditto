@@ -24,7 +24,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
-import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
+import org.eclipse.ditto.model.policies.id.PolicyId;
+import org.eclipse.ditto.model.policies.id.PolicyIdInvalidException;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.TestConstants;
 import org.junit.Test;
@@ -38,7 +39,7 @@ public final class RetrieveResourcesTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyCommand.JsonFields.TYPE, RetrieveResources.TYPE)
-            .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(RetrieveResources.JSON_LABEL, TestConstants.Policy.LABEL.toString())
             .build();
 
@@ -48,7 +49,7 @@ public final class RetrieveResourcesTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(RetrieveResources.class, areImmutable(),
-                provided(Label.class, JsonFieldSelector.class).isAlsoImmutable());
+                provided(Label.class, JsonFieldSelector.class, PolicyId.class).isAlsoImmutable());
     }
 
 
@@ -62,10 +63,16 @@ public final class RetrieveResourcesTest {
 
     @Test
     public void tryToCreateInstanceWithNullPolicyId() {
+        assertThatExceptionOfType(NullPointerException.class)
+                .isThrownBy(() -> RetrieveResources.of((PolicyId) null, TestConstants.Policy.LABEL,
+                        EMPTY_DITTO_HEADERS));
+    }
+
+    @Test
+    public void tryToCreateInstanceWithNullPolicyIdString() {
         assertThatExceptionOfType(PolicyIdInvalidException.class)
-                .isThrownBy(() -> RetrieveResources.of(null, TestConstants.Policy.LABEL,
-                        EMPTY_DITTO_HEADERS))
-                .withNoCause();
+                .isThrownBy(() -> RetrieveResources.of((String) null, TestConstants.Policy.LABEL,
+                        EMPTY_DITTO_HEADERS));
     }
 
 
@@ -73,8 +80,7 @@ public final class RetrieveResourcesTest {
     public void tryToCreateInstanceWithInvalidPolicyId() {
         assertThatExceptionOfType(PolicyIdInvalidException.class)
                 .isThrownBy(() -> RetrieveResources.of("undefined", TestConstants.Policy.LABEL,
-                        EMPTY_DITTO_HEADERS))
-                .withNoCause();
+                        EMPTY_DITTO_HEADERS));
     }
 
 
@@ -100,7 +106,7 @@ public final class RetrieveResourcesTest {
         final RetrieveResources underTest = RetrieveResources.fromJson(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Policy.POLICY_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Policy.POLICY_ID);
         assertThat(underTest.getLabel()).isEqualTo(TestConstants.Policy.LABEL);
     }
 

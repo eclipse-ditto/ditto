@@ -25,6 +25,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -34,7 +35,7 @@ import org.junit.Test;
 public final class MessageHeadersBuilderTest {
 
     private static final MessageDirection DIRECTION = MessageDirection.TO;
-    private final static String THING_ID = "bla:foo-bar";
+    private final static ThingId THING_ID = ThingId.of("bla","foo-bar");
     private static final String SUBJECT = KnownMessageSubjects.CLAIM_SUBJECT;
     private static final String FEATURE_ID = "flux-condensator-0815";
     private static final String CONTENT_TYPE = "application/json";
@@ -61,14 +62,6 @@ public final class MessageHeadersBuilderTest {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> MessageHeadersBuilder.newInstance(DIRECTION, null, SUBJECT))
                 .withMessage("The %s must not be null!", MessageHeaderDefinition.THING_ID.getKey())
-                .withNoCause();
-    }
-
-    @Test
-    public void tryToCreateInstanceWithEmptyThingId() {
-        assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> MessageHeadersBuilder.newInstance(DIRECTION, "", SUBJECT))
-                .withMessage("The argument '%s' must not be empty!", MessageHeaderDefinition.THING_ID.getKey())
                 .withNoCause();
     }
 
@@ -104,7 +97,7 @@ public final class MessageHeadersBuilderTest {
         final Map<String, String> validHeaders = new HashMap<>();
         validHeaders.put(MessageHeaderDefinition.DIRECTION.getKey(), MessageDirection.TO.toString());
         validHeaders.put(MessageHeaderDefinition.SUBJECT.getKey(), SUBJECT);
-        validHeaders.put(MessageHeaderDefinition.THING_ID.getKey(), THING_ID);
+        validHeaders.put(MessageHeaderDefinition.THING_ID.getKey(), THING_ID.toString());
 
         final MessageHeaders messageHeaders = MessageHeadersBuilder.of(validHeaders).build();
 

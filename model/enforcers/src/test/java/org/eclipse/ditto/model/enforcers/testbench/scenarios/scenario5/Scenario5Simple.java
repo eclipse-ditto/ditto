@@ -19,6 +19,7 @@ import org.eclipse.ditto.model.enforcers.testbench.scenarios.Scenario;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 
 
@@ -29,7 +30,7 @@ public interface Scenario5Simple extends Scenario {
     String SUBJECT = "sid";
 
     Policy POLICY = PoliciesModelFactory //
-            .newPolicyBuilder("benchmark:" + Scenario5Simple1.class.getSimpleName()) //
+            .newPolicyBuilder(PolicyId.of("benchmark", Scenario5Simple1.class.getSimpleName())) //
             .forLabel("all") //
             .setSubject(SubjectIssuer.GOOGLE, SUBJECT) //
             .setGrantedPermissions(PoliciesResourceType.thingResource("/"), "READ") //

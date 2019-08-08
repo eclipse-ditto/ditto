@@ -16,8 +16,6 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -33,6 +31,8 @@ import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.id.ThingPolicyIdValidator;
 
 /**
  * Representation of one Thing within Ditto.
@@ -40,10 +40,8 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 @Immutable
 final class ImmutableThing implements Thing {
 
-    private static final Pattern ID_PATTERN = Pattern.compile(ID_REGEX);
 
-    @Nullable private final String namespace;
-    @Nullable private final String thingId;
+    @Nullable private final ThingId thingId;
     @Nullable private final AccessControlList acl;
     @Nullable private final String policyId;
     @Nullable private final Attributes attributes;
@@ -52,7 +50,7 @@ final class ImmutableThing implements Thing {
     @Nullable private final ThingRevision revision;
     @Nullable private final Instant modified;
 
-    private ImmutableThing(@Nullable final String thingId,
+    private ImmutableThing(@Nullable final ThingId thingId,
             @Nullable final AccessControlList acl,
             @Nullable final String policyId,
             @Nullable final Attributes attributes,
@@ -60,17 +58,6 @@ final class ImmutableThing implements Thing {
             @Nullable final ThingLifecycle lifecycle,
             @Nullable final ThingRevision revision,
             @Nullable final Instant modified) {
-
-        if (null != thingId) {
-            final Matcher nsMatcher = ID_PATTERN.matcher(thingId);
-            if (nsMatcher.matches()) {
-                namespace = nsMatcher.group("ns");
-            } else {
-                namespace = null;
-            }
-        } else {
-            namespace = null;
-        }
 
         this.thingId = thingId;
         this.acl = acl;
@@ -94,8 +81,36 @@ final class ImmutableThing implements Thing {
      * @param revision the revision of the Thing to be created.
      * @param modified the modified timestamp of the thing to be created.
      * @return the {@code Thing} which was created from the given JSON object.
+     * @deprecated ThingId is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.id.ThingId, AccessControlList, Attributes, Features, ThingLifecycle, ThingRevision, java.time.Instant)}
+     * instead.
      */
+    @Deprecated
     static Thing of(@Nullable final String thingId,
+            @Nullable final AccessControlList accessControlList,
+            @Nullable final Attributes attributes,
+            @Nullable final Features features,
+            @Nullable final ThingLifecycle lifecycle,
+            @Nullable final ThingRevision revision,
+            @Nullable final Instant modified) {
+
+        return new ImmutableThing(ThingId.of(thingId), accessControlList, null, attributes, features, lifecycle,
+                revision, modified);
+    }
+
+    /**
+     * Creates a new Thing object which is based on the given values.
+     *
+     * @param thingId the ID of the Thing to be created.
+     * @param accessControlList the Access Control List of the Thing to be created.
+     * @param attributes the attributes of the Thing to be created.
+     * @param features the features of the Thing to be created.
+     * @param lifecycle the lifecycle of the Thing to be created.
+     * @param revision the revision of the Thing to be created.
+     * @param modified the modified timestamp of the thing to be created.
+     * @return the {@code Thing} which was created from the given JSON object.
+     */
+    static Thing of(@Nullable final ThingId thingId,
             @Nullable final AccessControlList accessControlList,
             @Nullable final Attributes attributes,
             @Nullable final Features features,
@@ -118,8 +133,36 @@ final class ImmutableThing implements Thing {
      * @param revision the revision of the Thing to be created.
      * @param modified the modified timestamp of the thing to be created.
      * @return the {@code Thing} which was created from the given JSON object.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.id.ThingId, String, Attributes, Features, ThingLifecycle, ThingRevision, java.time.Instant)}
+     * instead.
      */
+    @Deprecated
     static Thing of(@Nullable final String thingId,
+            @Nullable final String policyId,
+            @Nullable final Attributes attributes,
+            @Nullable final Features features,
+            @Nullable final ThingLifecycle lifecycle,
+            @Nullable final ThingRevision revision,
+            @Nullable final Instant modified) {
+
+        return new ImmutableThing(ThingId.of(thingId), null, policyId, attributes, features, lifecycle, revision,
+                modified);
+    }
+
+    /**
+     * Creates a new Thing object which is based on the given values.
+     *
+     * @param thingId the ID of the Thing to be created.
+     * @param policyId the Policy ID for the Thing to be created.
+     * @param attributes the attributes of the Thing to be created.
+     * @param features the features of the Thing to be created.
+     * @param lifecycle the lifecycle of the Thing to be created.
+     * @param revision the revision of the Thing to be created.
+     * @param modified the modified timestamp of the thing to be created.
+     * @return the {@code Thing} which was created from the given JSON object.
+     */
+    static Thing of(@Nullable final ThingId thingId,
             @Nullable final String policyId,
             @Nullable final Attributes attributes,
             @Nullable final Features features,
@@ -146,13 +189,13 @@ final class ImmutableThing implements Thing {
     }
 
     @Override
-    public Optional<String> getId() {
+    public Optional<ThingId> getEntityId() {
         return Optional.ofNullable(thingId);
     }
 
     @Override
     public Optional<String> getNamespace() {
-        return Optional.ofNullable(namespace);
+        return Optional.ofNullable(thingId).map(ThingId::getNameSpace);
     }
 
     @Override
@@ -355,7 +398,6 @@ final class ImmutableThing implements Thing {
 
     @Override
     public void validate(final DittoHeaders headers) {
-        ThingIdValidator.getInstance().accept(thingId, headers);
         if (policyId != null) {
             ThingPolicyIdValidator.getInstance().accept(policyId, headers);
         }
@@ -381,8 +423,8 @@ final class ImmutableThing implements Thing {
         }
 
         if (null != thingId) {
-            jsonObjectBuilder.set(JsonFields.NAMESPACE, namespace, predicate);
-            jsonObjectBuilder.set(JsonFields.ID, thingId, predicate);
+            jsonObjectBuilder.set(JsonFields.NAMESPACE, thingId.getNameSpace(), predicate);
+            jsonObjectBuilder.set(JsonFields.ID, thingId.toString(), predicate);
         }
 
         if (JsonSchemaVersion.V_1.equals(schemaVersion)) {
@@ -407,8 +449,7 @@ final class ImmutableThing implements Thing {
 
     @Override
     public int hashCode() {
-        return Objects.hash(thingId, namespace, policyId, acl, attributes, features, lifecycle, revision,
-                modified);
+        return Objects.hash(thingId, policyId, acl, attributes, features, lifecycle, revision, modified);
     }
 
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067", "OverlyComplexMethod"})
@@ -425,7 +466,6 @@ final class ImmutableThing implements Thing {
         }
         final ImmutableThing other = (ImmutableThing) obj;
         return Objects.equals(thingId, other.thingId) &&
-                Objects.equals(namespace, other.namespace) &&
                 Objects.equals(policyId, other.policyId) &&
                 Objects.equals(acl, other.acl) &&
                 Objects.equals(attributes, other.attributes) &&
@@ -437,7 +477,7 @@ final class ImmutableThing implements Thing {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [thingId=" + thingId + ", namespace=" + namespace + ", acl=" + acl +
+        return getClass().getSimpleName() + " [thingId=" + thingId + ", acl=" + acl +
                 ", policyId=" + policyId + ", attributes=" + attributes + ", features=" + features + ", lifecycle=" +
                 lifecycle + ", revision=" + revision + ", modified=" + modified + "]";
     }

@@ -25,6 +25,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.junit.Test;
@@ -36,11 +37,11 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class SudoRetrieveThingTest {
 
-    private static final String THING_ID = "org.eclipse.ditto.test:myThing";
+    private static final ThingId THING_ID = ThingId.of("org.eclipse.ditto.test", "myThing");
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(SudoCommand.JsonFields.TYPE, SudoRetrieveThing.TYPE)
-            .set(SudoCommand.JsonFields.JSON_THING_ID, THING_ID)
+            .set(SudoCommand.JsonFields.JSON_THING_ID, THING_ID.toString())
             .set(SudoRetrieveThing.JSON_USE_ORIGINAL_SCHEMA_VERSION, false)
             .build();
 
@@ -50,7 +51,7 @@ public final class SudoRetrieveThingTest {
     public void assertImmutability() {
         assertInstancesOf(SudoRetrieveThing.class,
                 areImmutable(),
-                provided(JsonFieldSelector.class).isAlsoImmutable());
+                provided(JsonFieldSelector.class, ThingId.class).isAlsoImmutable());
     }
 
     @Test
@@ -73,7 +74,7 @@ public final class SudoRetrieveThingTest {
         final SudoRetrieveThing underTest = SudoRetrieveThing.fromJson(KNOWN_JSON, EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(THING_ID);
         assertThat(underTest.getSelectedFields()).isEqualTo(Optional.empty());
         assertThat(underTest.useOriginalSchemaVersion()).isFalse();
     }
@@ -107,7 +108,7 @@ public final class SudoRetrieveThingTest {
         final SudoRetrieveThing underTest = SudoRetrieveThing.fromJson(jsonObject, EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(THING_ID);
         assertThat(underTest.getSelectedFields()).isEqualTo(Optional.empty());
         assertThat(underTest.useOriginalSchemaVersion()).isTrue();
     }

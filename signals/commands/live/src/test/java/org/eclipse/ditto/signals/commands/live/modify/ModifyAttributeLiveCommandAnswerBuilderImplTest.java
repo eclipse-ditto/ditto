@@ -45,7 +45,7 @@ public final class ModifyAttributeLiveCommandAnswerBuilderImplTest {
     /** */
     @Before
     public void setUp() {
-        Mockito.when(commandMock.getThingId()).thenReturn(TestConstants.Thing.THING_ID);
+        Mockito.when(commandMock.getThingEntityId()).thenReturn(TestConstants.Thing.THING_ID);
         Mockito.when(commandMock.getDittoHeaders()).thenReturn(DittoHeaders.empty());
         Mockito.when(commandMock.getAttributePointer()).thenReturn(TestConstants.Thing.LOCATION_ATTRIBUTE_POINTER);
         Mockito.when(commandMock.getAttributeValue()).thenReturn(TestConstants.Thing.LOCATION_ATTRIBUTE_VALUE);

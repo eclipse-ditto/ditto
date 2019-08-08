@@ -16,6 +16,7 @@ import java.util.Collections;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
@@ -47,7 +48,7 @@ import akka.testkit.TestProbe;
  * Tests {@link ConnectionPersistenceOperationsActor}.
  */
 @AllValuesAreNonnullByDefault
-public final class ConnectionPersistenceOperationsActorIT extends MongoEventSourceITAssertions {
+public final class ConnectionPersistenceOperationsActorIT extends MongoEventSourceITAssertions<EntityId> {
 
     @Test
     public void purgeEntitiesWithoutNamespace() {
@@ -65,7 +66,12 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
     }
 
     @Override
-    protected Object getCreateEntityCommand(final String id) {
+    protected EntityId toEntityId(final EntityId entityId) {
+        return entityId;
+    }
+
+    @Override
+    protected Object getCreateEntityCommand(final EntityId id) {
         final AuthorizationContext authorizationContext =
                 AuthorizationContext.newInstance(AuthorizationSubject.newInstance("subject"));
         final Source source =
@@ -84,7 +90,7 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
     }
 
     @Override
-    protected Object getRetrieveEntityCommand(final String id) {
+    protected Object getRetrieveEntityCommand(final EntityId id) {
         return RetrieveConnection.of(id, DittoHeaders.empty());
     }
 
@@ -108,7 +114,7 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
     }
 
     @Override
-    protected ActorRef startEntityActor(final ActorSystem system, final ActorRef pubSubMediator, final String id) {
+    protected ActorRef startEntityActor(final ActorSystem system, final ActorRef pubSubMediator, final EntityId id) {
         // essentially never restart
         final TestProbe conciergeForwarderProbe = new TestProbe(system, "conciergeForwarder");
         final ConnectivityCommandInterceptor dummyInterceptor = command -> {};
@@ -117,7 +123,7 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
                 ConnectionSupervisorActor.props(pubSubMediator, conciergeForwarderProbe.ref(), entityActorFactory,
                         dummyInterceptor);
 
-        return system.actorOf(props, id);
+        return system.actorOf(props, String.valueOf(id));
     }
 
 }

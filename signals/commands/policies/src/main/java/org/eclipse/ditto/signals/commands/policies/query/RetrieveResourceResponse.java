@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
@@ -61,12 +62,12 @@ public final class RetrieveResourceResponse extends AbstractCommandResponse<Retr
     static final JsonFieldDefinition<JsonObject> JSON_RESOURCE =
             JsonFactory.newJsonObjectFieldDefinition("resource", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String policyId;
+    private final PolicyId policyId;
     private final Label label;
     private final ResourceKey resourceKey;
     private final JsonObject resource;
 
-    private RetrieveResourceResponse(final String policyId,
+    private RetrieveResourceResponse(final PolicyId policyId,
             final Label label,
             final ResourceKey resourceKey,
             final JsonObject resource,
@@ -90,7 +91,7 @@ public final class RetrieveResourceResponse extends AbstractCommandResponse<Retr
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveResourceResponse of(final String policyId,
+    public static RetrieveResourceResponse of(final PolicyId policyId,
             final Label label,
             final Resource resource,
             final DittoHeaders dittoHeaders) {
@@ -112,7 +113,7 @@ public final class RetrieveResourceResponse extends AbstractCommandResponse<Retr
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveResourceResponse of(final String policyId,
+    public static RetrieveResourceResponse of(final PolicyId policyId,
             final Label label,
             final ResourceKey resourceKey,
             final JsonObject resource,
@@ -149,8 +150,9 @@ public final class RetrieveResourceResponse extends AbstractCommandResponse<Retr
     public static RetrieveResourceResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveResourceResponse>(TYPE, jsonObject)
                 .deserialize(statusCode -> {
-                    final String policyId =
-                            jsonObject.getValueOrThrow(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID);
+                    final String extractedPolicyId =
+                            jsonObject.getValueOrThrow(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
+                    final PolicyId policyId = PolicyId.of(extractedPolicyId);
                     final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
                     final String extractedResourceKey = jsonObject.getValueOrThrow(JSON_RESOURCE_KEY);
                     final JsonObject extractedResource = jsonObject.getValueOrThrow(JSON_RESOURCE);
@@ -161,7 +163,7 @@ public final class RetrieveResourceResponse extends AbstractCommandResponse<Retr
     }
 
     @Override
-    public String getId() {
+    public PolicyId getEntityId() {
         return policyId;
     }
 
@@ -219,7 +221,8 @@ public final class RetrieveResourceResponse extends AbstractCommandResponse<Retr
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId),
+                predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
         jsonObjectBuilder.set(JSON_RESOURCE_KEY, resourceKey.toString(), predicate);
         jsonObjectBuilder.set(JSON_RESOURCE, resource, predicate);

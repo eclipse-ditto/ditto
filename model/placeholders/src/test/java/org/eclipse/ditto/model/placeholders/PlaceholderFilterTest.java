@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.junit.Test;
 
@@ -31,18 +32,20 @@ public class PlaceholderFilterTest {
 
     private static final Map<String, String> HEADERS = new HashMap<>();
     private static final String DEVICE_ID = "device-12345";
-    private static final String THING_ID = "eclipse:ditto";
+    private static final ThingId THING_ID = ThingId.of("eclipse", "ditto");
 
     private static final String KNOWN_NAMESPACE = "org.eclipse.ditto.test";
     private static final String KNOWN_ID = "myThing";
 
     private static final String KNOWN_SUBJECT = "mySubject";
     private static final String KNOWN_SUBJECT2 = "$set.configuration/steps";
-    private static final TopicPath KNOWN_TOPIC_PATH = TopicPath.newBuilder(KNOWN_NAMESPACE + ":" + KNOWN_ID)
+    private static final TopicPath KNOWN_TOPIC_PATH = TopicPath.newBuilder(ThingId.of(KNOWN_NAMESPACE, KNOWN_ID))
             .twin().things().commands().modify().build();
-    private static final TopicPath KNOWN_TOPIC_PATH_SUBJECT1 = TopicPath.newBuilder(KNOWN_NAMESPACE + ":" + KNOWN_ID)
+    private static final TopicPath KNOWN_TOPIC_PATH_SUBJECT1 =
+            TopicPath.newBuilder(ThingId.of(KNOWN_NAMESPACE, KNOWN_ID))
             .live().things().messages().subject(KNOWN_SUBJECT).build();
-    private static final TopicPath KNOWN_TOPIC_PATH_SUBJECT2 = TopicPath.newBuilder(KNOWN_NAMESPACE + ":" + KNOWN_ID)
+    private static final TopicPath KNOWN_TOPIC_PATH_SUBJECT2 =
+            TopicPath.newBuilder(ThingId.of(KNOWN_NAMESPACE, KNOWN_ID))
             .live().things().messages().subject(KNOWN_SUBJECT2).build();
 
     private static final HeadersPlaceholder headersPlaceholder = PlaceholderFactory.newHeadersPlaceholder();
@@ -73,7 +76,8 @@ public class PlaceholderFilterTest {
                 () -> PlaceholderFilter.apply("{{ header:unknown }}", HEADERS, headersPlaceholder));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
                 () -> PlaceholderFilter.apply("{{ {{  header:device-id  }} }}", HEADERS, headersPlaceholder));
-        assertThat(PlaceholderFilter.apply(THING_ID, HEADERS, headersPlaceholder)).isEqualTo(THING_ID);
+        assertThat(PlaceholderFilter.apply(THING_ID.toString(), HEADERS, headersPlaceholder))
+                .isEqualTo(THING_ID.toString());
         assertThat(
                 PlaceholderFilter.apply("eclipse:ditto:{{ header:device-id }}", HEADERS, headersPlaceholder)).isEqualTo(
                 "eclipse:ditto:device-12345");
@@ -88,7 +92,8 @@ public class PlaceholderFilterTest {
                 () -> PlaceholderFilter.apply("{{ header:unknown }}", THING_ID, thingPlaceholder));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
                 () -> PlaceholderFilter.apply("{{ {{  thing:name  }} }}", THING_ID, thingPlaceholder));
-        assertThat(PlaceholderFilter.apply(THING_ID, THING_ID, thingPlaceholder)).isEqualTo(THING_ID);
+        assertThat(PlaceholderFilter.apply(THING_ID.toString(), THING_ID, thingPlaceholder))
+                .isEqualTo(THING_ID.toString());
         assertThat(PlaceholderFilter.apply("prefix:{{ thing:namespace }}:{{ thing:name }}:suffix", THING_ID,
                 thingPlaceholder)).isEqualTo("prefix:eclipse:ditto:suffix");
         assertThat(PlaceholderFilter.apply("testTargetAmqpCon4_{{thing:namespace}}:{{thing:name}}", THING_ID,

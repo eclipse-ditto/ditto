@@ -49,7 +49,7 @@ public interface ShutdownReason extends Jsonifiable.WithPredicate<JsonObject, Js
      *
      * @return True if this shut down reason should lead to a shutdown. False if not.
      */
-    boolean isRelevantFor(String value);
+    boolean isRelevantFor(Object value);
 
     /**
      * This class contains definitions for all specific fields of a {@code ShutdownReason}'s JSON representation.

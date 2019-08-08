@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.events.base.Event;
 
 
@@ -41,7 +42,7 @@ import org.eclipse.ditto.signals.events.base.Event;
 public abstract class AbstractThingEvent<T extends AbstractThingEvent> implements ThingEvent<T> {
 
     private final String type;
-    private final String thingId;
+    private final ThingId thingId;
     private final long revision;
     @Nullable private final Instant timestamp;
     private final DittoHeaders dittoHeaders;
@@ -57,7 +58,7 @@ public abstract class AbstractThingEvent<T extends AbstractThingEvent> implement
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
     protected AbstractThingEvent(final String type,
-            final String thingId,
+            final ThingId thingId,
             final long revision,
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
@@ -74,13 +75,8 @@ public abstract class AbstractThingEvent<T extends AbstractThingEvent> implement
         return type;
     }
 
-    /**
-     * Returns the identifier of this event's {@code Thing}.
-     *
-     * @return the identifier of this event's Thing.
-     */
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -113,7 +109,7 @@ public abstract class AbstractThingEvent<T extends AbstractThingEvent> implement
                 .set(Event.JsonFields.TYPE, type)
                 .set(Event.JsonFields.TIMESTAMP, getTimestamp().map(Instant::toString).orElse(null), predicate)
                 .set(Event.JsonFields.REVISION, revision, predicate)
-                .set(JsonFields.THING_ID, thingId);
+                .set(JsonFields.THING_ID, thingId.toString());
 
         appendPayloadAndBuild(jsonObjectBuilder, schemaVersion, thePredicate);
 

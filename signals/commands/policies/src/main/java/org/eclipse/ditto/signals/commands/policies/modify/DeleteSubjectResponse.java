@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
@@ -56,11 +57,11 @@ public final class DeleteSubjectResponse extends AbstractCommandResponse<DeleteS
     static final JsonFieldDefinition<String> JSON_SUBJECT_ID =
             JsonFactory.newStringFieldDefinition("subjectId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String policyId;
+    private final PolicyId policyId;
     private final Label label;
     private final SubjectId subjectId;
 
-    private DeleteSubjectResponse(final String policyId,
+    private DeleteSubjectResponse(final PolicyId policyId,
             final Label label,
             final SubjectId subjectId,
             final HttpStatusCode statusCode,
@@ -82,7 +83,7 @@ public final class DeleteSubjectResponse extends AbstractCommandResponse<DeleteS
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static DeleteSubjectResponse of(final String policyId,
+    public static DeleteSubjectResponse of(final PolicyId policyId,
             final Label label,
             final SubjectId subjectId,
             final DittoHeaders dittoHeaders) {
@@ -118,8 +119,9 @@ public final class DeleteSubjectResponse extends AbstractCommandResponse<DeleteS
     public static DeleteSubjectResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<DeleteSubjectResponse>(TYPE, jsonObject)
                 .deserialize(statusCode -> {
-                    final String policyId =
-                            jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
+            final String extractedPolicyId =
+                    jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
+            final PolicyId policyId = PolicyId.of(extractedPolicyId);
                     final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
                     final String stringSubjectId = jsonObject.getValueOrThrow(JSON_SUBJECT_ID);
                     final SubjectId subjectId = PoliciesModelFactory.newSubjectId(stringSubjectId);
@@ -129,7 +131,7 @@ public final class DeleteSubjectResponse extends AbstractCommandResponse<DeleteS
     }
 
     @Override
-    public String getId() {
+    public PolicyId getEntityId() {
         return policyId;
     }
 
@@ -144,7 +146,8 @@ public final class DeleteSubjectResponse extends AbstractCommandResponse<DeleteS
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId),
+                predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
         jsonObjectBuilder.set(JSON_SUBJECT_ID, subjectId.toString(), predicate);
     }

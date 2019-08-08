@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.policies.PolicyException;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 
 /**
  * Thrown if to a single Policy too many requests were done in a short time so that persisting those requests could no
@@ -62,7 +63,7 @@ public final class PolicyTooManyModifyingRequestsException extends DittoRuntimeE
      * @param policyId the ID of the policy.
      * @return the builder.
      */
-    public static Builder newBuilder(final String policyId) {
+    public static Builder newBuilder(final PolicyId policyId) {
         return new Builder(policyId);
     }
 
@@ -112,9 +113,9 @@ public final class PolicyTooManyModifyingRequestsException extends DittoRuntimeE
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String policyId) {
+        private Builder(final PolicyId policyId) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, policyId));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, String.valueOf(policyId)));
         }
 
         @Override

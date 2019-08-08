@@ -26,6 +26,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.ByteBufferUtils;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.things.id.ThingId;
 
 /**
  * An Immutable implementation of {@link Message}.
@@ -118,8 +119,8 @@ final class ImmutableMessage<T> implements Message<T> {
     }
 
     @Override
-    public String getThingId() {
-        return headers.getThingId();
+    public ThingId getThingEntityId() {
+        return headers.getThingEntityId();
     }
 
     @Override

@@ -21,6 +21,7 @@ import java.util.UUID;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.services.models.concierge.ConciergeWrapper;
 import org.eclipse.ditto.services.utils.akka.JavaTestProbe;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
@@ -61,8 +62,8 @@ import akka.routing.ConsistentHashingRouter;
 public final class BatchSupervisorActorTest {
 
     private static final Config CONFIG = ConfigFactory.load("test");
-    public static final String THING1_ID = "com.bosch.iot.things.test:thing1";
-    public static final String THING2_ID = "com.bosch.iot.things.test:thing2";
+    public static final ThingId THING1_ID = ThingId.of("com.bosch.iot.things.test:thing1");
+    public static final ThingId THING2_ID = ThingId.of("com.bosch.iot.things.test:thing2");
 
     private static ActorSystem actorSystem;
     private static ActorRef pubSubMediator;
@@ -231,7 +232,7 @@ public final class BatchSupervisorActorTest {
             if (obj instanceof ModifyThing) {
                 final ModifyThing command = (ModifyThing) obj;
 
-                getSender().tell(ModifyThingResponse.modified(command.getId(),
+                getSender().tell(ModifyThingResponse.modified(command.getEntityId(),
                         command.getDittoHeaders()), getSelf());
             }
             else if (obj instanceof ModifyFeature) {
@@ -249,8 +250,9 @@ public final class BatchSupervisorActorTest {
         }
 
         private void respondToModifyFeature(final ModifyFeature command) {
-            final ModifyFeatureResponse response = ModifyFeatureResponse.modified(command.getId(), command.getFeatureId(),
-                    command.getDittoHeaders());
+            final ModifyFeatureResponse response =
+                    ModifyFeatureResponse.modified(command.getEntityId(), command.getFeatureId(),
+                            command.getDittoHeaders());
             getSender().tell(response, getSelf());
         }
     }

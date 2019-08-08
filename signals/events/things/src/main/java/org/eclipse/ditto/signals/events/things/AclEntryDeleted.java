@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
 /**
@@ -56,7 +57,7 @@ public final class AclEntryDeleted extends AbstractThingEvent<AclEntryDeleted>
 
     private final AuthorizationSubject authorizationSubject;
 
-    private AclEntryDeleted(final String thingId,
+    private AclEntryDeleted(final ThingId thingId,
             final AuthorizationSubject authorizationSubject,
             final long revision,
             @Nullable final Instant timestamp,
@@ -76,7 +77,7 @@ public final class AclEntryDeleted extends AbstractThingEvent<AclEntryDeleted>
      * @return the created AclEntryDeleted.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static AclEntryDeleted of(final String thingId,
+    public static AclEntryDeleted of(final ThingId thingId,
             final AuthorizationSubject authorizationSubject,
             final long revision,
             final DittoHeaders dittoHeaders) {
@@ -95,7 +96,7 @@ public final class AclEntryDeleted extends AbstractThingEvent<AclEntryDeleted>
      * @return the created AclEntryDeleted.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
-    public static AclEntryDeleted of(final String thingId,
+    public static AclEntryDeleted of(final ThingId thingId,
             final AuthorizationSubject authorizationSubject,
             final long revision,
             @Nullable final Instant timestamp,
@@ -131,10 +132,11 @@ public final class AclEntryDeleted extends AbstractThingEvent<AclEntryDeleted>
     public static AclEntryDeleted fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<AclEntryDeleted>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
             final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
             final String authSubjectId = jsonObject.getValueOrThrow(JSON_AUTHORIZATION_SUBJECT);
             final AuthorizationSubject extractedAuthSubject = AuthorizationModelFactory.newAuthSubject(authSubjectId);
 
-            return of(extractedThingId, extractedAuthSubject, revision, timestamp, dittoHeaders);
+            return of(thingId, extractedAuthSubject, revision, timestamp, dittoHeaders);
         });
     }
 
@@ -155,12 +157,12 @@ public final class AclEntryDeleted extends AbstractThingEvent<AclEntryDeleted>
 
     @Override
     public AclEntryDeleted setRevision(final long revision) {
-        return of(getThingId(), authorizationSubject, revision, getTimestamp().orElse(null), getDittoHeaders());
+        return of(getThingEntityId(), authorizationSubject, revision, getTimestamp().orElse(null), getDittoHeaders());
     }
 
     @Override
     public AclEntryDeleted setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingId(), authorizationSubject, getRevision(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getThingEntityId(), authorizationSubject, getRevision(), getTimestamp().orElse(null), dittoHeaders);
     }
 
     @Override

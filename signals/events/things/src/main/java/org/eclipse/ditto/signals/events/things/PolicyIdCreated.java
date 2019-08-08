@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
 /**
@@ -58,7 +59,7 @@ public final class PolicyIdCreated extends AbstractThingEvent<PolicyIdCreated>
 
     private final String policyId;
 
-    private PolicyIdCreated(final String thingId, final String policyId, final long revision,
+    private PolicyIdCreated(final ThingId thingId, final String policyId, final long revision,
             @Nullable final Instant timestamp, final DittoHeaders dittoHeaders) {
         super(TYPE, thingId, revision, timestamp, dittoHeaders);
         this.policyId = policyId;
@@ -74,7 +75,7 @@ public final class PolicyIdCreated extends AbstractThingEvent<PolicyIdCreated>
      * @return the {@code PolicyIdCreated}
      * @throws NullPointerException if {@code thingId}, {@code revision} or {@code dittoHeaders} are {@code null}.
      */
-    public static PolicyIdCreated of(final String thingId, final String policyId, final long revision,
+    public static PolicyIdCreated of(final ThingId thingId, final String policyId, final long revision,
             final DittoHeaders dittoHeaders) {
         return of(thingId, policyId, revision, null, dittoHeaders);
     }
@@ -90,7 +91,7 @@ public final class PolicyIdCreated extends AbstractThingEvent<PolicyIdCreated>
      * @return the {@code PolicyIdCreated}
      * @throws NullPointerException if {@code thingId}, {@code revision} or {@code dittoHeaders} are {@code null}.
      */
-    public static PolicyIdCreated of(final String thingId, final String policyId, final long revision,
+    public static PolicyIdCreated of(final ThingId thingId, final String policyId, final long revision,
             @Nullable final Instant timestamp, final DittoHeaders dittoHeaders) {
         return new PolicyIdCreated(thingId, policyId, revision, timestamp, dittoHeaders);
     }
@@ -123,9 +124,10 @@ public final class PolicyIdCreated extends AbstractThingEvent<PolicyIdCreated>
     public static PolicyIdCreated fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<PolicyIdCreated>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
             final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
             final String extractedPolicyId = jsonObject.getValueOrThrow(JSON_POLICY_ID);
 
-            return of(extractedThingId, extractedPolicyId, revision, timestamp, dittoHeaders);
+            return of(thingId, extractedPolicyId, revision, timestamp, dittoHeaders);
         });
     }
 
@@ -151,12 +153,12 @@ public final class PolicyIdCreated extends AbstractThingEvent<PolicyIdCreated>
 
     @Override
     public PolicyIdCreated setRevision(final long revision) {
-        return of(getThingId(), policyId, revision, getTimestamp().orElse(null), getDittoHeaders());
+        return of(getThingEntityId(), policyId, revision, getTimestamp().orElse(null), getDittoHeaders());
     }
 
     @Override
     public PolicyIdCreated setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingId(), policyId, getRevision(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getThingEntityId(), policyId, getRevision(), getTimestamp().orElse(null), dittoHeaders);
     }
 
     @Override

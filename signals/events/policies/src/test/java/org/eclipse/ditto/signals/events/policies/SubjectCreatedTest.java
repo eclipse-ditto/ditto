@@ -36,7 +36,7 @@ public final class SubjectCreatedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, SubjectCreated.TYPE)
             .set(Event.JsonFields.REVISION, TestConstants.Policy.REVISION_NUMBER)
-            .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(SubjectCreated.JSON_LABEL, TestConstants.Policy.LABEL.toString())
             .set(SubjectCreated.JSON_SUBJECT_ID, TestConstants.Policy.SUBJECT.getId().toString())
             .set(SubjectCreated.JSON_SUBJECT,
@@ -96,7 +96,7 @@ public final class SubjectCreatedTest {
                 SubjectCreated.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getPolicyId()).isEqualTo(TestConstants.Policy.POLICY_ID);
+        assertThat((CharSequence) underTest.getPolicyEntityId()).isEqualTo(TestConstants.Policy.POLICY_ID);
         assertThat(underTest.getLabel()).isEqualTo(TestConstants.Policy.LABEL);
         assertThat(underTest.getSubject()).isEqualTo(TestConstants.Policy.SUBJECT);
     }

@@ -40,6 +40,9 @@ import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.id.ThingIdInvalidException;
+import org.eclipse.ditto.model.things.id.ThingPolicyIdInvalidException;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -78,7 +81,8 @@ public final class ImmutableThingTest {
                 Features.class,
                 JsonObject.class,
                 AccessControlList.class,
-                ThingRevision.class
+                ThingRevision.class,
+                ThingId.class
         };
 
         assertInstancesOf(ImmutableThing.class,
@@ -89,7 +93,7 @@ public final class ImmutableThingTest {
 
     @Test
     public void createThingWithoutId() {
-        final Thing thing = ImmutableThing.of(null, ACL, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION, MODIFIED);
+        final Thing thing = ImmutableThing.of((ThingId) null, ACL, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION, MODIFIED);
 
         assertThat(thing)
                 .hasNoId()
@@ -519,22 +523,26 @@ public final class ImmutableThingTest {
 
     @Test
     public void tryToCreateThingWithValidThingIdNamespace() {
-        ImmutableThing.of("foo.bar:foobar2000", ACL, ATTRIBUTES, EMPTY_FEATURES, LIFECYCLE, REVISION, MODIFIED);
+        ImmutableThing.of(ThingId.of("foo.bar", "foobar2000"), ACL, ATTRIBUTES, EMPTY_FEATURES, LIFECYCLE, REVISION,
+                MODIFIED);
     }
 
     @Test
     public void tryToCreateThingWithValidThingIdNamespace2() {
-        ImmutableThing.of("foo.a42:foobar2000", ACL, ATTRIBUTES, EMPTY_FEATURES, LIFECYCLE, REVISION, MODIFIED);
+        ImmutableThing.of(ThingId.of("foo.a42", "foobar2000"), ACL, ATTRIBUTES, EMPTY_FEATURES, LIFECYCLE, REVISION,
+                MODIFIED);
     }
 
     @Test
     public void tryToCreateThingWithValidThingIdNamespace3() {
-        ImmutableThing.of("ad:foobar2000", ACL, ATTRIBUTES, EMPTY_FEATURES, LIFECYCLE, REVISION, MODIFIED);
+        ImmutableThing.of(ThingId.of("ad", "foobar2000"), ACL, ATTRIBUTES, EMPTY_FEATURES, LIFECYCLE, REVISION,
+                MODIFIED);
     }
 
     @Test
     public void tryToCreateThingWithValidThingIdNamespace4() {
-        ImmutableThing.of("da23:foobar2000", ACL, ATTRIBUTES, EMPTY_FEATURES, LIFECYCLE, REVISION, MODIFIED);
+        ImmutableThing.of(ThingId.of("da23", "foobar2000"), ACL, ATTRIBUTES, EMPTY_FEATURES, LIFECYCLE, REVISION,
+                MODIFIED);
     }
 
     @Test
@@ -880,7 +888,7 @@ public final class ImmutableThingTest {
     @Test
     public void ensureThingToJsonContainsNonHiddenFieldsV1() {
         final JsonObject jsonObject = TestConstants.Thing.THING_V1.toJson(JsonSchemaVersion.V_1);
-        DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ID, THING_ID);
+        DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ID, THING_ID.toString());
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ATTRIBUTES, ATTRIBUTES);
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.FEATURES, FEATURES.toJson());
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ACL, ACL.toJson());
@@ -898,7 +906,7 @@ public final class ImmutableThingTest {
                 TestConstants.Thing.THING_V1.toJson(JsonSchemaVersion.V_1, FieldType.regularOrSpecial());
         DittoJsonAssertions.assertThat(jsonObject)
                 .contains(Thing.JsonFields.SCHEMA_VERSION, JsonValue.of(JsonSchemaVersion.V_1.toInt()));
-        DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ID, THING_ID);
+        DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ID, THING_ID.toString());
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ATTRIBUTES, ATTRIBUTES);
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.FEATURES, FEATURES.toJson());
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ACL, ACL.toJson());
@@ -914,7 +922,7 @@ public final class ImmutableThingTest {
     @Test
     public void ensureThingToJsonContainsNonHiddenFieldsV2() {
         final JsonObject jsonObject = TestConstants.Thing.THING_V2.toJson(JsonSchemaVersion.V_2);
-        DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ID, THING_ID);
+        DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ID, THING_ID.toString());
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.POLICY_ID, TestConstants.Thing.POLICY_ID);
         DittoJsonAssertions.assertThat(jsonObject)
                 .contains(Thing.JsonFields.ATTRIBUTES, ATTRIBUTES);
@@ -934,7 +942,7 @@ public final class ImmutableThingTest {
                 TestConstants.Thing.THING_V2.toJson(JsonSchemaVersion.V_2, FieldType.regularOrSpecial());
         DittoJsonAssertions.assertThat(jsonObject)
                 .contains(Thing.JsonFields.SCHEMA_VERSION, JsonValue.of(JsonSchemaVersion.V_2.toInt()));
-        DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ID, THING_ID);
+        DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ID, THING_ID.toString());
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.POLICY_ID, TestConstants.Thing.POLICY_ID);
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ATTRIBUTES, ATTRIBUTES);
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.FEATURES, FEATURES.toJson());
@@ -954,18 +962,8 @@ public final class ImmutableThingTest {
                         ".namespace:foobar2000", "namespace.:foobar2000", "namespace..invalid:foobar2000",
                         "namespace.42:foobar2000", ":foobar2000");
 
-        invalidThingIds.forEach(invalidId -> {
-            assertThatExceptionOfType(ThingIdInvalidException.class).isThrownBy(() ->
-                ImmutableThing.of(
-                        invalidId,
-                        ACL,
-                        ATTRIBUTES,
-                        FEATURES,
-                        LIFECYCLE,
-                        REVISION,
-                        MODIFIED).validate(DittoHeaders.empty())
-            );
-        });
+        invalidThingIds.forEach(invalidId -> assertThatExceptionOfType(ThingIdInvalidException.class).isThrownBy(
+                () -> ThingId.of(invalidId)));
 
     }
 

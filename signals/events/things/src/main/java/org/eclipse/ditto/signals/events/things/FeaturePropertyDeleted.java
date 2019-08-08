@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
@@ -60,7 +61,7 @@ public final class FeaturePropertyDeleted extends AbstractThingEvent<FeatureProp
     private final String featureId;
     private final JsonPointer propertyPointer;
 
-    private FeaturePropertyDeleted(final String thingId,
+    private FeaturePropertyDeleted(final ThingId thingId,
             final String featureId,
             final JsonPointer propertyPointer,
             final long revision,
@@ -83,7 +84,7 @@ public final class FeaturePropertyDeleted extends AbstractThingEvent<FeatureProp
      * @return the FeaturePropertyDeleted created.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static FeaturePropertyDeleted of(final String thingId,
+    public static FeaturePropertyDeleted of(final ThingId thingId,
             final String featureId,
             final JsonPointer propertyJsonPointer,
             final long revision,
@@ -104,7 +105,7 @@ public final class FeaturePropertyDeleted extends AbstractThingEvent<FeatureProp
      * @return the FeaturePropertyDeleted created.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
-    public static FeaturePropertyDeleted of(final String thingId,
+    public static FeaturePropertyDeleted of(final ThingId thingId,
             final String featureId,
             final JsonPointer propertyJsonPointer,
             final long revision,
@@ -143,11 +144,12 @@ public final class FeaturePropertyDeleted extends AbstractThingEvent<FeatureProp
         return new EventJsonDeserializer<FeaturePropertyDeleted>(TYPE, jsonObject)
                 .deserialize((revision, timestamp) -> {
                     final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
                     final String extractedFeatureId = jsonObject.getValueOrThrow(JsonFields.FEATURE_ID);
                     final JsonPointer extractedPointer =
                             JsonFactory.newPointer(jsonObject.getValueOrThrow(JSON_PROPERTY));
 
-                    return of(extractedThingId, extractedFeatureId, extractedPointer, revision, timestamp,
+                    return of(thingId, extractedFeatureId, extractedPointer, revision, timestamp,
                             dittoHeaders);
                 });
     }
@@ -174,12 +176,12 @@ public final class FeaturePropertyDeleted extends AbstractThingEvent<FeatureProp
 
     @Override
     public FeaturePropertyDeleted setRevision(final long revision) {
-        return of(getThingId(), featureId, propertyPointer, revision, getTimestamp().orElse(null), getDittoHeaders());
+        return of(getThingEntityId(), featureId, propertyPointer, revision, getTimestamp().orElse(null), getDittoHeaders());
     }
 
     @Override
     public FeaturePropertyDeleted setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingId(), featureId, propertyPointer, getRevision(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getThingEntityId(), featureId, propertyPointer, getRevision(), getTimestamp().orElse(null), dittoHeaders);
     }
 
     @Override

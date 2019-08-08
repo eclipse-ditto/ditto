@@ -35,6 +35,7 @@ import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.model.thingsearch.SearchModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchResult;
 
@@ -66,17 +67,20 @@ public final class SearchModelJsonExamplesProducer {
     private static void produceSearchModel(final Path rootPath) throws IOException {
         final Path modelDir = rootPath.resolve(Paths.get("model"));
         Files.createDirectories(modelDir);
+        final String namespace = "org.eclipse.ditto.example";
+        final ThingId thingId1 = ThingId.of(namespace, "thing1");
+        final ThingId thingId2 = ThingId.of(namespace, "thing2");
 
         final AuthorizationSubject authorizationSubject = newAuthSubject("the_acl_subject");
         final AccessControlList accessControlList = ThingsModelFactory.newAclBuilder() //
                 .set(newAclEntry(authorizationSubject, Permission.READ, Permission.WRITE, Permission.ADMINISTRATE)) //
                 .build();
         final Thing thing1 = ThingsModelFactory.newThingBuilder() //
-                .setId("org.eclipse.ditto.example:thing1") //
+                .setId(thingId1) //
                 .setPermissions(accessControlList) //
                 .build();
         final Thing thing2 = ThingsModelFactory.newThingBuilder() //
-                .setId("org.eclipse.ditto.example:thing2") //
+                .setId(thingId2) //
                 .setPermissions(accessControlList) //
                 .build();
 

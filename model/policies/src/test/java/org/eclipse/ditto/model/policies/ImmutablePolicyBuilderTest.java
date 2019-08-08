@@ -25,6 +25,7 @@ import java.util.Collections;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -34,7 +35,7 @@ import org.junit.Test;
 public final class ImmutablePolicyBuilderTest {
 
     private static final String POLICY_NS = "com.test";
-    private static final String POLICY_ID = POLICY_NS + ":test";
+    private static final PolicyId POLICY_ID = PolicyId.of(POLICY_NS, "test");
     private static final JsonPointer ATTRIBUTES_POINTER = JsonFactory.newPointer("/attributes");
     private static final JsonPointer FEATURES_POINTER = JsonFactory.newPointer("/features");
 
@@ -56,9 +57,9 @@ public final class ImmutablePolicyBuilderTest {
 
     @Test
     public void tryToSetNullPolicyId() {
-        assertThatExceptionOfType(PolicyIdInvalidException.class)
+        assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> underTest.setId(null))
-                .withMessage("The ID is not valid because it was 'null'!")
+                .withMessage("The Policy ID must not be null!")
                 .withNoCause();
     }
 
@@ -152,7 +153,7 @@ public final class ImmutablePolicyBuilderTest {
                 .setRevokedPermissionsFor(support, "thing", FEATURES_POINTER, PERMISSION_READ, PERMISSION_WRITE)
                 .build();
 
-        final String newPolicyId = "com.policy:foobar2000";
+        final PolicyId newPolicyId = PolicyId.of("com.policy", "foobar2000");
         final String newEndUser = "NewEndUser";
         final SubjectId newUserSubjectId = SubjectId.newInstance(SubjectIssuer.GOOGLE, "newUserSubjectId");
 

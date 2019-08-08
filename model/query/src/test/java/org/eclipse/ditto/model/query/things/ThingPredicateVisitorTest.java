@@ -22,10 +22,10 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
-import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.junit.Test;
 
 /**
@@ -37,7 +37,7 @@ public final class ThingPredicateVisitorTest {
     private static final QueryFilterCriteriaFactory queryFilterCriteriaFactory =
             new QueryFilterCriteriaFactory(criteriaFactory, new ModelBasedThingsFieldExpressionFactory());
 
-    private static final String MATCHING_THING_ID = "org.eclipse.ditto:foo-matching";
+    private static final ThingId MATCHING_THING_ID = ThingId.of("org.eclipse.ditto", "foo-matching");
     private static final int MATCHING_THING_INTEGER = 42;
     private static final long MATCHING_THING_LONG = 42456489489489L;
     private static final double MATCHING_THING_DOUBLE = 22.26;
@@ -59,7 +59,8 @@ public final class ThingPredicateVisitorTest {
             )
             .build();
 
-    private static final String NON_MATCHING_THING_LESSER_ID = "org.eclipse.ditto:foo-nonmatching-lesser";
+    private static final ThingId NON_MATCHING_THING_LESSER_ID =
+            ThingId.of("org.eclipse.ditto", "foo-nonmatching-lesser");
     private static final int NON_MATCHING_THING_LESSER_INTEGER = MATCHING_THING_INTEGER / 2;
     private static final long NON_MATCHING_THING_LESSER_LONG = MATCHING_THING_LONG / 2;
     private static final double NON_MATCHING_THING_LESSER_DOUBLE = MATCHING_THING_DOUBLE / 2.0;
@@ -81,7 +82,8 @@ public final class ThingPredicateVisitorTest {
             )
             .build();
 
-    private static final String NON_MATCHING_THING_GREATER_ID = "org.eclipse.ditto:foo-nonmatching-greater";
+    private static final ThingId NON_MATCHING_THING_GREATER_ID =
+            ThingId.of("org.eclipse.ditto", "foo-nonmatching-greater");
     private static final int NON_MATCHING_THING_GREATER_INTEGER = MATCHING_THING_INTEGER * 2;
     private static final long NON_MATCHING_THING_GREATER_LONG = MATCHING_THING_LONG * 2;
     private static final double NON_MATCHING_THING_GREATER_DOUBLE = MATCHING_THING_DOUBLE * 2.0;
@@ -158,7 +160,7 @@ public final class ThingPredicateVisitorTest {
 
     @Test
     public void testFilterThingIdWithStringEq() {
-        testPredicate(NON_MATCHING_THING_LESSER, "eq", "thingId", MATCHING_THING_ID);
+        testPredicate(NON_MATCHING_THING_LESSER, "eq", "thingId", MATCHING_THING_ID.toString());
     }
 
     @Test
@@ -168,7 +170,7 @@ public final class ThingPredicateVisitorTest {
 
     @Test
     public void testFilterThingIdWithStringNe() {
-        testPredicate(NON_MATCHING_THING_LESSER, "ne", "thingId", NON_MATCHING_THING_LESSER_ID);
+        testPredicate(NON_MATCHING_THING_LESSER, "ne", "thingId", NON_MATCHING_THING_LESSER_ID.toString());
     }
 
     @Test
@@ -358,7 +360,7 @@ public final class ThingPredicateVisitorTest {
     public void testFilterThingIdWithStringLike() {
         testPredicate(null, "like", "thingId", "org.eclipse.ditto*");
         testPredicate(null, "like", "thingId", "*matching*");
-        testPredicate(null, "like", "thingId", MATCHING_THING_ID.replace('r', '?'));
+        testPredicate(null, "like", "thingId", MATCHING_THING_ID.toString().replace('r', '?'));
     }
 
     @Test

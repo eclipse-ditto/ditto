@@ -19,6 +19,7 @@ import org.eclipse.ditto.model.enforcers.testbench.scenarios.Scenario;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 
 
@@ -37,7 +38,7 @@ public interface Scenario4MultipleSubjects extends Scenario {
     String SUBJECT_9 = "gid_9";
 
     Policy POLICY = PoliciesModelFactory //
-            .newPolicyBuilder("benchmark:" + Scenario4MultipleSubjects.class.getSimpleName()) //
+            .newPolicyBuilder(PolicyId.of("benchmark", Scenario4MultipleSubjects.class.getSimpleName())) //
             .forLabel("one") //
             .setSubject(SubjectIssuer.GOOGLE, SUBJECT_1) //
             .setSubject(SubjectIssuer.GOOGLE, SUBJECT_2) //

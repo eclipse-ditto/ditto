@@ -39,7 +39,7 @@ public class FeaturePropertyDeletedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, FeaturePropertyDeleted.TYPE)
             .set(Event.JsonFields.REVISION, Thing.REVISION_NUMBER)
-            .set(ThingEvent.JsonFields.THING_ID, Thing.THING_ID)
+            .set(ThingEvent.JsonFields.THING_ID, Thing.THING_ID.toString())
             .set(ThingEvent.JsonFields.FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(FeaturePropertyDeleted.JSON_PROPERTY, PROPERTY_JSON_POINTER.toString())
             .build();
@@ -101,7 +101,7 @@ public class FeaturePropertyDeletedTest {
                 FeaturePropertyDeleted.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getThingId()).isEqualTo(Thing.THING_ID);
+        assertThat((CharSequence) underTest.getThingEntityId()).isEqualTo(Thing.THING_ID);
         assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
         assertThat(underTest.getPropertyPointer()).isEqualTo(PROPERTY_JSON_POINTER);
     }

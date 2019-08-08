@@ -19,6 +19,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.signals.events.base.Event;
 
 /**
@@ -52,12 +53,23 @@ public interface PolicyEvent<T extends PolicyEvent> extends Event<T> {
      * Returns the identifier of the {@code Policy} related to this event.
      *
      * @return the identifier of the Policy related to this event.
+     * @deprecated policyId is now typed. Use {@link #getPolicyEntityId()} instead.
      */
-    String getPolicyId();
+    @Deprecated
+    default String getPolicyId() {
+        return String.valueOf(getPolicyEntityId());
+    }
+
+    /**
+     * Returns the identifier of the {@code Policy} related to this event.
+     *
+     * @return the identifier of the Policy related to this event.
+     */
+    PolicyId getPolicyEntityId();
 
     @Override
-    default String getId() {
-        return getPolicyId();
+    default PolicyId getEntityId() {
+        return getPolicyEntityId();
     }
 
     @Override

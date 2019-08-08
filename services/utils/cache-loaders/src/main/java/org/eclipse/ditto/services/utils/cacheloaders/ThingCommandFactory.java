@@ -15,8 +15,10 @@ package org.eclipse.ditto.services.utils.cacheloaders;
 import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.slf4j.Logger;
@@ -38,8 +40,26 @@ final class ThingCommandFactory {
      *
      * @param thingId the thingId.
      * @return the created command.
+     * @deprecated thing ID is now typed. Use {@link #sudoRetrieveThing(org.eclipse.ditto.model.things.id.ThingId)}
+     * instead.
      */
+    @Deprecated
     static SudoRetrieveThing sudoRetrieveThing(final String thingId) {
+        return sudoRetrieveThing(ThingId.of(thingId));
+    }
+
+
+    static SudoRetrieveThing sudoRetrieveThing(final EntityId thingId) {
+        return sudoRetrieveThing(ThingId.asThingId(thingId));
+    }
+
+    /**
+     * Creates a sudo command for retrieving a thing.
+     *
+     * @param thingId the thingId.
+     * @return the created command.
+     */
+    static SudoRetrieveThing sudoRetrieveThing(final ThingId thingId) {
         LOGGER.debug("Sending SudoRetrieveThing for Thing with ID <{}>", thingId);
         final JsonFieldSelector jsonFieldSelector = JsonFieldSelector.newInstance(
                 Thing.JsonFields.ID.getPointer(),
@@ -50,7 +70,7 @@ final class ThingCommandFactory {
                 DittoHeaders.newBuilder().correlationId(getCorrelationId(thingId)).build());
     }
 
-    private static String getCorrelationId(final String thingId) {
+    private static String getCorrelationId(final ThingId thingId) {
         return LogUtil.getCorrelationId(() -> {
             final String correlationId = UUID.randomUUID().toString();
             LOGGER.debug("Found no correlation-id for SudoRetrieveThing on Thing <{}>. " +

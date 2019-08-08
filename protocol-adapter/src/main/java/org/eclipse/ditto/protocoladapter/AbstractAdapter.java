@@ -43,6 +43,7 @@ import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.id.ThingId;
 
 /**
  * Abstract implementation of {@link Adapter} to provide common functionality.
@@ -85,9 +86,9 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
         return adaptable.getPayload().getFields().orElse(null);
     }
 
-    protected static String thingIdFrom(final Adaptable adaptable) {
+    protected static ThingId thingIdFrom(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();
-        return topicPath.getNamespace() + ":" + topicPath.getId();
+        return ThingId.of(topicPath.getNamespace(), topicPath.getId());
     }
 
     protected static Thing thingFrom(final Adaptable adaptable) {

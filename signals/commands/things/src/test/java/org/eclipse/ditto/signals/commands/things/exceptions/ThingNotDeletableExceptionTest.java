@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.junit.Test;
@@ -63,23 +64,25 @@ public final class ThingNotDeletableExceptionTest {
 
     @Test
     public void checkMessageV1() {
-        final DittoRuntimeException createdException = ThingNotDeletableException.newBuilder("myThing")
+        final ThingId thingId = ThingId.of("foo", "bar");
+        final DittoRuntimeException createdException = ThingNotDeletableException.newBuilder(thingId)
                 .dittoHeaders(DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.V_1).build())
                 .build();
 
-        final String expectedMessage = "The Thing with ID 'myThing' could not be deleted as the requester "
-                + "had insufficient permissions ( WRITE and ADMINISTRATE are required).";
+        final String expectedMessage = "The Thing with ID '"+thingId.toString()+ "' could not be deleted as the " +
+                "requester had insufficient permissions ( WRITE and ADMINISTRATE are required).";
         assertThat(createdException.getMessage()).isEqualTo(expectedMessage);
     }
 
     @Test
     public void checkMessageV2() {
-        final DittoRuntimeException createdException = ThingNotDeletableException.newBuilder("myThing")
+        final ThingId thingId = ThingId.of("foo", "bar");
+        final DittoRuntimeException createdException = ThingNotDeletableException.newBuilder(thingId)
                 .dittoHeaders(DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.V_2).build())
                 .build();
 
-        final String expectedMessage = "The Thing with ID 'myThing' could not be deleted as the requester "
-                + "had insufficient permissions ( WRITE on root resource is required).";
+        final String expectedMessage = "The Thing with ID '"+thingId.toString()+"' could not be deleted as the " +
+                "requester had insufficient permissions ( WRITE on root resource is required).";
         assertThat(createdException.getMessage()).isEqualTo(expectedMessage);
     }
 

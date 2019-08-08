@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.policies.PolicyException;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 
 /**
  * Thrown if a {@link org.eclipse.ditto.model.policies.Resource} could not be modified because the requester had
@@ -64,7 +65,7 @@ public final class ResourceNotModifiableException extends DittoRuntimeException 
      * @param path the path of the Resource.
      * @return the builder.
      */
-    public static Builder newBuilder(final String policyId, final CharSequence label, final CharSequence path) {
+    public static Builder newBuilder(final PolicyId policyId, final CharSequence label, final CharSequence path) {
         return new Builder(policyId, label, path);
     }
 
@@ -114,9 +115,9 @@ public final class ResourceNotModifiableException extends DittoRuntimeException 
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String policyId, final CharSequence label, final CharSequence path) {
+        private Builder(final PolicyId policyId, final CharSequence label, final CharSequence path) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, path, label, policyId));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, path, label, String.valueOf(policyId)));
         }
 
         @Override

@@ -49,13 +49,13 @@ public final class RetrieveAclStrategyTest extends AbstractCommandStrategyTest {
     @Test
     public void resultContainsJsonOfExistingAcl() {
         final Context context = getDefaultContext();
-        final RetrieveAcl command = RetrieveAcl.of(context.getThingId(), DittoHeaders.empty());
+        final RetrieveAcl command = RetrieveAcl.of(context.getThingEntityId(), DittoHeaders.empty());
 
         final AccessControlList expectedAcl = THING_V1.getAccessControlList().get();
         final JsonObject expectedAclJson = expectedAcl.toJson(JsonSchemaVersion.V_1);
 
         final RetrieveAclResponse expectedResponse =
-                retrieveAclResponse(command.getThingId(), expectedAcl, expectedAclJson, command.getDittoHeaders());
+                retrieveAclResponse(command.getThingEntityId(), expectedAcl, expectedAclJson, command.getDittoHeaders());
 
         assertQueryResult(underTest, THING_V1, command, expectedResponse);
     }
@@ -63,9 +63,9 @@ public final class RetrieveAclStrategyTest extends AbstractCommandStrategyTest {
     @Test
     public void resultContainsEmptyJsonObject() {
         final Context context = getDefaultContext();
-        final RetrieveAcl command = RetrieveAcl.of(context.getThingId(), DittoHeaders.empty());
+        final RetrieveAcl command = RetrieveAcl.of(context.getThingEntityId(), DittoHeaders.empty());
         final RetrieveAclResponse expectedResponse =
-                RetrieveAclResponse.of(command.getThingId(), JsonFactory.newObject(), command.getDittoHeaders());
+                RetrieveAclResponse.of(command.getThingEntityId(), JsonFactory.newObject(), command.getDittoHeaders());
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
     }

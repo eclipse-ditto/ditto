@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.base.ErrorRegistry;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
@@ -254,7 +255,8 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
                         .orElse(JsonFactory.nullObject())) // only use the error payload
                 .build();
 
-        final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(thingErrorResponse.getId());
+        final TopicPathBuilder topicPathBuilder =
+                ProtocolFactory.newTopicPathBuilder(thingErrorResponse.getThingEntityId());
         final TopicPathBuildable topicPathBuildable;
         if (channel == TopicPath.Channel.TWIN) {
             topicPathBuildable = topicPathBuilder.twin().errors();
@@ -394,7 +396,7 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
                 })
                 .orElseThrow(() -> new JsonMissingFieldException(ThingCommandResponse.JsonFields.PAYLOAD));
 
-        final String thingId = topicPath.getNamespace() + ":" + topicPath.getId();
+        final ThingId thingId = ThingId.of(topicPath.getNamespace(), topicPath.getId());
         return ThingErrorResponse.of(thingId, dittoRuntimeException, dittoRuntimeException.getDittoHeaders());
     }
 

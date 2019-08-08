@@ -13,6 +13,7 @@
 package org.eclipse.ditto.model.placeholders;
 
 import org.eclipse.ditto.model.connectivity.Enforcement;
+import org.eclipse.ditto.model.things.id.ThingId;
 
 /**
  * Factory class that creates instances of {@link EnforcementFilterFactory}s.
@@ -29,8 +30,8 @@ public final class EnforcementFactoryFactory {
      * @param <I> the type from which the input values are resolved
      * @return the new {@link EnforcementFactoryFactory}
      */
-    public static <I> EnforcementFilterFactory<I, String> newEnforcementFilterFactory(final Enforcement enforcement,
-            final Placeholder<I> inputFilter, final Placeholder<String> filterPlaceholderResolver) {
+    private static <O> EnforcementFilterFactory<O, CharSequence > newEnforcementFilterFactory(final Enforcement enforcement,
+            final Placeholder<O> inputFilter, final Placeholder<CharSequence> filterPlaceholderResolver) {
         return new ImmutableEnforcementFilterFactory<>(enforcement, inputFilter, filterPlaceholderResolver);
     }
 
@@ -43,7 +44,7 @@ public final class EnforcementFactoryFactory {
      * @param inputFilter the input filter that is applied to resolve input value
      * @return the new {@link EnforcementFactoryFactory} used to match the input
      */
-    public static <O> EnforcementFilterFactory<O, String> newEnforcementFilterFactory(final Enforcement enforcement,
+    public static <O> EnforcementFilterFactory<O, CharSequence> newEnforcementFilterFactory(final Enforcement enforcement,
             final Placeholder<O> inputFilter) {
         return newEnforcementFilterFactory(enforcement, inputFilter, PlaceholderFactory.newThingPlaceholder());
     }

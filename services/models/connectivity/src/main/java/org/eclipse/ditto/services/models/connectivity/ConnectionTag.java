@@ -12,23 +12,23 @@
  */
 package org.eclipse.ditto.services.models.connectivity;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.services.models.streaming.AbstractEntityIdWithRevision;
 
 /**
  * Represents the ID and revision of a connection.
  */
 @Immutable
-public final class ConnectionTag extends AbstractEntityIdWithRevision {
+public final class ConnectionTag extends AbstractEntityIdWithRevision<EntityId> {
 
-    private ConnectionTag(final String id, final long revision) {
+    private ConnectionTag(final EntityId id, final long revision) {
         super(id, revision);
-    }
-
-    private ConnectionTag(final JsonObject jsonObject) {
-        super(jsonObject);
     }
 
     /**
@@ -38,7 +38,7 @@ public final class ConnectionTag extends AbstractEntityIdWithRevision {
      * @param revision the revision.
      * @return a new {@link org.eclipse.ditto.services.models.connectivity.ConnectionTag}.
      */
-    public static ConnectionTag of(final String id, final long revision) {
+    public static ConnectionTag of(final EntityId id, final long revision) {
         return new ConnectionTag(id, revision);
     }
 
@@ -54,7 +54,10 @@ public final class ConnectionTag extends AbstractEntityIdWithRevision {
      * expected format.
      */
     public static ConnectionTag fromJson(final JsonObject jsonObject) {
-        return new ConnectionTag(jsonObject);
+        checkNotNull(jsonObject, "JSON object");
+        final EntityId connectionId = DefaultEntityId.of(jsonObject.getValueOrThrow(JsonFields.ID));
+        final Long revision = jsonObject.getValueOrThrow(JsonFields.REVISION);
+        return new ConnectionTag(connectionId, revision);
     }
 
 }

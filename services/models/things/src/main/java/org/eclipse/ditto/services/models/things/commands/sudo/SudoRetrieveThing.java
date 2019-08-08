@@ -27,10 +27,12 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
@@ -58,11 +60,11 @@ public final class SudoRetrieveThing extends AbstractCommand<SudoRetrieveThing>
             JsonFactory.newBooleanFieldDefinition("payload/useOriginalSchemaVersion", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
-    private final String thingId;
+    private final ThingId thingId;
     @Nullable private final JsonFieldSelector selectedFields;
     private final boolean useOriginalSchemaVersion;
 
-    private SudoRetrieveThing(final String thingId,
+    private SudoRetrieveThing(final ThingId thingId,
             @Nullable final JsonFieldSelector selectedFields,
             final DittoHeaders dittoHeaders,
             final boolean useOriginalSchemaVersion) {
@@ -81,7 +83,7 @@ public final class SudoRetrieveThing extends AbstractCommand<SudoRetrieveThing>
      * @return a command for retrieving a Thing without authorization.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static SudoRetrieveThing of(final String thingId, final DittoHeaders dittoHeaders) {
+    public static SudoRetrieveThing of(final ThingId thingId, final DittoHeaders dittoHeaders) {
         return of(thingId, null, dittoHeaders);
     }
 
@@ -94,7 +96,7 @@ public final class SudoRetrieveThing extends AbstractCommand<SudoRetrieveThing>
      * @return a command for retrieving a Thing without authorization.
      * @throws NullPointerException if any argument is {@code null} except the {@code selectedFields}
      */
-    public static SudoRetrieveThing of(final String thingId, @Nullable final JsonFieldSelector selectedFields,
+    public static SudoRetrieveThing of(final ThingId thingId, @Nullable final JsonFieldSelector selectedFields,
             final DittoHeaders dittoHeaders) {
 
         return new SudoRetrieveThing(thingId, selectedFields, dittoHeaders, false);
@@ -109,7 +111,7 @@ public final class SudoRetrieveThing extends AbstractCommand<SudoRetrieveThing>
      * @return a command for retrieving a Thing without authorization.
      * @throws NullPointerException if any argument is {@code null} except the {@code selectedFields}.
      */
-    public static SudoRetrieveThing withOriginalSchemaVersion(final String thingId,
+    public static SudoRetrieveThing withOriginalSchemaVersion(final ThingId thingId,
             @Nullable final JsonFieldSelector selectedFields, final DittoHeaders dittoHeaders) {
 
         return new SudoRetrieveThing(thingId, selectedFields, dittoHeaders, true);
@@ -123,7 +125,7 @@ public final class SudoRetrieveThing extends AbstractCommand<SudoRetrieveThing>
      * @return a command for retrieving a Thing without authorization.
      * @throws NullPointerException if any argument is {@code null} except the {@code selectedFields}.
      */
-    public static SudoRetrieveThing withOriginalSchemaVersion(final String thingId,
+    public static SudoRetrieveThing withOriginalSchemaVersion(final ThingId thingId,
             final DittoHeaders dittoHeaders) {
 
         return new SudoRetrieveThing(thingId, null, dittoHeaders, true);
@@ -157,7 +159,8 @@ public final class SudoRetrieveThing extends AbstractCommand<SudoRetrieveThing>
      * expected format.
      */
     public static SudoRetrieveThing fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        final String readThingId = jsonObject.getValueOrThrow(SudoCommand.JsonFields.JSON_THING_ID);
+        final String extractedThingId = jsonObject.getValueOrThrow(SudoCommand.JsonFields.JSON_THING_ID);
+        final ThingId thingId = ThingId.of(extractedThingId);
         final JsonFieldSelector readFieldSelector = jsonObject.getValue(SudoCommand.JsonFields.SELECTED_FIELDS)
                 .map(str -> JsonFactory.newFieldSelector(str, JsonFactory.newParseOptionsBuilder()
                         .withoutUrlDecoding()
@@ -166,11 +169,16 @@ public final class SudoRetrieveThing extends AbstractCommand<SudoRetrieveThing>
                 .orElse(null);
         final boolean isUseOriginalSchemaVersion = jsonObject.getValue(JSON_USE_ORIGINAL_SCHEMA_VERSION).orElse(false);
 
-        return new SudoRetrieveThing(readThingId, readFieldSelector, dittoHeaders, isUseOriginalSchemaVersion);
+        return new SudoRetrieveThing(thingId, readFieldSelector, dittoHeaders, isUseOriginalSchemaVersion);
     }
 
     @Override
     public String getId() {
+        return String.valueOf(getEntityId());
+    }
+
+    @Override
+    public EntityId getEntityId() {
         return thingId;
     }
 
@@ -198,7 +206,7 @@ public final class SudoRetrieveThing extends AbstractCommand<SudoRetrieveThing>
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
 
-        jsonObjectBuilder.set(SudoCommand.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(SudoCommand.JsonFields.JSON_THING_ID, String.valueOf(thingId), predicate);
         jsonObjectBuilder.set(JSON_USE_ORIGINAL_SCHEMA_VERSION, useOriginalSchemaVersion, predicate);
 
         if (null != selectedFields) {

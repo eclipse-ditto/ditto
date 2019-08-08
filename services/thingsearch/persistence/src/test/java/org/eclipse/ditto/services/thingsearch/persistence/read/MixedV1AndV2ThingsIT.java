@@ -20,6 +20,7 @@ import java.util.Collection;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.things.Attributes;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -30,10 +31,10 @@ import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
  */
 public class MixedV1AndV2ThingsIT extends AbstractReadPersistenceITBase {
 
-    private static final String THING_V1_ID1 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingV1_1");
-    private static final String THING_V1_ID2 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingV1_2");
-    private static final String THING_V2_ID1 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingV2_1");
-    private static final String THING_V2_ID2 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingV2_2");
+    private static final ThingId THING_V1_ID1 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingV1_1");
+    private static final ThingId THING_V1_ID2 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingV1_2");
+    private static final ThingId THING_V2_ID1 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingV2_1");
+    private static final ThingId THING_V2_ID2 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingV2_2");
 
     private static final String KNOWN_NUMBER_ATTR = "magicNo";
     private static final String KNOWN_STRING_ATTR = "cuttingEdge";
@@ -87,7 +88,7 @@ public class MixedV1AndV2ThingsIT extends AbstractReadPersistenceITBase {
         final Query query =
                 qbf.newBuilder(cf.fieldCriteria(fef.filterByAttribute(KNOWN_NUMBER_ATTR), cf.lt(200))).build();
 
-        final Collection<String> result = findAll(query, KNOWN_SUBJECTS);
+        final Collection<ThingId> result = findAll(query, KNOWN_SUBJECTS);
         assertThat(result).containsOnly(THING_V1_ID1, THING_V1_ID2, THING_V2_ID1);
     }
 
@@ -107,7 +108,7 @@ public class MixedV1AndV2ThingsIT extends AbstractReadPersistenceITBase {
                 )))
                 .build();
 
-        final Collection<String> result = findAll(query, KNOWN_SUBJECTS);
+        final Collection<ThingId> result = findAll(query, KNOWN_SUBJECTS);
         assertThat(result).containsOnly(THING_V1_ID1, THING_V2_ID2);
     }
 

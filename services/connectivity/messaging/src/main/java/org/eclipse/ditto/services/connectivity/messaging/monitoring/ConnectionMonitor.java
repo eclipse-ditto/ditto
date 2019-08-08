@@ -23,6 +23,7 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.ConnectionMetricsCounter;
@@ -426,7 +427,7 @@ public interface ConnectionMonitor {
          * @return the thing for which the monitoring event was thrown.
          */
         @Nullable
-        String getThingId();
+        ThingId getThingId();
 
         /**
          * @return the headers that were part of the message that caused the monitoring event.

@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.model.thingsearch.SearchModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchQuery;
 import org.eclipse.ditto.model.thingsearch.SearchResult;
@@ -67,9 +68,9 @@ public final class JsonExamplesProducer {
         final Path modelDir = rootPath.resolve(Paths.get("model"));
         Files.createDirectories(modelDir);
 
-        final Thing thing = ThingsModelFactory.newThingBuilder().setId("default:thing1")
+        final Thing thing = ThingsModelFactory.newThingBuilder().setId(ThingId.of("default", "thing1"))
                 .setAttribute(JsonFactory.newPointer("temperature"), JsonFactory.newValue(35L)).build();
-        final Thing thing2 = ThingsModelFactory.newThingBuilder().setId("default:thing2")
+        final Thing thing2 = ThingsModelFactory.newThingBuilder().setId(ThingId.of("default", "thing2"))
                 .setAttribute(JsonFactory.newPointer("temperature"), JsonFactory.newValue(35L)).build();
         final JsonArray items = JsonFactory.newArrayBuilder().add(thing.toJson(), thing2.toJson()).build();
         writeJson(modelDir.resolve(Paths.get("search-model.json")),
@@ -108,11 +109,11 @@ public final class JsonExamplesProducer {
 
 
         final Thing thing = ThingsModelFactory.newThingBuilder()
-                .setId("default:thing1")
+                .setId(ThingId.of("default", "thing1"))
                 .setAttribute(JsonFactory.newPointer("temperature"), JsonFactory.newValue(35L))
                 .build();
         final Thing thing2 = ThingsModelFactory.newThingBuilder()
-                .setId("default:thing2")
+                .setId(ThingId.of("default", "thing2"))
                 .setAttribute(JsonFactory.newPointer("temperature"), JsonFactory.newValue(35L))
                 .build();
         final JsonArray array = JsonFactory.newArrayBuilder()

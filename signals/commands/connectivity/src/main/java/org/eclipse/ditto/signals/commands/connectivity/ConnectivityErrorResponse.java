@@ -26,6 +26,8 @@ import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -131,8 +133,8 @@ public final class ConnectivityErrorResponse extends AbstractCommandResponse<Con
      * @return an empty string.
      */
     @Override
-    public String getConnectionId() {
-        return "";
+    public EntityId getConnectionEntityId() {
+        return DefaultEntityId.NONE_ID;
     }
 
     @Override

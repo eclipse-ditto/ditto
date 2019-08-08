@@ -91,7 +91,7 @@ public final class ModifyThingLiveCommandImplTest {
         assertThat(underTest)
                 .withType(twinCommand.getType())
                 .withDittoHeaders(twinCommand.getDittoHeaders())
-                .withId(twinCommand.getThingId())
+                .withId(twinCommand.getThingEntityId())
                 .withManifest(twinCommand.getManifest())
                 .withResourcePath(twinCommand.getResourcePath());
         assertThat(underTest.getThing()).isEqualTo(twinCommand.getThing());

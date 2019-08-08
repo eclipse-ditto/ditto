@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.signals.commands.things.assertions;
 
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.assertions.AbstractCommandAssert;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
@@ -32,12 +33,12 @@ public abstract class AbstractThingCommandAssert<S extends AbstractThingCommandA
     }
 
     public S withId(final CharSequence expectedId) {
-        return assertThatEquals(actual.getId(), null != expectedId ? String.valueOf(expectedId) : null, "id");
+        return assertThatEquals(actual.getEntityId(), expectedId == null ? null : ThingId.of(expectedId),
+                "id");
     }
 
-    public S withThingId(final CharSequence expectedThingId) {
-        return assertThatEquals(actual.getThingId(), null != expectedThingId ? String.valueOf(expectedThingId) : null,
-                "thingId");
+    public S withId(final ThingId expectedThingId) {
+        return assertThatEquals(actual.getThingEntityId(), expectedThingId, "thingId");
     }
 
 }

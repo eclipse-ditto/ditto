@@ -21,6 +21,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinition;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinitionResponse;
 import org.eclipse.ditto.signals.events.things.FeatureDefinitionDeleted;
@@ -48,7 +49,7 @@ final class DeleteFeatureDefinitionStrategy extends
                 .map(feature -> getDeleteFeatureDefinitionResult(feature, context, nextRevision,
                         command))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featureNotFound(context.getThingId(), command.getFeatureId(),
+                        ExceptionFactory.featureNotFound(context.getThingEntityId(), command.getFeatureId(),
                                 command.getDittoHeaders())));
     }
 
@@ -56,7 +57,7 @@ final class DeleteFeatureDefinitionStrategy extends
             final long nextRevision, final DeleteFeatureDefinition command) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final String thingId = context.getThingId();
+        final ThingId thingId = context.getThingEntityId();
         final String featureId = feature.getId();
 
         return feature.getDefinition()

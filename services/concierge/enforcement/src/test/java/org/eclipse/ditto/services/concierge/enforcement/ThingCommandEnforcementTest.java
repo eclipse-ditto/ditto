@@ -43,15 +43,15 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
+import org.eclipse.ditto.model.policies.id.PolicyId;
+import org.eclipse.ditto.model.policies.id.PolicyIdInvalidException;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
-import org.eclipse.ditto.model.things.ThingIdInvalidException;
-import org.eclipse.ditto.model.things.ThingPolicyIdInvalidException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.id.ThingPolicyIdInvalidException;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
@@ -126,7 +126,7 @@ public final class ThingCommandEnforcementTest {
 
     @Test
     public void rejectByPolicy() {
-        final String policyId = "empty:policy";
+        final PolicyId policyId = PolicyId.of("empty:policy");
         final JsonObject thingWithEmptyPolicy = newThingWithPolicyId(policyId);
         final JsonObject emptyPolicy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .setRevision(1L)
@@ -177,7 +177,7 @@ public final class ThingCommandEnforcementTest {
 
     @Test
     public void rejectQueryByPolicyNotAccessibleException() {
-        final String policyId = "not:accessible";
+        final PolicyId policyId = PolicyId.of("not:accessible");
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                 SudoRetrieveThingResponse.of(newThingWithPolicyId(policyId), DittoHeaders.empty());
 
@@ -196,7 +196,7 @@ public final class ThingCommandEnforcementTest {
 
     @Test
     public void rejectUpdateByPolicyNotAccessibleException() {
-        final String policyId = "not:accessible";
+        final PolicyId policyId = PolicyId.of("not:accessible");
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                 SudoRetrieveThingResponse.of(newThingWithPolicyId(policyId), DittoHeaders.empty());
 
@@ -236,7 +236,7 @@ public final class ThingCommandEnforcementTest {
 
     @Test
     public void rejectCreateByOwnPolicy() {
-        final String policyId = "empty:policy";
+        final PolicyId policyId = PolicyId.of("empty:policy");
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .forLabel("dummy")
                 .setSubject(GOOGLE, "not-subject")
@@ -274,19 +274,20 @@ public final class ThingCommandEnforcementTest {
             final ThingCommand read = readCommand();
             mockEntitiesActorInstance.setReply(read);
             underTest.tell(read, getRef());
-            assertThat(fishForMsgClass(this, read.getClass()).getId()).isEqualTo(read.getId());
+            assertThat((CharSequence) fishForMsgClass(this, read.getClass()).getEntityId()).isEqualTo(
+                    read.getEntityId());
 
             final ThingCommand write = writeCommand();
             mockEntitiesActorInstance.setReply(write);
             underTest.tell(write, getRef());
-            assertThat(expectMsgClass(write.getClass()).getId()).isEqualTo(write.getId());
+            assertThat((CharSequence) expectMsgClass(write.getClass()).getEntityId()).isEqualTo(write.getEntityId());
         }};
 
     }
 
     @Test
     public void acceptByPolicy() {
-        final String policyId = "policy:id";
+        final PolicyId policyId = PolicyId.of("policy:id");
         final JsonObject thingWithPolicy = newThingWithPolicyId(policyId);
         final JsonObject policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .setRevision(1L)
@@ -311,21 +312,23 @@ public final class ThingCommandEnforcementTest {
             final ThingCommand write = writeCommand();
             mockEntitiesActorInstance.setReply(write);
             underTest.tell(write, getRef());
-            assertThat(fishForMsgClass(this, write.getClass()).getId()).isEqualTo(write.getId());
+            assertThat((CharSequence) fishForMsgClass(this, write.getClass()).getEntityId()).isEqualTo(
+                    write.getEntityId());
 
             final ThingCommand read = readCommand();
             final RetrieveThingResponse retrieveThingResponse =
                     RetrieveThingResponse.of(THING_ID, JsonFactory.newObject(), DittoHeaders.empty());
             mockEntitiesActorInstance.setReply(retrieveThingResponse);
             underTest.tell(read, getRef());
-            assertThat(expectMsgClass(retrieveThingResponse.getClass()).getId()).isEqualTo(read.getId());
+            assertThat((CharSequence) expectMsgClass(retrieveThingResponse.getClass()).getEntityId()).isEqualTo(
+                    read.getEntityId());
         }};
     }
 
     @Test
     public void acceptByPolicyWithRevokeOnAttribute() {
-        final String policyId = "policy:id";
-        final JsonObject thingWithPolicy = newThingWithAttributeWithPolicyId(policyId);
+        final PolicyId policyId = PolicyId.of("policy:id");
+        final JsonObject thingWithPolicy = newThingWithAttributeWithPolicyId(policyId.toString());
         final JsonObject policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .setRevision(1L)
                 .forLabel("authorize-self")
@@ -351,7 +354,8 @@ public final class ThingCommandEnforcementTest {
             final ThingCommand write = writeCommand();
             mockEntitiesActorInstance.setReply(write);
             underTest.tell(write, getRef());
-            assertThat(fishForMsgClass(this, write.getClass()).getId()).isEqualTo(write.getId());
+            assertThat((CharSequence) fishForMsgClass(this, write.getClass()).getEntityId()).isEqualTo(
+                    write.getEntityId());
 
             final ThingCommand read = readCommand();
 
@@ -367,7 +371,8 @@ public final class ThingCommandEnforcementTest {
 
             final RetrieveThingResponse retrieveThingResponse =
                     expectMsgClass(retrieveThingResponseWithoutAttr.getClass());
-            assertThat(retrieveThingResponse.getId()).isEqualTo(retrieveThingResponseWithoutAttr.getId());
+            assertThat((CharSequence) retrieveThingResponse.getEntityId()).isEqualTo(
+                    retrieveThingResponseWithoutAttr.getEntityId());
             DittoJsonAssertions.assertThat(retrieveThingResponse.getEntity())
                     .hasJsonString(retrieveThingResponseWithoutAttr.getEntity().toString());
         }};
@@ -394,7 +399,8 @@ public final class ThingCommandEnforcementTest {
 
     @Test
     public void acceptCreateByInlinePolicy() {
-        final Policy policy = PoliciesModelFactory.newPolicyBuilder(THING_ID)
+        final PolicyId policyId = PolicyId.of(THING_ID);
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .forLabel("authorize-self")
                 .setSubject(GOOGLE, SUBJECT.getId())
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()), WRITE.name())
@@ -409,7 +415,7 @@ public final class ThingCommandEnforcementTest {
             final ActorRef underTest = newEnforcerActor(getRef());
             final CreateThing createThing = CreateThing.of(thing, policy.toJson(), headers(V_2));
             mockEntitiesActorInstance.setReply(CreateThingResponse.of(thing, headers(V_2)))
-                    .setReply(CreatePolicyResponse.of(THING_ID, policy, headers(V_2)));
+                    .setReply(CreatePolicyResponse.of(policyId, policy, headers(V_2)));
             underTest.tell(createThing, getRef());
             final CreateThingResponse expectedCreateThingResponse = fishForMsgClass(this, CreateThingResponse.class);
             assertThat(expectedCreateThingResponse.getThingCreated().orElse(null)).isEqualTo(thing);
@@ -420,11 +426,12 @@ public final class ThingCommandEnforcementTest {
     @Test
     public void acceptCreateByImplicitPolicyAndInvalidateCache() {
         final Thing thing = newThing().build();
-        final Policy policy = PoliciesModelFactory.newPolicyBuilder(THING_ID).build();
+        final PolicyId policyId = PolicyId.of(THING_ID);
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId).build();
         final AtomicInteger sudoRetrieveThingCounter = new AtomicInteger(0);
         new TestKit(system) {{
             mockEntitiesActorInstance.setReply(CreateThingResponse.of(thing, headers(V_2)))
-                    .setReply(CreatePolicyResponse.of(THING_ID, policy, headers(V_2)))
+                    .setReply(CreatePolicyResponse.of(policyId, policy, headers(V_2)))
                     .setHandler(THING_SUDO, sudo -> {
                         sudoRetrieveThingCounter.getAndIncrement();
                         return ThingNotAccessibleException.newBuilder(THING_ID).build();
@@ -450,7 +457,8 @@ public final class ThingCommandEnforcementTest {
 
     @Test
     public void acceptCreateByInlinePolicyWithDifferentId() {
-        final Policy policy = PoliciesModelFactory.newPolicyBuilder("policy:id")
+        final PolicyId policyId = PolicyId.of("policy:id");
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .forLabel("authorize-self")
                 .setSubject(GOOGLE, SUBJECT.getId())
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()), WRITE.name())
@@ -465,7 +473,7 @@ public final class ThingCommandEnforcementTest {
             final ActorRef underTest = newEnforcerActor(getRef());
             final CreateThing createThing = CreateThing.of(thing, policy.toJson(), headers(V_2));
             mockEntitiesActorInstance.setReply(CreateThingResponse.of(thing, headers(V_2)))
-                    .setReply(CreatePolicyResponse.of(THING_ID, policy, headers(V_2)));
+                    .setReply(CreatePolicyResponse.of(PolicyId.of(THING_ID), policy, headers(V_2)));
             underTest.tell(createThing, getRef());
             final CreateThingResponse expectedCreateThingResponse = fishForMsgClass(this, CreateThingResponse.class);
             assertThat(expectedCreateThingResponse.getThingCreated().orElse(null)).isEqualTo(thing);
@@ -475,7 +483,8 @@ public final class ThingCommandEnforcementTest {
 
     @Test
     public void rejectCreateByInlinePolicyWithInvalidId() {
-        final Policy policy = PoliciesModelFactory.newPolicyBuilder(THING_ID)
+        final PolicyId policyId = PolicyId.of(THING_ID);
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .forLabel("authorize-self")
                 .setSubject(GOOGLE, SUBJECT.getId())
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()), WRITE.name())
@@ -492,7 +501,7 @@ public final class ThingCommandEnforcementTest {
             final ActorRef underTest = newEnforcerActor(getRef());
             final CreateThing createThing = CreateThing.of(thing, invalidPolicyJson, headers(V_2));
             mockEntitiesActorInstance.setReply(CreateThingResponse.of(thing, headers(V_2)))
-                    .setReply(CreatePolicyResponse.of(THING_ID, policy, headers(V_2)));
+                    .setReply(CreatePolicyResponse.of(policyId, policy, headers(V_2)));
             underTest.tell(createThing, getRef());
 
             // result may not be an instance of PolicyIdInvalidException but should have the same error code.
@@ -503,7 +512,8 @@ public final class ThingCommandEnforcementTest {
 
     @Test
     public void rejectCreateByInvalidPolicy() {
-        final Policy policy = PoliciesModelFactory.newPolicyBuilder(THING_ID)
+        final PolicyId policyId = PolicyId.of(THING_ID);
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .forLabel("authorize-self")
                 .setSubject(GOOGLE, SUBJECT.getId())
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()), WRITE.name())
@@ -521,7 +531,7 @@ public final class ThingCommandEnforcementTest {
             final ActorRef underTest = newEnforcerActor(getRef());
             final CreateThing createThing = CreateThing.of(thing, invalidPolicyJson, headers(V_2));
             mockEntitiesActorInstance.setReply(CreateThingResponse.of(thing, headers(V_2)))
-                    .setReply(CreatePolicyResponse.of(THING_ID, policy, headers(V_2)));
+                    .setReply(CreatePolicyResponse.of(policyId, policy, headers(V_2)));
             underTest.tell(createThing, getRef());
 
             // result may not be an instance of PolicyInvalidException but should have the same error code.
@@ -548,19 +558,6 @@ public final class ThingCommandEnforcementTest {
     }
 
     @Test
-    public void rejectCreateThingByInvalidThingId() {
-        final String badId = ":::::::";
-        final Thing thingInPayload = newThing().setId(badId).build();
-
-        new TestKit(system) {{
-            final ActorRef underTest = TestSetup.newEnforcerActor(system, getRef(), getRef());
-            final CreateThing createThing = CreateThing.of(thingInPayload, null, headers(V_1));
-            underTest.tell(createThing, getRef());
-            fishForMsgClass(this, ThingIdInvalidException.class);
-        }};
-    }
-
-    @Test
     public void rejectCreateThingByInvalidPolicyId() {
         final String badId = ":::::::";
         final Thing thingInPayload = newThing().setId(THING_ID).setPolicyId(badId).build();
@@ -577,9 +574,9 @@ public final class ThingCommandEnforcementTest {
         return TestSetup.newEnforcerActor(system, testActorRef, mockEntitiesActor);
     }
 
-    private static JsonObject newThingWithPolicyId(final String policyId) {
+    private static JsonObject newThingWithPolicyId(final CharSequence policyId) {
         return newThing()
-                .setPolicyId(policyId)
+                .setPolicyId(policyId.toString())
                 .build()
                 .toJson(V_2, FieldType.all());
     }

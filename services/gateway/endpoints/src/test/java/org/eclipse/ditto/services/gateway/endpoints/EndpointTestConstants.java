@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints;
 
+import org.eclipse.ditto.model.things.id.ThingId;
+
 import akka.http.javadsl.model.StatusCode;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.model.headers.BasicHttpCredentials;
@@ -24,7 +26,7 @@ public final class EndpointTestConstants {
 
     public static final String KNOWN_FEATURE_ID = "knownFeatureId";
     public static final String KNOWN_NS = "org.eclipse.ditto.test";
-    public static final String KNOWN_THING_ID = KNOWN_NS + ":dummyThingId";
+    public static final ThingId KNOWN_THING_ID = ThingId.of(KNOWN_NS + ":dummyThingId");
 
     public static final String UNKNOWN_PATH = "/doesNotExist";
     public static final String KNOWN_SUBJECT = "knownSubject";

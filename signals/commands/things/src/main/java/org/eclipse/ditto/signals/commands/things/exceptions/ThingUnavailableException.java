@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.things.ThingException;
+import org.eclipse.ditto.model.things.id.ThingId;
 
 /**
  * Thrown if the Thing exists but is not available at the moment.
@@ -61,7 +62,7 @@ public final class ThingUnavailableException extends DittoRuntimeException imple
      * @param thingId the ID of the thing.
      * @return the builder.
      */
-    public static Builder newBuilder(final String thingId) {
+    public static Builder newBuilder(final ThingId thingId) {
         return new Builder(thingId);
     }
 
@@ -108,9 +109,9 @@ public final class ThingUnavailableException extends DittoRuntimeException imple
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String thingId) {
+        private Builder(final ThingId thingId) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, thingId));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, String.valueOf(thingId)));
         }
 
         @Override

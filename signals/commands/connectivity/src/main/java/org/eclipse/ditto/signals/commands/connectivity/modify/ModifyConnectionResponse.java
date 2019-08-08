@@ -28,6 +28,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -55,10 +57,10 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
             JsonFactory.newJsonObjectFieldDefinition("connection", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final String connectionId;
+    private final EntityId connectionId;
     @Nullable private final Connection connectionCreated;
 
-    private ModifyConnectionResponse(final String connectionId,
+    private ModifyConnectionResponse(final EntityId connectionId,
             final HttpStatusCode statusCode,
             @Nullable final Connection connectionCreated,
             final DittoHeaders dittoHeaders) {
@@ -91,7 +93,7 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
      * @return a new ModifyConnectionResponse.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ModifyConnectionResponse modified(final String connectionId, final DittoHeaders dittoHeaders) {
+    public static ModifyConnectionResponse modified(final EntityId connectionId, final DittoHeaders dittoHeaders) {
         return new ModifyConnectionResponse(connectionId, HttpStatusCode.NO_CONTENT, null, dittoHeaders);
     }
 
@@ -125,11 +127,13 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
                 statusCode -> {
                     final String readConnectionId =
                             jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
+                    final EntityId connectionId = DefaultEntityId.of(readConnectionId);
+
                     final Connection readConnection= jsonObject.getValue(JSON_CONNECTION)
                             .map(ConnectivityModelFactory::connectionFromJson)
                             .orElse(null);
 
-                    return new ModifyConnectionResponse(readConnectionId, statusCode, readConnection, dittoHeaders);
+                    return new ModifyConnectionResponse(connectionId, statusCode, readConnection, dittoHeaders);
                 });
     }
 
@@ -147,14 +151,15 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
 
-        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, connectionId, predicate);
+        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId),
+                predicate);
         if (connectionCreated != null) {
             jsonObjectBuilder.set(JSON_CONNECTION, connectionCreated.toJson(schemaVersion, thePredicate), predicate);
         }
     }
 
     @Override
-    public String getConnectionId() {
+    public EntityId getConnectionEntityId() {
         return connectionId;
     }
 

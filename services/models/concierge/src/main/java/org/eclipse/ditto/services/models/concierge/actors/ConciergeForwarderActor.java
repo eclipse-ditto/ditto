@@ -16,6 +16,8 @@ import static org.eclipse.ditto.services.models.concierge.ConciergeMessagingCons
 
 import java.util.function.Function;
 
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.services.models.concierge.ConciergeWrapper;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
@@ -104,12 +106,12 @@ public class ConciergeForwarderActor extends AbstractActor {
         final Signal<?> transformedSignal = signalTransformer.apply(signal);
 
         LogUtil.enhanceLogWithCorrelationId(log, signal);
-        final String signalId = transformedSignal.getId();
+        final EntityId signalId = transformedSignal.getEntityId();
         final String signalType = transformedSignal.getType();
-        if (signalId.isEmpty()) {
-            log.info("Sending signal without ID and type <{}> to concierge-dispatcherActor", signalType);
-            log.debug("Sending signal without ID and type <{}> to concierge-dispatcherActor: <{}>", signalType,
-                    transformedSignal);
+        if (DefaultEntityId.NONE_ID.equals(signalId)) {
+            log.info("Sending signal without ID and type <{}> via pubSub to concierge-dispatcherActor", signalType);
+            log.debug("Sending signal without ID and type <{}> via pubSub to concierge-dispatcherActor: <{}>",
+                    signalType, transformedSignal);
             final DistributedPubSubMediator.Send msg = wrapForPubSub(transformedSignal);
             log.debug("Forwarding message to concierge-dispatcherActor via pub/sub: <{}>.", msg);
             pubSubMediator.forward(msg, ctx);

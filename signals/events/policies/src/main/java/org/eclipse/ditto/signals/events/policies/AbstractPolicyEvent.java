@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.signals.events.base.Event;
 
 /**
@@ -40,7 +41,7 @@ import org.eclipse.ditto.signals.events.base.Event;
 public abstract class AbstractPolicyEvent<T extends AbstractPolicyEvent> implements PolicyEvent<T> {
 
     private final String type;
-    private final String policyId;
+    private final PolicyId policyId;
     private final long revision;
     @Nullable private final Instant timestamp;
     private final DittoHeaders dittoHeaders;
@@ -56,7 +57,7 @@ public abstract class AbstractPolicyEvent<T extends AbstractPolicyEvent> impleme
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
     protected AbstractPolicyEvent(final String type,
-            final String policyId,
+            final PolicyId policyId,
             final long revision,
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
@@ -74,7 +75,7 @@ public abstract class AbstractPolicyEvent<T extends AbstractPolicyEvent> impleme
     }
 
     @Override
-    public String getPolicyId() {
+    public PolicyId getPolicyEntityId() {
         return policyId;
     }
 
@@ -107,7 +108,7 @@ public abstract class AbstractPolicyEvent<T extends AbstractPolicyEvent> impleme
                 .set(Event.JsonFields.TYPE, type)
                 .set(Event.JsonFields.TIMESTAMP, getTimestamp().map(Instant::toString).orElse(null), predicate)
                 .set(Event.JsonFields.REVISION, revision, predicate)
-                .set(JsonFields.POLICY_ID, policyId, predicate);
+                .set(JsonFields.POLICY_ID, String.valueOf(policyId), predicate);
 
         appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
 

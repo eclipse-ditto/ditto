@@ -67,9 +67,9 @@ public final class ShardRegionExtractor implements ShardRegion.MessageExtractor 
     @Override
     public String entityId(final Object message) {
         if (message instanceof ShardedMessageEnvelope) {
-            return ((ShardedMessageEnvelope) message).getId();
+            return ((ShardedMessageEnvelope) message).getEntityId().toString();
         } else if (message instanceof WithId) {
-            return ((WithId) message).getId();
+            return ((WithId) message).getEntityId().toString();
         } else if (message instanceof ShardRegion.StartEntity) {
             return ((ShardRegion.StartEntity) message).entityId();
         }

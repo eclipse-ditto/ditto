@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
@@ -52,7 +53,7 @@ public final class FeaturePropertiesDeleted extends AbstractThingEvent<FeaturePr
 
     private final String featureId;
 
-    private FeaturePropertiesDeleted(final String thingId, final String featureId, final long revision,
+    private FeaturePropertiesDeleted(final ThingId thingId, final String featureId, final long revision,
             @Nullable final Instant timestamp, final DittoHeaders dittoHeaders) {
         super(TYPE, thingId, revision, timestamp, dittoHeaders);
         this.featureId = requireNonNull(featureId, "The Feature ID must not be null!");
@@ -68,7 +69,7 @@ public final class FeaturePropertiesDeleted extends AbstractThingEvent<FeaturePr
      * @return the FeaturePropertiesDeleted created.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static FeaturePropertiesDeleted of(final String thingId, final String featureId, final long revision,
+    public static FeaturePropertiesDeleted of(final ThingId thingId, final String featureId, final long revision,
             final DittoHeaders dittoHeaders) {
         return of(thingId, featureId, revision, null, dittoHeaders);
     }
@@ -84,7 +85,7 @@ public final class FeaturePropertiesDeleted extends AbstractThingEvent<FeaturePr
      * @return the FeaturePropertiesDeleted created.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static FeaturePropertiesDeleted of(final String thingId, final String featureId, final long revision,
+    public static FeaturePropertiesDeleted of(final ThingId thingId, final String featureId, final long revision,
             @Nullable final Instant timestamp, final DittoHeaders dittoHeaders) {
         return new FeaturePropertiesDeleted(thingId, featureId, revision, timestamp, dittoHeaders);
     }
@@ -118,9 +119,10 @@ public final class FeaturePropertiesDeleted extends AbstractThingEvent<FeaturePr
         return new EventJsonDeserializer<FeaturePropertiesDeleted>(TYPE, jsonObject)
                 .deserialize((revision, timestamp) -> {
                     final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
                     final String extractedFeatureId = jsonObject.getValueOrThrow(JsonFields.FEATURE_ID);
 
-                    return of(extractedThingId, extractedFeatureId, revision, timestamp, dittoHeaders);
+                    return of(thingId, extractedFeatureId, revision, timestamp, dittoHeaders);
                 });
     }
 
@@ -137,12 +139,12 @@ public final class FeaturePropertiesDeleted extends AbstractThingEvent<FeaturePr
 
     @Override
     public FeaturePropertiesDeleted setRevision(final long revision) {
-        return of(getThingId(), featureId, revision, getTimestamp().orElse(null), getDittoHeaders());
+        return of(getThingEntityId(), featureId, revision, getTimestamp().orElse(null), getDittoHeaders());
     }
 
     @Override
     public FeaturePropertiesDeleted setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingId(), featureId, getRevision(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getThingEntityId(), featureId, getRevision(), getTimestamp().orElse(null), dittoHeaders);
     }
 
     @Override

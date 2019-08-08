@@ -32,8 +32,8 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
-import org.eclipse.ditto.model.policies.PolicyIdValidator;
 import org.eclipse.ditto.model.policies.Resources;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
@@ -62,16 +62,15 @@ public final class ModifyResources extends AbstractCommand<ModifyResources>
     static final JsonFieldDefinition<JsonObject> JSON_RESOURCES =
             JsonFactory.newJsonObjectFieldDefinition("resources", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String policyId;
+    private final PolicyId policyId;
     private final Label label;
     private final Resources resources;
 
-    private ModifyResources(final String policyId,
+    private ModifyResources(final PolicyId policyId,
             final Label label,
             final Resources resources,
             final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
-        PolicyIdValidator.getInstance().accept(policyId, dittoHeaders);
         this.policyId = policyId;
         this.label = label;
         this.resources = resources;
@@ -89,8 +88,30 @@ public final class ModifyResources extends AbstractCommand<ModifyResources>
      * @param dittoHeaders the headers of the command.
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.id.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.Resources, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static ModifyResources of(final String policyId,
+            final Label label,
+            final Resources resources,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), label, resources, dittoHeaders);
+    }
+
+    /**
+     * Creates a command for modifying {@code Resources} of a {@code Policy}'s {@code PolicyEntry}.
+     *
+     * @param policyId the identifier of the Policy.
+     * @param label the Label of the PolicyEntry.
+     * @param resources the Resources to modify.
+     * @param dittoHeaders the headers of the command.
+     * @return the command.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static ModifyResources of(final PolicyId policyId,
             final Label label,
             final Resources resources,
             final DittoHeaders dittoHeaders) {
@@ -128,7 +149,8 @@ public final class ModifyResources extends AbstractCommand<ModifyResources>
      */
     public static ModifyResources fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyResources>(TYPE, jsonObject).deserialize(() -> {
-            final String policyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+            final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
             final JsonObject resourcesJsonObject = jsonObject.getValueOrThrow(JSON_RESOURCES);
             final Resources resources = PoliciesModelFactory.newResources(resourcesJsonObject);
@@ -161,7 +183,7 @@ public final class ModifyResources extends AbstractCommand<ModifyResources>
      * @return the identifier of the Policy whose PolicyEntry to modify.
      */
     @Override
-    public String getId() {
+    public PolicyId getEntityId() {
         return policyId;
     }
 
@@ -181,7 +203,7 @@ public final class ModifyResources extends AbstractCommand<ModifyResources>
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
         jsonObjectBuilder.set(JSON_RESOURCES, resources.toJson(schemaVersion, thePredicate), predicate);
     }

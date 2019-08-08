@@ -23,7 +23,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.FeatureDefinition;
-import org.eclipse.ditto.model.things.ThingIdInvalidException;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
@@ -37,7 +37,7 @@ public final class ModifyFeatureDefinitionTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, ModifyFeatureDefinition.TYPE)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ModifyFeatureDefinition.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(ModifyFeatureDefinition.JSON_DEFINITION, TestConstants.Feature.FLUX_CAPACITOR_DEFINITION.toJson())
             .build();
@@ -46,7 +46,7 @@ public final class ModifyFeatureDefinitionTest {
     public void assertImmutability() {
         assertInstancesOf(ModifyFeatureDefinition.class,
                 areImmutable(),
-                provided(FeatureDefinition.class).isAlsoImmutable());
+                provided(FeatureDefinition.class, ThingId.class).isAlsoImmutable());
     }
 
     @Test
@@ -58,10 +58,9 @@ public final class ModifyFeatureDefinitionTest {
 
     @Test
     public void tryToCreateInstanceWithNullThingId() {
-        assertThatExceptionOfType(ThingIdInvalidException.class)
+        assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> ModifyFeatureDefinition.of(null, TestConstants.Feature.FLUX_CAPACITOR_ID,
                         TestConstants.Feature.FLUX_CAPACITOR_DEFINITION, TestConstants.EMPTY_DITTO_HEADERS))
-                .withMessage("The ID is not valid because it was 'null'!")
                 .withNoCause();
     }
 
@@ -99,7 +98,7 @@ public final class ModifyFeatureDefinitionTest {
                 ModifyFeatureDefinition.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
         assertThat(underTest.getDefinition()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_DEFINITION);
     }

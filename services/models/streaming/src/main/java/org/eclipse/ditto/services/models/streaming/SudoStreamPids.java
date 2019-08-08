@@ -28,9 +28,11 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
@@ -41,7 +43,7 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 @AllValuesAreNonnullByDefault
 @JsonParsableCommand(typePrefix = SudoStreamPids.TYPE_PREFIX, name = SudoStreamPids.NAME)
 public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
-        implements StartStreamRequest {
+        implements StartStreamRequest, WithIdButActuallyNot {
 
     static final String NAME = "SudoStreamPids";
 
@@ -63,7 +65,7 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
 
     private final long timeoutMillis;
 
-    private final EntityIdWithRevision lowerBound;
+    private final EntityIdWithRevision<?> lowerBound;
 
     private SudoStreamPids(final Integer burst, final Long timeoutMillis, final EntityIdWithRevision lowerBound,
             final DittoHeaders dittoHeaders) {
@@ -135,7 +137,7 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
      * @return whether the command has a non-empty lower bound.
      */
     public boolean hasNonEmptyLowerBound() {
-        return !lowerBound.getId().isEmpty();
+        return !DefaultEntityId.NONE_ID.equals(lowerBound.getEntityId());
     }
 
     @Override
@@ -208,11 +210,6 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
     }
 
     @Override
-    public String getId() {
-        return "";
-    }
-
-    @Override
     public JsonPointer getResourcePath() {
         return JsonPointer.empty();
     }
@@ -225,11 +222,12 @@ public final class SudoStreamPids extends AbstractCommand<SudoStreamPids>
     static final class LowerBound extends AbstractEntityIdWithRevision {
 
         private LowerBound() {
-            super("", 0L);
+            super(DefaultEntityId.NONE_ID, 0L);
         }
 
         LowerBound(final JsonObject jsonObject) {
-            super(jsonObject);
+            super(DefaultEntityId.of(jsonObject.getValueOrThrow(JsonFields.ID)),
+                    jsonObject.getValueOrThrow(JsonFields.REVISION));
         }
     }
 }

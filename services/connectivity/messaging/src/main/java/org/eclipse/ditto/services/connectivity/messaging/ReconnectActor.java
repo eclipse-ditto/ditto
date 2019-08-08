@@ -17,6 +17,8 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
@@ -151,7 +153,7 @@ public final class ReconnectActor extends AbstractActor {
         return ReceiveBuilder.create()
                 .match(RetrieveConnectionStatusResponse.class,
                         command -> log.debug("Retrieved connection status response for connection <{}> with status: {}",
-                                command.getConnectionId(), command.getConnectionStatus()))
+                                command.getConnectionEntityId(), command.getConnectionStatus()))
                 .match(ConnectionNotAccessibleException.class,
                         exception -> log.debug("Received ConnectionNotAccessibleException for connection <{}> " +
                                         "(most likely, the connection was deleted): {}",
@@ -205,7 +207,8 @@ public final class ReconnectActor extends AbstractActor {
         // OpenConnection would set desired state to OPEN even for deleted connections.
 
         if (persistenceId.startsWith(ConnectionActor.PERSISTENCE_ID_PREFIX)) {
-            final String connectionId = persistenceId.substring(ConnectionActor.PERSISTENCE_ID_PREFIX.length());
+            final EntityId connectionId =
+                    DefaultEntityId.of(persistenceId.substring(ConnectionActor.PERSISTENCE_ID_PREFIX.length()));
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                     .correlationId(toCorrelationId(connectionId))
                     .build();
@@ -216,14 +219,16 @@ public final class ReconnectActor extends AbstractActor {
         }
     }
 
-    static String toCorrelationId(final String connectionId) {
+    static String toCorrelationId(final EntityId connectionId) {
         return CORRELATION_ID_PREFIX + connectionId;
     }
 
-    static Optional<String> toConnectionId(final String correlationId) {
-        return correlationId.startsWith(CORRELATION_ID_PREFIX)
-                ? Optional.of(correlationId.replace(CORRELATION_ID_PREFIX, ""))
-                : Optional.empty();
+    static Optional<EntityId> toConnectionId(final String correlationId) {
+        if (correlationId.startsWith(CORRELATION_ID_PREFIX)) {
+            return Optional.of(correlationId.replace(CORRELATION_ID_PREFIX, ""))
+                    .map(DefaultEntityId::of);
+        }
+        return Optional.empty();
     }
 
     private static ReconnectConfig getReconnectConfig(final ActorContext context) {

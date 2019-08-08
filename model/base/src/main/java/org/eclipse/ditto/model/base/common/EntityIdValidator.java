@@ -14,16 +14,16 @@ package org.eclipse.ditto.model.base.common;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.entity.Entity;
+import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
 
 /**
- * Validates an ID against {@link Entity#ID_REGEX}.
+ * Validates an ID against {@link org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
  * If the ID is invalid an {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException} is thrown.
  */
 @Immutable
 public abstract class EntityIdValidator extends AbstractIdValidator {
 
     protected EntityIdValidator() {
-        super(Entity.ID_REGEX);
+        super(DefaultNamespacedEntityId.ID_REGEX);
     }
 }

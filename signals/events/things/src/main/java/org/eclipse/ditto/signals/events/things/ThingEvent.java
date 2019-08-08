@@ -17,10 +17,11 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.signals.base.WithThingId;
+import org.eclipse.ditto.model.things.id.WithThingId;
 import org.eclipse.ditto.signals.events.base.Event;
 
 /**
@@ -40,16 +41,9 @@ public interface ThingEvent<T extends ThingEvent> extends Event<T>, WithThingId 
      */
     String RESOURCE_TYPE = "thing";
 
-    /**
-     * Returns the ID of {@link org.eclipse.ditto.model.things.Thing} which was modified.
-     *
-     * @return the ID of the modified Thing.
-     */
-    String getThingId();
-
     @Override
-    default String getId() {
-        return getThingId();
+    default EntityId getEntityId() {
+        return getThingEntityId();
     }
 
     @Override

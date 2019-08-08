@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.things.ThingException;
+import org.eclipse.ditto.model.things.id.ThingId;
 
 /**
  * Thrown if the Policy ID of the Thing was either not present at all or if the requester had insufficient permissions
@@ -41,7 +42,8 @@ public final class PolicyIdNotAccessibleException extends DittoRuntimeException 
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "policyId.notfound";
 
     private static final String MESSAGE_TEMPLATE =
-            "The Policy ID ''{0}'' could not be found or requester had " + "insufficient permissions to access it.";
+            "The Policy ID of the Thing with ID <{0}> could not be found or requester had insufficient permissions " +
+                    "to access it.";
 
     private static final String DEFAULT_DESCRIPTION =
             "Check if the ID of your requested Thing was correct and you have sufficient permissions.";
@@ -62,7 +64,7 @@ public final class PolicyIdNotAccessibleException extends DittoRuntimeException 
      * @param thingId the ID of the thing.
      * @return the builder.
      */
-    public static PolicyIdNotAccessibleException.Builder newBuilder(final String thingId) {
+    public static PolicyIdNotAccessibleException.Builder newBuilder(final ThingId thingId) {
         return new PolicyIdNotAccessibleException.Builder(thingId);
     }
 
@@ -111,9 +113,9 @@ public final class PolicyIdNotAccessibleException extends DittoRuntimeException 
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String thingId) {
+        private Builder(final ThingId thingId) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, thingId));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, String.valueOf(thingId)));
         }
 
         @Override

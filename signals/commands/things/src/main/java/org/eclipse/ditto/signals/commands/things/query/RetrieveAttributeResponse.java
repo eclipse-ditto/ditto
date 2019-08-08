@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -56,11 +57,11 @@ public final class RetrieveAttributeResponse extends AbstractCommandResponse<Ret
             JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final JsonPointer attributePointer;
     private final JsonValue attributeValue;
 
-    private RetrieveAttributeResponse(final String thingId,
+    private RetrieveAttributeResponse(final ThingId thingId,
             final JsonPointer attributePointer,
             final JsonValue attributeValue,
             final HttpStatusCode statusCode,
@@ -83,7 +84,7 @@ public final class RetrieveAttributeResponse extends AbstractCommandResponse<Ret
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveAttributeResponse of(final String thingId,
+    public static RetrieveAttributeResponse of(final ThingId thingId,
             final JsonPointer attributePointer,
             final JsonValue attributeValue,
             final DittoHeaders dittoHeaders) {
@@ -120,8 +121,9 @@ public final class RetrieveAttributeResponse extends AbstractCommandResponse<Ret
     public static RetrieveAttributeResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveAttributeResponse>(TYPE, jsonObject)
                 .deserialize((statusCode) -> {
-                    final String thingId =
+                    final String extractedThingId =
                             jsonObject.getValueOrThrow(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
                     final String extractedPointerString = jsonObject.getValueOrThrow(JSON_ATTRIBUTE);
                     final JsonPointer extractedPointer = JsonFactory.newPointer(extractedPointerString);
                     final JsonValue extractedAttribute = jsonObject.getValueOrThrow(JSON_VALUE);
@@ -131,7 +133,7 @@ public final class RetrieveAttributeResponse extends AbstractCommandResponse<Ret
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -171,7 +173,7 @@ public final class RetrieveAttributeResponse extends AbstractCommandResponse<Ret
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         if (null != attributePointer) {
             jsonObjectBuilder.set(JSON_ATTRIBUTE, attributePointer.toString(), predicate);
         }

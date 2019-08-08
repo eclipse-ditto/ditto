@@ -39,12 +39,12 @@ import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
+import org.eclipse.ditto.services.thingsearch.common.model.ResultListImpl;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
-import org.eclipse.ditto.services.thingsearch.common.model.ResultListImpl;
 
 /**
  * Tests for sorting functionality of search persistence.
@@ -57,8 +57,11 @@ public final class SortingIT extends AbstractReadPersistenceITBase {
 
     private static final ThingsFieldExpressionFactory EFT = new ThingsFieldExpressionFactoryImpl();
 
-    private static final List<String> THING_IDS =
-            Arrays.asList("thingsearch.read:thingId1a", "thingsearch.read:thingId1b", "thingsearch.read:thingId1c");
+    public static final String NAMESPACE = "thingsearch.read";
+    private static final List<ThingId> THING_IDS = Arrays.asList(
+            ThingId.of(NAMESPACE, "thingId1a"),
+            ThingId.of(NAMESPACE, "thingId1b"),
+            ThingId.of(NAMESPACE, "thingId1c"));
     private static final List<String> ATTRIBUTE_SORT_STRING_VALUES =
             Arrays.asList("valA", "valB", "valC", "valD", "valE");
     private static final List<Long> ATTRIBUTE_SORT_LONG_VALUES = Arrays.asList(1L, 2L, 3L, 4L, 5L);
@@ -84,12 +87,12 @@ public final class SortingIT extends AbstractReadPersistenceITBase {
 
         // find without any ordering
         final Query query = qbf.newBuilder(cf.any()).build();
-        final ResultList<String> result = findAll(query);
+        final ResultList<ThingId> result = findAll(query);
 
         final Comparator<Thing> ascendingComparator =
                 Comparator.comparing(extractStringField(DEFAULT_SORT_OPTION.getSortExpression()));
 
-        final List<String> expectedResult = createExpectedResult(things, DEFAULT_SORT_OPTION, ascendingComparator);
+        final List<ThingId> expectedResult = createExpectedResult(things, DEFAULT_SORT_OPTION, ascendingComparator);
 
         assertThat(result).isEqualTo(expectedResult);
     }
@@ -97,7 +100,8 @@ public final class SortingIT extends AbstractReadPersistenceITBase {
     @Test
     public void sortByThingId() {
         runTestWithStringValues(
-                new SortOption(EFT.sortByThingId(), testedSortDirection), this::createThing, THING_IDS);
+                new SortOption(EFT.sortByThingId(), testedSortDirection), this::createThing,
+                THING_IDS.stream().map(String::valueOf).collect(Collectors.toList()));
     }
 
     @Test
@@ -159,10 +163,10 @@ public final class SortingIT extends AbstractReadPersistenceITBase {
             final Collection<Thing> things,
             final Comparator<Thing> ascendingComparator) {
 
-        final List<String> expectedResult = createExpectedResult(things, sortOption, ascendingComparator);
+        final List<ThingId> expectedResult = createExpectedResult(things, sortOption, ascendingComparator);
 
         final Query query = qbf.newBuilder(cf.any()).sort(Collections.singletonList(sortOption)).build();
-        final ResultList<String> result = findAll(query);
+        final ResultList<ThingId> result = findAll(query);
 
         assertThat(result).isEqualTo(expectedResult);
     }
@@ -222,7 +226,7 @@ public final class SortingIT extends AbstractReadPersistenceITBase {
     private Function<Thing, String> extractStringField(final FieldExpression sortField) {
         return (thing) -> {
             if (sortField instanceof SimpleFieldExpressionImpl) {
-                return thing.getId().orElseThrow(IllegalStateException::new);
+                return thing.getEntityId().orElseThrow(IllegalStateException::new).toString();
             } else {
                 return thing.getAttributes()
                         .orElseThrow(IllegalStateException::new)
@@ -255,7 +259,7 @@ public final class SortingIT extends AbstractReadPersistenceITBase {
         };
     }
 
-    private List<String> createExpectedResult(final Collection<Thing> things,
+    private List<ThingId> createExpectedResult(final Collection<Thing> things,
             final SortOption sortOption, final Comparator<Thing> ascendingComparator) {
         final Comparator<Thing> comparator;
         if (SortDirection.ASC == sortOption.getSortDirection()) {
@@ -264,14 +268,14 @@ public final class SortingIT extends AbstractReadPersistenceITBase {
             comparator = ascendingComparator.reversed();
         }
 
-        final List<String> simpleList = things.stream()
+        final List<ThingId> simpleList = things.stream()
                 .sorted(comparator)
-                .map(thing -> thing.getId().orElseThrow(IllegalStateException::new))
+                .map(thing -> thing.getEntityId().orElseThrow(IllegalStateException::new))
                 .collect(Collectors.toList());
         return new ResultListImpl<>(simpleList, ResultList.NO_NEXT_PAGE);
     }
 
-    private static String randomThingId() {
-        return "thingsearch.read:" + UUID.randomUUID().toString();
+    private static ThingId randomThingId() {
+        return ThingId.of(NAMESPACE, UUID.randomUUID().toString());
     }
 }

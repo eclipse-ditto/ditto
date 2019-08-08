@@ -19,6 +19,8 @@ import java.time.Instant;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.model.policies.id.PolicyId;
+
 /**
  * A mutable builder for a {@link ImmutablePolicy} with a fluent API scoped to a specified {@link Label}.
  */
@@ -58,7 +60,13 @@ final class ImmutablePolicyBuilderLabelScoped implements PolicyBuilder.LabelScop
     }
 
     @Override
+    @Deprecated
     public ImmutablePolicyBuilderLabelScoped setId(@Nullable final CharSequence id) {
+        return setId(PolicyId.of(id));
+    }
+
+    @Override
+    public ImmutablePolicyBuilderLabelScoped setId(@Nullable final PolicyId id) {
         delegate.setId(id);
         return this;
     }

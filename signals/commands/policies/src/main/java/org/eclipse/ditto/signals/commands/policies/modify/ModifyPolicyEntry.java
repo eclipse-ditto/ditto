@@ -34,7 +34,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyEntry;
-import org.eclipse.ditto.model.policies.PolicyIdValidator;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
@@ -63,12 +63,11 @@ public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry>
     static final JsonFieldDefinition<JsonObject> JSON_POLICY_ENTRY =
             JsonFactory.newJsonObjectFieldDefinition("policyEntry", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String policyId;
+    private final PolicyId policyId;
     private final PolicyEntry policyEntry;
 
-    private ModifyPolicyEntry(final String policyId, final PolicyEntry policyEntry, final DittoHeaders dittoHeaders) {
+    private ModifyPolicyEntry(final PolicyId policyId, final PolicyEntry policyEntry, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
-        PolicyIdValidator.getInstance().accept(policyId, dittoHeaders);
         this.policyId = policyId;
         this.policyEntry = policyEntry;
 
@@ -84,8 +83,27 @@ public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry>
      * @param dittoHeaders the headers of the command.
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.id.PolicyId, org.eclipse.ditto.model.policies.PolicyEntry, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static ModifyPolicyEntry of(final String policyId, final PolicyEntry policyEntry,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), policyEntry, dittoHeaders);
+    }
+
+    /**
+     * Creates a command for modifying a {@code PolicyEntry}.
+     *
+     * @param policyId the identifier of the Policy.
+     * @param policyEntry the PolicyEntry to modify.
+     * @param dittoHeaders the headers of the command.
+     * @return the command.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static ModifyPolicyEntry of(final PolicyId policyId, final PolicyEntry policyEntry,
             final DittoHeaders dittoHeaders) {
 
         checkNotNull(policyId, "Policy identifier");
@@ -120,7 +138,8 @@ public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry>
      */
     public static ModifyPolicyEntry fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyPolicyEntry>(TYPE, jsonObject).deserialize(() -> {
-            final String policyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+            final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final String policyEntryLabel = jsonObject.getValueOrThrow(JSON_LABEL);
             final JsonObject policyEntryJsonObject = jsonObject.getValueOrThrow(JSON_POLICY_ENTRY);
             final PolicyEntry policyEntry =
@@ -145,7 +164,7 @@ public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry>
      * @return the identifier of the Policy whose PolicyEntry to modify.
      */
     @Override
-    public String getId() {
+    public PolicyId getEntityId() {
         return policyId;
     }
 
@@ -165,7 +184,7 @@ public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry>
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_LABEL, policyEntry.getLabel().toString(), predicate);
         jsonObjectBuilder.set(JSON_POLICY_ENTRY, policyEntry.toJson(schemaVersion, thePredicate), predicate);
     }

@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import org.bson.Document;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
@@ -43,6 +44,16 @@ import akka.testkit.javadsl.TestKit;
  * Tests {@link ManualUpdater}.
  */
 public final class ManualUpdaterIT {
+
+    private static final ThingId THING_ID_1 = ThingId.of("x", "1");
+    private static final ThingId THING_ID_2 = ThingId.of("x", "2");
+    private static final ThingId THING_ID_3 = ThingId.of("x", "3");
+    private static final ThingId THING_ID_4 = ThingId.of("x", "4");
+    private static final ThingId THING_ID_5 = ThingId.of("x", "5");
+    private static final ThingId THING_ID_6 = ThingId.of("x", "6");
+    private static final ThingId THING_ID_7 = ThingId.of("x", "7");
+    private static final ThingId THING_ID_8 = ThingId.of("x", "8");
+    private static final ThingId THING_ID_9 = ThingId.of("x", "9");
 
     private ActorSystem actorSystem;
     private MongoDbResource mongoResource;
@@ -74,10 +85,14 @@ public final class ManualUpdaterIT {
     public void sendAllThingTagsAndEmptyCollection() {
         new TestKit(actorSystem) {{
             actorSystem.actorOf(manualUpdaterProps(mongoClient, getRef()));
-            insertDocuments(doc("x:1", 1L), doc("x:2", 2L), doc("x:3", 3L));
-            expectMsg(ThingTag.of("x:1", 1L));
-            expectMsg(ThingTag.of("x:2", 2L));
-            expectMsg(ThingTag.of("x:3", 3L));
+            insertDocuments(
+                    doc(THING_ID_1.toString(), 1L),
+                    doc(THING_ID_2.toString(), 2L),
+                    doc(THING_ID_3.toString(), 3L));
+
+            expectMsg(ThingTag.of(THING_ID_1, 1L));
+            expectMsg(ThingTag.of(THING_ID_2, 2L));
+            expectMsg(ThingTag.of(THING_ID_3, 3L));
 
             assertThat(
                     Source.fromPublisher(mongoClient.getCollection(ManualUpdater.COLLECTION_NAME).countDocuments())
@@ -94,16 +109,16 @@ public final class ManualUpdaterIT {
         actorSystem.eventStream().setLogLevel(Attributes.logLevelOff());
         new TestKit(actorSystem) {{
             actorSystem.actorOf(manualUpdaterProps(mongoClient, getRef()));
-            insertDocuments(doc("x:4", 4L));
-            expectMsg(ThingTag.of("x:4", 4L));
+            insertDocuments(doc(THING_ID_4.toString(), 4L));
+            expectMsg(ThingTag.of(THING_ID_4, 4L));
 
             final int mongoPort = mongoResource.getPort();
             mongoResource.stop();
             mongoResource = new MongoDbResource("localhost", mongoPort, null);
             mongoResource.start();
 
-            insertDocuments(doc("x:5", 5L));
-            expectMsg(ThingTag.of("x:5", 5L));
+            insertDocuments(doc(THING_ID_5.toString(), 5L));
+            expectMsg(ThingTag.of(THING_ID_5, 5L));
         }};
     }
 
@@ -111,9 +126,13 @@ public final class ManualUpdaterIT {
     public void recoverFromBadDocuments() {
         new TestKit(actorSystem) {{
             actorSystem.actorOf(manualUpdaterProps(mongoClient, getRef()));
-            insertDocuments(doc("x:6", 6L), doc(null, 7L), doc("x:8", null), doc("x:9", 9L));
-            expectMsg(ThingTag.of("x:6", 6L));
-            expectMsg(ThingTag.of("x:9", 9L));
+            insertDocuments(
+                    doc(THING_ID_6.toString(), 6L),
+                    doc(null, 7L),
+                    doc(THING_ID_8.toString(), null),
+                    doc(THING_ID_9.toString(), 9L));
+            expectMsg(ThingTag.of(THING_ID_6, 6L));
+            expectMsg(ThingTag.of(THING_ID_9, 9L));
         }};
     }
 

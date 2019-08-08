@@ -22,7 +22,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
+import org.eclipse.ditto.model.policies.id.PolicyId;
+import org.eclipse.ditto.model.policies.id.PolicyIdInvalidException;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
@@ -38,7 +39,7 @@ public final class ModifyPolicyTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyCommand.JsonFields.TYPE, ModifyPolicy.TYPE)
-            .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(ModifyPolicy.JSON_POLICY, TestConstants.Policy.POLICY.toJson(FieldType.regularOrSpecial()))
             .build();
 
@@ -46,7 +47,7 @@ public final class ModifyPolicyTest {
     public void assertImmutability() {
         assertInstancesOf(ModifyPolicy.class,
                 areImmutable(),
-                provided(Policy.class, JsonObject.class).areAlsoImmutable());
+                provided(Policy.class, JsonObject.class, PolicyId.class).areAlsoImmutable());
     }
 
     @Test
@@ -60,8 +61,7 @@ public final class ModifyPolicyTest {
     public void tryToCreateInstanceWithInvalidPolicyId() {
         assertThatExceptionOfType(PolicyIdInvalidException.class)
                 .isThrownBy(() -> ModifyPolicy.of("undefined", TestConstants.Policy.POLICY,
-                        TestConstants.EMPTY_DITTO_HEADERS))
-                .withNoCause();
+                        TestConstants.EMPTY_DITTO_HEADERS));
     }
 
     @Test(expected = NullPointerException.class)

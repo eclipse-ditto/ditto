@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -54,10 +55,10 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
             JsonFactory.newStringFieldDefinition("policyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
 
-    private final String thingId;
+    private final ThingId thingId;
     @Nullable private final String policyId;
 
-    private ModifyPolicyIdResponse(final String thingId, final HttpStatusCode statusCode,
+    private ModifyPolicyIdResponse(final ThingId thingId, final HttpStatusCode statusCode,
             @Nullable final String policyId, final DittoHeaders dittoHeaders) {
         super(TYPE, statusCode, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
@@ -84,7 +85,7 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
      * @return a command response for a created Policy ID.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ModifyPolicyIdResponse created(final String thingId, final String policyId,
+    public static ModifyPolicyIdResponse created(final ThingId thingId, final String policyId,
             final DittoHeaders dittoHeaders) {
         return new ModifyPolicyIdResponse(thingId, HttpStatusCode.CREATED, policyId, dittoHeaders);
     }
@@ -98,7 +99,7 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
      * @return a command response for a modified Policy ID.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static ModifyPolicyIdResponse modified(final String thingId, final DittoHeaders dittoHeaders) {
+    public static ModifyPolicyIdResponse modified(final ThingId thingId, final DittoHeaders dittoHeaders) {
         return new ModifyPolicyIdResponse(thingId, HttpStatusCode.NO_CONTENT, null, dittoHeaders);
     }
 
@@ -130,8 +131,9 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
     public static ModifyPolicyIdResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyPolicyIdResponse>(TYPE, jsonObject)
                 .deserialize((statusCode) -> {
-                    final String thingId =
+                    final String extractedThingId =
                             jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
                     final String policyId = jsonObject.getValue(JSON_POLICY_ID).orElse(null);
 
                     return new ModifyPolicyIdResponse(thingId, statusCode, policyId, dittoHeaders);
@@ -139,7 +141,7 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -167,7 +169,7 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         if (policyId != null) {
             jsonObjectBuilder.set(JSON_POLICY_ID, policyId, predicate);
         }

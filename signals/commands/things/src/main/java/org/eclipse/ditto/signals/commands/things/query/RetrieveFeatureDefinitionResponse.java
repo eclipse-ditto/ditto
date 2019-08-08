@@ -34,8 +34,8 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.FeatureDefinition;
-import org.eclipse.ditto.model.things.ThingIdValidator;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -60,17 +60,16 @@ public final class RetrieveFeatureDefinitionResponse extends AbstractCommandResp
             JsonFactory.newJsonArrayFieldDefinition("definition", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final String featureId;
     private final JsonArray definition;
 
-    private RetrieveFeatureDefinitionResponse(final String thingId,
+    private RetrieveFeatureDefinitionResponse(final ThingId thingId,
             final String featureId,
             final JsonArray definition,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, HttpStatusCode.OK, dittoHeaders);
-        ThingIdValidator.getInstance().accept(thingId, dittoHeaders);
         this.thingId = thingId;
         this.featureId = checkNotNull(featureId, "Feature ID");
         this.definition = checkNotNull(definition, "Feature Definition");
@@ -84,11 +83,9 @@ public final class RetrieveFeatureDefinitionResponse extends AbstractCommandResp
      * @param definition the retrieved FeatureDefinition.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if {@code thingId} did not comply to
-     * {@link org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveFeatureDefinitionResponse of(final String thingId,
+    public static RetrieveFeatureDefinitionResponse of(final ThingId thingId,
             final String featureId,
             final FeatureDefinition definition,
             final DittoHeaders dittoHeaders) {
@@ -105,11 +102,9 @@ public final class RetrieveFeatureDefinitionResponse extends AbstractCommandResp
      * @param definitionJsonArray the retrieved FeatureDefinition JSON array.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if {@code thingId} did not comply to
-     * {@link org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveFeatureDefinitionResponse of(final String thingId,
+    public static RetrieveFeatureDefinitionResponse of(final ThingId thingId,
             final String featureId,
             final JsonArray definitionJsonArray,
             final DittoHeaders dittoHeaders) {
@@ -134,8 +129,8 @@ public final class RetrieveFeatureDefinitionResponse extends AbstractCommandResp
      *     <li>{@link #JSON_FEATURE_ID} or</li>
      *     <li>{@link #JSON_DEFINITION}.</li>
      * </ul>
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to
-     * {@link org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if the parsed thing ID did not comply to
+     * {@link org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static RetrieveFeatureDefinitionResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -157,8 +152,8 @@ public final class RetrieveFeatureDefinitionResponse extends AbstractCommandResp
      *     <li>{@link #JSON_FEATURE_ID} or</li>
      *     <li>{@link #JSON_DEFINITION}.</li>
      * </ul>
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to
-     * {@link org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if the parsed thing ID did not comply to
+     * {@link org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static RetrieveFeatureDefinitionResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
@@ -167,15 +162,16 @@ public final class RetrieveFeatureDefinitionResponse extends AbstractCommandResp
                 .deserialize(statusCode -> {
                     final String extractedThingId =
                             jsonObject.getValueOrThrow(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
                     final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
                     final JsonArray extractedFeatureDefinition = jsonObject.getValueOrThrow(JSON_DEFINITION);
 
-                    return of(extractedThingId, extractedFeatureId, extractedFeatureDefinition, dittoHeaders);
+                    return of(thingId, extractedFeatureId, extractedFeatureDefinition, dittoHeaders);
                 });
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -224,7 +220,7 @@ public final class RetrieveFeatureDefinitionResponse extends AbstractCommandResp
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
         jsonObjectBuilder.set(JSON_DEFINITION, definition, predicate);
     }

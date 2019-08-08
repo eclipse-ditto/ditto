@@ -24,7 +24,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.things.ThingIdInvalidException;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
@@ -48,18 +48,18 @@ public final class RetrieveThingTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, RetrieveThing.TYPE)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .build();
 
     private static final JsonObject KNOWN_JSON_WITH_FIELD_SELECTION = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, RetrieveThing.TYPE)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(RetrieveThing.JSON_SELECTED_FIELDS, SELECTED_FIELDS)
             .build();
 
     private static final JsonObject KNOWN_JSON_WITH_SNAPSHOT_REVISION = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, RetrieveThing.TYPE)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(RetrieveThing.JSON_SNAPSHOT_REVISION, SNAPSHOT_REVISION)
             .build();
 
@@ -68,7 +68,7 @@ public final class RetrieveThingTest {
     public void assertImmutability() {
         assertInstancesOf(RetrieveThing.class,
                 areImmutable(),
-                provided(JsonFieldSelector.class).isAlsoImmutable());
+                provided(JsonFieldSelector.class, ThingId.class).isAlsoImmutable());
     }
 
 
@@ -83,9 +83,8 @@ public final class RetrieveThingTest {
     @SuppressWarnings("ConstantConditions")
     @Test
     public void tryToGetBuilderWithNullThingId() {
-        assertThatExceptionOfType(ThingIdInvalidException.class)
+        assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> RetrieveThing.getBuilder(null, DittoHeaders.empty()))
-                .withMessage("The ID is not valid because it was \'null\'!")
                 .withNoCause();
     }
 
@@ -95,7 +94,6 @@ public final class RetrieveThingTest {
     public void tryToGetBuilderWithNullDittoHeaders() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> RetrieveThing.getBuilder(TestConstants.Thing.THING_ID, null))
-                .withMessage("The %s must not be null!", "Ditto Headers")
                 .withNoCause();
     }
 
@@ -115,7 +113,7 @@ public final class RetrieveThingTest {
                 RetrieveThing.fromJson(KNOWN_JSON.toString(), DittoHeaders.empty());
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getSelectedFields()).isEmpty();
     }
 
@@ -137,7 +135,7 @@ public final class RetrieveThingTest {
                 DittoHeaders.empty());
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getSelectedFields()).contains(JSON_FIELD_SELECTOR);
         assertThat(underTest.getSnapshotRevision()).isEmpty();
     }
@@ -196,7 +194,7 @@ public final class RetrieveThingTest {
                 DittoHeaders.empty());
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getSelectedFields()).isEmpty();
         assertThat(underTest.getSnapshotRevision()).contains(SNAPSHOT_REVISION);
     }

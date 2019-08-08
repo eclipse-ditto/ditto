@@ -20,6 +20,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -33,7 +34,7 @@ import org.junit.Test;
  */
 public final class ManifestProviderTest {
 
-    private static final String THING_ID = "org.eclipse.ditto.test:myThing";
+    private static final ThingId THING_ID = ThingId.of("org.eclipse.ditto.test","myThing");
 
     private static final Thing THING = Thing.newBuilder()
             .setId(THING_ID)
@@ -74,7 +75,7 @@ public final class ManifestProviderTest {
 
     @Test
     public void getManifestFromThingCommand() {
-        final String thingId = THING_ID;
+        final ThingId thingId = THING_ID;
         final Command<RetrieveThing> retrieveThing = RetrieveThing.of(thingId, DittoHeaders.empty());
         final String manifest = underTest.apply(retrieveThing);
 

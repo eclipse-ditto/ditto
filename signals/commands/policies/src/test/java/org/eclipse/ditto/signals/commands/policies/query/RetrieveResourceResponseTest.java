@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
 import org.eclipse.ditto.signals.commands.policies.TestConstants;
@@ -38,7 +39,7 @@ public final class RetrieveResourceResponseTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyCommandResponse.JsonFields.TYPE, RetrieveResourceResponse.TYPE)
             .set(PolicyCommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
-            .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(RetrieveResourceResponse.JSON_LABEL, TestConstants.Policy.LABEL.toString())
             .set(RetrieveResourceResponse.JSON_RESOURCE_KEY, TestConstants.Policy.RESOURCE.getFullQualifiedPath())
             .set(RetrieveResourceResponse.JSON_RESOURCE, TestConstants.Policy.RESOURCE.toJson())
@@ -50,7 +51,7 @@ public final class RetrieveResourceResponseTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(RetrieveResourceResponse.class, areImmutable(),
-                provided(Label.class, ResourceKey.class, JsonObject.class).areAlsoImmutable());
+                provided(Label.class, ResourceKey.class, JsonObject.class, PolicyId.class).areAlsoImmutable());
     }
 
 

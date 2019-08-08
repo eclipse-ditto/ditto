@@ -71,14 +71,15 @@ final class DeleteFeatureLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public DeleteFeatureResponse deleted() {
-            return DeleteFeatureResponse.of(command.getThingId(), command.getFeatureId(), command.getDittoHeaders());
+            return DeleteFeatureResponse.of(command.getThingEntityId(), command.getFeatureId(),
+                    command.getDittoHeaders());
         }
 
         @Nonnull
         @Override
         public ThingErrorResponse featureNotAccessibleError() {
-            return errorResponse(command.getThingId(),
-                    FeatureNotAccessibleException.newBuilder(command.getThingId(), command.getFeatureId())
+            return errorResponse(command.getThingEntityId(),
+                    FeatureNotAccessibleException.newBuilder(command.getThingEntityId(), command.getFeatureId())
                             .dittoHeaders(command.getDittoHeaders())
                             .build());
         }
@@ -86,8 +87,8 @@ final class DeleteFeatureLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ThingErrorResponse featureNotModifiableError() {
-            return errorResponse(command.getThingId(),
-                    FeatureNotModifiableException.newBuilder(command.getThingId(), command.getFeatureId())
+            return errorResponse(command.getThingEntityId(),
+                    FeatureNotModifiableException.newBuilder(command.getThingEntityId(), command.getFeatureId())
                             .dittoHeaders(command.getDittoHeaders())
                             .build());
         }
@@ -99,7 +100,7 @@ final class DeleteFeatureLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public FeatureDeleted deleted() {
-            return FeatureDeleted.of(command.getThingId(), command.getFeatureId(), -1, Instant.now(),
+            return FeatureDeleted.of(command.getThingEntityId(), command.getFeatureId(), -1, Instant.now(),
                     command.getDittoHeaders());
         }
     }

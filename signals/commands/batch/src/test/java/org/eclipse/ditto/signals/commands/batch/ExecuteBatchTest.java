@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.junit.Test;
@@ -41,16 +42,17 @@ public final class ExecuteBatchTest {
 
     private static final String KNOWN_BATCH_ID = UUID.randomUUID().toString();
 
+    private static final String NAMESPACE = "org.eclipse.ditto.test";
     private static final List<Command> KNOWN_COMMANDS = Arrays.asList(
-            ModifyThing.of("org.eclipse.ditto.test:myThing1", Thing.newBuilder()
-                            .setId("org.eclipse.ditto.test:myThing1")
-                            .build(), null, DittoHeaders.empty()),
-            ModifyThing.of("org.eclipse.ditto.test:myThing1", Thing.newBuilder()
-                            .setId("org.eclipse.ditto.test:myThing2")
-                            .build(), null, DittoHeaders.empty()),
-            ModifyThing.of("org.eclipse.ditto.test:myThing1", Thing.newBuilder()
-                            .setId("org.eclipse.ditto.test:myThing3")
-                            .build(), null, DittoHeaders.empty()));
+            ModifyThing.of(ThingId.of(NAMESPACE, "myThing1"), Thing.newBuilder()
+                    .setId(ThingId.of(NAMESPACE, "myThing1"))
+                    .build(), null, DittoHeaders.empty()),
+            ModifyThing.of(ThingId.of(NAMESPACE, "myThing2"), Thing.newBuilder()
+                    .setId(ThingId.of(NAMESPACE, "myThing2"))
+                    .build(), null, DittoHeaders.empty()),
+            ModifyThing.of(ThingId.of(NAMESPACE, "myThing3"), Thing.newBuilder()
+                    .setId(ThingId.of(NAMESPACE, "myThing3"))
+                    .build(), null, DittoHeaders.empty()));
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Command.JsonFields.TYPE, ExecuteBatch.TYPE)

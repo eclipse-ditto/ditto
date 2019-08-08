@@ -23,6 +23,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
 
 import org.assertj.core.api.ThrowableAssert;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
@@ -65,7 +66,7 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
     private static final IllegalArgumentException CUSTOM_EXCEPTION =
             new IllegalArgumentException("custom error message");
 
-    private static final String CONNECTION_ID = TestConstants.createRandomConnectionId();
+    private static final EntityId CONNECTION_ID = TestConstants.createRandomConnectionId();
     private static final ConnectivityStatus CONNECTION_STATUS = ConnectivityStatus.OPEN;
 
     @SuppressWarnings("NullableProblems") private static ActorSystem actorSystem;
@@ -99,7 +100,8 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
 
     @Test
     public void invalidTargetFormatThrowsConnectionConfigurationInvalidException() {
-        final Connection connection = ConnectivityModelFactory.newConnectionBuilder("ditto", ConnectionType.AMQP_091,
+        final Connection connection =
+                ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.AMQP_091,
                 ConnectivityStatus.OPEN, TestConstants.getUriOfNewMockServer())
                 .targets(Collections.singletonList(ConnectivityModelFactory.newTarget("exchangeOnly",
                         TestConstants.Authorization.AUTHORIZATION_CONTEXT, null, null, Topic.TWIN_EVENTS)))
@@ -153,7 +155,7 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
     @Test
     public void testConnectionWithoutPublisherHandling() {
         new TestKit(actorSystem) {{
-            final String randomConnectionId = TestConstants.createRandomConnectionId();
+            final EntityId randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connectionWithoutTargets =
                     TestConstants.createConnection(randomConnectionId, new Target[0]);
             final Props props =

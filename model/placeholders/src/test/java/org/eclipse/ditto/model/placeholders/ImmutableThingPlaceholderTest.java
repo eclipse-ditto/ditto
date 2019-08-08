@@ -14,7 +14,7 @@ package org.eclipse.ditto.model.placeholders;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.eclipse.ditto.model.things.ThingIdInvalidException;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 import org.mutabilitydetector.unittesting.MutabilityMatchers;
@@ -29,7 +29,7 @@ public class ImmutableThingPlaceholderTest {
 
     private static final String NAME = "ditto";
     private static final String NAMESPACE = "eclipse";
-    private static final String THING_ID = NAMESPACE + ":" + NAME;
+    private static final ThingId THING_ID = ThingId.of(NAMESPACE, NAME);
     private static final ImmutableThingPlaceholder UNDER_TEST = ImmutableThingPlaceholder.INSTANCE;
 
     /**
@@ -53,7 +53,7 @@ public class ImmutableThingPlaceholderTest {
 
     @Test
     public void testReplaceThingId() {
-        assertThat(UNDER_TEST.resolve(THING_ID, "id")).contains(THING_ID);
+        assertThat(UNDER_TEST.resolve(THING_ID, "id")).contains(THING_ID.toString());
     }
 
     @Test
@@ -64,11 +64,6 @@ public class ImmutableThingPlaceholderTest {
     @Test
     public void testReplaceThingNamespace() {
         assertThat(UNDER_TEST.resolve(THING_ID, "namespace")).contains(NAMESPACE);
-    }
-
-    @Test(expected = ThingIdInvalidException.class)
-    public void testInvalidThingIdThrowsException() {
-        UNDER_TEST.resolve("ditto", "id");
     }
 
     @Test

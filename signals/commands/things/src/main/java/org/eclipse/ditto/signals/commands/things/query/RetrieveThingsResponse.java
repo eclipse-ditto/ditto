@@ -42,6 +42,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.signals.commands.base.WithNamespace;
@@ -221,8 +222,8 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
     }
 
     @Override
-    public String getThingId() {
-        return ":_";
+    public ThingId getThingEntityId() {
+        return ThingId.inDefaultNamespace("_");
     }
 
     @Override

@@ -34,7 +34,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.ThingIdValidator;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -59,19 +59,18 @@ public final class RetrieveAclEntry extends AbstractCommand<RetrieveAclEntry>
     static final JsonFieldDefinition<String> JSON_AUTHORIZATION_SUBJECT =
             JsonFactory.newStringFieldDefinition("authorizationSubject", FieldType.REGULAR, JsonSchemaVersion.V_1);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final AuthorizationSubject authorizationSubject;
     @Nullable
     private final JsonFieldSelector selectedFields;
 
     private RetrieveAclEntry(final AuthorizationSubject authorizationSubject,
             @Nullable final JsonFieldSelector selectedFields,
-            final String thingId,
+            final ThingId thingId,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, dittoHeaders);
-        ThingIdValidator.getInstance().accept(thingId, dittoHeaders);
-        this.thingId = thingId;
+        this.thingId = checkNotNull(thingId, "Thing ID");
         this.authorizationSubject =
                 checkNotNull(authorizationSubject, "Authorization Subject whose ACL Entry to retrieve");
         this.selectedFields = selectedFields;
@@ -86,10 +85,8 @@ public final class RetrieveAclEntry extends AbstractCommand<RetrieveAclEntry>
      * @return a Command for retrieving one ACL entry of the Thing with the {@code thingId} as its ID which is readable
      * from the passed authorization context.
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
-    public static RetrieveAclEntry of(final String thingId, final AuthorizationSubject authorizationSubject,
+    public static RetrieveAclEntry of(final ThingId thingId, final AuthorizationSubject authorizationSubject,
             final DittoHeaders dittoHeaders) {
 
         return new RetrieveAclEntry(authorizationSubject, null, thingId, dittoHeaders);
@@ -105,10 +102,8 @@ public final class RetrieveAclEntry extends AbstractCommand<RetrieveAclEntry>
      * @return a Command for retrieving one ACL entry of the Thing with the {@code thingId} as its ID which is readable
      * from the passed authorization context.
      * @throws NullPointerException if {@code authorizationSubject} or {@code dittoHeaders} is {@code null}.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
-    public static RetrieveAclEntry of(final String thingId,
+    public static RetrieveAclEntry of(final ThingId thingId,
             final AuthorizationSubject authorizationSubject,
             @Nullable final JsonFieldSelector selectedFields,
             final DittoHeaders dittoHeaders) {
@@ -126,8 +121,8 @@ public final class RetrieveAclEntry extends AbstractCommand<RetrieveAclEntry>
      * @throws IllegalArgumentException if any argument is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if the parsed thing ID did not comply to {@link
+     * org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static RetrieveAclEntry fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -142,12 +137,13 @@ public final class RetrieveAclEntry extends AbstractCommand<RetrieveAclEntry>
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if the parsed thing ID did not comply to {@link
+     * org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static RetrieveAclEntry fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveAclEntry>(TYPE, jsonObject).deserialize(() -> {
-            final String thingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
             final String authSubjectId = jsonObject.getValueOrThrow(JSON_AUTHORIZATION_SUBJECT);
             final AuthorizationSubject extractedAuthSubject = AuthorizationModelFactory.newAuthSubject(authSubjectId);
 
@@ -180,7 +176,7 @@ public final class RetrieveAclEntry extends AbstractCommand<RetrieveAclEntry>
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -194,7 +190,7 @@ public final class RetrieveAclEntry extends AbstractCommand<RetrieveAclEntry>
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommand.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingQueryCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_AUTHORIZATION_SUBJECT, authorizationSubject.getId(), predicate);
     }
 

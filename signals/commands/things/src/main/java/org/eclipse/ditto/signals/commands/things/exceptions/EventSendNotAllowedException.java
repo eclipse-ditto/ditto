@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.things.ThingException;
+import org.eclipse.ditto.model.things.id.ThingId;
 
 /**
  * Thrown if an event cannot be send because the affected thing does not exist or because of a missing permission.
@@ -70,7 +71,7 @@ public final class EventSendNotAllowedException extends DittoRuntimeException im
      * @param thingId the ID of the Thing for which an event should be sent.
      * @return the builder.
      */
-    public static Builder newBuilder(@Nullable final String thingId) {
+    public static Builder newBuilder(@Nullable final ThingId thingId) {
         return new Builder(thingId);
     }
 
@@ -115,9 +116,9 @@ public final class EventSendNotAllowedException extends DittoRuntimeException im
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(@Nullable final String subject) {
+        private Builder(@Nullable final ThingId thingId) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, subject));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, thingId));
         }
 
         @Override

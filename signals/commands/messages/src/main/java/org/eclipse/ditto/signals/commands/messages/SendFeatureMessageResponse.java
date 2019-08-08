@@ -30,6 +30,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.Message;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -58,7 +59,7 @@ public final class SendFeatureMessageResponse<T> extends AbstractMessageCommandR
 
     private final String featureId;
 
-    private SendFeatureMessageResponse(final String thingId,
+    private SendFeatureMessageResponse(final ThingId thingId,
             final String featureId,
             final Message<T> message,
             final HttpStatusCode responseStatusCode,
@@ -70,7 +71,7 @@ public final class SendFeatureMessageResponse<T> extends AbstractMessageCommandR
 
     @Override
     public SendFeatureMessageResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingId(), getFeatureId(), getMessage(), getStatusCode(), dittoHeaders);
+        return of(getThingEntityId(), getFeatureId(), getMessage(), getStatusCode(), dittoHeaders);
     }
 
     /**
@@ -85,7 +86,7 @@ public final class SendFeatureMessageResponse<T> extends AbstractMessageCommandR
      * @return new instance of {@code SendFeatureMessageResponse}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static <T> SendFeatureMessageResponse<T> of(final String thingId,
+    public static <T> SendFeatureMessageResponse<T> of(final ThingId thingId,
             final String featureId,
             final Message<T> message,
             final HttpStatusCode responseStatusCode,
@@ -125,7 +126,9 @@ public final class SendFeatureMessageResponse<T> extends AbstractMessageCommandR
             final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<SendFeatureMessageResponse<T>>(TYPE, jsonObject).deserialize(
                 statusCode -> {
-                    final String thingId = jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID);
+                    final String extractedThingId =
+                            jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
                     final String featureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
                     final Message<T> message = deserializeMessageFromJson(jsonObject);
 
@@ -147,7 +150,7 @@ public final class SendFeatureMessageResponse<T> extends AbstractMessageCommandR
         jsonObjectBuilder.remove(MessageCommand.JsonFields.JSON_THING_ID);
         final JsonObject superBuild = jsonObjectBuilder.build();
         jsonObjectBuilder.removeAll();
-        jsonObjectBuilder.set(MessageCommand.JsonFields.JSON_THING_ID, getThingId());
+        jsonObjectBuilder.set(MessageCommand.JsonFields.JSON_THING_ID, getThingEntityId().toString());
         jsonObjectBuilder.set(JSON_FEATURE_ID, getFeatureId());
         jsonObjectBuilder.setAll(superBuild);
     }

@@ -18,6 +18,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -45,12 +46,18 @@ public interface ConnectivityEvent<T extends ConnectivityEvent> extends Event<T>
      * Returns the identifier of the modified {@code Connection}.
      *
      * @return the identifier.
+     * @deprecated entity IDs are now typed. Use {@link #getConnectionEntityId()} instead.
      */
-    String getConnectionId();
+    @Deprecated
+    default String getConnectionId() {
+        return String.valueOf(getConnectionEntityId());
+    }
+
+    EntityId getConnectionEntityId();
 
     @Override
-    default String getId() {
-        return getConnectionId();
+    default EntityId getEntityId() {
+        return getConnectionEntityId();
     }
 
     @Override

@@ -25,7 +25,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.policies.id.PolicyId;
+import org.eclipse.ditto.model.policies.id.PolicyIdInvalidException;
 
 /**
  * A mutable builder for a {@link ImmutablePolicy} with a fluent API.
@@ -36,7 +37,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     private final Map<Label, Map<SubjectId, Subject>> subjects;
     private final Map<Label, Map<ResourceKey, Permissions>> grantedPermissions;
     private final Map<Label, Map<ResourceKey, Permissions>> revokedPermissions;
-    @Nullable private String id;
+    @Nullable private PolicyId id;
     @Nullable private PolicyLifecycle lifecycle;
     @Nullable private PolicyRevision revision;
     @Nullable private Instant modified;
@@ -56,9 +57,24 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
      *
      * @param id the ID of the new Policy.
      * @return the new builder.
-     * @throws PolicyIdInvalidException if {@code policyId} did not comply to {@link Policy#ID_REGEX}.
+     * @throws PolicyIdInvalidException if {@code policyId} did not comply to
+     * {@link org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
+     * @deprecated policy ID is now typed. Use {@link #of(PolicyId)}
      */
+    @Deprecated
     public static ImmutablePolicyBuilder of(final CharSequence id) {
+        return of(PolicyId.of(id));
+    }
+
+    /**
+     * Returns a new empty builder for a {@code Policy}.
+     *
+     * @param id the ID of the new Policy.
+     * @return the new builder.
+     * @throws org.eclipse.ditto.model.policies.id.PolicyIdInvalidException if {@code policyId} did not comply to
+     * {@link org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
+     */
+    public static ImmutablePolicyBuilder of(final PolicyId id) {
         return new ImmutablePolicyBuilder().setId(id);
     }
 
@@ -70,9 +86,10 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
      * @param policyEntries the initials entries of the new builder.
      * @return the new builder.
      * @throws NullPointerException if {@code policyEntries} is null;
-     * @throws PolicyIdInvalidException if {@code policyId} did not comply to {@link Policy#ID_REGEX}.
+     * @throws org.eclipse.ditto.model.policies.id.PolicyIdInvalidException if {@code policyId} did not comply to
+     * {@link org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
-    public static PolicyBuilder of(final CharSequence id, final Iterable<PolicyEntry> policyEntries) {
+    public static PolicyBuilder of(final PolicyId id, final Iterable<PolicyEntry> policyEntries) {
         checkNotNull(policyEntries, "initial Policy entries");
 
         final ImmutablePolicyBuilder result = new ImmutablePolicyBuilder();
@@ -88,7 +105,8 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
      * @param existingPolicy the existing Policy to instantiate the builder with.
      * @return the new builder.
      * @throws NullPointerException if {@code existingPolicy} is {@code null}.
-     * @throws PolicyIdInvalidException if {@code policyId} did not comply to {@link Policy#ID_REGEX}.
+     * @throws org.eclipse.ditto.model.policies.id.PolicyIdInvalidException if {@code policyId} did not comply to
+     * {@link org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static PolicyBuilder of(final Policy existingPolicy) {
         checkNotNull(existingPolicy, "existing Policy");
@@ -99,7 +117,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
                 .setRevision(existingPolicy.getRevision().orElse(null))
                 .setModified(existingPolicy.getModified().orElse(null));
 
-        existingPolicy.getId().ifPresent(result::setId);
+        existingPolicy.getEntityId().ifPresent(result::setId);
         existingPolicy.forEach(result::set);
 
         return result;
@@ -111,9 +129,14 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     }
 
     @Override
+    @Deprecated
     public ImmutablePolicyBuilder setId(final CharSequence id) {
-        PolicyIdValidator.getInstance().accept(id, DittoHeaders.empty());
-        this.id = String.valueOf(id);
+        return setId(PolicyId.of(id));
+    }
+
+    @Override
+    public ImmutablePolicyBuilder setId(final PolicyId id) {
+        this.id = checkNotNull(id, "Policy ID");
         return this;
     }
 

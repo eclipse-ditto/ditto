@@ -35,6 +35,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -59,11 +60,11 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
             JsonFactory.newJsonObjectFieldDefinition("feature", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final Feature featureCreated;
     private final HttpStatusCode statusCode;
 
-    private ModifyFeatureResponse(final String thingId, final Feature featureCreated,
+    private ModifyFeatureResponse(final ThingId thingId, final Feature featureCreated,
             final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders) {
 
@@ -83,7 +84,7 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
      * @return a command response for a created Feature.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ModifyFeatureResponse created(final String thingId, final Feature feature,
+    public static ModifyFeatureResponse created(final ThingId thingId, final Feature feature,
             final DittoHeaders dittoHeaders) {
         checkNotNull(feature, "created Feature");
         return new ModifyFeatureResponse(thingId, feature, HttpStatusCode.CREATED, dittoHeaders);
@@ -99,7 +100,7 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
      * @return a command response for a modified Feature.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ModifyFeatureResponse modified(final String thingId, final String featureId,
+    public static ModifyFeatureResponse modified(final ThingId thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
         return new ModifyFeatureResponse(thingId, ThingsModelFactory.nullFeature(featureId), HttpStatusCode.NO_CONTENT,
                 dittoHeaders);
@@ -133,8 +134,9 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
     public static ModifyFeatureResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyFeatureResponse>(TYPE, jsonObject)
                 .deserialize((statusCode) -> {
-                    final String thingId =
+                    final String extractedThingId =
                             jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
                     final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
                     final JsonObject featureJsonObject = jsonObject.getValueOrThrow(JSON_FEATURE);
 
@@ -152,7 +154,7 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -181,7 +183,7 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureCreated.getId());
         jsonObjectBuilder.set(JSON_FEATURE, featureCreated.toJson(schemaVersion, thePredicate), predicate);
     }

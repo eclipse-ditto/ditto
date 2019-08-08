@@ -14,6 +14,8 @@ package org.eclipse.ditto.services.thingsearch.persistence.write;
 
 import java.util.Map;
 
+import org.eclipse.ditto.model.policies.id.PolicyId;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.utils.persistence.operations.NamespacePersistenceOperations;
@@ -32,7 +34,7 @@ public interface ThingsSearchUpdaterPersistence extends NamespacePersistenceOper
      * @param policyRevisions map from relevant policy IDs to their revisions.
      * @return a {@link Source} holding the publisher to execute the operation.
      */
-    Source<PolicyReferenceTag, NotUsed> getPolicyReferenceTags(Map<String, Long> policyRevisions);
+    Source<PolicyReferenceTag, NotUsed> getPolicyReferenceTags(Map<PolicyId, Long> policyRevisions);
 
     /**
      * Retrieves a source of Thing IDs with the given policy ID and out-dated revision.
@@ -40,5 +42,5 @@ public interface ThingsSearchUpdaterPersistence extends NamespacePersistenceOper
      * @param policyTag contains policy ID and policy revision.
      * @return a Source holding the publisher to execute the operation.
      */
-    Source<String, NotUsed> getOutdatedThingIds(PolicyTag policyTag);
+    Source<ThingId, NotUsed> getOutdatedThingIds(PolicyTag policyTag);
 }

@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 import org.junit.Test;
@@ -35,7 +36,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class SudoRetrieveThingResponseTest {
 
-    private static final String THING_ID = "org.eclipse.ditto.test:myThing";
+    private static final ThingId THING_ID = ThingId.of("org.eclipse.ditto.test", "myThing");
 
     private static final Thing THING = Thing.newBuilder().setId(THING_ID).build();
 

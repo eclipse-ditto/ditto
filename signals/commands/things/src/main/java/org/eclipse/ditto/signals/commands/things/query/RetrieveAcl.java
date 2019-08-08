@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.signals.commands.things.query;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -26,7 +28,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.ThingIdValidator;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -47,12 +49,11 @@ public final class RetrieveAcl extends AbstractCommand<RetrieveAcl> implements T
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private final String thingId;
+    private final ThingId thingId;
 
-    private RetrieveAcl(final String thingId, final DittoHeaders dittoHeaders) {
+    private RetrieveAcl(final ThingId thingId, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
-        ThingIdValidator.getInstance().accept(thingId, dittoHeaders);
-        this.thingId = thingId;
+        this.thingId = checkNotNull(thingId, "Thing ID");
     }
 
     /**
@@ -63,10 +64,8 @@ public final class RetrieveAcl extends AbstractCommand<RetrieveAcl> implements T
      * @return a Command for retrieving ACL of the Thing with the {@code thingId} as its ID which is readable from the
      * passed authorization context.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      */
-    public static RetrieveAcl of(final String thingId, final DittoHeaders dittoHeaders) {
+    public static RetrieveAcl of(final ThingId thingId, final DittoHeaders dittoHeaders) {
         return new RetrieveAcl(thingId, dittoHeaders);
     }
 
@@ -80,8 +79,8 @@ public final class RetrieveAcl extends AbstractCommand<RetrieveAcl> implements T
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if the parsed thing ID did not comply to {@link
+     * org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static RetrieveAcl fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -96,18 +95,19 @@ public final class RetrieveAcl extends AbstractCommand<RetrieveAcl> implements T
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if the parsed thing ID did not comply to {@link
+     * org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static RetrieveAcl fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveAcl>(TYPE, jsonObject).deserialize(() -> {
-            final String thingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
             return of(thingId, dittoHeaders);
         });
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -120,7 +120,7 @@ public final class RetrieveAcl extends AbstractCommand<RetrieveAcl> implements T
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommand.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingQueryCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
     }
 
     @Override

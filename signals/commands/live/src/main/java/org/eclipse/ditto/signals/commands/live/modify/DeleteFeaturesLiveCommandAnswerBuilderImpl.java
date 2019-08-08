@@ -75,13 +75,14 @@ final class DeleteFeaturesLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public DeleteFeaturesResponse deleted() {
-            return DeleteFeaturesResponse.of(command.getThingId(), command.getDittoHeaders());
+            return DeleteFeaturesResponse.of(command.getThingEntityId(), command.getDittoHeaders());
         }
 
         @Nonnull
         @Override
         public ThingErrorResponse featuresNotAccessibleError() {
-            return errorResponse(command.getThingId(), FeaturesNotAccessibleException.newBuilder(command.getThingId())
+            return errorResponse(command.getThingEntityId(),
+                    FeaturesNotAccessibleException.newBuilder(command.getThingEntityId())
                     .dittoHeaders(command.getDittoHeaders())
                     .build());
         }
@@ -89,7 +90,8 @@ final class DeleteFeaturesLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ThingErrorResponse featuresNotModifiableError() {
-            return errorResponse(command.getThingId(), FeaturesNotModifiableException.newBuilder(command.getThingId())
+            return errorResponse(command.getThingEntityId(),
+                    FeaturesNotModifiableException.newBuilder(command.getThingEntityId())
                     .dittoHeaders(command.getDittoHeaders())
                     .build());
         }
@@ -101,7 +103,7 @@ final class DeleteFeaturesLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public FeaturesDeleted deleted() {
-            return FeaturesDeleted.of(command.getThingId(), -1, Instant.now(), command.getDittoHeaders());
+            return FeaturesDeleted.of(command.getThingEntityId(), -1, Instant.now(), command.getDittoHeaders());
         }
     }
 

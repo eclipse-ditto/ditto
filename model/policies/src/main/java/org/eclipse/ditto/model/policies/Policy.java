@@ -31,6 +31,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.entity.Entity;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 
 /**
  * A Policy contains {@link PolicyEntry}s containing information about which {@link Subjects} are granted/revoked
@@ -48,10 +49,23 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
      *
      * @param id the ID of the new Policy.
      * @return the new builder.
-     * @throws PolicyIdInvalidException if {@code id} is invalid.
+     * @throws org.eclipse.ditto.model.policies.id.PolicyIdInvalidException if {@code id} is invalid.
+     * @deprecated policy ID is now typed. Use {@link #newBuilder(PolicyId)} instead.
      */
+    @Deprecated
     static PolicyBuilder newBuilder(final CharSequence id) {
-        return PoliciesModelFactory.newPolicyBuilder(id);
+        return newBuilder(PolicyId.of(id));
+    }
+
+    /**
+     * Returns a mutable builder with a fluent API for an immutable {@code Policy}.
+     *
+     * @param policyId the ID of the new Policy.
+     * @return the new builder.
+     * @throws org.eclipse.ditto.model.policies.id.PolicyIdInvalidException if {@code id} is invalid.
+     */
+    static PolicyBuilder newBuilder(final PolicyId policyId) {
+        return PoliciesModelFactory.newPolicyBuilder(policyId);
     }
 
     /**
@@ -62,6 +76,17 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
      */
     default PolicyBuilder toBuilder() {
         return PoliciesModelFactory.newPolicyBuilder(this);
+    }
+
+    @Override
+    Optional<PolicyId> getEntityId();
+
+    /**
+     * @deprecated
+     */
+    @Deprecated
+    default Optional<String> getId() {
+        return getEntityId().map(String::valueOf);
     }
 
     /**

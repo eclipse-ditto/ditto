@@ -38,6 +38,7 @@ import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributeNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributeNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException;
@@ -176,7 +177,7 @@ public final class TestConstants {
         /**
          * A known Thing ID for testing.
          */
-        public static final String THING_ID = "example.com:testThing";
+        public static final ThingId THING_ID = ThingId.of("example.com", "testThing");
 
         public static final String POLICY_ID = "example.com:testPolicy";
 

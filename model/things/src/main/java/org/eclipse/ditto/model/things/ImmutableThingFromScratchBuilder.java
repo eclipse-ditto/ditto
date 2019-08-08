@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.things.id.ThingId;
 
 /**
  * A mutable builder for an immutable {@link Thing} from scratch.
@@ -36,7 +37,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     * Thus some fields and methods have to be package private - unfortunately.
     */
 
-    @Nullable String id;
+    @Nullable ThingId id;
     @Nullable ThingLifecycle lifecycle;
     @Nullable ThingRevision revision;
     @Nullable Instant modified;
@@ -382,14 +383,21 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     }
 
     @Override
+    @Deprecated
     public FromScratch setId(@Nullable final String thingId) {
+        id = thingId == null ? null : ThingId.of(thingId);
+        return this;
+    }
+
+    @Override
+    public FromScratch setId(@Nullable final ThingId thingId) {
         id = thingId;
         return this;
     }
 
     @Override
     public FromScratch setGeneratedId() {
-        id = ThingBuilder.generateRandomThingId();
+        id = ThingBuilder.generateRandomTypedThingId();
         return this;
     }
 

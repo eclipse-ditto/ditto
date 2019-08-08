@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.junit.Test;
@@ -62,13 +63,13 @@ public class ImmutablePlaceholderResolverTest {
 
     @Test
     public void testPlaceholderResolvementBasedOnThingId() {
-        final String thingId = "org.eclipse.ditto:foobar199";
+        final ThingId thingId = ThingId.of("org.eclipse.ditto", "foobar199");
 
-        final ImmutablePlaceholderResolver<String> underTest = new ImmutablePlaceholderResolver<>(
+        final ImmutablePlaceholderResolver<CharSequence> underTest = new ImmutablePlaceholderResolver<>(
                 PlaceholderFactory.newThingPlaceholder(), thingId, false);
 
         assertThat(underTest.resolve("id"))
-                .contains(thingId);
+                .contains(thingId.toString());
         assertThat(underTest.resolve("namespace"))
                 .contains("org.eclipse.ditto");
         assertThat(underTest.resolve("name"))

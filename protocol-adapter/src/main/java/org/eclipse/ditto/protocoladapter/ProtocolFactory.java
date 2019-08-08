@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.id.ThingId;
 
 /**
  * Factory for the Protocol Adapter library. Provides many static helper methods.
@@ -133,9 +134,9 @@ public final class ProtocolFactory {
      * @param thingId the id.
      * @return the builder.
      * @throws NullPointerException if {@code thingId} is {@code null}.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if {@code thingId} is not in the expected format.
+     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if {@code thingId} is not in the expected format.
      */
-    public static TopicPathBuilder newTopicPathBuilder(final String thingId) {
+    public static TopicPathBuilder newTopicPathBuilder(final ThingId thingId) {
         return ImmutableTopicPathBuilder.of(thingId).things();
     }
 

@@ -18,7 +18,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.namespaces.NamespaceReader;
+import org.eclipse.ditto.model.things.id.ThingId;
 
 /**
  * Data class holding information about a "thingEntities" database record.
@@ -26,12 +26,12 @@ import org.eclipse.ditto.model.namespaces.NamespaceReader;
 @Immutable
 public final class Metadata {
 
-    private final String thingId;
+    private final ThingId thingId;
     private final long thingRevision;
     @Nullable private final String policyId;
     private final long policyRevision;
 
-    private Metadata(final String thingId,
+    private Metadata(final ThingId thingId,
             final long thingRevision,
             @Nullable final String policyId,
             final long policyRevision) {
@@ -51,7 +51,7 @@ public final class Metadata {
      * @param policyRevision the Policy revision if the Thing has a policy, or the Thing revision if it does not.
      * @return the new Metadata object.
      */
-    public static Metadata of(final String thingId,
+    public static Metadata of(final ThingId thingId,
             final long thingRevision,
             @Nullable final String policyId,
             final long policyRevision) {
@@ -62,7 +62,7 @@ public final class Metadata {
     /**
      * @return the Thing ID.
      */
-    public String getThingId() {
+    public ThingId getThingId() {
         return thingId;
     }
 
@@ -86,7 +86,7 @@ public final class Metadata {
      * @return namespace field as to be written in the persistence.
      */
     public String getNamespaceInPersistence() {
-        return NamespaceReader.fromEntityId(thingId).orElse("");
+        return thingId.getNameSpace();
     }
 
     /**

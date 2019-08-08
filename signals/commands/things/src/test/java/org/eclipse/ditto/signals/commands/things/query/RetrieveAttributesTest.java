@@ -22,7 +22,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.things.ThingIdInvalidException;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
@@ -42,7 +42,7 @@ public final class RetrieveAttributesTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, RetrieveAttributes.TYPE)
-            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(RetrieveAttributes.JSON_SELECTED_FIELDS, KNOWN_JSON_LOCATOR.toString())
             .build();
 
@@ -50,7 +50,7 @@ public final class RetrieveAttributesTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(RetrieveAttributes.class, areImmutable(),
-                provided(JsonFieldSelector.class).isAlsoImmutable());
+                provided(JsonFieldSelector.class, ThingId.class).isAlsoImmutable());
     }
 
 
@@ -62,7 +62,7 @@ public final class RetrieveAttributesTest {
     }
 
 
-    @Test(expected = ThingIdInvalidException.class)
+    @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
         RetrieveAttributes.of(null, TestConstants.EMPTY_DITTO_HEADERS);
     }
@@ -91,7 +91,7 @@ public final class RetrieveAttributesTest {
                 RetrieveAttributes.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getSelectedFields()).contains(KNOWN_JSON_LOCATOR);
     }
 

@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.query.SortOption;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
@@ -45,13 +46,13 @@ import com.typesafe.config.ConfigFactory;
 public final class PagingIT extends AbstractReadPersistenceITBase {
 
     private static final int KNOWN_LIMIT = 2;
-    private static final String THING_ID1 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId1");
-    private static final String THING_ID2 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId2");
-    private static final String THING_ID3 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId3");
-    private static final String THING_ID4 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId4");
-    private static final String THING_ID5 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId5");
-    private static final String THING_ID6 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId6");
-    private static final List<String> THING_IDS = Arrays.asList(THING_ID1, THING_ID2, THING_ID3, THING_ID4, THING_ID5,
+    private static final ThingId THING_ID1 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId1");
+    private static final ThingId THING_ID2 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId2");
+    private static final ThingId THING_ID3 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId3");
+    private static final ThingId THING_ID4 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId4");
+    private static final ThingId THING_ID5 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId5");
+    private static final ThingId THING_ID6 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId6");
+    private static final List<ThingId> THING_IDS = Arrays.asList(THING_ID1, THING_ID2, THING_ID3, THING_ID4, THING_ID5,
             THING_ID6);
 
     private static DefaultLimitsConfig limitsConfig;
@@ -76,10 +77,10 @@ public final class PagingIT extends AbstractReadPersistenceITBase {
     @Test
     public void pageWithItemsCountLessThanLimit() {
         // prepare
-        final List<String> oneThingList = Collections.singletonList(THING_ID1);
+        final List<ThingId> oneThingList = Collections.singletonList(THING_ID1);
         insertThings(oneThingList);
 
-        final ResultList<String> result = executeVersionedQueryWithChangeOptions(query -> query.limit(KNOWN_LIMIT));
+        final ResultList<ThingId> result = executeVersionedQueryWithChangeOptions(query -> query.limit(KNOWN_LIMIT));
 
         // verify
         assertPaging(result, oneThingList, ResultList.NO_NEXT_PAGE);
@@ -90,10 +91,10 @@ public final class PagingIT extends AbstractReadPersistenceITBase {
         // prepare
         insertThings(THING_IDS);
 
-        final ResultList<String> result = executeVersionedQueryWithChangeOptions(query -> query.limit(KNOWN_LIMIT));
+        final ResultList<ThingId> result = executeVersionedQueryWithChangeOptions(query -> query.limit(KNOWN_LIMIT));
 
         // verify
-        final List<String> expectedList = Arrays.asList(THING_ID1, THING_ID2);
+        final List<ThingId> expectedList = Arrays.asList(THING_ID1, THING_ID2);
         assertPaging(result, expectedList, KNOWN_LIMIT);
     }
 
@@ -102,11 +103,11 @@ public final class PagingIT extends AbstractReadPersistenceITBase {
         // prepare
         insertThings(THING_IDS);
 
-        final ResultList<String> result =
+        final ResultList<ThingId> result =
                 executeVersionedQueryWithChangeOptions(query -> query.limit(KNOWN_LIMIT).skip(KNOWN_LIMIT));
 
         // verify
-        final List<String> expectedList = Arrays.asList(THING_ID3, THING_ID4);
+        final List<ThingId> expectedList = Arrays.asList(THING_ID3, THING_ID4);
         assertPaging(result, expectedList, KNOWN_LIMIT * 2);
     }
 
@@ -115,11 +116,11 @@ public final class PagingIT extends AbstractReadPersistenceITBase {
         // prepare
         insertThings(THING_IDS.subList(0, THING_IDS.size() - 1));
 
-        final ResultList<String> result =
+        final ResultList<ThingId> result =
                 executeVersionedQueryWithChangeOptions(query -> query.limit(KNOWN_LIMIT).skip(KNOWN_LIMIT * 2));
 
         // verify
-        final List<String> expectedList = Collections.singletonList(THING_ID5);
+        final List<ThingId> expectedList = Collections.singletonList(THING_ID5);
         assertPaging(result, expectedList, ResultList.NO_NEXT_PAGE);
     }
 
@@ -128,11 +129,11 @@ public final class PagingIT extends AbstractReadPersistenceITBase {
         // prepare
         insertThings(THING_IDS);
 
-        final ResultList<String> result =
+        final ResultList<ThingId> result =
                 executeVersionedQueryWithChangeOptions(query -> query.limit(KNOWN_LIMIT).skip(KNOWN_LIMIT * 2));
 
         // verify
-        final List<String> expectedList = Arrays.asList(THING_ID5, THING_ID6);
+        final List<ThingId> expectedList = Arrays.asList(THING_ID5, THING_ID6);
         assertPaging(result, expectedList, ResultList.NO_NEXT_PAGE);
     }
 
@@ -141,18 +142,19 @@ public final class PagingIT extends AbstractReadPersistenceITBase {
         // prepare
         final int moreThanLimit = 30;
         final long totalThingsCount = defaultPageSizeFromConfig + moreThanLimit;
-        final List<String> allThings = new ArrayList<>((int) totalThingsCount);
+        final List<ThingId> allThings = new ArrayList<>((int) totalThingsCount);
+        final ThingId baseThingId = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId");
         for (int i = 0; i < totalThingsCount; i++) {
-            final String thingId =
-                    TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId") + String.format("%03d", i);
+            final ThingId thingId =
+                    ThingId.of(baseThingId.getNameSpace(), baseThingId.getName() + String.format("%03d", i));
             persistThing(createThing(thingId));
             allThings.add(thingId);
         }
 
-        final ResultList<String> result = executeVersionedQueryWithChangeOptions(Function.identity());
+        final ResultList<ThingId> result = executeVersionedQueryWithChangeOptions(Function.identity());
 
         // verify
-        final List<String> expectedList = allThings.subList(0, defaultPageSizeFromConfig);
+        final List<ThingId> expectedList = allThings.subList(0, defaultPageSizeFromConfig);
         assertPaging(result, expectedList, defaultPageSizeFromConfig);
     }
 
@@ -161,14 +163,14 @@ public final class PagingIT extends AbstractReadPersistenceITBase {
         executeVersionedQueryWithChangeOptions(query -> query.limit(maxPageSizeFromConfig + 1));
     }
 
-    private static void assertPaging(final ResultList<String> actualResult, final List<String> expectedList,
+    private static void assertPaging(final ResultList<ThingId> actualResult, final List<ThingId> expectedList,
             final long expectedNextPageOffset) {
 
-        assertThat(actualResult).containsOnly(expectedList.toArray(new String[0]));
+        assertThat(actualResult).containsOnly(expectedList.toArray(new ThingId[0]));
         assertThat(actualResult.nextPageOffset()).isEqualTo(expectedNextPageOffset);
     }
 
-    private void insertThings(final Collection<String> thingIds) {
+    private void insertThings(final Collection<ThingId> thingIds) {
         shuffleAndPersist(createThings(thingIds));
     }
 
@@ -178,7 +180,7 @@ public final class PagingIT extends AbstractReadPersistenceITBase {
         things.forEach(this::persistThing);
     }
 
-    private ResultList<String> executeVersionedQueryWithChangeOptions(
+    private ResultList<ThingId> executeVersionedQueryWithChangeOptions(
             final Function<QueryBuilder, QueryBuilder> queryChanger) {
 
         final Query query = queryChanger.apply(qbf.newBuilder(cf.any())

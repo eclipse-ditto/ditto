@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.id.ThingId;
 
 /**
  * Defines constants for testing.
@@ -130,7 +131,7 @@ public final class TestConstants {
         /**
          * A known Thing ID for testing.
          */
-        public static final String THING_ID = "example.com:testThing";
+        public static final ThingId THING_ID = ThingId.of("example.com","testThing");
 
         /**
          * A known Policy ID for testing.

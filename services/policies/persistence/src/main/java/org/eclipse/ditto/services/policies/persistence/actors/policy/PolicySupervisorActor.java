@@ -24,8 +24,10 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.services.base.actors.ShutdownBehaviour;
 import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.services.policies.common.config.DittoPoliciesConfig;
@@ -63,7 +65,7 @@ public final class PolicySupervisorActor extends AbstractActor {
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final Props persistenceActorProps;
-    private final String policyId;
+    private final PolicyId policyId;
     private final ExponentialBackOffConfig exponentialBackOffConfig;
     private final ShutdownBehaviour shutdownBehaviour;
 
@@ -83,13 +85,15 @@ public final class PolicySupervisorActor extends AbstractActor {
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         );
         try {
-            policyId = URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name());
+            final String policyIdString = URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name());
+            policyId = PolicyId.of(policyIdString);
         } catch (final UnsupportedEncodingException e) {
             throw new IllegalStateException("Unsupported encoding!", e);
         }
         persistenceActorProps = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator);
         exponentialBackOffConfig = policiesConfig.getPolicyConfig().getSupervisorConfig().getExponentialBackOffConfig();
-        shutdownBehaviour = ShutdownBehaviour.fromId(policyId, pubSubMediator, getSelf());
+        shutdownBehaviour = ShutdownBehaviour.fromId(
+                DefaultNamespacedEntityId.fromCharSequence(policyId), pubSubMediator, getSelf());
 
         child = null;
         restartCount = 0L;

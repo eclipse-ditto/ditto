@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.messages.MessagesModelFactory;
 import org.eclipse.ditto.model.messages.ThingIdInvalidException;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -43,7 +44,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 @RunWith(MockitoJUnitRunner.class)
 public final class SendFeatureMessageTest {
 
-    private static final String THING_ID = "test.ns:theThingId";
+    private static final ThingId THING_ID = ThingId.of("test.ns", "theThingId");
     private static final String FEATURE_ID = "theFeatureId";
     private static final String SUBJECT = "theSubject";
     private static final String CONTENT_TYPE = "application/json";
@@ -75,7 +76,7 @@ public final class SendFeatureMessageTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Command.JsonFields.TYPE, SendFeatureMessage.TYPE)
-            .set(MessageCommand.JsonFields.JSON_THING_ID, THING_ID)
+            .set(MessageCommand.JsonFields.JSON_THING_ID, THING_ID.toString())
             .set(SendFeatureMessage.JSON_FEATURE_ID, FEATURE_ID)
             .set(MessageCommand.JsonFields.JSON_MESSAGE, KNOWN_MESSAGE_AS_JSON)
             .build();
@@ -113,15 +114,11 @@ public final class SendFeatureMessageTest {
         SendFeatureMessage.of(THING_ID, FEATURE_ID, MESSAGE, null);
     }
 
-    @Test(expected = ThingIdInvalidException.class)
-    public void tryCreateWithInvalidThingId() {
-        SendFeatureMessage.of("foobar", FEATURE_ID, MESSAGE, DITTO_HEADERS);
-    }
-
     @Test
     public void tryToCreateInstanceWithNonMatchingThingId() {
+        final ThingId notMatchingThingId = ThingId.of(THING_ID.getNameSpace(), THING_ID.getName() + "-nomatch");
         assertThatExceptionOfType(ThingIdInvalidException.class)
-                .isThrownBy(() -> SendFeatureMessage.of(THING_ID + "-nomatch", FEATURE_ID, MESSAGE, DITTO_HEADERS))
+                .isThrownBy(() -> SendFeatureMessage.of(notMatchingThingId, FEATURE_ID, MESSAGE, DITTO_HEADERS))
                 .withMessageContaining("-nomatch")
                 .withNoCause();
     }
@@ -173,7 +170,7 @@ public final class SendFeatureMessageTest {
                 SendFeatureMessage.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getThingId()).isEqualTo(THING_ID);
+        assertThat((CharSequence) underTest.getThingEntityId()).isEqualTo(THING_ID);
         assertThat(underTest.getFeatureId()).isEqualTo(FEATURE_ID);
         assertThat(underTest.getMessageType()).isEqualTo(SendFeatureMessage.NAME);
         assertThat(underTest.getMessage()).isEqualTo(DESERIALIZED_MESSAGE);

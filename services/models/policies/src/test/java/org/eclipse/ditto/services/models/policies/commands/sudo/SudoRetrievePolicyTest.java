@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.services.models.policies.TestConstants;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.junit.Test;
@@ -35,7 +36,7 @@ public final class SudoRetrievePolicyTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Command.JsonFields.TYPE, SudoRetrievePolicy.TYPE)
-            .set(SudoCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(SudoCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .build();
 
     private static final DittoHeaders EMPTY_DITTO_HEADERS = DittoHeaders.empty();
@@ -44,7 +45,7 @@ public final class SudoRetrievePolicyTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(SudoRetrievePolicy.class, areImmutable(),
-                provided(JsonFieldSelector.class).isAlsoImmutable());
+                provided(JsonFieldSelector.class, PolicyId.class).isAlsoImmutable());
     }
 
     /** */
@@ -77,7 +78,7 @@ public final class SudoRetrievePolicyTest {
         final SudoRetrievePolicy underTest = SudoRetrievePolicy.fromJson(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getId()).isEqualTo(TestConstants.Policy.POLICY_ID);
+        assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Policy.POLICY_ID);
     }
 
 }

@@ -31,7 +31,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
-import org.eclipse.ditto.model.policies.PolicyIdValidator;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -56,12 +56,11 @@ public final class RetrievePolicyEntry extends AbstractCommand<RetrievePolicyEnt
     static final JsonFieldDefinition<String> JSON_LABEL =
             JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final String policyId;
+    private final PolicyId policyId;
     private final Label label;
 
-    private RetrievePolicyEntry(final Label label, final String policyId, final DittoHeaders dittoHeaders) {
+    private RetrievePolicyEntry(final Label label, final PolicyId policyId, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
-        PolicyIdValidator.getInstance().accept(policyId, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy identifier");
         this.label = checkNotNull(label, "Label");
     }
@@ -75,8 +74,26 @@ public final class RetrievePolicyEntry extends AbstractCommand<RetrievePolicyEnt
      * @return a Command for retrieving one Policy entry with the {@code policyId} and {@code label} which is readable
      * from the passed authorization context.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.id.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     public static RetrievePolicyEntry of(final String policyId, final Label label, final DittoHeaders dittoHeaders) {
+        return of(PolicyId.of(policyId), label, dittoHeaders);
+    }
+
+    /**
+     * Returns a command for retrieving a specific Policy entry with the given ID and Label.
+     *
+     * @param policyId the ID of a single Policy whose Policy entry will be retrieved by this command.
+     * @param label the specified label for which to retrieve the Policy entry for.
+     * @param dittoHeaders the optional command headers of the request.
+     * @return a Command for retrieving one Policy entry with the {@code policyId} and {@code label} which is readable
+     * from the passed authorization context.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static RetrievePolicyEntry of(final PolicyId policyId, final Label label, final DittoHeaders dittoHeaders) {
         return new RetrievePolicyEntry(label, policyId, dittoHeaders);
     }
 
@@ -107,7 +124,8 @@ public final class RetrievePolicyEntry extends AbstractCommand<RetrievePolicyEnt
      */
     public static RetrievePolicyEntry fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrievePolicyEntry>(TYPE, jsonObject).deserialize(() -> {
-            final String policyId = jsonObject.getValueOrThrow(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
+            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
+            final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label extractedLabel = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
 
             return of(policyId, extractedLabel, dittoHeaders);
@@ -129,7 +147,7 @@ public final class RetrievePolicyEntry extends AbstractCommand<RetrievePolicyEnt
      * @return the identifier of the Policy to retrieve the PolicyEntry from.
      */
     @Override
-    public String getId() {
+    public PolicyId getEntityId() {
         return policyId;
     }
 
@@ -144,7 +162,7 @@ public final class RetrievePolicyEntry extends AbstractCommand<RetrievePolicyEnt
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyQueryCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
+        jsonObjectBuilder.set(PolicyQueryCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
     }
 

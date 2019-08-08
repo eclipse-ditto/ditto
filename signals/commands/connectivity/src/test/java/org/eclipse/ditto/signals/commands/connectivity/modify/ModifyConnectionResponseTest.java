@@ -23,6 +23,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.MappingContext;
@@ -40,7 +41,8 @@ public final class ModifyConnectionResponseTest {
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(CommandResponse.JsonFields.TYPE, ModifyConnectionResponse.TYPE)
             .set(CommandResponse.JsonFields.STATUS, HttpStatusCode.CREATED.toInt())
-            .set(ConnectivityModifyCommandResponse.JsonFields.JSON_CONNECTION_ID, TestConstants.CONNECTION.getId())
+            .set(ConnectivityModifyCommandResponse.JsonFields.JSON_CONNECTION_ID,
+                    TestConstants.CONNECTION.getId().toString())
             .set(ModifyConnectionResponse.JSON_CONNECTION, TestConstants.CONNECTION.toJson())
             .build();
 
@@ -53,9 +55,9 @@ public final class ModifyConnectionResponseTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ModifyConnectionResponse.class, areImmutable(), provided(Connection.class,
-                MappingContext.class)
-                .isAlsoImmutable());
+        assertInstancesOf(ModifyConnectionResponse.class,
+                areImmutable(),
+                provided(Connection.class, MappingContext.class, EntityId.class).isAlsoImmutable());
     }
 
     @Test

@@ -15,6 +15,7 @@ package org.eclipse.ditto.signals.commands.live.base;
 import javax.annotation.Nonnull;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.id.WithThingId;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 /**
@@ -25,7 +26,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  * @param <T> the type of the LiveCommand; currently needed as return type for {@link #setDittoHeaders(DittoHeaders)}.
  * @param <B> the type of the LiveCommandAnswerBuilder to be returned for {@link #answer()}.
  */
-public interface LiveCommand<T extends Command<T>, B extends LiveCommandAnswerBuilder> extends Command<T> {
+public interface LiveCommand<T extends Command<T>, B extends LiveCommandAnswerBuilder> extends Command<T>, WithThingId {
 
     /**
      * Returns a builder for an answer to this command which could include a {@code CommandResponse}s or an {@code

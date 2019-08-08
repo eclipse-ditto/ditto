@@ -20,6 +20,7 @@ import java.util.Map;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.junit.BeforeClass;
@@ -37,7 +38,7 @@ public class ImmutableExpressionResolverTest {
 
     private static final String THING_NAME = "foobar199";
     private static final String THING_NAMESPACE = "org.eclipse.ditto";
-    private static final String THING_ID = THING_NAMESPACE + ":" + THING_NAME;
+    private static final ThingId THING_ID = ThingId.of(THING_NAMESPACE, THING_NAME);
     private static final String KNOWN_TOPIC = "org.eclipse.ditto/" + THING_NAME + "/things/twin/commands/modify";
     private static final Map<String, String> KNOWN_HEADERS =
             DittoHeaders.newBuilder().putHeader("one", "1").putHeader("two", "2").build();
@@ -67,7 +68,7 @@ public class ImmutableExpressionResolverTest {
 
         final ImmutablePlaceholderResolver<Map<String, String>> headersResolver =
                 new ImmutablePlaceholderResolver<>(PlaceholderFactory.newHeadersPlaceholder(), KNOWN_HEADERS, false);
-        final ImmutablePlaceholderResolver<String> thingResolver = new ImmutablePlaceholderResolver<>(
+        final ImmutablePlaceholderResolver<CharSequence> thingResolver = new ImmutablePlaceholderResolver<>(
                 PlaceholderFactory.newThingPlaceholder(), THING_ID, false);
         final ImmutablePlaceholderResolver<TopicPath> topicPathResolver = new ImmutablePlaceholderResolver<>(
                 PlaceholderFactory.newTopicPathPlaceholder(), topic, false);
@@ -83,7 +84,7 @@ public class ImmutableExpressionResolverTest {
         assertThat(underTest.resolve("{{ header:two }}", false))
                 .isEqualTo(KNOWN_HEADERS.get("two"));
         assertThat(underTest.resolve("{{ thing:id }}", false))
-                .isEqualTo(THING_ID);
+                .isEqualTo(THING_ID.toString());
         assertThat(underTest.resolve("{{ thing:name }}", false))
                 .isEqualTo(THING_NAME);
         assertThat(underTest.resolve("{{ topic:full }}", false))
@@ -180,7 +181,7 @@ public class ImmutableExpressionResolverTest {
         assertThat(underTest.resolveSinglePlaceholder("header:one"))
                 .contains(KNOWN_HEADERS.get("one"));
         assertThat(underTest.resolveSinglePlaceholder("thing:id"))
-                .contains(THING_ID);
+                .contains(THING_ID.toString());
     }
 
     @Test

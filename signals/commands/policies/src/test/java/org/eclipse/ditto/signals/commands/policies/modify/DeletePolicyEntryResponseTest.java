@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
 import org.eclipse.ditto.signals.commands.policies.TestConstants;
 import org.junit.Test;
@@ -36,7 +37,7 @@ public class DeletePolicyEntryResponseTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyCommandResponse.JsonFields.TYPE, DeletePolicyEntryResponse.TYPE)
             .set(PolicyCommandResponse.JsonFields.STATUS, HttpStatusCode.NO_CONTENT.toInt())
-            .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(DeletePolicyEntryResponse.JSON_LABEL, TestConstants.Policy.LABEL.toString())
             .build();
 
@@ -45,7 +46,7 @@ public class DeletePolicyEntryResponseTest {
     public void assertImmutability() {
         assertInstancesOf(DeletePolicyEntryResponse.class,
                 areImmutable(),
-                provided(Label.class).isAlsoImmutable());
+                provided(Label.class, PolicyId.class).isAlsoImmutable());
     }
 
 

@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -58,11 +59,11 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
             JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final JsonPointer attributePointer;
     @Nullable private final JsonValue attributeValue;
 
-    private ModifyAttributeResponse(final String thingId, final HttpStatusCode statusCode,
+    private ModifyAttributeResponse(final ThingId thingId, final HttpStatusCode statusCode,
             final JsonPointer attributePointer,
             @Nullable final JsonValue attributeValue, final DittoHeaders dittoHeaders) {
         super(TYPE, statusCode, dittoHeaders);
@@ -82,7 +83,7 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
      * @return a command response for a created FeatureProperties.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ModifyAttributeResponse created(final String thingId, final JsonPointer attributePointer,
+    public static ModifyAttributeResponse created(final ThingId thingId, final JsonPointer attributePointer,
             final JsonValue attributeValue,
             final DittoHeaders dittoHeaders) {
         return new ModifyAttributeResponse(thingId, HttpStatusCode.CREATED, attributePointer, attributeValue,
@@ -99,7 +100,7 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
      * @return a command response for a modified FeatureProperties.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static ModifyAttributeResponse modified(final String thingId, final JsonPointer attributePointer,
+    public static ModifyAttributeResponse modified(final ThingId thingId, final JsonPointer attributePointer,
             final DittoHeaders dittoHeaders) {
         return new ModifyAttributeResponse(thingId, HttpStatusCode.NO_CONTENT, attributePointer, null, dittoHeaders);
     }
@@ -132,8 +133,9 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
     public static ModifyAttributeResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyAttributeResponse>(TYPE, jsonObject)
                 .deserialize((statusCode) -> {
-                    final String thingId =
+                    final String extractedThingId =
                             jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
                     final String pointerString = jsonObject.getValueOrThrow(JSON_ATTRIBUTE);
                     final JsonPointer extractedAttributePointer = JsonFactory.newPointer(pointerString);
                     final JsonValue extractedValue = jsonObject.getValue(JSON_VALUE).orElse(null);
@@ -144,7 +146,7 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -181,7 +183,7 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_ATTRIBUTE, attributePointer.toString(), predicate);
         if (null != attributeValue) {
             jsonObjectBuilder.set(JSON_VALUE, attributeValue, predicate);

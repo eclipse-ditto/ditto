@@ -20,6 +20,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributesResponse;
@@ -60,7 +61,7 @@ public final class ModifyAttributesStrategy extends
 
     private Result getModifyResult(final Context context, final long nextRevision,
             final ModifyAttributes command) {
-        final String thingId = context.getThingId();
+        final ThingId thingId = context.getThingEntityId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return ResultFactory.newMutationResult(command,
@@ -70,7 +71,7 @@ public final class ModifyAttributesStrategy extends
 
     private Result getCreateResult(final Context context, final long nextRevision,
             final ModifyAttributes command) {
-        final String thingId = context.getThingId();
+        final ThingId thingId = context.getThingEntityId();
         final Attributes attributes = command.getAttributes();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 

@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
@@ -67,7 +68,7 @@ public final class FeaturePropertyCreated extends AbstractThingEvent<FeatureProp
     private final JsonPointer propertyPointer;
     private final JsonValue propertyValue;
 
-    private FeaturePropertyCreated(final String thingId,
+    private FeaturePropertyCreated(final ThingId thingId,
             final String featureId,
             final JsonPointer propertyPointer,
             final JsonValue propertyValue,
@@ -93,7 +94,7 @@ public final class FeaturePropertyCreated extends AbstractThingEvent<FeatureProp
      * @return the FeaturePropertyCreated created.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static FeaturePropertyCreated of(final String thingId,
+    public static FeaturePropertyCreated of(final ThingId thingId,
             final String featureId,
             final JsonPointer propertyJsonPointer,
             final JsonValue propertyValue,
@@ -116,7 +117,7 @@ public final class FeaturePropertyCreated extends AbstractThingEvent<FeatureProp
      * @return the FeaturePropertyCreated created.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
-    public static FeaturePropertyCreated of(final String thingId,
+    public static FeaturePropertyCreated of(final ThingId thingId,
             final String featureId,
             final JsonPointer propertyJsonPointer,
             final JsonValue propertyValue,
@@ -157,12 +158,13 @@ public final class FeaturePropertyCreated extends AbstractThingEvent<FeatureProp
         return new EventJsonDeserializer<FeaturePropertyCreated>(TYPE, jsonObject)
                 .deserialize((revision, timestamp) -> {
                     final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
                     final String extractedFeatureId = jsonObject.getValueOrThrow(JsonFields.FEATURE_ID);
                     final JsonPointer extractedPointer =
                             JsonFactory.newPointer(jsonObject.getValueOrThrow(JSON_PROPERTY));
                     final JsonValue extractedValue = jsonObject.getValueOrThrow(JSON_VALUE);
 
-                    return of(extractedThingId, extractedFeatureId, extractedPointer, extractedValue, revision,
+                    return of(thingId, extractedFeatureId, extractedPointer, extractedValue, revision,
                             timestamp, dittoHeaders);
                 });
     }
@@ -203,13 +205,14 @@ public final class FeaturePropertyCreated extends AbstractThingEvent<FeatureProp
 
     @Override
     public FeaturePropertyCreated setRevision(final long revision) {
-        return of(getThingId(), featureId, propertyPointer, propertyValue, revision, getTimestamp().orElse(null),
+        return of(getThingEntityId(), featureId, propertyPointer, propertyValue, revision, getTimestamp().orElse(null),
                 getDittoHeaders());
     }
 
     @Override
     public FeaturePropertyCreated setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingId(), featureId, propertyPointer, propertyValue, getRevision(), getTimestamp().orElse(null),
+        return of(getThingEntityId(), featureId, propertyPointer, propertyValue, getRevision(),
+                getTimestamp().orElse(null),
                 dittoHeaders);
     }
 

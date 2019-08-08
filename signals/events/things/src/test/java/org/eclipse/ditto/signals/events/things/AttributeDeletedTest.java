@@ -37,7 +37,7 @@ public final class AttributeDeletedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, AttributeDeleted.TYPE)
             .set(Event.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
-            .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID)
+            .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(AttributeDeleted.JSON_ATTRIBUTE, KNOWN_ATTRIBUTE_POINTER.toString())
             .build();
 

@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
 
 import akka.NotUsed;
@@ -46,7 +47,7 @@ public final class ChangeQueueActor extends AbstractActor {
      * Change type values according to caching strategy;
      * for example, replace AtomicReference by a concurrent queue if changes are to be computed from events directly.
      */
-    private Map<String, Metadata> cache = new HashMap<>();
+    private Map<ThingId, Metadata> cache = new HashMap<>();
 
     private ChangeQueueActor() {
         // prevent instantiation elsewhere
@@ -83,7 +84,7 @@ public final class ChangeQueueActor extends AbstractActor {
      * @param writeInterval minimum delays between cache dumps.
      * @return source of queue snapshots.
      */
-    public static Source<Map<String, Metadata>, NotUsed> createSource(
+    public static Source<Map<ThingId, Metadata>, NotUsed> createSource(
             final ActorRef changeQueueActor,
             final Duration writeInterval) {
         return Source.repeat(Control.DUMP)
@@ -98,14 +99,13 @@ public final class ChangeQueueActor extends AbstractActor {
         cache = new HashMap<>();
     }
 
-    @SuppressWarnings("unchecked")
-    private static Function<Control, Source<Map<String, Metadata>, NotUsed>> askSelf(final ActorRef self) {
+    private static Function<Control, Source<Map<ThingId, Metadata>, NotUsed>> askSelf(final ActorRef self) {
         return message ->
                 Source.fromSourceCompletionStage(
                         PatternsCS.ask(self, message, ASK_SELF_TIMEOUT)
                                 .handle((result, error) -> {
                                     if (result instanceof Map) {
-                                        return Source.single((Map<String, Metadata>) result);
+                                        return Source.single((Map<ThingId, Metadata>) result);
                                     } else {
                                         return Source.empty();
                                     }

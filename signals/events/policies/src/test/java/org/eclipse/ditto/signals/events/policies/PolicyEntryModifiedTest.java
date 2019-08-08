@@ -35,7 +35,7 @@ public final class PolicyEntryModifiedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, PolicyEntryModified.TYPE)
             .set(Event.JsonFields.REVISION, TestConstants.Policy.REVISION_NUMBER)
-            .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(PolicyEntryModified.JSON_LABEL, TestConstants.Policy.POLICY_ENTRY.getLabel().toString())
             .set(PolicyEntryModified.JSON_POLICY_ENTRY,
                     TestConstants.Policy.POLICY_ENTRY.toJson(FieldType.regularOrSpecial()))
@@ -87,7 +87,7 @@ public final class PolicyEntryModifiedTest {
                 PolicyEntryModified.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getPolicyId()).isEqualTo(TestConstants.Policy.POLICY_ID);
+        assertThat((CharSequence) underTest.getPolicyEntityId()).isEqualTo(TestConstants.Policy.POLICY_ID);
         assertThat(underTest.getPolicyEntry()).isEqualTo(TestConstants.Policy.POLICY_ENTRY);
     }
 

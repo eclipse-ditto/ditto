@@ -16,6 +16,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.PoliciesConflictingException;
@@ -48,7 +49,7 @@ public interface ThingModifyCommand<T extends ThingModifyCommand> extends ThingC
      * @param dittoHeaders the ditto headers.
      * @throws PolicyIdNotAllowedException if the validation fails.
      */
-    static void ensurePolicyCopyFromDoesNotConflictWithInlinePolicy(final String thingId,
+    static void ensurePolicyCopyFromDoesNotConflictWithInlinePolicy(@Nullable final ThingId thingId,
             @Nullable final JsonObject initialPolicy, @Nullable final String policyIdOrPlaceholder,
             final DittoHeaders dittoHeaders) {
 

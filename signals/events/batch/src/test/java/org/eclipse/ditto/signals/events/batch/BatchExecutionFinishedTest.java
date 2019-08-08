@@ -28,8 +28,8 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.junit.Test;
@@ -43,17 +43,18 @@ public final class BatchExecutionFinishedTest {
 
     private static final String KNOWN_BATCH_ID = UUID.randomUUID().toString();
 
+    private static final String NAMESPACE = "org.eclipse.ditto.test";
     private static final List<CommandResponse> KNOWN_RESPONSES = Arrays.asList(
             ModifyThingResponse.created(Thing.newBuilder()
-                            .setId("org.eclipse.ditto.test:myThing1")
+                            .setId(ThingId.of(NAMESPACE, "myThing1"))
                             .build(),
                     DittoHeaders.empty()),
             ModifyThingResponse.created(Thing.newBuilder()
-                            .setId("org.eclipse.ditto.test:myThing2")
+                            .setId(ThingId.of(NAMESPACE, "myThing2"))
                             .build(),
                     DittoHeaders.empty()),
             ModifyThingResponse.created(Thing.newBuilder()
-                            .setId("org.eclipse.ditto.test:myThing3")
+                            .setId(ThingId.of(NAMESPACE, "myThing3"))
                             .build(),
                     DittoHeaders.empty()));
 

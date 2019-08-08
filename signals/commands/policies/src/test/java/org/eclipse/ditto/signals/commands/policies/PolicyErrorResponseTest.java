@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -34,7 +35,7 @@ public class PolicyErrorResponseTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyCommandResponse.JsonFields.TYPE, PolicyErrorResponse.TYPE)
             .set(PolicyCommandResponse.JsonFields.STATUS, HttpStatusCode.NOT_FOUND.toInt())
-            .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(PolicyCommandResponse.JsonFields.PAYLOAD,
                     TestConstants.Policy.POLICY_NOT_ACCESSIBLE_EXCEPTION.toJson(FieldType.regularOrSpecial()))
             .build();
@@ -44,7 +45,7 @@ public class PolicyErrorResponseTest {
     public void assertImmutability() {
         assertInstancesOf(PolicyErrorResponse.class,
                 areImmutable(),
-                provided(DittoRuntimeException.class).isAlsoImmutable());
+                provided(DittoRuntimeException.class, PolicyId.class).isAlsoImmutable());
     }
 
 

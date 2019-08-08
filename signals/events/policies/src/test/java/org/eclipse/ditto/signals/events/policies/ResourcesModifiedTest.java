@@ -37,7 +37,7 @@ public class ResourcesModifiedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, ResourcesModified.TYPE)
             .set(Event.JsonFields.REVISION, TestConstants.Policy.REVISION_NUMBER)
-            .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID)
+            .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(ResourcesModified.JSON_LABEL, TestConstants.Policy.LABEL.toString())
             .set(ResourcesModified.JSON_RESOURCES,
                     TestConstants.Policy.RESOURCES.toJson(FieldType.regularOrSpecial()))
@@ -98,7 +98,7 @@ public class ResourcesModifiedTest {
                 ResourcesModified.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getPolicyId()).isEqualTo(TestConstants.Policy.POLICY_ID);
+        assertThat((CharSequence) underTest.getPolicyEntityId()).isEqualTo(TestConstants.Policy.POLICY_ID);
         assertThat(underTest.getLabel()).isEqualTo(TestConstants.Policy.LABEL);
         assertThat((Jsonifiable) underTest.getResources()).isEqualTo(TestConstants.Policy.RESOURCES);
     }

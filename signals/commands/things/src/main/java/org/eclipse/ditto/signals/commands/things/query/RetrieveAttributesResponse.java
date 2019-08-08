@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -54,10 +55,10 @@ public final class RetrieveAttributesResponse extends AbstractCommandResponse<Re
             JsonFactory.newJsonObjectFieldDefinition("attributes", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final String thingId;
+    private final ThingId thingId;
     private final Attributes attributes;
 
-    private RetrieveAttributesResponse(final String thingId, final Attributes attributes,
+    private RetrieveAttributesResponse(final ThingId thingId, final Attributes attributes,
             final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatusCode.OK, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thing ID");
@@ -73,7 +74,7 @@ public final class RetrieveAttributesResponse extends AbstractCommandResponse<Re
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveAttributesResponse of(final String thingId, final Attributes attributes,
+    public static RetrieveAttributesResponse of(final ThingId thingId, final Attributes attributes,
             final DittoHeaders dittoHeaders) {
         return new RetrieveAttributesResponse(thingId, attributes, dittoHeaders);
     }
@@ -87,7 +88,7 @@ public final class RetrieveAttributesResponse extends AbstractCommandResponse<Re
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveAttributesResponse of(final String thingId, @Nullable final JsonObject jsonObject,
+    public static RetrieveAttributesResponse of(final ThingId thingId, @Nullable final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
         final Attributes attributes = (null != jsonObject)
@@ -126,8 +127,9 @@ public final class RetrieveAttributesResponse extends AbstractCommandResponse<Re
             final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveAttributesResponse>(TYPE, jsonObject)
                 .deserialize((statusCode) -> {
-                    final String thingId =
+                    final String extractedThingId =
                             jsonObject.getValueOrThrow(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
+                    final ThingId thingId = ThingId.of(extractedThingId);
                     final JsonObject attributesJsonObject = jsonObject.getValueOrThrow(JSON_ATTRIBUTES);
                     final Attributes extractedAttributes = ThingsModelFactory.newAttributes(attributesJsonObject);
 
@@ -136,7 +138,7 @@ public final class RetrieveAttributesResponse extends AbstractCommandResponse<Re
     }
 
     @Override
-    public String getThingId() {
+    public ThingId getThingEntityId() {
         return thingId;
     }
 
@@ -174,7 +176,7 @@ public final class RetrieveAttributesResponse extends AbstractCommandResponse<Re
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
+        jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_ATTRIBUTES, attributes, predicate);
     }
 

@@ -24,6 +24,8 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.LogEntry;
+import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionLogs;
@@ -45,8 +47,9 @@ public final class DefaultMuteableConnectionLoggerTest {
     private static final ConnectionMonitor.InfoProvider INFO_PROVIDER = InfoProviderFactory.empty();
     private static final String MESSAGE = "something happened to {0}";
     private static final Object[] MESSAGE_ARGUMENTS = {"ditto"};
-    private static final String THING_ID = "the:thing";
-    private static final Signal<?> SIGNAL = RetrieveConnectionLogs.of("connectionId", DittoHeaders.empty());
+    private static final ThingId THING_ID = ThingId.of("the:thing");
+    private static final Signal<?> SIGNAL =
+            RetrieveConnectionLogs.of(TestConstants.createRandomConnectionId(), DittoHeaders.empty());
     private static final DittoRuntimeException DITTO_RUNTIME_EXCEPTION = DittoRuntimeException.newBuilder("any.error", HttpStatusCode.BAD_REQUEST).build();
     private static final Exception EXCEPTION = new IllegalArgumentException();
 
@@ -172,7 +175,7 @@ public final class DefaultMuteableConnectionLoggerTest {
     }
 
     private DefaultMuteableConnectionLogger logger() {
-        return new DefaultMuteableConnectionLogger("theConnection", delegate);
+        return new DefaultMuteableConnectionLogger(TestConstants.createRandomConnectionId(), delegate);
     }
 
 }

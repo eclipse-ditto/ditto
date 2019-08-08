@@ -14,12 +14,12 @@ package org.eclipse.ditto.signals.events.connectivity;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -34,7 +34,7 @@ import org.eclipse.ditto.model.connectivity.Topic;
  */
 public final class TestConstants {
 
-    public static String ID = "myConnectionId";
+    public static final EntityId ID = DefaultEntityId.of("myConnectionId");
 
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
     public static ConnectivityStatus STATUS = ConnectivityStatus.OPEN;
@@ -65,12 +65,5 @@ public final class TestConstants {
                     .sources(SOURCES)
                     .targets(TARGETS)
                     .build();
-
-    public static Map<String, ConnectivityStatus> CONNECTION_STATUSES;
-
-    static {
-        CONNECTION_STATUSES = new HashMap<>();
-        CONNECTION_STATUSES.put(ID, ConnectivityStatus.OPEN);
-    }
 
 }

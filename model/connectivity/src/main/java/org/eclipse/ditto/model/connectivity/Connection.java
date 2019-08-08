@@ -26,6 +26,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -42,7 +43,7 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
      *
      * @return the identifier.
      */
-    String getId();
+    EntityId getId();
 
     /**
      * Returns the name of this {@code Connection}.
