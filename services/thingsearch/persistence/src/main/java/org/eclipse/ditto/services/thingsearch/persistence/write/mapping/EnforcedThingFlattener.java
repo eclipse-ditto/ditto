@@ -12,12 +12,12 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.write.mapping;
 
+import static org.eclipse.ditto.model.policies.PoliciesResourceType.THING;
+import static org.eclipse.ditto.services.models.policies.Permission.READ;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_GRANTED;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL_KEY;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL_VALUE;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_REVOKED;
-import static org.eclipse.ditto.model.policies.PoliciesResourceType.THING;
-import static org.eclipse.ditto.services.models.policies.Permission.READ;
 
 import java.util.Collection;
 import java.util.Optional;
@@ -27,7 +27,6 @@ import org.bson.BsonArray;
 import org.bson.BsonString;
 import org.bson.BsonValue;
 import org.bson.Document;
-import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonNumber;
@@ -38,9 +37,8 @@ import org.eclipse.ditto.model.enforcers.EffectedSubjectIds;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil;
-
 import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
+import org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil;
 
 /**
  * Flattens a Thing with an enforcer into a list of pointer-value pairs for indexing.
@@ -93,9 +91,12 @@ final class EnforcedThingFlattener implements JsonObjectVisitor<Stream<Document>
 
     @Override
     public Stream<Document> array(final JsonPointer key, final Stream<Stream<Document>> values) {
-        return values
-                .reduce(Stream::concat)
+        // step 1: flatten flattened value from array elements
+        return values.reduce(Stream::concat)
+                // step 2: limit the number of flattened elements
                 .map(s -> maxArraySize < 0 ? s : s.limit(maxArraySize))
+                // step 3: distinguish between empty and non-empty streams no matter what the cause
+                .flatMap(s -> s.map(Stream::of).reduce(Stream::concat))
                 .orElseGet(() -> singleton(key, JsonObject.empty()));
     }
 
