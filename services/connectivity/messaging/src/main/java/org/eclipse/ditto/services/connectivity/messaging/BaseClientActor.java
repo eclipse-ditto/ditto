@@ -471,7 +471,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * @return an FSM function builder
      */
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectedState() {
-        return matchEvent(CloseConnection.class, BaseClientData.class, this::closeConnection);
+        return matchEvent(CloseConnection.class, BaseClientData.class, this::closeConnection)
+                .event(OpenConnection.class, BaseClientData.class, this::connectionAlreadyOpen);
     }
 
     /**
@@ -572,6 +573,13 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                             .setConnectionStatusDetails(error.getMessage())
                             .resetSession());
         }
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> connectionAlreadyOpen(final OpenConnection openConnection,
+            final BaseClientData data) {
+
+        getSender().tell(new Status.Success(CONNECTED), getSelf());
+        return stay();
     }
 
     private void reconnect(final BaseClientData data) {
