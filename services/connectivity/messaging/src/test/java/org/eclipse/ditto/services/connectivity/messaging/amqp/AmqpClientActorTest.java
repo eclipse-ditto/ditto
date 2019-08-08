@@ -364,7 +364,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             expectMsg(CONNECTED_SUCCESS);
 
             amqpClientActor.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
-            expectMsgClass(ConnectionSignalIllegalException.class);
+            expectMsg(CONNECTED_SUCCESS);
 
             // no reconnect happens
             Mockito.verify(mockConnection, Mockito.times(1)).start();

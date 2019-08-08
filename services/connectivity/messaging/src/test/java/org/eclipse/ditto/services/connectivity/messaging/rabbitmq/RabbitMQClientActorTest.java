@@ -216,7 +216,7 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
             expectMsg(CONNECTED_SUCCESS);
 
             rabbitClientActor.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
-            expectMsgClass(ConnectionSignalIllegalException.class);
+            expectMsg(CONNECTED_SUCCESS);
 
             // a publisher and a consumer channel should be created
             verify(mockConnection, Mockito.times(2)).createChannel();
