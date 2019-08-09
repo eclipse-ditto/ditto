@@ -254,17 +254,12 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
 
         final JsonifiableMapper<T> jsonifiableMapper = mappingStrategies.get(type);
         if (null == jsonifiableMapper) {
-            throw UnknownTopicPathException.fromMessage(getUnknownTypeMessage(externalAdaptable), filteredHeaders);
+            throw UnknownTopicPathException.fromTopicAndPath(externalAdaptable.getTopicPath(),
+                    externalAdaptable.getPayload().getPath(), filteredHeaders);
         }
 
         final Adaptable adaptable = externalAdaptable.setDittoHeaders(filteredHeaders);
         return DittoJsonException.wrapJsonRuntimeException(() -> jsonifiableMapper.map(adaptable));
-    }
-
-    private String getUnknownTypeMessage(final Adaptable adaptable) {
-        final String topic = adaptable.getTopicPath().getPath();
-        final MessagePath path = adaptable.getPayload().getPath();
-        return String.format("The topic '%s' is not supported in combination with the path '%s'", topic, path);
     }
 
     /**
