@@ -20,6 +20,7 @@ import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.cr
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.timeout;
@@ -728,7 +729,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             amqpClientActor.connectionListener.onConsumerClosed(mockConsumer, error);
 
             // THEN: another consumer is created
-            verify(mockSession).createConsumer(any());
+            verify(mockSession, atLeastOnce()).createConsumer(any());
             final ArgumentCaptor<MessageListener> captor = ArgumentCaptor.forClass(MessageListener.class);
             verify(mockConsumer2, timeout(1000).atLeastOnce()).setMessageListener(captor.capture());
             final MessageListener messageListener = captor.getValue();

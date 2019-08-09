@@ -752,7 +752,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                         String.format("Connection failed due to: {0}. Will reconnect after %s.", nextBackoff);
                 connectionLogger.failure(errorMessage, event.getFailureDescription());
                 log.info("Connection failed: {}. Reconnect after {}.", event, nextBackoff);
-                return goTo(CONNECTING).forMax(reconnectTimeoutStrategy.getNextBackoff()).using(data.resetSession()
+                return goTo(CONNECTING).forMax(nextBackoff).using(data.resetSession()
                         .setConnectionStatus(ConnectivityStatus.FAILED)
                         .setConnectionStatusDetails(event.getFailureDescription()));
             } else {
