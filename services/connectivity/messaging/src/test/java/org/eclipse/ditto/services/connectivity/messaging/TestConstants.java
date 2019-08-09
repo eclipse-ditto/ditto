@@ -223,7 +223,7 @@ public final class TestConstants {
                 newTarget("target:{{ thing:namespace }}/{{thing:name}}@{{ topic:channel }}",
                         Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING,
                         null, Topic.TWIN_EVENTS);
-        static final Target TWIN_TARGET =
+        public static final Target TWIN_TARGET =
                 newTarget("twinEventExchange/twinEventRoutingKey", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING,
                         null, Topic.TWIN_EVENTS);
         private static final Target TWIN_TARGET_UNAUTHORIZED =

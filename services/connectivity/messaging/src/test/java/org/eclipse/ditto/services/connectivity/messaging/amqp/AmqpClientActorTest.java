@@ -57,6 +57,7 @@ import javax.jms.TextMessage;
 import org.apache.qpid.jms.JmsConnection;
 import org.apache.qpid.jms.JmsConnectionListener;
 import org.apache.qpid.jms.JmsMessageConsumer;
+import org.apache.qpid.jms.JmsMessageProducer;
 import org.apache.qpid.jms.JmsQueue;
 import org.apache.qpid.jms.JmsSession;
 import org.apache.qpid.jms.message.JmsMessage;
@@ -163,7 +164,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
     @Before
     public void init() throws JMSException {
-        mockProducer = Mockito.mock(MessageProducer.class);
+        mockProducer = Mockito.mock(JmsMessageProducer.class);
 
         when(mockConnection.createSession(Session.CLIENT_ACKNOWLEDGE)).thenReturn(mockSession);
 
@@ -451,8 +452,8 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
         final String expectedAddress = "target";
         final Target target = ConnectivityModelFactory.newTarget(expectedAddress, Authorization.AUTHORIZATION_CONTEXT,
                 null, null, Topic.TWIN_EVENTS);
-        final MessageProducer recoveredProducer = Mockito.mock(MessageProducer.class);
-        final MessageConsumer recoveredConsumer = Mockito.mock(MessageConsumer.class);
+        final MessageProducer recoveredProducer = Mockito.mock(JmsMessageProducer.class);
+        final MessageConsumer recoveredConsumer = Mockito.mock(JmsMessageConsumer.class);
         final JmsSession newSession = Mockito.mock(JmsSession.class, withSettings().name("recoveredSession"));
 
         // existing session was closed
@@ -719,7 +720,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             expectMsg(CONNECTED_SUCCESS);
 
             // GIVEN: JMS session can create another consumer
-            final MessageConsumer mockConsumer2 = Mockito.mock(MessageConsumer.class);
+            final MessageConsumer mockConsumer2 = Mockito.mock(JmsMessageConsumer.class);
             when(mockSession.createConsumer(any())).thenReturn(mockConsumer2);
 
             // WHEN: consumer closed by remote end
@@ -754,7 +755,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
                 // GIVEN: JMS session fails, but the JMS connection can create a new functional session
                 final Session mockSession2 = Mockito.mock(Session.class);
-                final MessageConsumer mockConsumer2 = Mockito.mock(MessageConsumer.class);
+                final MessageConsumer mockConsumer2 = Mockito.mock(JmsMessageConsumer.class);
                 when(mockSession.createConsumer(any())).thenAnswer(invocation ->
                         waitForLatchAndReturn(latch, mockConsumer));
                 when(mockConnection.createSession(anyInt())).thenReturn(mockSession2);
@@ -940,8 +941,9 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     private void sendThingEventAndExpectPublish(final ActorRef amqpClientActor, final Target target,
             final MessageProducer mockProducer) throws JMSException {
         final String uuid = UUID.randomUUID().toString();
-        final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(singletonList(""),
-                Attributes.newBuilder().set("uuid", uuid).build());
+        final ThingModifiedEvent thingModifiedEvent =
+                TestConstants.thingModified(singletonList(""), Attributes.newBuilder().set("uuid", uuid).build())
+                        .setDittoHeaders(DittoHeaders.newBuilder().putHeader("reply-to", target.getAddress()).build());
         final OutboundSignal outboundSignal =
                 OutboundSignalFactory.newOutboundSignal(thingModifiedEvent, singletonList(target));
         amqpClientActor.tell(outboundSignal, ActorRef.noSender());

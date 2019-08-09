@@ -41,6 +41,13 @@ public interface Amqp10Config {
     int getConsumerThrottlingLimit();
 
     /**
+     * Returns how many reply-to addresses to cache.
+     *
+     * @return the reply-to cache size.
+     */
+    int getReplyToCacheSize();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code Amqp10Config}.
      */
@@ -56,8 +63,12 @@ public interface Amqp10Config {
          * The consumer throttling limit defining processed messages per configured
          * {@link #CONSUMER_THROTTLING_INTERVAL interval}.
          */
-        CONSUMER_THROTTLING_LIMIT("consumer.throttling.limit", 100)
-        ;
+        CONSUMER_THROTTLING_LIMIT("consumer.throttling.limit", 100),
+
+        /**
+         * How many reply-to addresses to cache per client actor.
+         */
+        REPLY_TO_CACHE_SIZE("reply-to-cache-size", 10);
 
         private final String path;
         private final Object defaultValue;

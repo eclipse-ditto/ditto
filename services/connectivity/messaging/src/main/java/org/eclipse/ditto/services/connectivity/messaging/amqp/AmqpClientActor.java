@@ -63,6 +63,7 @@ import akka.actor.ActorRef;
 import akka.actor.FSM;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.actor.SupervisorStrategy;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.pattern.Patterns;
@@ -164,6 +165,11 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                     .cause(e)
                     .build();
         }
+    }
+
+    @Override
+    public SupervisorStrategy supervisorStrategy() {
+        return SupervisorStrategy.stoppingStrategy();
     }
 
     @Override
@@ -351,7 +357,9 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         stopCommandProducer();
         final String namePrefix = AmqpPublisherActor.ACTOR_NAME_PREFIX;
         if (jmsSession != null) {
-            final Props props = AmqpPublisherActor.props(connectionId(), getTargetsOrEmptyList(), jmsSession);
+            final Props props =
+                    AmqpPublisherActor.props(connectionId(), getTargetsOrEmptyList(), jmsSession,
+                            connectivityConfig.getConnectionConfig());
             amqpPublisherActor = startChildActorConflictFree(namePrefix, props);
         } else {
             throw ConnectionFailedException
