@@ -115,6 +115,8 @@ import scala.util.Right;
  */
 public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseClientData> {
 
+    private static final String DITTO_STATE_TIMEOUT_TIMER = "dittoStateTimeout";
+
     private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
 
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
@@ -156,7 +158,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         final BaseClientData startingData = new BaseClientData(connection.getId(), connection,
                 ConnectivityStatus.UNKNOWN, desiredConnectionStatus, "initialized", Instant.now(), null, null);
 
-
         clientGauge = DittoMetrics.gauge("connection_client")
                 .tag("id", connection.getId())
                 .tag("type", connection.getConnectionType().getName());
@@ -164,18 +165,20 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 .tag("id", connection.getId())
                 .tag("type", connection.getConnectionType().getName());
 
-        startWith(UNKNOWN, startingData, clientConfig.getInitTimeout());
-
         // stable states
         when(UNKNOWN, inUnknownState());
         when(CONNECTED, inConnectedState());
         when(DISCONNECTED, inDisconnectedState());
 
-        // volatile states that time out
-        final Duration connectingTimeout = clientConfig.getConnectingMinTimeout();
-        when(CONNECTING, connectingTimeout, inConnectingState());
-        when(DISCONNECTING, connectingTimeout, inDisconnectingState());
-        when(TESTING, clientConfig.getTestingTimeout(), inTestingState());
+        // volatile states
+        //
+        // DO NOT use state timeout:
+        // FSM state timeout gets reset by any message, AND cannot be longer than 5 minutes (Akka v2.5.23).
+        when(DISCONNECTING, inDisconnectingState());
+        when(CONNECTING, inConnectingState());
+        when(TESTING, inTestingState());
+
+        startWith(UNKNOWN, startingData, clientConfig.getInitTimeout());
 
         onTransition(this::onTransition);
 
@@ -419,6 +422,31 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         if (from == CONNECTING) {
             clientConnectingGauge.decrement();
         }
+        // cancel our own state timeout if target state is stable
+        switch (to) {
+            case UNKNOWN:
+            case CONNECTED:
+            case DISCONNECTED:
+                cancelStateTimeout();
+        }
+    }
+
+    /*
+     * For each volatile state, use the special goTo methods for timer management.
+     */
+    private FSM.State<BaseClientState, BaseClientData> goToConnecting(final Duration timeout) {
+        scheduleStateTimeout(timeout);
+        return goTo(CONNECTING);
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> goToDisconnecting() {
+        scheduleStateTimeout(clientConfig.getConnectingMinTimeout());
+        return goTo(DISCONNECTING);
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> goToTesting() {
+        scheduleStateTimeout(clientConfig.getTestingTimeout());
+        return goTo(TESTING);
     }
 
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inUnknownState() {
@@ -550,7 +578,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             final BaseClientData data) {
         final ActorRef sender = getSender();
         doDisconnectClient(data.getConnection(), sender);
-        return goTo(DISCONNECTING).using(setSession(data, sender, closeConnection.getDittoHeaders())
+        return goToDisconnecting().using(setSession(data, sender, closeConnection.getDittoHeaders())
                 .setDesiredConnectionStatus(ConnectivityStatus.CLOSED)
                 .setConnectionStatusDetails("closing or deleting connection at " + Instant.now()));
     }
@@ -562,14 +590,15 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         final Connection connection = data.getConnection();
         final DittoHeaders dittoHeaders = openConnection.getDittoHeaders();
         reconnectTimeoutStrategy.reset();
+        final Duration connectingTimeout = clientConfig.getConnectingMinTimeout();
         if (canConnectViaSocket(connection)) {
             doConnectClient(connection, sender);
-            return goTo(CONNECTING).using(setSession(data, sender, dittoHeaders));
+            return goToConnecting(connectingTimeout).using(setSession(data, sender, dittoHeaders));
         } else {
             cleanupResourcesForConnection();
             final DittoRuntimeException error = newConnectionFailedException(data.getConnection(), dittoHeaders);
             sender.tell(new Status.Failure(error), getSelf());
-            return goTo(CONNECTING)
+            return goToConnecting(connectingTimeout)
                     .using(data.setConnectionStatus(ConnectivityStatus.FAILED)
                             .setConnectionStatusDetails(error.getMessage())
                             .resetSession());
@@ -631,10 +660,9 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                     });
         }
 
-        return goTo(TESTING)
-                .using(setSession(data, sender, testConnection.getDittoHeaders())
-                        .setConnection(connection)
-                        .setConnectionStatusDetails("Testing connection since " + Instant.now()));
+        return goToTesting().using(setSession(data, sender, testConnection.getDittoHeaders())
+                .setConnection(connection)
+                .setConnectionStatusDetails("Testing connection since " + Instant.now()));
     }
 
     private FSM.State<BaseClientState, BaseClientData> connectionTimedOut(final BaseClientData data) {
@@ -653,10 +681,9 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         if (ConnectivityStatus.OPEN.equals(data.getDesiredConnectionStatus())) {
             if (reconnectTimeoutStrategy.canReconnect()) {
                 reconnect(data);
-                return goTo(CONNECTING).forMax(reconnectTimeoutStrategy.getNextTimeout())
-                        .using(data.resetSession()
-                                .setConnectionStatus(ConnectivityStatus.FAILED)
-                                .setConnectionStatusDetails(timeoutMessage + " Will try to reconnect."));
+                return goToConnecting(reconnectTimeoutStrategy.getNextTimeout()).using(data.resetSession()
+                        .setConnectionStatus(ConnectivityStatus.FAILED)
+                        .setConnectionStatusDetails(timeoutMessage + " Will try to reconnect."));
             } else {
                 connectionLogger.failure(
                         "Connection timed out. Reached maximum tries and thus will no longer try to reconnect.");
@@ -664,12 +691,10 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                         "Connection <{}> reached maximum retries for reconnecting and thus will no longer try to reconnect.",
                         connectionId());
 
-                return goTo(UNKNOWN)
-                        .forMax(scala.concurrent.duration.Duration.Inf())
-                        .using(data.resetSession()
-                                .setConnectionStatus(ConnectivityStatus.FAILED)
-                                .setConnectionStatusDetails(timeoutMessage
-                                        + " Reached maximum retries and thus will not try to reconnect any longer."));
+                return goTo(UNKNOWN).using(data.resetSession()
+                        .setConnectionStatus(ConnectivityStatus.FAILED)
+                        .setConnectionStatusDetails(timeoutMessage +
+                                " Reached maximum retries and thus will not try to reconnect any longer."));
             }
         }
 
@@ -752,7 +777,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                         String.format("Connection failed due to: {0}. Will reconnect after %s.", nextBackoff);
                 connectionLogger.failure(errorMessage, event.getFailureDescription());
                 log.info("Connection failed: {}. Reconnect after {}.", event, nextBackoff);
-                return goTo(CONNECTING).forMax(nextBackoff).using(data.resetSession()
+                return goToConnecting(nextBackoff).using(data.resetSession()
                         .setConnectionStatus(ConnectivityStatus.FAILED)
                         .setConnectionStatusDetails(event.getFailureDescription()));
             } else {
@@ -764,12 +789,10 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                         connectionId());
 
                 // stay in UNKNOWN state until re-opened manually
-                return goTo(UNKNOWN)
-                        .forMax(scala.concurrent.duration.Duration.Inf())
-                        .using(data.resetSession()
-                                .setConnectionStatus(ConnectivityStatus.FAILED)
-                                .setConnectionStatusDetails(event.getFailureDescription()
-                                        + " Reached maximum retries and thus will not try to reconnect any longer."));
+                return goTo(UNKNOWN).using(data.resetSession()
+                        .setConnectionStatus(ConnectivityStatus.FAILED)
+                        .setConnectionStatusDetails(event.getFailureDescription()
+                                + " Reached maximum retries and thus will not try to reconnect any longer."));
             }
 
         }
@@ -1104,6 +1127,14 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         } else {
             return data.resetSession();
         }
+    }
+
+    private void cancelStateTimeout() {
+        cancelTimer(DITTO_STATE_TIMEOUT_TIMER);
+    }
+
+    private void scheduleStateTimeout(final Duration duration) {
+        setTimer(DITTO_STATE_TIMEOUT_TIMER, StateTimeout(), duration, false);
     }
 
     /**

@@ -190,6 +190,23 @@ public final class BaseClientActorTest {
         }};
     }
 
+    @Test
+    public void connectsAutomaticallyAfterActorStart() {
+        new TestKit(actorSystem) {{
+            final String randomConnectionId = TestConstants.createRandomConnectionId();
+            final Connection connection =
+                    TestConstants.createConnection(randomConnectionId,new Target[0]);
+            final Props props = DummyClientActor.props(connection, getRef(), delegate);
+
+            final ActorRef dummyClientActor = actorSystem.actorOf(props);
+            watch(dummyClientActor);
+
+            thenExpectConnectClientCalledAfterTimeout(Duration.ofSeconds(5L));
+            Mockito.clearInvocations(delegate);
+            andConnectionSuccessful(dummyClientActor, getRef());
+        }};
+    }
+
     private void thenExpectConnectClientCalled() {
         thenExpectConnectClientCalledAfterTimeout(Duration.ZERO);
     }
