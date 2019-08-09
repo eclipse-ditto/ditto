@@ -181,15 +181,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     @Override
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectedState() {
         return super.inConnectedState()
-                .event(ConnectionFailure.class, this::handleConnectionFailureWhenConnected)
                 .event(JmsSessionRecovered.class, this::handleSessionRecovered);
-    }
-
-    private State<BaseClientState, BaseClientData> handleConnectionFailureWhenConnected(final ConnectionFailure failure,
-            final BaseClientData data) {
-        return goTo(BaseClientState.UNKNOWN)
-                .using(data.setConnectionStatus(ConnectivityStatus.FAILED)
-                        .setConnectionStatusDetails(failure.getFailureDescription()));
     }
 
     @Override
