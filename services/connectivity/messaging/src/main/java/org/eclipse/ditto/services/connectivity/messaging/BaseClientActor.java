@@ -653,7 +653,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         if (ConnectivityStatus.OPEN.equals(data.getDesiredConnectionStatus())) {
             if (reconnectTimeoutStrategy.canReconnect()) {
                 reconnect(data);
-                connectionLogger.failure("Connection timed out. Will try to reconnect.");
                 return goTo(CONNECTING).forMax(reconnectTimeoutStrategy.getNextTimeout())
                         .using(data.resetSession()
                                 .setConnectionStatus(ConnectivityStatus.FAILED)
@@ -665,10 +664,12 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                         "Connection <{}> reached maximum retries for reconnecting and thus will no longer try to reconnect.",
                         connectionId());
 
-                return goTo(UNKNOWN).using(data.resetSession()
-                        .setConnectionStatus(ConnectivityStatus.FAILED)
-                        .setConnectionStatusDetails(timeoutMessage
-                                + " Reached maximum retries and thus will not try to reconnect any longer."));
+                return goTo(UNKNOWN)
+                        .forMax(scala.concurrent.duration.Duration.Inf())
+                        .using(data.resetSession()
+                                .setConnectionStatus(ConnectivityStatus.FAILED)
+                                .setConnectionStatusDetails(timeoutMessage
+                                        + " Reached maximum retries and thus will not try to reconnect any longer."));
             }
         }
 
@@ -687,7 +688,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
             allocateResourcesOnConnection(clientConnected);
             data.getSessionSender().ifPresent(origin -> origin.tell(new Status.Success(CONNECTED), getSelf()));
-            reconnectTimeoutStrategy.reset();
             return goTo(CONNECTED).using(data.resetSession()
                     .setConnectionStatus(ConnectivityStatus.OPEN)
                     .setConnectionStatusDetails("Connected at " + Instant.now()));
@@ -747,8 +747,11 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             final BaseClientData data) {
         if (ConnectivityStatus.OPEN.equals(data.getDesiredConnectionStatus())) {
             if (reconnectTimeoutStrategy.canReconnect()) {
-                connectionLogger.failure("Connection failed due to: {0}. Will try to reconnect.",
-                        event.getFailureDescription());
+                final Duration nextBackoff = reconnectTimeoutStrategy.getNextBackoff();
+                final String errorMessage =
+                        String.format("Connection failed due to: {0}. Will reconnect after %s.", nextBackoff);
+                connectionLogger.failure(errorMessage, event.getFailureDescription());
+                log.info("Connection failed: {}. Reconnect after {}.", event, nextBackoff);
                 return goTo(CONNECTING).forMax(reconnectTimeoutStrategy.getNextBackoff()).using(data.resetSession()
                         .setConnectionStatus(ConnectivityStatus.FAILED)
                         .setConnectionStatusDetails(event.getFailureDescription()));
@@ -760,19 +763,23 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                         "Connection <{}> reached maximum retries for reconnecting and thus will no longer try to reconnect.",
                         connectionId());
 
-                return goTo(UNKNOWN).using(data.resetSession()
-                        .setConnectionStatus(ConnectivityStatus.FAILED)
-                        .setConnectionStatusDetails(event.getFailureDescription()
-                                + " Reached maximum retries and thus will not try to reconnect any longer."));
+                // stay in UNKNOWN state until re-opened manually
+                return goTo(UNKNOWN)
+                        .forMax(scala.concurrent.duration.Duration.Inf())
+                        .using(data.resetSession()
+                                .setConnectionStatus(ConnectivityStatus.FAILED)
+                                .setConnectionStatusDetails(event.getFailureDescription()
+                                        + " Reached maximum retries and thus will not try to reconnect any longer."));
             }
 
         }
 
         connectionLogger.failure("Connection failed due to: {0}.", event.getFailureDescription());
-        return goTo(UNKNOWN).using(data.resetSession()
-                .setConnectionStatus(ConnectivityStatus.FAILED)
-                .setConnectionStatusDetails(event.getFailureDescription())
-        );
+        return goTo(UNKNOWN)
+                .using(data.resetSession()
+                        .setConnectionStatus(ConnectivityStatus.FAILED)
+                        .setConnectionStatusDetails(event.getFailureDescription())
+                );
     }
 
     private State<BaseClientState, BaseClientData> ifEventUpToDate(final Object event,
@@ -1170,6 +1177,9 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         private Duration nextBackoff;
         private int currentTries;
 
+        @Nullable
+        private Instant lastTimeoutIncrease = null;
+
         DuplicationReconnectTimeoutStrategy(final Duration minTimeout, final Duration maxTimeout,
                 final int maxTries, final Duration minBackoff, final Duration maxBackoff) {
             this.maxTimeout = checkArgument(maxTimeout, isPositiveOrZero(), () -> "maxTimeout must be positive");
@@ -1202,24 +1212,68 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         @Override
         public Duration getNextTimeout() {
-            this.increase();
+            this.increaseTimeoutAfterRecovery();
             return this.currentTimeout;
         }
 
         @Override
         public Duration getNextBackoff() {
+            // no need to perform recovery here because timeout always happens after a backoff
             final Duration result = nextBackoff;
-            nextBackoff = minDuration(maxTimeout, nextBackoff.multipliedBy(2L));
+            nextBackoff = minDuration(maxBackoff, nextBackoff.multipliedBy(2L));
             return result;
         }
 
-        private void increase() {
+        private void increaseTimeoutAfterRecovery() {
+            final Instant now = Instant.now();
+            performRecovery(now);
             currentTimeout = minDuration(maxTimeout, currentTimeout.multipliedBy(2L));
             ++currentTries;
         }
 
+        /* Recovery strategy based on the duration D between timeouts.
+         *
+         * 1. If D is smaller than 2x the expected duration, do not recover.
+         * 2. If D is larger than 2x the expected duration, recover 1s from backoff and timeout every 2s
+         * 3. If D is larger than 3x the expected duration, negate increment of retry counter.
+         * 4. If D is larger than 4x the expected duration, reduce retry counter by 1 after increment.
+         */
+        private void performRecovery(final Instant now) {
+            // no point to perform linear recovery if this is the first timeout increase
+            if (lastTimeoutIncrease != null) {
+                final Duration expectedDurationBetweenTimeouts = currentTimeout.plus(nextBackoff);
+                final Duration maxRelevantDuration = expectedDurationBetweenTimeouts.multipliedBy(8L);
+                final Duration durationBetweenTimeouts =
+                        minDuration(maxRelevantDuration, Duration.between(lastTimeoutIncrease, now));
+                // recover 1s backoff every 2s after twice the expected duration
+                final Duration recovery =
+                        durationBetweenTimeouts.dividedBy(2L).minus(expectedDurationBetweenTimeouts);
+                // perform recovery at all if recovery is positive
+                if (isLonger(recovery, Duration.ZERO)) {
+                    if (isLonger(durationBetweenTimeouts.dividedBy(4L), expectedDurationBetweenTimeouts)) {
+                        // safe for 4x the expected duration
+                        currentTries = Math.max(0, currentTries - 2);
+                    } else if (isLonger(durationBetweenTimeouts.dividedBy(3L), expectedDurationBetweenTimeouts)) {
+                        // safe for 3x the expected duration
+                        currentTries = Math.max(0, currentTries - 1);
+                    }
+                    currentTimeout = maxDuration(minTimeout, currentTimeout.minus(recovery));
+                    nextBackoff = maxDuration(minBackoff, nextBackoff.minus(recovery));
+                }
+            }
+            lastTimeoutIncrease = now;
+        }
+
         private static Duration minDuration(final Duration d1, final Duration d2) {
-            return d2.minus(d1).isNegative() ? d2 : d1;
+            return isLonger(d1, d2) ? d2 : d1;
+        }
+
+        private static Duration maxDuration(final Duration d1, final Duration d2) {
+            return isLonger(d2, d1) ? d2 : d1;
+        }
+
+        private static boolean isLonger(final Duration d1, final Duration d2) {
+            return d2.minus(d1).isNegative();
         }
 
         private static Predicate<Duration> isLowerThanOrEqual(final Duration otherDuration) {
