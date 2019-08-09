@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.signals.commands.devops;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
@@ -55,8 +56,8 @@ public final class RetrieveStatisticsDetails extends AbstractDevOpsCommand<Retri
     private RetrieveStatisticsDetails(final List<String> shardRegions, final List<String> namespaces,
             final DittoHeaders dittoHeaders) {
         super(TYPE, null, null, dittoHeaders);
-        this.shardRegions = shardRegions;
-        this.namespaces = namespaces;
+        this.shardRegions = Collections.unmodifiableList(new ArrayList<>(shardRegions));
+        this.namespaces = Collections.unmodifiableList(new ArrayList<>(namespaces));
     }
 
     /**
