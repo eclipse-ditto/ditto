@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import java.util.function.Predicate;
 
 import javax.annotation.Nonnull;
@@ -50,7 +48,7 @@ import org.junit.Test;
 /**
  * Unit test for {@link ThingModifyCommandAdapter}.
  */
-public final class ThingModifyCommandAdapterTest {
+public final class ThingModifyCommandAdapterTest implements ProtocolAdapterTest {
 
     private ThingModifyCommandAdapter underTest;
 
@@ -88,7 +86,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
         final ThingModifyCommand actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -111,7 +109,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
         final ThingModifyCommand actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -135,7 +133,7 @@ public final class ThingModifyCommandAdapterTest {
                 TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(createThing);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -160,7 +158,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
         final ThingModifyCommand actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -185,7 +183,7 @@ public final class ThingModifyCommandAdapterTest {
                         TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(modifyThing);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -212,7 +210,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
         final ThingModifyCommand actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -239,7 +237,7 @@ public final class ThingModifyCommandAdapterTest {
                         TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(modifyThing);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -265,7 +263,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
         final ThingModifyCommand actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -291,7 +289,7 @@ public final class ThingModifyCommandAdapterTest {
                         TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(modifyThing);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -313,7 +311,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
         final ThingModifyCommand actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -336,7 +334,7 @@ public final class ThingModifyCommandAdapterTest {
                 DeleteThing.of(TestConstants.THING_ID, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(deleteThing);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -360,7 +358,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
         final ThingModifyCommand actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -384,7 +382,7 @@ public final class ThingModifyCommandAdapterTest {
                 ModifyAcl.of(TestConstants.THING_ID, TestConstants.ACL, TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(modifyAcl);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -408,7 +406,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
         final ThingModifyCommand actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -433,7 +431,7 @@ public final class ThingModifyCommandAdapterTest {
                         TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(modifyAclEntry);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -455,7 +453,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
         final ThingModifyCommand actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -477,7 +475,7 @@ public final class ThingModifyCommandAdapterTest {
                 TestConstants.AUTHORIZATION_SUBJECT, TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(deleteAclEntry);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -502,7 +500,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
         final ThingModifyCommand actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -527,7 +525,7 @@ public final class ThingModifyCommandAdapterTest {
                         TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(modifyAttributes);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -550,7 +548,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
         final ThingModifyCommand actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -573,7 +571,7 @@ public final class ThingModifyCommandAdapterTest {
                 DeleteAttributes.of(TestConstants.THING_ID, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(deleteAttributes);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -597,7 +595,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
         final ThingModifyCommand actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -622,7 +620,7 @@ public final class ThingModifyCommandAdapterTest {
                 TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(modifyAttribute);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -646,7 +644,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
         final ThingModifyCommand actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -670,7 +668,7 @@ public final class ThingModifyCommandAdapterTest {
                         TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(deleteAttribute);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -694,7 +692,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
         final ThingModifyCommand actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -719,7 +717,7 @@ public final class ThingModifyCommandAdapterTest {
                         TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(modifyFeatures);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -741,7 +739,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
         final ThingModifyCommand actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -764,7 +762,7 @@ public final class ThingModifyCommandAdapterTest {
                 DeleteFeatures.of(TestConstants.THING_ID, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(deleteFeatures);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -788,7 +786,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
         final ThingModifyCommand actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -813,7 +811,7 @@ public final class ThingModifyCommandAdapterTest {
                         TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(modifyFeature);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -836,7 +834,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
         final ThingModifyCommand actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -860,7 +858,7 @@ public final class ThingModifyCommandAdapterTest {
                         TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(deleteFeature);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -884,7 +882,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
         final ThingModifyCommand actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -908,7 +906,7 @@ public final class ThingModifyCommandAdapterTest {
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_DEFINITION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(modifyFeatureDefinition);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -931,7 +929,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
         final ThingModifyCommand actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -954,7 +952,7 @@ public final class ThingModifyCommandAdapterTest {
                 TestConstants.FEATURE_ID, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(deleteFeatureDefinition);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -978,7 +976,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
         final ThingModifyCommand actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -1002,7 +1000,7 @@ public final class ThingModifyCommandAdapterTest {
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_PROPERTIES, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(modifyFeatureProperties);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -1025,7 +1023,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
         final ThingModifyCommand actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -1048,7 +1046,7 @@ public final class ThingModifyCommandAdapterTest {
                 TestConstants.FEATURE_ID, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(deleteFeatureProperties);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -1076,7 +1074,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
         final ThingModifyCommand actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -1103,7 +1101,7 @@ public final class ThingModifyCommandAdapterTest {
                 TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(modifyFeatureProperty);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -1129,7 +1127,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
         final ThingModifyCommand actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -1155,7 +1153,7 @@ public final class ThingModifyCommandAdapterTest {
                 TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(deleteFeatureProperty);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     private static class UnknownThingModifyCommand implements ThingModifyCommand {
