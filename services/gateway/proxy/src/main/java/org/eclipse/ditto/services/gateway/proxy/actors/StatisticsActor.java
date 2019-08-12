@@ -160,10 +160,7 @@ public final class StatisticsActor extends AbstractActorWithStashWithTimers {
                 .match(ShardRegion.CurrentShardRegionState.class, this::unhandled) // ignore, the message is too late
                 .match(ShardRegion.ClusterShardingStats.class, this::unhandled) // ignore, the message is too late
                 .match(RetrieveStatisticsDetailsResponse.class, this::unhandled) // ignore, the message is too late
-                .match(
-          
-          
-          .SubscribeAck.class, this::logSubscribeAck)
+                .match(DistributedPubSubMediator.SubscribeAck.class, this::logSubscribeAck)
                 .matchAny(m -> log.warning("Got unknown message, expected a 'RetrieveStatistics': {}", m))
                 .build();
     }
