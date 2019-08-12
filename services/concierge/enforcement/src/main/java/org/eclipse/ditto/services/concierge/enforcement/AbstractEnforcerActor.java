@@ -26,6 +26,7 @@ import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 import org.eclipse.ditto.services.utils.cache.EntityId;
 import org.eclipse.ditto.services.utils.cache.InvalidateCacheEntry;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.ExpiringTimerBuilder;
@@ -37,7 +38,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
@@ -95,7 +95,7 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
 
         // register for sending messages via pub/sub to this enforcer
         // used for receiving cache invalidations from brother concierge nodes
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
     }
 
     @Override
