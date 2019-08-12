@@ -160,10 +160,7 @@ public final class StatisticsActor extends AbstractActorWithStashWithTimers {
                 .match(ShardRegion.CurrentShardRegionState.class, this::unhandled) // ignore, the message is too late
                 .match(ShardRegion.ClusterShardingStats.class, this::unhandled) // ignore, the message is too late
                 .match(RetrieveStatisticsDetailsResponse.class, this::unhandled) // ignore, the message is too late
-                .match(
-          
-          
-          .SubscribeAck.class, this::logSubscribeAck)
+                .match(DistributedPubSubMediator.SubscribeAck.class, this::logSubscribeAck)
                 .matchAny(m -> log.warning("Got unknown message, expected a 'RetrieveStatistics': {}", m))
                 .build();
     }
@@ -197,10 +194,10 @@ public final class StatisticsActor extends AbstractActorWithStashWithTimers {
     }
 
     private void subscribeForStatisticsCommands() {
-        final Object subscribeForRetrieveStatistics =
-                new DistributedPubSubMediator.Subscribe(RetrieveStatistics.TYPE, ACTOR_NAME, getSelf());
-        final Object subscribeForRetrieveStatisticsDetails =
-                new DistributedPubSubMediator.Subscribe(RetrieveStatisticsDetails.TYPE, ACTOR_NAME, getSelf());
+        final Object subscribeForRetrieveStatistics = DistPubSubAccess
+                .subscribeViaGroup(RetrieveStatistics.TYPE, ACTOR_NAME, getSelf());
+        final Object subscribeForRetrieveStatisticsDetails = DistPubSubAccess
+                .subscribeViaGroup(RetrieveStatisticsDetails.TYPE, ACTOR_NAME, getSelf());
         pubSubMediator.tell(subscribeForRetrieveStatistics, getSelf());
         pubSubMediator.tell(subscribeForRetrieveStatisticsDetails, getSelf());
     }
