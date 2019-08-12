@@ -203,6 +203,55 @@ public final class ConnectionActorTest extends WithMockServers {
     }
 
     @Test
+    public void createConnectionAfterDeleted() {
+        new TestKit(actorSystem) {{
+            final TestProbe clientActorMock = TestProbe.apply(actorSystem);
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(clientActorMock.ref()));
+            watch(underTest);
+
+            // create connection
+            underTest.tell(createConnection, getRef());
+            clientActorMock.expectMsg(openConnection);
+            expectMsg(createConnectionResponse);
+
+            // delete connection
+            underTest.tell(deleteConnection, getRef());
+            expectMsg(deleteConnectionResponse);
+
+            // create connection again (while ConnectionActor is in deleted state)
+            underTest.tell(createConnection, getRef());
+            expectMsg(createConnectionResponse);
+            clientActorMock.expectMsg(openConnection);
+        }};
+    }
+
+    @Test
+    public void openConnectionAfterDeletedFails() {
+        new TestKit(actorSystem) {{
+            final TestProbe clientActorMock = TestProbe.apply(actorSystem);
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(clientActorMock.ref()));
+            watch(underTest);
+
+            // create connection
+            underTest.tell(createConnection, getRef());
+            clientActorMock.expectMsg(openConnection);
+            expectMsg(createConnectionResponse);
+
+            // delete connection
+            underTest.tell(deleteConnection, getRef());
+            expectMsg(deleteConnectionResponse);
+
+            // open connection should fail
+            underTest.tell(openConnection, getRef());
+            expectMsg(connectionNotAccessibleException);
+        }};
+    }
+
+    @Test
     public void createConnectionInClosedState() {
         new TestKit(actorSystem) {{
             final TestProbe probe = TestProbe.apply(actorSystem);

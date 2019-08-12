@@ -14,6 +14,7 @@ package org.eclipse.ditto.model.connectivity;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -195,6 +196,25 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
     Set<String> getTags();
 
     /**
+     * Returns the current lifecycle of this Connection.
+     *
+     * @return the current lifecycle of this Connection.
+     */
+    Optional<ConnectionLifecycle> getLifecycle();
+
+    /**
+     * Indicates whether this Connection has the given lifecycle.
+     *
+     * @param lifecycle the lifecycle to be checked for.
+     * @return {@code true} if this Connection has {@code lifecycle} as its lifecycle, {@code false} else.
+     */
+    default boolean hasLifecycle(final ConnectionLifecycle lifecycle) {
+        return getLifecycle()
+                .filter(actualLifecycle -> Objects.equals(actualLifecycle, lifecycle))
+                .isPresent();
+    }
+
+    /**
      * Returns a mutable builder with a fluent API for immutable {@code Connection}. The builder is initialised with the
      * entries of this instance.
      *
@@ -230,6 +250,13 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
          */
         public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
                 JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the Connection's lifecycle.
+         */
+        public static final JsonFieldDefinition<String> LIFECYCLE =
+                JsonFactory.newStringFieldDefinition("__lifecycle", FieldType.SPECIAL, FieldType.HIDDEN,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**

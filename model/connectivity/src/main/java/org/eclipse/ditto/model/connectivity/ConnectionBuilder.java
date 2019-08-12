@@ -178,6 +178,8 @@ public interface ConnectionBuilder {
      */
     ConnectionBuilder tag(String tag);
 
+    ConnectionBuilder lifecycle(@Nullable ConnectionLifecycle lifecycle);
+
     /**
      * Builds a new {@link Connection}.
      *
