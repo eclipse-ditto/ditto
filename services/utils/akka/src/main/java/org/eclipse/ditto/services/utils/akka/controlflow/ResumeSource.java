@@ -164,8 +164,9 @@ public final class ResumeSource {
 
         return upstream.statefulMapConcat(() -> new StatefulBackoffFunction<>(minBackoff, maxBackoff, recovery))
                 .flatMapConcat(pair ->
-                        Source.single(pair.first()).delay(pair.second(), OverflowStrategy.backpressure()));
-
+                        Source.single(pair.first())
+                                .delay(pair.second(), OverflowStrategy.backpressure())
+                );
     }
 
     /**

@@ -111,6 +111,7 @@ public class MongoReadJournal {
     private static final Document ID_DESC = toDocument(new Object[][]{{ID, SORT_DESCENDING}});
 
     private static final String COLLECTION_NAME_FIELD = "name";
+    private static final Duration MAX_BACK_OFF_DURATION = Duration.ofSeconds(128L);
 
     private final Pattern journalCollectionPrefix;
     private final Pattern snapsCollectionPrefix;
@@ -187,11 +188,10 @@ public class MongoReadJournal {
     public Source<String, NotUsed> getJournalPids(final int batchSize, final Duration maxIdleTime,
             final ActorMaterializer mat) {
 
-        final Duration maxBackOff = Duration.ofSeconds(128L);
-        final int maxRestarts = computeMaxRestarts(maxIdleTime, maxBackOff);
+        final int maxRestarts = computeMaxRestarts(maxIdleTime);
         return listJournals().withAttributes(Attributes.inputBuffer(1, 1))
                 .flatMapConcat(journal ->
-                        listPidsInJournal(journal, "", batchSize, mat, maxBackOff, maxRestarts)
+                        listPidsInJournal(journal, "", batchSize, mat, MAX_BACK_OFF_DURATION, maxRestarts)
                 )
                 .mapConcat(pids -> pids);
     }
@@ -264,10 +264,10 @@ public class MongoReadJournal {
                         document.getString(ID)));
     }
 
-    private int computeMaxRestarts(final Duration maxDuration, final Duration maxBackOff) {
-        if (maxBackOff.minus(maxDuration).isNegative()) {
+    private int computeMaxRestarts(final Duration maxDuration) {
+        if (MAX_BACK_OFF_DURATION.minus(maxDuration).isNegative()) {
             // maxBackOff < maxDuration: backOff at least 7 times (1+2+4+8+16+32+64=127s)
-            return Math.max(7, 6 + (int) (maxDuration.toMillis() / maxBackOff.toMillis()));
+            return Math.max(7, 6 + (int) (maxDuration.toMillis() / MAX_BACK_OFF_DURATION.toMillis()));
         } else {
             // maxBackOff >= maxDuration: maxRestarts = log2 of maxDuration in seconds
             final int log2MaxDuration = 63 - Long.numberOfLeadingZeros(maxDuration.getSeconds());

@@ -19,9 +19,9 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.concierge.common.PersistenceIdsConfig;
-import org.eclipse.ditto.services.models.connectivity.ConnectionTag;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
+import org.eclipse.ditto.services.models.streaming.AbstractEntityIdWithRevision;
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.models.streaming.SudoStreamPids;
@@ -48,6 +48,10 @@ public final class PersistenceIdSource {
                     PoliciesMessagingConstants.POLICIES_STREAM_PROVIDER_ACTOR_PATH,
                     ConnectivityMessagingConstants.STREAM_PROVIDER_ACTOR_PATH);
 
+    private PersistenceIdSource() {
+        throw new AssertionError();
+    }
+
     /**
      * Create a stream of snapshot revisions of all known entities.
      * The stream fails if there is a failure requesting any stream or processing any stream element.
@@ -69,7 +73,7 @@ public final class PersistenceIdSource {
             final ActorRef pubSubMediator,
             final String path) {
 
-        final EntityIdWithRevision emptyLowerBound = ConnectionTag.of("", 0L);
+        final EntityIdWithRevision emptyLowerBound = new EmptyEntityIdWithRevision();
 
         final Function<EntityIdWithRevision, Source<EntityIdWithRevision, ?>> resumptionFunction =
                 seed -> Source.single(requestStreamCommand(config, path, seed))
@@ -148,5 +152,12 @@ public final class PersistenceIdSource {
         }
         return Source.failed(error);
 
+    }
+
+    private static final class EmptyEntityIdWithRevision extends AbstractEntityIdWithRevision {
+
+        private EmptyEntityIdWithRevision() {
+            super("", 0L);
+        }
     }
 }
