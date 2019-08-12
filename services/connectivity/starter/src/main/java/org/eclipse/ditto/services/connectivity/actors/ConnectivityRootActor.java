@@ -21,7 +21,6 @@ import java.net.ConnectException;
 import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 import javax.annotation.Nullable;
@@ -43,6 +42,7 @@ import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConst
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.services.utils.config.LocalHostAddressSupplier;
@@ -59,7 +59,6 @@ import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 
 import akka.Done;
-import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
@@ -71,10 +70,8 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.cluster.Cluster;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ClusterShardingSettings;
-import akka.contrib.persistence.mongodb.JavaDslMongoReadJournal;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
@@ -84,7 +81,6 @@ import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
 import akka.stream.ActorMaterializer;
-import akka.stream.javadsl.Source;
 
 /**
  * Parent Actor which takes care of supervision of all other Actors in our system.
@@ -172,7 +168,7 @@ public final class ConnectivityRootActor extends AbstractActor {
         final ActorRef persistenceStreamingActor =
                 startChildActor(ConnectionPersistenceStreamingActorCreator.ACTOR_NAME,
                         ConnectionPersistenceStreamingActorCreator.props(0));
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(persistenceStreamingActor), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.put(persistenceStreamingActor), getSelf());
 
         startClusterSingletonActor(
                 ReconnectActor.props(getConnectionShardRegion(actorSystem, connectionSupervisorProps, clusterConfig),

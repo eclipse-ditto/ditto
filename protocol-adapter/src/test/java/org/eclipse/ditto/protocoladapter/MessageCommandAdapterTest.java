@@ -50,7 +50,7 @@ import org.junit.runners.Parameterized;
  * Unit test for {@link MessageCommandAdapter}.
  */
 @RunWith(Parameterized.class)
-public final class MessageCommandAdapterTest {
+public final class MessageCommandAdapterTest implements ProtocolAdapterTest {
 
     private static final String APPLICATION_JSON = "application/json";
     private static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
@@ -135,7 +135,7 @@ public final class MessageCommandAdapterTest {
 
         final MessageCommand actualMessageCommand = underTest.fromAdaptable(adaptable);
 
-        assertThat(actualMessageCommand).isEqualTo(expectedMessageCommand);
+        assertWithExternalHeadersThat(actualMessageCommand).isEqualTo(expectedMessageCommand);
     }
 
     private MessageHeaders messageHeaders(final CharSequence subject, final CharSequence contentType) {

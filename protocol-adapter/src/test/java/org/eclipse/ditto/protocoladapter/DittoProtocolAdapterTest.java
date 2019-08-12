@@ -41,16 +41,15 @@ import org.junit.Test;
 /**
  * Unit test for {@link DittoProtocolAdapter}.
  */
-public final class DittoProtocolAdapterTest {
+public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
 
-    private DittoProtocolAdapter underTest;
+    private ProtocolAdapter underTest;
 
     @Before
     public void setUp() {
         underTest = DittoProtocolAdapter.newInstance();
     }
 
-    /** */
     @Test
     public void topicPathFromString() {
         final TopicPath expected = TopicPath.newBuilder(THING_ID)
@@ -66,7 +65,6 @@ public final class DittoProtocolAdapterTest {
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void thingErrorResponseFromAdaptable() {
         final ThingNotAccessibleException thingNotAccessibleException =
@@ -92,7 +90,6 @@ public final class DittoProtocolAdapterTest {
         assertThat(actual.toJson()).isEqualTo(expected.toJson());
     }
 
-    /** */
     @Test
     public void thingModifyCommandFromAdaptable() {
         final ModifyThing modifyThing =
@@ -113,10 +110,9 @@ public final class DittoProtocolAdapterTest {
                 .build();
 
         final ThingModifyCommand actualCommand = (ThingModifyCommand) underTest.fromAdaptable(adaptable);
-        assertThat(actualCommand).isEqualTo(modifyThing);
+        assertWithExternalHeadersThat(actualCommand).isEqualTo(modifyThing);
     }
 
-    /** */
     @Test
     public void thingModifyCommandFromAdaptableWithPolicyToCopy() {
         final String policyIdToCopy = "someNameSpace:someId";
@@ -140,10 +136,9 @@ public final class DittoProtocolAdapterTest {
                 .build();
 
         final ThingModifyCommand actualCommand = (ThingModifyCommand) underTest.fromAdaptable(adaptable);
-        assertThat(actualCommand).isEqualTo(modifyThing);
+        assertWithExternalHeadersThat(actualCommand).isEqualTo(modifyThing);
     }
 
-    /** */
     @Test
     public void thingModifyCommandResponseFromAdaptable() {
         final ModifyThingResponse modifyThingResponseCreated =
@@ -167,7 +162,7 @@ public final class DittoProtocolAdapterTest {
                                 .build())
                         .withHeaders(TestConstants.HEADERS_V_2)
                         .build());
-        assertThat(actualCommandResponseCreated).isEqualTo(modifyThingResponseCreated);
+        assertWithExternalHeadersThat(actualCommandResponseCreated).isEqualTo(modifyThingResponseCreated);
 
         final ThingModifyCommandResponse actualCommandResponseModified =
                 (ThingModifyCommandResponse) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
@@ -176,10 +171,9 @@ public final class DittoProtocolAdapterTest {
                                 .build())
                         .withHeaders(TestConstants.HEADERS_V_2)
                         .build());
-        assertThat(actualCommandResponseModified).isEqualTo(modifyThingResponseModified);
+        assertWithExternalHeadersThat(actualCommandResponseModified).isEqualTo(modifyThingResponseModified);
     }
 
-    /** */
     @Test
     public void thingQueryCommandFromAdaptable() {
         final RetrieveThing retrieveThing = RetrieveThing.of(THING_ID, DITTO_HEADERS_V_2);
@@ -199,7 +193,7 @@ public final class DittoProtocolAdapterTest {
                         .withHeaders(TestConstants.HEADERS_V_2)
                         .build());
 
-        assertThat(actualCommand).isEqualTo(retrieveThing);
+        assertWithExternalHeadersThat(actualCommand).isEqualTo(retrieveThing);
 
         final JsonFieldSelector selectedFields = JsonFieldSelector.newInstance("thingId");
         final RetrieveThing retrieveThingWithFields = RetrieveThing.getBuilder(THING_ID, DITTO_HEADERS_V_2)
@@ -213,10 +207,9 @@ public final class DittoProtocolAdapterTest {
                                 .build())
                         .withHeaders(TestConstants.HEADERS_V_2)
                         .build());
-        assertThat(actualCommandWithFields).isEqualTo(retrieveThingWithFields);
+        assertWithExternalHeadersThat(actualCommandWithFields).isEqualTo(retrieveThingWithFields);
     }
 
-    /** */
     @Test
     public void thingQueryCommandResponseFromAdaptable() {
         final RetrieveThingResponse retrieveThingResponse =
@@ -239,10 +232,9 @@ public final class DittoProtocolAdapterTest {
                 .build();
         final ThingQueryCommandResponse actual = (ThingQueryCommandResponse) underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(retrieveThingResponse);
+        assertWithExternalHeadersThat(actual).isEqualTo(retrieveThingResponse);
     }
 
-    /** */
     @Test
     public void thingEventFromAdaptable() {
         final ThingModified expected =
@@ -265,10 +257,9 @@ public final class DittoProtocolAdapterTest {
                 .build();
         final ThingEvent actual = (ThingEvent) underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(expected);
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void modifyFeaturePropertyFromAdaptable() {
         final String topicPathString =
@@ -285,7 +276,6 @@ public final class DittoProtocolAdapterTest {
         assertThat(jsonifiable).isInstanceOf(ModifyFeatureProperty.class);
     }
 
-    /** */
     @Test
     public void thingMessageFromAdaptable() {
         final String subject = "this/is/all/part/of/subject";

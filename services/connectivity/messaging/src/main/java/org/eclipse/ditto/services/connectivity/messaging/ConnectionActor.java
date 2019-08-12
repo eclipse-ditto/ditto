@@ -67,6 +67,7 @@ import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cleanup.AbstractPersistentActorWithTimersAndCleanup;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
@@ -156,8 +157,6 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
 
     private static final Duration DELETED_ACTOR_LIFETIME = Duration.ofSeconds(10);
     private static final long DEFAULT_RETRIEVE_STATUS_TIMEOUT = 500L;
-
-    private static final String PUB_SUB_GROUP_PREFIX = "connection:";
 
     /**
      * Message to self to trigger termination after deletion.
@@ -667,6 +666,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                         final PerformTask performTask = new PerformTask("open connection",
                                 subscribeForEventsAndScheduleResponse(commandResponse, origin));
                         self.tell(performTask, ActorRef.noSender());
+                        this.startEnabledLoggingChecker(Duration.ofMillis(1));
                     },
                     error -> handleException("open-connection", origin, error)
             );
@@ -703,6 +703,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                                             origin.tell(closeConnectionResponse, getSelf());
                                         });
                         self.tell(performTask, ActorRef.noSender());
+                        this.cancelEnabledLoggingChecker();
                     },
                     error -> handleException("disconnect", origin, error),
                     () -> {
@@ -782,9 +783,13 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
     }
 
     private void startEnabledLoggingChecker() {
+        this.startEnabledLoggingChecker(this.checkLoggingActiveInterval);
+    }
+
+    private void startEnabledLoggingChecker(final Duration initialDelay) {
         this.cancelEnabledLoggingChecker();
         this.enabledLoggingChecker = getContext().getSystem().scheduler().schedule(
-                this.checkLoggingActiveInterval,
+                initialDelay,
                 this.checkLoggingActiveInterval,
                 getSelf(),
                 CheckLoggingActive.INSTANCE,
@@ -994,21 +999,15 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                 .collect(Collectors.toSet());
 
         forEachPubSubTopicDo(pubSubTopic -> {
-            final DistributedPubSubMediator.Subscribe subscribe =
-                    new DistributedPubSubMediator.Subscribe(pubSubTopic, PUB_SUB_GROUP_PREFIX + connectionId,
-                            getSelf());
             log.debug("Subscribing to pub-sub topic <{}> for connection <{}>.", pubSubTopic, connectionId);
-            pubSubMediator.tell(subscribe, getSelf());
+            pubSubMediator.tell(DistPubSubAccess.subscribe(pubSubTopic, getSelf()), getSelf());
         });
     }
 
     private void unsubscribeFromEvents() {
         forEachPubSubTopicDo(pubSubTopic -> {
             log.debug("Unsubscribing from pub-sub topic <{}> for connection <{}>.", pubSubTopic, connectionId);
-            final DistributedPubSubMediator.Unsubscribe unsubscribe =
-                    new DistributedPubSubMediator.Unsubscribe(pubSubTopic, PUB_SUB_GROUP_PREFIX + connectionId,
-                            getSelf());
-            pubSubMediator.tell(unsubscribe, getSelf());
+            pubSubMediator.tell(DistPubSubAccess.unsubscribe(pubSubTopic, getSelf()), getSelf());
         });
     }
 
@@ -1031,7 +1030,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
         persist(event, persistedEvent -> {
             log.debug("Successfully persisted Event <{}>.", persistedEvent.getType());
             consumer.accept(persistedEvent);
-            pubSubMediator.tell(new DistributedPubSubMediator.Publish(event.getType(), event, true), getSelf());
+            pubSubMediator.tell(DistPubSubAccess.publish(event.getType(), event), getSelf());
 
             // save a snapshot if there were too many changes since the last snapshot
             if ((lastSequenceNr() - lastSnapshotSequenceNr) >= snapshotThreshold) {

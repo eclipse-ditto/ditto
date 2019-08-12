@@ -198,7 +198,7 @@ public final class TransistorTest {
     }
 
     /**
-     *
+     * Parameter of the test: A permutation of activation orders and one of the terminals that should limit the stream.
      */
     public static final class Parameter {
 

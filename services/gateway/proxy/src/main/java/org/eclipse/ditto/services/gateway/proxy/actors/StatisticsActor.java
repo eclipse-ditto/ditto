@@ -50,6 +50,7 @@ import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.cluster.config.DefaultClusterConfig;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterRoleStatus;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatistics;
@@ -159,7 +160,10 @@ public final class StatisticsActor extends AbstractActorWithStashWithTimers {
                 .match(ShardRegion.CurrentShardRegionState.class, this::unhandled) // ignore, the message is too late
                 .match(ShardRegion.ClusterShardingStats.class, this::unhandled) // ignore, the message is too late
                 .match(RetrieveStatisticsDetailsResponse.class, this::unhandled) // ignore, the message is too late
-                .match(DistributedPubSubMediator.SubscribeAck.class, this::logSubscribeAck)
+                .match(
+          
+          
+          .SubscribeAck.class, this::logSubscribeAck)
                 .matchAny(m -> log.warning("Got unknown message, expected a 'RetrieveStatistics': {}", m))
                 .build();
     }
@@ -223,7 +227,7 @@ public final class StatisticsActor extends AbstractActorWithStashWithTimers {
 
     private void tellRootActorToRetrieveStatistics(final String rootActorPath,
             final RetrieveStatisticsDetails retrieveStatistics) {
-        pubSubMediator.tell(new DistributedPubSubMediator.SendToAll(rootActorPath, retrieveStatistics, false),
+        pubSubMediator.tell(DistPubSubAccess.sendToAll(rootActorPath, retrieveStatistics, false),
                 getSelf());
     }
 

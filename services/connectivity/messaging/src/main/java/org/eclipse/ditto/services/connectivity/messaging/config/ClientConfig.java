@@ -33,12 +33,28 @@ public interface ClientConfig {
     Duration getInitTimeout();
 
     /**
-     * Timeout when connecting to a remote system. If the connection could not be established after this time, the
-     * service will try to reconnect. If a failure happened during connecting, then the service will wait for this
-     * time until it will try to reconnect.
-     * @return the connecting timeout.
+     * Initial timeout when connecting to a remote system. If the connection could not be established after this time, the
+     * service will try to reconnect. If a failure happened during connecting, then the service will wait for at least this
+     * time until it will try to reconnect. The max timeout is defined in {@link ClientConfig#getConnectingMaxTimeout()}.
+     * @return the minimum connecting timeout.
      */
-    Duration getConnectingTimeout();
+    Duration getConnectingMinTimeout();
+
+    /**
+     * Max timeout (until reconnecting) when connecting to a remote system. See docs on {@link ClientConfig#getConnectingMinTimeout()}
+     * for more information on the concept.
+     * @return the maximum connecting timeout.
+     * @see ClientConfig#getConnectingMinTimeout()
+     */
+    Duration getConnectingMaxTimeout();
+
+    /**
+     * How many times we will try to reconnect when connecting to a remote system.
+     *
+     * The max time is about {@link ClientConfig#getConnectingMaxTimeout()} * this.
+     * @return the maximum retries for connecting.
+     */
+    int getConnectingMaxTries();
 
     /**
      * How long the service will wait for a successful connection when testing a new connection. If no response is
@@ -58,9 +74,19 @@ public interface ClientConfig {
         INIT_TIMEOUT("init-timeout", Duration.ofSeconds(5L)),
 
         /**
-         * See documentation on {@link ClientConfig#getConnectingTimeout()}.
+         * See documentation on {@link ClientConfig#getConnectingMinTimeout()}.
          */
-        CONNECTING_TIMEOUT("connecting-timeout", Duration.ofSeconds(60L)),
+        CONNECTING_MIN_TIMEOUT("connecting-min-timeout", Duration.ofSeconds(60L)),
+
+        /**
+         * See documentation on {@link ClientConfig#getConnectingMaxTimeout()}.
+         */
+        CONNECTING_MAX_TIMEOUT("connecting-max-timeout", Duration.ofSeconds(60L)),
+
+        /**
+         * See documentation on {@link ClientConfig#getConnectingMaxTries()}.
+         */
+        CONNECTING_MAX_TRIES("connecting-max-tries", 50),
 
         /**
          * See documentation on {@link ClientConfig#getTestingTimeout()}.
