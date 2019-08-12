@@ -18,8 +18,8 @@ import java.util.Collection;
 import java.util.List;
 
 import org.bson.Document;
-import org.eclipse.ditto.services.utils.persistence.operations.EntityPersistenceOperations;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.MongoOpsUtil;
+import org.eclipse.ditto.services.utils.persistence.operations.EntityPersistenceOperations;
 
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;

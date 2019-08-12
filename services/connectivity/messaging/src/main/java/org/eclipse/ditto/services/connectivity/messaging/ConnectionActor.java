@@ -305,7 +305,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                 // # Snapshot handling
                 .match(SnapshotOffer.class, ss -> {
                     final Connection fromSnapshotStore = snapshotAdapter.fromSnapshotStore(ss);
-                    log.info("Received SnapshotOffer containing connection: <{}>", fromSnapshotStore);
+                    log.info("Received SnapshotOffer ({}) containing connection: <{}>", ss, fromSnapshotStore);
                     if (fromSnapshotStore != null) {
                         restoreConnection(fromSnapshotStore);
                     }
@@ -1001,7 +1001,7 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
 
     private void retrieveConnection(final RetrieveConnection command) {
         checkConnectionNotNull();
-        getSender().tell(RetrieveConnectionResponse.of(connection, command.getDittoHeaders()), getSelf());
+        getSender().tell(RetrieveConnectionResponse.of(connection.toJson(), command.getDittoHeaders()), getSelf());
     }
 
     private void retrieveConnectionStatus(final RetrieveConnectionStatus command) {
@@ -1035,15 +1035,17 @@ public final class ConnectionActor extends AbstractPersistentActorWithTimersAndC
                         ConnectivityModelFactory.newAddressMetric(Collections.emptySet())
                 );
         final RetrieveConnectionMetricsResponse metricsResponse =
-                RetrieveConnectionMetricsResponse.of(connectionId, metrics,
-                        ConnectivityModelFactory.emptySourceMetrics(),
-                        ConnectivityModelFactory.emptyTargetMetrics(),
-                        command.getDittoHeaders());
+                RetrieveConnectionMetricsResponse.getBuilder(connectionId, command.getDittoHeaders())
+                .connectionMetrics(metrics)
+                .sourceMetrics(ConnectivityModelFactory.emptySourceMetrics())
+                .targetMetrics(ConnectivityModelFactory.emptyTargetMetrics())
+                .build();
         origin.tell(metricsResponse, getSelf());
     }
 
     private void respondWithEmptyStatus(final RetrieveConnectionStatus command, final ActorRef origin) {
         log.debug("ClientActor not started, responding with empty connection status with status closed.");
+
         final RetrieveConnectionStatusResponse statusResponse =
                 RetrieveConnectionStatusResponse.closedResponse(connectionId,
                         InstanceIdentifierSupplier.getInstance().get(),

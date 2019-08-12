@@ -33,7 +33,7 @@ import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyLifecycle;
 import org.eclipse.ditto.model.policies.PolicyRevision;
-import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoEventAdapter;
+import org.eclipse.ditto.services.policies.persistence.serializer.DefaultPolicyMongoEventAdapter;
 import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSnapshotAdapter;
 import org.eclipse.ditto.services.policies.persistence.testhelper.Assertions;
 import org.eclipse.ditto.services.policies.persistence.testhelper.PoliciesJournalTestHelper;
@@ -55,7 +55,6 @@ import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.policies.PolicyCreated;
 import org.eclipse.ditto.signals.events.policies.PolicyDeleted;
 import org.eclipse.ditto.signals.events.policies.PolicyModified;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -79,7 +78,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
     private static final String SNAPSHOT_THRESHOLD = POLICY_SNAPSHOT_PREFIX + "threshold";
     private static final Duration VERY_LONG_DURATION = Duration.ofDays(100);
 
-    private PolicyMongoEventAdapter eventAdapter;
+    private DefaultPolicyMongoEventAdapter eventAdapter;
     private PoliciesJournalTestHelper<Event> journalTestHelper;
     private PoliciesSnapshotTestHelper<Policy> snapshotTestHelper;
     private Map<Class<? extends Command>, BiFunction<Command, Long, Event>> commandToEventMapperRegistry;
@@ -87,7 +86,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
     @Override
     protected void setup(final Config customConfig) {
         super.setup(customConfig);
-        eventAdapter = new PolicyMongoEventAdapter((ExtendedActorSystem) actorSystem);
+        eventAdapter = new DefaultPolicyMongoEventAdapter((ExtendedActorSystem) actorSystem);
 
         journalTestHelper = new PoliciesJournalTestHelper<>(actorSystem, this::convertJournalEntryToEvent,
                 PolicyPersistenceActorSnapshottingTest::convertDomainIdToPersistenceId);
@@ -365,25 +364,6 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 waitFor(snapshotIntervalSecs);
                 // there must have no snapshot been added
                 assertSnapshots(policyId, Collections.singletonList(policyForModify));
-            }
-        };
-    }
-
-    // TODO Fix test
-    @Ignore
-    @Test
-    public void actorCannotBeStartedWithNegativeSnapshotThreshold() {
-        final Config customConfig = testConfig
-                .withValue(SNAPSHOT_INTERVAL, ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION))
-                .withValue(SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(-1));
-        setup(customConfig);
-
-        disableLogging();
-        new TestKit(actorSystem) {
-            {
-                final ActorRef underTest = createPersistenceActorFor("fail");
-                watch(underTest);
-                expectTerminated(underTest);
             }
         };
     }

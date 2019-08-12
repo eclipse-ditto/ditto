@@ -33,6 +33,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -321,6 +323,57 @@ public final class ThingCommandEnforcementTest {
     }
 
     @Test
+    public void acceptByPolicyWithRevokeOnAttribute() {
+        final String policyId = "policy:id";
+        final JsonObject thingWithPolicy = newThingWithAttributeWithPolicyId(policyId);
+        final JsonObject policy = PoliciesModelFactory.newPolicyBuilder(policyId)
+                .setRevision(1L)
+                .forLabel("authorize-self")
+                .setSubject(GOOGLE, SUBJECT.getId())
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
+                        READ.name(),
+                        WRITE.name())
+                .setRevokedPermissions(PoliciesResourceType.thingResource(JsonPointer.of("/attributes/testAttr")),
+                        READ.name())
+                .build()
+                .toJson(FieldType.all());
+        final SudoRetrieveThingResponse sudoRetrieveThingResponse =
+                SudoRetrieveThingResponse.of(thingWithPolicy, DittoHeaders.empty());
+        final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
+                SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
+
+        new TestKit(system) {{
+            mockEntitiesActorInstance.setReply(THING_SUDO, sudoRetrieveThingResponse);
+            mockEntitiesActorInstance.setReply(POLICY_SUDO, sudoRetrievePolicyResponse);
+
+            final ActorRef underTest = newEnforcerActor(getRef());
+
+            final ThingCommand write = writeCommand();
+            mockEntitiesActorInstance.setReply(write);
+            underTest.tell(write, getRef());
+            assertThat(fishForMsgClass(this, write.getClass()).getId()).isEqualTo(write.getId());
+
+            final ThingCommand read = readCommand();
+
+            final RetrieveThingResponse retrieveThingResponseWithAttr =
+                    RetrieveThingResponse.of(THING_ID, thingWithPolicy, headers(V_2));
+
+            final JsonObject jsonObjectWithoutAttr = thingWithPolicy.remove("/attributes/testAttr");
+            final RetrieveThingResponse retrieveThingResponseWithoutAttr =
+                    RetrieveThingResponse.of(THING_ID, jsonObjectWithoutAttr, headers(V_2));
+
+            mockEntitiesActorInstance.setReply(retrieveThingResponseWithAttr);
+            underTest.tell(read, getRef());
+
+            final RetrieveThingResponse retrieveThingResponse =
+                    expectMsgClass(retrieveThingResponseWithoutAttr.getClass());
+            assertThat(retrieveThingResponse.getId()).isEqualTo(retrieveThingResponseWithoutAttr.getId());
+            DittoJsonAssertions.assertThat(retrieveThingResponse.getEntity())
+                    .hasJsonString(retrieveThingResponseWithoutAttr.getEntity().toString());
+        }};
+    }
+
+    @Test
     public void acceptCreateByOwnAcl() {
         final Thing thing = newThing()
                 .setPermissions(AclEntry.newInstance(SUBJECT, READ, WRITE, ADMINISTRATE))
@@ -542,6 +595,16 @@ public final class ThingCommandEnforcementTest {
         return ThingsModelFactory.newThingBuilder()
                 .setId(THING_ID)
                 .setRevision(1L);
+    }
+
+    private static JsonObject newThingWithAttributeWithPolicyId(final String policyId) {
+        return ThingsModelFactory.newThingBuilder()
+                .setId(THING_ID)
+                .setAttribute(JsonPointer.of("/testAttr"), JsonValue.of("testString"))
+                .setRevision(1L)
+                .setPolicyId(policyId)
+                .build()
+                .toJson(V_2, FieldType.all());
     }
 
     private static ThingCommand readCommand() {
