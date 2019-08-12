@@ -39,6 +39,7 @@ import org.eclipse.ditto.services.utils.cache.EntityId;
 import org.eclipse.ditto.services.utils.cache.InvalidateCacheEntry;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.utils.cacheloaders.IdentityCache;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.commands.base.CommandToExceptionRegistry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyCommandToAccessExceptionRegistry;
@@ -52,7 +53,6 @@ import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandResponse;
 
 import akka.actor.ActorRef;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.pattern.AskTimeoutException;
 import akka.pattern.Patterns;
 
@@ -244,7 +244,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
     private void invalidateCaches(final String policyId) {
         final EntityId entityId = EntityId.of(PolicyCommand.RESOURCE_TYPE, policyId);
         enforcerCache.invalidate(entityId);
-        pubSubMediator().tell(new DistributedPubSubMediator.SendToAll(
+        pubSubMediator().tell(DistPubSubAccess.sendToAll(
                         ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
                         InvalidateCacheEntry.of(entityId),
                         true),

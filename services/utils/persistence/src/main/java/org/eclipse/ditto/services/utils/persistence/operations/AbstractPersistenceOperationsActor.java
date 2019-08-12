@@ -25,6 +25,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
 import org.eclipse.ditto.signals.commands.common.ShutdownReason;
 import org.eclipse.ditto.signals.commands.common.ShutdownReasonFactory;
@@ -171,7 +172,7 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
             log.debug("Subscribing for namespace commands.");
             final ActorRef self = getSelf();
             final DistributedPubSubMediator.Subscribe subscribe =
-                    new DistributedPubSubMediator.Subscribe(PurgeNamespace.TYPE, getSubscribeGroup(), self);
+                    DistPubSubAccess.subscribeViaGroup(PurgeNamespace.TYPE, getSubscribeGroup(), self);
             pubSubMediator.tell(subscribe, self);
         }
     }
@@ -181,7 +182,7 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
             final ActorRef self = getSelf();
             final String topic = PurgeEntities.getTopic(resourceType);
             final DistributedPubSubMediator.Subscribe subscribe =
-                    new DistributedPubSubMediator.Subscribe(topic, getSubscribeGroup(), self);
+                    DistPubSubAccess.subscribeViaGroup(topic, getSubscribeGroup(), self);
 
             log.debug("Subscribing for  entities commands on topic <{}>.", topic);
             pubSubMediator.tell(subscribe, self);
@@ -256,7 +257,7 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
     private void shutDownPersistenceActorsOfEntitiesToPurge(final PurgeEntities purgeEntities) {
         final ShutdownReason reason = ShutdownReasonFactory.getPurgeEntitiesReason(purgeEntities.getEntityIds());
         final Shutdown shutdown = Shutdown.getInstance(reason, purgeEntities.getDittoHeaders());
-        pubSubMediator.tell(new DistributedPubSubMediator.Publish(shutdown.getType(), shutdown), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.publish(shutdown.getType(), shutdown), getSelf());
     }
 
     private void schedulePurgingEntitiesIn(final Duration delay, final PurgeEntities purgeEntities) {

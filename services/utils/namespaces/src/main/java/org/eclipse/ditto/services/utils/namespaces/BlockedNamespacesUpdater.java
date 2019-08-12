@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.utils.namespaces;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.namespaces.BlockNamespace;
@@ -42,8 +43,8 @@ public final class BlockedNamespacesUpdater extends AbstractActor {
         this.blockedNamespaces = blockedNamespaces;
 
         // subscribe to namespace-blocking commands
-        pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(BlockNamespace.TYPE, getSelf()), getSelf());
-        pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(UnblockNamespace.TYPE, getSelf()), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.subscribe(BlockNamespace.TYPE, getSelf()), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.subscribe(UnblockNamespace.TYPE, getSelf()), getSelf());
     }
 
     /**

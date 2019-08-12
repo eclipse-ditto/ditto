@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo;
 
-import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_ACK_MSG;
-import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_COMPLETED;
-import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.STREAM_STARTED;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -26,6 +23,7 @@ import java.util.UUID;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.models.streaming.AbstractEntityIdWithRevision;
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
+import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr;
@@ -128,6 +126,7 @@ public final class DefaultPersistenceStreamingActorTest {
         final Props props = DefaultPersistenceStreamingActor.propsForTests(SimpleEntityIdWithRevision.class,
                 100,
                 DefaultPersistenceStreamingActorTest::mapEntity,
+                DefaultPersistenceStreamingActorTest::unmapEntity,
                 mockJournal);
         return actorSystem.actorOf(props, "persistenceQueriesActor-" + UUID.randomUUID());
     }
@@ -138,6 +137,10 @@ public final class DefaultPersistenceStreamingActorTest {
 
     private static SimpleEntityIdWithRevision mapEntity(final PidWithSeqNr pidWithSeqNr) {
         return new SimpleEntityIdWithRevision(pidWithSeqNr.getPersistenceId(), pidWithSeqNr.getSequenceNr());
+    }
+
+    private static PidWithSeqNr unmapEntity(final EntityIdWithRevision entityIdWithRevision) {
+        return new PidWithSeqNr(entityIdWithRevision.getId(), entityIdWithRevision.getRevision());
     }
 
     private static final class SimpleEntityIdWithRevision extends AbstractEntityIdWithRevision {

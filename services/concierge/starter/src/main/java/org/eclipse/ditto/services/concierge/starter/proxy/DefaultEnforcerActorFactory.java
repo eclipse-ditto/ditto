@@ -49,6 +49,7 @@ import org.eclipse.ditto.services.utils.cacheloaders.AclEnforcerCacheLoader;
 import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.services.utils.cacheloaders.ThingEnforcementIdCacheLoader;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
@@ -62,7 +63,6 @@ import akka.actor.ActorContext;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 
 /**
  * Ditto default implementation of{@link EnforcerActorFactory}.
@@ -131,7 +131,7 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
         final ActorRef conciergeForwarder =
                 context.actorOf(ConciergeForwarderActor.props(pubSubMediator, conciergeEnforcerRouter),
                         ConciergeForwarderActor.ACTOR_NAME);
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(conciergeForwarder), ActorRef.noSender());
+        pubSubMediator.tell(DistPubSubAccess.put(conciergeForwarder), ActorRef.noSender());
 
         // start cache updaters
         final String instanceIndex = InstanceIdentifierSupplier.getInstance().get();

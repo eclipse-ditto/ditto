@@ -45,6 +45,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQueryB
 import org.eclipse.ditto.services.thingsearch.updater.actors.SearchUpdaterRootActor;
 import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.LocalHostAddressSupplier;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
@@ -67,7 +68,6 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.cluster.Cluster;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.http.javadsl.ConnectHttp;
@@ -109,7 +109,7 @@ public final class SearchRootActor extends AbstractActor {
 
         final ThingsSearchPersistence thingsSearchPersistence = getThingsSearchPersistence(searchConfig, mongoDbClient);
         final ActorRef searchActor = initializeSearchActor(searchConfig.getLimitsConfig(), thingsSearchPersistence);
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(searchActor), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.put(searchActor), getSelf());
 
         final TimestampPersistence thingsSyncPersistence =
                 MongoTimestampPersistence.initializedInstance(THINGS_SYNC_STATE_COLLECTION_NAME, mongoDbClient,

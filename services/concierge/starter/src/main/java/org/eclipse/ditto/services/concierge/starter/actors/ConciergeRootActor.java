@@ -34,6 +34,7 @@ import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActo
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.LocalHostAddressSupplier;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
@@ -56,7 +57,6 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.cluster.Cluster;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
@@ -133,7 +133,7 @@ public final class ConciergeRootActor extends AbstractActor {
             final EnforcerActorFactory<C> enforcerActorFactory,
             final ActorMaterializer materializer) {
 
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
 
         final ActorContext context = getContext();
         final ShardRegions shardRegions = ShardRegions.of(getContext().getSystem(), conciergeConfig.getClusterConfig());
