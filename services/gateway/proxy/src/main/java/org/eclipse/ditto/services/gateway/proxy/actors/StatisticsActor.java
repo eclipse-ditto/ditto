@@ -194,10 +194,10 @@ public final class StatisticsActor extends AbstractActorWithStashWithTimers {
     }
 
     private void subscribeForStatisticsCommands() {
-        final Object subscribeForRetrieveStatistics =
-                new DistributedPubSubMediator.Subscribe(RetrieveStatistics.TYPE, ACTOR_NAME, getSelf());
-        final Object subscribeForRetrieveStatisticsDetails =
-                new DistributedPubSubMediator.Subscribe(RetrieveStatisticsDetails.TYPE, ACTOR_NAME, getSelf());
+        final Object subscribeForRetrieveStatistics = DistPubSubAccess
+                .subscribeViaGroup(RetrieveStatistics.TYPE, ACTOR_NAME, getSelf());
+        final Object subscribeForRetrieveStatisticsDetails = DistPubSubAccess
+                .subscribeViaGroup(RetrieveStatisticsDetails.TYPE, ACTOR_NAME, getSelf());
         pubSubMediator.tell(subscribeForRetrieveStatistics, getSelf());
         pubSubMediator.tell(subscribeForRetrieveStatisticsDetails, getSelf());
     }
