@@ -28,6 +28,7 @@
     <modules>
         <module>aggregator</module>
         <module>akka</module>
+        <module>pubsub</module>
         <module>cache</module>
         <module>cache-loaders</module>
         <module>cluster</module>

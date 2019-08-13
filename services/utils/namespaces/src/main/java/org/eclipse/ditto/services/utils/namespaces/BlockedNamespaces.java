@@ -24,6 +24,7 @@ import akka.cluster.ddata.Key;
 import akka.cluster.ddata.ORSet;
 import akka.cluster.ddata.ORSetKey;
 import akka.cluster.ddata.Replicator;
+import akka.cluster.ddata.SelfUniqueAddress;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -48,11 +49,11 @@ public final class BlockedNamespaces extends DistributedData<ORSet<String>> {
 
     private static final String BLOCKED_NAMESPACES_DISPATCHER = "blocked-namespaces-dispatcher";
 
-    private final Cluster node;
+    private final SelfUniqueAddress selfUniqueAddress;
 
     private BlockedNamespaces(final DistributedDataConfigReader configReader, final ActorSystem system) {
         super(configReader, system, system.dispatchers().lookup(BLOCKED_NAMESPACES_DISPATCHER));
-        node = Cluster.get(system);
+        selfUniqueAddress = SelfUniqueAddress.apply(Cluster.get(system).selfUniqueAddress());
     }
 
     /**
@@ -97,7 +98,7 @@ public final class BlockedNamespaces extends DistributedData<ORSet<String>> {
      * @return future that completes after the update propagates to all replicas, exceptionally if there is any error.
      */
     public CompletionStage<Void> add(final String namespace) {
-        return update(writeAll(), orSet -> orSet.add(node, namespace));
+        return update(writeAll(), orSet -> orSet.add(selfUniqueAddress, namespace));
     }
 
     /**
@@ -107,7 +108,7 @@ public final class BlockedNamespaces extends DistributedData<ORSet<String>> {
      * @return future that completes after the removal propagates to all replicas, exceptionally if there is any error.
      */
     public CompletionStage<Void> remove(final String namespace) {
-        return update(writeAll(), orSet -> orSet.remove(node, namespace));
+        return update(writeAll(), orSet -> orSet.remove(selfUniqueAddress, namespace));
     }
 
     @Override
