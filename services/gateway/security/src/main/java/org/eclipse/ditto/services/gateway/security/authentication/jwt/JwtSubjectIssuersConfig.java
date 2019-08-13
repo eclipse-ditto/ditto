@@ -84,6 +84,18 @@ public final class JwtSubjectIssuersConfig {
                 .collect(Collectors.toList());
     }
 
+    // TODO: Description of contains method
+    public boolean contains(final String subjectIssuer) {
+        checkNotNull(subjectIssuer);
+
+        if(subjectIssuer.equals(subjectIssuerConfigMap.get(subjectIssuer))){
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
     @Override
     public boolean equals(final Object o) {
         if (this == o) {
