@@ -16,7 +16,7 @@ import java.util.Map;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * Factory that creates new {@code messages} objects.
@@ -42,6 +42,27 @@ public final class MessagesModelFactory {
      */
     public static <T> MessageBuilder<T> newMessageBuilder(final MessageHeaders messageHeaders) {
         return ImmutableMessageBuilder.newInstance(messageHeaders);
+    }
+
+    /**
+     * Returns a new builder for {@link MessageHeaders}.
+     *
+     * @param direction the direction of the message.
+     * @param thingId the thing ID of the message.
+     * @param subject the subject of the message.
+     * @return the builder.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code thingId} or {@code subject} is empty.
+     * @throws SubjectInvalidException if {@code subject} is invalid.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #newHeadersBuilder(MessageDirection, org.eclipse.ditto.model.things.ThingId, CharSequence)}
+     * instead.
+     */
+    @Deprecated
+    public static MessageHeadersBuilder newHeadersBuilder(final MessageDirection direction,
+            final CharSequence thingId, final CharSequence subject) {
+
+        return newHeadersBuilder(direction, ThingId.of(thingId), subject);
     }
 
     /**

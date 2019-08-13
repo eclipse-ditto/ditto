@@ -32,7 +32,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.SubjectId;
-import org.eclipse.ditto.model.policies.id.PolicyId;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -85,7 +85,7 @@ public final class RetrieveSubject extends AbstractCommand<RetrieveSubject>
      * is readable from the passed authorization context.
      * @throws NullPointerException if any argument is {@code null}.
      * @deprecated Policy ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.policies.id.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.SubjectId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.SubjectId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
      * instead.
      */
     @Deprecated

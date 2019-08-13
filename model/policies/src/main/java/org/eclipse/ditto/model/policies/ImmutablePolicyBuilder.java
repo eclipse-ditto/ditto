@@ -25,9 +25,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.model.policies.id.PolicyId;
-import org.eclipse.ditto.model.policies.id.PolicyIdInvalidException;
-
 /**
  * A mutable builder for a {@link ImmutablePolicy} with a fluent API.
  */
@@ -59,20 +56,6 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
      * @return the new builder.
      * @throws PolicyIdInvalidException if {@code policyId} did not comply to
      * {@link org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
-     * @deprecated policy ID is now typed. Use {@link #of(PolicyId)}
-     */
-    @Deprecated
-    public static ImmutablePolicyBuilder of(final CharSequence id) {
-        return of(PolicyId.of(id));
-    }
-
-    /**
-     * Returns a new empty builder for a {@code Policy}.
-     *
-     * @param id the ID of the new Policy.
-     * @return the new builder.
-     * @throws org.eclipse.ditto.model.policies.id.PolicyIdInvalidException if {@code policyId} did not comply to
-     * {@link org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static ImmutablePolicyBuilder of(final PolicyId id) {
         return new ImmutablePolicyBuilder().setId(id);
@@ -86,7 +69,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
      * @param policyEntries the initials entries of the new builder.
      * @return the new builder.
      * @throws NullPointerException if {@code policyEntries} is null;
-     * @throws org.eclipse.ditto.model.policies.id.PolicyIdInvalidException if {@code policyId} did not comply to
+     * @throws PolicyIdInvalidException if {@code policyId} did not comply to
      * {@link org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static PolicyBuilder of(final PolicyId id, final Iterable<PolicyEntry> policyEntries) {
@@ -105,7 +88,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
      * @param existingPolicy the existing Policy to instantiate the builder with.
      * @return the new builder.
      * @throws NullPointerException if {@code existingPolicy} is {@code null}.
-     * @throws org.eclipse.ditto.model.policies.id.PolicyIdInvalidException if {@code policyId} did not comply to
+     * @throws PolicyIdInvalidException if {@code policyId} did not comply to
      * {@link org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static PolicyBuilder of(final Policy existingPolicy) {

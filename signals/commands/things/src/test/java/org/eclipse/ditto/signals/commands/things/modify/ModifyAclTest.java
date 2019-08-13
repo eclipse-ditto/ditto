@@ -26,7 +26,8 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Permission;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
@@ -66,10 +67,15 @@ public final class ModifyAclTest {
                 .verify();
     }
 
+    @Test(expected = ThingIdInvalidException.class)
+    public void tryToCreateInstanceWithNullThingIdString() {
+        ModifyAcl.of((String) null, TestConstants.Thing.ACL, TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        ModifyAcl.of(null, TestConstants.Thing.ACL, TestConstants.EMPTY_DITTO_HEADERS);
+        ModifyAcl.of((ThingId) null, TestConstants.Thing.ACL, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 

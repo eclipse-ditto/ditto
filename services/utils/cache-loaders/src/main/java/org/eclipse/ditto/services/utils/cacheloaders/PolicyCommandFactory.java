@@ -16,7 +16,7 @@ import java.util.UUID;
 
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.policies.id.PolicyId;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.slf4j.Logger;

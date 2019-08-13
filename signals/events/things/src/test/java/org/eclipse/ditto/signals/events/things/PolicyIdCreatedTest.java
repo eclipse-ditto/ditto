@@ -20,6 +20,8 @@ import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.junit.Test;
 
@@ -52,10 +54,15 @@ public class PolicyIdCreatedTest {
                 .verify();
     }
 
+    @Test(expected = ThingIdInvalidException.class)
+    public void tryToCreateInstanceWithNullThingIdString() {
+        PolicyIdCreated.of((String) null, TestConstants.Thing.THING_ID.toString(), TestConstants.Thing.REVISION_NUMBER,
+                TestConstants.EMPTY_DITTO_HEADERS);
+    }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        PolicyIdCreated.of(null, TestConstants.Thing.THING_ID.toString(), TestConstants.Thing.REVISION_NUMBER,
+        PolicyIdCreated.of((ThingId) null, TestConstants.Thing.THING_ID.toString(), TestConstants.Thing.REVISION_NUMBER,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 

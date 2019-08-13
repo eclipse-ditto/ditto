@@ -33,7 +33,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.FeatureIdInvalidException;
 import org.eclipse.ditto.model.messages.Message;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -92,6 +92,29 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
                     .dittoHeaders(dittoHeaders)
                     .build();
         }
+    }
+
+    /**
+     * Creates a new instance of {@code SendFeatureMessage}.
+     *
+     * @param thingId the ID of the Thing to which the Feature belongs
+     * @param featureId the ID of the Feature to send the message to
+     * @param message the message to send to the Feature
+     * @param dittoHeaders the DittoHeaders of this message.
+     * @param <T> the type of the message's payload.
+     * @return new instance of {@code SendFeatureMessage}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.messages.Message, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static <T> SendFeatureMessage<T> of(final String thingId,
+            final String featureId,
+            final Message<T> message,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), featureId, message, dittoHeaders);
     }
 
     /**

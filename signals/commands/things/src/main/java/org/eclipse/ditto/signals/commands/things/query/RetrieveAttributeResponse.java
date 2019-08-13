@@ -32,7 +32,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -72,6 +72,28 @@ public final class RetrieveAttributeResponse extends AbstractCommandResponse<Ret
         this.attributePointer = Objects.requireNonNull(attributePointer,
                 "The JSON pointer which attribute to retrieve must not be null!");
         this.attributeValue = checkNotNull(attributeValue, "Attribute Value");
+    }
+
+    /**
+     * Creates a response to a {@link RetrieveAttribute} command.
+     *
+     * @param thingId the Thing ID of the retrieved attribute.
+     * @param attributePointer the JSON pointer of the attribute to retrieve.
+     * @param attributeValue the retrieved Attribute value.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.json.JsonValue, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static RetrieveAttributeResponse of(final String thingId,
+            final JsonPointer attributePointer,
+            final JsonValue attributeValue,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), attributePointer, attributeValue, dittoHeaders);
     }
 
     /**

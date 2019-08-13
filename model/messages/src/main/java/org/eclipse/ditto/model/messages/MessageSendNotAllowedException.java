@@ -25,7 +25,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * Thrown if a message cannot be send because the affected thing does not exist or because of a missing permission.
@@ -62,6 +62,20 @@ public final class MessageSendNotAllowedException extends DittoRuntimeException 
             @Nullable final Throwable cause,
             @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.FORBIDDEN, dittoHeaders, message, description, cause, href);
+    }
+
+    /**
+     * A mutable builder for a {@code MessageNotSendableException}.
+     *
+     * @param thingId the ID of the Thing for which a message should be sent.
+     * @return the builder.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #newBuilder(org.eclipse.ditto.model.things.ThingId)}
+     * instead.
+     */
+    @Deprecated
+    public static Builder newBuilder(@Nullable final String thingId) {
+        return newBuilder(ThingId.of(thingId));
     }
 
     /**

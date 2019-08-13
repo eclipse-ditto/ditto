@@ -31,8 +31,6 @@ import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.id.ThingId;
-import org.eclipse.ditto.model.things.id.ThingPolicyIdValidator;
 
 /**
  * Representation of one Thing within Ditto.
@@ -82,7 +80,7 @@ final class ImmutableThing implements Thing {
      * @param modified the modified timestamp of the thing to be created.
      * @return the {@code Thing} which was created from the given JSON object.
      * @deprecated ThingId is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.id.ThingId, AccessControlList, Attributes, Features, ThingLifecycle, ThingRevision, java.time.Instant)}
+     * {@link #of(ThingId, AccessControlList, Attributes, Features, ThingLifecycle, ThingRevision, java.time.Instant)}
      * instead.
      */
     @Deprecated
@@ -134,7 +132,7 @@ final class ImmutableThing implements Thing {
      * @param modified the modified timestamp of the thing to be created.
      * @return the {@code Thing} which was created from the given JSON object.
      * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.id.ThingId, String, Attributes, Features, ThingLifecycle, ThingRevision, java.time.Instant)}
+     * {@link #of(ThingId, String, Attributes, Features, ThingLifecycle, ThingRevision, java.time.Instant)}
      * instead.
      */
     @Deprecated

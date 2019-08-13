@@ -22,7 +22,8 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
@@ -61,10 +62,14 @@ public final class RetrieveAttributesTest {
                 .verify();
     }
 
+    @Test(expected = ThingIdInvalidException.class)
+    public void tryToCreateInstanceWithNullThingIdString() {
+        RetrieveAttributes.of((String) null, TestConstants.EMPTY_DITTO_HEADERS);
+    }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        RetrieveAttributes.of(null, TestConstants.EMPTY_DITTO_HEADERS);
+        RetrieveAttributes.of((ThingId) null, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 

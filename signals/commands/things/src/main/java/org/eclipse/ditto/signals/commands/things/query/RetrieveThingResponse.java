@@ -35,8 +35,8 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -82,6 +82,24 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonObject, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static RetrieveThingResponse of(final String thingId, final JsonObject thing,
+            final DittoHeaders dittoHeaders) {
+        return of(ThingId.of(thingId), thing, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@link RetrieveThing} command.
+     *
+     * @param thingId the Thing ID of the retrieved Thing.
+     * @param thing the retrieved Thing.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static RetrieveThingResponse of(final ThingId thingId, final JsonObject thing,
             final DittoHeaders dittoHeaders) {
@@ -96,10 +114,47 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static RetrieveThingResponse of(final String thingId, final String thingPlainJson,
+            final DittoHeaders dittoHeaders) {
+        return of(ThingId.of(thingId), thingPlainJson, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@link RetrieveThing} command.
+     *
+     * @param thingId the Thing ID of the retrieved Thing.
+     * @param thingPlainJson the retrieved Thing as plain JSON.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static RetrieveThingResponse of(final ThingId thingId, final String thingPlainJson,
             final DittoHeaders dittoHeaders) {
         return new RetrieveThingResponse(thingId, HttpStatusCode.OK, null, thingPlainJson, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@link RetrieveThing} command.
+     *
+     * @param thingId the Thing ID of the retrieved Thing.
+     * @param thing the retrieved Thing.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.Thing, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static RetrieveThingResponse of(final String thingId, final Thing thing,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), thing, dittoHeaders);
     }
 
     /**

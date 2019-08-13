@@ -34,8 +34,8 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Attributes;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -78,11 +78,48 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a created FeatureProperties.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #created(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.Attributes, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static ModifyAttributesResponse created(final String thingId, final Attributes attributes,
+            final DittoHeaders dittoHeaders) {
+
+        return created(ThingId.of(thingId), attributes, dittoHeaders);
+    }
+
+    /**
+     * Returns a new {@code ModifyAttributesResponse} for a created Attributes. This corresponds to the HTTP status code
+     * {@link HttpStatusCode#CREATED}.
+     *
+     * @param thingId the Thing ID of the created Attributes.
+     * @param attributes the created Attributes.
+     * @param dittoHeaders the headers of the ThingCommand which caused the new response.
+     * @return a command response for a created FeatureProperties.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyAttributesResponse created(final ThingId thingId, final Attributes attributes,
             final DittoHeaders dittoHeaders) {
 
         return new ModifyAttributesResponse(thingId, HttpStatusCode.CREATED, attributes, dittoHeaders);
+    }
+
+    /**
+     * Returns a new {@code ModifyAttributesResponse} for a modified Attributes. This corresponds to the HTTP status
+     * code {@link HttpStatusCode#NO_CONTENT}.
+     *
+     * @param thingId the Thing ID of the modified Attributes.
+     * @param dittoHeaders the headers of the ThingCommand which caused the new response.
+     * @return a command response for a modified FeatureProperties.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #modified(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static ModifyAttributesResponse modified(final String thingId, final DittoHeaders dittoHeaders) {
+        return modified(ThingId.of(thingId), dittoHeaders);
     }
 
     /**

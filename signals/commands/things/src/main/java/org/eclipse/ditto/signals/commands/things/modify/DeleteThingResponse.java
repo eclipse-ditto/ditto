@@ -29,7 +29,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -51,6 +51,22 @@ public final class DeleteThingResponse extends AbstractCommandResponse<DeleteThi
     private DeleteThingResponse(final ThingId thingId, final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatusCode.NO_CONTENT, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
+    }
+
+    /**
+     * Creates a response to a {@code DeleteThing} command.
+     *
+     * @param thingId the Thing ID of the deleted Thing.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static DeleteThingResponse of(final String thingId, final DittoHeaders dittoHeaders) {
+        return of(ThingId.of(thingId), dittoHeaders);
     }
 
     /**

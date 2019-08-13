@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.things.id;
+package org.eclipse.ditto.model.things;
 
 /**
  * Implementations of this interface are associated to a {@code Thing} identified by the value

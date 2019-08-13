@@ -33,7 +33,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
-import org.eclipse.ditto.model.policies.id.PolicyId;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -64,6 +64,25 @@ public final class ModifySubjectsResponse extends AbstractCommandResponse<Modify
         super(TYPE, statusCode, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
         this.label = checkNotNull(label, "Label");
+    }
+
+    /**
+     * Creates a response to a {@code ModifySubjects} command.
+     *
+     * @param policyId the Policy ID of the modified subjects.
+     * @param label the Label of the PolicyEntry.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static ModifySubjectsResponse of(final String policyId, final Label label,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), label, dittoHeaders);
     }
 
     /**

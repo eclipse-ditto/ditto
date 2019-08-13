@@ -31,7 +31,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -84,6 +84,22 @@ public final class ThingErrorResponse extends AbstractCommandResponse<ThingError
      * @param dittoRuntimeException the exception.
      * @return the response.
      * @throws NullPointerException if one of the arguments is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.exceptions.DittoRuntimeException)}
+     * instead.
+     */
+    @Deprecated
+    public static ThingErrorResponse of(final String thingId, final DittoRuntimeException dittoRuntimeException) {
+        return of(ThingId.of(thingId), dittoRuntimeException);
+    }
+
+    /**
+     * Creates a new {@code ThingErrorResponse} for the specified {@code dittoRuntimeException}.
+     *
+     * @param thingId the Thing ID which was related to the exception.
+     * @param dittoRuntimeException the exception.
+     * @return the response.
+     * @throws NullPointerException if one of the arguments is {@code null}.
      */
     public static ThingErrorResponse of(final ThingId thingId, final DittoRuntimeException dittoRuntimeException) {
         return new ThingErrorResponse(thingId, dittoRuntimeException, dittoRuntimeException.getDittoHeaders());
@@ -100,6 +116,24 @@ public final class ThingErrorResponse extends AbstractCommandResponse<ThingError
     public static ThingErrorResponse of(final DittoRuntimeException dittoRuntimeException,
             final DittoHeaders dittoHeaders) {
         return of(FALLBACK_THING_ID, dittoRuntimeException, dittoHeaders);
+    }
+
+    /**
+     * Creates a new {@code ThingErrorResponse} for the specified {@code dittoRuntimeException}.
+     *
+     * @param thingId the Thing's ID.
+     * @param dittoRuntimeException the exception.
+     * @param dittoHeaders the headers of the command which caused the exception.
+     * @return the response.
+     * @throws NullPointerException if one of the arguments is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.exceptions.DittoRuntimeException, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static ThingErrorResponse of(final String thingId, final DittoRuntimeException dittoRuntimeException,
+            final DittoHeaders dittoHeaders) {
+        return of(ThingId.of(thingId), dittoRuntimeException, dittoHeaders);
     }
 
     /**

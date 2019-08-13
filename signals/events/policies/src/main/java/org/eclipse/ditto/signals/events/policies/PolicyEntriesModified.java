@@ -37,7 +37,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyEntry;
-import org.eclipse.ditto.model.policies.id.PolicyId;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
 /**
@@ -82,6 +82,28 @@ public final class PolicyEntriesModified extends AbstractPolicyEvent<PolicyEntri
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created PolicyEntriesModified.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, Iterable, long, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static PolicyEntriesModified of(final String policyId,
+            final Iterable<PolicyEntry> policyEntries,
+            final long revision,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), policyEntries, revision, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code PolicyEntriesModified} object indicating the modification of the entries.
+     *
+     * @param policyId the identifier of the Policy to which the modified entry belongs
+     * @param policyEntries the modified {@link PolicyEntry}s.
+     * @param revision the revision of the Policy.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the created PolicyEntriesModified.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static PolicyEntriesModified of(final PolicyId policyId,
             final Iterable<PolicyEntry> policyEntries,
@@ -89,6 +111,30 @@ public final class PolicyEntriesModified extends AbstractPolicyEvent<PolicyEntri
             final DittoHeaders dittoHeaders) {
 
         return of(policyId, policyEntries, revision, null, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code PolicyEntriesModified} object indicating the modification of the entries.
+     *
+     * @param policyId the identifier of the Policy to which the modified entry belongs
+     * @param policyEntries the modified {@link PolicyEntry}s.
+     * @param revision the revision of the Policy.
+     * @param timestamp the timestamp of this event.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the created PolicyEntriesModified.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, Iterable, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static PolicyEntriesModified of(final String policyId,
+            final Iterable<PolicyEntry> policyEntries,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), policyEntries, revision, timestamp, dittoHeaders);
     }
 
     /**

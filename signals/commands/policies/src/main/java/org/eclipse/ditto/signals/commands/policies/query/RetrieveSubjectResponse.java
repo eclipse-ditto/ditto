@@ -34,7 +34,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
-import org.eclipse.ditto.model.policies.id.PolicyId;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
@@ -90,6 +90,30 @@ public final class RetrieveSubjectResponse extends AbstractCommandResponse<Retri
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, String, org.eclipse.ditto.json.JsonObject, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static RetrieveSubjectResponse of(final String policyId,
+            final Label label,
+            final String subjectId,
+            final JsonObject subject,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), label, subjectId, subject, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code RetrieveSubject} command.
+     *
+     * @param policyId the Policy ID of the retrieved subject.
+     * @param label the Label of the PolicyEntry.
+     * @param subjectId the ID of the retrieved Subject.
+     * @param subject the retrieved Subject.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static RetrieveSubjectResponse of(final PolicyId policyId,
             final Label label,
@@ -109,16 +133,39 @@ public final class RetrieveSubjectResponse extends AbstractCommandResponse<Retri
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.Subject, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static RetrieveSubjectResponse of(final String policyId,
+            final Label label,
+            final Subject subject,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), label, subject, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code RetrieveSubject} command.
+     *
+     * @param policyId the Policy ID of the retrieved subject.
+     * @param label the Label of the PolicyEntry.
+     * @param subject the retrieved Subject.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static RetrieveSubjectResponse of(final PolicyId policyId,
             final Label label,
             final Subject subject,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrieveSubjectResponse(policyId, label, subject.getId().toString(),
-                checkNotNull(subject, "Subject").toJson(
-                        dittoHeaders.getSchemaVersion().orElse(subject.getLatestSchemaVersion())), HttpStatusCode.OK,
-                dittoHeaders);
+        final String subjectId = subject.getId().toString();
+        final JsonObject jsonSubject = checkNotNull(subject, "Subject")
+                .toJson(dittoHeaders.getSchemaVersion().orElse(subject.getLatestSchemaVersion()));
+
+        return of(policyId, label, subjectId, jsonSubject, dittoHeaders);
     }
 
     /**

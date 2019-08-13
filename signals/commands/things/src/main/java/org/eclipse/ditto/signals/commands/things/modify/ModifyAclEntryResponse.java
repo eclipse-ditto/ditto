@@ -36,8 +36,8 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Permissions;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -78,10 +78,48 @@ public final class ModifyAclEntryResponse extends AbstractCommandResponse<Modify
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a created Thing.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #created(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.AclEntry, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static ModifyAclEntryResponse created(final String thingId, final AclEntry aclEntry,
+            final DittoHeaders dittoHeaders) {
+        return created(ThingId.of(thingId), aclEntry, dittoHeaders);
+    }
+
+    /**
+     * Returns a new {@code ModifyAclEntryResponse} for a created AclEntry. This corresponds to the HTTP status code
+     * {@link HttpStatusCode#CREATED}.
+     *
+     * @param thingId the Thing ID of the created ACL entry.
+     * @param aclEntry the created AclEntry.
+     * @param dittoHeaders the headers of the ThingCommand which caused the new response.
+     * @return a command response for a created Thing.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyAclEntryResponse created(final ThingId thingId, final AclEntry aclEntry,
             final DittoHeaders dittoHeaders) {
         return new ModifyAclEntryResponse(thingId, aclEntry, HttpStatusCode.CREATED, dittoHeaders);
+    }
+
+    /**
+     * Returns a new {@code ModifyAclEntryResponse} for a modified AclEntry. This corresponds to the HTTP status code
+     * {@link HttpStatusCode#NO_CONTENT}.
+     *
+     * @param thingId the Thing ID of the modified ACL entry.
+     * @param aclEntry the modified AclEntry.
+     * @param dittoHeaders the headers of the ThingCommand which caused the new response.
+     * @return a command response for a modified Thing.
+     * @throws NullPointerException any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #modified(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.AclEntry, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static ModifyAclEntryResponse modified(final String thingId, final AclEntry aclEntry,
+            final DittoHeaders dittoHeaders) {
+        return modified(ThingId.of(thingId), aclEntry, dittoHeaders);
     }
 
     /**

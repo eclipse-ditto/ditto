@@ -15,7 +15,7 @@ package org.eclipse.ditto.signals.commands.live.base;
 import javax.annotation.Nonnull;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.id.WithThingId;
+import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 /**

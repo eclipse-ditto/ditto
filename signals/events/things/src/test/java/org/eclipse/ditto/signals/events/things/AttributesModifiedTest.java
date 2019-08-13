@@ -21,6 +21,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Attributes;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.junit.Test;
 
@@ -54,10 +56,16 @@ public final class AttributesModifiedTest {
                 .verify();
     }
 
+    @Test(expected = ThingIdInvalidException.class)
+    public void tryToCreateInstanceWithNullThingIdString() {
+        AttributesModified.of((String) null, TestConstants.Thing.ATTRIBUTES, TestConstants.Thing.REVISION_NUMBER,
+                TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        AttributesModified.of(null, TestConstants.Thing.ATTRIBUTES, TestConstants.Thing.REVISION_NUMBER,
+        AttributesModified.of((ThingId) null, TestConstants.Thing.ATTRIBUTES, TestConstants.Thing.REVISION_NUMBER,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 

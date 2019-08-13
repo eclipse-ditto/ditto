@@ -33,7 +33,7 @@ import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Features;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
 import org.junit.Before;
 import org.junit.Test;

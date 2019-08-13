@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.signals.commands.things.assertions;
 
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.assertions.AbstractCommandAssert;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 

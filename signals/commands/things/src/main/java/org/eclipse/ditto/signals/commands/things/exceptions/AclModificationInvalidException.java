@@ -27,7 +27,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.ThingException;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * This exception indicates that the requested modification of the ACL of a Thing is invalid for some reason. The cause

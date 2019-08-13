@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.WithNamespace;
 import org.eclipse.ditto.signals.commands.live.base.LiveCommand;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;

@@ -27,7 +27,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.Placeholders;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * A filter implementation to replace defined placeholders with their values.

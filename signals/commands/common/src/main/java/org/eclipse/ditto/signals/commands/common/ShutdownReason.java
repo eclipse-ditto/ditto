@@ -49,6 +49,16 @@ public interface ShutdownReason extends Jsonifiable.WithPredicate<JsonObject, Js
      *
      * @return True if this shut down reason should lead to a shutdown. False if not.
      */
+    default boolean isRelevantFor(final String value) {
+        return isRelevantFor((Object) value);
+    }
+
+    /**
+     * Checks whether this shutdown reason is relevant for the given details.
+     *
+     * @param value the value to check for relevance.
+     * @return True if this shut down reason should lead to a shutdown. False if not.
+     */
     boolean isRelevantFor(Object value);
 
     /**

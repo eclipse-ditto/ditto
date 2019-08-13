@@ -34,7 +34,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -84,9 +84,42 @@ public final class RetrieveThing extends AbstractCommand<RetrieveThing> implemen
      * @return a Command for retrieving the Thing with the {@code thingId} as its ID which is readable from the passed
      * authorization context.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static RetrieveThing of(final CharSequence thingId, final DittoHeaders dittoHeaders) {
+        return of(ThingId.of(thingId), dittoHeaders);
+    }
+
+    /**
+     * Returns a Command for retrieving the Thing with the given ID.
+     *
+     * @param thingId the ID of a single Thing to be retrieved by this command.
+     * @param dittoHeaders the headers of the command.
+     * @return a Command for retrieving the Thing with the {@code thingId} as its ID which is readable from the passed
+     * authorization context.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
     public static RetrieveThing of(final ThingId thingId, final DittoHeaders dittoHeaders) {
         return getBuilder(thingId, dittoHeaders).build();
+    }
+
+    /**
+     * Returns a builder with a fluent API for an immutable {@code RetrieveThing} instance.
+     *
+     * @param thingId the ID of a single Thing to be retrieved by this command.
+     * @param dittoHeaders the headers of the command.
+     * @return the builder.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #getBuilder(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static Builder getBuilder(final CharSequence thingId, final DittoHeaders dittoHeaders) {
+        return getBuilder(ThingId.of(thingId), dittoHeaders);
     }
 
     /**

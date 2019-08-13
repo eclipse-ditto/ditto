@@ -34,7 +34,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -85,11 +85,54 @@ public final class RetrieveAclEntry extends AbstractCommand<RetrieveAclEntry>
      * @return a Command for retrieving one ACL entry of the Thing with the {@code thingId} as its ID which is readable
      * from the passed authorization context.
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.auth.AuthorizationSubject, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static RetrieveAclEntry of(final String thingId, final AuthorizationSubject authorizationSubject,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), authorizationSubject, dittoHeaders);
+    }
+
+    /**
+     * Returns a command for retrieving a specific ACL entry of a Thing with the given ID.
+     *
+     * @param thingId the ID of a single Thing whose ACL entry will be retrieved by this command.
+     * @param authorizationSubject the specified subject for which to retrieve the ACL entry for.
+     * @param dittoHeaders the headers of the command.
+     * @return a Command for retrieving one ACL entry of the Thing with the {@code thingId} as its ID which is readable
+     * from the passed authorization context.
+     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
      */
     public static RetrieveAclEntry of(final ThingId thingId, final AuthorizationSubject authorizationSubject,
             final DittoHeaders dittoHeaders) {
 
         return new RetrieveAclEntry(authorizationSubject, null, thingId, dittoHeaders);
+    }
+
+    /**
+     * Returns a command for retrieving a specific ACL entry of a Thing with the given ID.
+     *
+     * @param thingId the ID of a single Thing whose ACL entry will be retrieved by this command.
+     * @param authorizationSubject the specified subject for which to retrieve the ACL entry for.
+     * @param selectedFields defines the fields of the JSON representation of the ACL entry to retrieve.
+     * @param dittoHeaders the headers of the command.
+     * @return a Command for retrieving one ACL entry of the Thing with the {@code thingId} as its ID which is readable
+     * from the passed authorization context.
+     * @throws NullPointerException if {@code authorizationSubject} or {@code dittoHeaders} is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.auth.AuthorizationSubject, org.eclipse.ditto.json.JsonFieldSelector, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static RetrieveAclEntry of(final String thingId,
+            final AuthorizationSubject authorizationSubject,
+            @Nullable final JsonFieldSelector selectedFields,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), authorizationSubject, selectedFields, dittoHeaders);
     }
 
     /**
@@ -121,7 +164,7 @@ public final class RetrieveAclEntry extends AbstractCommand<RetrieveAclEntry>
      * @throws IllegalArgumentException if any argument is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
-     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if the parsed thing ID did not comply to {@link
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
      * org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static RetrieveAclEntry fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
@@ -137,7 +180,7 @@ public final class RetrieveAclEntry extends AbstractCommand<RetrieveAclEntry>
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
-     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if the parsed thing ID did not comply to {@link
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
      * org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static RetrieveAclEntry fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {

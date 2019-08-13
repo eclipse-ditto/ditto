@@ -35,7 +35,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.model.policies.id.PolicyId;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -82,6 +82,26 @@ public final class CreatePolicyResponse extends AbstractCommandResponse<CreatePo
             final DittoHeaders dittoHeaders) {
 
         return new CreatePolicyResponse(policyId, HttpStatusCode.CREATED, policy, dittoHeaders);
+    }
+
+    /**
+     * Returns a new {@code CreatePolicyResponse} for a created Policy. This corresponds to the HTTP status code {@link
+     * HttpStatusCode#CREATED}.
+     *
+     * @param policyId the Policy ID of the created Policy.
+     * @param policy the created Policy.
+     * @param dittoHeaders the headers of the PolicyCommand which caused the new response.
+     * @return a command response for a created Policy.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Policy, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static CreatePolicyResponse of(final String policyId, @Nullable final Policy policy,
+            final DittoHeaders dittoHeaders) {
+
+        return new CreatePolicyResponse(PolicyId.of(policyId), HttpStatusCode.CREATED, policy, dittoHeaders);
     }
 
     /**

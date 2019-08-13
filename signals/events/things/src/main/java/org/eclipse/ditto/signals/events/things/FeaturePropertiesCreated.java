@@ -34,7 +34,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.FeatureProperties;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
@@ -86,6 +86,30 @@ public final class FeaturePropertiesCreated extends AbstractThingEvent<FeaturePr
      * @param dittoHeaders the headers of the command which was the cause of this event. FeatureModified
      * @return the {@code FeaturePropertiesCreated}
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.things.FeatureProperties, long, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static FeaturePropertiesCreated of(final String thingId,
+            final String featureId,
+            final FeatureProperties properties,
+            final long revision,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), featureId, properties, revision, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code PropertiesCreated} object.
+     *
+     * @param thingId the ID of the Thing whose Feature's Properties were created.
+     * @param featureId the ID of the Feature whose Properties were created.
+     * @param properties the created {@link FeatureProperties}.
+     * @param revision the revision of the Thing.
+     * @param dittoHeaders the headers of the command which was the cause of this event. FeatureModified
+     * @return the {@code FeaturePropertiesCreated}
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static FeaturePropertiesCreated of(final ThingId thingId,
             final String featureId,
@@ -94,6 +118,32 @@ public final class FeaturePropertiesCreated extends AbstractThingEvent<FeaturePr
             final DittoHeaders dittoHeaders) {
 
         return of(thingId, featureId, properties, revision, null, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code PropertiesCreated} object.
+     *
+     * @param thingId the ID of the Thing whose Feature's Properties were created.
+     * @param featureId the ID of the Feature whose Properties were created.
+     * @param properties the created {@link FeatureProperties}.
+     * @param revision the revision of the Thing.
+     * @param timestamp the timestamp of this event.
+     * @param dittoHeaders the headers of the command which was the cause of this event. FeatureModified
+     * @return the {@code FeaturePropertiesCreated}
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.things.FeatureProperties, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static FeaturePropertiesCreated of(final String thingId,
+            final String featureId,
+            final FeatureProperties properties,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), featureId, properties, revision, timestamp, dittoHeaders);
     }
 
     /**

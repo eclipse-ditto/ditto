@@ -10,7 +10,7 @@
   *
   * SPDX-License-Identifier: EPL-2.0
   */
- package org.eclipse.ditto.model.policies.id;
+ package org.eclipse.ditto.model.policies;
 
  import java.util.Objects;
  import java.util.UUID;

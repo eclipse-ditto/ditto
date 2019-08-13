@@ -34,8 +34,8 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AccessControlListModelFactory;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -73,10 +73,47 @@ public final class RetrieveAclResponse extends AbstractCommandResponse<RetrieveA
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonObject, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static RetrieveAclResponse of(final String thingId, final JsonObject acl,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), acl, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@link RetrieveAcl} command.
+     *
+     * @param thingId the Thing ID of the retrieved Acl.
+     * @param acl the retrieved AccessControlList.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static RetrieveAclResponse of(final ThingId thingId, final JsonObject acl,
             final DittoHeaders dittoHeaders) {
         return new RetrieveAclResponse(thingId, HttpStatusCode.OK, acl, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@link RetrieveAcl} command.
+     *
+     * @param thingId the Thing ID of the retrieved Acl.
+     * @param acl the retrieved AccessControlList.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.AccessControlList, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static RetrieveAclResponse of(final String thingId, final AccessControlList acl,
+            final DittoHeaders dittoHeaders) {
+        return of(ThingId.of(thingId), acl, dittoHeaders);
     }
 
     /**

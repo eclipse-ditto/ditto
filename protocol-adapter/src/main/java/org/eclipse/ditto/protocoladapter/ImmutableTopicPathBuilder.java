@@ -18,8 +18,8 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.model.things.id.ThingId;
-import org.eclipse.ditto.model.things.id.ThingIdInvalidException;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 
 /**
  * Mutable implementation of {@link TopicPathBuilder} for building immutable {@link TopicPath} instances.

@@ -21,6 +21,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.junit.Test;
@@ -56,10 +58,16 @@ public final class SubjectDeletedTest {
                 .verify();
     }
 
+    @Test(expected = PolicyIdInvalidException.class)
+    public void tryToCreateInstanceWithNullPolicyIdString() {
+        SubjectDeleted.of((String) null, TestConstants.Policy.LABEL, TestConstants.Policy.SUBJECT_ID,
+                TestConstants.Policy.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
-        SubjectDeleted.of(null, TestConstants.Policy.LABEL, TestConstants.Policy.SUBJECT_ID,
+        SubjectDeleted.of((PolicyId) null, TestConstants.Policy.LABEL, TestConstants.Policy.SUBJECT_ID,
                 TestConstants.Policy.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS);
     }
 

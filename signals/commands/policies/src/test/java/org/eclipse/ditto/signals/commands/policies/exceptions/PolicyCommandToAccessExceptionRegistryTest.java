@@ -16,7 +16,7 @@ import static org.eclipse.ditto.model.base.assertions.DittoBaseAssertions.assert
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.policies.id.PolicyId;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicy;
 import org.junit.Before;
 import org.junit.Test;

@@ -10,7 +10,7 @@
   *
   * SPDX-License-Identifier: EPL-2.0
   */
- package org.eclipse.ditto.model.things.id;
+ package org.eclipse.ditto.model.things;
 
  import java.util.Objects;
 import java.util.UUID;

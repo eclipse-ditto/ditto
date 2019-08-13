@@ -31,7 +31,7 @@ import org.bson.conversions.Bson;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.query.SortOption;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceReportResult;
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceResultEntry;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;

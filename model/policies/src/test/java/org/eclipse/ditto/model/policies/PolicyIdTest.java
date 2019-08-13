@@ -17,7 +17,6 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
-import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

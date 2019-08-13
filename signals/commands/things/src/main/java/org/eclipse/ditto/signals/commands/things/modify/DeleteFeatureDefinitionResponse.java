@@ -31,7 +31,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -71,6 +71,25 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static DeleteFeatureDefinitionResponse of(final String thingId, final String featureId,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), featureId, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@link DeleteFeatureDefinition} command.
+     *
+     * @param thingId the Thing ID of the deleted Feature Definition.
+     * @param featureId the {@code Feature}'s ID whose Definition were deleted.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static DeleteFeatureDefinitionResponse of(final ThingId thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
@@ -94,7 +113,7 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
      *     <li>{@link ThingModifyCommandResponse.JsonFields#JSON_THING_ID} or</li>
      *     <li>{@link #JSON_FEATURE_ID}.</li>
      * </ul>
-     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if the parsed thing ID did not comply to
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to
      * {@link org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static DeleteFeatureDefinitionResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
@@ -116,7 +135,7 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
      *     <li>{@link ThingModifyCommandResponse.JsonFields#JSON_THING_ID} or</li>
      *     <li>{@link #JSON_FEATURE_ID}.</li>
      * </ul>
-     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if the parsed thing ID did not comply to
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to
      * {@link org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static DeleteFeatureDefinitionResponse fromJson(final JsonObject jsonObject,

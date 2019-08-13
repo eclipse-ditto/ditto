@@ -32,7 +32,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
 /**
@@ -77,6 +77,28 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the {@code PolicyIdModified}
      * @throws NullPointerException if {@code thingId}, {@code revision} or {@code dittoHeaders} are {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, long, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static PolicyIdModified of(final String thingId,
+            final String policyId,
+            final long revision,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), policyId, revision, dittoHeaders);
+    }
+
+    /**
+     * Creates a new {@code PolicyIdModified} object.
+     *
+     * @param thingId the ID of the Thing with which this event is associated.
+     * @param policyId the ID of the Policy.
+     * @param revision the revision of the Thing.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the {@code PolicyIdModified}
+     * @throws NullPointerException if {@code thingId}, {@code revision} or {@code dittoHeaders} are {@code null}.
      */
     public static PolicyIdModified of(final ThingId thingId,
             final String policyId,
@@ -84,6 +106,30 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
             final DittoHeaders dittoHeaders) {
 
         return of(thingId, policyId, revision, null, dittoHeaders);
+    }
+
+    /**
+     * Creates a new {@code PolicyIdModified} object.
+     *
+     * @param thingId the ID of the Thing with which this event is associated.
+     * @param policyId the ID of the Policy.
+     * @param revision the revision of the Thing.
+     * @param timestamp the timestamp of this event.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the {@code PolicyIdModified}
+     * @throws NullPointerException if {@code thingId}, {@code revision} or {@code dittoHeaders} are {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static PolicyIdModified of(final String thingId,
+            final String policyId,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), policyId, revision, timestamp, dittoHeaders);
     }
 
     /**

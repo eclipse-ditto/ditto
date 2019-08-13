@@ -17,7 +17,8 @@ import java.util.UUID;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaders;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 import org.mutabilitydetector.unittesting.MutabilityMatchers;
@@ -36,9 +37,14 @@ public final class SendMessageAcceptedResponseTest {
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder().correlationId(CORRELATION_ID).build();
     private static final MessageHeaders MESSAGE_HEADERS = MessageHeaders.newBuilder(DIRECTION, THING_ID, SUBJECT).build();
 
+    @Test(expected = ThingIdInvalidException.class)
+    public void tryCreateWithNullThingIdString() {
+        SendMessageAcceptedResponse.newInstance((String) null, MESSAGE_HEADERS, DITTO_HEADERS);
+    }
+
     @Test(expected = NullPointerException.class)
     public void tryCreateWithNullThingId() {
-        SendMessageAcceptedResponse.newInstance(null, MESSAGE_HEADERS, DITTO_HEADERS);
+        SendMessageAcceptedResponse.newInstance((ThingId) null, MESSAGE_HEADERS, DITTO_HEADERS);
     }
 
     @Test(expected = NullPointerException.class)

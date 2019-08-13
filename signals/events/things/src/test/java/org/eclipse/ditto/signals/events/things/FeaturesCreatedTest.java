@@ -23,6 +23,8 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Features;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.junit.Test;
@@ -56,10 +58,15 @@ public final class FeaturesCreatedTest {
                 .verify();
     }
 
+    @Test(expected = ThingIdInvalidException.class)
+    public void tryToCreateInstanceWithNullThingIdString() {
+        FeaturesCreated.of((String) null, TestConstants.Feature.FEATURES, TestConstants.Thing.REVISION_NUMBER,
+                TestConstants.EMPTY_DITTO_HEADERS);
+    }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        FeaturesCreated.of(null, TestConstants.Feature.FEATURES, TestConstants.Thing.REVISION_NUMBER,
+        FeaturesCreated.of((ThingId) null, TestConstants.Feature.FEATURES, TestConstants.Thing.REVISION_NUMBER,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 

@@ -22,6 +22,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.model.policies.Resources;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.junit.Test;
@@ -58,10 +60,16 @@ public class ResourcesModifiedTest {
                 .verify();
     }
 
+    @Test(expected = PolicyIdInvalidException.class)
+    public void tryToCreateInstanceWithNullPolicyIdString() {
+        ResourcesModified.of((String) null, TestConstants.Policy.LABEL, TestConstants.Policy.RESOURCES,
+                TestConstants.Policy.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
-        ResourcesModified.of(null, TestConstants.Policy.LABEL, TestConstants.Policy.RESOURCES,
+        ResourcesModified.of((PolicyId) null, TestConstants.Policy.LABEL, TestConstants.Policy.RESOURCES,
                 TestConstants.Policy.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS);
     }
 

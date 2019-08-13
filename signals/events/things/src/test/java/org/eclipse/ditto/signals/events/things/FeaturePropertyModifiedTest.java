@@ -22,6 +22,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.junit.Test;
 
@@ -62,11 +64,19 @@ public final class FeaturePropertyModifiedTest {
                 .verify();
     }
 
+    @Test(expected = ThingIdInvalidException.class)
+    public void tryToCreateInstanceWithNullThingIdString() {
+        FeaturePropertyModified
+                .of((String) null, TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_JSON_POINTER, NEW_PROPERTY_VALUE,
+                        TestConstants.Thing.REVISION_NUMBER,
+                        TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
         FeaturePropertyModified
-                .of(null, TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_JSON_POINTER, NEW_PROPERTY_VALUE,
+                .of((ThingId) null, TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_JSON_POINTER, NEW_PROPERTY_VALUE,
                         TestConstants.Thing.REVISION_NUMBER,
                         TestConstants.EMPTY_DITTO_HEADERS);
     }

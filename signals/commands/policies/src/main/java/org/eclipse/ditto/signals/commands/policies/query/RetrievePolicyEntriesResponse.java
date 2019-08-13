@@ -34,7 +34,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyEntry;
-import org.eclipse.ditto.model.policies.id.PolicyId;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -75,6 +75,25 @@ public final class RetrievePolicyEntriesResponse extends AbstractCommandResponse
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, Iterable, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static RetrievePolicyEntriesResponse of(final String policyId, final Iterable<PolicyEntry> policyEntries,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), policyEntries, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code RetrievePolicyEntries} command.
+     *
+     * @param policyId the Policy ID of the retrieved policy entries.
+     * @param policyEntries the retrieved Policy entries.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static RetrievePolicyEntriesResponse of(final PolicyId policyId, final Iterable<PolicyEntry> policyEntries,
             final DittoHeaders dittoHeaders) {
@@ -83,7 +102,26 @@ public final class RetrievePolicyEntriesResponse extends AbstractCommandResponse
         checkNotNull(policyEntries, "Policy Entries").forEach(entry -> objectBuilder
                 .set(entry.getLabel().toString(),
                         entry.toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST))));
-        return new RetrievePolicyEntriesResponse(policyId, HttpStatusCode.OK, objectBuilder.build(), dittoHeaders);
+        return of(policyId, objectBuilder.build(), dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code RetrievePolicyEntries} command.
+     *
+     * @param policyId the Policy ID of the retrieved policy entries.
+     * @param policyEntries the retrieved Policy entries.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.json.JsonObject, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static RetrievePolicyEntriesResponse of(final String policyId, final JsonObject policyEntries,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), policyEntries, dittoHeaders);
     }
 
     /**

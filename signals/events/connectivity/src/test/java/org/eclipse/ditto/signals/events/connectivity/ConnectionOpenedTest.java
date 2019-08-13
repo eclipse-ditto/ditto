@@ -21,6 +21,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.junit.Test;
@@ -50,9 +51,17 @@ public final class ConnectionOpenedTest {
     }
 
     @Test
+    public void createInstanceWithNullConnectionIdString() {
+        assertThatExceptionOfType(NullPointerException.class)
+                .isThrownBy(() -> ConnectionOpened.of((String) null, DittoHeaders.empty()))
+                .withMessage("The ID must not be null!")
+                .withNoCause();
+    }
+
+    @Test
     public void createInstanceWithNullConnectionId() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ConnectionOpened.of(null, DittoHeaders.empty()))
+                .isThrownBy(() -> ConnectionOpened.of((EntityId) null, DittoHeaders.empty()))
                 .withMessage("The %s must not be null!", "Connection ID")
                 .withNoCause();
     }

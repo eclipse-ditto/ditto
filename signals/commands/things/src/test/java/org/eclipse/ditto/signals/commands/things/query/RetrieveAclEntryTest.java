@@ -23,7 +23,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
@@ -57,9 +58,14 @@ public final class RetrieveAclEntryTest {
                 .verify();
     }
 
+    @Test(expected = ThingIdInvalidException.class)
+    public void tryToCreateInstanceWithNullThingIdString() {
+        RetrieveAclEntry.of((String) null, TestConstants.Authorization.AUTH_SUBJECT_OLDMAN, TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        RetrieveAclEntry.of(null, TestConstants.Authorization.AUTH_SUBJECT_OLDMAN, TestConstants.EMPTY_DITTO_HEADERS);
+        RetrieveAclEntry.of((ThingId) null, TestConstants.Authorization.AUTH_SUBJECT_OLDMAN, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test(expected = NullPointerException.class)

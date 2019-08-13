@@ -28,7 +28,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.policies.id.PolicyId;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
 /**
@@ -64,9 +64,48 @@ public final class PolicyDeleted extends AbstractPolicyEvent<PolicyDeleted> impl
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return a event object indicating the deletion of the Policy
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, long, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static PolicyDeleted of(final String policyId, final long revision, final DittoHeaders dittoHeaders) {
+        return of(PolicyId.of(policyId), revision, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code PolicyDeleted} object.
+     *
+     * @param policyId the ID of the deleted {@link org.eclipse.ditto.model.policies.Policy}.
+     * @param revision the revision of the Policy.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return a event object indicating the deletion of the Policy
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static PolicyDeleted of(final PolicyId policyId, final long revision, final DittoHeaders dittoHeaders) {
         return of(policyId, revision, null, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code PolicyDeleted} object.
+     *
+     * @param policyId the ID of the deleted {@link org.eclipse.ditto.model.policies.Policy}.
+     * @param revision the revision of the Policy.
+     * @param timestamp the timestamp of this event.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return a event object indicating the deletion of the Policy
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static PolicyDeleted of(final String policyId,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), revision, timestamp, dittoHeaders);
     }
 
     /**

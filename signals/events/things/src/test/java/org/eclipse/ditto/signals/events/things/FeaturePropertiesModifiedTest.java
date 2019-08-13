@@ -23,6 +23,8 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.FeatureProperties;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.junit.Test;
@@ -60,10 +62,16 @@ public final class FeaturePropertiesModifiedTest {
                 .verify();
     }
 
+    @Test(expected = ThingIdInvalidException.class)
+    public void tryToCreateInstanceWithNullThingIdString() {
+        FeaturePropertiesModified.of((String) null, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES,
+                TestConstants.Thing.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS);
+    }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        FeaturePropertiesModified.of(null, TestConstants.Feature.FLUX_CAPACITOR_ID,
+        FeaturePropertiesModified.of((ThingId) null, TestConstants.Feature.FLUX_CAPACITOR_ID,
                 TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES,
                 TestConstants.Thing.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS);
     }

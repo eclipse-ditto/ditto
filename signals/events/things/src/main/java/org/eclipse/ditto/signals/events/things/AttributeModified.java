@@ -31,7 +31,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
 /**
@@ -86,6 +86,30 @@ public final class AttributeModified extends AbstractThingEvent<AttributeModifie
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the AttributeModified created.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.json.JsonValue, long, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static AttributeModified of(final String thingId,
+            final JsonPointer attributePointer,
+            final JsonValue attributeValue,
+            final long revision,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), attributePointer, attributeValue, revision, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code AttributeModified} object.
+     *
+     * @param thingId the ID of the Thing with which this event is associated.
+     * @param attributePointer the pointer of the attribute with which this event is associated.
+     * @param attributeValue the value of the attribute with which this event is associated.
+     * @param revision the revision of the Thing.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the AttributeModified created.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static AttributeModified of(final ThingId thingId,
             final JsonPointer attributePointer,
@@ -94,6 +118,32 @@ public final class AttributeModified extends AbstractThingEvent<AttributeModifie
             final DittoHeaders dittoHeaders) {
 
         return of(thingId, attributePointer, attributeValue, revision, null, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code AttributeModified} object.
+     *
+     * @param thingId the ID of the Thing with which this event is associated.
+     * @param attributePointer the pointer of the attribute with which this event is associated.
+     * @param attributeValue the value of the attribute with which this event is associated.
+     * @param revision the revision of the Thing.
+     * @param timestamp the timestamp of this event.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the AttributeModified created.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.json.JsonValue, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static AttributeModified of(final String thingId,
+            final JsonPointer attributePointer,
+            final JsonValue attributeValue,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), attributePointer, attributeValue, revision, timestamp, dittoHeaders);
     }
 
     /**

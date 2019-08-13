@@ -26,8 +26,6 @@ import java.util.Set;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.policies.id.PolicyId;
-import org.eclipse.ditto.model.policies.id.PolicyIdInvalidException;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

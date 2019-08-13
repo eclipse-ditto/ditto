@@ -32,7 +32,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
-import org.eclipse.ditto.model.policies.id.PolicyId;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
 /**
@@ -77,6 +77,28 @@ public final class PolicyEntryDeleted extends AbstractPolicyEvent<PolicyEntryDel
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created PolicyEntryDeleted.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, long, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static PolicyEntryDeleted of(final String policyId,
+            final Label label,
+            final long revision,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), label, revision, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code PolicyEntryDeleted} object.
+     *
+     * @param policyId the identifier of the Policy to which the deleted entry belongs
+     * @param label the label of the deleted {@link org.eclipse.ditto.model.policies.PolicyEntry}
+     * @param revision the revision of the Policy.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the created PolicyEntryDeleted.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static PolicyEntryDeleted of(final PolicyId policyId,
             final Label label,
@@ -84,6 +106,30 @@ public final class PolicyEntryDeleted extends AbstractPolicyEvent<PolicyEntryDel
             final DittoHeaders dittoHeaders) {
 
         return of(policyId, label, revision, null, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code PolicyEntryDeleted} object.
+     *
+     * @param policyId the identifier of the Policy to which the deleted entry belongs
+     * @param label the label of the deleted {@link org.eclipse.ditto.model.policies.PolicyEntry}
+     * @param revision the revision of the Policy.
+     * @param timestamp the timestamp of this event.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the created PolicyEntryDeleted.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static PolicyEntryDeleted of(final String policyId,
+            final Label label,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), label, revision, timestamp, dittoHeaders);
     }
 
     /**

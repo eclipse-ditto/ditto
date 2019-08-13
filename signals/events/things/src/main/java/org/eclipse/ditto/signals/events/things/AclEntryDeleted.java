@@ -31,7 +31,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
 /**
@@ -76,6 +76,28 @@ public final class AclEntryDeleted extends AbstractThingEvent<AclEntryDeleted>
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the created AclEntryDeleted.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.auth.AuthorizationSubject, long, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static AclEntryDeleted of(final String thingId,
+            final AuthorizationSubject authorizationSubject,
+            final long revision,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), authorizationSubject, revision, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code AclEntryDeleted} object.
+     *
+     * @param thingId the ID of the Thing with which this event is associated.
+     * @param authorizationSubject the subject of the ACL entry which was deleted.
+     * @param revision the revision of the Thing.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the created AclEntryDeleted.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static AclEntryDeleted of(final ThingId thingId,
             final AuthorizationSubject authorizationSubject,
@@ -83,6 +105,30 @@ public final class AclEntryDeleted extends AbstractThingEvent<AclEntryDeleted>
             final DittoHeaders dittoHeaders) {
 
         return of(thingId, authorizationSubject, revision, null, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code AclEntryDeleted} object.
+     *
+     * @param thingId the ID of the Thing with which this event is associated.
+     * @param authorizationSubject the subject of the ACL entry which was deleted.
+     * @param revision the revision of the Thing.
+     * @param timestamp the timestamp of this event.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the created AclEntryDeleted.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.auth.AuthorizationSubject, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static AclEntryDeleted of(final String thingId,
+            final AuthorizationSubject authorizationSubject,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), authorizationSubject, revision, timestamp, dittoHeaders);
     }
 
     /**

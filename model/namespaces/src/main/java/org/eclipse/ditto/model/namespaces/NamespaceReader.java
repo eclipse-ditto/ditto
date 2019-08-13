@@ -39,10 +39,19 @@ public final class NamespaceReader {
            return fromEntityId((NamespacedEntityId) id);
         }
 
-        final String idString = id.toString();
-        final int i = idString.indexOf(NAMESPACE_SEPARATOR);
+        return fromEntityId(id.toString());
+    }
+
+    /**
+     * Reads the namespace from the identifier of an entity.
+     *
+     * @param id the identifier.
+     * @return the optional namespace or an empty optional if a namespace can't be read.
+     */
+    public static Optional<String> fromEntityId(final String id) {
+        final int i = id.indexOf(NAMESPACE_SEPARATOR);
         return i >= 0
-                ? Optional.of(idString.substring(0, i))
+                ? Optional.of(id.substring(0, i))
                 : Optional.empty();
     }
 

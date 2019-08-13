@@ -34,8 +34,8 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -81,6 +81,23 @@ public final class ModifyThingResponse extends AbstractCommandResponse<ModifyThi
     public static ModifyThingResponse created(final Thing thing, final DittoHeaders dittoHeaders) {
         final ThingId thingId = thing.getEntityId().orElseThrow(() -> new NullPointerException("Thing has no ID!"));
         return new ModifyThingResponse(thingId, HttpStatusCode.CREATED, thing, dittoHeaders);
+    }
+
+    /**
+     * Returns a new {@code ModifyThingResponse} for a modified Thing. This corresponds to the HTTP status code {@link
+     * HttpStatusCode#NO_CONTENT}.
+     *
+     * @param thingId the Thing ID of the modified Thing.
+     * @param dittoHeaders the headers of the ThingCommand which caused the new response.
+     * @return a command response for a modified Thing.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #modified(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static ModifyThingResponse modified(final String thingId, final DittoHeaders dittoHeaders) {
+        return modified(ThingId.of(thingId), dittoHeaders);
     }
 
     /**

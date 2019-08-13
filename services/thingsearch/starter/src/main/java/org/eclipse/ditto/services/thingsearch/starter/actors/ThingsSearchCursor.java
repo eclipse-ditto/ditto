@@ -50,7 +50,7 @@ import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.rql.ParserException;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.thingsearch.CursorOption;
 import org.eclipse.ditto.model.thingsearch.LimitOption;
 import org.eclipse.ditto.model.thingsearch.Option;

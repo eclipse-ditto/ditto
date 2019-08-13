@@ -34,7 +34,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
@@ -86,6 +86,23 @@ public final class ModifyFeature extends AbstractCommand<ModifyFeature> implemen
      * @param dittoHeaders the headers of the command.
      * @return a Command for modifying the provided Feature.
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.Feature, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static ModifyFeature of(final String thingId, final Feature feature, final DittoHeaders dittoHeaders) {
+        return of(ThingId.of(thingId), feature, dittoHeaders);
+    }
+
+    /**
+     * Returns a Command for modifying a Feature on a Thing.
+     *
+     * @param thingId the ID of the {@code Thing} on which the {@code Feature} to modify.
+     * @param feature the {@code Feature} to modify.
+     * @param dittoHeaders the headers of the command.
+     * @return a Command for modifying the provided Feature.
+     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
      */
     public static ModifyFeature of(final ThingId thingId, final Feature feature, final DittoHeaders dittoHeaders) {
         return new ModifyFeature(thingId, feature, dittoHeaders);
@@ -101,7 +118,7 @@ public final class ModifyFeature extends AbstractCommand<ModifyFeature> implemen
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
-     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if the parsed thing ID did not comply to {@link
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
      * org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static ModifyFeature fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
@@ -117,7 +134,7 @@ public final class ModifyFeature extends AbstractCommand<ModifyFeature> implemen
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
-     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if the parsed thing ID did not comply to {@link
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
      * org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static ModifyFeature fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {

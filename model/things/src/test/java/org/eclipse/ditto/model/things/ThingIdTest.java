@@ -10,10 +10,11 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.things.id;
+package org.eclipse.ditto.model.things;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.eclipse.ditto.model.things.ThingId;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

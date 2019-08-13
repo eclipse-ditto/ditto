@@ -28,7 +28,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -64,6 +64,22 @@ public final class DeleteAttributes extends AbstractCommand<DeleteAttributes>
      * @param dittoHeaders the headers of the command.
      * @return a Command for deleting the Attributes of a Thing.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static DeleteAttributes of(final String thingId, final DittoHeaders dittoHeaders) {
+        return of(ThingId.of(thingId), dittoHeaders);
+    }
+
+    /**
+     * Returns a Command for deleting a Thing's Attributes.
+     *
+     * @param thingId the {@code Thing}'s ID whose Attributes to delete.
+     * @param dittoHeaders the headers of the command.
+     * @return a Command for deleting the Attributes of a Thing.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
     public static DeleteAttributes of(final ThingId thingId, final DittoHeaders dittoHeaders) {
         return new DeleteAttributes(thingId, dittoHeaders);
@@ -79,7 +95,7 @@ public final class DeleteAttributes extends AbstractCommand<DeleteAttributes>
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
-     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if the parsed thing ID did not comply to {@link
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
      * org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static DeleteAttributes fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
@@ -95,7 +111,7 @@ public final class DeleteAttributes extends AbstractCommand<DeleteAttributes>
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
-     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if the parsed thing ID did not comply to {@link
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
      * org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static DeleteAttributes fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {

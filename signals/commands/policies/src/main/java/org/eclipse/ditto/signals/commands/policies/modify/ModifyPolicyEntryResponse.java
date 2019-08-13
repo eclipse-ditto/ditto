@@ -35,7 +35,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyEntry;
-import org.eclipse.ditto.model.policies.id.PolicyId;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -79,11 +79,46 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if {@code statusCode} or {@code dittoHeaders} is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #created(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.PolicyEntry, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static ModifyPolicyEntryResponse created(final String policyId, final PolicyEntry policyEntryCreated,
+            final DittoHeaders dittoHeaders) {
+
+        return created(PolicyId.of(policyId), policyEntryCreated, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code ModifyPolicyEntry} command.
+     *
+     * @param policyId the Policy ID of the created policy entry.
+     * @param policyEntryCreated (optional) the PolicyEntry created.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if {@code statusCode} or {@code dittoHeaders} is {@code null}.
      */
     public static ModifyPolicyEntryResponse created(final PolicyId policyId, final PolicyEntry policyEntryCreated,
             final DittoHeaders dittoHeaders) {
 
         return new ModifyPolicyEntryResponse(policyId, HttpStatusCode.CREATED, policyEntryCreated, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code ModifyPolicyEntry} command.
+     *
+     * @param policyId the Policy ID of the modified policy entry.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy Id is now Typed. Use
+     * {@link #modified(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static ModifyPolicyEntryResponse modified(final String policyId, final DittoHeaders dittoHeaders) {
+        return modified(PolicyId.of(policyId), dittoHeaders);
     }
 
     /**

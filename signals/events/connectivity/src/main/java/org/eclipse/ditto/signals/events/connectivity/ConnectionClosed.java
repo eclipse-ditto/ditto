@@ -63,9 +63,43 @@ public final class ConnectionClosed extends AbstractConnectivityEvent<Connection
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the event.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Connection ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.base.entity.id.EntityId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static ConnectionClosed of(final String connectionId, final DittoHeaders dittoHeaders) {
+        return of(DefaultEntityId.of(connectionId), dittoHeaders);
+    }
+
+    /**
+     * Returns a new {@code ConnectionClosed} event.
+     *
+     * @param connectionId the identifier of the closed Connection.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the event.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static ConnectionClosed of(final EntityId connectionId, final DittoHeaders dittoHeaders) {
         return of(connectionId, null, dittoHeaders);
+    }
+
+    /**
+     * Returns a new {@code ConnectionClosed} event.
+     *
+     * @param connectionId the identifier of the closed Connection.
+     * @param timestamp the timestamp of this event.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the event.
+     * @throws NullPointerException if {@code connectionId} or {@code dittoHeaders} are {@code null}.
+     * @deprecated Connection ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.base.entity.id.EntityId, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static ConnectionClosed of(final String connectionId, @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+        return of(DefaultEntityId.of(connectionId), timestamp, dittoHeaders);
     }
 
     /**

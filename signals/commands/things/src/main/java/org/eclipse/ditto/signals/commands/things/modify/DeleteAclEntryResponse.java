@@ -33,7 +33,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -62,6 +62,25 @@ public final class DeleteAclEntryResponse extends AbstractCommandResponse<Delete
         super(TYPE, HttpStatusCode.NO_CONTENT, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thing ID");
         this.authorizationSubject = checkNotNull(authorizationSubject, "authorization subject");
+    }
+
+    /**
+     * Creates a response to a {@link DeleteAclEntry} command.
+     *
+     * @param thingId the Thing ID of the deleted ACL entry.
+     * @param authorizationSubject the deleted authorization subject.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.auth.AuthorizationSubject, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static DeleteAclEntryResponse of(final String thingId, final AuthorizationSubject authorizationSubject,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), authorizationSubject, dittoHeaders);
     }
 
     /**

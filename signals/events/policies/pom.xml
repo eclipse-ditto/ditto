@@ -60,6 +60,29 @@
             <plugin>
                 <groupId>com.github.siom79.japicmp</groupId>
                 <artifactId>japicmp-maven-plugin</artifactId>
+                <configuration>
+                    <parameter>
+                        <excludes>
+                            <exclude>
+                                <!-- getEntityId has been added to this interface -->
+                                org.eclipse.ditto.signals.events.policies.PolicyEvent#getEntityId()
+                            </exclude>
+                            <exclude>
+                                <!-- getPolicyEntityId has been added to this interface -->
+                                org.eclipse.ditto.signals.events.policies.PolicyEvent#getPolicyEntityId()
+                            </exclude>
+                            <exclude>
+                                <!-- getPolicyId is still available but implemented in the interface PolicyEvent -->
+                                org.eclipse.ditto.signals.events.policies.AbstractPolicyEvent#getPolicyId()
+                            </exclude>
+
+                            <exclude>
+                                <!-- getId is still available but implemented in the interface WithId -->
+                                org.eclipse.ditto.signals.events.policies.PolicyEvent#getId()
+                            </exclude>
+                        </excludes>
+                    </parameter>
+                </configuration>
             </plugin>
 
             <plugin>

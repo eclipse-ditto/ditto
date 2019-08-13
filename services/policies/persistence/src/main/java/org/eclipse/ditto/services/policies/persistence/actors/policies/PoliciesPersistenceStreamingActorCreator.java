@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.policies.persistence.actors.policies;
 
 import java.util.regex.Pattern;
 
-import org.eclipse.ditto.model.policies.id.PolicyId;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicyPersistenceActor;

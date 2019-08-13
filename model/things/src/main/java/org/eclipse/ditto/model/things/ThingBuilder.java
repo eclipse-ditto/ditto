@@ -22,7 +22,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.things.id.ThingId;
 
 /**
  * Builder for instances of {@link Thing} which uses Object Scoping and Method Chaining to provide a convenient usage
@@ -425,8 +424,8 @@ public interface ThingBuilder {
          *
          * @param thingId the Thing ID to be set.
          * @return this builder to allow method chaining.
-         * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if {@code thingId} does not comply to the required pattern.
-         * @deprecated thing ID is now typed. Use {@link #setId(org.eclipse.ditto.model.things.id.ThingId)} instead.
+         * @throws ThingIdInvalidException if {@code thingId} does not comply to the required pattern.
+         * @deprecated thing ID is now typed. Use {@link #setId(ThingId)} instead.
          */
         @Deprecated
         default FromScratch setId(@Nullable String thingId) {
@@ -1287,9 +1286,9 @@ public interface ThingBuilder {
          *
          * @param thingId the Thing ID to be set.
          * @return this builder to allow method chaining.
-         * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if {@code thingId} does not comply to
+         * @throws ThingIdInvalidException if {@code thingId} does not comply to
          * the required pattern.
-         * @deprecated Thing ID is now typed. Use {@link #setId(org.eclipse.ditto.model.things.id.ThingId)} instead.
+         * @deprecated Thing ID is now typed. Use {@link #setId(ThingId)} instead.
          */
         @Deprecated
         default FromCopy setId(@Nullable final String thingId) {
@@ -1301,7 +1300,7 @@ public interface ThingBuilder {
          *
          * @param thingId the Thing ID to be set.
          * @return this builder to allow method chaining.
-         * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if {@code thingId} does not comply to
+         * @throws ThingIdInvalidException if {@code thingId} does not comply to
          * the required pattern.
          */
         default FromCopy setId(@Nullable final ThingId thingId) {
@@ -1316,10 +1315,10 @@ public interface ThingBuilder {
          * @param thingId the Thing ID to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code existingIdPredicate} is {@code null}.
-         * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if {@code thingId} does not comply to
+         * @throws ThingIdInvalidException if {@code thingId} does not comply to
          * the required pattern.
          * @deprecated Thing ID is now typed. Use
-         * {@link #setId(java.util.function.Predicate, org.eclipse.ditto.model.things.id.ThingId)}
+         * {@link #setId(java.util.function.Predicate, ThingId)}
          * instead.
          */
         @Deprecated
@@ -1336,7 +1335,7 @@ public interface ThingBuilder {
          * @param thingId the Thing ID to be set.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code existingIdPredicate} is {@code null}.
-         * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if {@code thingId} does not comply to
+         * @throws ThingIdInvalidException if {@code thingId} does not comply to
          * the required pattern.
          */
         FromCopy setId(Predicate<ThingId> existingIdPredicate, @Nullable ThingId thingId);

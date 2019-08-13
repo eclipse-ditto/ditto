@@ -19,9 +19,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.messages.AuthorizationSubjectBlockedException;
 import org.eclipse.ditto.model.namespaces.NamespaceBlockedException;
 import org.eclipse.ditto.model.policies.PolicyEntryInvalidException;
-import org.eclipse.ditto.model.policies.id.PolicyIdInvalidException;
 import org.eclipse.ditto.model.things.AclEntryInvalidException;
-import org.eclipse.ditto.model.things.id.ThingIdInvalidException;
 import org.eclipse.ditto.services.utils.test.GlobalErrorRegistryTestCases;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
@@ -48,9 +46,7 @@ public final class ThingSearchServiceGlobalErrorRegistryTest extends GlobalError
                 JsonTypeNotParsableException.class,
                 InvalidNamespacesException.class,
                 NamespaceBlockedException.class,
-                EntityIdInvalidException.class,
-                PolicyIdInvalidException.class,
-                ThingIdInvalidException.class
+                EntityIdInvalidException.class
         ));
     }
 }

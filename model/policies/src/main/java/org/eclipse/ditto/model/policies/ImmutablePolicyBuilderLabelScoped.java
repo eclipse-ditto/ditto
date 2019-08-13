@@ -19,8 +19,6 @@ import java.time.Instant;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.model.policies.id.PolicyId;
-
 /**
  * A mutable builder for a {@link ImmutablePolicy} with a fluent API scoped to a specified {@link Label}.
  */

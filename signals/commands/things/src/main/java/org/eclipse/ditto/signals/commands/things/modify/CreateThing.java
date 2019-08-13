@@ -34,13 +34,14 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.id.ThingPolicyIdValidator;
+import org.eclipse.ditto.model.things.ThingPolicyIdValidator;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.model.things.id.ThingId;
-import org.eclipse.ditto.model.things.id.ThingIdInvalidException;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
+import org.eclipse.ditto.signals.commands.things.exceptions.PoliciesConflictingException;
 
 /**
  * This command creates a new Thing. It contains the full {@link Thing} including the Thing ID which should be used for
@@ -179,8 +180,11 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
     public static CreateThing of(final Thing newThing, @Nullable final JsonObject initialPolicy,
             @Nullable final String policyIdOrPlaceholder, final DittoHeaders dittoHeaders) {
         final ThingId thingId = newThing.getEntityId().orElse(null);
-        ThingModifyCommand.ensurePolicyCopyFromDoesNotConflictWithInlinePolicy(thingId, initialPolicy,
-                policyIdOrPlaceholder, dittoHeaders);
+
+        if (policyIdOrPlaceholder != null && initialPolicy != null) {
+            throw PoliciesConflictingException.newBuilder(thingId).dittoHeaders(dittoHeaders).build();
+        }
+
         if (policyIdOrPlaceholder == null) {
             return of(newThing, initialPolicy, dittoHeaders);
         } else {

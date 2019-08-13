@@ -33,8 +33,8 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Attributes;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
@@ -81,6 +81,25 @@ public final class ModifyAttributes extends AbstractCommand<ModifyAttributes>
      * @param dittoHeaders the headers of the command.
      * @return a command for modifying the provided new attributes.
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.Attributes, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static ModifyAttributes of(final String thingId, final Attributes newAttributesObject,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), newAttributesObject, dittoHeaders);
+    }
+
+    /**
+     * Returns a command for modifying an attributes object which is passed as argument.
+     *
+     * @param thingId the ID of the thing on which to modify the attributes.
+     * @param newAttributesObject the value of the attributes to modify.
+     * @param dittoHeaders the headers of the command.
+     * @return a command for modifying the provided new attributes.
+     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
      */
     public static ModifyAttributes of(final ThingId thingId, final Attributes newAttributesObject,
             final DittoHeaders dittoHeaders) {
@@ -98,7 +117,7 @@ public final class ModifyAttributes extends AbstractCommand<ModifyAttributes>
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
-     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if the parsed thing ID did not comply to {@link
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
      * org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static ModifyAttributes fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
@@ -114,7 +133,7 @@ public final class ModifyAttributes extends AbstractCommand<ModifyAttributes>
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
-     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if the parsed thing ID did not comply to {@link
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
      * org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static ModifyAttributes fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {

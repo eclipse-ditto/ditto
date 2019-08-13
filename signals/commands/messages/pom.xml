@@ -73,6 +73,27 @@
             <plugin>
                 <groupId>com.github.siom79.japicmp</groupId>
                 <artifactId>japicmp-maven-plugin</artifactId>
+                <configuration>
+                    <parameter>
+                        <ignoreMissingClassesByRegularExpressions>
+                            <ignoreMissingClassesByRegularExpression>
+                                <!--org.eclipse.ditto.signals.base.WithThingId has been moved to org.eclipse.ditto.model.things.WithThingId-->
+                                org.eclipse.ditto.signals.base.WithThingId
+                            </ignoreMissingClassesByRegularExpression>
+                        </ignoreMissingClassesByRegularExpressions>
+                        <excludes>
+                            <!-- getEntityId has been added to the WithId interface -->
+                            <exclude>
+                                org.eclipse.ditto.signals.commands.messages.MessageCommandResponse#getEntityId()
+                            </exclude>
+                            <exclude>org.eclipse.ditto.signals.commands.messages.MessageCommand#getEntityId()</exclude>
+
+                            <!-- Method getId is still available but defined in an interface -->
+                            <exclude>org.eclipse.ditto.signals.commands.messages.MessageCommand#getId()</exclude>
+                            <exclude>org.eclipse.ditto.signals.commands.messages.MessageCommandResponse#getId()</exclude>
+                        </excludes>
+                    </parameter>
+                </configuration>
             </plugin>
         </plugins>
     </build>

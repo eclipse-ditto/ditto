@@ -36,8 +36,8 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.FeatureDefinition;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -88,6 +88,29 @@ public final class ModifyFeatureDefinitionResponse extends AbstractCommandRespon
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a created FeatureDefinition.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #created(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.things.FeatureDefinition, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static ModifyFeatureDefinitionResponse created(final String thingId,
+            final String featureId,
+            final FeatureDefinition definitionCreated,
+            final DittoHeaders dittoHeaders) {
+
+        return created(ThingId.of(thingId), featureId, definitionCreated, dittoHeaders);
+    }
+
+    /**
+     * Returns a new {@code ModifyFeatureDefinitionResponse} for a created FeatureDefinition. This corresponds to the
+     * HTTP status code {@link HttpStatusCode#CREATED}.
+     *
+     * @param thingId the Thing ID of the created Feature Definition.
+     * @param featureId the {@code Feature}'s ID whose Definition were created.
+     * @param definitionCreated the created FeatureDefinition.
+     * @param dittoHeaders the headers of the ThingCommand which caused the new response.
+     * @return a command response for a created FeatureDefinition.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyFeatureDefinitionResponse created(final ThingId thingId,
             final String featureId,
@@ -96,6 +119,26 @@ public final class ModifyFeatureDefinitionResponse extends AbstractCommandRespon
 
         return new ModifyFeatureDefinitionResponse(thingId, featureId, definitionCreated, HttpStatusCode.CREATED,
                 dittoHeaders);
+    }
+
+    /**
+     * Returns a new {@code ModifyFeatureDefinitionResponse} for a modified FeatureDefinition. This corresponds to the
+     * HTTP status code {@link HttpStatusCode#NO_CONTENT}.
+     *
+     * @param thingId the Thing ID of the modified Feature Definition.
+     * @param featureId the {@code Feature}'s ID whose Definition were modified.
+     * @param dittoHeaders the headers of the ThingCommand which caused the new response.
+     * @return a command response for a modified FeatureDefinition.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #modified(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static ModifyFeatureDefinitionResponse modified(final String thingId, final String featureId,
+            final DittoHeaders dittoHeaders) {
+
+        return modified(ThingId.of(thingId), featureId, dittoHeaders);
     }
 
     /**
@@ -131,7 +174,7 @@ public final class ModifyFeatureDefinitionResponse extends AbstractCommandRespon
      *     <li>{@link #JSON_FEATURE_ID} or</li>
      *     <li>{@link #JSON_DEFINITION}.</li>
      * </ul>
-     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if the parsed thing ID did not comply to
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to
      * {@link org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static ModifyFeatureDefinitionResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
@@ -154,7 +197,7 @@ public final class ModifyFeatureDefinitionResponse extends AbstractCommandRespon
      *     <li>{@link #JSON_FEATURE_ID} or</li>
      *     <li>{@link #JSON_DEFINITION}.</li>
      * </ul>
-     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if the parsed thing ID did not comply to
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to
      * {@link org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static ModifyFeatureDefinitionResponse fromJson(final JsonObject jsonObject,

@@ -34,7 +34,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -84,10 +84,46 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a created Policy ID.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #created(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static ModifyPolicyIdResponse created(final String thingId, final String policyId,
+            final DittoHeaders dittoHeaders) {
+        return created(ThingId.of(thingId), policyId, dittoHeaders);
+    }
+
+    /**
+     * Returns a new {@code ModifyPolicyIdResponse} for a created Policy ID. This corresponds to the HTTP status code
+     * {@link HttpStatusCode#CREATED}.
+     *
+     * @param thingId the Thing ID of the created policy ID.
+     * @param policyId the created Policy ID.
+     * @param dittoHeaders the headers of the ThingCommand which caused the new response.
+     * @return a command response for a created Policy ID.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyPolicyIdResponse created(final ThingId thingId, final String policyId,
             final DittoHeaders dittoHeaders) {
         return new ModifyPolicyIdResponse(thingId, HttpStatusCode.CREATED, policyId, dittoHeaders);
+    }
+
+    /**
+     * Returns a new {@code ModifyPolicyIdResponse} for a modified Policy ID. This corresponds to the HTTP status code
+     * {@link HttpStatusCode#NO_CONTENT}.
+     *
+     * @param thingId the Thing ID of the modified policy ID.
+     * @param dittoHeaders the headers of the ThingCommand which caused the new response.
+     * @return a command response for a modified Policy ID.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #modified(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static ModifyPolicyIdResponse modified(final String thingId, final DittoHeaders dittoHeaders) {
+        return modified(ThingId.of(thingId), dittoHeaders);
     }
 
     /**

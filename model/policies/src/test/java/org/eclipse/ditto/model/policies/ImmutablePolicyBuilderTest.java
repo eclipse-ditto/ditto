@@ -25,7 +25,6 @@ import java.util.Collections;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.policies.id.PolicyId;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -61,6 +60,13 @@ public final class ImmutablePolicyBuilderTest {
                 .isThrownBy(() -> underTest.setId(null))
                 .withMessage("The Policy ID must not be null!")
                 .withNoCause();
+    }
+
+    @Test
+    public void tryToSetNullPolicyIdCharSequence() {
+        assertThatExceptionOfType(PolicyIdInvalidException.class)
+                .isThrownBy(() -> underTest.setId((CharSequence) null))
+                .withMessage("Policy ID 'null' is not valid!");
     }
 
     @Test(expected = NullPointerException.class)

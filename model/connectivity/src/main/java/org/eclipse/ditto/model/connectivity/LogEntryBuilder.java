@@ -16,7 +16,7 @@ import java.time.Instant;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * A mutable builder for a {@link org.eclipse.ditto.model.connectivity.LogEntry} with a fluent API.

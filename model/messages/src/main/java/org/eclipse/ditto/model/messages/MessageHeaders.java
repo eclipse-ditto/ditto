@@ -22,7 +22,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * This interface represents headers to be used for {@link Message}s.
@@ -42,11 +42,48 @@ public interface MessageHeaders extends DittoHeaders {
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code thingId} or {@code subject} is empty.
      * @throws SubjectInvalidException if {@code subject} is invalid.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #newBuilder(MessageDirection, org.eclipse.ditto.model.things.ThingId, CharSequence)}
+     * instead.
+     */
+    @Deprecated
+    static MessageHeadersBuilder newBuilder(final MessageDirection direction,
+            final CharSequence thingId, final CharSequence subject) {
+
+        return newBuilder(direction, ThingId.of(thingId), subject);
+    }
+
+    /**
+     * Returns a new builder with a fluent API for an immutable MessageHeaders object.
+     *
+     * @param direction the direction of the message.
+     * @param thingId the thing ID of the message.
+     * @param subject the subject of the message.
+     * @return the builder;
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code thingId} or {@code subject} is empty.
+     * @throws SubjectInvalidException if {@code subject} is invalid.
      */
     static MessageHeadersBuilder newBuilder(final MessageDirection direction,
             final ThingId thingId, final CharSequence subject) {
 
         return MessagesModelFactory.newHeadersBuilder(direction, thingId, subject);
+    }
+
+    /**
+     * Returns a new builder with a fluent API for an immutable MessageHeaders object for a Claim Message.
+     *
+     * @param thingId the thing ID of the message.
+     * @return the builder.
+     * @throws NullPointerException if {@code thingId} is {@code null}.
+     * @throws IllegalArgumentException if {@code thingId} is empty.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #newBuilderForClaiming(org.eclipse.ditto.model.things.ThingId)}
+     * instead.
+     */
+    @Deprecated
+    static MessageHeadersBuilder newBuilderForClaiming(final CharSequence thingId) {
+        return newBuilderForClaiming(ThingId.of(thingId));
     }
 
     /**

@@ -34,7 +34,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -77,6 +77,25 @@ public final class ModifyAcl extends AbstractCommand<ModifyAcl> implements Thing
      * @param dittoHeaders the headers of the command.
      * @return a command for modifying the provided complete ACL.
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.AccessControlList, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static ModifyAcl of(final String thingId, final AccessControlList accessControlList,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), accessControlList, dittoHeaders);
+    }
+
+    /**
+     * Returns a command for modifying the complete ACL of a Thing.
+     *
+     * @param thingId the ID of the Thing on which to modify the complete ACL.
+     * @param accessControlList the ACL.
+     * @param dittoHeaders the headers of the command.
+     * @return a command for modifying the provided complete ACL.
+     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
      */
     public static ModifyAcl of(final ThingId thingId, final AccessControlList accessControlList,
             final DittoHeaders dittoHeaders) {
@@ -94,7 +113,7 @@ public final class ModifyAcl extends AbstractCommand<ModifyAcl> implements Thing
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
-     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if the parsed thing ID did not comply to {@link
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
      * org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static ModifyAcl fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
@@ -110,7 +129,7 @@ public final class ModifyAcl extends AbstractCommand<ModifyAcl> implements Thing
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
-     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if the parsed thing ID did not comply to {@link
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
      * org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static ModifyAcl fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {

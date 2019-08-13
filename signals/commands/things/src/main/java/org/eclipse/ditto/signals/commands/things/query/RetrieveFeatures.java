@@ -30,7 +30,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -74,9 +74,44 @@ public final class RetrieveFeatures extends AbstractCommand<RetrieveFeatures>
      * @param dittoHeaders the headers of the command.
      * @return a Command for retrieving the Features.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static RetrieveFeatures of(final String thingId, final DittoHeaders dittoHeaders) {
+        return of(ThingId.of(thingId), dittoHeaders);
+    }
+
+    /**
+     * Returns a Command for retrieving all Features of a Thing.
+     *
+     * @param thingId the ID of a Thing whose Features to be retrieved by this command.
+     * @param dittoHeaders the headers of the command.
+     * @return a Command for retrieving the Features.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
     public static RetrieveFeatures of(final ThingId thingId, final DittoHeaders dittoHeaders) {
         return of(thingId, null, dittoHeaders);
+    }
+
+    /**
+     * Returns a Command for retrieving all Features of a Thing.
+     *
+     * @param thingId the ID of a Thing whose Features to be retrieved by this command.
+     * @param selectedFields defines the fields of the JSON representation of the Features to retrieve.
+     * @param dittoHeaders the headers of the command.
+     * @return a Command for retrieving the Features.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonFieldSelector, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static RetrieveFeatures of(final String thingId, @Nullable final JsonFieldSelector selectedFields,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), selectedFields, dittoHeaders);
     }
 
     /**
@@ -104,7 +139,7 @@ public final class RetrieveFeatures extends AbstractCommand<RetrieveFeatures>
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
-     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if the parsed thing ID did not comply to {@link
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
      * org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static RetrieveFeatures fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
@@ -120,7 +155,7 @@ public final class RetrieveFeatures extends AbstractCommand<RetrieveFeatures>
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
-     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if the parsed thing ID did not comply to {@link
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
      * org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static RetrieveFeatures fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {

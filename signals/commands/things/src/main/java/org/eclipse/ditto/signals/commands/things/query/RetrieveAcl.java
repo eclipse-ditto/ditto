@@ -28,7 +28,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -64,6 +64,23 @@ public final class RetrieveAcl extends AbstractCommand<RetrieveAcl> implements T
      * @return a Command for retrieving ACL of the Thing with the {@code thingId} as its ID which is readable from the
      * passed authorization context.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static RetrieveAcl of(final String thingId, final DittoHeaders dittoHeaders) {
+        return of(ThingId.of(thingId), dittoHeaders);
+    }
+
+    /**
+     * Returns a command for retrieving the ACL of a Thing with the given ID.
+     *
+     * @param thingId the ID of a single Thing whose ACL will be retrieved by this command.
+     * @param dittoHeaders the headers of the command.
+     * @return a Command for retrieving ACL of the Thing with the {@code thingId} as its ID which is readable from the
+     * passed authorization context.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
     public static RetrieveAcl of(final ThingId thingId, final DittoHeaders dittoHeaders) {
         return new RetrieveAcl(thingId, dittoHeaders);
@@ -79,7 +96,7 @@ public final class RetrieveAcl extends AbstractCommand<RetrieveAcl> implements T
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
-     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if the parsed thing ID did not comply to {@link
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
      * org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static RetrieveAcl fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
@@ -95,7 +112,7 @@ public final class RetrieveAcl extends AbstractCommand<RetrieveAcl> implements T
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
-     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if the parsed thing ID did not comply to {@link
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
      * org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static RetrieveAcl fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {

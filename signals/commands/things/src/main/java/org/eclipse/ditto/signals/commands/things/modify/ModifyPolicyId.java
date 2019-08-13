@@ -34,8 +34,8 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.id.ThingPolicyIdValidator;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingPolicyIdValidator;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -88,6 +88,23 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
      * @param dittoHeaders the headers of the command.
      * @return a command for modifying the provided new attribute.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static ModifyPolicyId of(final String thingId, final String policyId, final DittoHeaders dittoHeaders) {
+        return of(ThingId.of(thingId), policyId, dittoHeaders);
+    }
+
+    /**
+     * Returns a command for modifying an attribute which is passed as argument.
+     *
+     * @param thingId the ID of the thing on which to modify the Policy ID.
+     * @param policyId the Policy ID to set.
+     * @param dittoHeaders the headers of the command.
+     * @return a command for modifying the provided new attribute.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
     public static ModifyPolicyId of(final ThingId thingId, final String policyId, final DittoHeaders dittoHeaders) {
         return new ModifyPolicyId(thingId, policyId, dittoHeaders);
@@ -103,7 +120,7 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
-     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if the parsed thing ID did not comply to {@link
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
      * org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static ModifyPolicyId fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
@@ -119,7 +136,7 @@ public final class ModifyPolicyId extends AbstractCommand<ModifyPolicyId>
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
-     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if the parsed thing ID did not comply to {@link
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
      * org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static ModifyPolicyId fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {

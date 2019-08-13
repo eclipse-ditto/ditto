@@ -32,7 +32,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -77,6 +77,26 @@ public final class DeleteAclEntry extends AbstractCommand<DeleteAclEntry>
      * @param dittoHeaders the headers of the command.
      * @return a command for deleting a Thing's ACL entry.
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.auth.AuthorizationSubject, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static DeleteAclEntry of(final String thingId, final AuthorizationSubject authorizationSubject,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), authorizationSubject, dittoHeaders);
+    }
+
+    /**
+     * Returns a command for deleting one single ACL entry of a Thing. The ACL entry's {@code authorizationSubject} is
+     * passed as identifier of which ACL entry to delete.
+     *
+     * @param thingId the Thing's key.
+     * @param authorizationSubject the subject of the ACL entry to delete.
+     * @param dittoHeaders the headers of the command.
+     * @return a command for deleting a Thing's ACL entry.
+     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
      */
     public static DeleteAclEntry of(final ThingId thingId, final AuthorizationSubject authorizationSubject,
             final DittoHeaders dittoHeaders) {
@@ -94,7 +114,7 @@ public final class DeleteAclEntry extends AbstractCommand<DeleteAclEntry>
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
-     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if {@code thingId} does not comply to {@link
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if {@code thingId} does not comply to {@link
      * org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static DeleteAclEntry fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
@@ -110,7 +130,7 @@ public final class DeleteAclEntry extends AbstractCommand<DeleteAclEntry>
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
-     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if {@code thingId} does not comply to {@link
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if {@code thingId} does not comply to {@link
      * org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId#ID_REGEX}.
      */
     public static DeleteAclEntry fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {

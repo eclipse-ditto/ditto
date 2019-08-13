@@ -32,7 +32,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Attributes;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
@@ -80,6 +80,28 @@ public final class AttributesModified extends AbstractThingEvent<AttributesModif
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the AttributesModified created.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.Attributes, long, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static AttributesModified of(final String thingId,
+            final Attributes attributesModified,
+            final long revision,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), attributesModified, revision, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code AttributesModified} object.
+     *
+     * @param thingId the ID of the Thing with which this event is associated.
+     * @param attributesModified the changes on the attributes object.
+     * @param revision the revision of the Thing.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the AttributesModified created.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static AttributesModified of(final ThingId thingId,
             final Attributes attributesModified,
@@ -87,6 +109,30 @@ public final class AttributesModified extends AbstractThingEvent<AttributesModif
             final DittoHeaders dittoHeaders) {
 
         return of(thingId, attributesModified, revision, null, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code AttributesModified} object.
+     *
+     * @param thingId the ID of the Thing with which this event is associated.
+     * @param attributesModified the changes on the attributes object.
+     * @param revision the revision of the Thing.
+     * @param timestamp the timestamp of this event.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the AttributesModified created.
+     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.Attributes, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static AttributesModified of(final String thingId,
+            final Attributes attributesModified,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), attributesModified, revision, timestamp, dittoHeaders);
     }
 
     /**

@@ -32,7 +32,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -74,6 +74,28 @@ public final class RetrieveFeaturePropertyResponse extends AbstractCommandRespon
         this.featureId = checkNotNull(featureId, "Feature ID");
         this.propertyPointer = checkNotNull(propertyPointer, "Property Pointer");
         this.propertyValue = checkNotNull(propertyValue, "Property Value");
+    }
+
+    /**
+     * Creates a response to a {@link RetrieveFeatureProperty} command.
+     *
+     * @param thingId the Thing ID of the retrieved feature property.
+     * @param featureId the identifier of the Feature whose Property was retrieved.
+     * @param featurePropertyPointer the retrieved FeatureProperty JSON pointer.
+     * @param featurePropertyValue the retrieved FeatureProperty value.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.json.JsonValue, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static RetrieveFeaturePropertyResponse of(final String thingId, final String featureId,
+            final JsonPointer featurePropertyPointer,
+            final JsonValue featurePropertyValue, final DittoHeaders dittoHeaders) {
+
+        return of(ThingId.of(thingId), featureId, featurePropertyPointer, featurePropertyValue, dittoHeaders);
     }
 
     /**

@@ -21,7 +21,7 @@ import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.id.WithThingId;
+import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.signals.events.base.Event;
 
 /**

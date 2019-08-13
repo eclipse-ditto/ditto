@@ -31,7 +31,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.policies.id.PolicyId;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
@@ -81,9 +81,25 @@ public final class PolicyErrorResponse extends AbstractCommandResponse<PolicyErr
      * @param dittoRuntimeException the exception.
      * @return the response.
      * @throws NullPointerException if one of the arguments is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.base.exceptions.DittoRuntimeException)}
+     * instead.
+     */
+    @Deprecated
+    public static PolicyErrorResponse of(final String policyId, final DittoRuntimeException dittoRuntimeException) {
+        return of(PolicyId.of(policyId), dittoRuntimeException);
+    }
+
+    /**
+     * Creates a new {@code PolicyErrorResponse} for the specified {@code dittoRuntimeException}.
+     *
+     * @param policyId the Policy ID related to the exception.
+     * @param dittoRuntimeException the exception.
+     * @return the response.
+     * @throws NullPointerException if one of the arguments is {@code null}.
      */
     public static PolicyErrorResponse of(final PolicyId policyId, final DittoRuntimeException dittoRuntimeException) {
-        return new PolicyErrorResponse(policyId, dittoRuntimeException, dittoRuntimeException.getDittoHeaders());
+        return of(policyId, dittoRuntimeException, dittoRuntimeException.getDittoHeaders());
     }
 
     /**
@@ -98,6 +114,25 @@ public final class PolicyErrorResponse extends AbstractCommandResponse<PolicyErr
             final DittoHeaders dittoHeaders) {
 
         return of(PolicyId.UNKNOWN, dittoRuntimeException, dittoHeaders);
+    }
+
+    /**
+     * Creates a new {@code PolicyErrorResponse} for the specified {@code dittoRuntimeException}.
+     *
+     * @param policyId the Policy ID related to the exception.
+     * @param dittoRuntimeException the exception.
+     * @param dittoHeaders the headers of the command which caused the exception.
+     * @return the response.
+     * @throws NullPointerException if one of the arguments is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.base.exceptions.DittoRuntimeException, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static PolicyErrorResponse of(final String policyId, final DittoRuntimeException dittoRuntimeException,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), dittoRuntimeException, dittoHeaders);
     }
 
     /**

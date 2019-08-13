@@ -18,7 +18,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.slf4j.Logger;
@@ -40,7 +40,7 @@ final class ThingCommandFactory {
      *
      * @param thingId the thingId.
      * @return the created command.
-     * @deprecated thing ID is now typed. Use {@link #sudoRetrieveThing(org.eclipse.ditto.model.things.id.ThingId)}
+     * @deprecated thing ID is now typed. Use {@link #sudoRetrieveThing(org.eclipse.ditto.model.things.ThingId)}
      * instead.
      */
     @Deprecated

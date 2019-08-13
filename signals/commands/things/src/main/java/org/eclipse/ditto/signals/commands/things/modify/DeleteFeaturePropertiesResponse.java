@@ -31,7 +31,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -60,6 +60,24 @@ public final class DeleteFeaturePropertiesResponse extends AbstractCommandRespon
         super(TYPE, HttpStatusCode.NO_CONTENT, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
         this.featureId = checkNotNull(featureId, "Feature ID");
+    }
+
+    /**
+     * Creates a response to a {@link DeleteFeatureProperties} command.
+     *
+     * @param thingId the Thing ID of the deleted feature properties.
+     * @param featureId the {@code Feature}'s ID whose Properties were deleted.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static DeleteFeaturePropertiesResponse of(final String thingId, final String featureId,
+            final DittoHeaders dittoHeaders) {
+        return of(ThingId.of(thingId), featureId, dittoHeaders);
     }
 
     /**

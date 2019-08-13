@@ -27,7 +27,6 @@ import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.things.id.ThingId;
 
 /**
  * A mutable builder with a fluent API for an immutable {@link Thing}. This builder is initialised with the properties

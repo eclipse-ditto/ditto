@@ -33,8 +33,8 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Attributes;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.model.things.id.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -73,10 +73,51 @@ public final class RetrieveAttributesResponse extends AbstractCommandResponse<Re
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.Attributes, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static RetrieveAttributesResponse of(final String thingId, final Attributes attributes,
+            final DittoHeaders dittoHeaders) {
+        return of(ThingId.of(thingId), attributes, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@link RetrieveAttributes} command.
+     *
+     * @param thingId the Thing ID of the retrieved attributes.
+     * @param attributes the retrieved Attributes.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static RetrieveAttributesResponse of(final ThingId thingId, final Attributes attributes,
             final DittoHeaders dittoHeaders) {
         return new RetrieveAttributesResponse(thingId, attributes, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@link RetrieveAttributes} command.
+     *
+     * @param thingId the Thing ID of the retrieved attributes.
+     * @param jsonObject the retrieved Attributes.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonObject, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static RetrieveAttributesResponse of(final String thingId, @Nullable final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
+
+        final Attributes attributes = (null != jsonObject)
+                ? ThingsModelFactory.newAttributes(jsonObject)
+                : ThingsModelFactory.nullAttributes();
+
+        return of(ThingId.of(thingId), attributes, dittoHeaders);
     }
 
     /**

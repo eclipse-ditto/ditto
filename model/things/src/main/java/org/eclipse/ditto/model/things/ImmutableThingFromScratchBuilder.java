@@ -24,7 +24,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.things.id.ThingId;
 
 /**
  * A mutable builder for an immutable {@link Thing} from scratch.

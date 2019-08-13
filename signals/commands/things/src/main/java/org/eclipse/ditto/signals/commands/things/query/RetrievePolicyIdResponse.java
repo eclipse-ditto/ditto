@@ -32,7 +32,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -70,6 +70,24 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
     @Override
     public JsonSchemaVersion[] getSupportedSchemaVersions() {
         return new JsonSchemaVersion[]{JsonSchemaVersion.V_2};
+    }
+
+    /**
+     * Creates a response to a {@link RetrievePolicyId} command.
+     *
+     * @param thingId the Thing ID of the retrieved Policy ID.
+     * @param policyId the retrieved Policy ID.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static RetrievePolicyIdResponse of(final String thingId, final String policyId,
+            final DittoHeaders dittoHeaders) {
+        return of(ThingId.of(thingId), policyId, dittoHeaders);
     }
 
     /**

@@ -21,7 +21,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
@@ -55,9 +56,15 @@ public final class RetrievePolicyIdTest {
     }
 
 
+    @Test(expected = ThingIdInvalidException.class)
+    public void tryToCreateInstanceWithNullThingIdString() {
+        RetrievePolicyId.of((String) null, TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
+
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        RetrievePolicyId.of(null, TestConstants.EMPTY_DITTO_HEADERS);
+        RetrievePolicyId.of((ThingId) null, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 

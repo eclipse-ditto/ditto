@@ -16,7 +16,7 @@ import java.time.Duration;
 import java.util.Optional;
 
 import org.bson.Document;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 

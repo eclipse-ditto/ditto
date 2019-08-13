@@ -42,7 +42,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.WithNamespace;
 import org.eclipse.ditto.signals.commands.things.exceptions.MissingThingIdsException;
@@ -137,7 +137,7 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
      * @param thingIds one or more Thing IDs to be retrieved.
      * @return a builder for a Thing retrieving command.
      * @throws NullPointerException if {@code thingIds} is {@code null}.
-     * @deprecated Thing IDs are now typed. Use {@link #getBuilder(org.eclipse.ditto.model.things.id.ThingId...)}
+     * @deprecated Thing IDs are now typed. Use {@link #getBuilder(org.eclipse.ditto.model.things.ThingId...)}
      * instead.
      */
     @Deprecated

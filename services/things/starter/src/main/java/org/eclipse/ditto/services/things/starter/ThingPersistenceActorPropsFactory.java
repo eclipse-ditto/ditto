@@ -19,7 +19,7 @@ import java.util.function.Function;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceActor;
 
 import akka.actor.ActorRef;

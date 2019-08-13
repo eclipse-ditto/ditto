@@ -29,7 +29,6 @@ import org.eclipse.ditto.model.base.entity.Entity;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.id.ThingId;
 
 /**
  * A generic entity which can be used as a "handle" for multiple {@link Feature}s belonging to this Thing. A Thing can
@@ -514,8 +513,8 @@ public interface Thing extends Entity<ThingRevision> {
      *
      * @param headers headers of exceptions to be thrown.
      *
-     * @throws org.eclipse.ditto.model.things.id.ThingIdInvalidException if {@code thingId} is invalid.
-     * @throws org.eclipse.ditto.model.things.id.ThingPolicyIdInvalidException if {@code policyId} is invalid.
+     * @throws ThingIdInvalidException if {@code thingId} is invalid.
+     * @throws ThingPolicyIdInvalidException if {@code policyId} is invalid.
      */
     void validate(DittoHeaders headers);
 

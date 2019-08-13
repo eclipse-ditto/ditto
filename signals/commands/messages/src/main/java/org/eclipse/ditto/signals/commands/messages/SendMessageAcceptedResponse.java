@@ -24,7 +24,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageHeaders;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
 /**
@@ -58,10 +58,44 @@ public final class SendMessageAcceptedResponse
      * @param thingId the ID of the Thing to send the message from.
      * @param dittoHeaders the command headers.
      * @return the new instance.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #newInstance(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.messages.MessageHeaders, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static SendMessageAcceptedResponse newInstance(final String thingId, final MessageHeaders messageHeaders,
+            final DittoHeaders dittoHeaders) {
+        return newInstance(ThingId.of(thingId), messageHeaders, dittoHeaders);
+    }
+
+    /**
+     * Returns a new {@code SendMessageAcceptedResponse} instance.
+     *
+     * @param thingId the ID of the Thing to send the message from.
+     * @param dittoHeaders the command headers.
+     * @return the new instance.
      */
     public static SendMessageAcceptedResponse newInstance(final ThingId thingId, final MessageHeaders messageHeaders,
             final DittoHeaders dittoHeaders) {
         return newInstance(thingId, messageHeaders, HttpStatusCode.ACCEPTED, dittoHeaders);
+    }
+
+    /**
+     * Returns a new {@code SendMessageAcceptedResponse} instance.
+     *
+     * @param thingId the ID of the Thing to send the message from.
+     * @param statusCode the HttpStatusCode to use.
+     * @param dittoHeaders the DittoHeaders.
+     * @return the new instance.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #newInstance(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.messages.MessageHeaders, org.eclipse.ditto.model.base.common.HttpStatusCode, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static SendMessageAcceptedResponse newInstance(final String thingId, final MessageHeaders messageHeaders,
+            final HttpStatusCode statusCode, final DittoHeaders dittoHeaders) {
+
+        return newInstance(ThingId.of(thingId), messageHeaders, statusCode, dittoHeaders);
     }
 
     /**

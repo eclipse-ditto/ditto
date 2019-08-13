@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.things.id;
+package org.eclipse.ditto.model.policies;
 
 import java.net.URI;
 import java.text.MessageFormat;
@@ -26,39 +26,41 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.ThingException;
 
 /**
- * Thrown if the ID set as policyId of the {@link org.eclipse.ditto.model.things.Thing} is not valid
- * (for example if it does not comply to the Entity ID REGEX).
+ * Thrown if the Policy's ID is not valid (for example if it does not comply to the Policy ID REGEX).
  */
 @Immutable
-@JsonParsableException(errorCode = ThingPolicyIdInvalidException.ERROR_CODE)
-public final class ThingPolicyIdInvalidException extends DittoRuntimeException implements ThingException {
+@JsonParsableException(errorCode = PolicyIdInvalidException.ERROR_CODE)
+public final class PolicyIdInvalidException extends DittoRuntimeException implements PolicyException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "policy.id.invalid";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "id.invalid";
 
     private static final String MESSAGE_TEMPLATE = "Policy ID ''{0}'' is not valid!";
 
     private static final String DEFAULT_DESCRIPTION =
-            "It must contain a namespace prefix (java package notation + a colon ':') + ID and must be a valid URI " +
-                    "path segment according to RFC-3986";
+            "It must contain a namespace prefix (java package notation + a colon ':') + a name and must be a valid " +
+                    "URI path segment according to RFC-3986";
+    private static final String INVALID_NAMESPACE_DESCRIPTION = "The namespace prefix must conform the syntax of " +
+            "the java package notation and must end with a colon (':').";
+    private static final String INVALID_NAME_DESCRIPTION = "The name of the policy was not valid. It must be a valid " +
+            "URI path segment according to RFC-3986";
 
-    private static final long serialVersionUID = 8494286958733203132L;
+    private static final long serialVersionUID = 8154256308793903738L;
 
     /**
-     * Constructs a new {@code ThingPolicyIdInvalidException} object.
+     * Constructs a new {@code PolicyIdInvalidException} object.
      *
      * @param policyId the invalid Policy ID.
      */
-    public ThingPolicyIdInvalidException(@Nullable final String policyId) {
+    public PolicyIdInvalidException(@Nullable final String policyId) {
         this(DittoHeaders.empty(), MessageFormat.format(MESSAGE_TEMPLATE, policyId), DEFAULT_DESCRIPTION, null, null);
     }
 
-    private ThingPolicyIdInvalidException(final DittoHeaders dittoHeaders,
+    private PolicyIdInvalidException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
@@ -67,7 +69,7 @@ public final class ThingPolicyIdInvalidException extends DittoRuntimeException i
     }
 
     /**
-     * A mutable builder for a {@code ThingPolicyIdInvalidException}.
+     * A mutable builder for a {@code PolicyIdInvalidException}.
      *
      * @param policyId the ID of the policy.
      * @return the builder.
@@ -76,15 +78,23 @@ public final class ThingPolicyIdInvalidException extends DittoRuntimeException i
         return new Builder(policyId);
     }
 
+    static Builder forInvalidName(final CharSequence policyId) {
+        return new Builder(policyId).description(INVALID_NAME_DESCRIPTION);
+    }
+
+    static Builder forInvalidNamespace(final CharSequence policyId) {
+        return new Builder(policyId).description(INVALID_NAMESPACE_DESCRIPTION);
+    }
+
     /**
-     * Constructs a new {@code ThingPolicyIdInvalidException} object with the given exception message.
+     * Constructs a new {@code PolicyIdInvalidException} object with the given exception message.
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new ThingPolicyIdInvalidException.
+     * @return the new PolicyIdInvalidException.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static ThingPolicyIdInvalidException fromMessage(@Nullable final String message,
+    public static PolicyIdInvalidException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
         return new Builder()
                 .message(message)
@@ -93,16 +103,16 @@ public final class ThingPolicyIdInvalidException extends DittoRuntimeException i
     }
 
     /**
-     * Constructs a new {@code ThingPolicyIdInvalidException} object with the exception message extracted from the
+     * Constructs a new {@code PolicyIdInvalidException} object with the exception message extracted from the
      * given JSON object.
      *
      * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new ThingPolicyIdInvalidException.
+     * @return the new PolicyIdInvalidException.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link JsonFields#MESSAGE} field.
      */
-    public static ThingPolicyIdInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+    public static PolicyIdInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(readMessage(jsonObject))
@@ -117,10 +127,11 @@ public final class ThingPolicyIdInvalidException extends DittoRuntimeException i
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link ThingPolicyIdInvalidException}.
+     * A mutable builder with a fluent API for a {@link PolicyIdInvalidException}.
+     *
      */
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<ThingPolicyIdInvalidException> {
+    public static final class Builder extends DittoRuntimeExceptionBuilder<PolicyIdInvalidException> {
 
         private Builder() {
             description(DEFAULT_DESCRIPTION);
@@ -132,12 +143,17 @@ public final class ThingPolicyIdInvalidException extends DittoRuntimeException i
         }
 
         @Override
-        protected ThingPolicyIdInvalidException doBuild(final DittoHeaders dittoHeaders,
+        public Builder description(@Nullable final String description) {
+            return (Builder) super.description(description);
+        }
+
+        @Override
+        protected PolicyIdInvalidException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-            return new ThingPolicyIdInvalidException(dittoHeaders, message, description, cause, href);
+            return new PolicyIdInvalidException(dittoHeaders, message, description, cause, href);
         }
 
     }

@@ -33,7 +33,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
-import org.eclipse.ditto.model.policies.id.PolicyId;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
@@ -71,6 +71,28 @@ public final class DeleteSubjectResponse extends AbstractCommandResponse<DeleteS
         this.policyId = checkNotNull(policyId, "Policy ID");
         this.label = checkNotNull(label, "Label");
         this.subjectId = checkNotNull(subjectId, "SubjectId");
+    }
+
+    /**
+     * Creates a response to a {@code DeleteSubject} command.
+     *
+     * @param policyId the Policy ID of the deleted subject.
+     * @param label the Label of the PolicyEntry.
+     * @param subjectId the identifier of the deleted Subject.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy Id is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.SubjectId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static DeleteSubjectResponse of(final String policyId,
+            final Label label,
+            final SubjectId subjectId,
+            final DittoHeaders dittoHeaders) {
+
+        return of(PolicyId.of(policyId), label, subjectId, dittoHeaders);
     }
 
     /**

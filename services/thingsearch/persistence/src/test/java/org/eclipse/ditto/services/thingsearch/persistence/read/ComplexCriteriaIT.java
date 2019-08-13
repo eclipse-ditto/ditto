@@ -20,7 +20,7 @@ import java.util.Collection;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.things.Attributes;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
 import org.junit.Before;
 import org.junit.Test;

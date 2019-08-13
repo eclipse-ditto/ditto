@@ -22,6 +22,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.junit.Test;
 
@@ -54,9 +56,15 @@ public final class AclEntryDeletedTest {
                 .verify();
     }
 
+    @Test(expected = ThingIdInvalidException.class)
+    public void tryToCreateInstanceWithNullThingIdString() {
+        AclEntryDeleted.of((String) null, TestConstants.Authorization.AUTH_SUBJECT_GRIMES, TestConstants.Thing.REVISION_NUMBER,
+                TestConstants.EMPTY_DITTO_HEADERS);
+    }
+
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        AclEntryDeleted.of(null, TestConstants.Authorization.AUTH_SUBJECT_GRIMES, TestConstants.Thing.REVISION_NUMBER,
+        AclEntryDeleted.of((ThingId) null, TestConstants.Authorization.AUTH_SUBJECT_GRIMES, TestConstants.Thing.REVISION_NUMBER,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 

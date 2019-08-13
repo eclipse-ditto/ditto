@@ -29,7 +29,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.policies.id.PolicyId;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -53,6 +53,21 @@ public final class ModifyPolicyEntriesResponse extends AbstractCommandResponse<M
 
         super(TYPE, statusCode, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
+    }
+
+    /**
+     * Creates a response to a {@code ModifyPolicyEntries} command.
+     *
+     * @param policyId the Policy ID of the modified policy entries.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy Id is now typed. use {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static ModifyPolicyEntriesResponse of(final String policyId, final DittoHeaders dittoHeaders) {
+        return of(PolicyId.of(policyId), dittoHeaders);
     }
 
     /**

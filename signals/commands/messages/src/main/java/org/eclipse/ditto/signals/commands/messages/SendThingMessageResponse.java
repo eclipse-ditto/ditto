@@ -20,7 +20,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.messages.Message;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
 /**
@@ -49,6 +49,26 @@ public final class SendThingMessageResponse<T> extends AbstractMessageCommandRes
     @Override
     public SendThingMessageResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(getThingEntityId(), getMessage(), getStatusCode(), dittoHeaders);
+    }
+
+    /**
+     * Creates a new instance of {@link SendThingMessageResponse}.
+     *
+     * @param thingId the ID of the Thing to send the message from.
+     * @param message the response message to send from the Thing.
+     * @param responseStatusCode the optional status code of this response.
+     * @param dittoHeaders the DittoHeaders of this message.
+     * @param <T> the type of the message's payload.
+     * @return new instance of {@link SendThingMessageResponse}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.messages.Message, org.eclipse.ditto.model.base.common.HttpStatusCode, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static <T> SendThingMessageResponse<T> of(final String thingId, final Message<T> message,
+            final HttpStatusCode responseStatusCode, final DittoHeaders dittoHeaders) {
+        return of(ThingId.of(thingId), message, responseStatusCode, dittoHeaders);
     }
 
     /**

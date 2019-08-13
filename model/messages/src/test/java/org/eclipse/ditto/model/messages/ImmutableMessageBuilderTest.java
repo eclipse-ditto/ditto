@@ -17,7 +17,7 @@ import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import java.io.UnsupportedEncodingException;
 import java.time.Duration;
 
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.junit.Test;
 
 /**

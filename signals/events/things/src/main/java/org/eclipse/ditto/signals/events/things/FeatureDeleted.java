@@ -29,7 +29,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
@@ -68,10 +68,49 @@ public final class FeatureDeleted extends AbstractThingEvent<FeatureDeleted> imp
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the FeatureDeleted created.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, long, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static FeatureDeleted of(final String thingId, final String featureId, final long revision,
+            final DittoHeaders dittoHeaders) {
+        return of(ThingId.of(thingId), featureId, revision, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code FeatureDeleted} object.
+     *
+     * @param thingId the ID of the Thing on which the Feature was deleted.
+     * @param featureId the ID of the {@code Feature} which was deleted.
+     * @param revision the revision of the Thing.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the FeatureDeleted created.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static FeatureDeleted of(final ThingId thingId, final String featureId, final long revision,
             final DittoHeaders dittoHeaders) {
         return of(thingId, featureId, revision, null, dittoHeaders);
+    }
+
+    /**
+     * Constructs a new {@code FeatureDeleted} object.
+     *
+     * @param thingId the ID of the Thing on which the Feature was deleted.
+     * @param featureId the ID of the {@code Feature} which was deleted.
+     * @param revision the revision of the Thing.
+     * @param timestamp the timestamp of this event.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @return the FeatureDeleted created.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Thing ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static FeatureDeleted of(final String thingId, final String featureId, final long revision,
+            @Nullable final Instant timestamp, final DittoHeaders dittoHeaders) {
+        return of(ThingId.of(thingId), featureId, revision, timestamp, dittoHeaders);
     }
 
     /**

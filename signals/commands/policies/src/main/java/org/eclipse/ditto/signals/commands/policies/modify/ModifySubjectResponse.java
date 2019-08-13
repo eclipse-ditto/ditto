@@ -35,7 +35,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
-import org.eclipse.ditto.model.policies.id.PolicyId;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
@@ -89,6 +89,28 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if {@code statusCode} or {@code dittoHeaders} is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #created(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.policies.Subject, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static ModifySubjectResponse created(final String policyId,
+            final Label label,
+            final Subject subjectCreated,
+            final DittoHeaders dittoHeaders) {
+
+        return created(PolicyId.of(policyId), label, subjectCreated, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code ModifySubject} command.
+     *
+     * @param policyId the Policy ID of the created subject.
+     * @param label the Label of the PolicyEntry.
+     * @param subjectCreated (optional) the Subject created.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if {@code statusCode} or {@code dittoHeaders} is {@code null}.
      */
     public static ModifySubjectResponse created(final PolicyId policyId,
             final Label label,
@@ -96,6 +118,25 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
             final DittoHeaders dittoHeaders) {
 
         return new ModifySubjectResponse(policyId, label, subjectCreated, HttpStatusCode.CREATED, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code ModifySubject} command.
+     *
+     * @param policyId the Policy ID of the modified subject.
+     * @param label the Label of the PolicyEntry.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #modified(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static ModifySubjectResponse modified(final String policyId, final Label label,
+            final DittoHeaders dittoHeaders) {
+
+        return modified(PolicyId.of(policyId), label, dittoHeaders);
     }
 
     /**

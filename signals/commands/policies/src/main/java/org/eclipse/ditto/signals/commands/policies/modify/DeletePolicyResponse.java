@@ -29,7 +29,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.policies.id.PolicyId;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
@@ -65,6 +65,22 @@ public final class DeletePolicyResponse extends AbstractCommandResponse<DeletePo
      */
     public static DeletePolicyResponse of(final PolicyId policyId, final DittoHeaders dittoHeaders) {
         return new DeletePolicyResponse(policyId, HttpStatusCode.NO_CONTENT, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code DeletePolicy} command.
+     *
+     * @param policyId the Policy ID of the deleted Policy.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Policy ID is now typed. Use
+     * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * instead.
+     */
+    @Deprecated
+    public static DeletePolicyResponse of(final String policyId, final DittoHeaders dittoHeaders) {
+        return new DeletePolicyResponse(PolicyId.of(policyId), HttpStatusCode.NO_CONTENT, dittoHeaders);
     }
 
     /**

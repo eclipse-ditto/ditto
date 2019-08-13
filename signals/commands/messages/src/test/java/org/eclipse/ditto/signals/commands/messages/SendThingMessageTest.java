@@ -32,7 +32,7 @@ import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.messages.MessagesModelFactory;
 import org.eclipse.ditto.model.messages.ThingIdInvalidException;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -109,9 +109,14 @@ public final class SendThingMessageTest {
                 .verify();
     }
 
+    @Test(expected = org.eclipse.ditto.model.things.ThingIdInvalidException.class)
+    public void tryCreateWithNullThingIdString() {
+        SendThingMessage.of((String) null, MESSAGE, DITTO_HEADERS);
+    }
+
     @Test(expected = NullPointerException.class)
     public void tryCreateWithNullThingId() {
-        SendThingMessage.of(null, MESSAGE, DITTO_HEADERS);
+        SendThingMessage.of((ThingId) null, MESSAGE, DITTO_HEADERS);
     }
 
     @Test(expected = NullPointerException.class)

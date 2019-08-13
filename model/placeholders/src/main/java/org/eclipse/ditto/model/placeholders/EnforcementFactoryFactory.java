@@ -13,7 +13,6 @@
 package org.eclipse.ditto.model.placeholders;
 
 import org.eclipse.ditto.model.connectivity.Enforcement;
-import org.eclipse.ditto.model.things.id.ThingId;
 
 /**
  * Factory class that creates instances of {@link EnforcementFilterFactory}s.

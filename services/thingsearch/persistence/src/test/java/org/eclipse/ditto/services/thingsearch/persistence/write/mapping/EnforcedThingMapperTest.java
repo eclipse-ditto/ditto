@@ -21,7 +21,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
-import org.eclipse.ditto.model.policies.id.PolicyId;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.junit.Test;

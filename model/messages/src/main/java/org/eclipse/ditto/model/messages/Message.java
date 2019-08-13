@@ -19,7 +19,7 @@ import java.util.Optional;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
-import org.eclipse.ditto.model.things.id.ThingId;
+import org.eclipse.ditto.model.things.ThingId;
 
 /**
  * Represents a {@code Message} <em>FROM</em> or <em>TO</em> a {@code Thing} or a {@code Feature}.
