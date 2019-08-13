@@ -1262,34 +1262,33 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             ++currentTries;
         }
 
-        /* Recovery strategy based on the duration D between timeouts.
+        /*
+         * Some form of recovery (reduction of backoff, timeout and retry counter) is necessary so that
+         * connections that experience short downtime once every couple days do not fail permanently
+         * after some time.
          *
-         * 1. If D is smaller than 2x the expected duration, do not recover.
-         * 2. If D is larger than 2x the expected duration, recover 1s from backoff and timeout every 2s
-         * 3. If D is larger than 3x the expected duration, negate increment of retry counter.
-         * 4. If D is larger than 4x the expected duration, reduce retry counter by 1 after increment.
+         * Simply resetting the timeout strategy on connection success is not sufficient,
+         * because AMQP 1.0 connections can enter CONNECTED state and then fail immediately
+         * if source or target addresses are misconfigured--the broker would reject requests
+         * to create message consumers and publishers. If this strategy is reset on entering
+         * CONNECTED, then those misconfigured connections do not experience exponential
+         * backoff; reconnection would happen every minimum backoff duration forever.
+         *
+         * This recovery strategy is based on the duration D between timeouts, which are
+         * also caused by errors. If D is larger than a threshold, then the connection is considered
+         * stable and the timeout strategy is reset. Otherwise the connection is considered unstable
+         * and retry counter will count up until we give up for good.
+         *
+         * The recovery threshold is chosen to be 2*(maxTimeout + maxBackoff) so that after this much
+         * time, the connection has stayed open without errors for at least (maxTimeout + maxBackoff).
          */
         private void performRecovery(final Instant now) {
             // no point to perform linear recovery if this is the first timeout increase
             if (lastTimeoutIncrease != null) {
-                final Duration expectedDurationBetweenTimeouts = currentTimeout.plus(nextBackoff);
-                final Duration maxRelevantDuration = expectedDurationBetweenTimeouts.multipliedBy(8L);
-                final Duration durationBetweenTimeouts =
-                        minDuration(maxRelevantDuration, Duration.between(lastTimeoutIncrease, now));
-                // recover 1s backoff every 2s after twice the expected duration
-                final Duration recovery =
-                        durationBetweenTimeouts.dividedBy(2L).minus(expectedDurationBetweenTimeouts);
-                // perform recovery at all if recovery is positive
-                if (isLonger(recovery, Duration.ZERO)) {
-                    if (isLonger(durationBetweenTimeouts.dividedBy(4L), expectedDurationBetweenTimeouts)) {
-                        // safe for 4x the expected duration
-                        currentTries = Math.max(0, currentTries - 2);
-                    } else if (isLonger(durationBetweenTimeouts.dividedBy(3L), expectedDurationBetweenTimeouts)) {
-                        // safe for 3x the expected duration
-                        currentTries = Math.max(0, currentTries - 1);
-                    }
-                    currentTimeout = maxDuration(minTimeout, currentTimeout.minus(recovery));
-                    nextBackoff = maxDuration(minBackoff, nextBackoff.minus(recovery));
+                final Duration durationSinceLastTimeout = Duration.between(lastTimeoutIncrease, now);
+                final Duration resetThreshold = maxTimeout.plus(maxBackoff).multipliedBy(2L);
+                if (isLonger(durationSinceLastTimeout, resetThreshold)) {
+                    reset();
                 }
             }
             lastTimeoutIncrease = now;
