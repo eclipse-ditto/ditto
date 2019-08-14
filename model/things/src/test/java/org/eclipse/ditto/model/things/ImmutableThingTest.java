@@ -957,7 +957,7 @@ public final class ImmutableThingTest {
         final List<String> invalidThingIds =
                 Arrays.asList("", "foobar2000", "foo-bar:foobar2000", "foo.bar%bum:foobar2000",
                         ".namespace:foobar2000", "namespace.:foobar2000", "namespace..invalid:foobar2000",
-                        "namespace.42:foobar2000", ":foobar2000");
+                        "namespace.42:foobar2000");
 
         invalidThingIds.forEach(invalidId -> assertThatExceptionOfType(ThingIdInvalidException.class).isThrownBy(
                 () -> ThingId.of(invalidId)));

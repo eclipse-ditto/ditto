@@ -22,7 +22,7 @@
 
      private static final String NAMESPACE_GROUP_NAME = "ns";
      private static final String NAMESPACE_REGEX =
-             "(?<" + NAMESPACE_GROUP_NAME + ">(?:(?:[a-zA-Z]\\w*+)(?:\\.[a-zA-Z]\\w*+)*+))";
+             "(?<" + NAMESPACE_GROUP_NAME + ">(?:|(?:[a-zA-Z]\\w*+)(?:\\.[a-zA-Z]\\w*+)*+))";
 
      private static final String ENTITY_NAME_GROUP_NAME = "name";
      /**

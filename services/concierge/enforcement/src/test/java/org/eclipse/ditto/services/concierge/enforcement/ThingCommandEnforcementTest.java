@@ -559,8 +559,7 @@ public final class ThingCommandEnforcementTest {
 
     @Test
     public void rejectCreateThingByInvalidPolicyId() {
-        final String badId = ":::::::";
-        final Thing thingInPayload = newThing().setId(THING_ID).setPolicyId(badId).build();
+        final Thing thingInPayload = newThing().setId(THING_ID).setPolicyId("badId").build();
 
         new TestKit(system) {{
             final ActorRef underTest = TestSetup.newEnforcerActor(system, getRef(), getRef());
