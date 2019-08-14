@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.gateway.security.authentication.jwt;
 
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.concurrent.Immutable;
@@ -80,11 +81,18 @@ public interface JsonWebToken {
     List<String> getSubjects();
 
     /**
-     * Returns the audience of a JWT.
+     * Returns the audience of the token.
      *
      * @return the audience.
      */
     Audience getAudience();
+
+    /**
+     * Returns the scopes of the token.
+     *
+     * @return the scopes.
+     */
+    Set<String> getScopes();
 
     /**
      * Checks if this JSON web token is valid in terms of not expired, well formed and correctly signed.
@@ -124,6 +132,12 @@ public interface JsonWebToken {
          */
         public static final JsonFieldDefinition<JsonValue> AUDIENCE =
                 JsonFactory.newJsonValueFieldDefinition("aud", FieldType.REGULAR);
+
+        /**
+         * JSON field containing the scope.
+         */
+        public static final JsonFieldDefinition<String> SCOPE =
+                JsonFactory.newStringFieldDefinition("scope", FieldType.REGULAR);
 
         private JsonFields() {
             throw new AssertionError();
