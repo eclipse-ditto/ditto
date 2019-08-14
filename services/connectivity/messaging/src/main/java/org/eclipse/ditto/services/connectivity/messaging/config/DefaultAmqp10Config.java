@@ -32,12 +32,12 @@ public final class DefaultAmqp10Config implements Amqp10Config {
 
     private final Duration consumerThrottlingInterval;
     private final int consumerThrottlingLimit;
-    private final int replyToCacheSize;
+    private final int producerCacheSize;
 
     private DefaultAmqp10Config(final ScopedConfig config) {
         consumerThrottlingInterval = config.getDuration(Amqp10ConfigValue.CONSUMER_THROTTLING_INTERVAL.getConfigPath());
         consumerThrottlingLimit = config.getInt(Amqp10ConfigValue.CONSUMER_THROTTLING_LIMIT.getConfigPath());
-        replyToCacheSize = config.getInt(Amqp10ConfigValue.REPLY_TO_CACHE_SIZE.getConfigPath());
+        producerCacheSize = config.getInt(Amqp10ConfigValue.PRODUCER_CACHE_SIZE.getConfigPath());
     }
 
     /**
@@ -62,8 +62,8 @@ public final class DefaultAmqp10Config implements Amqp10Config {
     }
 
     @Override
-    public int getReplyToCacheSize() {
-        return replyToCacheSize;
+    public int getProducerCacheSize() {
+        return producerCacheSize;
     }
 
     @Override
@@ -76,13 +76,13 @@ public final class DefaultAmqp10Config implements Amqp10Config {
         }
         final DefaultAmqp10Config that = (DefaultAmqp10Config) o;
         return consumerThrottlingLimit == that.consumerThrottlingLimit &&
-                replyToCacheSize == that.replyToCacheSize &&
+                producerCacheSize == that.producerCacheSize &&
                 Objects.equals(consumerThrottlingInterval, that.consumerThrottlingInterval);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(consumerThrottlingInterval, consumerThrottlingLimit, replyToCacheSize);
+        return Objects.hash(consumerThrottlingInterval, consumerThrottlingLimit, producerCacheSize);
     }
 
     @Override
@@ -90,7 +90,7 @@ public final class DefaultAmqp10Config implements Amqp10Config {
         return getClass().getSimpleName() + " [" +
                 "consumerThrottlingInterval=" + consumerThrottlingInterval +
                 ", consumerThrottlingLimit=" + consumerThrottlingLimit +
-                ", replyToCacheSize=" + replyToCacheSize +
+                ", producerCacheSize=" + producerCacheSize +
                 "]";
     }
 }

@@ -40,6 +40,7 @@ import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.message.facade.JmsMessageFacade;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsMessageFacade;
 import org.apache.qpid.proton.amqp.Symbol;
+import org.eclipse.ditto.model.base.common.Placeholders;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -51,6 +52,7 @@ import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
+import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
@@ -89,20 +91,25 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final Session session;
-    private final LinkedHashMap<Destination, MessageProducer> replyToMap;
-    private final Map<Destination, MessageProducer> targetMap;
-    private final int replyToCacheSize;
+    private final LinkedHashMap<Destination, MessageProducer> dynamicTargets;
+    private final Map<Destination, MessageProducer> staticTargets;
+    private final int producerCacheSize;
 
     @SuppressWarnings("unused")
     private AmqpPublisherActor(final String connectionId, final List<Target> targets, final Session session,
             final ConnectionConfig connectionConfig) {
         super(connectionId, targets);
+        ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
         this.session = checkNotNull(session, "session");
-        this.targetMap = new HashMap<>();
-        this.replyToMap = new LinkedHashMap<>(); // insertion order important for maintenance of reply-to cache
-        replyToCacheSize = checkArgument(connectionConfig.getAmqp10Config().getReplyToCacheSize(), i -> i > 0,
-                () -> "reply-to-cache-size must be 1 or more");
-        createAllTargetProducers(targets);
+        this.staticTargets = new HashMap<>();
+        this.dynamicTargets = new LinkedHashMap<>(); // insertion order important for maintenance of producer cache
+        producerCacheSize = checkArgument(connectionConfig.getAmqp10Config().getProducerCacheSize(), i -> i > 0,
+                () -> "producer-cache-size must be 1 or more");
+
+        // we open producers for static addresses (no placeholders) on startup and try to reopen them when closed.
+        // producers for other addresses (with placeholders, reply-to) are opened on demand and may be closed to
+        // respect the cache size limit
+        createStaticTargetProducers(targets);
     }
 
     /**
@@ -122,14 +129,14 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
-        receiveBuilder.match(ProducerClosedStatusReport.class, this::handleConnectionStatusReport);
+        receiveBuilder.match(ProducerClosedStatusReport.class, this::handleProducerClosedStatusReport);
     }
 
-    private void handleConnectionStatusReport(final ProducerClosedStatusReport report) {
+    private void handleProducerClosedStatusReport(final ProducerClosedStatusReport report) {
         final MessageProducer producer = report.getMessageProducer();
         log.info("Got closed JMS producer '{}'", producer);
-        findByValue(replyToMap, producer).map(Map.Entry::getKey).forEach(replyToMap::remove);
-        findByValue(targetMap, producer).map(Map.Entry::getKey).forEach(this::createTargetProducer);
+        findByValue(dynamicTargets, producer).map(Map.Entry::getKey).forEach(dynamicTargets::remove);
+        findByValue(staticTargets, producer).map(Map.Entry::getKey).forEach(this::createTargetProducer);
     }
 
     @Override
@@ -223,7 +230,6 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
             message = session.createMessage();
         }
         // replace default destination of session by message's actual destination
-        message.setJMSDestination(amqpTarget.getJmsDestination());
 
         // some headers must be handled differently to be passed to amqp message
         final Map<String, String> headers = externalMessage.getHeaders();
@@ -256,10 +262,10 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     @Nullable
     private MessageProducer getProducer(final Destination destination) {
         final MessageProducer messageProducer;
-        if (targetMap.containsKey(destination)) {
-            messageProducer = targetMap.get(destination);
+        if (staticTargets.containsKey(destination)) {
+            messageProducer = staticTargets.get(destination);
         } else {
-            messageProducer = replyToMap.computeIfAbsent(destination, this::createReplyToProducer);
+            messageProducer = dynamicTargets.computeIfAbsent(destination, this::createProducer);
             maintainReplyToMap();
         }
         return messageProducer;
@@ -267,15 +273,15 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
     private void maintainReplyToMap() {
         // cache maintenance strategy = discard eldest
-        while (replyToMap.size() > replyToCacheSize) {
-            final Map.Entry<Destination, MessageProducer> cachedProducer = replyToMap.entrySet().iterator().next();
+        while (dynamicTargets.size() > producerCacheSize) {
+            final Map.Entry<Destination, MessageProducer> cachedProducer = dynamicTargets.entrySet().iterator().next();
             closeCachedProducer(cachedProducer);
-            replyToMap.remove(cachedProducer.getKey());
+            dynamicTargets.remove(cachedProducer.getKey());
         }
     }
 
     @Nullable
-    private MessageProducer createReplyToProducer(final Destination destination) {
+    private MessageProducer createProducer(final Destination destination) {
         log.debug("Creating AMQP Producer for '{}'", destination);
         try {
             return session.createProducer(destination);
@@ -301,8 +307,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     @Override
     public void postStop() throws Exception {
         super.postStop();
-        replyToMap.entrySet().forEach(this::closeCachedProducer);
-        targetMap.entrySet().forEach(this::closeCachedProducer);
+        dynamicTargets.entrySet().forEach(this::closeCachedProducer);
+        staticTargets.entrySet().forEach(this::closeCachedProducer);
     }
 
     @Override
@@ -313,7 +319,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     // create a target producer. the previous incarnation, if any, must be closed.
     private void createTargetProducer(final Destination destination) {
         try {
-            targetMap.put(destination, session.createProducer(destination));
+            staticTargets.put(destination, session.createProducer(destination));
             log.info("Target producer <{}> created", destination);
         } catch (final JMSException jmsException) {
             // target producer not creatable; stop self and request restart by parent
@@ -325,10 +331,13 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         }
     }
 
-    private void createAllTargetProducers(final List<Target> targets) {
+    private void createStaticTargetProducers(final List<Target> targets) {
         // using loop so that already created targets are closed on exception
         for (final Target target : targets) {
-            createTargetProducer(toPublishTarget(target.getAddress()).getJmsDestination());
+            // only targets with static addresses should stay open
+            if (!Placeholders.containsAnyPlaceholder(target.getAddress())) {
+                createTargetProducer(toPublishTarget(target.getAddress()).getJmsDestination());
+            }
         }
     }
 
@@ -343,7 +352,6 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
     private static Stream<Map.Entry<Destination, MessageProducer>> findByValue(
             final Map<Destination, MessageProducer> producerMap, final MessageProducer value) {
-
         return producerMap.entrySet().stream().filter(entry -> Objects.equals(entry.getValue(), value));
     }
 }

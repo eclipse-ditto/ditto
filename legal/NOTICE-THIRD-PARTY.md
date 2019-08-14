@@ -32,9 +32,9 @@
  * Source: https://github.com/ralfstx/minimal-json
 
 
-## Caffeine cache (2.7.0)
+## Caffeine cache (2.8.0)
 
- * Maven coordinates: `com.github.ben-manes.caffeine:caffeine:2.7.0`
+ * Maven coordinates: `com.github.ben-manes.caffeine:caffeine:2.8.0`
  * License: [Apache-2.0](licenses/Apache-2.0.txt)
  * Project: https://github.com/ben-manes/caffeine
  * Source: https://github.com/ben-manes/caffeine
