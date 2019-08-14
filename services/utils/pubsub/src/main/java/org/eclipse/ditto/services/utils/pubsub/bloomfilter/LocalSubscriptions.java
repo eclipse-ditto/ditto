@@ -24,7 +24,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import akka.actor.ActorRef;
@@ -43,7 +42,7 @@ import akka.util.ByteString;
  * Caution: this object is not thread-safe. Make a copy before sending it to another actor.
  */
 @NotThreadSafe
-public final class LocalSubscriptions implements Hashes {
+public final class LocalSubscriptions implements Hashes, LocalSubscriptionsReader {
 
     /**
      * Seeds of hash functions. They should be identical cluster-wide.
@@ -84,11 +83,15 @@ public final class LocalSubscriptions implements Hashes {
     }
 
     /**
-     * Look up the set of subscribers subscribing to at least one of the given topics.
+     * Construct an immutable local-subscriptions object that always responds with the empty set when queried.
      *
-     * @param topics the topics.
-     * @return the set of subscribers.
+     * @return an empty local-subscriptions object.
      */
+    public static LocalSubscriptionsReader empty() {
+        return new LocalSubscriptions(Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap());
+    }
+
+    @Override
     public Set<ActorRef> getSubscribers(final Collection<String> topics) {
         return topics.stream()
                 .map(topicToData::get)
@@ -102,22 +105,37 @@ public final class LocalSubscriptions implements Hashes {
      *
      * @param subscriber the subscriber.
      * @param topics topics the subscriber subscribes to.
-     * @return this object.
+     * @return whether subscriptions changed.
      */
-    public LocalSubscriptions subscribe(final ActorRef subscriber, final Set<String> topics) {
+    public boolean subscribe(final ActorRef subscriber, final Set<String> topics) {
         if (!topics.isEmpty()) {
             // add topics to subscriber
             subscriberToTopic.merge(subscriber, topics, LocalSubscriptions::unionSet);
 
-            // add subscriber for each new topic
-            topics.forEach(topic ->
-                    topicToData.compute(topic, (k, previousData) ->
-                            previousData == null
-                                    ? TopicData.firstSubscriber(subscriber, getHashes(topic))
-                                    : previousData.addSubscriber(subscriber)
-                    )
-            );
+            // add subscriber for each new topic; detect whether there is any change.
+            // box the 'changed' flag in an array so that it can be assigned inside a closure.
+            final boolean[] changed = new boolean[1];
+            for (final String topic : topics) {
+                topicToData.compute(topic, (k, previousData) -> {
+                    if (previousData == null) {
+                        changed[0] = true;
+                        return TopicData.firstSubscriber(subscriber, getHashes(topic));
+                    } else {
+                        // no short-circuit evaluation for OR: subscriber should always be added.
+                        changed[0] |= previousData.addSubscriber(subscriber);
+                        return previousData;
+                    }
+                });
+            }
+            return changed[0];
+        } else {
+            return false;
         }
+    }
+
+    // convenience method to chain subscriptions.
+    LocalSubscriptions thenSubscribe(final ActorRef subscriber, final Set<String> topics) {
+        subscribe(subscriber, topics);
         return this;
     }
 
@@ -126,9 +144,11 @@ public final class LocalSubscriptions implements Hashes {
      *
      * @param subscriber the subscriber.
      * @param topics topics it unsubscribes from.
-     * @return this object.
+     * @return whether this object changed.
      */
-    public LocalSubscriptions unsubscribe(final ActorRef subscriber, final Set<String> topics) {
+    public boolean unsubscribe(final ActorRef subscriber, final Set<String> topics) {
+        // box 'changed' flag for assignment inside closure
+        final boolean[] changed = new boolean[1];
         subscriberToTopic.computeIfPresent(subscriber, (k, previousTopics) -> {
             final List<String> removed = new ArrayList<>();
             final Set<String> remaining = new HashSet<>();
@@ -139,9 +159,25 @@ public final class LocalSubscriptions implements Hashes {
                     remaining.add(topic);
                 }
             }
+            changed[0] = !removed.isEmpty();
             removeSubscribersForTopics(subscriber, removed);
             return remaining.isEmpty() ? null : remaining;
         });
+        return changed[0];
+    }
+
+    /**
+     * Check if an actor subscribes to any topic.
+     *
+     * @param subscriber the actor.
+     * @return whether it subscribes to any topic.
+     */
+    public boolean contains(final ActorRef subscriber) {
+        return subscriberToTopic.containsKey(subscriber);
+    }
+
+    LocalSubscriptions thenUnsubscribe(final ActorRef subscriber, final Set<String> topics) {
+        unsubscribe(subscriber, topics);
         return this;
     }
 
@@ -149,12 +185,20 @@ public final class LocalSubscriptions implements Hashes {
      * Remove a subscriber and all its subscriptions.
      *
      * @param subscriber the subscriber to remove.
+     * @return whether this object changed.
      */
-    public LocalSubscriptions removeSubscriber(final ActorRef subscriber) {
+    public boolean removeSubscriber(final ActorRef subscriber) {
+        // box 'changed' flag in array for assignment inside closure
+        final boolean[] changed = new boolean[1];
         subscriberToTopic.computeIfPresent(subscriber, (k, topics) -> {
-            removeSubscribersForTopics(subscriber, topics);
+            changed[0] = removeSubscribersForTopics(subscriber, topics);
             return null;
         });
+        return changed[0];
+    }
+
+    LocalSubscriptions thenRemoveSubscriber(final ActorRef subscriber) {
+        removeSubscriber(subscriber);
         return this;
     }
 
@@ -216,7 +260,7 @@ public final class LocalSubscriptions implements Hashes {
      *
      * @return a snapshot of this object.
      */
-    public LocalSubscriptions snapshot() {
+    public LocalSubscriptionsReader snapshot() {
         // while Scala's immutable collections are great for this use-case, I kept getting MethodNotFoundException
         // about $plus and $plus$plus. Copying everything instead.
         return new LocalSubscriptions(
@@ -230,8 +274,16 @@ public final class LocalSubscriptions implements Hashes {
                         .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().snapshot()))));
     }
 
-    private void removeSubscribersForTopics(final ActorRef subscriber, final Collection<String> topics) {
-        topics.forEach(topic -> topicToData.computeIfPresent(topic, (k, data) -> data.removeSubscriber(subscriber)));
+    private boolean removeSubscribersForTopics(final ActorRef subscriber, final Collection<String> topics) {
+        // box 'changed' flag for assignment inside closure
+        final boolean[] changed = new boolean[1];
+        for (final String topic : topics) {
+            topicToData.computeIfPresent(topic, (k, data) -> {
+                changed[0] |= data.removeSubscriber(subscriber);
+                return data.isEmpty() ? null : data;
+            });
+        }
+        return changed[0];
     }
 
     private static Set<String> unionSet(final Set<String> s1, final Set<String> s2) {
@@ -268,15 +320,16 @@ public final class LocalSubscriptions implements Hashes {
             this.hashes = hashes;
         }
 
-        private TopicData addSubscriber(final ActorRef newSubscriber) {
-            subscribers.add(newSubscriber);
-            return this;
+        private boolean addSubscriber(final ActorRef newSubscriber) {
+            return subscribers.add(newSubscriber);
         }
 
-        @Nullable
-        private TopicData removeSubscriber(final ActorRef subscriber) {
-            subscribers.remove(subscriber);
-            return subscribers.size() >= 1 ? this : null;
+        private boolean removeSubscriber(final ActorRef subscriber) {
+            return subscribers.remove(subscriber);
+        }
+
+        private boolean isEmpty() {
+            return subscribers.isEmpty();
         }
 
         private Stream<Integer> streamHashes() {

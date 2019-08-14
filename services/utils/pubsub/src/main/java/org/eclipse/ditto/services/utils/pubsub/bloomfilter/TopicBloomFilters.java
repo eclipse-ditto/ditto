@@ -21,6 +21,8 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.services.utils.ddata.DistributedData;
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfigReader;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
@@ -36,10 +38,13 @@ import akka.util.ByteString;
  * A distributed collection of Bloom filters of strings indexed by ActorRef.
  * The hash functions for all filter should be identical.
  */
-public final class TopicBloomFilters extends DistributedData<LWWMap<ActorRef, ByteString>> {
+public final class TopicBloomFilters extends DistributedData<LWWMap<ActorRef, ByteString>>
+        implements TopicBloomFiltersReader, TopicBloomFiltersWriter {
 
     private final String topicType;
     private final SelfUniqueAddress selfUniqueAddress;
+
+    private final Gauge topicBloomFiltersMetric = DittoMetrics.gauge("pubsub-ddata-entries");
 
     private TopicBloomFilters(final DistributedDataConfigReader configReader,
             final ActorContext actorContext,
@@ -50,17 +55,14 @@ public final class TopicBloomFilters extends DistributedData<LWWMap<ActorRef, By
         this.selfUniqueAddress = SelfUniqueAddress.apply(Cluster.get(actorContext.system()).selfUniqueAddress());
     }
 
-    /**
-     * Get subscribers from a list of topic hashes.
-     *
-     * @param topicHashes the hash codes of each topic.
-     * @return future collection of subscribers whose Bloom filter contains all hashes of 1 or more topics.
-     */
+    @Override
     public CompletionStage<Collection<ActorRef>> getSubscribers(
             final Collection<? extends Collection<Integer>> topicHashes) {
+
         return get(Replicator.readLocal()).thenApply(optional -> {
             if (optional.isPresent()) {
                 final LWWMap<ActorRef, ByteString> indexedBloomFilters = optional.get();
+                topicBloomFiltersMetric.set((long) indexedBloomFilters.size());
                 final Map<ActorRef, ByteString> map = indexedBloomFilters.getEntries();
                 return map.entrySet()
                         .stream()
@@ -69,23 +71,23 @@ public final class TopicBloomFilters extends DistributedData<LWWMap<ActorRef, By
                         .map(Map.Entry::getKey)
                         .collect(Collectors.toList());
             } else {
+                topicBloomFiltersMetric.set(0L);
                 return Collections.emptyList();
             }
         });
     }
 
-    /**
-     * Update the topics this cluster member subscribes to.
-     *
-     * @param ownSubscriber actor that manages local subscriptions for this cluster member.
-     * @param ownBloomFilter Bloom filter of local subscriptions.
-     * @param writeConsistency write consistency for the operation.
-     * @return future that completes after update is complete with the number of subscribers.
-     */
+    @Override
     public CompletionStage<Void> updateOwnTopics(final ActorRef ownSubscriber, final ByteString ownBloomFilter,
             final Replicator.WriteConsistency writeConsistency) {
 
         return update(writeConsistency, lwwMap -> lwwMap.put(selfUniqueAddress, ownSubscriber, ownBloomFilter));
+    }
+
+    @Override
+    public CompletionStage<Void> removeSubscriber(final ActorRef subscriber,
+            final Replicator.WriteConsistency writeConsistency) {
+        return update(writeConsistency, lwwMap -> lwwMap.remove(selfUniqueAddress, subscriber));
     }
 
     @Override
