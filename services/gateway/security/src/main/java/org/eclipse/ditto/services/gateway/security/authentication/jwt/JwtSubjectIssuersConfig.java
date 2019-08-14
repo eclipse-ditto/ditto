@@ -61,6 +61,19 @@ public final class JwtSubjectIssuersConfig {
     }
 
     /**
+     * Gets the configuration item for the given subject issuer.
+     *
+     * @param subjectIssuer the subject issuer
+     * @return the configuration for the given subject issuer, or an empty {@link Optional} if no configuration is
+     * provided for this subject issuer
+     */
+    public Optional<JwtSubjectIssuerConfig> getConfigItem(final SubjectIssuer subjectIssuer) {
+        return subjectIssuerConfigMap.values().stream()
+                .filter(jwtSubjectIssuerConfig -> jwtSubjectIssuerConfig.getSubjectIssuer().equals(subjectIssuer))
+                .findFirst();
+    }
+
+    /**
      * Gets a collection of all configuration items.
      *
      * @return the configuration items
