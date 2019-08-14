@@ -764,7 +764,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                 final Throwable error = new IllegalStateException("Forcibly detached");
                 final Status.Failure failure = new Status.Failure(new AskTimeoutException("Consumer creation timeout"));
                 amqpClientActor.connectionListener.onConsumerClosed(mockConsumer, error);
-                verify(mockSession).createConsumer(any());
+                verify(mockSession, atLeastOnce()).createConsumer(any());
                 amqpConsumerActor.tell(failure, amqpConsumerActor);
 
                 // THEN: connection gets restarted
