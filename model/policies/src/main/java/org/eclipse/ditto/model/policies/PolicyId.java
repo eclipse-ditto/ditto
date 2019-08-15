@@ -36,6 +36,15 @@
      }
 
      public static PolicyId of(final CharSequence policyId) {
+
+         if (policyId instanceof PolicyId) {
+             return (PolicyId) policyId;
+         }
+
+         if (policyId instanceof DefaultNamespacedEntityId) {
+             return new PolicyId((NamespacedEntityId) policyId);
+         }
+
          try {
              return new PolicyId(DefaultNamespacedEntityId.of(policyId));
          } catch (final EntityNameInvalidException e) {
@@ -60,15 +69,20 @@
      }
 
      public static PolicyId of(final NamespacedEntityId namespacedEntityId) {
+
+         if (namespacedEntityId instanceof PolicyId) {
+             return (PolicyId) namespacedEntityId;
+         }
+
+         if (namespacedEntityId instanceof DefaultNamespacedEntityId) {
+             return new PolicyId(namespacedEntityId);
+         }
+
          return of(namespacedEntityId.getNamespace(), namespacedEntityId.getName());
      }
 
      public static PolicyId inNamespaceWithRandomName(final String namespace) {
          return of(namespace, UUID.randomUUID().toString());
-     }
-
-     public static PolicyId asPolicyId(final CharSequence charSequence) {
-         return charSequence instanceof PolicyId ? (PolicyId) charSequence : PolicyId.of(charSequence);
      }
 
      @Override

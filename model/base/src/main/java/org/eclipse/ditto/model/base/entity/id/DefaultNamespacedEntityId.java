@@ -73,6 +73,15 @@
      }
 
      public static NamespacedEntityId of(final CharSequence entityId) {
+         if (entityId instanceof DefaultNamespacedEntityId) {
+             return (NamespacedEntityId) entityId;
+         }
+
+         if (entityId instanceof NamespacedEntityId) {
+             return new DefaultNamespacedEntityId(((NamespacedEntityId) entityId).getNamespace(),
+                     ((NamespacedEntityId) entityId).getName(), false);
+         }
+
          return new DefaultNamespacedEntityId(entityId);
      }
 
@@ -82,13 +91,6 @@
 
      public static NamespacedEntityId of(final String namespace, final String name) {
          return new DefaultNamespacedEntityId(namespace, name, true);
-     }
-
-     public static NamespacedEntityId fromEntityId(final EntityId entityId) {
-         if (entityId instanceof NamespacedEntityId) {
-             return (NamespacedEntityId) entityId;
-         }
-         return DefaultNamespacedEntityId.of(entityId.toString());
      }
 
      @Override

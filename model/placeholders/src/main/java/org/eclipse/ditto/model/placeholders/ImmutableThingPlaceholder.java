@@ -65,7 +65,7 @@ final class ImmutableThingPlaceholder implements ThingPlaceholder {
     public Optional<String> resolve(final CharSequence thingId, final String placeholder) {
         argumentNotEmpty(placeholder, "placeholder");
         checkNotNull(thingId, "Thing ID");
-        return doResolve(ThingId.asThingId(thingId), placeholder);
+        return doResolve(ThingId.of(thingId), placeholder);
     }
 
     private Optional<String> doResolve(final ThingId thingId, final String placeholder) {

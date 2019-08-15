@@ -50,7 +50,7 @@ final class ThingCommandFactory {
 
 
     static SudoRetrieveThing sudoRetrieveThing(final EntityId thingId) {
-        return sudoRetrieveThing(ThingId.asThingId(thingId));
+        return sudoRetrieveThing(ThingId.of(thingId));
     }
 
     /**

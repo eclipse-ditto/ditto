@@ -13,13 +13,13 @@
  package org.eclipse.ditto.model.things;
 
  import java.util.Objects;
-import java.util.UUID;
+ import java.util.UUID;
 
-import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
+ import org.eclipse.ditto.model.base.entity.id.DefaultNamespacedEntityId;
  import org.eclipse.ditto.model.base.entity.id.EntityIdInvalidException;
  import org.eclipse.ditto.model.base.entity.id.EntityNameInvalidException;
-import org.eclipse.ditto.model.base.entity.id.EntityNamespaceInvalidException;
-import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
+ import org.eclipse.ditto.model.base.entity.id.EntityNamespaceInvalidException;
+ import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 
  public final class ThingId implements NamespacedEntityId {
 
@@ -30,6 +30,15 @@ import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
      }
 
      public static ThingId of(final CharSequence thingId) {
+
+         if (thingId instanceof ThingId) {
+             return (ThingId) thingId;
+         }
+
+         if (thingId instanceof DefaultNamespacedEntityId) {
+             return new ThingId((NamespacedEntityId) thingId);
+         }
+
          try {
              return new ThingId(DefaultNamespacedEntityId.of(thingId));
          } catch (final EntityNameInvalidException e) {
@@ -51,10 +60,6 @@ import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 
      public static ThingId generateRandom() {
          return new ThingId(DefaultNamespacedEntityId.fromName(UUID.randomUUID().toString()));
-     }
-
-     public static ThingId asThingId(final CharSequence charSequence) {
-         return charSequence instanceof ThingId ? (ThingId) charSequence : ThingId.of(charSequence);
      }
 
      @Override

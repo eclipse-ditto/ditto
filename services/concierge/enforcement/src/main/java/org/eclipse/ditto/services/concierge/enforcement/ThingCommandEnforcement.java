@@ -202,7 +202,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         } else {
             final EntityId policyId = enforcerKeyEntry.getValueOrThrow().getId();
             return enforceThingCommandByPolicyEnforcer(signal(),
-                    PolicyId.asPolicyId(policyId),
+                    PolicyId.of(policyId),
                     enforcerEntry.getValueOrThrow());
         }
     }

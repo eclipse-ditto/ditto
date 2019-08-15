@@ -35,7 +35,7 @@ final class PolicyCommandFactory {
 
 
     static SudoRetrievePolicy sudoRetrievePolicy(final EntityId policyId) {
-        return sudoRetrievePolicy(PolicyId.asPolicyId(policyId));
+        return sudoRetrievePolicy(PolicyId.of(policyId));
     }
     /**
      * Creates a sudo command for retrieving a policy.
