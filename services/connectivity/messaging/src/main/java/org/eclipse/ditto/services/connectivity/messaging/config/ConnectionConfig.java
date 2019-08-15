@@ -18,12 +18,13 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.base.config.supervision.WithSupervisorConfig;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.WithActivityCheckConfig;
 
 /**
  * Provides configuration settings for Connectivity service's connection behaviour.
  */
 @Immutable
-public interface ConnectionConfig extends WithSupervisorConfig {
+public interface ConnectionConfig extends WithSupervisorConfig, WithActivityCheckConfig {
 
     /**
      * Returns the delay between subscribing to Akka pub/sub and responding to the command that triggered the

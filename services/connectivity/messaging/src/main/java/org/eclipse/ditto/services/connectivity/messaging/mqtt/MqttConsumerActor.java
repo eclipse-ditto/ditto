@@ -36,7 +36,6 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Creator;
 import akka.routing.ConsistentHashingRouter;
 import akka.stream.alpakka.mqtt.MqttMessage;
 

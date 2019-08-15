@@ -18,7 +18,10 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.MappingContext;
@@ -76,6 +79,16 @@ public final class ConnectionCreatedTest {
                 ConnectionCreated.of(TestConstants.CONNECTION, null, DittoHeaders.empty()).toJson();
 
         assertThat(actual).isEqualTo(KNOWN_JSON);
+    }
+
+    @Test
+    public void getResourcePathReturnsExpected() {
+        final JsonPointer expectedResourcePath = JsonFactory.emptyPointer();
+
+        final ConnectionCreated underTest =
+                ConnectionCreated.of(TestConstants.CONNECTION, DittoHeaders.empty());
+
+        DittoJsonAssertions.assertThat(underTest.getResourcePath()).isEqualTo(expectedResourcePath);
     }
 
 }

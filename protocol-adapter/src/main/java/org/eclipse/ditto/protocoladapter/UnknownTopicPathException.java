@@ -15,6 +15,7 @@ package org.eclipse.ditto.protocoladapter;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -37,6 +38,8 @@ public final class UnknownTopicPathException extends DittoRuntimeException {
     public static final String ERROR_CODE = "things.protocol.adapter:unknown.topicpath";
 
     private static final String MESSAGE_TEMPLATE = "The topic path ''{0}'' is not supported.";
+
+    private static final String MESSAGE_TEMPLATE_WITH_PATH = "The topic ''{0}'' is not supported in combination with the path ''{1}''";
 
     private static final String DEFAULT_DESCRIPTION = "Check if the topic path is correct.";
 
@@ -100,6 +103,26 @@ public final class UnknownTopicPathException extends DittoRuntimeException {
                 .message(readMessage(jsonObject))
                 .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
                 .href(readHRef(jsonObject).orElse(null))
+                .build();
+    }
+
+    /**
+     * Constructs a new {@code UnknownTopicPathException} object for unknown combinations of topic path and message path.
+     *
+     * @param topicPath The topic path.
+     * @param path The message path.
+     * @param dittoHeaders the header of the command which resulted in this exception.
+     * @return the new UnknownTopicPathException.
+     */
+    static UnknownTopicPathException fromTopicAndPath(
+            @Nullable final TopicPath topicPath,
+            @Nullable final MessagePath path,
+            @Nonnull final DittoHeaders dittoHeaders) {
+        final String theTopicPath = null != topicPath ? topicPath.getPath() : "";
+        final String message = MessageFormat.format(MESSAGE_TEMPLATE_WITH_PATH, theTopicPath, path);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(message)
                 .build();
     }
 

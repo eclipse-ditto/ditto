@@ -287,7 +287,7 @@ public abstract class AbstractEnforcement<T extends Signal> {
 
     /**
      * Inserts the passed {@code message} and {@code receiver} into the current {@link Contextual} {@link #context}
-     * providing a function which shall be invoked prior to sending the {@code message} to the {@code reveiver}.
+     * providing a function which shall be invoked prior to sending the {@code message} to the {@code receiver}.
      *
      * @param message the message to insert into the current context.
      * @param receiver the ActorRef of the receiver which should get the message.

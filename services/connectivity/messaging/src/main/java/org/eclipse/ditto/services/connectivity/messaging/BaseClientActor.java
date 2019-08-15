@@ -156,7 +156,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         final BaseClientData startingData = new BaseClientData(connection.getId(), connection,
                 ConnectivityStatus.UNKNOWN, desiredConnectionStatus, "initialized", Instant.now(), null, null);
 
-
         clientGauge = DittoMetrics.gauge("connection_client")
                 .tag("id", connection.getId())
                 .tag("type", connection.getConnectionType().getName());
@@ -796,10 +795,14 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         final ConnectionMetrics connectionMetrics =
                 connectionCounterRegistry.aggregateConnectionMetrics(sourceMetrics, targetMetrics);
 
-        getSender().tell(
-                RetrieveConnectionMetricsResponse.of(connectionId(), connectionMetrics, sourceMetrics, targetMetrics,
-                        dittoHeaders),
-                getSelf());
+        final RetrieveConnectionMetricsResponse retrieveConnectionMetricsResponse =
+                RetrieveConnectionMetricsResponse.getBuilder(connectionId(), dittoHeaders)
+                .connectionMetrics(connectionMetrics)
+                .sourceMetrics(sourceMetrics)
+                .targetMetrics(targetMetrics)
+                .build();
+
+        this.getSender().tell(retrieveConnectionMetricsResponse, this.getSelf());
         return stay();
     }
 

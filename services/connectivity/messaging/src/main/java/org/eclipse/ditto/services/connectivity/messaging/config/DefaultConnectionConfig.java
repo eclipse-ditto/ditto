@@ -20,6 +20,8 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.services.base.config.supervision.DefaultSupervisorConfig;
 import org.eclipse.ditto.services.base.config.supervision.SupervisorConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultActivityCheckConfig;
 
 import com.typesafe.config.Config;
 
@@ -38,6 +40,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     private final Amqp10Config amqp10Config;
     private final MqttConfig mqttConfig;
     private final KafkaConfig kafkaConfig;
+    private final ActivityCheckConfig activityCheckConfig;
 
     private DefaultConnectionConfig(final ConfigWithFallback config) {
         flushPendingResponsesTimeout =
@@ -48,6 +51,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
         amqp10Config = DefaultAmqp10Config.of(config);
         mqttConfig = DefaultMqttConfig.of(config);
         kafkaConfig = DefaultKafkaConfig.of(config);
+        activityCheckConfig = DefaultActivityCheckConfig.of(config);
     }
 
     /**
@@ -98,6 +102,11 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     }
 
     @Override
+    public ActivityCheckConfig getActivityCheckConfig() {
+        return activityCheckConfig;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -112,13 +121,14 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 Objects.equals(snapshotConfig, that.snapshotConfig) &&
                 Objects.equals(amqp10Config, that.amqp10Config) &&
                 Objects.equals(mqttConfig, that.mqttConfig) &&
+                Objects.equals(activityCheckConfig, that.activityCheckConfig) &&
                 Objects.equals(kafkaConfig, that.kafkaConfig);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(flushPendingResponsesTimeout, clientActorAskTimeout, supervisorConfig, snapshotConfig,
-                amqp10Config, mqttConfig, kafkaConfig);
+                amqp10Config, mqttConfig, kafkaConfig, activityCheckConfig);
     }
 
     @Override
@@ -131,6 +141,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 ", amqp10Config=" + amqp10Config +
                 ", mqttConfig=" + mqttConfig +
                 ", kafkaConfig=" + kafkaConfig +
+                ", activityCheckConfig=" + activityCheckConfig +
                 "]";
     }
 
