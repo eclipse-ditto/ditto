@@ -121,7 +121,7 @@ public final class Filter {
                     builder.add(Flow.fromFunction(mapper::apply));
 
             final UniformFanOutShape<Either<C, B>, Either<C, B>> broadcast =
-                    builder.add(Broadcast.create(2));
+                    builder.add(Broadcast.create(2, true));
 
             final FlowShape<Either<C, B>, B> filterTrue =
                     builder.add(Flow.<Either<C, B>>create()

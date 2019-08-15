@@ -54,11 +54,11 @@ public final class ResourcesModified extends AbstractPolicyEvent<ResourcesModifi
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
+    public static final JsonFieldDefinition<JsonObject> JSON_RESOURCES =
+            JsonFactory.newJsonObjectFieldDefinition("resources", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
     static final JsonFieldDefinition<String> JSON_LABEL =
             JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
-
-    static final JsonFieldDefinition<JsonObject> JSON_RESOURCES =
-            JsonFactory.newJsonObjectFieldDefinition("resources", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final Label label;
     private final Resources resources;

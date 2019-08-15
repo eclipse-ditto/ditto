@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.utils.devops;
 
 import static akka.cluster.pubsub.DistributedPubSubMediator.Publish;
-import static akka.cluster.pubsub.DistributedPubSubMediator.Subscribe;
 import static akka.cluster.pubsub.DistributedPubSubMediator.SubscribeAck;
 
 import java.time.Duration;
@@ -37,6 +36,7 @@ import org.eclipse.ditto.model.devops.LoggerConfig;
 import org.eclipse.ditto.model.devops.LoggingFacade;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.actors.RetrieveConfigBehavior;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
@@ -190,9 +190,9 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
             }
             final Publish msg;
             if (isGroupTopic(command.getDittoHeaders())) {
-                msg = new Publish(topic, command, true);
+                msg = DistPubSubAccess.publishViaGroup(topic, command);
             } else {
-                msg = new Publish(topic, command);
+                msg = DistPubSubAccess.publish(topic, command);
             }
             log.info("Publishing DevOpsCommand <{}> into cluster on topic <{}> with " +
                     "sendOneMessageToEachGroup=<{}>", command.getType(), msg.topic(), msg.sendOneMessageToEachGroup());
@@ -223,8 +223,11 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
                                         .orElseGet(() -> executePiggyback.getPiggybackCommand()
                                                 .getValue(Command.JsonFields.TYPE));
                         if (topic.isPresent()) {
-                            final boolean isGroupTopic = isGroupTopic(dittoHeaders);
-                            onSuccess.accept(new Publish(topic.get(), jsonifiable, isGroupTopic));
+                            if (isGroupTopic(dittoHeaders)) {
+                                onSuccess.accept(DistPubSubAccess.publishViaGroup(topic.get(), jsonifiable));
+                            } else {
+                                onSuccess.accept(DistPubSubAccess.publish(topic.get(), jsonifiable));
+                            }
                         } else {
                             onError.accept(getErrorResponse(command));
                         }
@@ -368,10 +371,11 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
                 final String serviceName,
                 final String instance) {
 
-            pubSubMediator.tell(new Subscribe(topic, getSelf()), getSelf());
-            pubSubMediator.tell(new Subscribe(String.join(":", topic, serviceName), getSelf()), getSelf());
-            pubSubMediator.tell(new Subscribe(String.join(":", topic, serviceName), serviceName, getSelf()), getSelf());
-            pubSubMediator.tell(new Subscribe(String.join(":", topic, serviceName, instance), getSelf()), getSelf());
+            pubSubMediator.tell(DistPubSubAccess.subscribe(topic, getSelf()), getSelf());
+            pubSubMediator.tell(DistPubSubAccess.subscribe(String.join(":", topic, serviceName), getSelf()), getSelf());
+            pubSubMediator.tell(
+                    DistPubSubAccess.subscribeViaGroup(String.join(":", topic, serviceName), serviceName, getSelf()), getSelf());
+            pubSubMediator.tell(DistPubSubAccess.subscribe(String.join(":", topic, serviceName, instance), getSelf()), getSelf());
         }
 
         @Override

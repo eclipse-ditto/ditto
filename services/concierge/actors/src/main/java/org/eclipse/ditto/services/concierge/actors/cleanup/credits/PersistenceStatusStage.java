@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.services.concierge.actors.cleanup.messages.CreditDecision;
 import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.health.RetrieveHealth;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoMetricsReporter;
@@ -28,7 +29,6 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
 import akka.actor.Props;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.japi.Pair;
 import akka.pattern.Patterns;
 import akka.stream.FanOutShape2;
@@ -99,7 +99,7 @@ final class PersistenceStatusStage {
                 MessageAggregator.props(pubSubMediator, StatusInfo.class, expectedMessages, timeout);
 
         final Object publish =
-                new DistributedPubSubMediator.Publish(MongoMetricsReporter.PUBSUB_TOPIC, RetrieveHealth.newInstance());
+                DistPubSubAccess.publish(MongoMetricsReporter.PUBSUB_TOPIC, RetrieveHealth.newInstance());
 
         final ActorRef aggregator = actorRefFactory.actorOf(aggregatorProps);
 

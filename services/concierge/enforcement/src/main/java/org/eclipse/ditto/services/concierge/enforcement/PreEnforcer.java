@@ -51,6 +51,9 @@ import akka.stream.javadsl.Source;
  */
 public final class PreEnforcer {
 
+    private static final Attributes DEBUG_LEVEL =
+            Attributes.createLogLevels(Logging.DebugLevel(), Logging.DebugLevel(), Logging.ErrorLevel());
+
     private static final Attributes INFO_LEVEL =
             Attributes.createLogLevels(Logging.InfoLevel(), Logging.DebugLevel(), Logging.ErrorLevel());
 
@@ -92,6 +95,7 @@ public final class PreEnforcer {
 
                             return Source.fromCompletionStage(futureResult)
                                     .log("PreEnforcer")
+                                    .withAttributes(DEBUG_LEVEL)
                                     .flatMapConcat(PreEnforcer::keepResultAndLogErrors)
                                     .map(WithSender::getMessage)
                                     .map(msg -> contextual.withMessage((WithDittoHeaders) msg));
@@ -126,9 +130,6 @@ public final class PreEnforcer {
             @Nullable final ActorRef self,
             final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> processor) {
 
-        final Attributes logLevels =
-                Attributes.createLogLevels(Logging.DebugLevel(), Logging.DebugLevel(), Logging.ErrorLevel());
-
         final Flow<WithSender<WithDittoHeaders>, WithSender, NotUsed> flow =
                 Flow.<WithSender<WithDittoHeaders>>create()
                         .mapAsync(1, wrapped -> {
@@ -139,7 +140,7 @@ public final class PreEnforcer {
                             return handleErrorNowOrLater(futureSupplier, wrapped, wrapped.getSender(), self);
                         })
                         .log("PreEnforcer")
-                        .withAttributes(logLevels)
+                        .withAttributes(DEBUG_LEVEL)
                         .flatMapConcat(PreEnforcer::keepResultAndLogErrors);
 
         return Pipe.joinUnhandledSink(

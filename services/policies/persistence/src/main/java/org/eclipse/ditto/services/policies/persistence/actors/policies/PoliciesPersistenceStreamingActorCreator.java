@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.policies.persistence.actors.policies;
 import java.util.regex.Pattern;
 
 import org.eclipse.ditto.services.models.policies.PolicyTag;
+import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicyPersistenceActor;
 import org.eclipse.ditto.services.utils.persistence.mongo.DefaultPersistenceStreamingActor;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr;
@@ -45,12 +46,19 @@ public final class PoliciesPersistenceStreamingActorCreator {
      */
     public static Props props(final int streamingCacheSize) {
         return DefaultPersistenceStreamingActor.props(PolicyTag.class,
-                streamingCacheSize, PoliciesPersistenceStreamingActorCreator::createElement);
+                streamingCacheSize,
+                PoliciesPersistenceStreamingActorCreator::createElement,
+                PoliciesPersistenceStreamingActorCreator::createPidWithSeqNr);
     }
 
     private static PolicyTag createElement(final PidWithSeqNr pidWithSeqNr) {
         final String id = PERSISTENCE_ID_PATTERN.matcher(pidWithSeqNr.getPersistenceId()).replaceFirst("");
         return PolicyTag.of(id, pidWithSeqNr.getSequenceNr());
+    }
+
+    private static PidWithSeqNr createPidWithSeqNr(final EntityIdWithRevision connectionTag) {
+        return new PidWithSeqNr(PolicyPersistenceActor.PERSISTENCE_ID_PREFIX + connectionTag.getId(),
+                connectionTag.getRevision());
     }
 
 }

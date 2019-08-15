@@ -57,11 +57,11 @@ public final class ResourceCreated extends AbstractPolicyEvent<ResourceCreated>
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
+    public static final JsonFieldDefinition<String> JSON_RESOURCE_KEY =
+            JsonFactory.newStringFieldDefinition("resourceKey", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
     static final JsonFieldDefinition<String> JSON_LABEL =
             JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
-
-    static final JsonFieldDefinition<String> JSON_RESOURCE_KEY =
-            JsonFactory.newStringFieldDefinition("resourceKey", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<JsonObject> JSON_RESOURCE =
             JsonFactory.newJsonObjectFieldDefinition("resource", FieldType.REGULAR, JsonSchemaVersion.V_2);

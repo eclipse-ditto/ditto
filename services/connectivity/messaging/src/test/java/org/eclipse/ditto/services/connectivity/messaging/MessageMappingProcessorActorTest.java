@@ -29,6 +29,7 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -43,6 +44,7 @@ import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageDirection;
+import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.messages.MessageHeadersBuilder;
 import org.eclipse.ditto.model.placeholders.EnforcementFactoryFactory;
@@ -60,6 +62,7 @@ import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
+import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
 import org.junit.AfterClass;
@@ -77,6 +80,8 @@ import akka.testkit.javadsl.TestKit;
  * Tests {@link MessageMappingProcessorActor}.
  */
 public final class MessageMappingProcessorActorTest {
+
+    private static final String KNOWN_THING_ID = "my:thing";
 
     private static final String CONNECTION_ID = "testConnection";
 
@@ -191,6 +196,10 @@ public final class MessageMappingProcessorActorTest {
                         modifyCommand.getDittoHeaders().getCorrelationId().orElse(null));
                 assertThat(modifyAttribute.getDittoHeaders().getAuthorizationContext()).isEqualTo(
                         AUTHORIZATION_CONTEXT);
+                // thing ID is included in the header for error reporting
+                assertThat(modifyAttribute.getDittoHeaders())
+                        .extracting(headers -> headers.get(MessageHeaderDefinition.THING_ID.getKey()))
+                        .isEqualTo(KNOWN_THING_ID);
             } else {
                 final OutboundSignal errorResponse = expectMsgClass(OutboundSignal.WithExternalMessage.class);
                 assertThat(errorResponse.getSource()).isInstanceOf(ThingErrorResponse.class);
@@ -221,6 +230,79 @@ public final class MessageMappingProcessorActorTest {
             assertThat(modifyAttribute.getDittoHeaders().getSource()).contains(
                     "integration:" + correlationId + ":hub-application/json");
         });
+    }
+
+    @Test
+    public void testHeadersOnTwinTopicPathCombinationError() {
+        final String correlationId = UUID.randomUUID().toString();
+
+        final AuthorizationContext authorizationContext = AuthorizationModelFactory.newAuthContext(
+                AuthorizationModelFactory.newAuthSubject("integration:" + correlationId + ":hub-application/json"));
+
+        new TestKit(actorSystem) {{
+
+            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(getRef());
+
+            // WHEN: message sent valid topic and invalid topic+path combination
+            final String messageContent = "{  \n" +
+                    "   \"topic\":\"Testspace/octopus/things/twin/commands/retrieve\",\n" +
+                    "   \"path\":\"/policyId\",\n" +
+                    "   \"headers\":{  \n" +
+                    "      \"correlation-id\":\"" + correlationId + "\"\n" +
+                    "   }\n" +
+                    "}";
+            final ExternalMessage inboundMessage =
+                    ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
+                            .withText(messageContent)
+                            .withAuthorizationContext(authorizationContext)
+                            .build();
+
+            messageMappingProcessorActor.tell(inboundMessage, getRef());
+
+            // THEN: resulting error response retains the correlation ID
+            final ExternalMessage outboundMessage =
+                    expectMsgClass(OutboundSignal.WithExternalMessage.class).getExternalMessage();
+            assertThat(outboundMessage)
+                    .extracting(e -> e.getHeaders().get("correlation-id"))
+                    .isEqualTo(correlationId);
+        }};
+    }
+
+    @Test
+    public void testTopicOnLiveTopicPathCombinationError() {
+        final String correlationId = UUID.randomUUID().toString();
+
+        final AuthorizationContext authorizationContext = AuthorizationModelFactory.newAuthContext(
+                AuthorizationModelFactory.newAuthSubject("integration:" + correlationId + ":hub-application/json"));
+
+        new TestKit(actorSystem) {{
+
+            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(getRef());
+
+            // WHEN: message sent with valid topic and invalid topic+path combination
+            final String topicPrefix = "Testspace/octopus/things/live/";
+            final String topic = topicPrefix + "commands/retrieve";
+            final String path = "/policyId";
+            final String messageContent = "{  \n" +
+                    "   \"topic\":\"" + topic + "\",\n" +
+                    "   \"path\":\"" + path + "\"\n" +
+                    "}";
+            final ExternalMessage inboundMessage =
+                    ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
+                            .withText(messageContent)
+                            .withAuthorizationContext(authorizationContext)
+                            .build();
+
+            messageMappingProcessorActor.tell(inboundMessage, getRef());
+
+            // THEN: resulting error response retains the topic including thing ID and channel
+            final ExternalMessage outboundMessage =
+                    expectMsgClass(OutboundSignal.WithExternalMessage.class).getExternalMessage();
+            assertThat(outboundMessage)
+                    .extracting(e -> JsonFactory.newObject(e.getTextPayload().orElse("{}"))
+                            .getValue("topic"))
+                    .isEqualTo(Optional.of(JsonValue.of(topicPrefix + "errors")));
+        }};
     }
 
     @Test
@@ -255,7 +337,7 @@ public final class MessageMappingProcessorActorTest {
             final Map<String, String> headers = new HashMap<>();
             headers.put("correlation-id", correlationId);
             headers.put("content-type", "application/json");
-            final ModifyAttribute modifyCommand = ModifyAttribute.of("my:thing", JsonPointer.of("foo"),
+            final ModifyAttribute modifyCommand = ModifyAttribute.of(KNOWN_THING_ID, JsonPointer.of("foo"),
                     JsonValue.of(42), DittoHeaders.empty());
             final JsonifiableAdaptable adaptable = ProtocolFactory
                     .wrapAsJsonifiableAdaptable(DITTO_PROTOCOL_ADAPTER.toAdaptable(modifyCommand));
@@ -280,7 +362,7 @@ public final class MessageMappingProcessorActorTest {
 
             final String correlationId = UUID.randomUUID().toString();
             final ModifyAttributeResponse commandResponse =
-                    ModifyAttributeResponse.modified("my:thing", JsonPointer.of("foo"),
+                    ModifyAttributeResponse.modified(KNOWN_THING_ID, JsonPointer.of("foo"),
                             DittoHeaders.newBuilder()
                                     .correlationId(correlationId)
                                     .build());
@@ -297,6 +379,38 @@ public final class MessageMappingProcessorActorTest {
     }
 
     @Test
+    public void testThingNotAccessibleExceptionRetainsTopic() {
+        new TestKit(actorSystem) {{
+            final ActorRef messageMappingProcessorActor =
+                    createMessageMappingProcessorActor(getRef());
+
+            // WHEN: message mapping processor receives ThingNotAccessibleException with thing-id set from topic path
+            final String correlationId = UUID.randomUUID().toString();
+            final ThingNotAccessibleException thingNotAccessibleException =
+                    ThingNotAccessibleException.newBuilder(KNOWN_THING_ID)
+                            .dittoHeaders(DittoHeaders.newBuilder()
+                                    .correlationId(correlationId)
+                                    .putHeader(MessageHeaderDefinition.THING_ID.getKey(), KNOWN_THING_ID)
+                                    .build())
+                            .build();
+
+            messageMappingProcessorActor.tell(thingNotAccessibleException, getRef());
+
+            final OutboundSignal.WithExternalMessage outboundSignal =
+                    expectMsgClass(OutboundSignal.WithExternalMessage.class);
+
+            // THEN: correlation ID is preserved
+            assertThat(outboundSignal.getExternalMessage().getHeaders().get(CORRELATION_ID.getKey()))
+                    .contains(correlationId);
+
+            // THEN: topic-path contains thing ID
+            assertThat(outboundSignal.getExternalMessage())
+                    .extracting(e -> JsonFactory.newObject(e.getTextPayload().orElse("{}")).getValue("topic"))
+                    .isEqualTo(Optional.of(JsonFactory.newValue("my/thing/things/twin/errors")));
+        }};
+    }
+
+    @Test
     public void testCommandResponseWithResponseRequiredFalseIsNotProcessed() {
         new TestKit(actorSystem) {
             {
@@ -304,7 +418,7 @@ public final class MessageMappingProcessorActorTest {
                         createMessageMappingProcessorActor(getRef());
 
                 final ModifyAttributeResponse commandResponse =
-                        ModifyAttributeResponse.modified("my:thing", JsonPointer.of("foo"),
+                        ModifyAttributeResponse.modified(KNOWN_THING_ID, JsonPointer.of("foo"),
                                 DittoHeaders.newBuilder()
                                         .responseRequired(false)
                                         .build());
@@ -333,7 +447,7 @@ public final class MessageMappingProcessorActorTest {
         final String correlationId = UUID.randomUUID().toString();
         headers.put("correlation-id", correlationId);
         headers.put("content-type", "application/json");
-        return ModifyAttribute.of("my:thing", JsonPointer.of("foo"), JsonValue.of(42), DittoHeaders.of(headers));
+        return ModifyAttribute.of(KNOWN_THING_ID, JsonPointer.of("foo"), JsonValue.of(42), DittoHeaders.of(headers));
     }
 
     private static SendThingMessage<Object> createSendMessageCommand() {

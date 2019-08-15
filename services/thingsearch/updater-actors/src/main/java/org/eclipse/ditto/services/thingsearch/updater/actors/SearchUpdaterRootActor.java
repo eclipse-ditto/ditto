@@ -24,6 +24,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.streaming.Search
 import org.eclipse.ditto.services.utils.akka.streaming.SyncConfig;
 import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
@@ -43,7 +44,6 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
@@ -103,7 +103,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final ThingsSearchUpdaterPersistence searchUpdaterPersistence =
                 MongoThingsSearchUpdaterPersistence.of(dittoMongoClient.getDefaultDatabase());
 
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
 
         final UpdaterConfig updaterConfig = searchConfig.getUpdaterConfig();
         final boolean eventProcessingActive = updaterConfig.isEventProcessingActive();

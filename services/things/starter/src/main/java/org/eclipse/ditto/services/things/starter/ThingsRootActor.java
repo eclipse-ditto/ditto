@@ -31,6 +31,7 @@ import org.eclipse.ditto.services.things.persistence.actors.ThingSupervisorActor
 import org.eclipse.ditto.services.things.persistence.actors.ThingsPersistenceStreamingActorCreator;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
@@ -57,7 +58,6 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.cluster.Cluster;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ClusterShardingSettings;
 import akka.event.DiagnosticLoggingAdapter;
@@ -188,8 +188,8 @@ public final class ThingsRootActor extends AbstractActor {
         final ActorRef persistenceStreamingActor = startChildActor(ThingsPersistenceStreamingActorCreator.ACTOR_NAME,
                 ThingsPersistenceStreamingActorCreator.props(tagsConfig.getStreamingCacheSize()));
 
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(persistenceStreamingActor), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.put(persistenceStreamingActor), getSelf());
 
         final HttpConfig httpConfig = thingsConfig.getHttpConfig();
         String hostname = httpConfig.getHostname();
