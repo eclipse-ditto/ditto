@@ -229,7 +229,6 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         } else {
             message = session.createMessage();
         }
-        // replace default destination of session by message's actual destination
 
         // some headers must be handled differently to be passed to amqp message
         final Map<String, String> headers = externalMessage.getHeaders();
