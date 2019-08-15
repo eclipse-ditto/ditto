@@ -78,6 +78,15 @@ public final class TopicBloomFilters extends DistributedData<LWWMap<ActorRef, By
     }
 
     @Override
+    public CompletionStage<Boolean> contains(final ActorRef subscriber) {
+        return get(Replicator.readLocal())
+                .thenApply(optional ->
+                        optional.map(orMap -> orMap.contains(subscriber))
+                                .orElse(false)
+                );
+    }
+
+    @Override
     public CompletionStage<Void> updateOwnTopics(final ActorRef ownSubscriber, final ByteString ownBloomFilter,
             final Replicator.WriteConsistency writeConsistency) {
 

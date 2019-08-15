@@ -27,6 +27,7 @@ import org.eclipse.ditto.services.utils.pubsub.config.PubSubUpdaterConfig;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
+import akka.actor.DeadLetter;
 import akka.actor.Status;
 import akka.actor.Terminated;
 import akka.cluster.ddata.Replicator;
@@ -124,17 +125,23 @@ public final class PubSubUpdater extends AbstractActorWithTimers {
 
     @Override
     public Receive createReceive() {
-        // TODO: handle dead letters from publisher for removing dead remote entries with write consistency LOCAL
         // TODO: test dead letters handling in real cluster.
         return ReceiveBuilder.create()
                 .match(Subscribe.class, this::subscribe)
                 .match(Unsubscribe.class, this::unsubscribe)
                 .match(Terminated.class, this::terminated)
+                .match(DeadLetter.class, this::deadLetter)
                 .matchEquals(Clock.TICK, this::tick)
                 .match(LocalSubscriptionsReader.class, this::updateSuccess)
                 .match(Status.Failure.class, this::updateFailure)
                 .matchAny(this::logUnhandled)
                 .build();
+    }
+
+    private void deadLetter(final DeadLetter deadLetter) {
+        // publisher detected unreachable remote. remove it from local ORSet.
+        log.info("Removing remote <{}> due to <{}>", deadLetter.recipient(), deadLetter);
+        topicBloomFiltersWriter.removeSubscriber(deadLetter.recipient(), Replicator.writeLocal());
     }
 
     private void tick(final Clock tick) {
@@ -300,6 +307,16 @@ public final class PubSubUpdater extends AbstractActorWithTimers {
         public boolean shouldAcknowledge() {
             return acknowledge;
         }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() +
+                    "[topics=" + topics +
+                    ",subscriber=" + subscriber +
+                    ",writeConsistency=" + writeConsistency +
+                    ",acknowledge=" + acknowledge +
+                    "]";
+        }
     }
 
     /**
@@ -353,6 +370,14 @@ public final class PubSubUpdater extends AbstractActorWithTimers {
          */
         public ActorRef getSender() {
             return sender;
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() +
+                    "[request=" + request +
+                    ",sender=" + sender +
+                    "]";
         }
     }
 
