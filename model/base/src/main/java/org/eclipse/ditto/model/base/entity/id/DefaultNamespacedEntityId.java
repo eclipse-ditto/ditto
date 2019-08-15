@@ -30,8 +30,7 @@
       * <a href="http://www.ietf.org/rfc/rfc2396.txt">RFC-2396</a>.
       */
      private static final String ENTITY_NAME_REGEX =
-             "(?<" + ENTITY_NAME_GROUP_NAME +
-                     ">(?:[-\\w:@&=+,.!~*'_;]|%\\p{XDigit}{2})(?:[-\\w:@&=+,.!~*'$_;]|%\\p{XDigit}{2})*+)";
+             "(?<" + ENTITY_NAME_GROUP_NAME + ">(?:[-\\w:@&=+,.!~*'_;]|%\\p{XDigit}{2})++)";
 
      /**
       * The regex pattern for an Entity ID.
@@ -73,7 +72,7 @@
          }
      }
 
-     public static NamespacedEntityId fromCharSequence(final CharSequence entityId) {
+     public static NamespacedEntityId of(final CharSequence entityId) {
          return new DefaultNamespacedEntityId(entityId);
      }
 
@@ -89,7 +88,7 @@
          if (entityId instanceof NamespacedEntityId) {
              return (NamespacedEntityId) entityId;
          }
-         return DefaultNamespacedEntityId.fromCharSequence(entityId.toString());
+         return DefaultNamespacedEntityId.of(entityId.toString());
      }
 
      @Override

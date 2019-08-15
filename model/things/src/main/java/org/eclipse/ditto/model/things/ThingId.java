@@ -31,7 +31,7 @@ import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 
      public static ThingId of(final CharSequence thingId) {
          try {
-             return new ThingId(DefaultNamespacedEntityId.fromCharSequence(thingId));
+             return new ThingId(DefaultNamespacedEntityId.of(thingId));
          } catch (final EntityNameInvalidException e) {
              throw ThingIdInvalidException.forInvalidName(thingId).cause(e).build();
          } catch (final EntityNamespaceInvalidException e) {

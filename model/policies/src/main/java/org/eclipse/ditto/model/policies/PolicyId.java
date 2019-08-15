@@ -37,7 +37,7 @@
 
      public static PolicyId of(final CharSequence policyId) {
          try {
-             return new PolicyId(DefaultNamespacedEntityId.fromCharSequence(policyId));
+             return new PolicyId(DefaultNamespacedEntityId.of(policyId));
          } catch (final EntityNameInvalidException e) {
              throw PolicyIdInvalidException.forInvalidName(policyId).cause(e).build();
          } catch (final EntityNamespaceInvalidException e) {

@@ -93,7 +93,7 @@ public final class PolicySupervisorActor extends AbstractActor {
         persistenceActorProps = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator);
         exponentialBackOffConfig = policiesConfig.getPolicyConfig().getSupervisorConfig().getExponentialBackOffConfig();
         shutdownBehaviour = ShutdownBehaviour.fromId(
-                DefaultNamespacedEntityId.fromCharSequence(policyId), pubSubMediator, getSelf());
+                DefaultNamespacedEntityId.of(policyId), pubSubMediator, getSelf());
 
         child = null;
         restartCount = 0L;
