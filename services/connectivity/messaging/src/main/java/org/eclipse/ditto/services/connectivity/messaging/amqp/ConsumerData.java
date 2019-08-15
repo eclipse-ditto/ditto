@@ -28,12 +28,17 @@ public final class ConsumerData {
     private final String addressWithIndex;
     private final MessageConsumer messageConsumer;
 
-    ConsumerData(final Source source, final String address, final String addressWithIndex,
+    private ConsumerData(final Source source, final String address, final String addressWithIndex,
             final MessageConsumer messageConsumer) {
         this.source = source;
         this.address = address;
         this.addressWithIndex = addressWithIndex;
         this.messageConsumer = messageConsumer;
+    }
+
+    static ConsumerData of(final Source source, final String address, final String addressWithIndex,
+            final MessageConsumer messageConsumer) {
+        return new ConsumerData(source, address, addressWithIndex, messageConsumer);
     }
 
     Source getSource() {
@@ -54,6 +59,10 @@ public final class ConsumerData {
 
     String getActorNamePrefix() {
         return AmqpConsumerActor.ACTOR_NAME_PREFIX + source.getIndex() + "-" + addressWithIndex;
+    }
+
+    ConsumerData withMessageConsumer(final MessageConsumer messageConsumer) {
+        return new ConsumerData(source, address, addressWithIndex, messageConsumer);
     }
 
     @Override

@@ -14,14 +14,11 @@ package org.eclipse.ditto.services.connectivity.messaging.config;
 
 import java.time.Duration;
 
-import javax.annotation.concurrent.Immutable;
-
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings for Connectivity service's client.
  */
-@Immutable
 public interface ClientConfig {
 
     /**
@@ -36,6 +33,7 @@ public interface ClientConfig {
      * Initial timeout when connecting to a remote system. If the connection could not be established after this time, the
      * service will try to reconnect. If a failure happened during connecting, then the service will wait for at least this
      * time until it will try to reconnect. The max timeout is defined in {@link ClientConfig#getConnectingMaxTimeout()}.
+     *
      * @return the minimum connecting timeout.
      */
     Duration getConnectingMinTimeout();
@@ -43,15 +41,31 @@ public interface ClientConfig {
     /**
      * Max timeout (until reconnecting) when connecting to a remote system. See docs on {@link ClientConfig#getConnectingMinTimeout()}
      * for more information on the concept.
-     * @return the maximum connecting timeout.
+     *
+     * @return the maximum backoff.
      * @see ClientConfig#getConnectingMinTimeout()
      */
     Duration getConnectingMaxTimeout();
 
     /**
-     * How many times we will try to reconnect when connecting to a remote system.
+     * Minimum backoff duration after failure.
      *
+     * @return the minimum backoff.
+     */
+    Duration getMinBackoff();
+
+    /**
+     * Maximum backoff duration after failure.
+     *
+     * @return the maximum backoff.
+     */
+    Duration getMaxBackoff();
+
+    /**
+     * How many times we will try to reconnect when connecting to a remote system.
+     * <p>
      * The max time is about {@link ClientConfig#getConnectingMaxTimeout()} * this.
+     *
      * @return the maximum retries for connecting.
      */
     int getConnectingMaxTries();
@@ -59,6 +73,7 @@ public interface ClientConfig {
     /**
      * How long the service will wait for a successful connection when testing a new connection. If no response is
      * received after this duration, the test will be assumed a failure.
+     *
      * @return the testing timeout.
      */
     Duration getTestingTimeout();
@@ -91,7 +106,17 @@ public interface ClientConfig {
         /**
          * See documentation on {@link ClientConfig#getTestingTimeout()}.
          */
-        TESTING_TIMEOUT("testing-timeout", Duration.ofSeconds(10L));
+        TESTING_TIMEOUT("testing-timeout", Duration.ofSeconds(10L)),
+
+        /**
+         * See documentation on {@link ClientConfig#getConnectingMaxTimeout()}.
+         */
+        MIN_BACKOFF("min-backoff", Duration.ofSeconds(5L)),
+
+        /**
+         * See documentation on {@link ClientConfig#getConnectingMaxTries()}.
+         */
+        MAX_BACKOFF("max-backoff", Duration.ofHours(1L));
 
         private final String path;
         private final Object defaultValue;

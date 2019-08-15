@@ -17,11 +17,14 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.nio.ByteBuffer;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
@@ -41,26 +44,34 @@ import org.apache.qpid.proton.amqp.Symbol;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
-import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.placeholders.EnforcementFactoryFactory;
 import org.eclipse.ditto.model.placeholders.EnforcementFilterFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.BaseConsumerActor;
+import org.eclipse.ditto.services.connectivity.messaging.amqp.status.ConsumerClosedStatusReport;
 import org.eclipse.ditto.services.connectivity.messaging.config.Amqp10Config;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
+import akka.pattern.Patterns;
 import akka.routing.ConsistentHashingRouter;
 
 /**
@@ -75,7 +86,6 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     private static final String RESTART_MESSAGE_CONSUMER = "restartMessageConsumer";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-    private final MessageConsumer messageConsumer;
     private final EnforcementFilterFactory<Map<String, String>, String> headerEnforcementFilterFactory;
 
     // the configured throttling interval
@@ -85,23 +95,37 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     // the state for message throttling
     private final AtomicReference<ThrottleState> throttleState;
 
-    @SuppressWarnings("unused")
-    private AmqpConsumerActor(final String connectionId, final String sourceAddress,
-            final MessageConsumer messageConsumer,
-            final ActorRef messageMappingProcessor, final Source source) {
-        super(connectionId, sourceAddress, messageMappingProcessor, source.getAuthorizationContext(),
-                source.getHeaderMapping().orElse(null));
-        this.messageConsumer = checkNotNull(messageConsumer);
-        checkNotNull(source, "source");
+    // Access to the actor who performs JMS tasks in own thread
+    private final ActorRef jmsActor;
+    private final Duration jmsActorAskTimeout;
+    // data to reconstruct message consumer if something happens to it
+    private ConsumerData consumerData;
+    @Nullable
+    private MessageConsumer messageConsumer;
 
-        final Amqp10Config amqp10Config = DittoConnectivityConfig.of(
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
-        ).getConnectionConfig().getAmqp10Config();
+    @SuppressWarnings("unused")
+    private AmqpConsumerActor(final String connectionId, final ConsumerData consumerData,
+            final ActorRef messageMappingProcessor, final ActorRef jmsActor) {
+        super(connectionId,
+                checkNotNull(consumerData, "consumerData").getAddress(),
+                messageMappingProcessor,
+                consumerData.getSource().getAuthorizationContext(),
+                consumerData.getSource().getHeaderMapping().orElse(null));
+        final ConnectionConfig connectionConfig =
+                DittoConnectivityConfig.of(
+                        DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
+                        .getConnectionConfig();
+        final Amqp10Config amqp10Config = connectionConfig.getAmqp10Config();
+        this.messageConsumer = consumerData.getMessageConsumer();
+        this.consumerData = consumerData;
+        this.jmsActor = checkNotNull(jmsActor, "jmsActor");
+        jmsActorAskTimeout = connectionConfig.getClientActorAskTimeout();
+
         throttlingInterval = amqp10Config.getConsumerThrottlingInterval();
         throttlingLimit = amqp10Config.getConsumerThrottlingLimit();
         throttleState = new AtomicReference<>(new ThrottleState(0L, 0));
 
-        final Enforcement enforcement = source.getEnforcement().orElse(null);
+        final Enforcement enforcement = consumerData.getSource().getEnforcement().orElse(null);
 
         headerEnforcementFilterFactory = enforcement != null ? EnforcementFactoryFactory
                 .newEnforcementFilterFactory(enforcement, PlaceholderFactory.newHeadersPlaceholder()) :
@@ -112,18 +136,15 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
      * Creates Akka configuration object {@link Props} for this {@code AmqpConsumerActor}.
      *
      * @param connectionId the connection id
-     * @param sourceAddress the source address of messages
-     * @param messageConsumer the JMS message consumer
+     * @param consumerData the consumer data.
      * @param messageMappingProcessor the message mapping processor where received messages are forwarded to
-     * @param source the Source if the consumer
+     * @param jmsActor reference of the {@code JMSConnectionHandlingActor).
      * @return the Akka configuration Props object.
      */
-    static Props props(final String connectionId, final String sourceAddress,
-            final MessageConsumer messageConsumer,
-            final ActorRef messageMappingProcessor, final Source source) {
+    static Props props(final String connectionId, final ConsumerData consumerData,
+            final ActorRef messageMappingProcessor, final ActorRef jmsActor) {
 
-        return Props.create(AmqpConsumerActor.class, connectionId, sourceAddress, messageConsumer,
-                messageMappingProcessor, source);
+        return Props.create(AmqpConsumerActor.class, connectionId, consumerData, messageMappingProcessor, jmsActor);
     }
 
     @Override
@@ -133,6 +154,9 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                 .match(JmsMessage.class, this::handleJmsMessage)
                 .match(ResourceStatus.class, this::handleAddressStatus)
                 .match(RetrieveAddressStatus.class, ras -> getSender().tell(getCurrentSourceStatus(), getSelf()))
+                .match(ConsumerClosedStatusReport.class, this::matchesOwnConsumer, this::handleConsumerClosed)
+                .match(CreateMessageConsumerResponse.class, this::messageConsumerCreated)
+                .match(Status.Failure.class, this::messageConsumerFailed)
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
@@ -141,19 +165,13 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
 
     @Override
     public void preStart() throws JMSException {
-        messageConsumer.setMessageListener(this);
+        initMessageConsumer();
     }
 
     @Override
     public void postStop() throws Exception {
         super.postStop();
-        try {
-            log.debug("Closing AMQP Consumer for '{}'", sourceAddress);
-            messageConsumer.close();
-        } catch (final JMSException jmsException) {
-            log.debug("Closing consumer failed (can be ignored if connection was closed already): {}",
-                    jmsException.getMessage());
-        }
+        destroyMessageConsumer();
     }
 
     @Override
@@ -164,8 +182,92 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
         }
     }
 
+    private void initMessageConsumer() throws JMSException {
+        if (messageConsumer != null) {
+            messageConsumer.setMessageListener(this);
+            consumerData = consumerData.withMessageConsumer(messageConsumer);
+        }
+    }
+
+    private void destroyMessageConsumer() {
+        if (messageConsumer != null) {
+            try {
+                log.debug("Closing AMQP Consumer for '{}'", sourceAddress);
+                messageConsumer.close();
+            } catch (final JMSException jmsException) {
+                log.debug("Closing consumer failed (can be ignored if connection was closed already): {}",
+                        jmsException.getMessage());
+            }
+            messageConsumer = null;
+        }
+    }
+
+    private void stopMessageConsumer() {
+        if (messageConsumer != null) {
+            ((JmsMessageConsumer) messageConsumer).stop();
+        }
+    }
+
+    private void startMessageConsumer() {
+        if (messageConsumer != null) {
+            ((JmsMessageConsumer) messageConsumer).start();
+        }
+    }
+
     private boolean isThrottlingEnabled() {
         return throttlingInterval.toMillis() > 0 && throttlingLimit > 0;
+    }
+
+    private boolean matchesOwnConsumer(final ConsumerClosedStatusReport event) {
+        return messageConsumer != null && messageConsumer.equals(event.getMessageConsumer());
+    }
+
+    private void handleConsumerClosed(final ConsumerClosedStatusReport event) {
+        // consumer closed
+        // update own status
+        final ResourceStatus addressStatus = ConnectivityModelFactory.newStatusUpdate(
+                InstanceIdentifierSupplier.getInstance().get(),
+                ConnectivityStatus.FAILED,
+                sourceAddress,
+                "Consumer closed", Instant.now());
+        handleAddressStatus(addressStatus);
+
+        // destroy current message consumer in any case
+        destroyMessageConsumer();
+
+        /* ask JMSConnectionHandlingActor for a new consumer */
+        final CreateMessageConsumer createMessageConsumer = new CreateMessageConsumer(consumerData);
+        final CompletionStage<Object> responseFuture =
+                Patterns.ask(jmsActor, createMessageConsumer, jmsActorAskTimeout)
+                        .thenApply(response -> {
+                            if (response instanceof Throwable) {
+                                // create failed future so that Patterns.pipe sends me Status.Failure
+                                throw new CompletionException((Throwable) response);
+                            }
+                            return response;
+                        });
+        Patterns.pipe(responseFuture, getContext().getDispatcher()).to(getSelf());
+    }
+
+    private void messageConsumerCreated(final CreateMessageConsumerResponse response) throws JMSException {
+        if (consumerData.equals(response.consumerData)) {
+            log.info("Consumer <{}> created", response.messageConsumer);
+            destroyMessageConsumer();
+            messageConsumer = response.messageConsumer;
+            initMessageConsumer();
+            resetResourceStatus();
+        } else {
+            // got an orphaned message consumer! this is an error.
+            log.error("RESOURCE_LEAK! Got created MessageConsumer <{}> for <{}>, while I have <{}> for <{}>",
+                    response.messageConsumer, response.consumerData, messageConsumer, consumerData);
+        }
+    }
+
+    private void messageConsumerFailed(final Status.Failure failure) {
+        // escalate to parent
+        final ConnectionFailure connectionFailed = new ImmutableConnectionFailure(getSelf(), failure.cause(),
+                "Failed to recreate closed message consumer");
+        getContext().getParent().tell(connectionFailed, getSelf());
     }
 
     /**
@@ -188,7 +290,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
             // TODO: add monitoring logs after merge
             log.info("Stopping message consumer, message limit of {}/{} exceeded.", throttlingLimit,
                     throttlingInterval);
-            ((JmsMessageConsumer) messageConsumer).stop();
+            stopMessageConsumer();
             // calculate timestamp of next interval when the consumer should be restarted
             final long restartConsumerAt = (interval + 1) * throttlingInterval.toMillis();
             getSelf().tell(new RestartMessageConsumer(restartConsumerAt), ActorRef.noSender());
@@ -204,7 +306,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
         final long delay = restartMessageConsumer.getRestartAt() - System.currentTimeMillis();
         if (delay <= 25) { // restart message consumer immediately if delay is negative or too small to schedule
             log.debug("Restarting message consumer.");
-            ((JmsMessageConsumer) messageConsumer).start();
+            startMessageConsumer();
         } else { // otherwise schedule restarting of consumer
             log.debug("Scheduling restart of message consumer after {}ms.", delay);
             getTimers().startSingleTimer(RESTART_MESSAGE_CONSUMER, restartMessageConsumer, Duration.ofMillis(delay));
@@ -361,6 +463,37 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
         private ThrottleState(final long currentInterval, final int currentMessagePerInterval) {
             this.currentInterval = currentInterval;
             this.currentMessagePerInterval = currentMessagePerInterval;
+        }
+    }
+
+    /**
+     * Demand a new message consumer be made for this actor.
+     */
+    static final class CreateMessageConsumer {
+
+        private final ConsumerData consumerData;
+
+        private CreateMessageConsumer(final ConsumerData consumerData) {
+            this.consumerData = consumerData;
+        }
+
+        ConsumerData getConsumerData() {
+            return consumerData;
+        }
+
+        Object toResponse(final MessageConsumer messageConsumer) {
+            return new CreateMessageConsumerResponse(consumerData, messageConsumer);
+        }
+    }
+
+    private static final class CreateMessageConsumerResponse {
+
+        private final ConsumerData consumerData;
+        private final MessageConsumer messageConsumer;
+
+        private CreateMessageConsumerResponse(final ConsumerData consumerData, final MessageConsumer messageConsumer) {
+            this.consumerData = consumerData;
+            this.messageConsumer = messageConsumer;
         }
     }
 }
